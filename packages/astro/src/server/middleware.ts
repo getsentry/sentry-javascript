@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setHttpStatus } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -142,7 +142,7 @@ async function instrumentRequest(
         const originalResponse = await next();
 
         if (span && originalResponse.status) {
-          span.setHttpStatus(originalResponse.status);
+          setHttpStatus(span, originalResponse.status);
         }
 
         const scope = getCurrentScope();

@@ -6,6 +6,7 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   isSentryRequestUrl,
+  setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Span } from '@sentry/types';
@@ -211,7 +212,7 @@ export class Undici implements Integration {
 
     const span = request.__sentry_span__;
     if (span) {
-      span.setHttpStatus(response.statusCode);
+      setHttpStatus(span, response.statusCode);
       span.end();
     }
 

@@ -1103,7 +1103,7 @@ finished. This is useful for event emitters or similar.
 function middleware(_req, res, next) {
   return Sentry.startSpanManual({ name: 'middleware' }, (span, finish) => {
     res.once('finish', () => {
-      span?.setHttpStatus(res.status);
+      setHttpStatus(span, res.status);
       finish();
     });
     return next();

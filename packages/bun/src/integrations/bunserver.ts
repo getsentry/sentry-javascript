@@ -7,6 +7,7 @@ import {
   convertIntegrationFnToClass,
   getCurrentScope,
   runWithAsyncContext,
+  setHttpStatus,
   startSpan,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
@@ -93,8 +94,9 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                     typeof serveOptions.fetch
                   >);
                   if (response && response.status) {
-                    span?.setHttpStatus(response.status);
-                    span?.setAttribute('http.response.status_code', response.status);
+                    if (span) {
+                      setHttpStatus(span, response.status);
+                    }
                     if (span instanceof Transaction) {
                       const scope = getCurrentScope();
                       scope.setContext('response', {

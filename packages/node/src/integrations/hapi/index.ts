@@ -6,6 +6,7 @@ import {
   getActiveTransaction,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  setHttpStatus,
   spanToTraceHeader,
   startTransaction,
 } from '@sentry/core';
@@ -117,11 +118,11 @@ export const hapiTracingPlugin = {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
-      if (request.response && isResponseObject(request.response) && transaction) {
-        transaction.setHttpStatus(request.response.statusCode);
-      }
-
       if (transaction) {
+        if (request.response && isResponseObject(request.response)) {
+          setHttpStatus(transaction, request.response.statusCode);
+        }
+
         transaction.end();
       }
 

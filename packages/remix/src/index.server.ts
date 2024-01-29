@@ -15,6 +15,7 @@ export {
   addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureCheckIn,
   withMonitor,
   captureException,
@@ -30,6 +31,10 @@ export {
   getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
@@ -67,6 +72,13 @@ export {
   deepReadDirSync,
   Integrations,
   Handlers,
+  setMeasurement,
+  getActiveSpan,
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  continueTrace,
+  isInitialized,
   cron,
   parameterize,
 } from '@sentry/node';

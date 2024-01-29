@@ -6,6 +6,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getRootSpan,
   hasTracingEnabled,
+  setHttpStatus,
   spanToTraceHeader,
   startInactiveSpan,
 } from '@sentry/core';
@@ -53,7 +54,7 @@ export function instrumentFetchRequest(
     const span = spans[spanId];
     if (span) {
       if (handlerData.response) {
-        span.setHttpStatus(handlerData.response.status);
+        setHttpStatus(span, handlerData.response.status);
 
         const contentLength =
           handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
