@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -279,18 +280,21 @@ export function xhrCallback(
   const scope = getCurrentScope();
   const isolationScope = getIsolationScope();
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        attributes: {
-          type: 'xhr',
-          'http.method': sentryXhrData.method,
-          url: sentryXhrData.url,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-        },
-        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
-        op: 'http.client',
-      })
-    : undefined;
+  // only create a child span if there is an active span. This is because
+  // `startInactiveSpan` can still create a transaction under the hood
+  const span =
+    shouldCreateSpanResult && getActiveSpan()
+      ? startInactiveSpan({
+          attributes: {
+            type: 'xhr',
+            'http.method': sentryXhrData.method,
+            url: sentryXhrData.url,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+          },
+          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+          op: 'http.client',
+        })
+      : undefined;
 
   if (span) {
     xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;

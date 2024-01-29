@@ -1,5 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -81,18 +82,21 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        attributes: {
-          url,
-          type: 'fetch',
-          'http.method': method,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-        },
-        name: `${method} ${url}`,
-        op: 'http.client',
-      })
-    : undefined;
+  // only create a child span if there is an active span. This is because
+  // `startInactiveSpan` can still create a transaction under the hood
+  const span =
+    shouldCreateSpanResult && getActiveSpan()
+      ? startInactiveSpan({
+          attributes: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+          },
+          name: `${method} ${url}`,
+          op: 'http.client',
+        })
+      : undefined;
 
   if (span) {
     handlerData.fetchData.__span = span.spanContext().spanId;
