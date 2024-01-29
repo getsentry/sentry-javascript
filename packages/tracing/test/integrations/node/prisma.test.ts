@@ -58,6 +58,7 @@ describe('setupOnce', function () {
             'sentry.origin': 'auto.db.prisma',
           },
           name: 'user create',
+          onlyIfParent: true,
           op: 'db.prisma',
           data: { 'db.system': 'postgresql', 'db.prisma.version': '3.1.2', 'db.operation': 'create' },
         },

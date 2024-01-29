@@ -61,6 +61,7 @@ describe('awsServicesIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },
         name: 'aws.s3.getObject foo',
+        onlyIfParent: true,
       });
 
       expect(mockSpanEnd).toHaveBeenCalledTimes(1);
@@ -84,6 +85,7 @@ describe('awsServicesIntegration', () => {
       expect(mockStartInactiveSpan).toBeCalledWith({
         op: 'http.client',
         name: 'aws.s3.getObject foo',
+        onlyIfParent: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },
@@ -114,6 +116,7 @@ describe('awsServicesIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },
         name: 'aws.lambda.invoke foo',
+        onlyIfParent: true,
       });
       expect(mockSpanEnd).toHaveBeenCalledTimes(1);
     });

@@ -75,6 +75,7 @@ describe('GoogleCloudHttp tracing', () => {
       expect(mockStartInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
         name: 'POST /jobs',
+        onlyIfParent: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },
@@ -82,6 +83,7 @@ describe('GoogleCloudHttp tracing', () => {
       expect(mockStartInactiveSpan).toBeCalledWith({
         op: 'http.client.bigquery',
         name: expect.stringMatching(/^GET \/queries\/.+/),
+        onlyIfParent: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
         },

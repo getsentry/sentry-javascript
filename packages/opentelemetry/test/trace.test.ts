@@ -2,6 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
 import type { PropagationContext } from '@sentry/types';
 
 import { getClient } from '../src/custom/hub';
@@ -260,6 +261,28 @@ describe('trace', () => {
         },
       );
     });
+
+    describe('onlyIfParent', () => {
+      it('does not create a span if there is no parent', () => {
+        const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        expect(span).not.toBeInstanceOf(SpanClass);
+      });
+
+      it('creates a span if there is a parent', () => {
+        const span = startSpan({ name: 'parent span' }, () => {
+          const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+            return span;
+          });
+
+          return span;
+        });
+
+        expect(span).toBeInstanceOf(SpanClass);
+      });
+    });
   });
 
   describe('startInactiveSpan', () => {
@@ -349,6 +372,24 @@ describe('trace', () => {
       });
       expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
     });
+
+    describe('onlyIfParent', () => {
+      it('does not create a span if there is no parent', () => {
+        const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+        expect(span).not.toBeInstanceOf(SpanClass);
+      });
+
+      it('creates a span if there is a parent', () => {
+        const span = startSpan({ name: 'parent span' }, () => {
+          const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+          return span;
+        });
+
+        expect(span).toBeInstanceOf(SpanClass);
+      });
+    });
   });
 
   describe('startSpanManual', () => {
@@ -417,6 +458,28 @@ describe('trace', () => {
           expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
         },
       );
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).not.toBeInstanceOf(SpanClass);
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeInstanceOf(SpanClass);
     });
   });
 });

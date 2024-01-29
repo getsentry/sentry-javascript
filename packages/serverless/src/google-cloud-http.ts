@@ -64,6 +64,7 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
     const span = SETUP_CLIENTS.has(getClient() as Client)
       ? startInactiveSpan({
           name: `${httpMethod} ${reqOpts.uri}`,
+      onlyIfParent: true,
           op: `http.client.${identifyService(this.apiEndpoint)}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
