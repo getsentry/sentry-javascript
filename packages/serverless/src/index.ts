@@ -79,4 +79,10 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
+  requestDataIntegration,
+  linkedErrorsIntegration,
+  inboundFiltersIntegration,
+  functionToStringIntegration,
+  createGetModuleFromFilename,
+  metrics,
 } from '@sentry/node';

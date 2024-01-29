@@ -70,8 +70,6 @@ const DEPENDENTS: Dependent[] = [
       'runWithAsyncContext',
       'hapiErrorPlugin',
     ],
-    // TODO: Fix exports in serverless
-    skip: true,
   },
   {
     package: '@sentry/sveltekit',
