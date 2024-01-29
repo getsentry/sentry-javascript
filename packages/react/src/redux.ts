@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getClient, getCurrentScope } from '@sentry/browser';
-import { getGlobalScope } from '@sentry/core';
+import { getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
