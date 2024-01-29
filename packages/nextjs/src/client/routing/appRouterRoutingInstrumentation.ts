@@ -1,30 +1,33 @@
 import { WINDOW } from '@sentry/react';
-import type { Primitive, Transaction, TransactionContext } from '@sentry/types';
+import type { Primitive, Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
 import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
+type StartSpanCb = (context: StartSpanOptions) => void;
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-app-router',
 } as const;
 
 /**
- * Instruments the Next.js Clientside App Router.
+ * Instruments the Next.js Client App Router.
  */
 export function appRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
+  startPageloadSpanCallback: StartSpanCb,
+  startNavigationSpanCallback: StartSpanCb,
 ): void {
   // We keep track of the active transaction so we can finish it when we start a navigation transaction.
-  let activeTransaction: Transaction | undefined = undefined;
+  let activeTransaction: Span | undefined = undefined;
 
   // We keep track of the previous location name so we can set the `from` field on navigation transactions.
   // This is either a route or a pathname.
   let prevLocationName = WINDOW.location.pathname;
 
   if (startTransactionOnPageLoad) {
-    activeTransaction = startTransactionCb({
+    const transactionContext = {
       name: prevLocationName,
       op: 'pageload',
       origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -32,7 +35,9 @@ export function appRouterInstrumentation(
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       metadata: { source: 'url' },
-    });
+    } as const;
+    activeTransaction = startTransactionCb(transactionContext);
+    startPageloadSpanCallback(transactionContext);
   }
 
   if (startTransactionOnLocationChange) {
@@ -66,13 +71,16 @@ export function appRouterInstrumentation(
         activeTransaction.end();
       }
 
-      startTransactionCb({
+      const transactionContext = {
         name: transactionName,
         op: 'navigation',
         origin: 'auto.navigation.nextjs.app_router_instrumentation',
         tags,
         metadata: { source: 'url' },
-      });
+      } as const;
+
+      startTransactionCb(transactionContext);
+      startNavigationSpanCallback(transactionContext);
     });
   }
 }

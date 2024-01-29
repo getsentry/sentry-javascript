@@ -1,5 +1,5 @@
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
-import type { BrowserOptions, browserTracingIntegration } from '@sentry/react';
+import type { BrowserOptions } from '@sentry/react';
 import {
   Integrations as OriginalIntegrations,
   getCurrentScope,
@@ -10,11 +10,13 @@ import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
+import type { browserTracingIntegration } from './browserTracingIntegration';
 import { BrowserTracing } from './browserTracingIntegration';
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
 export * from '@sentry/react';
+// eslint-disable-next-line deprecation/deprecation
 export { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 export { captureUnderscoreErrorException } from '../common/_error';
 
@@ -139,5 +141,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
 export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
+
+export { browserTracingIntegration };
 
 export * from '../common';

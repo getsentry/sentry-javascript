@@ -1,7 +1,7 @@
 import type { ParsedUrlQuery } from 'querystring';
 import { getClient, getCurrentScope } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import type { Primitive, StartSpanOptions, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
   logger,
@@ -20,6 +20,7 @@ const globalObject = WINDOW as typeof WINDOW & {
 };
 
 type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
+type StartSpanCb = (context: StartSpanOptions) => void;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -117,6 +118,8 @@ export function pagesRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
   startTransactionOnPageLoad: boolean = true,
   startTransactionOnLocationChange: boolean = true,
+  startPageloadSpanCallback: StartSpanCb,
+  startNavigationSpanCallback: StartSpanCb,
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
@@ -129,7 +132,7 @@ export function pagesRouterInstrumentation(
 
   if (startTransactionOnPageLoad) {
     const source = route ? 'route' : 'url';
-    activeTransaction = startTransactionCb({
+    const transactionContext = {
       name: prevLocationName,
       op: 'pageload',
       origin: 'auto.pageload.nextjs.pages_router_instrumentation',
@@ -142,7 +145,9 @@ export function pagesRouterInstrumentation(
         source,
         dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
       },
-    });
+    } as const;
+    activeTransaction = startTransactionCb(transactionContext);
+    startPageloadSpanCallback(transactionContext);
   }
 
   if (startTransactionOnLocationChange) {
@@ -172,13 +177,15 @@ export function pagesRouterInstrumentation(
         activeTransaction.end();
       }
 
-      const navigationTransaction = startTransactionCb({
+      const transactionContext = {
         name: transactionName,
         op: 'navigation',
         origin: 'auto.navigation.nextjs.pages_router_instrumentation',
         tags,
         metadata: { source: transactionSource },
-      });
+      } as const;
+      const navigationTransaction = startTransactionCb(transactionContext);
+      startNavigationSpanCallback(transactionContext);
 
       if (navigationTransaction) {
         // In addition to the navigation transaction we're also starting a span to mark Next.js's `routeChangeStart`
