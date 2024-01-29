@@ -1,6 +1,7 @@
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
+import { getIsolationScope } from '@sentry/core';
 import {
   addBreadcrumb,
   getActiveSpan,
@@ -14,13 +15,7 @@ import {
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
-import type {
-  DynamicSamplingContext,
-  EventProcessor,
-  Integration,
-  SanitizedRequestData,
-  TracePropagationTargets,
-} from '@sentry/types';
+import type { EventProcessor, Integration, SanitizedRequestData, TracePropagationTargets } from '@sentry/types';
 import {
   LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -251,13 +246,15 @@ function _createWrappedRequestMethodFactory(
       // eslint-disable-next-line deprecation/deprecation
       const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
+      const client = getClient();
 
       // we don't want to record requests to Sentry as either breadcrumbs or spans, so just use the original method
-      if (isSentryRequestUrl(requestUrl, getClient())) {
+      if (isSentryRequestUrl(requestUrl, client)) {
         return originalRequestMethod.apply(httpModule, requestArgs);
       }
 
       const scope = getCurrentScope();
+      const isolationScope = getIsolationScope();
       const parentSpan = getActiveSpan();
 
       const data = getRequestSpanData(requestUrl, requestOptions);
@@ -272,19 +269,24 @@ function _createWrappedRequestMethodFactory(
           })
         : undefined;
 
-      if (shouldAttachTraceData(rawRequestUrl)) {
-        if (requestSpan) {
-          const sentryTraceHeader = spanToTraceHeader(requestSpan);
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
-          addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
-        } else {
-          const client = getClient();
-          const { traceId, sampled, dsc } = scope.getPropagationContext();
-          const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
-          const dynamicSamplingContext =
-            dsc || (client ? getDynamicSamplingContextFromClient(traceId, client, scope) : undefined);
-          addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, dynamicSamplingContext);
-        }
+      if (client && shouldAttachTraceData(rawRequestUrl)) {
+        const { traceId, spanId, sampled, dsc } = {
+          ...isolationScope.getPropagationContext(),
+          ...scope.getPropagationContext(),
+        };
+
+        const sentryTraceHeader = requestSpan
+          ? spanToTraceHeader(requestSpan)
+          : generateSentryTraceHeader(traceId, spanId, sampled);
+
+        const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+          dsc ||
+            (requestSpan
+              ? getDynamicSamplingContextFromSpan(requestSpan)
+              : getDynamicSamplingContextFromClient(traceId, client, scope)),
+        );
+
+        addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, sentryBaggageHeader);
       } else {
         DEBUG_BUILD &&
           logger.log(
@@ -334,7 +336,7 @@ function addHeadersToRequestOptions(
   requestOptions: RequestOptions,
   requestUrl: string,
   sentryTraceHeader: string,
-  dynamicSamplingContext: Partial<DynamicSamplingContext> | undefined,
+  sentryBaggageHeader: string | undefined,
 ): void {
   // Don't overwrite sentry-trace and baggage header if it's already set.
   const headers = requestOptions.headers || {};
@@ -344,15 +346,13 @@ function addHeadersToRequestOptions(
 
   DEBUG_BUILD &&
     logger.log(`[Tracing] Adding sentry-trace header ${sentryTraceHeader} to outgoing request to "${requestUrl}": `);
-  const sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-  const sentryBaggageHeader =
-    sentryBaggage && sentryBaggage.length > 0 ? normalizeBaggageHeader(requestOptions, sentryBaggage) : undefined;
 
   requestOptions.headers = {
     ...requestOptions.headers,
     'sentry-trace': sentryTraceHeader,
     // Setting a header to `undefined` will crash in node so we only set the baggage header when it's defined
-    ...(sentryBaggageHeader && { baggage: sentryBaggageHeader }),
+    ...(sentryBaggageHeader &&
+      sentryBaggageHeader.length > 0 && { baggage: normalizeBaggageHeader(requestOptions, sentryBaggageHeader) }),
   };
 }
 

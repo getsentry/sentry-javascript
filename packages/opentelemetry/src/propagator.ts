@@ -83,7 +83,7 @@ function getDsc(
   context: Context,
   propagationContext: PropagationContext,
   traceId: string | undefined,
-): DynamicSamplingContext | undefined {
+): Partial<DynamicSamplingContext> | undefined {
   // If we have a DSC on the propagation context, we just use it
   if (propagationContext.dsc) {
     return propagationContext.dsc;
