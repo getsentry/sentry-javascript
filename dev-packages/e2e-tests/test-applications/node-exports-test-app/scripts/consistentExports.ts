@@ -48,8 +48,11 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/remix',
     exports: Object.keys(SentryRemix),
-    // TODO: Fix exports in remix
-    skip: true,
+    ignoreExports: [
+      // Deprecated, no need to add this now to remix
+      'getModuleFromFilename',
+      'enableAnrDetection',
+    ],
   },
   {
     package: '@sentry/serverless',
@@ -58,9 +61,9 @@ const DEPENDENTS: Dependent[] = [
       // Deprecated, no need to add this now to serverless
       'extractTraceparentData',
       'getModuleFromFilename',
+      'enableAnrDetection',
       // TODO: Should these be exported from serverless?
       'cron',
-      'enableAnrDetection',
       'runWithAsyncContext',
       'hapiErrorPlugin',
     ],
