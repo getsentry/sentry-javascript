@@ -27,6 +27,7 @@
     "test:watch": "yarn test --watch"
   },
   "dependencies": {
+    "@hapi/hapi": "^20.3.0",
     "@prisma/client": "3.15.2",
     "@sentry/node": "7.98.0",
     "@sentry/tracing": "7.98.0",
