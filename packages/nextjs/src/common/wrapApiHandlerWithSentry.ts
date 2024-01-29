@@ -5,6 +5,7 @@ import {
   continueTrace,
   getCurrentScope,
   runWithAsyncContext,
+  setHttpStatus,
   startSpanManual,
 } from '@sentry/core';
 import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -123,8 +124,10 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             // eslint-disable-next-line @typescript-eslint/unbound-method
             res.end = new Proxy(res.end, {
               apply(target, thisArg, argArray) {
-                span?.setHttpStatus(res.statusCode);
-                span?.end();
+                if (span) {
+                  setHttpStatus(span, res.statusCode);
+                  span.end();
+                }
                 if (platformSupportsStreaming() && !wrappingTarget.__sentry_test_doesnt_support_streaming__) {
                   target.apply(thisArg, argArray);
                 } else {
@@ -180,8 +183,10 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
               res.statusCode = 500;
               res.statusMessage = 'Internal Server Error';
 
-              span?.setHttpStatus(res.statusCode);
-              span?.end();
+              if (span) {
+                setHttpStatus(span, res.statusCode);
+                span.end();
+              }
 
               // Make sure we have a chance to finish the transaction and flush events to Sentry before the handler errors
               // out. (Apps which are deployed on Vercel run their API routes in lambdas, and those lambdas will shut down the

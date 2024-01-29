@@ -5,6 +5,7 @@ import {
   captureException,
   continueTrace,
   handleCallbackErrors,
+  setHttpStatus,
   startSpan,
 } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/utils';
@@ -67,10 +68,12 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
           },
         );
 
-        if (handlerResult instanceof Response) {
-          span?.setHttpStatus(handlerResult.status);
-        } else {
-          span?.setStatus('ok');
+        if (span) {
+          if (handlerResult instanceof Response) {
+            setHttpStatus(span, handlerResult.status);
+          } else {
+            span.setStatus('ok');
+          }
         }
 
         return handlerResult;

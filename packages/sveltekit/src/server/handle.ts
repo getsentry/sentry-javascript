@@ -3,6 +3,7 @@ import {
   getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
 import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
@@ -191,7 +192,7 @@ async function instrumentHandle(
           transformPageChunk: addSentryCodeToPage(options),
         });
         if (span) {
-          span.setHttpStatus(res.status);
+          setHttpStatus(span, res.status);
         }
         return res;
       },
