@@ -4,9 +4,10 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "webpack": "^4.42.1"
+    "webpack": "^5.90.0"
   },
-  "devDependencies": {
-    "webpack-cli": "^3.3.11"
+  "volta": {
+    "extends": "../../../../../package.json",
+    "node": "10.24.1"
   }
 }
