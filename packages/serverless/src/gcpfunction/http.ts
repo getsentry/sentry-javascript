@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
   handleCallbackErrors,
+  setHttpStatus,
 } from '@sentry/core';
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { continueTrace, startSpanManual } from '@sentry/node';
@@ -106,8 +107,10 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         const _end = res.end;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
-          span?.setHttpStatus(res.statusCode);
-          span?.end();
+          if (span) {
+            setHttpStatus(span, res.statusCode);
+            span.end();
+          }
 
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)

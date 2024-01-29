@@ -1,5 +1,5 @@
 import type { ServerResponse } from 'http';
-import { flush } from '@sentry/core';
+import { flush, setHttpStatus } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 
@@ -41,7 +41,7 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
 /** Finish the given response's transaction and set HTTP status data */
 export function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): void {
   if (transaction) {
-    transaction.setHttpStatus(res.statusCode);
+    setHttpStatus(transaction, res.statusCode);
     transaction.end();
   }
 }

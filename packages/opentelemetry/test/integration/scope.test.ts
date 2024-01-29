@@ -69,7 +69,6 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId,
                   trace_id: traceId,
-                  parent_span_id: undefined,
                 }
               : expect.any(Object),
           }),
@@ -190,7 +189,6 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId1,
                   trace_id: traceId1,
-                  parent_span_id: undefined,
                 }
               : expect.any(Object),
           }),

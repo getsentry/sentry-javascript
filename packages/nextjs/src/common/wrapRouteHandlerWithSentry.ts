@@ -4,6 +4,7 @@ import {
   getCurrentScope,
   handleCallbackErrors,
   runWithAsyncContext,
+  setHttpStatus,
   startSpan,
 } from '@sentry/core';
 import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
@@ -66,7 +67,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
               );
 
               try {
-                span?.setHttpStatus(response.status);
+                span && setHttpStatus(span, response.status);
               } catch {
                 // best effort
               }

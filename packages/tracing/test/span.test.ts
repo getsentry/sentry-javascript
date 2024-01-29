@@ -98,6 +98,7 @@ describe('Span', () => {
       expect((span.getTraceContext() as any).status).toBe('permission_denied');
     });
 
+    // TODO (v8): Remove
     test('setHttpStatus', () => {
       const span = new Span({});
       span.setHttpStatus(404);
