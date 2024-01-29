@@ -74,12 +74,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * If a span should be created on page load.
+   * If this is set to `false`, this integration will not start the default page load span.
    * Default: true
    */
   instrumentPageLoad: boolean;
 
   /**
    * If a span should be created on navigation (history change).
+   * If this is set to `false`, this integration will not start the default navigation spans.
    * Default: true
    */
   instrumentNavigation: boolean;
@@ -142,9 +144,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
-
-let shouldUseDefaultPageLoadSpan = true;
-let shouldUseDefaultNavigationSpan = true;
 
 /**
  * The Browser Tracing integration automatically instruments browser pageload/navigation
@@ -308,13 +307,6 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 
       if (client.on) {
         client.on('startNavigationSpan', (context: StartSpanOptions) => {
-          // We check this inside of the hook handler, so that if a custom instrumentation triggers this,
-          // we don't need to check this option in the instrumentation, but can simply invoke it
-          // without needing to know the options of this integration
-          if (!options.instrumentNavigation) {
-            return;
-          }
-
           if (activeSpan) {
             DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
             // If there's an open transaction on the scope, we need to finish it before creating an new one.
@@ -324,13 +316,6 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
         });
 
         client.on('startPageLoadSpan', (context: StartSpanOptions) => {
-          // We check this inside of the hook handler, so that if a custom instrumentation triggers this,
-          // we don't need to check this option in the instrumentation, but can simply invoke it
-          // without needing to know the options of this integration
-          if (!options.instrumentPageLoad) {
-            return;
-          }
-
           if (activeSpan) {
             DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
             // If there's an open transaction on the scope, we need to finish it before creating an new one.
@@ -340,7 +325,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
         });
       }
 
-      if (options.instrumentPageLoad && client.emit && shouldUseDefaultPageLoadSpan) {
+      if (options.instrumentPageLoad && client.emit) {
         const context: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
@@ -370,17 +355,14 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 
           if (from !== to) {
             startingUrl = undefined;
-            // We check this in here again, as a custom instrumentation may have been triggered in the meanwhile
-            if (shouldUseDefaultNavigationSpan) {
-              const context: StartSpanOptions = {
-                name: WINDOW.location.pathname,
-                op: 'navigation',
-                origin: 'auto.navigation.browser',
-                metadata: { source: 'url' },
-              };
+            const context: StartSpanOptions = {
+              name: WINDOW.location.pathname,
+              op: 'navigation',
+              origin: 'auto.navigation.browser',
+              metadata: { source: 'url' },
+            };
 
-              startBrowserTracingNavigationSpan(context);
-            }
+            startBrowserTracingNavigationSpan(context);
           }
         });
       }
@@ -420,7 +402,6 @@ export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): 
   }
 
   client.emit('startPageLoadSpan', spanOptions);
-  shouldUseDefaultPageLoadSpan = false;
 }
 
 /**
@@ -434,23 +415,6 @@ export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions)
   }
 
   client.emit('startNavigationSpan', spanOptions);
-  shouldUseDefaultNavigationSpan = false;
-}
-
-/**
- * Use this method if you want to disable the default navigation span.
- * This is useful if you want to add custom routing instrumentation.
- */
-export function disableDefaultBrowserTracingNavigationSpan(disable = true): void {
-  shouldUseDefaultNavigationSpan = !disable;
-}
-
-/**
- * Use this method if you want to disable the default page load span.
- * This is useful if you want to add custom routing instrumentation.
- */
-export function disableDefaultBrowserTracingPageLoadSpan(disable = true): void {
-  shouldUseDefaultPageLoadSpan = !disable;
 }
 
 /** Returns the value of a meta tag */
