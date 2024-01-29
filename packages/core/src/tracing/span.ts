@@ -130,11 +130,15 @@ export class Span implements SpanInterface {
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
-    this._attributes = spanContext.attributes ? { ...spanContext.attributes } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.instrumenter = spanContext.instrumenter || 'sentry';
 
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanContext.origin || 'manual');
+    this._attributes = {};
+    this.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanContext.origin || 'manual',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
+      ...spanContext.attributes,
+    });
 
     // eslint-disable-next-line deprecation/deprecation
     this._name = spanContext.name || spanContext.description;
@@ -145,9 +149,6 @@ export class Span implements SpanInterface {
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
-    }
-    if (spanContext.op) {
-      this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, spanContext.op);
     }
     if (spanContext.status) {
       this._status = spanContext.status;

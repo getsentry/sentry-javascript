@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -283,10 +284,10 @@ export function xhrCallback(
           type: 'xhr',
           'http.method': sentryXhrData.method,
           url: sentryXhrData.url,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
         },
         name: `${sentryXhrData.method} ${sentryXhrData.url}`,
         op: 'http.client',
-        origin: 'auto.http.browser',
       })
     : undefined;
 

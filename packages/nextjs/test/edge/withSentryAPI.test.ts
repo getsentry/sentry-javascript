@@ -1,5 +1,5 @@
 import * as coreSdk from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
@@ -58,10 +58,10 @@ describe('wrapApiHandlerWithSentry', () => {
         },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
         },
         name: 'POST /user/[userId]/post/[postId]',
         op: 'http.server',
-        origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
       expect.any(Function),
     );
@@ -80,10 +80,10 @@ describe('wrapApiHandlerWithSentry', () => {
         metadata: {},
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [coreSdk.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
         },
         name: 'handler (/user/[userId]/post/[postId])',
         op: 'http.server',
-        origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
       expect.any(Function),
     );

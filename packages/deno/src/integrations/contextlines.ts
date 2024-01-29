@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
@@ -47,7 +47,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const denoContextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -60,12 +60,19 @@ const denoContextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node modules / packages to the event */
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
+
+/**
+ * Add node modules / packages to the event.
+ * @deprecated Use `contextLinesIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  denoContextLinesIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Promise<Event> }>;
+export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type ContextLines = typeof ContextLines;
 
 /** Processes an event and adds context lines */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {

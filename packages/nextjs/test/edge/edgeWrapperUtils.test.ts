@@ -87,10 +87,10 @@ describe('withEdgeWrapping', () => {
         },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [coreSdk.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
         },
         name: 'some label',
         op: 'some op',
-        origin: 'auto.function.nextjs.withEdgeWrapping',
       }),
       expect.any(Function),
     );

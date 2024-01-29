@@ -6,7 +6,10 @@ import type { Integration, Options, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { DenoClient } from './client';
-import { ContextLines, DenoContext, GlobalHandlers, NormalizePaths } from './integrations';
+import { denoContextIntegration } from './integrations/context';
+import { contextLinesIntegration } from './integrations/contextlines';
+import { globalHandlersIntegration } from './integrations/globalhandlers';
+import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
@@ -24,10 +27,10 @@ export const defaultIntegrations = [
     xhr: false,
   }),
   // Deno Specific
-  new DenoContext(),
-  new ContextLines(),
-  new NormalizePaths(),
-  new GlobalHandlers(),
+  denoContextIntegration(),
+  contextLinesIntegration(),
+  normalizePathsIntegration(),
+  globalHandlersIntegration(),
 ];
 
 /** Get the default integrations for the Deno SDK. */

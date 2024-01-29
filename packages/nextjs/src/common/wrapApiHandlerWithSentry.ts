@@ -9,6 +9,7 @@ import {
 } from '@sentry/core';
 import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
@@ -108,9 +109,9 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
             ...transactionContext,
             name: `${reqMethod}${reqPath}`,
             op: 'http.server',
-            origin: 'auto.http.nextjs',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
             },
             metadata: {
               // eslint-disable-next-line deprecation/deprecation

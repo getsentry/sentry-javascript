@@ -3,6 +3,7 @@ import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
@@ -82,8 +83,10 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          },
           op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
           name: '/users/[id]',
           status: 'ok',
           metadata: {
@@ -110,8 +113,10 @@ describe('wrapLoadWithSentry', () => {
       expect(mockStartSpan).toHaveBeenCalledTimes(1);
       expect(mockStartSpan).toHaveBeenCalledWith(
         {
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          },
           op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
           name: '/users/123',
           status: 'ok',
           metadata: {

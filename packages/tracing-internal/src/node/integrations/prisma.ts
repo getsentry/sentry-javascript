@@ -1,4 +1,4 @@
-import { getCurrentHub, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getCurrentHub, startSpan } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
@@ -104,7 +104,9 @@ export class Prisma implements Integration {
           {
             name: model ? `${model} ${action}` : action,
             op: 'db.prisma',
-            origin: 'auto.db.prisma',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.prisma',
+            },
             data: { ...clientData, 'db.operation': action },
           },
           () => next(params),

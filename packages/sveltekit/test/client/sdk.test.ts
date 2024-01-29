@@ -1,7 +1,7 @@
 import { getClient, getCurrentScope } from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
-import { SDK_VERSION, WINDOW } from '@sentry/svelte';
+import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
 import { vi } from 'vitest';
 
 import { BrowserTracing, init } from '../../src/client';
@@ -100,7 +100,26 @@ describe('Sentry client SDK', () => {
       it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
+          integrations: [new BrowserTracing({ finalTimeout: 10 })],
+          enableTracing: true,
+        });
+
+        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
+        const options = browserTracing.options;
+
+        expect(browserTracing).toBeDefined();
+
+        // This shows that the user-configured options are still here
+        expect(options.finalTimeout).toEqual(10);
+
+        // But we force the routing instrumentation to be ours
+        expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
+      });
+
+      it('Merges a user-provided browserTracingIntegration with the automatically added one', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: [browserTracingIntegration({ finalTimeout: 10 })],
           enableTracing: true,
         });
 

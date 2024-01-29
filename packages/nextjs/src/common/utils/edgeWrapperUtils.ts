@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
@@ -40,8 +41,10 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         ...transactionContext,
         name: options.spanDescription,
         op: options.spanOp,
-        origin: 'auto.function.nextjs.withEdgeWrapping',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
+        },
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
           ...transactionContext.metadata,

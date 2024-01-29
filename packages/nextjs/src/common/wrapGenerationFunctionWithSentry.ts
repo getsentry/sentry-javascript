@@ -12,6 +12,7 @@ import {
 import type { WebFetchHeaders } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
@@ -67,11 +68,11 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-            origin: 'auto.function.nextjs',
             ...transactionContext,
             data,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
             },
             metadata: {
               // eslint-disable-next-line deprecation/deprecation
