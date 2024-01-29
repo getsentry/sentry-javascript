@@ -29,3 +29,11 @@ export function startExpressServerAndSendPortToRunner(app: Express): void {
     console.log(`{"port":${address.port}}`);
   });
 }
+
+/**
+ * Sends the port to the runner
+ */
+export function sendPortToRunner(port: number): void {
+  // eslint-disable-next-line no-console
+  console.log(`{"port":${port}}`);
+}

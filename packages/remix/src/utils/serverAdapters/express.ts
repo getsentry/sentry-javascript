@@ -1,4 +1,11 @@
-import { getClient, getCurrentHub, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
+import {
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  hasTracingEnabled,
+  runWithAsyncContext,
+  setHttpStatus,
+} from '@sentry/core';
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
@@ -151,7 +158,7 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
   const { __sentryTransaction: transaction } = res;
 
   if (transaction) {
-    transaction.setHttpStatus(res.statusCode);
+    setHttpStatus(transaction, res.statusCode);
 
     // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
     // transaction closes, and make sure to wait until that's done before flushing events

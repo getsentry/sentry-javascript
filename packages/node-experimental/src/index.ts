@@ -66,7 +66,9 @@ export {
   Hub,
   runWithAsyncContext,
   SDK_VERSION,
+  // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   captureCheckIn,
