@@ -270,6 +270,7 @@ describe('tracingHandler', () => {
       parentSpanId: '1121201211212012',
       spanId: expect.any(String),
       sampled: false,
+      dsc: {}, // There is an incoming trace but no baggage header, so the DSC must be frozen (empty object)
     });
 
     // since we have no tracesSampler defined, the default behavior (inherit if possible) applies

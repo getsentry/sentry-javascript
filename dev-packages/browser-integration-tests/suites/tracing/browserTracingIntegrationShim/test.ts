@@ -4,7 +4,7 @@ import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest(
-  'exports a shim Integrations.BrowserTracing integration for non-tracing bundles',
+  'exports a shim browserTracingIntegration() integration for non-tracing bundles',
   async ({ getLocalTestPath, page }) => {
     // Skip in tracing tests
     if (!shouldSkipTracingTest()) {

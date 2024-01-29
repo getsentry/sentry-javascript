@@ -57,6 +57,9 @@ export {
   BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
@@ -66,7 +69,9 @@ export {
   extractTraceparentData,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
+  // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   makeMultiplexedTransport,

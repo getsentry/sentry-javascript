@@ -5,7 +5,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('Should not overwrite baggage if the incoming request already has Sentry baggage data.', async () => {
+test('Should overwrite baggage if the incoming request already has Sentry baggage data but no sentry-trace', async () => {
   const runner = createRunner(__dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
@@ -13,7 +13,7 @@ test('Should not overwrite baggage if the incoming request already has Sentry ba
   });
 
   expect(response).toBeDefined();
-  expect(response).toMatchObject({
+  expect(response).not.toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
       baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
@@ -25,7 +25,7 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   const runner = createRunner(__dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-    'sentry-trace': '',
+    'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
     baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
   });
 
@@ -38,11 +38,28 @@ test('Should propagate sentry trace baggage data from an incoming to an outgoing
   });
 });
 
-test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
+test('Should not propagate baggage data from an incoming to an outgoing request if sentry-trace is faulty.', async () => {
   const runner = createRunner(__dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
     'sentry-trace': '',
+    baggage: 'sentry-release=2.0.0,sentry-environment=myEnv,dogs=great',
+  });
+
+  expect(response).toBeDefined();
+  expect(response).not.toMatchObject({
+    test_data: {
+      host: 'somewhere.not.sentry',
+      baggage: 'sentry-release=2.0.0,sentry-environment=myEnv',
+    },
+  });
+});
+
+test('Should not propagate baggage if sentry-trace header is present in incoming request but no baggage header', async () => {
+  const runner = createRunner(__dirname, '..', 'server.ts').start();
+
+  const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
+    'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
   });
 
   expect(response).toBeDefined();
@@ -57,7 +74,7 @@ test('Should not propagate baggage and ignore original 3rd party baggage entries
   const runner = createRunner(__dirname, '..', 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
-    'sentry-trace': '',
+    'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
     baggage: 'foo=bar',
   });
 

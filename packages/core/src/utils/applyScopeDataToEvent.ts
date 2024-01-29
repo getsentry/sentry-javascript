@@ -1,4 +1,4 @@
-import type { Breadcrumb, Event, PropagationContext, ScopeData, Span } from '@sentry/types';
+import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
 import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
 import { getRootSpan } from './getRootSpan';
@@ -8,7 +8,7 @@ import { spanToJSON, spanToTraceContext } from './spanUtils';
  * Applies data from the scope to the event and runs all event processors on it.
  */
 export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
-  const { fingerprint, span, breadcrumbs, sdkProcessingMetadata, propagationContext } = data;
+  const { fingerprint, span, breadcrumbs, sdkProcessingMetadata } = data;
 
   // Apply general data
   applyDataToEvent(event, data);
@@ -22,7 +22,7 @@ export function applyScopeDataToEvent(event: Event, data: ScopeData): void {
 
   applyFingerprintToEvent(event, fingerprint);
   applyBreadcrumbsToEvent(event, breadcrumbs);
-  applySdkMetadataToEvent(event, sdkProcessingMetadata, propagationContext);
+  applySdkMetadataToEvent(event, sdkProcessingMetadata);
 }
 
 /** Merge data of two scopes together. */
@@ -163,15 +163,10 @@ function applyBreadcrumbsToEvent(event: Event, breadcrumbs: Breadcrumb[]): void 
   event.breadcrumbs = mergedBreadcrumbs.length ? mergedBreadcrumbs : undefined;
 }
 
-function applySdkMetadataToEvent(
-  event: Event,
-  sdkProcessingMetadata: ScopeData['sdkProcessingMetadata'],
-  propagationContext: PropagationContext,
-): void {
+function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData['sdkProcessingMetadata']): void {
   event.sdkProcessingMetadata = {
     ...event.sdkProcessingMetadata,
     ...sdkProcessingMetadata,
-    propagationContext: propagationContext,
   };
 }
 

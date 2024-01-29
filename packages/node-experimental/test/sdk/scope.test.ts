@@ -130,12 +130,7 @@ describe('Unit | Scope', () => {
         event_id: expect.any(String),
         environment: 'production',
         message: 'foo',
-        sdkProcessingMetadata: {
-          propagationContext: {
-            spanId: expect.any(String),
-            traceId: expect.any(String),
-          },
-        },
+        sdkProcessingMetadata: {},
       });
     });
 
@@ -213,16 +208,15 @@ describe('Unit | Scope', () => {
         user: { id: '1', email: 'test@example.com' },
         tags: { tag1: 'aa', tag2: 'aa' },
         extra: { extra1: 'aa', extra2: 'aa' },
-        contexts: { os: { name: 'os1' }, culture: { display_name: 'name1' } },
+        contexts: {
+          os: { name: 'os1' },
+          culture: { display_name: 'name1' },
+        },
         fingerprint: ['dd', 'aa'],
         breadcrumbs: [breadcrumb4, breadcrumb2, breadcrumb3, breadcrumb1],
         sdkProcessingMetadata: {
           aa: 'aa',
           bb: 'bb',
-          propagationContext: {
-            spanId: '1',
-            traceId: '1',
-          },
         },
       });
     });

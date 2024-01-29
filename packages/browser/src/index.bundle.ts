@@ -4,6 +4,7 @@ import {
   Feedback,
   Replay,
   addTracingExtensions,
+  browserTracingIntegration,
   feedbackIntegration,
   replayIntegration,
 } from '@sentry-internal/integration-shims';
@@ -24,6 +25,7 @@ export {
   Replay,
   // eslint-disable-next-line deprecation/deprecation
   Feedback,
+  browserTracingIntegration,
   feedbackIntegration,
   replayIntegration,
 };

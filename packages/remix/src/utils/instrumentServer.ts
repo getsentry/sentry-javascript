@@ -8,6 +8,7 @@ import {
   getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   runWithAsyncContext,
+  setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -495,7 +496,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
       if (isResponse(res)) {
-        transaction.setHttpStatus(res.status);
+        setHttpStatus(transaction, res.status);
       }
 
       transaction.end();

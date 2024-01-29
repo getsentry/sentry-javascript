@@ -1,4 +1,5 @@
 import * as domain from 'domain';
+
 import type { Event, Integration } from '@sentry/types';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
