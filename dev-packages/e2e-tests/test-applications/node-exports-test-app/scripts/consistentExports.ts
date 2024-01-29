@@ -22,8 +22,6 @@ const NODE_EXPORTS_IGNORE = [
   'DebugSession',
   'AnrIntegrationOptions',
   'LocalVariablesIntegrationOptions',
-  // deprecated
-  'spanStatusfromHttpCode',
 ];
 
 type Dependent = {
@@ -70,11 +68,6 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/sveltekit',
     exports: Object.keys(SentrySvelteKit),
-    ignoreExports: [
-      // Deprecated, no need to add this now to sveltekit
-      'enableAnrDetection',
-      'getModuleFromFilename',
-    ],
   },
 ];
 

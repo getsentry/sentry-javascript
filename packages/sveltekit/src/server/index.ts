@@ -79,6 +79,8 @@ export {
   continueTrace,
   cron,
   parameterize,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
   createGetModuleFromFilename,
   functionToStringIntegration,
   hapiErrorPlugin,
@@ -87,6 +89,8 @@ export {
   requestDataIntegration,
   metrics,
   runWithAsyncContext,
+  // eslint-disable-next-line deprecation/deprecation
+  enableAnrDetection,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
