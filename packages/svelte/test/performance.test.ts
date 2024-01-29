@@ -59,20 +59,20 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: {} } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(2);
+    expect(testTransaction.spans.length).toEqual(1);
   });
 
   it('creates an update span, when the component is updated', async () => {
@@ -90,27 +90,27 @@ describe('Sentry.trackComponent()', () => {
     await act(() => component.$set({ options: { trackUpdates: true } }));
 
     // once for init (unimportant here), once for starting the update span
-    expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
+    expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
-      op: 'ui.svelte.update',
+      description: '<Dummy$>',
+      op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
-    expect(testTransaction.spans.length).toEqual(3);
+    expect(testTransaction.spans.length).toEqual(1);
   });
 
   it('only creates init spans if trackUpdates is deactivated', () => {
     render(DummyComponent, { props: { options: { trackUpdates: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
 
-    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(0);
     expect(testTransaction.spans.length).toEqual(1);
   });
 
@@ -118,7 +118,7 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackInit: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -156,7 +156,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(2);
+    expect(testTransaction.spans.length).toEqual(1);
   });
 
   it("doesn't do anything, if there's no ongoing transaction", async () => {
@@ -188,10 +188,10 @@ describe('Sentry.trackComponent()', () => {
     // but not the second update
     expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
-    expect(testTransaction.spans.length).toEqual(2);
+    expect(testTransaction.spans.length).toEqual(1);
   });
 });

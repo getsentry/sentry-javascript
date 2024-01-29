@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "svelte": "3.49.0",
-    "@sveltejs/vite-plugin-svelte": "3.0.1",
+    "@sveltejs/vite-plugin-svelte": "1.4.0",
     "@testing-library/svelte": "^3.2.1"
   },
   "scripts": {
