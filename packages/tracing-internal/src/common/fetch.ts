@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -85,10 +86,10 @@ export function instrumentFetchRequest(
           url,
           type: 'fetch',
           'http.method': method,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
         },
         name: `${method} ${url}`,
         op: 'http.client',
-        origin: spanOrigin,
       })
     : undefined;
 

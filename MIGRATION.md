@@ -53,12 +53,15 @@ The following list shows how integrations should be migrated:
 | `new RewriteFrames()`     | `rewriteFramesIntegration()`     | `@sentry/integrations`                                                                                  |
 | `new SessionTiming()`     | `sessionTimingIntegration()`     | `@sentry/integrations`                                                                                  |
 | `new HttpClient()`        | `httpClientIntegration()`        | `@sentry/integrations`                                                                                  |
-| `new ContextLines()`      | `contextLinesIntegration()`      | `@sentry/browser`                                                                                       |
+| `new ContextLines()`      | `contextLinesIntegration()`      | `@sentry/browser`, `@sentry/deno`                                                                       |
 | `new Breadcrumbs()`       | `breadcrumbsIntegration()`       | `@sentry/browser`, `@sentry/deno`                                                                       |
-| `new GlobalHandlers()`    | `globalHandlersIntegration()`    | `@sentry/browser`                                                                                       |
+| `new GlobalHandlers()`    | `globalHandlersIntegration()`    | `@sentry/browser` , `@sentry/deno`                                                                      |
 | `new HttpContext()`       | `httpContextIntegration()`       | `@sentry/browser`                                                                                       |
 | `new TryCatch()`          | `browserApiErrorsIntegration()`  | `@sentry/browser`, `@sentry/deno`                                                                       |
 | `new VueIntegration()`    | `vueIntegration()`               | `@sentry/vue`                                                                                           |
+| `new DenoContext()`       | `denoContextIntegration()`       | `@sentry/deno`                                                                                          |
+| `new DenoCron()`          | `denoCronIntegration()`          | `@sentry/deno`                                                                                          |
+| `new NormalizePaths()`    | `normalizePathsIntegration()`    | `@sentry/deno`                                                                                          |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 

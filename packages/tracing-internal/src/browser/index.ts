@@ -3,6 +3,14 @@ export * from '../exports';
 export type { RequestInstrumentationOptions } from './request';
 
 export { BrowserTracing, BROWSER_TRACING_INTEGRATION_ID } from './browsertracing';
+export {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  disableDefaultBrowserTracingNavigationSpan,
+  disableDefaultBrowserTracingPageLoadSpan,
+} from './browserTracingIntegration';
+
 export { instrumentOutgoingRequests, defaultRequestInstrumentationOptions } from './request';
 
 export {

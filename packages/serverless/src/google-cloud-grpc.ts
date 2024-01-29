@@ -1,4 +1,5 @@
 import type { EventEmitter } from 'events';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { fill } from '@sentry/utils';
@@ -110,7 +111,9 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         const span = startInactiveSpan({
           name: `${callType} ${methodName}`,
           op: `grpc.${serviceIdentifier}`,
-          origin: 'auto.grpc.serverless',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+          },
         });
         ret.on('status', () => {
           if (span) {

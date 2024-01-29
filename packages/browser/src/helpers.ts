@@ -1,5 +1,7 @@
+import type { browserTracingIntegration } from '@sentry-internal/tracing';
+import { BrowserTracing } from '@sentry-internal/tracing';
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Mechanism, WrappedFunction } from '@sentry/types';
+import type { DsnLike, Integration, Mechanism, WrappedFunction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
@@ -184,4 +186,34 @@ export interface ReportDialogOptions {
   onLoad?(this: void): void;
   /** Callback after reportDialog closed */
   onClose?(this: void): void;
+}
+
+/**
+ * This is a slim shim of `browserTracingIntegration` for the CDN bundles.
+ * Since the actual functional integration uses a different code from `BrowserTracing`,
+ * we want to avoid shipping both of them in the CDN bundles, as that would blow up the size.
+ * Instead, we provide a functional integration with the same API, but the old implementation.
+ * This means that it's not possible to register custom routing instrumentation, but that's OK for now.
+ * We also don't expose the utilities for this anyhow in the CDN bundles.
+ * For users that need custom routing in CDN bundles, they have to continue using `new BrowserTracing()` until v8.
+ */
+export function bundleBrowserTracingIntegration(
+  options: Parameters<typeof browserTracingIntegration>[0] = {},
+): Integration {
+  // Migrate some options from the old integration to the new one
+  const opts: ConstructorParameters<typeof BrowserTracing>[0] = options;
+
+  if (typeof options.markBackgroundSpan === 'boolean') {
+    opts.markBackgroundTransactions = options.markBackgroundSpan;
+  }
+
+  if (typeof options.instrumentPageLoad === 'boolean') {
+    opts.startTransactionOnPageLoad = options.instrumentPageLoad;
+  }
+
+  if (typeof options.instrumentNavigation === 'boolean') {
+    opts.startTransactionOnLocationChange = options.instrumentNavigation;
+  }
+
+  return new BrowserTracing(opts);
 }

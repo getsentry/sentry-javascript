@@ -33,7 +33,16 @@ class BrowserTracingShim implements Integration {
   }
 }
 
-export { BrowserTracingShim as BrowserTracing };
+/**
+ * This is a shim for the BrowserTracing integration.
+ * It is needed in order for the CDN bundles to continue working when users add/remove tracing
+ * from it, without changing their config. This is necessary for the loader mechanism.
+ */
+function browserTracingIntegrationShim(_options: unknown): Integration {
+  return new BrowserTracingShim({});
+}
+
+export { BrowserTracingShim as BrowserTracing, browserTracingIntegrationShim as browserTracingIntegration };
 
 /** Shim function */
 export function addTracingExtensions(): void {

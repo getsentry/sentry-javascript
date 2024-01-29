@@ -2,6 +2,7 @@ import * as SentryNode from '@sentry/node';
 import * as AWS from 'aws-sdk';
 import * as nock from 'nock';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { AWSServices } from '../src/awsservices';
 
 describe('AWSServices', () => {
@@ -25,7 +26,9 @@ describe('AWSServices', () => {
       expect(data.Body?.toString('utf-8')).toEqual('contents');
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
-        origin: 'auto.http.serverless',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
         name: 'aws.s3.getObject foo',
       });
       // @ts-expect-error see "Why @ts-expect-error" note
@@ -42,8 +45,10 @@ describe('AWSServices', () => {
       });
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
-        origin: 'auto.http.serverless',
         name: 'aws.s3.getObject foo',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
       });
     });
   });
@@ -57,7 +62,9 @@ describe('AWSServices', () => {
       expect(data.Payload?.toString('utf-8')).toEqual('reply');
       expect(SentryNode.startInactiveSpan).toBeCalledWith({
         op: 'http.client',
-        origin: 'auto.http.serverless',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
         name: 'aws.lambda.invoke foo',
       });
     });

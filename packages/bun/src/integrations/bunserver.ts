@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
   captureException,
@@ -69,9 +70,11 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
           ctx => {
             return startSpan(
               {
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
+                },
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                origin: 'auto.http.bun.serve',
                 ...ctx,
                 data,
                 metadata: {

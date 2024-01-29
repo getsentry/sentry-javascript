@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
 import type { Integration, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
@@ -62,7 +63,9 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
       span = startInactiveSpan({
         name: describe(this, operation, params),
         op: 'http.client',
-        origin: 'auto.http.serverless',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
+        },
       });
     });
     req.on('complete', () => {
