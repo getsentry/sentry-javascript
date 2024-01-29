@@ -70,8 +70,11 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/sveltekit',
     exports: Object.keys(SentrySvelteKit),
-    // TODO: Fix exports in sveltekit
-    skip: true,
+    ignoreExports: [
+      // Deprecated, no need to add this now to sveltekit
+      'enableAnrDetection',
+      'getModuleFromFilename',
+    ],
   },
 ];
 

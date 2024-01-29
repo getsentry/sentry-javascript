@@ -30,6 +30,7 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
+  NodeClient,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
@@ -78,6 +79,14 @@ export {
   continueTrace,
   cron,
   parameterize,
+  createGetModuleFromFilename,
+  functionToStringIntegration,
+  hapiErrorPlugin,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  metrics,
+  runWithAsyncContext,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
