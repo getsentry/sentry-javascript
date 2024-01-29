@@ -38,6 +38,7 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
