@@ -7,7 +7,6 @@ import {
   TRACING_DEFAULTS,
   addTracingExtensions,
   getActiveTransaction,
-  spanIsSampled,
   spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
@@ -199,23 +198,27 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
 
     const isPageloadTransaction = context.op === 'pageload';
 
-    const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
-    const baggage = isPageloadTransaction ? getMetaContent('baggage') : '';
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-
-    const expandedContext: TransactionContext = {
-      ...context,
-      ...traceparentData,
-      metadata: {
-        // eslint-disable-next-line deprecation/deprecation
-        ...context.metadata,
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      },
-      trimEnd: true,
-    };
+    let expandedContext: TransactionContext;
+    if (isPageloadTransaction) {
+      const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
+      const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
+      const { traceparentData, dynamicSamplingContext } = tracingContextFromHeaders(sentryTrace, baggage);
+      expandedContext = {
+        ...context,
+        ...traceparentData,
+        metadata: {
+          // eslint-disable-next-line deprecation/deprecation
+          ...context.metadata,
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        },
+        trimEnd: true,
+      };
+    } else {
+      expandedContext = {
+        ...context,
+        trimEnd: true,
+      };
+    }
 
     const finalContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
 
@@ -261,24 +264,6 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
       if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
         idleTransaction.sendAutoFinishSignal();
       }
-    }
-
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = hub.getScope();
-
-    // If it's a pageload and there is a meta tag set
-    // use the traceparentData as the propagation context
-    if (isPageloadTransaction && traceparentData) {
-      scope.setPropagationContext(propagationContext);
-    } else {
-      // Navigation transactions should set a new propagation context based on the
-      // created idle transaction.
-      scope.setPropagationContext({
-        traceId: idleTransaction.spanContext().traceId,
-        spanId: idleTransaction.spanContext().spanId,
-        parentSpanId: spanToJSON(idleTransaction).parent_span_id,
-        sampled: spanIsSampled(idleTransaction),
-      });
     }
 
     idleTransaction.registerBeforeFinishCallback(transaction => {
