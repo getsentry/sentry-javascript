@@ -85,6 +85,8 @@ export {
   cron,
   parameterize,
   metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
   createGetModuleFromFilename,
   functionToStringIntegration,
   hapiErrorPlugin,
@@ -92,6 +94,8 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   runWithAsyncContext,
+  // eslint-disable-next-line deprecation/deprecation
+  enableAnrDetection,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
