@@ -99,11 +99,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   createGetModuleFromFilename,
-  functionToStringIntegration,
   hapiErrorPlugin,
-  inboundFiltersIntegration,
-  linkedErrorsIntegration,
-  requestDataIntegration,
   runWithAsyncContext,
   // eslint-disable-next-line deprecation/deprecation
   enableAnrDetection,

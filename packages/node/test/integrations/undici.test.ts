@@ -5,7 +5,7 @@ import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
 import type { fetch as FetchType } from 'undici';
 
 import { NodeClient } from '../../src/client';
-import type { UndiciOptions } from '../../src/integrations/undici';
+import type { Undici, UndiciOptions } from '../../src/integrations/undici';
 import { nativeNodeFetchintegration } from '../../src/integrations/undici';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
 import { conditionalTest } from '../utils';
@@ -376,6 +376,76 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     await fetch('http://localhost:18100', { method: 'POST' });
 
     undoPatch();
+  });
+
+  describe('nativeNodeFetchIntegration', () => {
+    beforeEach(function () {
+      const options = getDefaultNodeClientOptions({
+        dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+        tracesSampleRate: 1.0,
+        release: '1.0.0',
+        environment: 'production',
+      });
+      const client = new NodeClient(options);
+      const hub = new Hub(client);
+      // eslint-disable-next-line deprecation/deprecation
+      makeMain(hub);
+    });
+
+    it.each([
+      [undefined, { a: true, b: true }],
+      [{}, { a: true, b: true }],
+      [{ tracing: true }, { a: true, b: true }],
+      [{ tracing: false }, { a: false, b: false }],
+      [
+        { tracing: false, shouldCreateSpanForRequest: () => true },
+        { a: false, b: false },
+      ],
+      [
+        { tracing: true, shouldCreateSpanForRequest: (url: string) => url === 'a' },
+        { a: true, b: false },
+      ],
+    ])('sets correct _shouldCreateSpan filter with options=%p', (options, expected) => {
+      // eslint-disable-next-line deprecation/deprecation
+      const actual = nativeNodeFetchintegration(options) as unknown as Undici;
+
+      for (const [url, shouldBe] of Object.entries(expected)) {
+        expect(actual['_shouldCreateSpan'](url)).toEqual(shouldBe);
+      }
+    });
+
+    it('disables tracing spans if tracing is disabled in client', () => {
+      const client = new NodeClient(
+        getDefaultNodeClientOptions({
+          dsn: SENTRY_DSN,
+          integrations: [nativeNodeFetchintegration()],
+        }),
+      );
+      setCurrentClient(client);
+
+      // eslint-disable-next-line deprecation/deprecation
+      const actual = nativeNodeFetchintegration() as unknown as Undici;
+
+      expect(actual['_shouldCreateSpan']('a')).toEqual(false);
+      expect(actual['_shouldCreateSpan']('b')).toEqual(false);
+    });
+
+    it('enabled tracing spans if tracing is enabled in client', () => {
+      const client = new NodeClient(
+        getDefaultNodeClientOptions({
+          dsn: SENTRY_DSN,
+          integrations: [nativeNodeFetchintegration()],
+          enableTracing: true,
+        }),
+      );
+      setCurrentClient(client);
+
+      // eslint-disable-next-line deprecation/deprecation
+      const actual = nativeNodeFetchintegration() as unknown as Undici;
+
+      expect(actual['_shouldCreateSpan']('a')).toEqual(true);
+      expect(actual['_shouldCreateSpan']('b')).toEqual(true);
+    });
   });
 });
 

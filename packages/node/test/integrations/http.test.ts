@@ -11,7 +11,12 @@ import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
-import { Http as HttpIntegration } from '../../src/integrations/http';
+import {
+  Http as HttpIntegration,
+  _getShouldCreateSpanForRequest,
+  _shouldCreateSpans,
+  httpIntegration,
+} from '../../src/integrations/http';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
@@ -62,9 +67,11 @@ describe('tracing', () => {
       ...customOptions,
     });
     const client = new NodeClient(options);
-    const hub = new Hub(client);
+    const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
+    // eslint-disable-next-line deprecation/deprecation
+    hub.bindClient(client);
   }
 
   it("creates a span for each outgoing non-sentry request when there's a transaction on the scope", () => {
@@ -697,4 +704,133 @@ describe('default protocols', () => {
     const b = await p;
     expect(b.data?.url).toEqual(expect.stringContaining('https://'));
   });
+});
+
+describe('httpIntegration', () => {
+  beforeEach(function () {
+    const options = getDefaultNodeClientOptions({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      release: '1.0.0',
+      environment: 'production',
+    });
+    const client = new NodeClient(options);
+    const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it('converts default options', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({}) as unknown as HttpIntegration;
+
+    expect(integration['_breadcrumbs']).toBe(true);
+    expect(integration['_tracing']).toEqual({ enableIfHasTracingEnabled: true });
+  });
+
+  it('respects `tracing=false`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ tracing: false }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual(undefined);
+  });
+
+  it('respects `breadcrumbs=false`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ breadcrumbs: false }) as unknown as HttpIntegration;
+
+    expect(integration['_breadcrumbs']).toBe(false);
+  });
+
+  it('respects `tracing=true`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ tracing: true }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({});
+  });
+
+  it('respects `shouldCreateSpanForRequest`', () => {
+    const shouldCreateSpanForRequest = jest.fn();
+
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ shouldCreateSpanForRequest }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({
+      shouldCreateSpanForRequest,
+      enableIfHasTracingEnabled: true,
+    });
+  });
+
+  it('respects `shouldCreateSpanForRequest` & `tracing=true`', () => {
+    const shouldCreateSpanForRequest = jest.fn();
+
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ shouldCreateSpanForRequest, tracing: true }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({
+      shouldCreateSpanForRequest,
+    });
+  });
+});
+
+describe('_shouldCreateSpans', () => {
+  beforeEach(function () {
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it.each([
+    [undefined, undefined, false],
+    [{}, undefined, true],
+    [{ enableIfHasTracingEnabled: true }, undefined, false],
+    [{ enableIfHasTracingEnabled: false }, undefined, true],
+    [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 1 }, true],
+    [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 0 }, true],
+    [{}, {}, true],
+  ])('works with tracing=%p and clientOptions=%p', (tracing, clientOptions, expected) => {
+    const actual = _shouldCreateSpans(tracing, clientOptions);
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe('_getShouldCreateSpanForRequest', () => {
+  beforeEach(function () {
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it.each([
+    [false, undefined, undefined, { a: false, b: false }],
+    [true, undefined, undefined, undefined],
+    // with tracing callback only
+    [true, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, undefined, { a: true, b: false }],
+    // with client callback only
+    [true, undefined, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, { a: true, b: false }],
+    // with both callbacks, tracing takes precedence
+    [
+      true,
+      { shouldCreateSpanForRequest: (url: string) => url === 'a' },
+      { shouldCreateSpanForRequest: (url: string) => url === 'b' },
+      { a: true, b: false },
+    ],
+    // If `shouldCreateSpans===false`, the callback is ignored
+    [false, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, undefined, { a: false, b: false }],
+  ])(
+    'works with shouldCreateSpans=%p, tracing=%p and clientOptions=%p',
+    (shouldCreateSpans, tracing, clientOptions, expected) => {
+      const actual = _getShouldCreateSpanForRequest(shouldCreateSpans, tracing, clientOptions);
+
+      if (typeof expected === 'object') {
+        expect(typeof actual).toBe('function');
+
+        for (const [url, shouldBe] of Object.entries(expected)) {
+          expect(actual!(url)).toEqual(shouldBe);
+        }
+      } else {
+        expect(actual).toEqual(expected);
+      }
+    },
+  );
 });
