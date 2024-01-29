@@ -7,7 +7,6 @@ import {
   TRACING_DEFAULTS,
   addTracingExtensions,
   getActiveTransaction,
-  spanIsSampled,
   spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
