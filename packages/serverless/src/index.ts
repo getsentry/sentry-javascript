@@ -38,6 +38,8 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
+  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
@@ -84,6 +86,10 @@ export {
   linkedErrorsIntegration,
   inboundFiltersIntegration,
   functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
   createGetModuleFromFilename,
   metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  extractTraceparentData,
 } from '@sentry/node';
