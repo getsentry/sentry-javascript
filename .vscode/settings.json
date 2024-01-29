@@ -38,6 +38,5 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit",
   },
-  "editor.defaultFormatter": "biomejs.biome",
-  "cSpell.words": ["Statusfrom"]
+  "editor.defaultFormatter": "biomejs.biome"
 }
