@@ -9,9 +9,9 @@ import { RouterLink } from '@angular/router';
   <main>
     <h1>Welcome to Sentry's Angular 17 E2E test app</h1>
     <ul>
-      <li> <a [routerLink]="['/users', '123']">Visit User 123</a> </li>
+      <li> <a id="navLink" [routerLink]="['/users', '123']">Visit User 123</a> </li>
     </ul>
-    <button (click)="throwError()">Throw error</button>
+    <button id="errorBtn" (click)="throwError()">Throw error</button>
   </main>
 `,
 })
