@@ -17,8 +17,8 @@ import {
   GLOBAL_OBJ,
   createStackParser,
   nodeStackLineParser,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
@@ -291,7 +291,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

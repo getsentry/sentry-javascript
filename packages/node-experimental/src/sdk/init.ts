@@ -12,8 +12,8 @@ import {
   consoleSandbox,
   dropUndefinedKeys,
   logger,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -190,7 +190,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

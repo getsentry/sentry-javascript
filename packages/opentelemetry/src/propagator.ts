@@ -3,7 +3,7 @@ import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
-import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, tracingContextFromHeaders } from '@sentry/utils';
+import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContextFromHeaders } from '@sentry/utils';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
 import { getClient } from './custom/hub';
@@ -55,7 +55,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
         : maybeSentryTraceHeader
       : undefined;
 
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceHeader, maybeBaggageHeader);
+    const propagationContext = propagationContextFromHeaders(sentryTraceHeader, maybeBaggageHeader);
 
     // Add propagation context to context
     const contextWithPropagationContext = setPropagationContextOnContext(context, propagationContext);
