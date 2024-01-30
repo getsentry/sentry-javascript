@@ -92,4 +92,7 @@ export {
   metrics,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
+  runWithAsyncContext,
+  // eslint-disable-next-line deprecation/deprecation
+  enableAnrDetection,
 } from '@sentry/node';
