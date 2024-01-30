@@ -320,7 +320,7 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
-        run: lint:lerna
+        run: yarn lint:lerna
       - name: Validate ES5 builds
         run: yarn validate:es5
 
