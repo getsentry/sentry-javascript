@@ -8,6 +8,7 @@ import type {
   SpanContext,
   SpanContextData,
   SpanJSON,
+  SpanMetricSummaryAggregator,
   SpanOrigin,
   SpanTimeInput,
   TraceContext,
@@ -17,6 +18,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { MetricSummaryAggregator } from '../metric-summary';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -114,6 +116,7 @@ export class Span implements SpanInterface {
   protected _endTime?: number;
   /** Internal keeper of the status */
   protected _status?: SpanStatusType | string;
+  protected _metricSummary: MetricSummaryAggregator | undefined;
 
   private _logMessage?: string;
 
@@ -602,6 +605,15 @@ export class Span implements SpanInterface {
     return spanToTraceContext(this);
   }
 
+  /** @inheritdoc */
+  public getMetricSummaryAggregator(): SpanMetricSummaryAggregator {
+    if (!this._metricSummary) {
+      this._metricSummary = new MetricSummaryAggregator();
+    }
+
+    return this._metricSummary;
+  }
+
   /**
    * Get JSON representation of this span.
    *
@@ -624,6 +636,7 @@ export class Span implements SpanInterface {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      _metrics_summary: this._metricSummary ? this._metricSummary.getSummaryJson() : undefined,
     });
   }
 

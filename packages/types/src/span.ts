@@ -1,5 +1,6 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
+import type { SpanMetricSummaryAggregator } from './metrics';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
@@ -31,6 +32,14 @@ export type SpanAttributes = Partial<{
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
+export type MetricSummary = {
+  min: number;
+  max: number;
+  count: number;
+  sum: number;
+  tags?: Record<string, Primitive> | undefined;
+};
+
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
@@ -47,6 +56,7 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
+  _metrics_summary?: Record<string, MetricSummary>;
 }
 
 // These are aligned with OpenTelemetry trace flags
@@ -386,6 +396,11 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * @deprecated Use `spanToTraceContext()` util function instead.
    */
   getTraceContext(): TraceContext;
+
+  /**
+   * Gets the metric summary aggregator for this span
+   */
+  getMetricSummaryAggregator(): SpanMetricSummaryAggregator;
 
   /**
    * Convert the object to JSON.
