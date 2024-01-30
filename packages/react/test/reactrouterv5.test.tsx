@@ -6,7 +6,7 @@ import * as React from 'react';
 import { Route, Router, Switch, matchPath } from 'react-router-5';
 
 import { reactRouterV5Instrumentation, withSentryRouting } from '../src';
-import type { RouteConfig } from '../src/reactrouter';
+import type { RouteConfig } from '../src/reactrouterv4v5/types';
 
 describe('React Router v5', () => {
   function createInstrumentation(_opts?: {

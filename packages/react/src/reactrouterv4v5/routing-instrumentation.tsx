@@ -1,29 +1,13 @@
 import { WINDOW } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { Transaction, TransactionSource } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getClient, getRootSpan } from '@sentry/core';
+import type { Client, Transaction, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
-import type { Action, Location, ReactRouterInstrumentation } from './types';
-
-// We need to disable eslint no-explict-any because any is required for the
-// react-router typings.
-type Match = { path: string; url: string; params: Record<string, any>; isExact: boolean }; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-export type RouterHistory = {
-  location?: Location;
-  listen?(cb: (location: Location, action: Action) => void): void;
-} & Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-
-export type RouteConfig = {
-  [propName: string]: unknown;
-  path?: string | string[];
-  exact?: boolean;
-  component?: JSX.Element;
-  routes?: RouteConfig[];
-};
-
-type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+import type { ReactRouterInstrumentation } from '../types';
+import { V4_SETUP_CLIENTS, V5_SETUP_CLIENTS } from './global-flags';
+import { matchRoutes } from './route-utils';
+import type { MatchPath, RouteConfig, RouterHistory } from './types';
 
 let activeTransaction: Transaction | undefined;
 
@@ -45,7 +29,7 @@ export function reactRouterV5Instrumentation(
 
 function createReactRouterInstrumentation(
   history: RouterHistory,
-  name: string,
+  name: 'react-router-v4' | 'react-router-v5',
   allRoutes: RouteConfig[] = [],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
@@ -125,49 +109,21 @@ function createReactRouterInstrumentation(
   };
 }
 
-/**
- * Matches a set of routes to a pathname
- * Based on implementation from
- */
-function matchRoutes(
-  routes: RouteConfig[],
-  pathname: string,
-  matchPath: MatchPath,
-  branch: Array<{ route: RouteConfig; match: Match }> = [],
-): Array<{ route: RouteConfig; match: Match }> {
-  routes.some(route => {
-    const match = route.path
-      ? matchPath(pathname, route)
-      : branch.length
-        ? branch[branch.length - 1].match // use parent match
-        : computeRootMatch(pathname); // use default "root" match
-
-    if (match) {
-      branch.push({ route, match });
-
-      if (route.routes) {
-        matchRoutes(route.routes, pathname, matchPath, branch);
-      }
-    }
-
-    return !!match;
-  });
-
-  return branch;
-}
-
-function computeRootMatch(pathname: string): Match {
-  return { path: '/', url: '/', params: {}, isExact: pathname === '/' };
-}
-
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = (Route as any).displayName || (Route as any).name;
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
-      activeTransaction.updateName(props.computedMatch.path);
-      activeTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    // If we see a client has been set on the SETUP_CLIENTS weakmap, we know that the user is using the integration instead
+    // of the routing instrumentation. This means we have to get the root span ourselves instead of relying on `activeTransaction`.
+    const client = getClient();
+    const transaction =
+      V4_SETUP_CLIENTS.has(client as Client) || V5_SETUP_CLIENTS.has(client as Client)
+        ? getRootSpan(getActiveSpan() as any)
+        : activeTransaction;
+    if (transaction && props && props.computedMatch && props.computedMatch.isExact) {
+      transaction.updateName(props.computedMatch.path);
+      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above

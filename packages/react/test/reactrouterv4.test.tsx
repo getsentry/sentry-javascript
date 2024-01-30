@@ -6,7 +6,7 @@ import * as React from 'react';
 import { Route, Router, Switch, matchPath } from 'react-router-4';
 
 import { reactRouterV4Instrumentation, withSentryRouting } from '../src';
-import type { RouteConfig } from '../src/reactrouter';
+import type { RouteConfig } from '../src/reactrouterv4v5/types';
 
 describe('React Router v4', () => {
   function createInstrumentation(_opts?: {
@@ -28,6 +28,7 @@ describe('React Router v4', () => {
     const mockStartTransaction = jest
       .fn()
       .mockReturnValue({ updateName: mockUpdateName, end: mockFinish, setAttribute: mockSetAttribute });
+
     reactRouterV4Instrumentation(history, options.routes, options.matchPath)(
       mockStartTransaction,
       options.startTransactionOnPageLoad,
