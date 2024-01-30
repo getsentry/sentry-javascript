@@ -65,8 +65,6 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/sveltekit',
     exports: Object.keys(SentrySvelteKit),
-    // TODO: Fix exports in sveltekit
-    skip: true,
   },
 ];
 
