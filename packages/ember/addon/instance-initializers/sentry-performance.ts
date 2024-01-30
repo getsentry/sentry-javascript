@@ -103,9 +103,15 @@ export function _instrumentEmberRouter(
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
   const url = getLocationURL(location);
 
+  const client = Sentry.getClient<BrowserClient>();
+
+  if (!client) {
+    return;
+  }
+
   if (url && browserTracingOptions.startTransactionOnPageLoad !== false) {
     const routeInfo = routerService.recognize(url);
-    Sentry.startBrowserTracingPageLoadSpan({
+    Sentry.startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
       op: 'pageload',
       origin: 'auto.pageload.ember',
@@ -134,7 +140,7 @@ export function _instrumentEmberRouter(
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
     activeRootSpan?.end();
 
-    Sentry.startBrowserTracingNavigationSpan({
+    Sentry.startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
       op: 'navigation',
       origin: 'auto.navigation.ember',
