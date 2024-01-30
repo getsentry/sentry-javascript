@@ -548,7 +548,7 @@ jobs:
     name: Playwright (${{ matrix.bundle }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04-large-js
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -669,7 +669,7 @@ jobs:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04-large-js
     timeout-minutes: 20
     strategy:
       fail-fast: false
@@ -839,7 +839,7 @@ jobs:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
