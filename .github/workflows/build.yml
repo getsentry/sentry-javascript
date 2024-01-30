@@ -555,7 +555,6 @@ jobs:
       matrix:
         bundle:
           - esm
-          - cjs
           - bundle_es5
           - bundle_es5_min
           - bundle_es6
