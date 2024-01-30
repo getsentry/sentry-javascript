@@ -335,6 +335,28 @@ describe('startSpan', () => {
       });
     });
   });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
+  });
 });
 
 describe('startSpanManual', () => {
@@ -415,6 +437,28 @@ describe('startSpanManual', () => {
       });
     });
   });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
+  });
 });
 
 describe('startInactiveSpan', () => {
@@ -477,6 +521,24 @@ describe('startInactiveSpan', () => {
       const span = startInactiveSpan({ name: 'span' });
       expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
       span?.end();
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
     });
   });
 });

@@ -57,6 +57,7 @@ class Profiler extends React.Component<ProfilerProps> {
 
     this._mountSpan = startInactiveSpan({
       name: `<${name}>`,
+      onlyIfParent: true,
       op: REACT_MOUNT_OP,
       origin: 'auto.ui.react.profiler',
       attributes: { 'ui.component_name': name },
@@ -83,6 +84,7 @@ class Profiler extends React.Component<ProfilerProps> {
         this._updateSpan = withActiveSpan(this._mountSpan, () => {
           return startInactiveSpan({
             name: `<${this.props.name}>`,
+            onlyIfParent: true,
             op: REACT_UPDATE_OP,
             origin: 'auto.ui.react.profiler',
             startTimestamp: now,
@@ -115,6 +117,7 @@ class Profiler extends React.Component<ProfilerProps> {
       const startTimestamp = spanToJSON(this._mountSpan).timestamp;
       withActiveSpan(this._mountSpan, () => {
         const renderSpan = startInactiveSpan({
+          onlyIfParent: true,
           name: `<${name}>`,
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
@@ -187,6 +190,7 @@ function useProfiler(
 
     return startInactiveSpan({
       name: `<${name}>`,
+      onlyIfParent: true,
       op: REACT_MOUNT_OP,
       origin: 'auto.ui.react.profiler',
       attributes: { 'ui.component_name': name },
@@ -205,6 +209,7 @@ function useProfiler(
 
         const renderSpan = startInactiveSpan({
           name: `<${name}>`,
+          onlyIfParent: true,
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
           startTimestamp,

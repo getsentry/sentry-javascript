@@ -80,7 +80,9 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
+
     // eslint-disable-next-line deprecation/deprecation
     scope.setSpan(activeSpan);
 
@@ -128,7 +130,9 @@ export function startSpanManual<T>(
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
+
     // eslint-disable-next-line deprecation/deprecation
     scope.setSpan(activeSpan);
 
@@ -173,6 +177,12 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     ? // eslint-disable-next-line deprecation/deprecation
       context.scope.getSpan()
     : getActiveSpan();
+
+  const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+
+  if (shouldSkipSpan) {
+    return undefined;
+  }
 
   if (parentSpan) {
     // eslint-disable-next-line deprecation/deprecation
