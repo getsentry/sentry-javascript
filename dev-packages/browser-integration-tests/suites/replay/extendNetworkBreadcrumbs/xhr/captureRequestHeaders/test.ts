@@ -3,9 +3,9 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
 sentryTest('captures request headers', async ({ getLocalTestPath, page, browserName }) => {
@@ -29,7 +29,9 @@ sentryTest('captures request headers', async ({ getLocalTestPath, page, browserN
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -54,7 +56,7 @@ sentryTest('captures request headers', async ({ getLocalTestPath, page, browserN
     /* eslint-enable */
   });
 
-  const [request, replayReq1] = await Promise.all([requestPromise, replayRequestPromise1]);
+  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -71,8 +73,8 @@ sentryTest('captures request headers', async ({ getLocalTestPath, page, browserN
     },
   });
 
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
     {
       data: {
         method: 'POST',
@@ -116,7 +118,9 @@ sentryTest(
     });
 
     const requestPromise = waitForErrorRequest(page);
-    const replayRequestPromise1 = waitForReplayRequest(page, 0);
+    const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+      return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+    });
 
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
@@ -141,7 +145,7 @@ sentryTest(
       /* eslint-enable */
     });
 
-    const [request, replayReq1] = await Promise.all([requestPromise, replayRequestPromise1]);
+    const [request] = await Promise.all([requestPromise]);
 
     const eventData = envelopeRequestParser(request);
 
@@ -159,8 +163,8 @@ sentryTest(
       },
     });
 
-    const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-    expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+    const { replayRecordingSnapshots } = await replayRequestPromise;
+    expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
       {
         data: {
           method: 'POST',
