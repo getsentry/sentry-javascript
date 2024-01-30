@@ -913,6 +913,7 @@ jobs:
             'generic-ts3.8',
             'node-experimental-fastify-app',
             'node-hapi-app',
+            'node-exports-test-app',
           ]
         build-command:
           - false
@@ -946,6 +947,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'dev-packages/e2e-tests/package.json'
+      - name: Set up Bun
+        if: matrix.test-application == 'node-exports-test-app'
+        uses: oven-sh/setup-bun@v1
       - name: Restore caches
         uses: ./.github/actions/restore-cache
         env:
