@@ -2,12 +2,16 @@ import {
   BrowserTracing as OriginalBrowserTracing,
   browserTracingIntegration as originalBrowserTracingIntegration,
   defaultRequestInstrumentationOptions,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
 } from '@sentry/react';
 import type { Integration, StartSpanOptions } from '@sentry/types';
 import { nextRouterInstrumentation } from '../index.client';
 
 /**
  * A custom BrowserTracing integration for Next.js.
+ *
+ * @deprecated Use `browserTracingIntegration` instead.
  */
 export class BrowserTracing extends OriginalBrowserTracing {
   public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
@@ -32,7 +36,7 @@ export class BrowserTracing extends OriginalBrowserTracing {
 }
 
 /**
- * TODO
+ * A custom BrowserTracing integration for Next.js.
  */
 export function browserTracingIntegration(
   options?: Parameters<typeof originalBrowserTracingIntegration>[0],
@@ -50,20 +54,26 @@ export function browserTracingIntegration(
         if (!client.emit) {
           return;
         }
-        client.emit('startPageLoadSpan', startSpanOptions);
-        return undefined;
+
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
       };
 
       const startNavigationCallback = (startSpanOptions: StartSpanOptions): void => {
         if (!client.emit) {
           return;
         }
-        client.emit('startNavigationSpan', startSpanOptions);
-        return undefined;
+
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
       };
 
       // eslint-disable-next-line deprecation/deprecation
-      nextRouterInstrumentation(() => undefined, true, true, startPageloadCallback, startNavigationCallback);
+      nextRouterInstrumentation(
+        () => undefined,
+        options?.instrumentPageLoad,
+        options?.instrumentNavigation,
+        startPageloadCallback,
+        startNavigationCallback,
+      );
     },
   };
 }

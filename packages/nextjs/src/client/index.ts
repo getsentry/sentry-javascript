@@ -10,7 +10,7 @@ import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import type { browserTracingIntegration } from './browserTracingIntegration';
+import { browserTracingIntegration } from './browserTracingIntegration';
 import { BrowserTracing } from './browserTracingIntegration';
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
@@ -37,6 +37,7 @@ export const Integrations = {
 //
 // import { BrowserTracing } from '@sentry/nextjs';
 // const instance = new BrowserTracing();
+// eslint-disable-next-line deprecation/deprecation
 export { BrowserTracing, rewriteFramesIntegration };
 
 // Treeshakable guard to remove all code related to tracing
@@ -70,7 +71,7 @@ export function init(options: BrowserOptions): void {
 }
 
 // TODO v8: Remove this again
-// We need to handle BrowserTracing passed to `integrations` that comes from `@sentry/tracing`, not `@sentry/sveltekit` :(
+// We need to handle BrowserTracing passed to `integrations` that comes from `@sentry/tracing`, not `@sentry/nextjs` :(
 function fixBrowserTracingIntegration(options: BrowserOptions): void {
   const { integrations } = options;
   if (!integrations) {
@@ -91,6 +92,7 @@ function fixBrowserTracingIntegration(options: BrowserOptions): void {
 function isNewBrowserTracingIntegration(
   integration: Integration,
 ): integration is Integration & { options?: Parameters<typeof browserTracingIntegration>[0] } {
+  // eslint-disable-next-line deprecation/deprecation
   return !!integration.afterAllSetup && !!(integration as BrowserTracing).options;
 }
 
@@ -104,17 +106,21 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   // If `browserTracingIntegration()` was added, we need to force-convert it to our custom one
   if (isNewBrowserTracingIntegration(browserTracing)) {
     const { options } = browserTracing;
+    // eslint-disable-next-line deprecation/deprecation
     integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
   }
 
   // If BrowserTracing was added, but it is not our forked version,
   // replace it with our forked version with the same options
+  // eslint-disable-next-line deprecation/deprecation
   if (!(browserTracing instanceof BrowserTracing)) {
+    // eslint-disable-next-line deprecation/deprecation
     const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
     // This option is overwritten by the custom integration
     delete options.routingInstrumentation;
     // eslint-disable-next-line deprecation/deprecation
     delete options.tracingOrigins;
+    // eslint-disable-next-line deprecation/deprecation
     integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
   }
 
@@ -128,7 +134,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] {
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      customDefaultIntegrations.push(new BrowserTracing());
+      customDefaultIntegrations.push(browserTracingIntegration());
     }
   }
 
@@ -142,6 +148,6 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
   return exportedUserNextConfig;
 }
 
-export { browserTracingIntegration };
+export { browserTracingIntegration } from './browserTracingIntegration';
 
 export * from '../common';
