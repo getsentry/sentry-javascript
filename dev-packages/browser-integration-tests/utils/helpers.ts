@@ -1,7 +1,7 @@
 import type { Page, Request } from '@playwright/test';
 import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
 
-const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
+export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
 export const envelopeParser = (request: Request | null): unknown[] => {
   // https://develop.sentry.dev/sdk/envelopes/

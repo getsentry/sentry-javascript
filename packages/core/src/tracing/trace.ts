@@ -5,6 +5,8 @@ import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/ut
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
 import type { Hub } from '../hub';
+import { runWithAsyncContext } from '../hub';
+import { getIsolationScope } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -73,29 +75,33 @@ export function trace<T>(
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  return withScope(context.scope, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+  return runWithAsyncContext(() => {
+    return withScope(context.scope, scope => {
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(activeSpan);
+      const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+      const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-    return handleCallbackErrors(
-      () => callback(activeSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet
-        if (activeSpan) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
+
+      return handleCallbackErrors(
+        () => callback(activeSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet
+          if (activeSpan) {
+            const { status } = spanToJSON(activeSpan);
+            if (!status || status === 'ok') {
+              activeSpan.setStatus('internal_error');
+            }
           }
-        }
-      },
-      () => activeSpan && activeSpan.end(),
-    );
+        },
+        () => activeSpan && activeSpan.end(),
+      );
+    });
   });
 }
 
@@ -121,32 +127,36 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  return withScope(context.scope, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+  return runWithAsyncContext(() => {
+    return withScope(context.scope, scope => {
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(activeSpan);
+      const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+      const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-    function finishAndSetSpan(): void {
-      activeSpan && activeSpan.end();
-    }
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
 
-    return handleCallbackErrors(
-      () => callback(activeSpan, finishAndSetSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording()) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+      function finishAndSetSpan(): void {
+        activeSpan && activeSpan.end();
+      }
+
+      return handleCallbackErrors(
+        () => callback(activeSpan, finishAndSetSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+          if (activeSpan && activeSpan.isRecording()) {
+            const { status } = spanToJSON(activeSpan);
+            if (!status || status === 'ok') {
+              activeSpan.setStatus('internal_error');
+            }
           }
-        }
-      },
-    );
+        },
+      );
+    });
   });
 }
 
@@ -172,11 +182,38 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     ? // eslint-disable-next-line deprecation/deprecation
       context.scope.getSpan()
     : getActiveSpan();
-  return parentSpan
-    ? // eslint-disable-next-line deprecation/deprecation
-      parentSpan.startChild(ctx)
-    : // eslint-disable-next-line deprecation/deprecation
-      hub.startTransaction(ctx);
+
+  const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+
+  if (shouldSkipSpan) {
+    return undefined;
+  }
+
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    return parentSpan.startChild(ctx);
+  } else {
+    const isolationScope = getIsolationScope();
+    const scope = getCurrentScope();
+
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    return hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
+  }
 }
 
 /**
@@ -237,7 +274,7 @@ export function continueTrace<V>(
   const transactionContext: Partial<TransactionContext> = {
     ...traceparentData,
     metadata: dropUndefinedKeys({
-      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      dynamicSamplingContext,
     }),
   };
 
@@ -256,11 +293,32 @@ function createChildSpanOrTransaction(
   if (!hasTracingEnabled()) {
     return undefined;
   }
-  return parentSpan
-    ? // eslint-disable-next-line deprecation/deprecation
-      parentSpan.startChild(ctx)
-    : // eslint-disable-next-line deprecation/deprecation
-      hub.startTransaction(ctx);
+
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    return parentSpan.startChild(ctx);
+  } else {
+    const isolationScope = getIsolationScope();
+    const scope = getCurrentScope();
+
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    return hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
+  }
 }
 
 /**

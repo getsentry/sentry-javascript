@@ -32,6 +32,7 @@ convenient interface and improved consistency between various JavaScript environ
 - [Supported Platforms](#supported-platforms)
 - [Installation and Usage](#installation-and-usage)
 - [Other Packages](#other-packages)
+- [Bug Bounty Program](#bug-bounty-program)
 
 ## Supported Platforms
 
@@ -104,3 +105,13 @@ below:
   utility functions useful for various SDKs.
 - [`@sentry/types`](https://github.com/getsentry/sentry-javascript/tree/master/packages/types): Types used in all
   packages.
+
+## Bug Bounty Program
+
+Our bug bounty program aims to improve the security of our open source projects by encouraging the community to identify
+and report potential security vulnerabilities. Your reward will depend on the severity of the identified vulnerability.
+
+Our program is currently running on an invitation basis. If you're interested in participating, please send us an email
+to security@sentry.io and tell us, that you are interested in auditing this repository.
+
+For more details, please have a look at https://sentry.io/security/#vulnerability-disclosure.

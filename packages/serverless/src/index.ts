@@ -3,7 +3,8 @@ import * as AWSLambda from './awslambda';
 import * as GCPFunction from './gcpfunction';
 export { AWSLambda, GCPFunction };
 
-export { AWSServices } from './awsservices';
+// eslint-disable-next-line deprecation/deprecation
+export { AWSServices, awsServicesIntegration } from './awsservices';
 
 // TODO(v8): We have to explicitly export these because of the namespace exports
 // above. This is because just doing `export * from '@sentry/node'` will not
@@ -37,6 +38,9 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
+  spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
@@ -78,4 +82,15 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
+  requestDataIntegration,
+  linkedErrorsIntegration,
+  inboundFiltersIntegration,
+  functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
+  createGetModuleFromFilename,
+  metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  extractTraceparentData,
+  runWithAsyncContext,
 } from '@sentry/node';

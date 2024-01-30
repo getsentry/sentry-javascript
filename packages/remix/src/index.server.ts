@@ -39,6 +39,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  NodeClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -49,7 +50,9 @@ export {
   setTag,
   setTags,
   setUser,
+  // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -81,6 +84,18 @@ export {
   isInitialized,
   cron,
   parameterize,
+  metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
+  createGetModuleFromFilename,
+  functionToStringIntegration,
+  hapiErrorPlugin,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  runWithAsyncContext,
+  // eslint-disable-next-line deprecation/deprecation
+  enableAnrDetection,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

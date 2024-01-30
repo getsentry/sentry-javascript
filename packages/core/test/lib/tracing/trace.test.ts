@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   makeMain,
   spanToJSON,
+  withScope,
 } from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
@@ -318,6 +319,44 @@ describe('startSpan', () => {
     expect(getCurrentScope()).toBe(initialScope);
     expect(getActiveSpan()).toBe(undefined);
   });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999999',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpan({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999999');
+      });
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
+  });
 });
 
 describe('startSpanManual', () => {
@@ -381,6 +420,45 @@ describe('startSpanManual', () => {
 
     expect(start).toEqual(1234);
   });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpanManual({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+        span?.end();
+      });
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
+  });
 });
 
 describe('startInactiveSpan', () => {
@@ -428,6 +506,40 @@ describe('startInactiveSpan', () => {
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
     expect(spanToJSON(span!).start_timestamp).toEqual(1234);
+  });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      const span = startInactiveSpan({ name: 'span' });
+      expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+      span?.end();
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
   });
 });
 
@@ -489,6 +601,7 @@ describe('continueTrace', () => {
     const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
+      dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
       sampled: false,
       parentSpanId: '1121201211212012',
       spanId: expect.any(String),

@@ -74,6 +74,7 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(1);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: `<${UNKNOWN_COMPONENT}>`,
+        onlyIfParent: true,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
         attributes: { 'ui.component_name': 'unknown' },
@@ -92,6 +93,7 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(2);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: `<${UNKNOWN_COMPONENT}>`,
+        onlyIfParent: true,
         op: REACT_RENDER_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: undefined,
@@ -125,6 +127,7 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         attributes: { 'ui.react.changed_props': ['num'], 'ui.component_name': 'unknown' },
         name: `<${UNKNOWN_COMPONENT}>`,
+        onlyIfParent: true,
         op: REACT_UPDATE_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: expect.any(Number),
@@ -136,6 +139,7 @@ describe('withProfiler', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         attributes: { 'ui.react.changed_props': ['num'], 'ui.component_name': 'unknown' },
         name: `<${UNKNOWN_COMPONENT}>`,
+        onlyIfParent: true,
         op: REACT_UPDATE_OP,
         origin: 'auto.ui.react.profiler',
         startTimestamp: expect.any(Number),
@@ -175,6 +179,7 @@ describe('useProfiler()', () => {
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(1);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
         name: '<Example>',
+        onlyIfParent: true,
         op: REACT_MOUNT_OP,
         origin: 'auto.ui.react.profiler',
         attributes: { 'ui.component_name': 'Example' },
@@ -199,6 +204,7 @@ describe('useProfiler()', () => {
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith(
         expect.objectContaining({
           name: '<Example>',
+          onlyIfParent: true,
           op: REACT_RENDER_OP,
           origin: 'auto.ui.react.profiler',
           attributes: { 'ui.component_name': 'Example' },

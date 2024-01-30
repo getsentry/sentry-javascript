@@ -14,6 +14,9 @@ export interface StartSpanOptions extends TransactionContext {
   /** The name of the span. */
   name: string;
 
+  /** If set to true, only start a span if a parent span exists. */
+  onlyIfParent?: boolean;
+
   /** An op for the span. This is a categorization for spans. */
   op?: string;
 
