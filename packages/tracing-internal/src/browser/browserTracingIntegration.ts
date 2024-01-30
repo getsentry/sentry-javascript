@@ -1,7 +1,7 @@
 /* eslint-disable max-lines, complexity */
 import type { IdleTransaction } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import { defineIntegration, getCurrentHub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
@@ -151,8 +151,10 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ *
+ * We explicitly export the proper type here, as this has to be extended in some cases.
  */
-export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
   const _hasSetTracePropagationTargets = DEBUG_BUILD
     ? !!(
         // eslint-disable-next-line deprecation/deprecation
@@ -388,8 +390,6 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
     options,
   };
 }) satisfies IntegrationFn;
-
-export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);
 
 /**
  * Manually start a page load span.

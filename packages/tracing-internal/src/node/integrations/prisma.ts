@@ -103,6 +103,7 @@ export class Prisma implements Integration {
         return startSpan(
           {
             name: model ? `${model} ${action}` : action,
+            onlyIfParent: true,
             op: 'db.prisma',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.prisma',
