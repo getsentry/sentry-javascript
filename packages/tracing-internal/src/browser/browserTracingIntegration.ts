@@ -1,7 +1,6 @@
 /* eslint-disable max-lines, complexity */
 import type { IdleTransaction } from '@sentry/core';
-import { getClient } from '@sentry/core';
-import { defineIntegration, getCurrentHub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
@@ -11,6 +10,7 @@ import {
   startIdleTransaction,
 } from '@sentry/core';
 import type {
+  Client,
   IntegrationFn,
   StartSpanOptions,
   Transaction,
@@ -151,8 +151,10 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ *
+ * We explicitly export the proper type here, as this has to be extended in some cases.
  */
-export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
+export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
   const _hasSetTracePropagationTargets = DEBUG_BUILD
     ? !!(
         // eslint-disable-next-line deprecation/deprecation
@@ -334,7 +336,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
           origin: 'auto.pageload.browser',
           metadata: { source: 'url' },
         };
-        startBrowserTracingPageLoadSpan(context);
+        startBrowserTracingPageLoadSpan(client, context);
       }
 
       if (options.instrumentNavigation && client.emit) {
@@ -362,7 +364,7 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
               metadata: { source: 'url' },
             };
 
-            startBrowserTracingNavigationSpan(context);
+            startBrowserTracingNavigationSpan(client, context);
           }
         });
       }
@@ -389,15 +391,12 @@ export const _browserTracingIntegration = ((_options: Partial<BrowserTracingOpti
   };
 }) satisfies IntegrationFn;
 
-export const browserTracingIntegration = defineIntegration(_browserTracingIntegration);
-
 /**
  * Manually start a page load span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
-  if (!client || !client.emit) {
+export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
+  if (!client.emit) {
     return;
   }
 
@@ -408,9 +407,8 @@ export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): 
  * Manually start a navigation span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
-  if (!client || !client.emit) {
+export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
+  if (!client.emit) {
     return;
   }
 

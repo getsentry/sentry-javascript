@@ -31,7 +31,7 @@ export interface EmberRouterMain {
     rootURL: string;
   };
 }
-
+/** @deprecated This will be removed in v8. */
 export type StartTransactionFunction = (context: TransactionContext) => Transaction | undefined;
 
 export type GlobalConfig = {
