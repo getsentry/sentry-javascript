@@ -40,7 +40,8 @@
       "**/*.min.js",
       ".next/**",
       ".svelte-kit/**",
-      ".angular/**"
+      ".angular/**",
+      "angular.json"
     ]
   },
   "files": {
@@ -62,7 +63,8 @@
       "**/*.min.js",
       ".next/**",
       ".svelte-kit/**",
-      ".angular/**"
+      ".angular/**",
+      "angular.json"
     ]
   },
   "javascript": {
