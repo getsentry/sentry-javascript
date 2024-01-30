@@ -4,7 +4,7 @@ import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
-import type { Hub } from '../hub';
+import { Hub, runWithAsyncContext } from '../hub';
 import { getIsolationScope } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
@@ -74,29 +74,31 @@ export function trace<T>(
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  return withScope(context.scope, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+  return runWithAsyncContext(() => {
+    return withScope(context.scope, scope => {
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(activeSpan);
+      const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
 
-    return handleCallbackErrors(
-      () => callback(activeSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet
-        if (activeSpan) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+      return handleCallbackErrors(
+        () => callback(activeSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet
+          if (activeSpan) {
+            const { status } = spanToJSON(activeSpan);
+            if (!status || status === 'ok') {
+              activeSpan.setStatus('internal_error');
+            }
           }
-        }
-      },
-      () => activeSpan && activeSpan.end(),
-    );
+        },
+        () => activeSpan && activeSpan.end(),
+      );
+    });
   });
 }
 
@@ -122,32 +124,34 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  return withScope(context.scope, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+  return runWithAsyncContext(() => {
+    return withScope(context.scope, scope => {
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const parentSpan = scope.getSpan();
 
-    const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(activeSpan);
+      const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
 
-    function finishAndSetSpan(): void {
-      activeSpan && activeSpan.end();
-    }
+      function finishAndSetSpan(): void {
+        activeSpan && activeSpan.end();
+      }
 
-    return handleCallbackErrors(
-      () => callback(activeSpan, finishAndSetSpan),
-      () => {
-        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording()) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+      return handleCallbackErrors(
+        () => callback(activeSpan, finishAndSetSpan),
+        () => {
+          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+          if (activeSpan && activeSpan.isRecording()) {
+            const { status } = spanToJSON(activeSpan);
+            if (!status || status === 'ok') {
+              activeSpan.setStatus('internal_error');
+            }
           }
-        }
-      },
-    );
+        },
+      );
+    });
   });
 }
 
