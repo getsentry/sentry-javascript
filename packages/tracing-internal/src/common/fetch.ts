@@ -1,6 +1,5 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,

@@ -71,7 +71,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
       req.on('afterBuild', () => {
         span = startInactiveSpan({
           name: describe(this, operation, params),
-        onlyIfParent: true,
+          onlyIfParent: true,
           op: 'http.client',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
