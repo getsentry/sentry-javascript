@@ -23,4 +23,7 @@ sentryTest('should create a pageload transaction when initialized delayed', asyn
   expect(eventData.contexts?.trace?.op).toBe('pageload');
   expect(eventData.spans?.length).toBeGreaterThan(0);
   expect(eventData.transaction_info?.source).toEqual('url');
+
+  // TODO: Provoke an error to test this...
+  expect({}).toBe(false);
 });
