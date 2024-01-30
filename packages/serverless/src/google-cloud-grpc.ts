@@ -122,6 +122,7 @@ function fillGrpcFunction(stub: Stub, serviceIdentifier: string, methodName: str
         }
         const span = startInactiveSpan({
           name: `${callType} ${methodName}`,
+          onlyIfParent: true,
           op: `grpc.${serviceIdentifier}`,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',

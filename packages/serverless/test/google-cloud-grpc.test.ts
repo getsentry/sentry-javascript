@@ -149,6 +149,7 @@ describe('GoogleCloudGrpc tracing', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
         },
         name: 'unary call publish',
+        onlyIfParent: true,
       });
     });
   });
