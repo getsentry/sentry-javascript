@@ -136,7 +136,7 @@ jobs:
 
       - name: Get PR labels
         id: pr-labels
-        uses: mydea/pr-labels-action@bump-node20
+        uses: mydea/pr-labels-action@fn/bump-node20
 
     outputs:
       commit_label: '${{ env.COMMIT_SHA }}: ${{ env.COMMIT_MESSAGE }}'
