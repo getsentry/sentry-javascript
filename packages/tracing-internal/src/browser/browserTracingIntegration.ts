@@ -1,6 +1,5 @@
 /* eslint-disable max-lines, complexity */
 import type { IdleTransaction } from '@sentry/core';
-import { getClient } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -11,6 +10,7 @@ import {
   startIdleTransaction,
 } from '@sentry/core';
 import type {
+  Client,
   IntegrationFn,
   StartSpanOptions,
   Transaction,
@@ -336,7 +336,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           origin: 'auto.pageload.browser',
           metadata: { source: 'url' },
         };
-        startBrowserTracingPageLoadSpan(context);
+        startBrowserTracingPageLoadSpan(client, context);
       }
 
       if (options.instrumentNavigation && client.emit) {
@@ -364,7 +364,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               metadata: { source: 'url' },
             };
 
-            startBrowserTracingNavigationSpan(context);
+            startBrowserTracingNavigationSpan(client, context);
           }
         });
       }
@@ -395,9 +395,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
  * Manually start a page load span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
-  if (!client || !client.emit) {
+export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
+  if (!client.emit) {
     return;
   }
 
@@ -408,9 +407,8 @@ export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): 
  * Manually start a navigation span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
-  if (!client || !client.emit) {
+export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
+  if (!client.emit) {
     return;
   }
 
