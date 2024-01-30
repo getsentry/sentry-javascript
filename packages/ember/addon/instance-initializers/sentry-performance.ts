@@ -99,11 +99,13 @@ export function _instrumentEmberRouter(
   let activeRootSpan: Span | undefined;
   let transitionSpan: Span | undefined;
 
+  // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
+  const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
   const url = getLocationURL(location);
 
-  if (url) {
+  if (url && browserTracingOptions.startTransactionOnPageLoad !== false) {
     const routeInfo = routerService.recognize(url);
-    Sentry.startBrowserTracingNavigationSpan({
+    Sentry.startBrowserTracingPageLoadSpan({
       name: `route:${routeInfo.name}`,
       op: 'pageload',
       origin: 'auto.pageload.ember',
@@ -123,6 +125,10 @@ export function _instrumentEmberRouter(
     activeRootSpan?.end();
     getBackburner().off('end', finishActiveTransaction);
   };
+
+  if (browserTracingOptions.startTransactionOnLocationChange === false) {
+    return;
+  }
 
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
@@ -405,10 +411,9 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   const browserTracing = browserTracingIntegration({
     idleTimeout,
     ...browserTracingOptions,
+    instrumentNavigation: false,
+    instrumentPageLoad: false,
   });
-
-  Sentry.disableDefaultBrowserTracingNavigationSpan();
-  Sentry.disableDefaultBrowserTracingPageLoadSpan();
 
   const client = Sentry.getClient<BrowserClient>();
 
