@@ -1,5 +1,5 @@
 import * as SentryAstro from '@sentry/astro';
-// import * as SentryBun from '@sentry/bun';
+import * as SentryBun from '@sentry/bun';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryRemix from '@sentry/remix';
@@ -35,6 +35,17 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/astro',
     exports: Object.keys(SentryAstro),
+  },
+  {
+    package: '@sentry/bun',
+    exports: Object.keys(SentryBun),
+    ignoreExports: [
+      // not supported in bun:
+      'Handlers',
+      'NodeClient',
+      'hapiErrorPlugin',
+      'makeNodeTransport',
+    ],
   },
   {
     package: '@sentry/nextjs',

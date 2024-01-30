@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "start": "pnpm build && node dist/consistentExports.js",
-    "test": " node dist/consistentExports.js",
+    "start": "pnpm build && bun run ./dist/consistentExports.js",
+    "test": " bun run ./dist/consistentExports.js",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml,dist",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
