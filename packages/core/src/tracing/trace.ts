@@ -4,7 +4,8 @@ import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
-import { Hub, runWithAsyncContext } from '../hub';
+import type { Hub } from '../hub';
+import { runWithAsyncContext } from '../hub';
 import { getIsolationScope } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
