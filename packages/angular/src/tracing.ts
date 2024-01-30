@@ -13,7 +13,13 @@ import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  spanToJSON,
+  startInactiveSpan,
+} from '@sentry/core';
 import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -115,11 +121,12 @@ export class TraceService implements OnDestroy {
         this._routingSpan = null;
       }
 
+      const client = getClient();
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
 
-      if (hooksBasedInstrumentation) {
+      if (client && hooksBasedInstrumentation) {
         if (!getActiveSpan()) {
-          startBrowserTracingNavigationSpan({
+          startBrowserTracingNavigationSpan(client, {
             name: strippedUrl,
             op: 'navigation',
             origin: 'auto.navigation.angular',
