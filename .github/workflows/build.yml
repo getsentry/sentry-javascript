@@ -165,8 +165,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 15
     if: |
-      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false') &&
-      (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
+      (needs.job_get_metadata.outputs.is_gitflow_sync == 'false' && needs.job_get_metadata.outputs.has_gitflow_label == 'false')
     steps:
       - name: 'Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})'
         uses: actions/checkout@v4
@@ -215,6 +214,8 @@ jobs:
     needs: [job_get_metadata, job_install_deps]
     runs-on: ubuntu-20.04
     timeout-minutes: 30
+    if: |
+      (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -322,6 +323,28 @@ jobs:
         run: yarn lint
       - name: Validate ES5 builds
         run: yarn validate:es5
+
+  job_lint_md:
+    name: Lint Markdown
+    needs: [job_get_metadata, job_install_deps]
+    timeout-minutes: 10
+    runs-on: ubuntu-20.04
+    if: needs.job_get_metadata.outputs.changed_any_code != 'true' && github.event_name == 'pull_request'
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Lint .md files
+        run: yarn lint:prettier
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -1015,6 +1038,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
+        job_lint_md,
         job_circular_dep_check,
       ]
     # Always run this, even if a dependent job failed
