@@ -10,7 +10,6 @@ import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
-  disableDefaultBrowserTracingNavigationSpan,
   getCurrentScope,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
@@ -71,14 +70,19 @@ export const instrumentAngularRouting = routingInstrumentation;
  * Use this integration in combination with `TraceService`
  */
 export function browserTracingIntegration(
-  options?: Parameters<typeof originalBrowserTracingIntegration>[0],
+  options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
 ): Integration {
-  instrumentationInitialized = true;
-  hooksBasedInstrumentation = true;
+  // If the user opts out to set this up, we just don't initialize this.
+  // That way, the TraceService will not actually do anything, functionally disabling this.
+  if (options.instrumentNavigation === false) {
+    instrumentationInitialized = true;
+    hooksBasedInstrumentation = true;
+  }
 
-  disableDefaultBrowserTracingNavigationSpan();
-
-  return originalBrowserTracingIntegration(options);
+  return originalBrowserTracingIntegration({
+    ...options,
+    instrumentNavigation: false,
+  });
 }
 
 /**
