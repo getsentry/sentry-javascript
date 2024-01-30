@@ -1,4 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Transaction, handleCallbackErrors } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  Transaction,
+  handleCallbackErrors,
+  setHttpStatus,
+} from '@sentry/core';
 import type { AddRequestDataToEventOptions } from '@sentry/node';
 import { continueTrace, startSpanManual } from '@sentry/node';
 import { getCurrentScope } from '@sentry/node';
@@ -78,9 +84,9 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         ...continueTraceContext,
         name: `${reqMethod} ${reqUrl}`,
         op: 'function.gcp.http',
-        origin: 'auto.function.serverless.gcp_http',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
       },
       span => {
@@ -101,8 +107,10 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
         const _end = res.end;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
-          span?.setHttpStatus(res.statusCode);
-          span?.end();
+          if (span) {
+            setHttpStatus(span, res.statusCode);
+            span.end();
+          }
 
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)

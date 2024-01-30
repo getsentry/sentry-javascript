@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
 
@@ -55,7 +55,7 @@ function getCwd(): string | undefined {
   return undefined;
 }
 
-const normalizePathsIntegration = (() => {
+const _normalizePathsIntegration = (() => {
   // Cached here
   let appRoot: string | undefined;
 
@@ -98,9 +98,17 @@ const normalizePathsIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-/** Normalises paths to the app root directory. */
+export const normalizePathsIntegration = defineIntegration(_normalizePathsIntegration);
+
+/**
+ * Normalises paths to the app root directory.
+ * @deprecated Use `normalizePathsIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const NormalizePaths = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   normalizePathsIntegration,
 ) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type NormalizePaths = typeof NormalizePaths;

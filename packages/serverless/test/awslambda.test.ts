@@ -1,12 +1,59 @@
-// NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+
 import type { Event } from '@sentry/types';
 import type { Callback, Handler } from 'aws-lambda';
 
-import * as Sentry from '../src';
+import { init, wrapHandler } from '../src/awslambda';
 
-const { wrapHandler } = Sentry.AWSLambda;
+const mockSpanEnd = jest.fn();
+const mockStartInactiveSpan = jest.fn((...spanArgs) => ({ ...spanArgs }));
+const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));
+const mockFlush = jest.fn((...args) => Promise.resolve(args));
+const mockWithScope = jest.fn();
+const mockCaptureMessage = jest.fn();
+const mockCaptureException = jest.fn();
+const mockInit = jest.fn();
+
+const mockScope = {
+  setTag: jest.fn(),
+  setContext: jest.fn(),
+  addEventProcessor: jest.fn(),
+};
+
+jest.mock('@sentry/node', () => {
+  const original = jest.requireActual('@sentry/node');
+  return {
+    ...original,
+    init: (options: unknown) => {
+      mockInit(options);
+    },
+    startInactiveSpan: (...args: unknown[]) => {
+      mockStartInactiveSpan(...args);
+      return { end: mockSpanEnd };
+    },
+    startSpanManual: (...args: unknown[]) => {
+      mockStartSpanManual(...args);
+      mockSpanEnd();
+      return original.startSpanManual(...args);
+    },
+    getCurrentScope: () => {
+      return mockScope;
+    },
+    flush: (...args: unknown[]) => {
+      return mockFlush(...args);
+    },
+    withScope: (fn: (scope: unknown) => void) => {
+      mockWithScope(fn);
+      fn(mockScope);
+    },
+    captureMessage: (...args: unknown[]) => {
+      mockCaptureMessage(...args);
+    },
+    captureException: (...args: unknown[]) => {
+      mockCaptureException(...args);
+    },
+  };
+});
 
 // Default `timeoutWarningLimit` is 500ms so leaving some space for it to trigger when necessary
 const DEFAULT_EXECUTION_TIME = 100;
@@ -34,21 +81,18 @@ const fakeCallback: Callback = (err, result) => {
 };
 
 function expectScopeSettings() {
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.addEventProcessor).toBeCalledTimes(1);
+  expect(mockScope.addEventProcessor).toBeCalledTimes(1);
   // Test than an event processor to add `transaction` is registered for the scope
-  // @ts-expect-error see "Why @ts-expect-error" note
-  const eventProcessor = SentryNode.fakeScope.addEventProcessor.mock.calls[0][0];
+  const eventProcessor = mockScope.addEventProcessor.mock.calls[0][0];
   const event: Event = {};
   eventProcessor(event);
   expect(event).toEqual({ transaction: 'functionName' });
 
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setTag).toBeCalledWith('server_name', expect.anything());
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
+  expect(mockScope.setTag).toBeCalledWith('server_name', expect.anything());
+
+  expect(mockScope.setTag).toBeCalledWith('url', 'awslambda:///functionName');
+
+  expect(mockScope.setContext).toBeCalledWith(
     'aws.lambda',
     expect.objectContaining({
       aws_request_id: 'awsRequestId',
@@ -58,8 +102,8 @@ function expectScopeSettings() {
       remaining_time_in_millis: 100,
     }),
   );
-  // @ts-expect-error see "Why @ts-expect-error" note
-  expect(SentryNode.fakeScope.setContext).toBeCalledWith(
+
+  expect(mockScope.setContext).toBeCalledWith(
     'aws.cloudwatch.logs',
     expect.objectContaining({
       log_group: 'logGroupName',
@@ -73,11 +117,8 @@ describe('AWSLambda', () => {
     fakeEvent = {
       fortySix: 'o_O',
     };
-  });
 
-  afterEach(() => {
-    // @ts-expect-error see "Why @ts-expect-error" note
-    SentryNode.resetMocks();
+    jest.clearAllMocks();
   });
 
   describe('wrapHandler() options', () => {
@@ -88,7 +129,7 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
 
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.flush).toBeCalledWith(1337);
+      expect(mockFlush).toBeCalledWith(1337);
     });
 
     test('captureTimeoutWarning enabled (default)', async () => {
@@ -100,10 +141,9 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).toBeCalledTimes(1);
-      expect(Sentry.captureMessage).toBeCalled();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1s');
+      expect(mockWithScope).toBeCalledTimes(1);
+      expect(mockCaptureMessage).toBeCalled();
+      expect(mockScope.setTag).toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning disabled', async () => {
@@ -117,10 +157,9 @@ describe('AWSLambda', () => {
       });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      expect(Sentry.withScope).toBeCalledTimes(0);
-      expect(Sentry.captureMessage).not.toBeCalled();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).not.toBeCalledWith('timeout', '1s');
+      expect(mockWithScope).toBeCalledTimes(0);
+      expect(mockCaptureMessage).not.toBeCalled();
+      expect(mockScope.setTag).not.toBeCalledWith('timeout', '1s');
     });
 
     test('captureTimeoutWarning with configured timeoutWarningLimit', async () => {
@@ -149,16 +188,15 @@ describe('AWSLambda', () => {
         fakeCallback,
       );
 
-      expect(Sentry.captureMessage).toBeCalled();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledWith('timeout', '1m40s');
+      expect(mockCaptureMessage).toBeCalled();
+      expect(mockScope.setTag).toBeCalledWith('timeout', '1m40s');
     });
 
     test('captureAllSettledReasons disabled (default)', async () => {
       const handler = () => Promise.resolve([{ status: 'rejected', reason: new Error() }]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337 });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.captureException).toBeCalledTimes(0);
+      expect(mockCaptureException).toBeCalledTimes(0);
     });
 
     test('captureAllSettledReasons enable', async () => {
@@ -172,9 +210,9 @@ describe('AWSLambda', () => {
         ]);
       const wrappedHandler = wrapHandler(handler, { flushTimeout: 1337, captureAllSettledReasons: true });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
-      expect(SentryNode.captureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
-      expect(SentryNode.captureException).toBeCalledTimes(2);
+      expect(mockCaptureException).toHaveBeenNthCalledWith(1, error, expect.any(Function));
+      expect(mockCaptureException).toHaveBeenNthCalledWith(2, error2, expect.any(Function));
+      expect(mockCaptureException).toBeCalledTimes(2);
     });
 
     // "wrapHandler() ... successful execution" tests the default of startTrace enabled
@@ -185,11 +223,10 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler, { startTrace: false });
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
 
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.addEventProcessor).toBeCalledTimes(0);
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeScope.setTag).toBeCalledTimes(0);
-      expect(SentryNode.startSpanManual).toBeCalledTimes(0);
+      expect(mockScope.addEventProcessor).toBeCalledTimes(0);
+
+      expect(mockScope.setTag).toBeCalledTimes(0);
+      expect(mockStartSpanManual).toBeCalledTimes(0);
     });
   });
 
@@ -206,19 +243,19 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.function.serverless',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
         metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalledWith(2000);
+
+      expect(mockSpanEnd).toBeCalled();
+      expect(mockFlush).toBeCalledWith(2000);
     });
 
     test('unsuccessful execution', async () => {
@@ -236,19 +273,19 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
           metadata: {},
         };
 
-        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeSpan.end).toBeCalled();
-        expect(SentryNode.flush).toBeCalledWith(2000);
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+        expect(mockSpanEnd).toBeCalled();
+        expect(mockFlush).toBeCalledWith(2000);
       }
     });
 
@@ -273,16 +310,16 @@ describe('AWSLambda', () => {
       };
 
       const handler: Handler = (_event, _context, callback) => {
-        expect(SentryNode.startSpanManual).toBeCalledWith(
+        expect(mockStartSpanManual).toBeCalledWith(
           expect.objectContaining({
             parentSpanId: '1121201211212012',
             parentSampled: false,
             op: 'function.aws.lambda',
-            origin: 'auto.function.serverless',
             name: 'functionName',
             traceId: '12312012123120121231201212312012',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
             },
             metadata: {
               dynamicSamplingContext: {
@@ -316,22 +353,22 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           traceId: '12312012123120121231201212312012',
           parentSpanId: '1121201211212012',
           parentSampled: false,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
           metadata: { dynamicSamplingContext: {} },
         };
 
-        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(SentryNode.captureException).toBeCalledWith(e, expect.any(Function));
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeSpan.end).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(mockCaptureException).toBeCalledWith(e, expect.any(Function));
+
+        expect(mockSpanEnd).toBeCalled();
+        expect(mockFlush).toBeCalled();
       }
     });
   });
@@ -349,19 +386,19 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.function.serverless',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
         metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+
+      expect(mockSpanEnd).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -390,19 +427,19 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
           metadata: {},
         };
 
-        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeSpan.end).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+        expect(mockSpanEnd).toBeCalled();
+        expect(mockFlush).toBeCalled();
       }
     });
 
@@ -414,9 +451,7 @@ describe('AWSLambda', () => {
 
       const wrappedHandler = wrapHandler(handler);
 
-      jest.spyOn(Sentry, 'flush').mockImplementationOnce(async () => {
-        throw new Error();
-      });
+      mockFlush.mockImplementationOnce(() => Promise.reject(new Error('wat')));
 
       await expect(wrappedHandler(fakeEvent, fakeContext, fakeCallback)).resolves.toBe('some string');
     });
@@ -435,19 +470,19 @@ describe('AWSLambda', () => {
       const fakeTransactionContext = {
         name: 'functionName',
         op: 'function.aws.lambda',
-        origin: 'auto.function.serverless',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
         metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
-      expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expectScopeSettings();
-      // @ts-expect-error see "Why @ts-expect-error" note
-      expect(SentryNode.fakeSpan.end).toBeCalled();
-      expect(SentryNode.flush).toBeCalled();
+
+      expect(mockSpanEnd).toBeCalled();
+      expect(mockFlush).toBeCalled();
     });
 
     test('event and context are correctly passed to the original handler', async () => {
@@ -476,19 +511,19 @@ describe('AWSLambda', () => {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
           metadata: {},
         };
 
-        expect(SentryNode.startSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
         expectScopeSettings();
-        expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-        // @ts-expect-error see "Why @ts-expect-error" note
-        expect(SentryNode.fakeSpan.end).toBeCalled();
-        expect(SentryNode.flush).toBeCalled();
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+        expect(mockSpanEnd).toBeCalled();
+        expect(mockFlush).toBeCalled();
       }
     });
   });
@@ -505,9 +540,9 @@ describe('AWSLambda', () => {
     try {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     } catch (e) {
-      expect(SentryNode.captureException).toBeCalledWith(error, expect.any(Function));
-      // @ts-expect-error see "Why @ts-expect-error" note
-      const scopeFunction = SentryNode.captureException.mock.calls[0][1];
+      expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+
+      const scopeFunction = mockCaptureException.mock.calls[0][1];
       const event: Event = { exception: { values: [{}] } };
       let evtProcessor: ((e: Event) => Event) | undefined = undefined;
       scopeFunction({ addEventProcessor: jest.fn().mockImplementation(proc => (evtProcessor = proc)) });
@@ -523,9 +558,9 @@ describe('AWSLambda', () => {
 
   describe('init()', () => {
     test('calls Sentry.init with correct sdk info metadata', () => {
-      Sentry.AWSLambda.init({});
+      init({});
 
-      expect(Sentry.init).toBeCalledWith(
+      expect(mockInit).toBeCalledWith(
         expect.objectContaining({
           _metadata: {
             sdk: {
@@ -534,10 +569,10 @@ describe('AWSLambda', () => {
               packages: [
                 {
                   name: 'npm:@sentry/serverless',
-                  version: '6.6.6',
+                  version: expect.any(String),
                 },
               ],
-              version: '6.6.6',
+              version: expect.any(String),
             },
           },
         }),

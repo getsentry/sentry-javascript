@@ -4,6 +4,43 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.99.0
+
+### Important Changes
+
+#### Deprecations
+
+This release includes some deprecations for span related methods and integrations in our Deno SDK, `@sentry/deno`. For
+more details please look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md).
+
+- feat(core): Deprecate `Span.setHttpStatus` in favor of `setHttpStatus` (#10268)
+- feat(core): Deprecate `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
+- feat(core): Deprecate `StartSpanOptions.origin` in favour of passing attribute (#10274)
+- feat(deno): Expose functional integrations to replace classes (#10355)
+
+### Other Changes
+
+- feat(bun): Add missing `@sentry/node` re-exports (#10396)
+- feat(core): Add `afterAllSetup` hook for integrations (#10345)
+- feat(core): Ensure `startSpan()` can handle spans that require parent (#10386)
+- feat(core): Read propagation context off scopes in `startSpan` APIs (#10300)
+- feat(remix): Export missing `@sentry/node` functions (#10385, #10391)
+- feat(serverless): Add missing `@sentry/node` re-exports (#10390)
+- feat(sveltekit): Add more missing `@sentry/node` re-exports (#10392)
+- feat(tracing): Export proper type for browser tracing (#10411)
+- feat(tracing): Expose new `browserTracingIntegration` (#10351)
+- fix: Ensure `afterAllSetup` is called when using `addIntegration()` (#10372)
+- fix(core): Export `spanToTraceContext` function from span utils (#10364)
+- fix(core): Make `FunctionToString` integration use SETUP_CLIENTS weakmap (#10358)
+- fix(deno): Call function if client is not setup (#10354)
+- fix(react): Fix attachReduxState option (#10381)
+- fix(spotlight): Use unpatched http.request (#10369)
+- fix(tracing): Only create request span if there is active span (#10375)
+- ref: Read propagation context off of scope and isolation scope when propagating and applying trace context (#10297)
+
+Work in this release contributed by @AleshaOleg. Thank you for your contribution!
+
 ## 7.98.0
 
 This release primarily fixes some type declaration errors:
@@ -20,7 +57,7 @@ Note: The 7.96.0 release was incomplete. This release is partially encompassing 
 
 ## 7.96.0
 
-Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.97.0
+Note: This release was incomplete. Not all Sentry SDK packages were released for this version. Please upgrade to 7.98.0
 directly.
 
 ### Important Changes
@@ -1103,7 +1140,7 @@ finished. This is useful for event emitters or similar.
 function middleware(_req, res, next) {
   return Sentry.startSpanManual({ name: 'middleware' }, (span, finish) => {
     res.once('finish', () => {
-      span?.setHttpStatus(res.status);
+      setHttpStatus(span, res.status);
       finish();
     });
     return next();

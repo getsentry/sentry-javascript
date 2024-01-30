@@ -15,6 +15,7 @@ export {
   addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureCheckIn,
   withMonitor,
   captureException,
@@ -30,10 +31,15 @@ export {
   getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
+  getClient,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  NodeClient,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -44,7 +50,9 @@ export {
   setTag,
   setTags,
   setUser,
+  // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -67,8 +75,27 @@ export {
   deepReadDirSync,
   Integrations,
   Handlers,
+  setMeasurement,
+  getActiveSpan,
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  continueTrace,
+  isInitialized,
   cron,
   parameterize,
+  metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
+  createGetModuleFromFilename,
+  functionToStringIntegration,
+  hapiErrorPlugin,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  runWithAsyncContext,
+  // eslint-disable-next-line deprecation/deprecation
+  enableAnrDetection,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

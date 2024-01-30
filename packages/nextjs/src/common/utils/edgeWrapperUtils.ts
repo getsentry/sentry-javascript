@@ -1,9 +1,11 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
   continueTrace,
   handleCallbackErrors,
+  setHttpStatus,
   startSpan,
 } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/utils';
@@ -40,8 +42,10 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         ...transactionContext,
         name: options.spanDescription,
         op: options.spanOp,
-        origin: 'auto.function.nextjs.withEdgeWrapping',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
+        },
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
           ...transactionContext.metadata,
@@ -64,10 +68,12 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
           },
         );
 
-        if (handlerResult instanceof Response) {
-          span?.setHttpStatus(handlerResult.status);
-        } else {
-          span?.setStatus('ok');
+        if (span) {
+          if (handlerResult instanceof Response) {
+            setHttpStatus(span, handlerResult.status);
+          } else {
+            span.setStatus('ok');
+          }
         }
 
         return handlerResult;

@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
   captureException,
@@ -6,6 +7,7 @@ import {
   convertIntegrationFnToClass,
   getCurrentScope,
   runWithAsyncContext,
+  setHttpStatus,
   startSpan,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
@@ -69,9 +71,11 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
           ctx => {
             return startSpan(
               {
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.bun.serve',
+                },
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                origin: 'auto.http.bun.serve',
                 ...ctx,
                 data,
                 metadata: {
@@ -90,8 +94,9 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                     typeof serveOptions.fetch
                   >);
                   if (response && response.status) {
-                    span?.setHttpStatus(response.status);
-                    span?.setAttribute('http.response.status_code', response.status);
+                    if (span) {
+                      setHttpStatus(span, response.status);
+                    }
                     if (span instanceof Transaction) {
                       const scope = getCurrentScope();
                       scope.setContext('response', {

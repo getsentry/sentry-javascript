@@ -23,7 +23,13 @@ export type SpanAttributeValue =
   | Array<null | undefined | number>
   | Array<null | undefined | boolean>;
 
-export type SpanAttributes = Record<string, SpanAttributeValue | undefined>;
+export type SpanAttributes = Partial<{
+  'sentry.origin': string;
+  'sentry.op': string;
+  'sentry.source': string;
+  'sentry.sample_rate': number;
+}> &
+  Record<string, SpanAttributeValue | undefined>;
 
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
@@ -326,6 +332,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   /**
    * Sets the status attribute on the current span based on the http code
    * @param httpStatus http code used to set the status
+   * @deprecated Use top-level `setHttpStatus()` instead.
    */
   setHttpStatus(httpStatus: number): this;
 

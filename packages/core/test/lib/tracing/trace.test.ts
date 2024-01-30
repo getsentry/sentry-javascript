@@ -5,6 +5,7 @@ import {
   getCurrentScope,
   makeMain,
   spanToJSON,
+  withScope,
 } from '../../../src';
 import { Scope } from '../../../src/scope';
 import {
@@ -229,6 +230,40 @@ describe('startSpan', () => {
       expect(ref.spanRecorder.spans).toHaveLength(2);
       expect(spanToJSON(ref.spanRecorder.spans[1]).op).toEqual('db.query');
     });
+
+    it.each([
+      { origin: 'auto.http.browser' },
+      { attributes: { 'sentry.origin': 'auto.http.browser' } },
+      // attribute should take precedence over top level origin
+      { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
+    ])('correctly sets the span origin', async () => {
+      let ref: any = undefined;
+      client.on('finishTransaction', transaction => {
+        ref = transaction;
+      });
+      try {
+        await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
+          return callback();
+        });
+      } catch (e) {
+        //
+      }
+
+      const jsonSpan = spanToJSON(ref);
+      expect(jsonSpan).toEqual({
+        data: {
+          'sentry.origin': 'auto.http.browser',
+          'sentry.sample_rate': 0,
+        },
+        origin: 'auto.http.browser',
+        description: 'GET users/[id]',
+        span_id: expect.any(String),
+        start_timestamp: expect.any(Number),
+        status: isError ? 'internal_error' : undefined,
+        timestamp: expect.any(Number),
+        trace_id: expect.any(String),
+      });
+    });
   });
 
   it('creates & finishes span', async () => {
@@ -283,6 +318,44 @@ describe('startSpan', () => {
 
     expect(getCurrentScope()).toBe(initialScope);
     expect(getActiveSpan()).toBe(undefined);
+  });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999999',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpan({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999999');
+      });
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
   });
 });
 
@@ -347,6 +420,45 @@ describe('startSpanManual', () => {
 
     expect(start).toEqual(1234);
   });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      startSpanManual({ name: 'span' }, span => {
+        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+        span?.end();
+      });
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
+  });
 });
 
 describe('startInactiveSpan', () => {
@@ -394,6 +506,40 @@ describe('startInactiveSpan', () => {
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
     expect(spanToJSON(span!).start_timestamp).toEqual(1234);
+  });
+
+  it("picks up the trace id off the parent scope's propagation context", () => {
+    expect.assertions(1);
+    withScope(scope => {
+      scope.setPropagationContext({
+        traceId: '99999999999999999999999999999991',
+        spanId: '1212121212121212',
+        dsc: {},
+        parentSpanId: '4242424242424242',
+      });
+
+      const span = startInactiveSpan({ name: 'span' });
+      expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
+      span?.end();
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+      expect(span).toBeUndefined();
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+        return span;
+      });
+
+      expect(span).toBeDefined();
+    });
   });
 });
 
@@ -455,6 +601,7 @@ describe('continueTrace', () => {
     const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
+      dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
       sampled: false,
       parentSpanId: '1121201211212012',
       spanId: expect.any(String),

@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getActiveSpan,
   getActiveTransaction,
   getClient,
@@ -7,6 +8,7 @@ import {
   getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
   runWithAsyncContext,
+  setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
@@ -411,7 +413,9 @@ export function startRequestHandlerTransaction(
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
-    origin: 'auto.http.remix',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+    },
     tags: {
       method: request.method,
     },
@@ -492,7 +496,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
       if (isResponse(res)) {
-        transaction.setHttpStatus(res.status);
+        setHttpStatus(transaction, res.status);
       }
 
       transaction.end();

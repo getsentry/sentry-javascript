@@ -5,13 +5,27 @@ import { EventEmitter } from 'events';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PubSub } from '@google-cloud/pubsub';
-import * as SentryNode from '@sentry/node';
 import * as http2 from 'http2';
 import * as nock from 'nock';
 
-import { GoogleCloudGrpc } from '../src/google-cloud-grpc';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
+import { googleCloudGrpcIntegration } from '../src/google-cloud-grpc';
 
 const spyConnect = jest.spyOn(http2, 'connect');
+
+const mockSpanEnd = jest.fn();
+const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
+
+jest.mock('@sentry/node', () => {
+  return {
+    ...jest.requireActual('@sentry/node'),
+    startInactiveSpan: (ctx: unknown) => {
+      mockStartInactiveSpan(ctx);
+      return { end: mockSpanEnd };
+    },
+  };
+});
 
 /** Fake HTTP2 stream */
 class FakeStream extends EventEmitter {
@@ -70,18 +84,24 @@ function mockHttp2Session(): FakeSession {
 }
 
 describe('GoogleCloudGrpc tracing', () => {
-  beforeAll(() => {
-    new GoogleCloudGrpc().setupOnce();
+  const mockClient = new NodeClient({
+    tracesSampleRate: 1.0,
+    integrations: [],
+    dsn: 'https://withAWSServices@domain/123',
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
+    stackParser: () => [],
   });
+
+  const integration = googleCloudGrpcIntegration();
+  mockClient.addIntegration(integration);
 
   beforeEach(() => {
     nock('https://www.googleapis.com').post('/oauth2/v4/token').reply(200, []);
+    setCurrentClient(mockClient);
+    mockSpanEnd.mockClear();
+    mockStartInactiveSpan.mockClear();
   });
-  afterEach(() => {
-    // @ts-expect-error see "Why @ts-expect-error" note
-    SentryNode.resetMocks();
-    spyConnect.mockClear();
-  });
+
   afterAll(() => {
     nock.restore();
     spyConnect.mockRestore();
@@ -115,16 +135,22 @@ describe('GoogleCloudGrpc tracing', () => {
       resolveTxt.mockReset();
     });
 
+    afterAll(async () => {
+      await pubsub.close();
+    });
+
     test('publish', async () => {
       mockHttp2Session().mockUnaryRequest(Buffer.from('00000000120a1031363337303834313536363233383630', 'hex'));
       const resp = await pubsub.topic('nicetopic').publish(Buffer.from('data'));
       expect(resp).toEqual('1637084156623860');
-      expect(SentryNode.startInactiveSpan).toBeCalledWith({
+      expect(mockStartInactiveSpan).toBeCalledWith({
         op: 'grpc.pubsub',
-        origin: 'auto.grpc.serverless',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.grpc.serverless',
+        },
         name: 'unary call publish',
+        onlyIfParent: true,
       });
-      await pubsub.close();
     });
   });
 });

@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
 import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
@@ -35,8 +35,10 @@ function _wrapCloudEventFunction(
       {
         name: context.type || '<unknown>',
         op: 'function.gcp.cloud_event',
-        origin: 'auto.function.serverless.gcp_cloud_event',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+        },
       },
       span => {
         const scope = getCurrentScope();

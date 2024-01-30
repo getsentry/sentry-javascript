@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, setHttpStatus } from '@sentry/core';
 import {
   captureException,
   continueTrace,
@@ -119,9 +119,11 @@ async function instrumentRequest(
     const res = await startSpan(
       {
         ...traceCtx,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+        },
         name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
         op: 'http.server',
-        origin: 'auto.http.astro',
         status: 'ok',
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
@@ -140,7 +142,7 @@ async function instrumentRequest(
         const originalResponse = await next();
 
         if (span && originalResponse.status) {
-          span.setHttpStatus(originalResponse.status);
+          setHttpStatus(span, originalResponse.status);
         }
 
         const scope = getCurrentScope();

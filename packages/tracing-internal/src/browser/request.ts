@@ -1,11 +1,13 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
-  getRootSpan,
+  getIsolationScope,
   hasTracingEnabled,
+  setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
   startInactiveSpan,
@@ -265,7 +267,7 @@ export function xhrCallback(
 
     const span = spans[spanId];
     if (span && sentryXhrData.status_code !== undefined) {
-      span.setHttpStatus(sentryXhrData.status_code);
+      setHttpStatus(span, sentryXhrData.status_code);
       span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
@@ -275,17 +277,19 @@ export function xhrCallback(
   }
 
   const scope = getCurrentScope();
+  const isolationScope = getIsolationScope();
 
   const span = shouldCreateSpanResult
     ? startInactiveSpan({
+        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+        onlyIfParent: true,
         attributes: {
           type: 'xhr',
           'http.method': sentryXhrData.method,
           url: sentryXhrData.url,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
         },
-        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
         op: 'http.client',
-        origin: 'auto.http.browser',
       })
     : undefined;
 
@@ -294,21 +298,22 @@ export function xhrCallback(
     spans[xhr.__sentry_xhr_span_id__] = span;
   }
 
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
-    if (span) {
-      const transaction = span && getRootSpan(span);
-      const dynamicSamplingContext = transaction && getDynamicSamplingContextFromSpan(transaction);
-      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-      setHeaderOnXhr(xhr, spanToTraceHeader(span), sentryBaggageHeader);
-    } else {
-      const client = getClient();
-      const { traceId, sampled, dsc } = scope.getPropagationContext();
-      const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
-      const dynamicSamplingContext =
-        dsc || (client ? getDynamicSamplingContextFromClient(traceId, client, scope) : undefined);
-      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-      setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
-    }
+  const client = getClient();
+
+  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
+    const { traceId, spanId, sampled, dsc } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+
+    const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+      dsc ||
+        (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client, scope)),
+    );
+
+    setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
   }
 
   return span;

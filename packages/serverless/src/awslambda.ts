@@ -2,7 +2,6 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-/* eslint-disable max-lines */
 import type { NodeOptions, Scope } from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
 import {
@@ -19,12 +18,12 @@ import {
 } from '@sentry/node';
 import type { Integration, Options, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
-// NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { AWSServices } from './awsservices';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { awsServicesIntegration } from './awsservices';
+
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
@@ -71,12 +70,12 @@ export interface WrapperOptions {
 export const defaultIntegrations: Integration[] = [
   // eslint-disable-next-line deprecation/deprecation
   ...nodeDefaultIntegrations,
-  new AWSServices({ optional: true }),
+  awsServicesIntegration({ optional: true }),
 ];
 
 /** Get the default integrations for the AWSLambda SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  return [...getNodeDefaultIntegrations(options), new AWSServices({ optional: true })];
+  return [...getNodeDefaultIntegrations(options), awsServicesIntegration({ optional: true })];
 }
 
 interface AWSLambdaOptions extends NodeOptions {
@@ -361,10 +360,10 @@ export function wrapHandler<TEvent, TResult>(
         {
           name: context.functionName,
           op: 'function.aws.lambda',
-          origin: 'auto.function.serverless',
           ...continueTraceContext,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
         },
         span => {

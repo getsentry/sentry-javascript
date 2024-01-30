@@ -65,7 +65,9 @@ export {
   setTag,
   setTags,
   setUser,
+  // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -97,12 +99,17 @@ export {
 export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
+export { denoContextIntegration } from './integrations/context';
+export { globalHandlersIntegration } from './integrations/globalhandlers';
+export { normalizePathsIntegration } from './integrations/normalizepaths';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { denoCronIntegration } from './integrations/deno-cron';
+
 import * as DenoIntegrations from './integrations';
 
-const INTEGRATIONS = {
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
+export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...DenoIntegrations,
 };
-
-export { INTEGRATIONS as Integrations };

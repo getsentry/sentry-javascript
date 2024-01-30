@@ -47,8 +47,11 @@
       "dev-packages/browser-integration-tests/suites/**/*.json",
       "dev-packages/browser-integration-tests/loader-suites/**/*.js",
       "dev-packages/browser-integration-tests/suites/stacktraces/**/*.js",
+      ".next/**/*",
       "**/fixtures/*/*.json",
-      "**/*.min.js"
+      "**/*.min.js",
+      ".next/**",
+      ".svelte-kit/**"
     ]
   },
   "javascript": {

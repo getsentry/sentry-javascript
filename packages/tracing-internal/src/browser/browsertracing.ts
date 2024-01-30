@@ -5,8 +5,6 @@ import {
   TRACING_DEFAULTS,
   addTracingExtensions,
   getActiveTransaction,
-  spanIsSampled,
-  spanToJSON,
   startIdleTransaction,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
@@ -310,23 +308,27 @@ export class BrowserTracing implements Integration {
 
     const isPageloadTransaction = context.op === 'pageload';
 
-    const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
-    const baggage = isPageloadTransaction ? getMetaContent('baggage') : '';
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-
-    const expandedContext: TransactionContext = {
-      ...context,
-      ...traceparentData,
-      metadata: {
-        // eslint-disable-next-line deprecation/deprecation
-        ...context.metadata,
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      },
-      trimEnd: true,
-    };
+    let expandedContext: TransactionContext;
+    if (isPageloadTransaction) {
+      const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
+      const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
+      const { traceparentData, dynamicSamplingContext } = tracingContextFromHeaders(sentryTrace, baggage);
+      expandedContext = {
+        ...context,
+        ...traceparentData,
+        metadata: {
+          // eslint-disable-next-line deprecation/deprecation
+          ...context.metadata,
+          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+        },
+        trimEnd: true,
+      };
+    } else {
+      expandedContext = {
+        ...context,
+        trimEnd: true,
+      };
+    }
 
     const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
@@ -344,13 +346,7 @@ export class BrowserTracing implements Integration {
           finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    // eslint-disable-next-line deprecation/deprecation
-    const sourceFromMetadata = finalContext.metadata && finalContext.metadata.source;
-
-    this._latestRouteSource = sourceFromData || sourceFromMetadata;
+    this._latestRouteSource = getSource(finalContext);
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -382,24 +378,6 @@ export class BrowserTracing implements Integration {
       if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
         idleTransaction.sendAutoFinishSignal();
       }
-    }
-
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = hub.getScope();
-
-    // If it's a pageload and there is a meta tag set
-    // use the traceparentData as the propagation context
-    if (isPageloadTransaction && traceparentData) {
-      scope.setPropagationContext(propagationContext);
-    } else {
-      // Navigation transactions should set a new propagation context based on the
-      // created idle transaction.
-      scope.setPropagationContext({
-        traceId: idleTransaction.spanContext().traceId,
-        spanId: idleTransaction.spanContext().spanId,
-        parentSpanId: spanToJSON(idleTransaction).parent_span_id,
-        sampled: spanIsSampled(idleTransaction),
-      });
     }
 
     idleTransaction.registerBeforeFinishCallback(transaction => {
@@ -480,4 +458,14 @@ export function getMetaContent(metaName: string): string | undefined {
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;
+}
+
+function getSource(context: TransactionContext): TransactionSource | undefined {
+  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromMetadata = context.metadata && context.metadata.source;
+
+  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

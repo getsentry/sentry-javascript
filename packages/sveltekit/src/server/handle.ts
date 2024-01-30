@@ -1,4 +1,11 @@
-import { getActiveSpan, getCurrentScope, getDynamicSamplingContextFromSpan, spanToTraceHeader } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  setHttpStatus,
+  spanToTraceHeader,
+} from '@sentry/core';
 import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
@@ -169,7 +176,9 @@ async function instrumentHandle(
     const resolveResult = await startSpan(
       {
         op: 'http.server',
-        origin: 'auto.http.sveltekit',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+        },
         name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
         status: 'ok',
         ...traceparentData,
@@ -183,7 +192,7 @@ async function instrumentHandle(
           transformPageChunk: addSentryCodeToPage(options),
         });
         if (span) {
-          span.setHttpStatus(res.status);
+          setHttpStatus(span, res.status);
         }
         return res;
       },

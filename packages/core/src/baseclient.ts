@@ -20,12 +20,12 @@ import type {
   MetricsAggregator,
   Outcome,
   ParameterizedString,
-  PropagationContext,
   SdkMetadata,
   Session,
   SessionAggregates,
   Severity,
   SeverityLevel,
+  StartSpanOptions,
   Transaction,
   TransactionEvent,
   Transport,
@@ -53,6 +53,7 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import { getClient } from './exports';
 import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
+import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
@@ -366,7 +367,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
+    const isAlreadyInstalled = this._integrations[integration.name];
+
+    // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
+    // Here we need to check manually to make sure to not run this multiple times
+    if (!isAlreadyInstalled) {
+      afterSetupIntegrations(this, [integration]);
+    }
   }
 
   /**
@@ -482,6 +490,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
+  public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -522,6 +536,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
+  public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
       this._hooks[hook].forEach(callback => callback(...rest));
@@ -532,7 +552,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** Setup integrations for this client. */
   protected _setupIntegrations(): void {
-    this._integrations = setupIntegrations(this, this._options.integrations);
+    const { integrations } = this._options;
+    this._integrations = setupIntegrations(this, integrations);
+    afterSetupIntegrations(this, integrations);
+
     // TODO v8: We don't need this flag anymore
     this._integrationsInitialized = true;
   }
@@ -638,13 +661,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      // If a trace context is not set on the event, we use the propagationContext set on the event to
-      // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
-      // also generate one for it.
-      const { propagationContext } = evt.sdkProcessingMetadata || {};
+      const propagationContext = {
+        ...isolationScope.getPropagationContext(),
+        ...(scope ? scope.getPropagationContext() : undefined),
+      };
+
       const trace = evt.contexts && evt.contexts.trace;
       if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
+        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
           trace: {
             trace_id,

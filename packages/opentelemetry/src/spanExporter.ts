@@ -4,7 +4,7 @@ import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { flush, getCurrentScope } from '@sentry/core';
-import type { DynamicSamplingContext, Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
+import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { getCurrentHub } from './custom/hub';
@@ -158,9 +158,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
   const parentSpanId = span.parentSpanId;
 
   const parentSampled = span.attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] as boolean | undefined;
-  const dynamicSamplingContext: DynamicSamplingContext | undefined = scope
-    ? scope.getPropagationContext().dsc
-    : undefined;
+  const dynamicSamplingContext = scope ? scope.getPropagationContext().dsc : undefined;
 
   const { op, description, tags, data, origin, source } = getSpanData(span);
   const metadata = getSpanMetadata(span);

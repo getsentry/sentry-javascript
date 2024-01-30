@@ -14,6 +14,7 @@ export interface OpenTelemetrySpanContext {
   origin?: SpanOrigin;
   source?: TransactionSource;
   scope?: Scope;
+  onlyIfParent?: boolean;
 
   // Base SpanOptions we support
   attributes?: Attributes;
