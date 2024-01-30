@@ -670,7 +670,7 @@ jobs:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04-large-js
     timeout-minutes: 20
     strategy:
       fail-fast: false
