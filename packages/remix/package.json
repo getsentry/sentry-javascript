@@ -77,7 +77,7 @@
     "test:integration:prepare": "(cd test/integration && yarn)",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",
     "test:integration:client": "yarn playwright install-deps && yarn playwright test test/integration/test/client/ --project='chromium'",
-    "test:integration:client:ci": "yarn test:integration:client --reporter='line'",
+    "test:integration:client:ci": "yarn test:integration:client",
     "test:integration:server": "export NODE_OPTIONS='--stack-trace-limit=25' && jest --config=test/integration/jest.config.js test/integration/test/server/",
     "test:unit": "jest",
     "test:watch": "jest --watch",

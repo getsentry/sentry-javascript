@@ -3,6 +3,7 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
   retries: 0, // We do not accept flakes.
+  reporter: process.env.CI ? 'github' : 'list',
   use: {
     baseURL: 'http://localhost:3000',
   },
