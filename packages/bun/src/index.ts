@@ -104,6 +104,18 @@ export {
   extractRequestData,
   getSentryRelease,
   addRequestDataToEvent,
+  anrIntegration,
+  consoleIntegration,
+  contextLinesIntegration,
+  hapiIntegration,
+  httpIntegration,
+  localVariablesIntegration,
+  modulesIntegration,
+  nativeNodeFetchintegration,
+  nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  spotlightIntegration,
 } from '@sentry/node';
 
 export { BunClient } from './client';

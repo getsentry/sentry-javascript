@@ -101,4 +101,9 @@ export {
   contextLinesIntegration,
   nodeContextIntegration,
   localVariablesIntegration,
+  anrIntegration,
+  hapiIntegration,
+  httpIntegration,
+  nativeNodeFetchintegration,
+  spotlightIntegration,
 } from '@sentry/node';
