@@ -320,16 +320,15 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
-        run: yarn lint
+        run: lint:lerna
       - name: Validate ES5 builds
         run: yarn validate:es5
 
-  job_lint_md:
-    name: Lint Markdown
+  job_check_format:
+    name: Check file formatting
     needs: [job_get_metadata, job_install_deps]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
-    if: needs.job_get_metadata.outputs.changed_any_code != 'true' && github.event_name == 'pull_request'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -339,8 +338,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version-file: 'package.json'
-      - name: Lint .md files
-        run: yarn lint:prettier
+      - name: Check dependency cache
+        uses: actions/cache/restore@v3
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          fail-on-cache-miss: true
+      - name: Check file formatting
+        run: yarn lint:prettier && yarn lint:biome
 
   job_circular_dep_check:
     name: Circular Dependency Check
@@ -1034,7 +1039,7 @@ jobs:
         job_e2e_tests,
         job_artifacts,
         job_lint,
-        job_lint_md,
+        job_check_format,
         job_circular_dep_check,
       ]
     # Always run this, even if a dependent job failed
