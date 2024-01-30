@@ -36,10 +36,9 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
   await page.goto(`/`);
   await pageloadTxnPromise;
 
-  // await page.waitForTimeout(5000);
+  await page.waitForTimeout(5000);
 
-  await page.locator('#navLink').click();
-  const navigationTxn = await navigationTxnPromise;
+  const [_, navigationTxn] = await Promise.all([page.locator('#navLink').click(), navigationTxnPromise]);
 
   expect(navigationTxn).toMatchObject({
     contexts: {
