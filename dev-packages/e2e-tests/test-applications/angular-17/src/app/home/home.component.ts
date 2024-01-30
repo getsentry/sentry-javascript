@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, switchMap } from 'rxjs';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-home',
@@ -12,7 +11,7 @@ import { Observable, switchMap } from 'rxjs';
     <ul>
       <li> <a [routerLink]="['/users', '123']">Visit User 123</a> </li>
     </ul>
-    <button (click)="throwError">Throw error</button>
+    <button (click)="throwError()">Throw error</button>
   </main>
 `,
 })
