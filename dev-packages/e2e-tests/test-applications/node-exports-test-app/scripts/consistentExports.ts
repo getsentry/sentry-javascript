@@ -22,8 +22,6 @@ const NODE_EXPORTS_IGNORE = [
   'DebugSession',
   'AnrIntegrationOptions',
   'LocalVariablesIntegrationOptions',
-  // deprecated
-  'spanStatusfromHttpCode',
 ];
 
 type Dependent = {
@@ -43,13 +41,10 @@ const DEPENDENTS: Dependent[] = [
     // Next.js doesn't require explicit exports, so we can just merge top level and `default` exports:
     // @ts-expect-error: `default` is not in the type definition but it's defined
     exports: Object.keys({ ...SentryNextJs, ...SentryNextJs.default }),
-    ignoreExports: ['withSentryConfig'],
   },
   {
     package: '@sentry/remix',
     exports: Object.keys(SentryRemix),
-    // TODO: Fix exports in remix
-    skip: true,
   },
   {
     package: '@sentry/serverless',
@@ -58,9 +53,9 @@ const DEPENDENTS: Dependent[] = [
       // Deprecated, no need to add this now to serverless
       'extractTraceparentData',
       'getModuleFromFilename',
+      'enableAnrDetection',
       // TODO: Should these be exported from serverless?
       'cron',
-      'enableAnrDetection',
       'runWithAsyncContext',
       'hapiErrorPlugin',
     ],
