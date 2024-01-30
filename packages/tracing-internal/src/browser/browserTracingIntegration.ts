@@ -395,8 +395,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
  * Manually start a page load span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
+export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions, client = getClient()): void {
   if (!client || !client.emit) {
     return;
   }
@@ -408,8 +407,7 @@ export function startBrowserTracingPageLoadSpan(spanOptions: StartSpanOptions): 
  * Manually start a navigation span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions): void {
-  const client = getClient();
+export function startBrowserTracingNavigationSpan(spanOptions: StartSpanOptions, client = getClient()): void {
   if (!client || !client.emit) {
     return;
   }
