@@ -113,6 +113,7 @@ export { captureRemixServerException, wrapRemixHandleError } from './utils/instr
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
+export { remixBrowserTracingIntegration } from './client/browserTracingIntegration';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 
 export type { SentryMetaArgs } from './utils/types';

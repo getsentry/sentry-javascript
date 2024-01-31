@@ -906,6 +906,7 @@ jobs:
       matrix:
         node: [18, 20, 21]
         remix: [1, 2]
+        tracingIntegration: [false, true]
         # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
         include:
           - node: 14
@@ -929,6 +930,7 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
           REMIX_VERSION: ${{ matrix.remix }}
+          TRACING_INTEGRATION: ${{ matrix.tracingIntegration }}
         run: |
           cd packages/remix
           yarn test:integration:ci
