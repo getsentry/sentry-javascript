@@ -336,7 +336,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
           op: 'pageload',
           origin: 'auto.pageload.browser',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         };
         startBrowserTracingPageLoadSpan(client, context);
       }
@@ -363,7 +365,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               name: WINDOW.location.pathname,
               op: 'navigation',
               origin: 'auto.navigation.browser',
-              metadata: { source: 'url' },
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              },
             };
 
             startBrowserTracingNavigationSpan(client, context);

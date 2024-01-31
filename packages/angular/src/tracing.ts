@@ -7,9 +7,21 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { WINDOW, getCurrentScope } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Span, Transaction, TransactionContext } from '@sentry/types';
+import {
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  getCurrentScope,
+  startBrowserTracingNavigationSpan,
+} from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  spanToJSON,
+  startInactiveSpan,
+} from '@sentry/core';
+import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -23,8 +35,12 @@ let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let stashedStartTransactionOnLocationChange: boolean;
 
+let hooksBasedInstrumentation = false;
+
 /**
  * Creates routing instrumentation for Angular Router.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
  */
 export function routingInstrumentation(
   customStartTransaction: (context: TransactionContext) => Transaction | undefined,
@@ -47,7 +63,34 @@ export function routingInstrumentation(
   }
 }
 
+/**
+ * Creates routing instrumentation for Angular Router.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
+ */
+// eslint-disable-next-line deprecation/deprecation
 export const instrumentAngularRouting = routingInstrumentation;
+
+/**
+ * A custom BrowserTracing integration for Angular.
+ *
+ * Use this integration in combination with `TraceService`
+ */
+export function browserTracingIntegration(
+  options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
+): Integration {
+  // If the user opts out to set this up, we just don't initialize this.
+  // That way, the TraceService will not actually do anything, functionally disabling this.
+  if (options.instrumentNavigation !== false) {
+    instrumentationInitialized = true;
+    hooksBasedInstrumentation = true;
+  }
+
+  return originalBrowserTracingIntegration({
+    ...options,
+    instrumentNavigation: false,
+  });
+}
 
 /**
  * Grabs active transaction off scope.
@@ -74,7 +117,44 @@ export class TraceService implements OnDestroy {
         return;
       }
 
+      if (this._routingSpan) {
+        this._routingSpan.end();
+        this._routingSpan = null;
+      }
+
+      const client = getClient();
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
+
+      if (client && hooksBasedInstrumentation) {
+        if (!getActiveSpan()) {
+          startBrowserTracingNavigationSpan(client, {
+            name: strippedUrl,
+            op: 'navigation',
+            origin: 'auto.navigation.angular',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
+          });
+        }
+
+        // eslint-disable-next-line deprecation/deprecation
+        this._routingSpan =
+          startInactiveSpan({
+            name: `${navigationEvent.url}`,
+            op: ANGULAR_ROUTING_OP,
+            origin: 'auto.ui.angular',
+            tags: {
+              'routing.instrumentation': '@sentry/angular',
+              url: strippedUrl,
+              ...(navigationEvent.navigationTrigger && {
+                navigationTrigger: navigationEvent.navigationTrigger,
+              }),
+            },
+          }) || null;
+
+        return;
+      }
+
       // eslint-disable-next-line deprecation/deprecation
       let activeTransaction = getActiveTransaction();
 
@@ -90,9 +170,6 @@ export class TraceService implements OnDestroy {
       }
 
       if (activeTransaction) {
-        if (this._routingSpan) {
-          this._routingSpan.end();
-        }
         // eslint-disable-next-line deprecation/deprecation
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
@@ -132,6 +209,7 @@ export class TraceService implements OnDestroy {
       if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         transaction.updateName(route);
         transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(transaction).op}.angular`);
       }
     }),
   );
