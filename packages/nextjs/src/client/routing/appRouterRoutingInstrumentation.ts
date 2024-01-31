@@ -12,6 +12,7 @@ const DEFAULT_TAGS = {
 /**
  * Instruments the Next.js Client App Router.
  */
+// TODO(v8): Clean this function up by splitting into pageload and navigation instrumentation respectively. Also remove startTransactionCb in the process.
 export function appRouterInstrumentation(
   startTransactionCb: StartTransactionCb,
   startTransactionOnPageLoad: boolean = true,
