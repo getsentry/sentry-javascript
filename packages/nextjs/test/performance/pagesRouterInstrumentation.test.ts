@@ -211,20 +211,41 @@ describe('pagesRouterInstrumentation', () => {
       'creates a pageload transaction (#%#)',
       (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
         const mockStartTransaction = createMockStartTransaction();
+        const mockStartPageloadSpan = jest.fn();
+        const mockStartNavigationSpan = jest.fn();
+
         setUpNextPage({ url, route, query, props, hasNextData });
-        pagesRouterInstrumentation(mockStartTransaction);
+        pagesRouterInstrumentation(
+          mockStartTransaction,
+          undefined,
+          undefined,
+          mockStartPageloadSpan,
+          mockStartNavigationSpan,
+        );
+
         expect(mockStartTransaction).toHaveBeenCalledTimes(1);
         expect(mockStartTransaction).toHaveBeenLastCalledWith(
           expect.objectContaining(expectedStartTransactionArgument),
         );
+        expect(mockStartPageloadSpan).toHaveBeenCalledWith(expect.objectContaining(expectedStartTransactionArgument));
       },
     );
 
     it('does not create a pageload transaction if option not given', () => {
       const mockStartTransaction = createMockStartTransaction();
+      const mockStartPageloadSpan = jest.fn();
+      const mockStartNavigationSpan = jest.fn();
+
       setUpNextPage({ url: 'https://example.com/', route: '/', hasNextData: false });
-      pagesRouterInstrumentation(mockStartTransaction, false);
-      expect(mockStartTransaction).toHaveBeenCalledTimes(0);
+      pagesRouterInstrumentation(
+        mockStartTransaction,
+        false,
+        undefined,
+        mockStartPageloadSpan,
+        mockStartNavigationSpan,
+      );
+      expect(mockStartTransaction).not.toHaveBeenCalled();
+      expect(mockStartPageloadSpan).not.toHaveBeenCalled();
     });
   });
 
@@ -252,6 +273,8 @@ describe('pagesRouterInstrumentation', () => {
       'should create a parameterized transaction on route change (%s)',
       (targetLocation, expectedTransactionName, expectedTransactionSource) => {
         const mockStartTransaction = createMockStartTransaction();
+        const mockStartPageloadSpan = jest.fn();
+        const mockStartNavigationSpan = jest.fn();
 
         setUpNextPage({
           url: 'https://example.com/home',
@@ -270,12 +293,24 @@ describe('pagesRouterInstrumentation', () => {
           ],
         });
 
-        pagesRouterInstrumentation(mockStartTransaction, false, true);
+        pagesRouterInstrumentation(mockStartTransaction, false, true, mockStartPageloadSpan, mockStartNavigationSpan);
 
         Router.events.emit('routeChangeStart', targetLocation);
 
         expect(mockStartTransaction).toHaveBeenCalledTimes(1);
         expect(mockStartTransaction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: expectedTransactionName,
+            op: 'navigation',
+            tags: expect.objectContaining({
+              'routing.instrumentation': 'next-pages-router',
+            }),
+            metadata: expect.objectContaining({
+              source: expectedTransactionSource,
+            }),
+          }),
+        );
+        expect(mockStartNavigationSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: expectedTransactionName,
             op: 'navigation',
@@ -298,6 +333,8 @@ describe('pagesRouterInstrumentation', () => {
 
     it('should not create transaction when navigation transactions are disabled', () => {
       const mockStartTransaction = createMockStartTransaction();
+      const mockStartPageloadSpan = jest.fn();
+      const mockStartNavigationSpan = jest.fn();
 
       setUpNextPage({
         url: 'https://example.com/home',
@@ -306,11 +343,12 @@ describe('pagesRouterInstrumentation', () => {
         navigatableRoutes: ['/home', '/posts/[id]'],
       });
 
-      pagesRouterInstrumentation(mockStartTransaction, false, false);
+      pagesRouterInstrumentation(mockStartTransaction, false, false, mockStartPageloadSpan, mockStartNavigationSpan);
 
       Router.events.emit('routeChangeStart', '/posts/42');
 
       expect(mockStartTransaction).not.toHaveBeenCalled();
+      expect(mockStartNavigationSpan).not.toHaveBeenCalled();
     });
   });
 });

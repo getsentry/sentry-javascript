@@ -125,16 +125,8 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
-
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
-          expect.objectContaining({
-            // eslint-disable-next-line deprecation/deprecation
-            routingInstrumentation: nextRouterInstrumentation,
-          }),
-        );
+        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
+        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
       });
 
       it('adds `BrowserTracing` integration if `tracesSampler` is set', () => {
@@ -144,16 +136,8 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
-
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
-          expect.objectContaining({
-            // eslint-disable-next-line deprecation/deprecation
-            routingInstrumentation: nextRouterInstrumentation,
-          }),
-        );
+        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
+        expect(browserTracingIntegration?.name).toBe('BrowserTracing');
       });
 
       it('does not add `BrowserTracing` integration if tracing not enabled in SDK', () => {
@@ -162,9 +146,8 @@ describe('Client init()', () => {
         });
 
         const client = getClient<BrowserClient>()!;
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
+        const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
         expect(browserTracingIntegration).toBeUndefined();
       });
 
