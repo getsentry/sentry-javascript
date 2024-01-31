@@ -14,8 +14,8 @@ changes!
 
 Instead of an `transactionContext` being passed to the `tracesSampler` callback, the callback will directly receive
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
-will be removed in v8. Note that the `attributes` are only the attributes at transaction creation time, and some
-attributes may only be set later (and thus not be available during sampling).
+will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
+only be set later during the span lifecycle (and thus not be available during sampling).
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
