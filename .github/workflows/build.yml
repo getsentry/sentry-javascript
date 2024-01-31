@@ -591,6 +591,16 @@ jobs:
           - bundle_tracing_es6_min
           - bundle_tracing_replay_es6
           - bundle_tracing_replay_es6_min
+        project:
+          - chromium
+        include:
+          # Only check all projects for esm & full bundle
+          - bundle: bundle_tracing_replay_es6_min
+            project: ''
+          - bundle: esm
+            project: ''
+            # We also shard the ESM tests as they take the longest
+            shard: [1,2]
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -628,9 +638,8 @@ jobs:
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
-        run: |
-          cd dev-packages/browser-integration-tests
-          yarn test:ci
+        working-directory: dev-packages/browser-integration-tests
+        run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/2', matrix.shard) || '' }}
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
