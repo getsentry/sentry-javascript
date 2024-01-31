@@ -728,6 +728,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     const ctx = continueTrace({
       sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
       baggage: undefined,

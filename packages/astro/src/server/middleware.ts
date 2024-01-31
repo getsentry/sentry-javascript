@@ -94,97 +94,95 @@ async function instrumentRequest(
 
   const { method, headers } = ctx.request;
 
-  const traceCtx = continueTrace({
-    sentryTrace: headers.get('sentry-trace') || undefined,
-    baggage: headers.get('baggage'),
-  });
+  return continueTrace(
+    {
+      sentryTrace: headers.get('sentry-trace') || undefined,
+      baggage: headers.get('baggage'),
+    },
+    async () => {
+      const allHeaders: Record<string, string> = {};
 
-  const allHeaders: Record<string, string> = {};
-
-  if (options.trackHeaders) {
-    headers.forEach((value, key) => {
-      allHeaders[key] = value;
-    });
-  }
-
-  if (options.trackClientIp) {
-    getCurrentScope().setUser({ ip_address: ctx.clientAddress });
-  }
-
-  try {
-    const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
-    const source = interpolatedRoute ? 'route' : 'url';
-    // storing res in a variable instead of directly returning is necessary to
-    // invoke the catch block if next() throws
-    const res = await startSpan(
-      {
-        ...traceCtx,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
-        },
-        name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
-        op: 'http.server',
-        status: 'ok',
-        metadata: {
-          // eslint-disable-next-line deprecation/deprecation
-          ...traceCtx?.metadata,
-        },
-        data: {
-          method,
-          url: stripUrlQueryAndFragment(ctx.url.href),
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          ...(ctx.url.search && { 'http.query': ctx.url.search }),
-          ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
-          ...(options.trackHeaders && { headers: allHeaders }),
-        },
-      },
-      async span => {
-        const originalResponse = await next();
-
-        if (span && originalResponse.status) {
-          setHttpStatus(span, originalResponse.status);
-        }
-
-        const scope = getCurrentScope();
-        const client = getClient();
-        const contentType = originalResponse.headers.get('content-type');
-
-        const isPageloadRequest = contentType && contentType.startsWith('text/html');
-        if (!isPageloadRequest || !client) {
-          return originalResponse;
-        }
-
-        // Type case necessary b/c the body's ReadableStream type doesn't include
-        // the async iterator that is actually available in Node
-        // We later on use the async iterator to read the body chunks
-        // see https://github.com/microsoft/TypeScript/issues/39051
-        const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
-        if (!originalBody) {
-          return originalResponse;
-        }
-
-        const decoder = new TextDecoder();
-
-        const newResponseStream = new ReadableStream({
-          start: async controller => {
-            for await (const chunk of originalBody) {
-              const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-              const modifiedHtml = addMetaTagToHead(html, scope, client, span);
-              controller.enqueue(new TextEncoder().encode(modifiedHtml));
-            }
-            controller.close();
-          },
+      if (options.trackHeaders) {
+        headers.forEach((value, key) => {
+          allHeaders[key] = value;
         });
+      }
 
-        return new Response(newResponseStream, originalResponse);
-      },
-    );
-    return res;
-  } catch (e) {
-    sendErrorToSentry(e);
-    throw e;
-  }
-  // TODO: flush if serverless (first extract function)
+      if (options.trackClientIp) {
+        getCurrentScope().setUser({ ip_address: ctx.clientAddress });
+      }
+
+      try {
+        const interpolatedRoute = interpolateRouteFromUrlAndParams(ctx.url.pathname, ctx.params);
+        const source = interpolatedRoute ? 'route' : 'url';
+        // storing res in a variable instead of directly returning is necessary to
+        // invoke the catch block if next() throws
+        const res = await startSpan(
+          {
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+            },
+            name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
+            op: 'http.server',
+            status: 'ok',
+            data: {
+              method,
+              url: stripUrlQueryAndFragment(ctx.url.href),
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+              ...(ctx.url.search && { 'http.query': ctx.url.search }),
+              ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
+              ...(options.trackHeaders && { headers: allHeaders }),
+            },
+          },
+          async span => {
+            const originalResponse = await next();
+
+            if (span && originalResponse.status) {
+              setHttpStatus(span, originalResponse.status);
+            }
+
+            const scope = getCurrentScope();
+            const client = getClient();
+            const contentType = originalResponse.headers.get('content-type');
+
+            const isPageloadRequest = contentType && contentType.startsWith('text/html');
+            if (!isPageloadRequest || !client) {
+              return originalResponse;
+            }
+
+            // Type case necessary b/c the body's ReadableStream type doesn't include
+            // the async iterator that is actually available in Node
+            // We later on use the async iterator to read the body chunks
+            // see https://github.com/microsoft/TypeScript/issues/39051
+            const originalBody = originalResponse.body as NodeJS.ReadableStream | null;
+            if (!originalBody) {
+              return originalResponse;
+            }
+
+            const decoder = new TextDecoder();
+
+            const newResponseStream = new ReadableStream({
+              start: async controller => {
+                for await (const chunk of originalBody) {
+                  const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
+                  const modifiedHtml = addMetaTagToHead(html, scope, client, span);
+                  controller.enqueue(new TextEncoder().encode(modifiedHtml));
+                }
+                controller.close();
+              },
+            });
+
+            return new Response(newResponseStream, originalResponse);
+          },
+        );
+        return res;
+      } catch (e) {
+        sendErrorToSentry(e);
+        throw e;
+      }
+      // TODO: flush if serverless (first extract function)
+    },
+  );
 }
 
 /**
