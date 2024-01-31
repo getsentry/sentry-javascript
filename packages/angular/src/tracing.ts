@@ -14,6 +14,7 @@ import {
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getClient,
@@ -208,6 +209,7 @@ export class TraceService implements OnDestroy {
       if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         transaction.updateName(route);
         transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(transaction).op}.angular`);
       }
     }),
   );
