@@ -212,7 +212,7 @@ jobs:
   job_build:
     name: Build
     needs: [job_get_metadata, job_install_deps]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04-large-js
     timeout-minutes: 30
     if: |
       (needs.job_get_metadata.outputs.changed_any_code == 'true' || github.event_name != 'pull_request')

@@ -36,7 +36,7 @@ describe('Sentry.VueIntegration', () => {
     });
 
     // This would normally happen through client.addIntegration()
-    const integration = new Sentry.VueIntegration({ app });
+    const integration = Sentry.vueIntegration({ app });
     integration['setup']?.(Sentry.getClient() as Client);
 
     app.mount(el);
@@ -58,7 +58,7 @@ describe('Sentry.VueIntegration', () => {
     app.mount(el);
 
     // This would normally happen through client.addIntegration()
-    const integration = new Sentry.VueIntegration({ app });
+    const integration = Sentry.vueIntegration({ app });
     integration['setup']?.(Sentry.getClient() as Client);
 
     expect(warnings).toEqual([
