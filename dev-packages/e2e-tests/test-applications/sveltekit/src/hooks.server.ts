@@ -9,9 +9,8 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-const myErrorHandler = ({ error, event }: any) => {
-  console.error('An error occurred on the server side:', error, event);
-};
+// not logging anything to console to avoid noise in the test output
+const myErrorHandler = ({ error, event }: any) => {};
 
 export const handleError = Sentry.handleErrorWithSentry(myErrorHandler);
 
