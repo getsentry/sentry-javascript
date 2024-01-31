@@ -6,7 +6,7 @@ import { hydrate } from 'react-dom';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1,
-  integrations: [Sentry.remixBrowserTracingIntegration({ useEffect, useLocation, useMatches })],
+  integrations: [Sentry.browserTracingIntegration({ useEffect, useLocation, useMatches })],
 });
 
 hydrate(<RemixBrowser />, document);

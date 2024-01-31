@@ -6,7 +6,7 @@ import type { RemixBrowserTracingIntegrationOptions } from './performance';
  * Creates a browser tracing integration for Remix applications.
  * This integration will create pageload and navigation spans.
  */
-export function remixBrowserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
+export function browserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
   if (options.startTransactionOnPageLoad === undefined) {
     options.startTransactionOnPageLoad = true;
   }

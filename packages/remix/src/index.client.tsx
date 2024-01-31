@@ -7,7 +7,7 @@ export {
   withSentry,
 } from './client/performance';
 
-export { remixBrowserTracingIntegration } from './client/browserTracingIntegration';
+export { browserTracingIntegration } from './client/browserTracingIntegration';
 
 export * from '@sentry/react';
 

@@ -148,7 +148,7 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
  * This implementation is slightly different (and simpler) from the react-router instrumentation
  * as in Remix, `useMatches` hook is available where in react-router-v6 it's not yet.
  *
- * @deprecated Use `remixBrowserTracingIntegration` instead.
+ * @deprecated Use `browserTracingIntegration` instead.
  */
 export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: UseLocation, useMatches: UseMatches) {
   return (

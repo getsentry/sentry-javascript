@@ -28,7 +28,7 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1,
   integrations: [
-    Sentry.remixBrowserTracingIntegration({
+    Sentry.browserTracingIntegration({
       useEffect,
       useLocation,
       useMatches,
