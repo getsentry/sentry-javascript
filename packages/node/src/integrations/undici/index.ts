@@ -1,16 +1,18 @@
 import {
   addBreadcrumb,
+  defineIntegration,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
+  hasTracingEnabled,
   isSentryRequestUrl,
   setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, Span } from '@sentry/types';
+import type { EventProcessor, Integration, IntegrationFn, IntegrationFnResult, Span } from '@sentry/types';
 import {
   LRUMap,
   dynamicRequire,
@@ -44,6 +46,13 @@ export interface UndiciOptions {
    * Defaults to true
    */
   breadcrumbs: boolean;
+
+  /**
+   * Whether tracing spans should be created for requests
+   * If not set, this will be enabled/disabled based on if tracing is enabled.
+   */
+  tracing?: boolean;
+
   /**
    * Function determining whether or not to create spans to track outgoing requests to the given URL.
    * By default, spans will be created for all outgoing requests.
@@ -64,6 +73,13 @@ export interface UndiciOptions {
 //   writeFileSync('log.out', `${format(...args)}\n`, { flag: 'a' });
 // }
 
+const _nativeNodeFetchintegration = ((options?: Partial<UndiciOptions>) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Undici(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
+
+export const nativeNodeFetchintegration = defineIntegration(_nativeNodeFetchintegration);
+
 /**
  * Instruments outgoing HTTP requests made with the `undici` package via
  * Node's `diagnostics_channel` API.
@@ -71,6 +87,8 @@ export interface UndiciOptions {
  * Supports Undici 4.7.0 or higher.
  *
  * Requires Node 16.17.0 or higher.
+ *
+ * @deprecated Use `nativeNodeFetchintegration()` instead.
  */
 export class Undici implements Integration {
   /**
@@ -81,6 +99,7 @@ export class Undici implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public name: string = Undici.id;
 
   private readonly _options: UndiciOptions;
@@ -91,6 +110,7 @@ export class Undici implements Integration {
   public constructor(_options: Partial<UndiciOptions> = {}) {
     this._options = {
       breadcrumbs: _options.breadcrumbs === undefined ? true : _options.breadcrumbs,
+      tracing: _options.tracing,
       shouldCreateSpanForRequest: _options.shouldCreateSpanForRequest,
     };
   }
@@ -124,6 +144,10 @@ export class Undici implements Integration {
 
   /** Helper that wraps shouldCreateSpanForRequest option */
   private _shouldCreateSpan(url: string): boolean {
+    if (this._options.tracing === false || (this._options.tracing === undefined && !hasTracingEnabled())) {
+      return false;
+    }
+
     if (this._options.shouldCreateSpanForRequest === undefined) {
       return true;
     }

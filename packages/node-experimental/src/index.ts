@@ -2,14 +2,13 @@ import { Integrations as CoreIntegrations } from '@sentry/core';
 
 import * as NodeExperimentalIntegrations from './integrations';
 
-const INTEGRATIONS = {
+export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   ...NodeExperimentalIntegrations,
 };
 
 export { init } from './sdk/init';
-export { INTEGRATIONS as Integrations };
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
@@ -74,6 +73,17 @@ export {
   captureCheckIn,
   withMonitor,
   hapiErrorPlugin,
+  consoleIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  modulesIntegration,
+  contextLinesIntegration,
+  nodeContextIntegration,
+  localVariablesIntegration,
+  requestDataIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
 } from '@sentry/node';
 
 export type {

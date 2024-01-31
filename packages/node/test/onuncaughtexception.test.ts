@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import type { NodeClient } from '../src/client';
 
-import { OnUncaughtException, makeErrorHandler } from '../src/integrations/onuncaughtexception';
+import { makeErrorHandler, onUncaughtExceptionIntegration } from '../src/integrations/onuncaughtexception';
 
 const client = {
   getOptions: () => ({}),
@@ -19,8 +19,8 @@ jest.mock('@sentry/core', () => {
 
 describe('uncaught exceptions', () => {
   test('install global listener', () => {
-    const integration = new OnUncaughtException();
-    integration.setup(client);
+    const integration = onUncaughtExceptionIntegration();
+    integration.setup!(client);
     expect(process.listeners('uncaughtException')).toHaveLength(1);
   });
 
