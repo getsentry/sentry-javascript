@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 
-import { VueIntegration } from '../../src/integration';
 import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
@@ -104,7 +103,7 @@ Update your \`Sentry.init\` call with an appropriate config option:
 });
 
 function runInit(options: Partial<Options>): void {
-  const integration = new VueIntegration();
+  const integration = Sentry.vueIntegration();
 
   Sentry.init({
     dsn: PUBLIC_DSN,
