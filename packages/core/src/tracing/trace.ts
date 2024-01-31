@@ -224,31 +224,54 @@ export function getActiveSpan(): Span | undefined {
   return getCurrentScope().getSpan();
 }
 
-export function continueTrace({
-  sentryTrace,
-  baggage,
-}: {
-  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-  baggage: Parameters<typeof tracingContextFromHeaders>[1];
-}): Partial<TransactionContext>;
-export function continueTrace<V>(
-  {
+interface ContinueTrace {
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers,
+   * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
+   *
+   * @deprecated Use the version of this function taking a callback as second parameter instead:
+   *
+   * ```
+   * Sentry.continueTrace(sentryTrace: '...', baggage: '...' }, () => {
+   *    // ...
+   * })
+   * ```
+   *
+   */
+  ({
     sentryTrace,
     baggage,
   }: {
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
-  },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V;
-/**
- * Continue a trace from `sentry-trace` and `baggage` values.
- * These values can be obtained from incoming request headers,
- * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
- *
- * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
- */
-export function continueTrace<V>(
+  }): Partial<TransactionContext>;
+
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+   * and `<meta name="baggage">` HTML tags.
+   *
+   * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
+   * be attached to the incoming trace.
+   *
+   * Deprecation notice: In the next major version of the SDK the provided callback will not receive a transaction
+   * context argument.
+   */
+  <V>(
+    {
+      sentryTrace,
+      baggage,
+    }: {
+      sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+      baggage: Parameters<typeof tracingContextFromHeaders>[1];
+    },
+    // TODO(v8): Remove parameter from this callback.
+    callback: (transactionContext: Partial<TransactionContext>) => V,
+  ): V;
+}
+
+export const continueTrace: ContinueTrace = <V>(
   {
     sentryTrace,
     baggage,
@@ -257,7 +280,7 @@ export function continueTrace<V>(
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
-): V | Partial<TransactionContext> {
+): V | Partial<TransactionContext> => {
   const currentScope = getCurrentScope();
 
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
@@ -283,7 +306,7 @@ export function continueTrace<V>(
   }
 
   return callback(transactionContext);
-}
+};
 
 function createChildSpanOrTransaction(
   hub: Hub,
