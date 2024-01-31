@@ -117,8 +117,77 @@ describe('Client init()', () => {
       expect(installedBreadcrumbsIntegration).toBeDefined();
     });
 
-    describe('`BrowserTracing` integration', () => {
-      it('adds `BrowserTracing` integration if `tracesSampleRate` is set', () => {
+    it('forces correct router instrumentation if user provides `BrowserTracing` in an array', () => {
+      init({
+        dsn: TEST_DSN,
+        tracesSampleRate: 1.0,
+        // eslint-disable-next-line deprecation/deprecation
+        integrations: [new BrowserTracing({ finalTimeout: 10 })],
+      });
+
+      const client = getClient<BrowserClient>()!;
+      // eslint-disable-next-line deprecation/deprecation
+      const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+
+      expect(browserTracingIntegration).toBeDefined();
+      expect(browserTracingIntegration?.options).toEqual(
+        expect.objectContaining({
+          // eslint-disable-next-line deprecation/deprecation
+          routingInstrumentation: nextRouterInstrumentation,
+          // This proves it's still the user's copy
+          finalTimeout: 10,
+        }),
+      );
+    });
+
+    it('forces correct router instrumentation if user provides `browserTracingIntegration`', () => {
+      init({
+        dsn: TEST_DSN,
+        integrations: [browserTracingIntegration({ finalTimeout: 10 })],
+        enableTracing: true,
+      });
+
+      const client = getClient<BrowserClient>()!;
+      // eslint-disable-next-line deprecation/deprecation
+      const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+
+      expect(integration).toBeDefined();
+      expect(integration?.options).toEqual(
+        expect.objectContaining({
+          // eslint-disable-next-line deprecation/deprecation
+          routingInstrumentation: nextRouterInstrumentation,
+          // This proves it's still the user's copy
+          finalTimeout: 10,
+        }),
+      );
+    });
+
+    it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
+      init({
+        dsn: TEST_DSN,
+        tracesSampleRate: 1.0,
+        // eslint-disable-next-line deprecation/deprecation
+        integrations: defaults => [...defaults, new BrowserTracing({ startTransactionOnLocationChange: false })],
+      });
+
+      const client = getClient<BrowserClient>()!;
+
+      // eslint-disable-next-line deprecation/deprecation
+      const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+
+      expect(browserTracingIntegration).toBeDefined();
+      expect(browserTracingIntegration?.options).toEqual(
+        expect.objectContaining({
+          // eslint-disable-next-line deprecation/deprecation
+          routingInstrumentation: nextRouterInstrumentation,
+          // This proves it's still the user's copy
+          startTransactionOnLocationChange: false,
+        }),
+      );
+    });
+
+    describe('browserTracingIntegration()', () => {
+      it('adds `browserTracingIntegration()` integration if `tracesSampleRate` is set', () => {
         init({
           dsn: TEST_DSN,
           tracesSampleRate: 1.0,
@@ -129,7 +198,7 @@ describe('Client init()', () => {
         expect(browserTracingIntegration?.name).toBe('BrowserTracing');
       });
 
-      it('adds `BrowserTracing` integration if `tracesSampler` is set', () => {
+      it('adds `browserTracingIntegration()` integration if `tracesSampler` is set', () => {
         init({
           dsn: TEST_DSN,
           tracesSampler: () => true,
@@ -140,7 +209,7 @@ describe('Client init()', () => {
         expect(browserTracingIntegration?.name).toBe('BrowserTracing');
       });
 
-      it('does not add `BrowserTracing` integration if tracing not enabled in SDK', () => {
+      it('does not add `browserTracingIntegration()` integration if tracing not enabled in SDK', () => {
         init({
           dsn: TEST_DSN,
         });
@@ -149,75 +218,6 @@ describe('Client init()', () => {
 
         const browserTracingIntegration = client.getIntegrationByName('BrowserTracing');
         expect(browserTracingIntegration).toBeUndefined();
-      });
-
-      it('forces correct router instrumentation if user provides `BrowserTracing` in an array', () => {
-        init({
-          dsn: TEST_DSN,
-          tracesSampleRate: 1.0,
-          // eslint-disable-next-line deprecation/deprecation
-          integrations: [new BrowserTracing({ finalTimeout: 10 })],
-        });
-
-        const client = getClient<BrowserClient>()!;
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
-
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
-          expect.objectContaining({
-            // eslint-disable-next-line deprecation/deprecation
-            routingInstrumentation: nextRouterInstrumentation,
-            // This proves it's still the user's copy
-            finalTimeout: 10,
-          }),
-        );
-      });
-
-      it('forces correct router instrumentation if user provides `browserTracingIntegration`', () => {
-        init({
-          dsn: TEST_DSN,
-          integrations: [browserTracingIntegration({ finalTimeout: 10 })],
-          enableTracing: true,
-        });
-
-        const client = getClient<BrowserClient>()!;
-        // eslint-disable-next-line deprecation/deprecation
-        const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
-
-        expect(integration).toBeDefined();
-        expect(integration?.options).toEqual(
-          expect.objectContaining({
-            // eslint-disable-next-line deprecation/deprecation
-            routingInstrumentation: nextRouterInstrumentation,
-            // This proves it's still the user's copy
-            finalTimeout: 10,
-          }),
-        );
-      });
-
-      it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
-        init({
-          dsn: TEST_DSN,
-          tracesSampleRate: 1.0,
-          // eslint-disable-next-line deprecation/deprecation
-          integrations: defaults => [...defaults, new BrowserTracing({ startTransactionOnLocationChange: false })],
-        });
-
-        const client = getClient<BrowserClient>()!;
-
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
-
-        expect(browserTracingIntegration).toBeDefined();
-        expect(browserTracingIntegration?.options).toEqual(
-          expect.objectContaining({
-            // eslint-disable-next-line deprecation/deprecation
-            routingInstrumentation: nextRouterInstrumentation,
-            // This proves it's still the user's copy
-            startTransactionOnLocationChange: false,
-          }),
-        );
       });
     });
   });
