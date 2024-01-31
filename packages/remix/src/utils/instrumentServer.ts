@@ -107,7 +107,9 @@ export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): 
   });
 }
 
-// To be deprecated in favor of `sentryHandleError`
+/**
+ * @deprecated Use `sentryHandleError` instead.
+ */
 export const wrapRemixHandleError = sentryHandleError;
 
 /**
