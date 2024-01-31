@@ -17,7 +17,7 @@ import {
 import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
-import { BunServer } from './integrations';
+import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
@@ -41,7 +41,7 @@ export const defaultIntegrations = [
   nodeContextIntegration(),
   modulesIntegration(),
   // Bun Specific
-  new BunServer(),
+  bunServerIntegration(),
 ];
 
 /** Get the default integrations for the Bun SDK. */
