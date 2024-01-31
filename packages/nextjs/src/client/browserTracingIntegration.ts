@@ -50,19 +50,13 @@ export function browserTracingIntegration(
   return {
     ...browserTracingIntegrationInstance,
     afterAllSetup(client) {
-      const startPageloadCallback = (startSpanOptions: StartSpanOptions): void => {
-        if (!client.emit) {
-          return;
-        }
+      browserTracingIntegrationInstance.afterAllSetup(client);
 
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): void => {
         startBrowserTracingPageLoadSpan(client, startSpanOptions);
       };
 
       const startNavigationCallback = (startSpanOptions: StartSpanOptions): void => {
-        if (!client.emit) {
-          return;
-        }
-
         startBrowserTracingNavigationSpan(client, startSpanOptions);
       };
 
