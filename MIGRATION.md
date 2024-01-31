@@ -10,6 +10,13 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecated `transactionContext` passed to `tracesSampler`
+
+Instead of an `transactionContext` being passed to the `tracesSampler` callback, the callback will directly receive
+`name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
+will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
+only be set later during the span lifecycle (and thus not be available during sampling).
+
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
 In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used
