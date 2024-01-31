@@ -1,5 +1,5 @@
 import type { Session } from 'node:inspector/promises';
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, dynamicRequire, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime } from 'inspector';
@@ -76,7 +76,7 @@ const INTEGRATION_NAME = 'LocalVariablesAsync';
 /**
  * Adds local variables to exception frames
  */
-const localVariablesAsyncIntegration = ((options: LocalVariablesIntegrationOptions = {}) => {
+const _localVariablesAsyncIntegration = ((options: LocalVariablesIntegrationOptions = {}) => {
   const cachedFrames: LRUMap<string, FrameVariables[]> = new LRUMap(20);
   let rateLimiter: RateLimitIncrement | undefined;
   let shouldProcessEvent = false;
@@ -253,11 +253,17 @@ const localVariablesAsyncIntegration = ((options: LocalVariablesIntegrationOptio
   };
 }) satisfies IntegrationFn;
 
+export const localVariablesAsyncIntegration = defineIntegration(_localVariablesAsyncIntegration);
+
 /**
- * Adds local variables to exception frames
+ * Adds local variables to exception frames.
+ * @deprecated Use `localVariablesAsyncIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const LocalVariablesAsync = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   localVariablesAsyncIntegration,
 ) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type LocalVariablesAsync = typeof LocalVariablesAsync;

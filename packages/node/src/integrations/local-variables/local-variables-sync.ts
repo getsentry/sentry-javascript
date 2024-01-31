@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { convertIntegrationFnToClass, getClient } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
 import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
@@ -219,7 +219,7 @@ const INTEGRATION_NAME = 'LocalVariables';
 /**
  * Adds local variables to exception frames
  */
-const localVariablesSyncIntegration = ((
+const _localVariablesSyncIntegration = ((
   options: LocalVariablesIntegrationOptions = {},
   session: DebugSession | undefined = tryNewAsyncSession(),
 ) => {
@@ -392,8 +392,11 @@ const localVariablesSyncIntegration = ((
   };
 }) satisfies IntegrationFn;
 
+export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);
+
 /**
- * Adds local variables to exception frames
+ * Adds local variables to exception frames.
+ * @deprecated Use `localVariablesSyncIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const LocalVariablesSync = convertIntegrationFnToClass(
@@ -402,3 +405,6 @@ export const LocalVariablesSync = convertIntegrationFnToClass(
 ) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
   new (options?: LocalVariablesIntegrationOptions, session?: DebugSession): Integration;
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type LocalVariablesSync = typeof LocalVariablesSync;

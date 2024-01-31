@@ -1,5 +1,5 @@
 import { readFile } from 'fs';
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
@@ -35,7 +35,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-const contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -48,7 +48,12 @@ const contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node modules / packages to the event */
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
+
+/**
+ * Add node modules / packages to the event.
+ * @deprecated Use `contextLinesIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
   Integration & { processEvent: (event: Event) => Promise<Event> }
@@ -118,6 +123,9 @@ function addSourceContextToFrames(frames: StackFrame[], contextLines: number): v
     }
   }
 }
+
+// eslint-disable-next-line deprecation/deprecation
+export type ContextLines = typeof ContextLines;
 
 /**
  * Reads file contents and caches them in a global LRU cache.

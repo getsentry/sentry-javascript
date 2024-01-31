@@ -243,7 +243,9 @@ interface ContinueTrace {
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   }): Partial<TransactionContext>;
 
@@ -263,7 +265,9 @@ interface ContinueTrace {
       sentryTrace,
       baggage,
     }: {
+      // eslint-disable-next-line deprecation/deprecation
       sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+      // eslint-disable-next-line deprecation/deprecation
       baggage: Parameters<typeof tracingContextFromHeaders>[1];
     },
     // TODO(v8): Remove parameter from this callback.
@@ -276,13 +280,23 @@ export const continueTrace: ContinueTrace = <V>(
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
 ): V | Partial<TransactionContext> => {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+    getCurrentScope().setPropagationContext(propagationContext);
+    return;
+  */
+
   const currentScope = getCurrentScope();
 
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,

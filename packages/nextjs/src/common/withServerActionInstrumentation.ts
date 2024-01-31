@@ -76,6 +76,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
     }
 
     const currentScope = getCurrentScope();
+    // eslint-disable-next-line deprecation/deprecation
     const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
       sentryTraceHeader,
       baggageHeader,

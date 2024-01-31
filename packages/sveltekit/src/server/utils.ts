@@ -10,9 +10,11 @@ import { DEBUG_BUILD } from '../common/debug-build';
  *
  * Sets propagation context as a side effect.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getTracePropagationData(event: RequestEvent): ReturnType<typeof tracingContextFromHeaders> {
   const sentryTraceHeader = event.request.headers.get('sentry-trace') || '';
   const baggageHeader = event.request.headers.get('baggage');
+  // eslint-disable-next-line deprecation/deprecation
   return tracingContextFromHeaders(sentryTraceHeader, baggageHeader);
 }
 

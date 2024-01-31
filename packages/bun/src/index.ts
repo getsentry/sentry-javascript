@@ -104,6 +104,18 @@ export {
   extractRequestData,
   getSentryRelease,
   addRequestDataToEvent,
+  anrIntegration,
+  consoleIntegration,
+  contextLinesIntegration,
+  hapiIntegration,
+  httpIntegration,
+  localVariablesIntegration,
+  modulesIntegration,
+  nativeNodeFetchintegration,
+  nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  spotlightIntegration,
 } from '@sentry/node';
 
 export { BunClient } from './client';
@@ -122,6 +134,7 @@ import * as BunIntegrations from './integrations';
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
   ...BunIntegrations,
 };

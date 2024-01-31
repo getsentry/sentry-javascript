@@ -3,6 +3,7 @@ import {
   captureException,
   continueTrace,
   convertIntegrationFnToClass,
+  defineIntegration,
   getActiveTransaction,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
@@ -139,7 +140,7 @@ export type HapiOptions = {
 
 const INTEGRATION_NAME = 'Hapi';
 
-const hapiIntegration = ((options: HapiOptions = {}) => {
+const _hapiIntegration = ((options: HapiOptions = {}) => {
   const server = options.server as undefined | Server;
 
   return {
@@ -161,8 +162,14 @@ const hapiIntegration = ((options: HapiOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
+export const hapiIntegration = defineIntegration(_hapiIntegration);
+
 /**
- * Hapi Framework Integration
+ * Hapi Framework Integration.
+ * @deprecated Use `hapiIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Hapi = convertIntegrationFnToClass(INTEGRATION_NAME, hapiIntegration);
+
+// eslint-disable-next-line deprecation/deprecation
+export type Hapi = typeof Hapi;
