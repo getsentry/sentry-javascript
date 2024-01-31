@@ -893,6 +893,7 @@ jobs:
       matrix:
         test-application:
           [
+            'angular-17',
             'cloudflare-astro',
             'node-express-app',
             'create-react-app',
