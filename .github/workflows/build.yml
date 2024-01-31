@@ -569,7 +569,7 @@ jobs:
           yarn test:integration
 
   job_browser_playwright_tests:
-    name: Playwright (${{ matrix.bundle }}) Tests
+    name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04-large-js
@@ -591,6 +591,36 @@ jobs:
           - bundle_tracing_es6_min
           - bundle_tracing_replay_es6
           - bundle_tracing_replay_es6_min
+        project:
+          - chromium
+        include:
+          # Only check all projects for esm & full bundle
+          # We also shard the tests as they take the longest
+          - bundle: bundle_tracing_replay_es6_min
+            project: ''
+            shard: 1
+            shards: 2
+          - bundle: bundle_tracing_replay_es6_min
+            project: ''
+            shard: 2
+            shards: 2
+          - bundle: esm
+            project: ''
+            shard: 1
+            shards: 3
+          - bundle: esm
+            shard: 2
+            shards: 3
+          - bundle: esm
+            project: ''
+            shard: 3
+            shards: 3
+        exclude:
+          # Do not run the default chromium-only tests
+          - bundle: bundle_tracing_replay_es6_min
+            project: 'chromium'
+          - bundle: esm
+            project: 'chromium'
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -628,9 +658,8 @@ jobs:
       - name: Run Playwright tests
         env:
           PW_BUNDLE: ${{ matrix.bundle }}
-        run: |
-          cd dev-packages/browser-integration-tests
-          yarn test:ci
+        working-directory: dev-packages/browser-integration-tests
+        run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
