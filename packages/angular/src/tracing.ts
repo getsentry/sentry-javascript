@@ -81,7 +81,7 @@ export function browserTracingIntegration(
 ): Integration {
   // If the user opts out to set this up, we just don't initialize this.
   // That way, the TraceService will not actually do anything, functionally disabling this.
-  if (options.instrumentNavigation === false) {
+  if (options.instrumentNavigation !== false) {
     instrumentationInitialized = true;
     hooksBasedInstrumentation = true;
   }
