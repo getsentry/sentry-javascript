@@ -30,7 +30,8 @@ const config: PlaywrightTestConfig = {
     timeout: 10000,
   },
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */
@@ -69,7 +70,7 @@ const config: PlaywrightTestConfig = {
       command:
         testEnv === 'development'
           ? `pnpm wait-port ${eventProxyPort} && pnpm dev --port ${svelteKitPort}`
-          : `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${svelteKitPort}`,
+          : `pnpm wait-port ${eventProxyPort} && PORT=${svelteKitPort} node build`,
       port: svelteKitPort,
       reuseExistingServer: false,
     },

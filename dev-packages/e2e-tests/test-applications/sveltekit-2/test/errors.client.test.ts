@@ -2,8 +2,8 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '../event-proxy-server';
 import { waitForInitialPageload } from './utils';
 
-test.describe('capturing client side errors', () => {
-  test('should capture error thrown on click', async ({ page }) => {
+test.describe('client-side errors', () => {
+  test('captures error thrown on click', async ({ page }) => {
     await page.goto('/client-error');
 
     await expect(page.getByText('Client error')).toBeVisible();
@@ -29,7 +29,7 @@ test.describe('capturing client side errors', () => {
     expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
   });
 
-  test('should capture universal load error', async ({ page }) => {
+  test('captures universal load error', async ({ page }) => {
     await waitForInitialPageload(page);
     await page.reload();
 

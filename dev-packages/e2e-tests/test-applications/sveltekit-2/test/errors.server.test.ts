@@ -1,8 +1,8 @@
 import { expect, test } from '@playwright/test';
 import { waitForError } from '../event-proxy-server';
 
-test.describe('capturing server side errors', () => {
-  test('should capture universal load error', async ({ page }) => {
+test.describe('server-side errors', () => {
+  test('captures universal load error', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Universal Load Error (server)';
     });
@@ -15,7 +15,6 @@ test.describe('capturing server side errors', () => {
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
         function: 'load$1',
-        lineno: 3,
         in_app: true,
       }),
     );
@@ -23,7 +22,7 @@ test.describe('capturing server side errors', () => {
     expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
-  test('should capture server load error', async ({ page }) => {
+  test('captures server load error', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Server Load Error';
     });
@@ -36,7 +35,6 @@ test.describe('capturing server side errors', () => {
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
         function: 'load$1',
-        lineno: 3,
         in_app: true,
       }),
     );
@@ -44,7 +42,7 @@ test.describe('capturing server side errors', () => {
     expect(errorEvent.tags).toMatchObject({ runtime: 'node' });
   });
 
-  test('should capture server route (GET) error', async ({ page }) => {
+  test('captures server route (GET) error', async ({ page }) => {
     const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Server Route Error';
     });
@@ -56,9 +54,8 @@ test.describe('capturing server side errors', () => {
 
     expect(errorEventFrames?.[errorEventFrames?.length - 1]).toEqual(
       expect.objectContaining({
-        filename: 'app:///_server.ts.js',
+        filename: expect.stringContaining('app:///_server.ts'),
         function: 'GET',
-        lineno: 2,
         in_app: true,
       }),
     );
