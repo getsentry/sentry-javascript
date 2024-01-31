@@ -8,7 +8,7 @@ import {
   startIdleTransaction,
 } from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getDomElement, logger, propagationContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -312,21 +312,23 @@ export class BrowserTracing implements Integration {
     if (isPageloadTransaction) {
       const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
       const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
-      const { traceparentData, dynamicSamplingContext } = tracingContextFromHeaders(sentryTrace, baggage);
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
       expandedContext = {
+        traceId,
+        parentSpanId,
+        parentSampled: sampled,
         ...context,
-        ...traceparentData,
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
           ...context.metadata,
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          dynamicSamplingContext: dsc,
         },
         trimEnd: true,
       };
     } else {
       expandedContext = {
-        ...context,
         trimEnd: true,
+        ...context,
       };
     }
 

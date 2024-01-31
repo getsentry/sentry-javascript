@@ -1,5 +1,6 @@
 import type { Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
+import type { propagationContextFromHeaders } from '@sentry/utils';
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -228,16 +229,16 @@ export function continueTrace({
   sentryTrace,
   baggage,
 }: {
-  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-  baggage: Parameters<typeof tracingContextFromHeaders>[1];
+  sentryTrace: Parameters<typeof propagationContextFromHeaders>[0];
+  baggage: Parameters<typeof propagationContextFromHeaders>[1];
 }): Partial<TransactionContext>;
 export function continueTrace<V>(
   {
     sentryTrace,
     baggage,
   }: {
-    sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-    baggage: Parameters<typeof tracingContextFromHeaders>[1];
+    sentryTrace: Parameters<typeof propagationContextFromHeaders>[0];
+    baggage: Parameters<typeof propagationContextFromHeaders>[1];
   },
   callback: (transactionContext: Partial<TransactionContext>) => V,
 ): V;
@@ -253,13 +254,23 @@ export function continueTrace<V>(
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
 ): V | Partial<TransactionContext> {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+    getCurrentScope().setPropagationContext(propagationContext);
+    return;
+  */
+
   const currentScope = getCurrentScope();
 
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,
