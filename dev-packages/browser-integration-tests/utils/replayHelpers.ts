@@ -105,6 +105,49 @@ export function waitForReplayRequest(
 }
 
 /**
+ * Collect replay requests until a given callback is satisfied.
+ * This can be used to ensure we wait correctly,
+ *  when we don't know in which request a certain replay event/snapshot will be.
+ */
+export function collectReplayRequests(
+  page: Page,
+  callback: (replayRecordingEvents: RecordingSnapshot[], replayEvents: ReplayEvent[]) => boolean,
+): Promise<{ replayEvents: ReplayEvent[]; replayRecordingSnapshots: RecordingSnapshot[] }> {
+  const replayEvents: ReplayEvent[] = [];
+  const replayRecordingSnapshots: RecordingSnapshot[] = [];
+
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  const promise = page.waitForResponse(res => {
+    const req = res.request();
+
+    const event = getReplayEventFromRequest(req);
+
+    if (!event) {
+      return false;
+    }
+
+    replayEvents.push(event);
+    replayRecordingSnapshots.push(...getDecompressedRecordingEvents(req));
+
+    try {
+      return callback(replayRecordingSnapshots, replayEvents);
+    } catch {
+      return false;
+    }
+  });
+
+  const replayRequestPromise = async (): Promise<{
+    replayEvents: ReplayEvent[];
+    replayRecordingSnapshots: RecordingSnapshot[];
+  }> => {
+    await promise;
+    return { replayEvents, replayRecordingSnapshots };
+  };
+
+  return replayRequestPromise();
+}
+
+/**
  * Wait until a callback returns true, collecting all replay responses along the way.
  * This can be useful when you don't know if stuff will be in one or multiple replay requests.
  */
@@ -246,14 +289,14 @@ function getAllCustomRrwebRecordingEvents(recordingEvents: RecordingEvent[]): Cu
   return recordingEvents.filter(isCustomSnapshot).map(event => event.data);
 }
 
-function getReplayBreadcrumbs(recordingEvents: RecordingSnapshot[], category?: string): Breadcrumb[] {
+export function getReplayBreadcrumbs(recordingEvents: RecordingSnapshot[], category?: string): Breadcrumb[] {
   return getAllCustomRrwebRecordingEvents(recordingEvents)
     .filter(data => data.tag === 'breadcrumb')
     .map(data => data.payload)
     .filter(payload => !category || payload.category === category);
 }
 
-function getReplayPerformanceSpans(recordingEvents: RecordingEvent[]): PerformanceSpan[] {
+export function getReplayPerformanceSpans(recordingEvents: RecordingSnapshot[]): PerformanceSpan[] {
   return getAllCustomRrwebRecordingEvents(recordingEvents)
     .filter(data => data.tag === 'performanceSpan')
     .map(data => data.payload) as PerformanceSpan[];
