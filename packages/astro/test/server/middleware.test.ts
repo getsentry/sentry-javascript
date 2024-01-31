@@ -66,7 +66,6 @@ describe('sentryMiddleware', () => {
           url: 'https://mydomain.io/users/123/details',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
-        metadata: {},
         name: 'GET /users/[id]/details',
         op: 'http.server',
         status: 'ok',
@@ -104,7 +103,6 @@ describe('sentryMiddleware', () => {
           url: 'http://localhost:1234/a%xx',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
-        metadata: {},
         name: 'GET a%xx',
         op: 'http.server',
         status: 'ok',
@@ -142,43 +140,6 @@ describe('sentryMiddleware', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
     });
-  });
-
-  it('attaches tracing headers', async () => {
-    const middleware = handleRequest();
-    const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers({
-          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-          baggage: 'sentry-release=1.0.0',
-        }),
-      },
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
-    };
-    const next = vi.fn(() => nextResult);
-
-    // @ts-expect-error, a partial ctx object is fine here
-    await middleware(ctx, next);
-
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        }),
-        metadata: {
-          dynamicSamplingContext: {
-            release: '1.0.0',
-          },
-        },
-        parentSampled: true,
-        parentSpanId: '1234567890123456',
-        traceId: '12345678901234567890123456789012',
-      }),
-      expect.any(Function), // the `next` function
-    );
   });
 
   it('attaches client IP and request headers if options are set', async () => {

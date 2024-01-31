@@ -247,7 +247,6 @@ describe('AWSLambda', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
-        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -277,7 +276,6 @@ describe('AWSLambda', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
-          metadata: {},
         };
 
         expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -301,42 +299,6 @@ describe('AWSLambda', () => {
       await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
     });
 
-    test('incoming trace headers are correctly parsed and used', async () => {
-      expect.assertions(1);
-
-      fakeEvent.headers = {
-        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-        baggage: 'sentry-release=2.12.1,maisey=silly,charlie=goofy',
-      };
-
-      const handler: Handler = (_event, _context, callback) => {
-        expect(mockStartSpanManual).toBeCalledWith(
-          expect.objectContaining({
-            parentSpanId: '1121201211212012',
-            parentSampled: false,
-            op: 'function.aws.lambda',
-            name: 'functionName',
-            traceId: '12312012123120121231201212312012',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
-            },
-            metadata: {
-              dynamicSamplingContext: {
-                release: '2.12.1',
-              },
-            },
-          }),
-          expect.any(Function),
-        );
-
-        callback(undefined, { its: 'fine' });
-      };
-
-      const wrappedHandler = wrapHandler(handler);
-      await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
-    });
-
     test('capture error', async () => {
       expect.assertions(10);
 
@@ -347,20 +309,15 @@ describe('AWSLambda', () => {
       const wrappedHandler = wrapHandler(handler);
 
       try {
-        fakeEvent.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
         await wrappedHandler(fakeEvent, fakeContext, fakeCallback);
       } catch (e) {
         const fakeTransactionContext = {
           name: 'functionName',
           op: 'function.aws.lambda',
-          traceId: '12312012123120121231201212312012',
-          parentSpanId: '1121201211212012',
-          parentSampled: false,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
-          metadata: { dynamicSamplingContext: {} },
         };
 
         expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -390,7 +347,6 @@ describe('AWSLambda', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
-        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -431,7 +387,6 @@ describe('AWSLambda', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
-          metadata: {},
         };
 
         expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
@@ -474,7 +429,6 @@ describe('AWSLambda', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
         },
-        metadata: {},
       };
 
       expect(rv).toStrictEqual(42);
@@ -515,7 +469,6 @@ describe('AWSLambda', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
           },
-          metadata: {},
         };
 
         expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));

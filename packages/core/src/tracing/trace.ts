@@ -289,9 +289,11 @@ export const continueTrace: ContinueTrace = <V>(
 ): V | Partial<TransactionContext> => {
   // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
   /*
-    const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
-    getCurrentScope().setPropagationContext(propagationContext);
-    return;
+    return withScope((scope) => {
+      const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+      scope.setPropagationContext(propagationContext);
+      return callback();
+    })
   */
 
   const currentScope = getCurrentScope();
@@ -319,7 +321,9 @@ export const continueTrace: ContinueTrace = <V>(
     return transactionContext;
   }
 
-  return callback(transactionContext);
+  return runWithAsyncContext(() => {
+    return callback(transactionContext);
+  });
 };
 
 function createChildSpanOrTransaction(
