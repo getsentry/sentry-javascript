@@ -3,7 +3,9 @@ import { devices } from '@playwright/test';
 
 const config: PlaywrightTestConfig = {
   retries: 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  // We always use the 'list' reporter here, expect for the esm environment on CI
+  // otherwise, a failed test will report to github for each env/bundle we run it in, leading to a messy UI
+  reporter: process.env.CI && process.env.PW_BUNDLE === 'esm' ? 'github' : 'list',
   // Run tests inside of a single file in parallel
   fullyParallel: true,
   // Use 3 workers on CI, else use defaults (based on available CPU cores)
