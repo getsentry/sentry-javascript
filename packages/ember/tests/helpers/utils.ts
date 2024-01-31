@@ -65,9 +65,12 @@ export function assertSentryTransactions(
 
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
+  // Also we ignore ui.long-task spans, as they are brittle and may or may not appear
   const filteredSpans = spans
-    // eslint-disable-next-line deprecation/deprecation
-    .filter(span => !span.op?.startsWith('ui.ember.runloop.'))
+    .filter(span => {
+      const op = spanToJSON(span).op;
+      return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
+    })
     .map(s => {
       // eslint-disable-next-line deprecation/deprecation
       return `${s.op} | ${spanToJSON(s).description}`;
