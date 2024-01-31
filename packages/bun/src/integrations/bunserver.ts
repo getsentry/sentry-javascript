@@ -5,6 +5,7 @@ import {
   captureException,
   continueTrace,
   convertIntegrationFnToClass,
+  defineIntegration,
   getCurrentScope,
   runWithAsyncContext,
   setHttpStatus,
@@ -15,7 +16,7 @@ import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'BunServer';
 
-const bunServerIntegration = (() => {
+const _bunServerIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
@@ -24,8 +25,12 @@ const bunServerIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
+export const bunServerIntegration = defineIntegration(_bunServerIntegration);
+
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.
+ *
+ * @deprecated Use `bunServerIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const BunServer = convertIntegrationFnToClass(INTEGRATION_NAME, bunServerIntegration);
