@@ -1,5 +1,7 @@
 import type { Span, Tracer } from '@opentelemetry/api';
+import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
+import { suppressTracing } from '@opentelemetry/core';
 import { SDK_VERSION, handleCallbackErrors } from '@sentry/core';
 import type { Client } from '@sentry/types';
 
@@ -22,7 +24,11 @@ export function startSpan<T>(spanContext: OpenTelemetrySpanContext, callback: (s
 
   const { name } = spanContext;
 
-  return tracer.startActiveSpan(name, spanContext, span => {
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  return tracer.startActiveSpan(name, spanContext, ctx, span => {
     _applySentryAttributesToSpan(span, spanContext);
 
     return handleCallbackErrors(
@@ -49,7 +55,11 @@ export function startSpanManual<T>(spanContext: OpenTelemetrySpanContext, callba
 
   const { name } = spanContext;
 
-  return tracer.startActiveSpan(name, spanContext, span => {
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  return tracer.startActiveSpan(name, spanContext, ctx, span => {
     _applySentryAttributesToSpan(span, spanContext);
 
     return handleCallbackErrors(
@@ -81,7 +91,11 @@ export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
 
   const { name } = spanContext;
 
-  const span = tracer.startSpan(name, spanContext);
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  const span = tracer.startSpan(name, spanContext, ctx);
 
   _applySentryAttributesToSpan(span, spanContext);
 

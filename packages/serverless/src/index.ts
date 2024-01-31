@@ -39,6 +39,9 @@ export {
   getIsolationScope,
   getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
+  spanStatusfromHttpCode,
+  getSpanStatusFromHttpCode,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
   setContext,
@@ -79,4 +82,15 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
+  requestDataIntegration,
+  linkedErrorsIntegration,
+  inboundFiltersIntegration,
+  functionToStringIntegration,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
+  createGetModuleFromFilename,
+  metrics,
+  // eslint-disable-next-line deprecation/deprecation
+  extractTraceparentData,
+  runWithAsyncContext,
 } from '@sentry/node';
