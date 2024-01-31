@@ -489,8 +489,16 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
         run: |
+          ulimit -c unlimited
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
-          yarn test-ci-node
+          sudo yarn test-ci-node
+      - name: Make readable
+        run: sudo chmod -R +rwx /cores/*
+      - uses: actions/upload-artifact@master # capture all crashes as build artifacts
+        if: matrix.node == 21
+        with:
+          name: crashes
+          path: /cores
       - name: Compute test coverage
         uses: codecov/codecov-action@v3
 
