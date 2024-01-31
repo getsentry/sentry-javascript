@@ -164,44 +164,11 @@ describe('GCPFunction', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
-        metadata: {},
       };
 
       expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
       expect(mockSpan.end).toBeCalled();
       expect(mockFlush).toBeCalledWith(2000);
-    });
-
-    test('incoming trace headers are correctly parsed and used', async () => {
-      const handler: HttpFunction = (_req, res) => {
-        res.statusCode = 200;
-        res.end();
-      };
-      const wrappedHandler = wrapHttpFunction(handler);
-      const traceHeaders = {
-        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-        baggage: 'sentry-release=2.12.1,maisey=silly,charlie=goofy',
-      };
-      await handleHttp(wrappedHandler, traceHeaders);
-
-      const fakeTransactionContext = {
-        name: 'POST /path',
-        op: 'function.gcp.http',
-        traceId: '12312012123120121231201212312012',
-        parentSpanId: '1121201211212012',
-        parentSampled: false,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
-        },
-        metadata: {
-          dynamicSamplingContext: {
-            release: '2.12.1',
-          },
-        },
-      };
-
-      expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
     });
 
     test('capture error', async () => {
@@ -211,23 +178,15 @@ describe('GCPFunction', () => {
       };
       const wrappedHandler = wrapHttpFunction(handler);
 
-      const trace_headers: { [key: string]: string } = {
-        'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
-      };
-
-      await handleHttp(wrappedHandler, trace_headers);
+      await handleHttp(wrappedHandler);
 
       const fakeTransactionContext = {
         name: 'POST /path',
         op: 'function.gcp.http',
-        traceId: '12312012123120121231201212312012',
-        parentSpanId: '1121201211212012',
-        parentSampled: false,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
         },
-        metadata: { dynamicSamplingContext: {} },
       };
 
       expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
