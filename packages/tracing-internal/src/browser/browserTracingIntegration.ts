@@ -23,7 +23,7 @@ import {
   browserPerformanceTimeOrigin,
   getDomElement,
   logger,
-  tracingContextFromHeaders,
+  propagationContextFromHeaders,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -203,21 +203,23 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     if (isPageloadTransaction) {
       const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
       const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
-      const { traceparentData, dynamicSamplingContext } = tracingContextFromHeaders(sentryTrace, baggage);
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
       expandedContext = {
+        traceId,
+        parentSpanId,
+        parentSampled: sampled,
         ...context,
-        ...traceparentData,
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
           ...context.metadata,
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          dynamicSamplingContext: dsc,
         },
         trimEnd: true,
       };
     } else {
       expandedContext = {
-        ...context,
         trimEnd: true,
+        ...context,
       };
     }
 

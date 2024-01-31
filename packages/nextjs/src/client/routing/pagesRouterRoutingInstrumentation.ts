@@ -122,6 +122,7 @@ export function pagesRouterInstrumentation(
   startNavigationSpanCallback: StartSpanCb,
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,

@@ -1,19 +1,19 @@
 import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
-  Integrations,
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   getSentryRelease,
   makeNodeTransport,
+  spotlightIntegration,
 } from '@sentry/node';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
   logger,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -94,7 +94,7 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
         client.addIntegration(integration);
       }
       client.addIntegration(
-        new Integrations.Spotlight({
+        spotlightIntegration({
           sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
         }),
       );
@@ -190,7 +190,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

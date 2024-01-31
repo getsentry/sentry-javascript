@@ -26,6 +26,7 @@ interface LegacyOptions {
  */
 export function enableAnrDetection(options: Partial<LegacyOptions>): Promise<void> {
   const client = getClient() as NodeClient;
+  // eslint-disable-next-line deprecation/deprecation
   const integration = new Anr(options);
   integration.setup(client);
   return Promise.resolve();

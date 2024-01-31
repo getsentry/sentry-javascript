@@ -3,9 +3,9 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
 sentryTest('captures response headers', async ({ getLocalTestPath, page, browserName }) => {
@@ -36,7 +36,9 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -74,9 +76,8 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
     {
       data: {
         method: 'GET',
@@ -127,7 +128,9 @@ sentryTest(
     });
 
     const requestPromise = waitForErrorRequest(page);
-    const replayRequestPromise1 = waitForReplayRequest(page, 0);
+    const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+      return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+    });
 
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
@@ -165,9 +168,8 @@ sentryTest(
       },
     });
 
-    const replayReq1 = await replayRequestPromise1;
-    const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-    expect(performanceSpans1.filter(span => span.op === 'resource.xhr')).toEqual([
+    const { replayRecordingSnapshots } = await replayRequestPromise;
+    expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
       {
         data: {
           method: 'GET',

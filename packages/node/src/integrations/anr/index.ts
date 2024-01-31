@@ -1,6 +1,6 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration, getCurrentScope } from '@sentry/core';
 import type { Client, Contexts, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
@@ -52,7 +52,7 @@ interface InspectorApi {
 
 const INTEGRATION_NAME = 'Anr';
 
-const anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -68,10 +68,14 @@ const anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   };
 }) satisfies IntegrationFn;
 
+export const anrIntegration = defineIntegration(_anrIntegration);
+
 /**
  * Starts a thread to detect App Not Responding (ANR) events
  *
  * ANR detection requires Node 16.17.0 or later
+ *
+ * @deprecated Use `anrIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration) as IntegrationClass<
@@ -79,6 +83,9 @@ export const Anr = convertIntegrationFnToClass(INTEGRATION_NAME, anrIntegration)
 > & {
   new (options?: Partial<AnrIntegrationOptions>): Integration & { setup(client: Client): void };
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type Anr = typeof Anr;
 
 /**
  * Starts the ANR worker thread

@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/browser';
+import { getActiveSpan, getCurrentScope, startInactiveSpan } from '@sentry/browser';
 import type { Span, Transaction } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
@@ -78,14 +78,12 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         const isRoot = this.$root === this;
 
         if (isRoot) {
-          // eslint-disable-next-line deprecation/deprecation
-          const activeTransaction = getActiveTransaction();
-          if (activeTransaction) {
+          const activeSpan = getActiveSpan();
+          if (activeSpan) {
             this.$_sentryRootSpan =
               this.$_sentryRootSpan ||
-              // eslint-disable-next-line deprecation/deprecation
-              activeTransaction.startChild({
-                description: 'Application Render',
+              startInactiveSpan({
+                name: 'Application Render',
                 op: `${VUE_OP}.render`,
                 origin: 'auto.ui.vue',
               });
@@ -108,9 +106,8 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
         // Start a new span if current hook is a 'before' hook.
         // Otherwise, retrieve the current span and finish it.
         if (internalHook == internalHooks[0]) {
-          // eslint-disable-next-line deprecation/deprecation
-          const activeTransaction = (this.$root && this.$root.$_sentryRootSpan) || getActiveTransaction();
-          if (activeTransaction) {
+          const activeSpan = (this.$root && this.$root.$_sentryRootSpan) || getActiveSpan();
+          if (activeSpan) {
             // Cancel old span for this hook operation in case it didn't get cleaned up. We're not actually sure if it
             // will ever be the case that cleanup hooks re not called, but we had users report that spans didn't get
             // finished so we finish the span before starting a new one, just to be sure.
@@ -119,9 +116,8 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               oldSpan.end();
             }
 
-            // eslint-disable-next-line deprecation/deprecation
-            this.$_sentrySpans[operation] = activeTransaction.startChild({
-              description: `Vue <${name}>`,
+            this.$_sentrySpans[operation] = startInactiveSpan({
+              name: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,
               origin: 'auto.ui.vue',
             });

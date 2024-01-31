@@ -93,6 +93,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       const sentryTrace =
         req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
       const baggage = req.headers?.baggage;
+      // eslint-disable-next-line deprecation/deprecation
       const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
         sentryTrace,
         baggage,
