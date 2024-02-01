@@ -64,9 +64,10 @@ export class MetricsAggregator implements MetricsAggregatorBase {
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
 
-    updateMetricSummaryOnActiveSpan(metricType, name, value, unit, unsanitizedTags, bucketKey);
-
     let bucketItem = this._buckets.get(bucketKey);
+    // If this is a set metric, we need to calculate the delta from the previous weight.
+    const previousWeight = bucketItem && metricType === 's' ? bucketItem.metric.weight : 0;
+
     if (bucketItem) {
       bucketItem.metric.add(value);
       // TODO(abhi): Do we need this check?
@@ -85,6 +86,10 @@ export class MetricsAggregator implements MetricsAggregatorBase {
       };
       this._buckets.set(bucketKey, bucketItem);
     }
+
+    // If value is a string, it's a set metric so calculate the delta from the previous weight.
+    const val = typeof value === 'string' ? bucketItem.metric.weight - previousWeight : value;
+    updateMetricSummaryOnActiveSpan(metricType, name, val, unit, unsanitizedTags, bucketKey);
 
     // We need to keep track of the total weight of the buckets so that we can
     // flush them when we exceed the max weight.

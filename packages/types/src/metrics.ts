@@ -69,7 +69,7 @@ export interface MetricSummaryAggregator {
   add(
     metricType: 'c' | 'g' | 's' | 'd',
     sanitizedName: string,
-    value: number | string,
+    value: number,
     unit: MeasurementUnit,
     tags: Record<string, Primitive>,
     bucketKey: string,
