@@ -1,5 +1,5 @@
 import type { MeasurementUnit, MetricSummaryAggregator as MetricSummaryAggregatorInterface } from '@sentry/types';
-import type { MetricSpanSummary } from '@sentry/types';
+import type { MetricSummary } from '@sentry/types';
 import type { Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 import { getActiveSpan } from '../tracing';
@@ -31,10 +31,10 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
    * key: bucketKey
    * value: [exportKey, MetricSpanSummary]
    */
-  private readonly _measurements: Map<string, [string, MetricSpanSummary]>;
+  private readonly _measurements: Map<string, [string, MetricSummary]>;
 
   public constructor() {
-    this._measurements = new Map<string, [string, MetricSpanSummary]>();
+    this._measurements = new Map<string, [string, MetricSummary]>();
   }
 
   /** @inheritdoc */
@@ -78,8 +78,8 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
   }
 
   /** @inheritdoc */
-  public getJson(): Record<string, MetricSpanSummary> {
-    const output: Record<string, MetricSpanSummary> = {};
+  public getJson(): Record<string, MetricSummary> {
+    const output: Record<string, MetricSummary> = {};
 
     for (const [, [exportKey, summary]] of this._measurements) {
       output[exportKey] = dropUndefinedKeys(summary);

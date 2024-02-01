@@ -99,7 +99,7 @@ export type {
   SpanJSON,
   SpanContextData,
   TraceFlag,
-  MetricSummary as MetricSpanSummary,
+  MetricSummary,
 } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
