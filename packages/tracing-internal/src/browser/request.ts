@@ -12,7 +12,7 @@ import {
   spanToTraceHeader,
   startInactiveSpan,
 } from '@sentry/core';
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
+import type { HandlerDataXhr, HandlerDataFetch, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
   SENTRY_XHR_DATA_KEY,
@@ -50,18 +50,18 @@ export interface RequestInstrumentationOptions {
   tracePropagationTargets: Array<string | RegExp>;
 
   /**
-   * Flag to disable patching all together for fetch requests.
+   * Flag to disable patching all together for fetch requests or to provide custom instrumentation.
    *
    * Default: true
    */
-  traceFetch: boolean;
+  traceFetch: boolean | { instrument: (data: HandlerDataFetch, span: Span | undefined) => void };
 
   /**
-   * Flag to disable patching all together for xhr requests.
+   * Flag to disable patching all together for xhr requests or to provide custom instrumentation.
    *
    * Default: true
    */
-  traceXHR: boolean;
+  traceXHR: boolean | { instrument: (data: HandlerDataXhr, span: Span | undefined) => void };
 
   /**
    * If true, Sentry will capture http timings and add them to the corresponding http spans.
@@ -117,19 +117,25 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const spans: Record<string, Span> = {};
 
   if (traceFetch) {
-    addFetchInstrumentationHandler(handlerData => {
+    addFetchInstrumentationHandler((handlerData: HandlerDataFetch) => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
+      }
+      if (typeof traceFetch === 'object') {
+        traceFetch?.instrument?.(handlerData, createdSpan);
       }
     });
   }
 
   if (traceXHR) {
-    addXhrInstrumentationHandler(handlerData => {
+    addXhrInstrumentationHandler((handlerData: HandlerDataXhr) => {
       const createdSpan = xhrCallback(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
+      }
+      if (typeof traceXHR === 'object') {
+        traceXHR?.instrument?.(handlerData, createdSpan);
       }
     });
   }
