@@ -896,7 +896,7 @@ jobs:
           yarn test
 
   job_remix_integration_tests:
-    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
+    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) ${{ matrix.tracingIntegration && 'TracingIntegration'}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -906,13 +906,14 @@ jobs:
       matrix:
         node: [18, 20, 21]
         remix: [1, 2]
-        tracingIntegration: [false, true]
         # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
         include:
           - node: 14
             remix: 1
           - node: 16
             remix: 1
+          - tracingIntegration: true
+            remix: 2
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
