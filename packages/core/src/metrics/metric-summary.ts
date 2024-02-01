@@ -43,13 +43,14 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
     sanitizedName: string,
     value: number | string,
     unit: MeasurementUnit,
-    sanitizedTags: Record<string, Primitive>,
+    tags: Record<string, Primitive>,
     bucketKey: string,
   ): void {
     const exportKey = `${metricType}:${sanitizedName}@${unit}`;
     const bucketItem = this._measurements.get(bucketKey);
 
     if (bucketItem) {
+      // if value is string, this was a set, so value should be 1
       const val = typeof value === 'string' ? 1 : value;
       const [, summary] = bucketItem;
       this._measurements.set(bucketKey, [
@@ -63,6 +64,7 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
         },
       ]);
     } else {
+      // if value is string, this was a set, so value should be 0
       const val = typeof value === 'string' ? 0 : value;
       this._measurements.set(bucketKey, [
         exportKey,
@@ -71,7 +73,7 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
           max: val,
           count: 1,
           sum: val,
-          tags: sanitizedTags,
+          tags,
         },
       ]);
     }
