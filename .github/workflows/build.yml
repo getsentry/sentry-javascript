@@ -425,7 +425,7 @@ jobs:
           NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -453,7 +453,7 @@ jobs:
         run: |
           yarn test-ci-bun
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -486,7 +486,7 @@ jobs:
           yarn build
           yarn test
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
@@ -517,7 +517,7 @@ jobs:
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
           yarn test-ci-node
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
 
   job_nextjs_integration_test:
     name: Nextjs (Node ${{ matrix.node }}) Tests
