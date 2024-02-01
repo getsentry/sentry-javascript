@@ -38,6 +38,7 @@
     "@opentelemetry/instrumentation-graphql": "0.37.0",
     "@opentelemetry/instrumentation-hapi": "0.34.0",
     "@opentelemetry/instrumentation-http": "0.48.0",
+    "@opentelemetry/instrumentation-koa": "0.37.0",
     "@opentelemetry/instrumentation-mongodb": "0.39.0",
     "@opentelemetry/instrumentation-mongoose": "0.35.0",
     "@opentelemetry/instrumentation-mysql": "0.35.0",
