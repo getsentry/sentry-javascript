@@ -49,6 +49,7 @@ describe('sveltekitRoutingInstrumentation', () => {
   });
 
   it("starts a pageload transaction when it's called with default params", () => {
+    // eslint-disable-next-line deprecation/deprecation
     svelteKitRoutingInstrumentation(mockedStartTransaction);
 
     expect(mockedStartTransaction).toHaveBeenCalledTimes(1);
@@ -66,7 +67,6 @@ describe('sveltekitRoutingInstrumentation', () => {
     });
 
     // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
-    // @ts-expect-error This is fine because we testUtils/stores.ts defines `page` as a writable store
     page.set({ route: { id: 'testRoute' } });
 
     // This should update the transaction name with the parameterized route:
@@ -76,15 +76,16 @@ describe('sveltekitRoutingInstrumentation', () => {
   });
 
   it("doesn't start a pageload transaction if `startTransactionOnPageLoad` is false", () => {
+    // eslint-disable-next-line deprecation/deprecation
     svelteKitRoutingInstrumentation(mockedStartTransaction, false);
     expect(mockedStartTransaction).toHaveBeenCalledTimes(0);
   });
 
   it("doesn't start a navigation transaction when `startTransactionOnLocationChange` is false", () => {
+    // eslint-disable-next-line deprecation/deprecation
     svelteKitRoutingInstrumentation(mockedStartTransaction, false, false);
 
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
-    // @ts-expect-error This is fine because we testUtils/stores.ts defines `navigating` as a writable store
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
       to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -95,10 +96,10 @@ describe('sveltekitRoutingInstrumentation', () => {
   });
 
   it('starts a navigation transaction when `startTransactionOnLocationChange` is true', () => {
+    // eslint-disable-next-line deprecation/deprecation
     svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
 
     // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
-    // @ts-expect-error This is fine because we testUtils/stores.ts defines `navigating` as a writable store
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
       to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -127,7 +128,6 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(returnedTransaction?.setTag).toHaveBeenCalledWith('from', '/users');
 
     // We emit `null` here to simulate the end of the navigation lifecycle
-    // @ts-expect-error this is fine
     navigating.set(null);
 
     expect(routingSpanFinishSpy).toHaveBeenCalledTimes(1);
@@ -135,10 +135,10 @@ describe('sveltekitRoutingInstrumentation', () => {
 
   describe('handling same origin and destination navigations', () => {
     it("doesn't start a navigation transaction if the raw navigation origin and destination are equal", () => {
+      // eslint-disable-next-line deprecation/deprecation
       svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
 
       // We emit an update to the `navigating` store to simulate the SvelteKit navigation lifecycle
-      // @ts-expect-error This is fine because we testUtils/stores.ts defines `navigating` as a writable store
       navigating.set({
         from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
         to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
@@ -148,9 +148,9 @@ describe('sveltekitRoutingInstrumentation', () => {
     });
 
     it('starts a navigation transaction if the raw navigation origin and destination are not equal', () => {
+      // eslint-disable-next-line deprecation/deprecation
       svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
 
-      // @ts-expect-error This is fine
       navigating.set({
         from: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
         to: { route: { id: '/users/[id]' }, url: { pathname: '/users/223412' } },
@@ -179,11 +179,11 @@ describe('sveltekitRoutingInstrumentation', () => {
     });
 
     it('falls back to `window.location.pathname` to determine the raw origin', () => {
+      // eslint-disable-next-line deprecation/deprecation
       svelteKitRoutingInstrumentation(mockedStartTransaction, false, true);
 
       // window.location.pathame is "/" in tests
 
-      // @ts-expect-error This is fine
       navigating.set({
         to: { route: {}, url: { pathname: '/' } },
       });
