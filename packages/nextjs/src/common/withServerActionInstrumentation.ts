@@ -1,13 +1,13 @@
 import {
   addTracingExtensions,
   captureException,
+  continueTrace,
   getClient,
-  getCurrentScope,
   handleCallbackErrors,
-  runWithAsyncContext,
   startSpan,
+  withIsolationScope,
 } from '@sentry/core';
-import { logger, tracingContextFromHeaders } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
@@ -56,7 +56,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
-  return runWithAsyncContext(async () => {
+  return withIsolationScope(isolationScope => {
     const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
@@ -75,64 +75,61 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         );
     }
 
-    const currentScope = getCurrentScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTraceHeader,
-      baggageHeader,
-    );
-    currentScope.setPropagationContext(propagationContext);
+    isolationScope.setSDKProcessingMetadata({
+      request: {
+        headers: fullHeadersObject,
+      },
+    });
 
-    let res;
-    try {
-      res = await startSpan(
-        {
-          op: 'function.server_action',
-          name: `serverAction/${serverActionName}`,
-          status: 'ok',
-          ...traceparentData,
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            request: {
-              headers: fullHeadersObject,
+    return continueTrace(
+      {
+        sentryTrace: sentryTraceHeader,
+        baggage: baggageHeader,
+      },
+      async () => {
+        try {
+          return await startSpan(
+            {
+              op: 'function.server_action',
+              name: `serverAction/${serverActionName}`,
+              metadata: {
+                source: 'route',
+              },
             },
-          },
-        },
-        async span => {
-          const result = await handleCallbackErrors(callback, error => {
-            captureException(error, { mechanism: { handled: false } });
-          });
+            async () => {
+              const result = await handleCallbackErrors(callback, error => {
+                captureException(error, { mechanism: { handled: false } });
+              });
 
-          if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-            span?.setAttribute('server_action_result', result);
+              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+                isolationScope.setExtra('server_action_result', result);
+              }
+
+              if (options.formData) {
+                options.formData.forEach((value, key) => {
+                  isolationScope.setExtra(
+                    `server_action_form_data.${key}`,
+                    typeof value === 'string' ? value : '[non-string value]',
+                  );
+                });
+              }
+
+              return result;
+            },
+          );
+        } finally {
+          if (!platformSupportsStreaming()) {
+            // Lambdas require manual flushing to prevent execution freeze before the event is sent
+            await flushQueue();
           }
 
-          if (options.formData) {
-            options.formData.forEach((value, key) => {
-              span?.setAttribute(
-                `server_action_form_data.${key}`,
-                typeof value === 'string' ? value : '[non-string value]',
-              );
-            });
+          if (process.env.NEXT_RUNTIME === 'edge') {
+            // flushQueue should not throw
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            flushQueue();
           }
-
-          return result;
-        },
-      );
-    } finally {
-      if (!platformSupportsStreaming()) {
-        // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flushQueue();
-      }
-
-      if (process.env.NEXT_RUNTIME === 'edge') {
-        // flushQueue should not throw
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        flushQueue();
-      }
-    }
-
-    return res;
+        }
+      },
+    );
   });
 }

@@ -120,8 +120,6 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
             {
               op: 'function.nextjs',
               name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-              origin: 'auto.function.nextjs',
-              status: 'ok',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
@@ -175,9 +173,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
   return startSpan(
     {
       op: 'function.nextjs',
-      origin: 'auto.function.nextjs',
       name: `${dataFetchingMethodName} (${parameterizedRoute})`,
-      status: 'ok',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
