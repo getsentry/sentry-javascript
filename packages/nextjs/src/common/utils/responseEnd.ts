@@ -1,13 +1,13 @@
 import type { ServerResponse } from 'http';
 import { flush, setHttpStatus } from '@sentry/core';
-import type { Transaction } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import { fill, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
 
 /**
- * Wrap `res.end()` so that it closes the transaction and flushes events before letting the request finish.
+ * Wrap `res.end()` so that it ends the span and flushes events before letting the request finish.
  *
  * Note: This wraps a sync method with an async method. While in general that's not a great idea in terms of keeping
  * things in the right order, in this case it's safe, because the native `.end()` actually *is* (effectively) async, and
@@ -20,13 +20,13 @@ import type { ResponseEndMethod, WrappedResponseEndMethod } from '../types';
  * `end` doesn't delay data getting to the end user. See
  * https://nodejs.org/api/http.html#responseenddata-encoding-callback.
  *
- * @param transaction The transaction tracing request handling
+ * @param span The span tracking the request
  * @param res: The request's corresponding response
  */
-export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: ServerResponse): void {
+export function autoEndSpanOnResponseEnd(span: Span, res: ServerResponse): void {
   const wrapEndMethod = (origEnd: ResponseEndMethod): WrappedResponseEndMethod => {
     return function sentryWrappedEnd(this: ServerResponse, ...args: unknown[]) {
-      finishTransaction(transaction, this);
+      finishSpan(span, this);
       return origEnd.call(this, ...args);
     };
   };
@@ -38,11 +38,11 @@ export function autoEndTransactionOnResponseEnd(transaction: Transaction, res: S
   }
 }
 
-/** Finish the given response's transaction and set HTTP status data */
-export function finishTransaction(transaction: Transaction | undefined, res: ServerResponse): void {
-  if (transaction) {
-    setHttpStatus(transaction, res.statusCode);
-    transaction.end();
+/** Finish the given response's span and set HTTP status data */
+export function finishSpan(span: Span | undefined, res: ServerResponse): void {
+  if (span) {
+    setHttpStatus(span, res.statusCode);
+    span.end();
   }
 }
 
