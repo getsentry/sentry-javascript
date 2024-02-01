@@ -8,7 +8,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, Transaction, TransactionContext } from '@sentry/types';
+import type { Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -41,15 +41,11 @@ export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof or
   useEffect?: UseEffect;
   useLocation?: UseLocation;
   useMatches?: UseMatches;
-  startTransactionOnPageLoad?: boolean;
-  startTransactionOnLocationChange?: boolean;
 };
 
 const DEFAULT_TAGS = {
   'routing.instrumentation': 'remix-router',
 } as const;
-
-let activeRootSpan: Span | undefined;
 
 let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
@@ -77,6 +73,16 @@ export function startPageloadSpan(): void {
     return;
   }
 
+  const spanContext: StartSpanOptions = {
+    name: initPathName,
+    op: 'pageload',
+    origin: 'auto.pageload.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'url',
+    },
+  };
+
   // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
   if (!_customStartTransaction) {
     const client = getClient<BrowserClient>();
@@ -85,31 +91,23 @@ export function startPageloadSpan(): void {
       return;
     }
 
-    startBrowserTracingPageLoadSpan(client, {
-      name: initPathName,
-      op: 'pageload',
-      origin: 'auto.pageload.remix',
-      tags: DEFAULT_TAGS,
-      metadata: {
-        source: 'url',
-      },
-    });
-
-    activeRootSpan = getActiveSpan();
+    startBrowserTracingPageLoadSpan(client, spanContext);
   } else {
-    activeRootSpan = _customStartTransaction({
-      name: initPathName,
-      op: 'pageload',
-      origin: 'auto.pageload.remix',
-      tags: DEFAULT_TAGS,
-      metadata: {
-        source: 'url',
-      },
-    });
+    _customStartTransaction(spanContext);
   }
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[]): void {
+  const spanContext: StartSpanOptions = {
+    name: matches[matches.length - 1].id,
+    op: 'navigation',
+    origin: 'auto.navigation.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'route',
+    },
+  };
+
   // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
   if (!_customStartTransaction) {
     const client = getClient<BrowserClient>();
@@ -118,27 +116,9 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
       return;
     }
 
-    startBrowserTracingNavigationSpan(client, {
-      name: matches[matches.length - 1].id,
-      op: 'navigation',
-      origin: 'auto.navigation.remix',
-      tags: DEFAULT_TAGS,
-      metadata: {
-        source: 'route',
-      },
-    });
-
-    activeRootSpan = getActiveSpan();
+    startBrowserTracingNavigationSpan(client, spanContext);
   } else {
-    activeRootSpan = _customStartTransaction({
-      name: matches[matches.length - 1].id,
-      op: 'navigation',
-      origin: 'auto.navigation.remix',
-      tags: DEFAULT_TAGS,
-      metadata: {
-        source: 'route',
-      },
-    });
+    _customStartTransaction(spanContext);
   }
 }
 
@@ -208,6 +188,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 
     _useEffect(() => {
       const activeRootSpan = getActiveSpan();
+
       if (activeRootSpan && matches && matches.length) {
         const transaction = getRootSpan(activeRootSpan);
 
@@ -221,6 +202,8 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     }, []);
 
     _useEffect(() => {
+      const activeRootSpan = getActiveSpan();
+
       if (isBaseLocation) {
         if (activeRootSpan) {
           activeRootSpan.end();

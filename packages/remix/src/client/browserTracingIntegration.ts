@@ -7,19 +7,19 @@ import type { RemixBrowserTracingIntegrationOptions } from './performance';
  * This integration will create pageload and navigation spans.
  */
 export function browserTracingIntegration(options: RemixBrowserTracingIntegrationOptions): Integration {
-  if (options.startTransactionOnPageLoad === undefined) {
-    options.startTransactionOnPageLoad = true;
+  if (options.instrumentPageLoad === undefined) {
+    options.instrumentPageLoad = true;
   }
 
-  if (options.startTransactionOnLocationChange === undefined) {
-    options.startTransactionOnLocationChange = true;
+  if (options.instrumentNavigation === undefined) {
+    options.instrumentNavigation = true;
   }
 
   setGlobals({
     useEffect: options.useEffect,
     useLocation: options.useLocation,
     useMatches: options.useMatches,
-    startTransactionOnLocationChange: options.startTransactionOnLocationChange,
+    startTransactionOnLocationChange: options.instrumentNavigation,
   });
 
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
@@ -31,9 +31,9 @@ export function browserTracingIntegration(options: RemixBrowserTracingIntegratio
   return {
     ...browserTracingIntegrationInstance,
     afterAllSetup(client) {
-      browserTracingIntegrationInstance.afterAllSetup?.(client);
+      browserTracingIntegrationInstance.afterAllSetup(client);
 
-      if (options.startTransactionOnPageLoad) {
+      if (options.instrumentPageLoad) {
         startPageloadSpan();
       }
     },
