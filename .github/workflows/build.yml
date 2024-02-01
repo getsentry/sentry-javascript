@@ -183,7 +183,7 @@ jobs:
         run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
 
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache_dependencies
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
@@ -227,21 +227,21 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check dependency cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
           fail-on-cache-miss: true
 
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache_built_packages
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
 
       - name: NX cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         # Disable cache when:
         # - on release branches
         # - when PR has `ci-skip-cache` label or on nightly builds
@@ -340,7 +340,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check dependency cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
@@ -548,7 +548,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -642,7 +642,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -698,7 +698,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -909,7 +909,7 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -918,7 +918,7 @@ jobs:
       - name: Build tarballs
         run: yarn build:tarball
       - name: Stores tarballs in cache
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
@@ -1010,7 +1010,7 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
       - name: Restore tarball cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}

@@ -40,7 +40,7 @@ jobs:
         run: yarn install --ignore-engines --frozen-lockfile
 
       - name: NX cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
@@ -55,7 +55,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
