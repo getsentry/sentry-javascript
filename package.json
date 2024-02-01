@@ -26,6 +26,7 @@
     "changelog": "ts-node ./scripts/get-commit-list.ts",
     "link:yarn": "lerna exec yarn link",
     "lint": "run-s lint:lerna lint:biome lint:prettier",
+    "lint:clang": "lerna run lint:clang",
     "lint:lerna": "lerna run lint",
     "lint:biome": "biome check .",
     "lint:prettier": "prettier **/*.md *.md **/*.css --check",
