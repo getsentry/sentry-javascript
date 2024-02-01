@@ -9,10 +9,10 @@ import {
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
-import { cwd } from 'process';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
+import { loadRemixRouterModule } from '../routerLoader';
 import type {
   AppLoadContext,
   ExpressCreateRequestHandler,
@@ -26,7 +26,7 @@ import type {
   ServerBuild,
 } from '../vendor/types';
 
-let pkg: ReactRouterDomPkg;
+let pkg: ReactRouterDomPkg | undefined;
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -41,15 +41,7 @@ function wrapExpressRequestHandler(
     next: ExpressNextFunction,
   ): Promise<void> {
     if (!pkg) {
-      try {
-        pkg = await import('react-router-dom');
-      } catch (e) {
-        pkg = await import(`${cwd()}/node_modules/react-router-dom`);
-      } finally {
-        if (!pkg) {
-          DEBUG_BUILD && logger.error('Could not find `react-router-dom` package.');
-        }
-      }
+      pkg = await loadRemixRouterModule();
     }
 
     await runWithAsyncContext(async () => {

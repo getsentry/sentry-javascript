@@ -29,6 +29,7 @@ import {
 
 import { DEBUG_BUILD } from './debug-build';
 import { getFutureFlagsServer, getRemixVersionFromBuild } from './futureFlags';
+import { loadRemixRouterModule } from './routerLoader';
 import {
   extractData,
   getRequestMatch,
@@ -58,6 +59,8 @@ import { normalizeRemixRequest } from './web-fetch';
 
 let FUTURE_FLAGS: FutureConfig | undefined;
 let IS_REMIX_V2: boolean | undefined;
+
+let pkg: ReactRouterDomPkg | undefined;
 
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
@@ -447,13 +450,16 @@ export function getTransactionName(
 
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     // This means that the request handler of the adapter (ex: express) is already wrapped.
     // So we don't want to double wrap it.
     if (loadContext?.__sentry_express_wrapped__) {
       return origRequestHandler.call(this, request, loadContext);
+    }
+
+    if (!pkg) {
+      pkg = await loadRemixRouterModule();
     }
 
     return runWithAsyncContext(async () => {
