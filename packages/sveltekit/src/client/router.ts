@@ -17,6 +17,8 @@ const DEFAULT_TAGS = {
  * @param startTransactionFn the function used to start (idle) transactions
  * @param startTransactionOnPageLoad controls if pageload transactions should be created (defaults to `true`)
  * @param startTransactionOnLocationChange controls if navigation transactions should be created (defauls to `true`)
+ *
+ * @deprecated use `browserTracingIntegration()` instead which includes SvelteKit-specific routing instrumentation out of the box.
  */
 export function svelteKitRoutingInstrumentation<T extends Transaction>(
   startTransactionFn: (context: TransactionContext) => T | undefined,

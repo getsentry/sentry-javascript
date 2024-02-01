@@ -1,10 +1,13 @@
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
-import type { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
+import { BrowserOptions } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
 
-import { BrowserTracing } from './browserTracingIntegration';
+import {
+  BrowserTracing,
+  browserTracingIntegration as svelteKitBrowserTracingIntegration,
+} from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -97,7 +100,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      return [...getDefaultSvelteIntegrations(options), new BrowserTracing()];
+      return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
     }
   }
 
