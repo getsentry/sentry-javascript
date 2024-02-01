@@ -3,9 +3,9 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
 sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, browserName }) => {
@@ -30,7 +30,9 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -50,10 +52,9 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
   const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
+  const { replayRecordingSnapshots } = await replayRequestPromise;
 
-  const xhrSpan = performanceSpans1.find(span => span.op === 'resource.fetch')!;
+  const xhrSpan = getReplayPerformanceSpans(replayRecordingSnapshots).find(span => span.op === 'resource.fetch')!;
 
   expect(xhrSpan).toBeDefined();
 

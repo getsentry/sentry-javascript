@@ -47,6 +47,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       }
 
       return runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const transactionContext = continueTrace({
           baggage: headers?.get('baggage'),
           sentryTrace: headers?.get('sentry-trace') ?? undefined,

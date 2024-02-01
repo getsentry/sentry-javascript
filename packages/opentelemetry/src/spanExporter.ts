@@ -3,7 +3,7 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { flush, getCurrentScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentScope } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -176,7 +176,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
     metadata: {
       dynamicSamplingContext,
       source,
-      sampleRate: span.attributes[InternalSentrySemanticAttributes.SAMPLE_RATE] as number | undefined,
+      sampleRate: span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined,
       ...metadata,
     },
     data: removeSentryAttributes(data),
@@ -267,7 +267,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   delete cleanedData[InternalSentrySemanticAttributes.ORIGIN];
   delete cleanedData[InternalSentrySemanticAttributes.OP];
   delete cleanedData[InternalSentrySemanticAttributes.SOURCE];
-  delete cleanedData[InternalSentrySemanticAttributes.SAMPLE_RATE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

@@ -9,6 +9,7 @@ const {
   Context,
   RequestData,
   LocalVariables,
+  // eslint-disable-next-line deprecation/deprecation
 } = NodeIntegrations;
 
 export {

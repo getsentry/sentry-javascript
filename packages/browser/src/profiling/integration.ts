@@ -1,4 +1,4 @@
-import { convertIntegrationFnToClass, getCurrentScope } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration, getCurrentScope } from '@sentry/core';
 import type { Client, EventEnvelope, Integration, IntegrationClass, IntegrationFn, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
@@ -18,7 +18,7 @@ import {
 
 const INTEGRATION_NAME = 'BrowserProfiling';
 
-const browserProfilingIntegration = (() => {
+const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
@@ -102,6 +102,8 @@ const browserProfilingIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
+export const browserProfilingIntegration = defineIntegration(_browserProfilingIntegration);
+
 /**
  * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
  * This exists because we do not want to await async profiler.stop calls as transaction.finish is called
@@ -110,9 +112,13 @@ const browserProfilingIntegration = (() => {
  * integration less reliable as we might be dropping profiles when the cache is full.
  *
  * @experimental
+ * @deprecated Use `browserProfilingIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const BrowserProfilingIntegration = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   browserProfilingIntegration,
 ) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type BrowserProfilingIntegration = typeof BrowserProfilingIntegration;

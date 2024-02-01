@@ -79,6 +79,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
       const transaction = getCurrentHub().startTransaction({
         name: otelSpan.name,
         ...traceCtx,
+        attributes: otelSpan.attributes,
         instrumenter: 'otel',
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,

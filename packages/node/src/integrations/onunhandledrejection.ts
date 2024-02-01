@@ -1,4 +1,4 @@
-import { captureException, convertIntegrationFnToClass, getClient } from '@sentry/core';
+import { captureException, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
 import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
@@ -16,7 +16,7 @@ interface OnUnhandledRejectionOptions {
 
 const INTEGRATION_NAME = 'OnUnhandledRejection';
 
-const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
+const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionOptions> = {}) => {
   const mode = options.mode || 'warn';
 
   return {
@@ -29,7 +29,12 @@ const onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejectionO
   };
 }) satisfies IntegrationFn;
 
-/** Global Promise Rejection handler */
+export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
+
+/**
+ * Global Promise Rejection handler.
+ * @deprecated Use `onUnhandledRejectionIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const OnUnhandledRejection = convertIntegrationFnToClass(
   INTEGRATION_NAME,
@@ -37,6 +42,9 @@ export const OnUnhandledRejection = convertIntegrationFnToClass(
 ) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
   new (options?: Partial<{ mode: UnhandledRejectionMode }>): Integration;
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type OnUnhandledRejection = typeof OnUnhandledRejection;
 
 /**
  * Send an exception with reason

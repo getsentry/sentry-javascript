@@ -1,7 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 
-import { BrowserProfilingIntegration } from '../../../src/profiling/integration';
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
 
 describe('BrowserProfilingIntegration', () => {
@@ -44,7 +43,7 @@ describe('BrowserProfilingIntegration', () => {
           send,
         };
       },
-      integrations: [new Sentry.BrowserTracing(), new BrowserProfilingIntegration()],
+      integrations: [Sentry.browserTracingIntegration(), Sentry.browserProfilingIntegration()],
     });
 
     const client = Sentry.getClient<BrowserClient>();

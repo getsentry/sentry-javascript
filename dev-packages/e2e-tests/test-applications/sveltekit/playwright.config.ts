@@ -8,6 +8,7 @@ if (!testEnv) {
 }
 
 const port = 3030;
+const eventProxyPort = 3031;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -23,8 +24,9 @@ const config: PlaywrightTestConfig = {
      */
     timeout: 10000,
   },
+  workers: 1,
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */
@@ -61,8 +63,8 @@ const config: PlaywrightTestConfig = {
     {
       command:
         testEnv === 'development'
-          ? `pnpm wait-port ${port} && pnpm dev --port ${port}`
-          : `pnpm wait-port ${port} && pnpm preview --port ${port}`,
+          ? `pnpm wait-port ${eventProxyPort} && pnpm dev --port ${port}`
+          : `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${port}`,
       port,
     },
   ],
