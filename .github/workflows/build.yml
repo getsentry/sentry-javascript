@@ -79,7 +79,7 @@ jobs:
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
       - name: Determine changed packages
-        uses: getsentry/paths-filter@v2.11.1
+        uses: dorny/paths-filter@v3.0.0
         id: changed
         with:
           filters: |

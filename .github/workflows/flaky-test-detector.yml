@@ -71,7 +71,7 @@ jobs:
         run: npx playwright install-deps
 
       - name: Determine changed tests
-        uses: getsentry/paths-filter@v2.11.1
+        uses: dorny/paths-filter@v3.0.0
         id: changed
         with:
           list-files: json
