@@ -8,6 +8,7 @@ import type {
 import { timestampInSeconds } from '@sentry/utils';
 import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
 import { METRIC_MAP } from './instance';
+import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
 import { getBucketKey, sanitizeTags } from './utils';
 
@@ -62,6 +63,9 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     const tags = sanitizeTags(unsanitizedTags);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
+
+    updateMetricSummaryOnActiveSpan(metricType, name, value, unit, unsanitizedTags, bucketKey);
+
     let bucketItem = this._buckets.get(bucketKey);
     if (bucketItem) {
       bucketItem.metric.add(value);

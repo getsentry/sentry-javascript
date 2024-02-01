@@ -43,16 +43,8 @@ function addToMetricsAggregator(
       metricTags.transaction = spanToJSON(transaction).description || '';
     }
 
-    const combinedTags = { ...metricTags, ...tags };
-
-    // eslint-disable-next-line deprecation/deprecation
-    const span = scope.getSpan();
-    if (span && typeof value === 'number') {
-      span.getMetricSummaryAggregator().add(metricType, name, value, unit, combinedTags);
-    }
-
     DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
-    client.metricsAggregator.add(metricType, name, value, unit, combinedTags, timestamp);
+    client.metricsAggregator.add(metricType, name, value, unit, { ...metricTags, ...tags }, timestamp);
   }
 }
 

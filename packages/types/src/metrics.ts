@@ -64,16 +64,17 @@ export interface MetricsAggregator {
   toString(): string;
 }
 
-export interface SpanMetricSummaryAggregator {
+export interface MetricSummaryAggregator {
   /** Adds a metric to the summary */
   add(
     metricType: 'c' | 'g' | 's' | 'd',
-    name: string,
+    sanitizedName: string,
     value: number | string,
-    unit?: MeasurementUnit,
-    tags?: Record<string, Primitive>,
+    unit: MeasurementUnit,
+    tags: Record<string, Primitive>,
+    bucketKey: string,
   ): void;
 
   /** Gets the JSON representation of the metric summary */
-  getSummaryJson(): Record<string, MetricSummary>;
+  getJson(): Record<string, MetricSummary>;
 }

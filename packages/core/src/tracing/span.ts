@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type {
   Instrumenter,
+  MetricSummaryAggregator,
   Primitive,
   Span as SpanInterface,
   SpanAttributeValue,
@@ -8,7 +9,6 @@ import type {
   SpanContext,
   SpanContextData,
   SpanJSON,
-  SpanMetricSummaryAggregator,
   SpanOrigin,
   SpanTimeInput,
   TraceContext,
@@ -17,7 +17,6 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { MetricSummaryAggregator } from '../metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
@@ -606,12 +605,13 @@ export class Span implements SpanInterface {
   }
 
   /** @inheritdoc */
-  public getMetricSummaryAggregator(): SpanMetricSummaryAggregator {
-    if (!this._metricSummary) {
-      this._metricSummary = new MetricSummaryAggregator();
-    }
-
+  public getMetricSummary(): MetricSummaryAggregator | undefined {
     return this._metricSummary;
+  }
+
+  /** @inheritdoc */
+  public setMetricSummary(metricSummary: MetricSummaryAggregator): void {
+    this._metricSummary = metricSummary;
   }
 
   /**
@@ -636,7 +636,7 @@ export class Span implements SpanInterface {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      _metrics_summary: this._metricSummary ? this._metricSummary.getSummaryJson() : undefined,
+      _metrics_summary: this._metricSummary ? this._metricSummary.getJson() : undefined,
     });
   }
 

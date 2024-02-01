@@ -333,6 +333,10 @@ export class Transaction extends SpanClass implements TransactionInterface {
       }),
     };
 
+    if (this._metricSummary) {
+      transaction._metrics_summary = this._metricSummary.getJson();
+    }
+
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
     if (hasMeasurements) {

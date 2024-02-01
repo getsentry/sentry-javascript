@@ -20,6 +20,9 @@ Sentry.startSpan(
     op: 'transaction',
   },
   () => {
+    Sentry.metrics.increment('root-counter');
+    Sentry.metrics.increment('root-counter');
+
     Sentry.startSpan(
       {
         name: 'Some other span',
