@@ -126,6 +126,7 @@ jobs:
             node:
               - *shared
               - 'packages/node/**'
+              - 'packages/node-experimental/**'
               - 'dev-packages/node-integration-tests/**'
             deno:
               - *shared
