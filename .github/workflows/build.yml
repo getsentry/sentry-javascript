@@ -1031,7 +1031,8 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
-            'node-profiling'
+            'node-profiling',
+            'vue-3'
           ]
         build-command:
           - false
