@@ -19,7 +19,7 @@ export function browserTracingIntegration(options: RemixBrowserTracingIntegratio
     useEffect: options.useEffect,
     useLocation: options.useLocation,
     useMatches: options.useMatches,
-    startTransactionOnLocationChange: options.instrumentNavigation,
+    instrumentNavigation: options.instrumentNavigation,
   });
 
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
