@@ -140,6 +140,22 @@ test('Should send a transaction for instrumented server actions', async ({ page 
   expect(Object.keys((await serverComponentTransactionPromise).request?.headers || {}).length).toBeGreaterThan(0);
 });
 
+test('Should set not_found status for server actions calling notFound()', async ({ page }) => {
+  const nextjsVersion = packageJson.dependencies.next;
+  const nextjsMajor = Number(nextjsVersion.split('.')[0]);
+  test.skip(!isNaN(nextjsMajor) && nextjsMajor < 14, 'only applies to nextjs apps >= version 14');
+
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'serverAction/notFoundServerAction';
+  });
+
+  await page.goto('/server-action');
+  await page.getByText('Run NotFound Action').click();
+
+  expect(await serverComponentTransactionPromise).toBeDefined();
+  expect(await (await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
+});
+
 test('Will not include spans in pageload transaction with faulty timestamps for slow loading pages', async ({
   page,
 }) => {
