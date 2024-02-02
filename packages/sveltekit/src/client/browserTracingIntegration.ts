@@ -31,8 +31,6 @@ export class BrowserTracing extends OriginalBrowserTracing {
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
- *
- * @param options
  */
 export function browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
