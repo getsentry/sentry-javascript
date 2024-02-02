@@ -126,6 +126,18 @@ sentryTest(
       // This one should not have any input mutations
       return inputMutationSegmentIds.length === 2 && inputMutationSegmentIds[1] < event.segment_id;
     });
+    const reqPromise4 = waitForReplayRequest(page, (event, res) => {
+      const check =
+        inputMutationSegmentIds.length === 2 &&
+        inputMutationSegmentIds[1] < event.segment_id &&
+        getIncrementalRecordingSnapshots(res).some(isInputMutation);
+
+      if (check) {
+        inputMutationSegmentIds.push(event.segment_id);
+      }
+
+      return check;
+    });
 
     await page.route('https://dsn.ingest.sentry.io/**/*', route => {
       return route.fulfill({
@@ -160,5 +172,11 @@ sentryTest(
     await forceFlushReplay();
     const snapshots3 = getIncrementalRecordingSnapshots(await reqPromise3).filter(isInputMutation);
     expect(snapshots3.length).toBe(0);
+
+    await page.locator('#should-still-be-masked').fill(text);
+    await forceFlushReplay();
+    const snapshots4 = getIncrementalRecordingSnapshots(await reqPromise4).filter(isInputMutation);
+    const lastSnapshot4 = snapshots4[snapshots4.length - 1];
+    expect(lastSnapshot4.data.text).toBe('*'.repeat(text.length));
   },
 );
