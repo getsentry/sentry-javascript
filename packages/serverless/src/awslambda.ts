@@ -354,24 +354,23 @@ export function wrapHandler<TEvent, TResult>(
           : undefined;
       const baggage = eventWithHeaders.headers?.baggage;
 
-      const continueTraceContext = continueTrace({ sentryTrace, baggage });
-
-      return startSpanManual(
-        {
-          name: context.functionName,
-          op: 'function.aws.lambda',
-          ...continueTraceContext,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
+      return continueTrace({ sentryTrace, baggage }, () => {
+        return startSpanManual(
+          {
+            name: context.functionName,
+            op: 'function.aws.lambda',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
+            },
           },
-        },
-        span => {
-          enhanceScopeWithTransactionData(getCurrentScope(), context);
+          span => {
+            enhanceScopeWithTransactionData(getCurrentScope(), context);
 
-          return processResult(span);
-        },
-      );
+            return processResult(span);
+          },
+        );
+      });
     }
 
     return withScope(async () => {

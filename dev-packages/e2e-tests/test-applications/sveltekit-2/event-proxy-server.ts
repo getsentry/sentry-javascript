@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
+import type { Envelope, EnvelopeItem, SerializedEvent } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 
 const readFile = util.promisify(fs.readFile);
@@ -210,13 +210,13 @@ export function waitForEnvelopeItem(
 
 export function waitForError(
   proxyServerName: string,
-  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
-): Promise<Event> {
+  callback: (transactionEvent: SerializedEvent) => Promise<boolean> | boolean,
+): Promise<SerializedEvent> {
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
+      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as SerializedEvent))) {
+        resolve(envelopeItemBody as SerializedEvent);
         return true;
       }
       return false;
@@ -226,13 +226,13 @@ export function waitForError(
 
 export function waitForTransaction(
   proxyServerName: string,
-  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
-): Promise<Event> {
+  callback: (transactionEvent: SerializedEvent) => Promise<boolean> | boolean,
+): Promise<SerializedEvent> {
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
-        resolve(envelopeItemBody as Event);
+      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as SerializedEvent))) {
+        resolve(envelopeItemBody as SerializedEvent);
         return true;
       }
       return false;
@@ -247,7 +247,7 @@ async function registerCallbackServerPort(serverName: string, port: string): Pro
   await writeFile(tmpFilePath, port, { encoding: 'utf8' });
 }
 
-async function retrieveCallbackServerPort(serverName: string): Promise<string> {
+function retrieveCallbackServerPort(serverName: string): Promise<string> {
   const tmpFilePath = path.join(os.tmpdir(), `${TEMP_FILE_PREFIX}${serverName}`);
-  return await readFile(tmpFilePath, 'utf8');
+  return readFile(tmpFilePath, 'utf8');
 }

@@ -82,7 +82,6 @@ describe('Sentry client SDK', () => {
         // This is the closest we can get to unit-testing the `__SENTRY_TRACING__` tree-shaking guard
         // IRL, the code to add the integration would most likely be removed by the bundler.
 
-        // @ts-expect-error this is fine in the test
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -93,7 +92,6 @@ describe('Sentry client SDK', () => {
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
         expect(browserTracing).toBeUndefined();
 
-        // @ts-expect-error this is fine in the test
         delete globalThis.__SENTRY_TRACING__;
       });
 
@@ -113,6 +111,7 @@ describe('Sentry client SDK', () => {
         expect(options.finalTimeout).toEqual(10);
 
         // But we force the routing instrumentation to be ours
+        // eslint-disable-next-line deprecation/deprecation
         expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
       });
 
@@ -132,6 +131,7 @@ describe('Sentry client SDK', () => {
         expect(options.finalTimeout).toEqual(10);
 
         // But we force the routing instrumentation to be ours
+        // eslint-disable-next-line deprecation/deprecation
         expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
       });
     });

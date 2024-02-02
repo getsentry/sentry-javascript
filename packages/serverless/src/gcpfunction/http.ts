@@ -77,58 +77,57 @@ function _wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<HttpFunctionWr
     const sentryTrace = req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
     const baggage = req.headers?.baggage;
 
-    const continueTraceContext = continueTrace({ sentryTrace, baggage });
-
-    return startSpanManual(
-      {
-        ...continueTraceContext,
-        name: `${reqMethod} ${reqUrl}`,
-        op: 'function.gcp.http',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+    return continueTrace({ sentryTrace, baggage }, () => {
+      return startSpanManual(
+        {
+          name: `${reqMethod} ${reqUrl}`,
+          op: 'function.gcp.http',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_http',
+          },
         },
-      },
-      span => {
-        getCurrentScope().setSDKProcessingMetadata({
-          request: req,
-          requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
-        });
+        span => {
+          getCurrentScope().setSDKProcessingMetadata({
+            request: req,
+            requestDataOptionsFromGCPWrapper: options.addRequestDataToEventOptions,
+          });
 
-        if (span instanceof Transaction) {
-          // We also set __sentry_transaction on the response so people can grab the transaction there to add
-          // spans to it later.
-          // TODO(v8): Remove this
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-          (res as any).__sentry_transaction = span;
-        }
-
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        const _end = res.end;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
-          if (span) {
-            setHttpStatus(span, res.statusCode);
-            span.end();
+          if (span instanceof Transaction) {
+            // We also set __sentry_transaction on the response so people can grab the transaction there to add
+            // spans to it later.
+            // TODO(v8): Remove this
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+            (res as any).__sentry_transaction = span;
           }
 
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          flush(options.flushTimeout)
-            .then(null, e => {
-              DEBUG_BUILD && logger.error(e);
-            })
-            .then(() => {
-              _end.call(this, chunk, encoding, cb);
-            });
-        };
+          // eslint-disable-next-line @typescript-eslint/unbound-method
+          const _end = res.end;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
+            if (span) {
+              setHttpStatus(span, res.statusCode);
+              span.end();
+            }
 
-        return handleCallbackErrors(
-          () => fn(req, res),
-          err => {
-            captureException(err, scope => markEventUnhandled(scope));
-          },
-        );
-      },
-    );
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            flush(options.flushTimeout)
+              .then(null, e => {
+                DEBUG_BUILD && logger.error(e);
+              })
+              .then(() => {
+                _end.call(this, chunk, encoding, cb);
+              });
+          };
+
+          return handleCallbackErrors(
+            () => fn(req, res),
+            err => {
+              captureException(err, scope => markEventUnhandled(scope));
+            },
+          );
+        },
+      );
+    });
   };
 }

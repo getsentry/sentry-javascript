@@ -18,8 +18,8 @@ import {
 import { DEBUG_BUILD } from '../debug-build';
 
 import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
-import { Http } from '../integrations/http';
-import { NodeFetch } from '../integrations/node-fetch';
+import { httpIntegration } from '../integrations/http';
+import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from './api';
@@ -34,16 +34,16 @@ const ignoredDefaultIntegrations = ['Http', 'Undici'];
 export const defaultIntegrations: Integration[] = [
   // eslint-disable-next-line deprecation/deprecation
   ...defaultNodeIntegrations.filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-  new Http(),
-  new NodeFetch(),
+  httpIntegration(),
+  nativeNodeFetchIntegration(),
 ];
 
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultNodeIntegrations(options).filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-    new Http(),
-    new NodeFetch(),
+    httpIntegration(),
+    nativeNodeFetchIntegration(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }

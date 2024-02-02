@@ -31,7 +31,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/packages/*/*.tgz
@@ -100,7 +100,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/packages/*/*.tgz

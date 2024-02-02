@@ -37,6 +37,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           ? winterCGHeadersToDict(context.headers)
           : {};
 
+        // eslint-disable-next-line deprecation/deprecation
         const transactionContext = continueTrace({
           // eslint-disable-next-line deprecation/deprecation
           sentryTrace: context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],

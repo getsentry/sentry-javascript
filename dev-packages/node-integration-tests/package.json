@@ -14,8 +14,8 @@
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rimraf -g **/node_modules && run-p clean:docker:*",
-    "clean:docker:mysql2": "cd suites/tracing-experimental/mysql2 && docker-compose down --volumes",
+    "clean": "rimraf -g **/node_modules && run-p clean:docker",
+    "clean:docker": "node scripts/clean.js",
     "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
     "prisma:init:new": "(cd suites/tracing-new/prisma-orm && ts-node ./setup.ts)",
     "lint": "eslint . --format stylish",
@@ -51,6 +51,9 @@
     "pg": "^8.7.3",
     "proxy": "^2.1.1",
     "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "globby": "11"
   },
   "config": {
     "mongodbMemoryServer": {

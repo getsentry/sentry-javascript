@@ -1,7 +1,20 @@
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 import * as NodeExperimentalIntegrations from './integrations';
+export { expressIntegration } from './integrations/express';
+export { fastifyIntegration } from './integrations/fastify';
+export { graphqlIntegration } from './integrations/graphql';
+export { httpIntegration } from './integrations/http';
+export { mongoIntegration } from './integrations/mongo';
+export { mongooseIntegration } from './integrations/mongoose';
+export { mysqlIntegration } from './integrations/mysql';
+export { mysql2Integration } from './integrations/mysql2';
+export { nestIntegration } from './integrations/nest';
+export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export { postgresIntegration } from './integrations/postgres';
+export { prismaIntegration } from './integrations/prisma';
 
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,

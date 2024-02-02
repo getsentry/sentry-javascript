@@ -197,6 +197,32 @@ be removed. Instead, use the new performance APIs:
 
 You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
 
+## Deprecate variations of `Sentry.continueTrace()`
+
+The version of `Sentry.continueTrace()` which does not take a callback argument will be removed in favor of the version
+that does. Additionally, the callback argument will not receive an argument with the next major version.
+
+Use `Sentry.continueTrace()` as follows:
+
+```ts
+app.get('/your-route', req => {
+  Sentry.withIsolationScope(isolationScope => {
+    Sentry.continueTrace(
+      {
+        sentryTrace: req.headers.get('sentry-trace'),
+        baggage: req.headers.get('baggage'),
+      },
+      () => {
+        // All events recorded in this callback will be associated with the incoming trace. For example:
+        Sentry.startSpan({ name: '/my-route' }, async () => {
+          await doExpensiveWork();
+        });
+      },
+    );
+  });
+});
+```
+
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 
 `Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend`
