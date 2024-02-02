@@ -1,0 +1,393 @@
+[
+  {
+    "event_id": "fa4845fd85844a7f8f0538d75c2104a6",
+    "sent_at": "2024-02-02T13:50:22.830Z",
+    "sdk": { "name": "sentry.javascript.vue", "version": "7.99.0" },
+    "dsn": "https://3b6c388182fb435097f41d181be2b2ba@o4504321058471936.ingest.sentry.io/4504321066008576",
+    "trace": {
+      "environment": "production",
+      "public_key": "3b6c388182fb435097f41d181be2b2ba",
+      "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+      "sample_rate": "1",
+      "transaction": "/users/:id",
+      "sampled": "true"
+    }
+  },
+  { "type": "transaction" },
+  {
+    "contexts": {
+      "trace": {
+        "data": {
+          "sentry.source": "route",
+          "params": { "id": "123" },
+          "query": {},
+          "sentry.origin": "auto.pageload.vue",
+          "sentry.op": "pageload",
+          "sentry.sample_rate": 1
+        },
+        "op": "pageload",
+        "span_id": "b0f32f97f27cee02",
+        "tags": {
+          "routing.instrumentation": "vue-router",
+          "effectiveConnectionType": "4g",
+          "deviceMemory": "8 GB",
+          "hardwareConcurrency": "10",
+          "lcp.element": "body > div#app > header > img.logo[alt=\"Vue logo\"]",
+          "lcp.url": "data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20261.76%20226.69'%3",
+          "lcp.size": 15625
+        },
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.pageload.vue"
+      }
+    },
+    "spans": [
+      {
+        "data": { "sentry.origin": "auto.ui.vue", "sentry.op": "ui.vue.render" },
+        "description": "Application Render",
+        "op": "ui.vue.render",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "95b99e90f5ccc67b",
+        "start_timestamp": 1706881819.812,
+        "timestamp": 1706881819.8151999,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.ui.vue"
+      },
+      {
+        "data": { "sentry.origin": "auto.ui.vue", "sentry.op": "ui.vue.mount" },
+        "description": "Vue <<Root>>",
+        "op": "ui.vue.mount",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "822bedda46901c70",
+        "start_timestamp": 1706881819.8122997,
+        "timestamp": 1706881819.8151999,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.ui.vue"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "domContentLoadedEvent",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "aefe038e1fd0e83f",
+        "start_timestamp": 1706881819.8172,
+        "timestamp": 1706881819.8172,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "loadEvent",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "a2549097e3136451",
+        "start_timestamp": 1706881819.8356,
+        "timestamp": 1706881819.8356,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "connect",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "8f354b202c3b2bad",
+        "start_timestamp": 1706881819.7175,
+        "timestamp": 1706881819.7178,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "cache",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "ae9f00b237410a1f",
+        "start_timestamp": 1706881819.7124,
+        "timestamp": 1706881819.7173998,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "DNS",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "8a813a57702d0681",
+        "start_timestamp": 1706881819.7173998,
+        "timestamp": 1706881819.7175,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "request",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "9d828bcc58cebd6b",
+        "start_timestamp": 1706881819.7178998,
+        "timestamp": 1706881819.7387998,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.browser.browser.metrics", "sentry.op": "browser" },
+        "description": "response",
+        "op": "browser",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "9000380e602ec269",
+        "start_timestamp": 1706881819.7384999,
+        "timestamp": 1706881819.7387998,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.browser.browser.metrics"
+      },
+      {
+        "data": {
+          "http.response_transfer_size": 69155,
+          "http.response_content_length": 68855,
+          "http.decoded_response_content_length": 192738,
+          "resource.render_blocking_status": "non-blocking",
+          "url.scheme": "http",
+          "server.address": "localhost:4173",
+          "url.same_origin": true,
+          "sentry.origin": "auto.resource.browser.metrics",
+          "sentry.op": "resource.script"
+        },
+        "description": "/assets/index-9iZGNg-C.js",
+        "op": "resource.script",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "9e592a1690d8f8cd",
+        "start_timestamp": 1706881819.7445,
+        "timestamp": 1706881819.7954,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": {
+          "http.response_transfer_size": 1307,
+          "http.response_content_length": 1007,
+          "http.decoded_response_content_length": 2846,
+          "resource.render_blocking_status": "blocking",
+          "url.scheme": "http",
+          "server.address": "localhost:4173",
+          "url.same_origin": true,
+          "sentry.origin": "auto.resource.browser.metrics",
+          "sentry.op": "resource.link"
+        },
+        "description": "/assets/index-Kq1Mc0UN.css",
+        "op": "resource.link",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "87f489ec7f318373",
+        "start_timestamp": 1706881819.7447999,
+        "timestamp": 1706881819.7824,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.resource.browser.metrics", "sentry.op": "mark" },
+        "description": "sentry-tracing-init",
+        "op": "mark",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "aded3749b2bee1eb",
+        "start_timestamp": 1706881819.8042998,
+        "timestamp": 1706881819.8042998,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": {
+          "http.response_transfer_size": 498,
+          "http.response_content_length": 198,
+          "http.decoded_response_content_length": 198,
+          "resource.render_blocking_status": "non-blocking",
+          "url.scheme": "http",
+          "server.address": "localhost:4173",
+          "url.same_origin": true,
+          "sentry.origin": "auto.resource.browser.metrics",
+          "sentry.op": "resource.other"
+        },
+        "description": "/assets/UserIdView-EIppvVhr.js",
+        "op": "resource.other",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "8e2957ca4a10f94a",
+        "start_timestamp": 1706881819.8170998,
+        "timestamp": 1706881819.8228998,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.resource.browser.metrics", "sentry.op": "paint" },
+        "description": "first-paint",
+        "op": "paint",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "b80abcccddd51709",
+        "start_timestamp": 1706881819.8483999,
+        "timestamp": 1706881819.8483999,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.resource.browser.metrics", "sentry.op": "paint" },
+        "description": "first-contentful-paint",
+        "op": "paint",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "87fbdbce2fc61b63",
+        "start_timestamp": 1706881819.8483999,
+        "timestamp": 1706881819.8483999,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.resource.browser.metrics"
+      },
+      {
+        "data": { "sentry.origin": "auto.ui.browser.metrics", "sentry.op": "ui.action" },
+        "description": "first input delay",
+        "op": "ui.action",
+        "parent_span_id": "b0f32f97f27cee02",
+        "span_id": "a8159d20c06f8443",
+        "start_timestamp": 1706881821.4106,
+        "timestamp": 1706881821.4119,
+        "trace_id": "fd0e792e3a974d9484f447cd6e5b1245",
+        "origin": "auto.ui.browser.metrics"
+      }
+    ],
+    "start_timestamp": 1706881819.7124,
+    "tags": {
+      "routing.instrumentation": "vue-router",
+      "effectiveConnectionType": "4g",
+      "deviceMemory": "8 GB",
+      "hardwareConcurrency": "10",
+      "lcp.element": "body > div#app > header > img.logo[alt=\"Vue logo\"]",
+      "lcp.url": "data:image/svg+xml,%3csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20261.76%20226.69'%3",
+      "lcp.size": 15625
+    },
+    "timestamp": 1706881821.4119,
+    "transaction": "/users/:id",
+    "type": "transaction",
+    "transaction_info": { "source": "route" },
+    "measurements": {
+      "lcp": { "value": 40.10009765625, "unit": "millisecond" },
+      "fid": { "value": 1.300000011920929, "unit": "millisecond" },
+      "fp": { "value": 40.10009765625, "unit": "millisecond" },
+      "fcp": { "value": 40.10009765625, "unit": "millisecond" },
+      "connection.rtt": { "value": 50, "unit": "millisecond" },
+      "ttfb": { "value": 0, "unit": "millisecond" },
+      "ttfb.requestTime": { "value": 20.600080490112305, "unit": "millisecond" }
+    },
+    "platform": "javascript",
+    "request": {
+      "url": "http://localhost:4173/users/123",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+      }
+    },
+    "event_id": "fa4845fd85844a7f8f0538d75c2104a6",
+    "environment": "production",
+    "sdk": {
+      "integrations": [
+        "InboundFilters",
+        "FunctionToString",
+        "TryCatch",
+        "Breadcrumbs",
+        "GlobalHandlers",
+        "LinkedErrors",
+        "Dedupe",
+        "HttpContext",
+        "Vue",
+        "BrowserTracing"
+      ],
+      "name": "sentry.javascript.vue",
+      "version": "7.99.0",
+      "packages": [{ "name": "npm:@sentry/vue", "version": "7.99.0" }]
+    },
+    "breadcrumbs": [
+      { "timestamp": 1706881819.837, "category": "navigation", "data": { "from": "/users/123", "to": "/users/123" } },
+      { "timestamp": 1706881821.487, "category": "ui.click", "message": "body" }
+    ]
+  },
+  {
+    "contexts": {
+      "trace": {
+        "data": {
+          "params": { "id": "123" },
+          "query": {},
+          "sentry.source": "route",
+          "sentry.origin": "auto.navigation.vue",
+          "sentry.op": "navigation",
+          "sentry.sample_rate": 1
+        },
+        "op": "navigation",
+        "span_id": "8782ddee1e6ee8ae",
+        "tags": {
+          "routing.instrumentation": "vue-router",
+          "effectiveConnectionType": "4g",
+          "deviceMemory": "8 GB",
+          "hardwareConcurrency": "10"
+        },
+        "trace_id": "a393aa7ea8da4c95b970a3e19ff708da",
+        "origin": "auto.navigation.vue"
+      }
+    },
+    "spans": [],
+    "start_timestamp": 1706881988.431,
+    "tags": {
+      "routing.instrumentation": "vue-router",
+      "effectiveConnectionType": "4g",
+      "deviceMemory": "8 GB",
+      "hardwareConcurrency": "10"
+    },
+    "timestamp": 1706881989.4382,
+    "transaction": "/users/:id",
+    "type": "transaction",
+    "transaction_info": { "source": "custom" },
+    "platform": "javascript",
+    "request": {
+      "url": "http://localhost:4173/users/123",
+      "headers": {
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+      }
+    },
+    "event_id": "32c30040542b46dbb234e3cb30a49899",
+    "environment": "production",
+    "sdk": {
+      "integrations": [
+        "InboundFilters",
+        "FunctionToString",
+        "TryCatch",
+        "Breadcrumbs",
+        "GlobalHandlers",
+        "LinkedErrors",
+        "Dedupe",
+        "HttpContext",
+        "Vue",
+        "BrowserTracing"
+      ],
+      "name": "sentry.javascript.vue",
+      "version": "7.99.0",
+      "packages": [{ "name": "npm:@sentry/vue", "version": "7.99.0" }]
+    },
+    "breadcrumbs": [
+      { "timestamp": 1706881819.837, "category": "navigation", "data": { "from": "/users/123", "to": "/users/123" } },
+      { "timestamp": 1706881821.487, "category": "ui.click", "message": "body" },
+      {
+        "timestamp": 1706881822.829,
+        "category": "sentry.transaction",
+        "event_id": "fa4845fd85844a7f8f0538d75c2104a6",
+        "message": "fa4845fd85844a7f8f0538d75c2104a6"
+      },
+      { "timestamp": 1706881982.286, "category": "ui.click", "message": "div#app > header > div.wrapper > nav > a" },
+      { "timestamp": 1706881982.295, "category": "navigation", "data": { "from": "/users/123", "to": "/users/123" } },
+      { "timestamp": 1706881982.295, "category": "navigation", "data": { "from": "/users/123", "to": "/about" } },
+      {
+        "timestamp": 1706881983.292,
+        "category": "sentry.transaction",
+        "event_id": "0b3d30081dd64b588e5df245acd1ff69",
+        "message": "0b3d30081dd64b588e5df245acd1ff69"
+      },
+      {
+        "timestamp": 1706881988.429,
+        "category": "ui.click",
+        "message": "div#app > header > div.wrapper > nav > a#navLink"
+      },
+      { "timestamp": 1706881988.43, "category": "navigation", "data": { "from": "/about", "to": "/about" } },
+      { "timestamp": 1706881988.43, "category": "navigation", "data": { "from": "/about", "to": "/users/123" } }
+    ]
+  }
+]
