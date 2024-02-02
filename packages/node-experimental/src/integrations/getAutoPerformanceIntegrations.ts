@@ -4,6 +4,7 @@ import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
 import { graphqlIntegration } from './graphql';
 import { hapiIntegration } from './hapi';
+import { koaIntegration } from './koa';
 import { mongoIntegration } from './mongo';
 import { mongooseIntegration } from './mongoose';
 import { mysqlIntegration } from './mysql';
@@ -28,5 +29,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     prismaIntegration(),
     nestIntegration(),
     hapiIntegration(),
+    koaIntegration(),
   ];
 }
