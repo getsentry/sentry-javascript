@@ -1,16 +1,13 @@
 import { navigating, page } from '$app/stores';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getActiveSpan,
-  startInactiveSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
   BrowserTracing as OriginalBrowserTracing,
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
+  getActiveSpan,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  startInactiveSpan,
 } from '@sentry/svelte';
 import type { Client, Integration, Span } from '@sentry/types';
 import { svelteKitRoutingInstrumentation } from './router';
@@ -18,7 +15,9 @@ import { svelteKitRoutingInstrumentation } from './router';
 /**
  * A custom BrowserTracing integration for Sveltekit.
  *
- * @deprecated use `browserTracingIntegration()` instead.
+ * @deprecated use `browserTracingIntegration()` instead. The new `browserTracingIntegration()`
+ * includes SvelteKit-specific routing instrumentation out of the box. Therefore there's no need
+ * to pass in `svelteKitRoutingInstrumentation` anymore.
  */
 export class BrowserTracing extends OriginalBrowserTracing {
   public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
@@ -68,12 +67,12 @@ function _instrumentPageload(client: Client): void {
   startBrowserTracingPageLoadSpan(client, {
     name: initialPath,
     op: 'pageload',
-    origin: 'auto.pageload.sveltekit',
     description: initialPath,
     tags: {
       'routing.instrumentation': '@sentry/sveltekit',
     },
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
@@ -98,7 +97,7 @@ function _instrumentPageload(client: Client): void {
  * Use the `navigating` store to start a transaction on navigations.
  */
 function _instrumentNavigations(client: Client): void {
-  let routingSpan: Span | undefined = undefined;
+  let routingSpan: Span | undefined;
   let activeSpan: Span | undefined;
 
   navigating.subscribe(navigation => {
@@ -136,8 +135,8 @@ function _instrumentNavigations(client: Client): void {
       startBrowserTracingNavigationSpan(client, {
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
-        origin: 'auto.navigation.sveltekit',
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
         },
         tags: {

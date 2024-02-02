@@ -19,6 +19,7 @@ const DEFAULT_TAGS = {
  * @param startTransactionOnLocationChange controls if navigation transactions should be created (defauls to `true`)
  *
  * @deprecated use `browserTracingIntegration()` instead which includes SvelteKit-specific routing instrumentation out of the box.
+ * Therefore, this function will be removed in v8.
  */
 export function svelteKitRoutingInstrumentation<T extends Transaction>(
   startTransactionFn: (context: TransactionContext) => T | undefined,
