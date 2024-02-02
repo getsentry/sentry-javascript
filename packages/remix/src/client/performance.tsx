@@ -52,7 +52,7 @@ let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
 
 let _customStartTransaction: ((context: TransactionContext) => Span | undefined) | undefined;
-let _startTransactionOnLocationChange: boolean | undefined;
+let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
   if (WINDOW && WINDOW.location) {
@@ -140,7 +140,7 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
       useEffect,
       useLocation,
       useMatches,
-      startTransactionOnLocationChange,
+      instrumentNavigation: startTransactionOnLocationChange,
       customStartTransaction,
     });
 
@@ -212,7 +212,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
         return;
       }
 
-      if (_startTransactionOnLocationChange && matches && matches.length) {
+      if (_instrumentNavigation && matches && matches.length) {
         if (activeRootSpan) {
           activeRootSpan.end();
         }
@@ -242,18 +242,18 @@ export function setGlobals({
   useEffect,
   useLocation,
   useMatches,
-  startTransactionOnLocationChange,
+  instrumentNavigation,
   customStartTransaction,
 }: {
   useEffect?: UseEffect;
   useLocation?: UseLocation;
   useMatches?: UseMatches;
-  startTransactionOnLocationChange?: boolean;
+  instrumentNavigation?: boolean;
   customStartTransaction?: (context: TransactionContext) => Span | undefined;
 }): void {
   _useEffect = useEffect;
   _useLocation = useLocation;
   _useMatches = useMatches;
-  _startTransactionOnLocationChange = startTransactionOnLocationChange;
+  _instrumentNavigation = instrumentNavigation;
   _customStartTransaction = customStartTransaction;
 }
