@@ -32,6 +32,16 @@ Sentry.startSpan(
         Sentry.metrics.increment('root-counter');
         Sentry.metrics.increment('root-counter');
         Sentry.metrics.increment('root-counter', 2);
+
+        Sentry.metrics.set('root-set', 'some-value');
+        Sentry.metrics.set('root-set', 'another-value');
+        Sentry.metrics.set('root-set', 'another-value');
+
+        Sentry.metrics.gauge('root-gauge', 42);
+        Sentry.metrics.gauge('root-gauge', 20);
+
+        Sentry.metrics.distribution('root-distribution', 42);
+        Sentry.metrics.distribution('root-distribution', 20);
       },
     );
   },

@@ -29,6 +29,36 @@ const EXPECTED_TRANSACTION = {
             transaction: 'Test Transaction',
           },
         },
+        's:root-set@none': {
+          min: 0,
+          max: 1,
+          count: 3,
+          sum: 2,
+          tags: {
+            release: '1.0',
+            transaction: 'Test Transaction',
+          },
+        },
+        'g:root-gauge@none': {
+          min: 20,
+          max: 42,
+          count: 2,
+          sum: 62,
+          tags: {
+            release: '1.0',
+            transaction: 'Test Transaction',
+          },
+        },
+        'd:root-distribution@none': {
+          min: 20,
+          max: 42,
+          count: 2,
+          sum: 62,
+          tags: {
+            release: '1.0',
+            transaction: 'Test Transaction',
+          },
+        },
       },
     }),
   ]),
