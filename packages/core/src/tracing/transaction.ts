@@ -15,6 +15,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
@@ -326,16 +327,13 @@ export class Transaction extends SpanClass implements TransactionInterface {
         ...metadata,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
+      _metrics_summary: getMetricSummaryJsonForSpan(this),
       ...(source && {
         transaction_info: {
           source,
         },
       }),
     };
-
-    if (this._metricSummary) {
-      transaction._metrics_summary = this._metricSummary.getJson();
-    }
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 

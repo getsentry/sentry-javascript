@@ -155,6 +155,5 @@ export type {
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
-  MetricSummaryAggregator,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';

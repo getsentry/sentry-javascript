@@ -6,7 +6,7 @@ import type {
   Primitive,
 } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
+import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { METRIC_MAP } from './instance';
 import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
@@ -66,7 +66,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
 
     let bucketItem = this._buckets.get(bucketKey);
     // If this is a set metric, we need to calculate the delta from the previous weight.
-    const previousWeight = bucketItem && metricType === 's' ? bucketItem.metric.weight : 0;
+    const previousWeight = bucketItem && metricType === SET_METRIC_TYPE ? bucketItem.metric.weight : 0;
 
     if (bucketItem) {
       bucketItem.metric.add(value);

@@ -1,6 +1,5 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
-import type { MetricSummaryAggregator } from './metrics';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
@@ -396,10 +395,6 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * @deprecated Use `spanToTraceContext()` util function instead.
    */
   getTraceContext(): TraceContext;
-
-  getMetricSummary(): MetricSummaryAggregator | undefined;
-
-  setMetricSummary(summary: MetricSummaryAggregator): void;
 
   /**
    * Convert the object to JSON.

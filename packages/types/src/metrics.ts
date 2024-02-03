@@ -1,6 +1,5 @@
 import type { MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
-import type { MetricSummary } from './span';
 
 /**
  * An abstract definition of the minimum required API
@@ -62,19 +61,4 @@ export interface MetricsAggregator {
    * Returns a string representation of the aggregator.
    */
   toString(): string;
-}
-
-export interface MetricSummaryAggregator {
-  /** Adds a metric to the summary */
-  add(
-    metricType: 'c' | 'g' | 's' | 'd',
-    sanitizedName: string,
-    value: number,
-    unit: MeasurementUnit,
-    tags: Record<string, Primitive>,
-    bucketKey: string,
-  ): void;
-
-  /** Gets the JSON representation of the metric summary */
-  getJson(): Record<string, MetricSummary>;
 }

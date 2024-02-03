@@ -1,14 +1,45 @@
-import type { MeasurementUnit, MetricSummaryAggregator as MetricSummaryAggregatorInterface } from '@sentry/types';
+import type { MeasurementUnit, Span } from '@sentry/types';
 import type { MetricSummary } from '@sentry/types';
 import type { Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 import { getActiveSpan } from '../tracing';
+import type { MetricType } from './types';
+
+/**
+ * key: bucketKey
+ * value: [exportKey, MetricSummary]
+ */
+type MetricSummaryStorage = Map<string, [string, MetricSummary]>;
+
+let SPAN_METRIC_SUMMARY: WeakMap<Span, MetricSummaryStorage> | undefined;
+
+function getMetricStorageForSpan(span: Span): MetricSummaryStorage | undefined {
+  return SPAN_METRIC_SUMMARY ? SPAN_METRIC_SUMMARY.get(span) : undefined;
+}
+
+/**
+ * Fetches the metric summary if it exists for the passed span
+ */
+export function getMetricSummaryJsonForSpan(span: Span): Record<string, MetricSummary> | undefined {
+  const storage = getMetricStorageForSpan(span);
+
+  if (!storage) {
+    return undefined;
+  }
+  const output: Record<string, MetricSummary> = {};
+
+  for (const [, [exportKey, summary]] of storage) {
+    output[exportKey] = dropUndefinedKeys(summary);
+  }
+
+  return output;
+}
 
 /**
  * Updates the metric summary on the currently active span
  */
 export function updateMetricSummaryOnActiveSpan(
-  metricType: 'c' | 'g' | 's' | 'd',
+  metricType: MetricType,
   sanitizedName: string,
   value: number,
   unit: MeasurementUnit,
@@ -17,41 +48,14 @@ export function updateMetricSummaryOnActiveSpan(
 ): void {
   const span = getActiveSpan();
   if (span) {
-    const summary = span.getMetricSummary() || new MetricSummaryAggregator();
-    summary.add(metricType, sanitizedName, value, unit, tags, bucketKey);
-    span.setMetricSummary(summary);
-  }
-}
+    const storage = getMetricStorageForSpan(span) || new Map<string, [string, MetricSummary]>();
 
-/**
- * Summaries metrics for spans
- */
-class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
-  /**
-   * key: bucketKey
-   * value: [exportKey, MetricSpanSummary]
-   */
-  private readonly _measurements: Map<string, [string, MetricSummary]>;
-
-  public constructor() {
-    this._measurements = new Map<string, [string, MetricSummary]>();
-  }
-
-  /** @inheritdoc */
-  public add(
-    metricType: 'c' | 'g' | 's' | 'd',
-    sanitizedName: string,
-    value: number,
-    unit: MeasurementUnit,
-    tags: Record<string, Primitive>,
-    bucketKey: string,
-  ): void {
     const exportKey = `${metricType}:${sanitizedName}@${unit}`;
-    const bucketItem = this._measurements.get(bucketKey);
+    const bucketItem = storage.get(bucketKey);
 
     if (bucketItem) {
       const [, summary] = bucketItem;
-      this._measurements.set(bucketKey, [
+      storage.set(bucketKey, [
         exportKey,
         {
           min: Math.min(summary.min, value),
@@ -62,7 +66,7 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
         },
       ]);
     } else {
-      this._measurements.set(bucketKey, [
+      storage.set(bucketKey, [
         exportKey,
         {
           min: value,
@@ -73,16 +77,11 @@ class MetricSummaryAggregator implements MetricSummaryAggregatorInterface {
         },
       ]);
     }
-  }
 
-  /** @inheritdoc */
-  public getJson(): Record<string, MetricSummary> {
-    const output: Record<string, MetricSummary> = {};
-
-    for (const [, [exportKey, summary]] of this._measurements) {
-      output[exportKey] = dropUndefinedKeys(summary);
+    if (!SPAN_METRIC_SUMMARY) {
+      SPAN_METRIC_SUMMARY = new WeakMap();
     }
 
-    return output;
+    SPAN_METRIC_SUMMARY.set(span, storage);
   }
 }
