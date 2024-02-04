@@ -2,7 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "remix build",
+    "build": "pnpm typecheck && remix build",
     "dev": "remix dev",
     "start": "remix-serve build/index.js",
     "typecheck": "tsc",
