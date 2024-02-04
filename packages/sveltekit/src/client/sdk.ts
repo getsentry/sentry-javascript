@@ -4,7 +4,10 @@ import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/
 import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
 
-import { BrowserTracing } from './browserTracingIntegration';
+import {
+  BrowserTracing,
+  browserTracingIntegration as svelteKitBrowserTracingIntegration,
+} from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -64,6 +67,7 @@ function fixBrowserTracingIntegration(options: BrowserOptions): void {
 function isNewBrowserTracingIntegration(
   integration: Integration,
 ): integration is Integration & { options?: Parameters<typeof browserTracingIntegration>[0] } {
+  // eslint-disable-next-line deprecation/deprecation
   return !!integration.afterAllSetup && !!(integration as BrowserTracing).options;
 }
 
@@ -77,15 +81,19 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   // If `browserTracingIntegration()` was added, we need to force-convert it to our custom one
   if (isNewBrowserTracingIntegration(browserTracing)) {
     const { options } = browserTracing;
+    // eslint-disable-next-line deprecation/deprecation
     integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
   }
 
   // If BrowserTracing was added, but it is not our forked version,
   // replace it with our forked version with the same options
+  // eslint-disable-next-line deprecation/deprecation
   if (!(browserTracing instanceof BrowserTracing)) {
+    // eslint-disable-next-line deprecation/deprecation
     const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
     // This option is overwritten by the custom integration
     delete options.routingInstrumentation;
+    // eslint-disable-next-line deprecation/deprecation
     integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
   }
 
@@ -97,7 +105,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
   // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      return [...getDefaultSvelteIntegrations(options), new BrowserTracing()];
+      return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
     }
   }
 

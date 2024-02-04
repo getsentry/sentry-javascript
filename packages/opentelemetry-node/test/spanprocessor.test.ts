@@ -301,7 +301,7 @@ describe('SentrySpanProcessor', () => {
           'service.name': 'test-service',
           'telemetry.sdk.language': 'nodejs',
           'telemetry.sdk.name': 'opentelemetry',
-          'telemetry.sdk.version': '1.17.1',
+          'telemetry.sdk.version': '1.21.0',
         },
       },
     });
@@ -326,7 +326,7 @@ describe('SentrySpanProcessor', () => {
           'service.name': 'test-service',
           'telemetry.sdk.language': 'nodejs',
           'telemetry.sdk.name': 'opentelemetry',
-          'telemetry.sdk.version': '1.17.1',
+          'telemetry.sdk.version': '1.21.0',
         },
       },
     });

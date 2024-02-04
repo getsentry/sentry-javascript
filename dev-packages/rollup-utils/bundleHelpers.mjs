@@ -82,6 +82,7 @@ export function makeBaseBundleConfig(options) {
           '  for (var key in exports) {',
           '    if (Object.prototype.hasOwnProperty.call(exports, key)) {',
           '      __window.Sentry.Integrations[key] = exports[key];',
+          '      __window.Sentry[key] = exports[key];',
           '    }',
           '  }',
         ].join('\n'),

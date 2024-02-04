@@ -26,7 +26,7 @@ conditionalTest({ min: 14 })('GraphQL/Apollo Tests', () => {
             'otel.kind': 'INTERNAL',
             'sentry.origin': 'manual',
           },
-          description: 'graphql.resolve',
+          description: 'graphql.resolve hello',
           status: 'ok',
           origin: 'manual',
         }),
@@ -44,9 +44,7 @@ conditionalTest({ min: 14 })('GraphQL/Apollo Tests', () => {
           data: {
             'graphql.operation.name': 'Mutation',
             'graphql.operation.type': 'mutation',
-            'graphql.source': `mutation Mutation($email: String) {
-  login(email: $email)
-}`,
+            'graphql.source': 'mutation Mutation($email: String) {\n  login(email: $email)\n}',
             'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.graphql.otel.graphql',
           },

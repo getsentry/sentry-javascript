@@ -41,7 +41,9 @@
       ".next/**",
       ".svelte-kit/**",
       ".angular/**",
-      "angular.json"
+      "angular.json",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts"
     ]
   },
   "files": {
@@ -64,7 +66,10 @@
       ".next/**",
       ".svelte-kit/**",
       ".angular/**",
-      "angular.json"
+      "angular.json",
+      "**/profiling-node/lib/**",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts"
     ]
   },
   "javascript": {

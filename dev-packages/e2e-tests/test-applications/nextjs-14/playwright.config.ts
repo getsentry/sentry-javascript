@@ -1,3 +1,4 @@
+import os from 'os';
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
@@ -31,6 +32,8 @@ const config: PlaywrightTestConfig = {
   },
   /* Run tests in files in parallel */
   fullyParallel: true,
+  /* Defaults to half the number of CPUs. The tests are not really CPU-bound but rather I/O-bound with all the polling we do so we increase the concurrency to the CPU count. */
+  workers: os.cpus().length,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */

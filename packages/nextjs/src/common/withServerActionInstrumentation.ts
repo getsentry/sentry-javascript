@@ -10,6 +10,7 @@ import {
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
 
@@ -101,7 +102,19 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         },
         async span => {
           const result = await handleCallbackErrors(callback, error => {
-            captureException(error, { mechanism: { handled: false } });
+            if (isNotFoundNavigationError(error)) {
+              // We don't want to report "not-found"s
+              span?.setStatus('not_found');
+            } else if (isRedirectNavigationError(error)) {
+              // Don't do anything for redirects
+            } else {
+              span?.setStatus('internal_error');
+              captureException(error, {
+                mechanism: {
+                  handled: false,
+                },
+              });
+            }
           });
 
           if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
