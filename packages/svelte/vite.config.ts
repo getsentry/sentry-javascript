@@ -10,5 +10,6 @@ export default {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ...(baseConfig as UserConfig & { test: any }).test,
     environment: 'jsdom',
+    alias: [{ find: /^svelte$/, replacement: 'svelte/internal' }],
   },
 };

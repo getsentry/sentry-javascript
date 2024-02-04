@@ -72,7 +72,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(1);
+    expect(testTransaction.spans.length).toEqual(2);
   });
 
   it('creates an update span, when the component is updated', async () => {
@@ -90,13 +90,13 @@ describe('Sentry.trackComponent()', () => {
     await act(() => component.$set({ options: { trackUpdates: true } }));
 
     // once for init (unimportant here), once for starting the update span
-    expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
+    expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
       description: '<Dummy$>',
-      op: 'ui.svelte.init',
+      op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
-    expect(testTransaction.spans.length).toEqual(1);
+    expect(testTransaction.spans.length).toEqual(3);
   });
 
   it('only creates init spans if trackUpdates is deactivated', () => {
@@ -110,7 +110,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
 
-    expect(testInitSpan.end).toHaveBeenCalledTimes(0);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testTransaction.spans.length).toEqual(1);
   });
 
@@ -156,7 +156,7 @@ describe('Sentry.trackComponent()', () => {
 
     expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
-    expect(testTransaction.spans.length).toEqual(1);
+    expect(testTransaction.spans.length).toEqual(2);
   });
 
   it("doesn't do anything, if there's no ongoing transaction", async () => {
@@ -192,6 +192,6 @@ describe('Sentry.trackComponent()', () => {
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
-    expect(testTransaction.spans.length).toEqual(1);
+    expect(testTransaction.spans.length).toEqual(2);
   });
 });
