@@ -1,8 +1,14 @@
-import type { Client, ClientOptions, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
+import type {
+  Client,
+  ClientOptions,
+  MeasurementUnit,
+  MetricBucketItem,
+  MetricsAggregator,
+  Primitive,
+} from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
+import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
 import { METRIC_MAP } from './instance';
-import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
 import { getBucketKey, sanitizeTags } from './utils';
 
@@ -40,11 +46,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     const tags = sanitizeTags(unsanitizedTags);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
-
-    let bucketItem = this._buckets.get(bucketKey);
-    // If this is a set metric, we need to calculate the delta from the previous weight.
-    const previousWeight = bucketItem && metricType === SET_METRIC_TYPE ? bucketItem.metric.weight : 0;
-
+    const bucketItem: MetricBucketItem | undefined = this._buckets.get(bucketKey);
     if (bucketItem) {
       bucketItem.metric.add(value);
       // TODO(abhi): Do we need this check?
@@ -52,7 +54,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
         bucketItem.timestamp = timestamp;
       }
     } else {
-      bucketItem = {
+      this._buckets.set(bucketKey, {
         // @ts-expect-error we don't need to narrow down the type of value here, saves bundle size.
         metric: new METRIC_MAP[metricType](value),
         timestamp,
@@ -60,13 +62,8 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
         name,
         unit,
         tags,
-      };
-      this._buckets.set(bucketKey, bucketItem);
+      });
     }
-
-    // If value is a string, it's a set metric so calculate the delta from the previous weight.
-    const val = typeof value === 'string' ? bucketItem.metric.weight - previousWeight : value;
-    updateMetricSummaryOnActiveSpan(metricType, name, val, unit, unsanitizedTags, bucketKey);
   }
 
   /**
