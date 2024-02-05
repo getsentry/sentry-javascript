@@ -16,6 +16,7 @@ describe('ContextLines', () => {
 
   beforeEach(() => {
     readFileSpy = jest.spyOn(fs, 'readFile');
+    // eslint-disable-next-line deprecation/deprecation
     contextLines = new ContextLines();
     resetFileContentCache();
   });
@@ -98,6 +99,7 @@ describe('ContextLines', () => {
     });
 
     test('parseStack with no context', async () => {
+      // eslint-disable-next-line deprecation/deprecation
       contextLines = new ContextLines({ frameContextLines: 0 });
 
       expect.assertions(1);
@@ -110,7 +112,8 @@ describe('ContextLines', () => {
 
   test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
-    contextLines = new ContextLines({});
+    // eslint-disable-next-line deprecation/deprecation
+    contextLines = new ContextLines();
 
     readFileSpy.mockImplementation(() => {
       throw new Error("ENOENT: no such file or directory, open '/does/not/exist.js'");

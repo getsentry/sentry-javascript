@@ -1,0 +1,1 @@
+export { ProfilingIntegration } from './integration';

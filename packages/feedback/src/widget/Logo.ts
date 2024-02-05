@@ -33,8 +33,13 @@ export function Logo({ colorScheme }: Props): IconReturn {
   const defs = createElementNS('defs');
   const style = createElementNS('style');
 
+  style.textContent = `
+    path {
+      fill: ${colorScheme === 'dark' ? '#fff' : '#362d59'};
+    }`;
+
   if (colorScheme === 'system') {
-    style.textContent = `
+    style.textContent += `
     @media (prefers-color-scheme: dark) {
       path: {
         fill: '#fff';
@@ -42,11 +47,6 @@ export function Logo({ colorScheme }: Props): IconReturn {
     }
     `;
   }
-
-  style.textContent = `
-    path {
-      fill: ${colorScheme === 'dark' ? '#fff' : '#362d59'};
-    }`;
 
   defs.append(style);
   svg.append(defs);

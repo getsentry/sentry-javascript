@@ -23,6 +23,7 @@ export declare function init(
 // eslint-disable-next-line deprecation/deprecation
 export declare const Integrations: typeof clientSdk.Integrations &
   typeof serverSdk.Integrations &
+  // eslint-disable-next-line deprecation/deprecation
   typeof edgeSdk.Integrations;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;

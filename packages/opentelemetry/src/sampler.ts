@@ -3,7 +3,7 @@ import type { Attributes, Context, SpanContext } from '@opentelemetry/api';
 import { TraceFlags, isSpanContextValid, trace } from '@opentelemetry/api';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
-import { hasTracingEnabled } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled } from '@sentry/core';
 import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
@@ -27,7 +27,7 @@ export class SentrySampler implements Sampler {
     traceId: string,
     spanName: string,
     _spanKind: unknown,
-    _attributes: unknown,
+    spanAttributes: unknown,
     _links: unknown,
   ): SamplingResult {
     const options = this._client.getOptions();
@@ -54,6 +54,8 @@ export class SentrySampler implements Sampler {
     }
 
     const sampleRate = getSampleRate(options, {
+      name: spanName,
+      attributes: spanAttributes,
       transactionContext: {
         name: spanName,
         parentSampled,
@@ -62,7 +64,7 @@ export class SentrySampler implements Sampler {
     });
 
     const attributes: Attributes = {
-      [InternalSentrySemanticAttributes.SAMPLE_RATE]: Number(sampleRate),
+      [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: Number(sampleRate),
     };
 
     if (typeof parentSampled === 'boolean') {

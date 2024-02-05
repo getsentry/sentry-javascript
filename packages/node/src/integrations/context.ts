@@ -4,7 +4,7 @@ import { readFile, readdir } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
-import { convertIntegrationFnToClass } from '@sentry/core';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type {
   AppContext,
   CloudResourceContext,
@@ -37,7 +37,7 @@ interface ContextOptions {
   cloudResource?: boolean;
 }
 
-const nodeContextIntegration = ((options: ContextOptions = {}) => {
+const _nodeContextIntegration = ((options: ContextOptions = {}) => {
   let cachedContext: Promise<Contexts> | undefined;
 
   const _options = {
@@ -110,7 +110,12 @@ const nodeContextIntegration = ((options: ContextOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-/** Add node modules / packages to the event */
+export const nodeContextIntegration = defineIntegration(_nodeContextIntegration);
+
+/**
+ * Add node modules / packages to the event.
+ * @deprecated Use `nodeContextIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, nodeContextIntegration) as IntegrationClass<
   Integration & { processEvent: (event: Event) => Promise<Event> }
@@ -123,6 +128,9 @@ export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, nodeContext
     cloudResource?: boolean;
   }): Integration;
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type Context = typeof Context;
 
 /**
  * Updates the context with dynamic values that can change

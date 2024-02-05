@@ -69,6 +69,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
+  setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -104,6 +105,18 @@ export {
   extractRequestData,
   getSentryRelease,
   addRequestDataToEvent,
+  anrIntegration,
+  consoleIntegration,
+  contextLinesIntegration,
+  hapiIntegration,
+  httpIntegration,
+  localVariablesIntegration,
+  modulesIntegration,
+  nativeNodeFetchintegration,
+  nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  spotlightIntegration,
 } from '@sentry/node';
 
 export { BunClient } from './client';
@@ -116,14 +129,15 @@ export {
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 import { Integrations as NodeIntegrations } from '@sentry/node';
-
-import * as BunIntegrations from './integrations';
+import { BunServer } from './integrations/bunserver';
+export { bunServerIntegration } from './integrations/bunserver';
 
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
+  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
-  ...BunIntegrations,
+  BunServer,
 };
 
 export { INTEGRATIONS as Integrations };

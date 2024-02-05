@@ -1,3 +1,4 @@
+import os from 'os';
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
@@ -29,6 +30,8 @@ const config: PlaywrightTestConfig = {
      */
     timeout: 10000,
   },
+  /* Defaults to half the number of CPUs. The tests are not really CPU-bound but rather I/O-bound with all the polling we do so we increase the concurrency to the CPU count. */
+  workers: os.cpus().length,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

@@ -1,17 +1,17 @@
 import {
-  FunctionToString,
-  InboundFilters,
-  LinkedErrors,
-  RequestData,
+  functionToStringIntegration,
   getIntegrationsToSetup,
+  inboundFiltersIntegration,
   initAndBind,
+  linkedErrorsIntegration,
+  requestDataIntegration,
 } from '@sentry/core';
 import type { Integration, Options } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import { VercelEdgeClient } from './client';
-import { WinterCGFetch } from './integrations/wintercg-fetch';
+import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeClientOptions, VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
@@ -24,12 +24,10 @@ const nodeStackParser = createStackParser(nodeStackLineParser());
 
 /** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  /* eslint-disable deprecation/deprecation */
-  new InboundFilters(),
-  new FunctionToString(),
-  new LinkedErrors(),
-  /* eslint-enable deprecation/deprecation */
-  new WinterCGFetch(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  winterCGFetchIntegration(),
 ];
 
 /** Get the default integrations for the browser SDK. */
@@ -37,8 +35,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     // eslint-disable-next-line deprecation/deprecation
     ...defaultIntegrations,
-    // eslint-disable-next-line deprecation/deprecation
-    ...(options.sendDefaultPii ? [new RequestData()] : []),
+    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }
 

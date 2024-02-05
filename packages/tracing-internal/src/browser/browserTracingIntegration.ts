@@ -23,7 +23,7 @@ import {
   browserPerformanceTimeOrigin,
   getDomElement,
   logger,
-  tracingContextFromHeaders,
+  propagationContextFromHeaders,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -203,21 +203,23 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     if (isPageloadTransaction) {
       const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
       const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
-      const { traceparentData, dynamicSamplingContext } = tracingContextFromHeaders(sentryTrace, baggage);
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
       expandedContext = {
+        traceId,
+        parentSpanId,
+        parentSampled: sampled,
         ...context,
-        ...traceparentData,
         metadata: {
           // eslint-disable-next-line deprecation/deprecation
           ...context.metadata,
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+          dynamicSamplingContext: dsc,
         },
         trimEnd: true,
       };
     } else {
       expandedContext = {
-        ...context,
         trimEnd: true,
+        ...context,
       };
     }
 
@@ -334,7 +336,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
           op: 'pageload',
           origin: 'auto.pageload.browser',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         };
         startBrowserTracingPageLoadSpan(client, context);
       }
@@ -361,7 +365,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               name: WINDOW.location.pathname,
               op: 'navigation',
               origin: 'auto.navigation.browser',
-              metadata: { source: 'url' },
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              },
             };
 
             startBrowserTracingNavigationSpan(client, context);

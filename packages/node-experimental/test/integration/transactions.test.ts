@@ -540,6 +540,7 @@ describe('Integration | Transactions', () => {
       if (name === 'Http') {
         return {
           shouldCreateSpansForRequests: false,
+          // eslint-disable-next-line deprecation/deprecation
         } as Http;
       }
 
@@ -604,6 +605,7 @@ describe('Integration | Transactions', () => {
       if (name === 'NodeFetch') {
         return {
           shouldCreateSpansForRequests: false,
+          // eslint-disable-next-line deprecation/deprecation
         } as NodeFetch;
       }
 

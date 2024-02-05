@@ -1,7 +1,7 @@
 import { Hub } from '@sentry/core';
 import type { NodeClient } from '../src/client';
 
-import { OnUnhandledRejection, makeUnhandledPromiseHandler } from '../src/integrations/onunhandledrejection';
+import { makeUnhandledPromiseHandler, onUnhandledRejectionIntegration } from '../src/integrations/onunhandledrejection';
 
 // don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
 global.console.warn = () => null;
@@ -20,8 +20,8 @@ jest.mock('@sentry/core', () => {
 
 describe('unhandled promises', () => {
   test('install global listener', () => {
-    const integration = new OnUnhandledRejection();
-    integration.setup(client);
+    const integration = onUnhandledRejectionIntegration();
+    integration.setup!(client);
     expect(process.listeners('unhandledRejection')).toHaveLength(1);
   });
 

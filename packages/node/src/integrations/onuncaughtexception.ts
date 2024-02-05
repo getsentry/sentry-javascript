@@ -1,4 +1,4 @@
-import { captureException, convertIntegrationFnToClass } from '@sentry/core';
+import { captureException, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -40,7 +40,7 @@ interface OnUncaughtExceptionOptions {
 
 const INTEGRATION_NAME = 'OnUncaughtException';
 
-const onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
+const _onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
   const _options = {
     exitEvenIfOtherHandlersAreRegistered: true,
     ...options,
@@ -56,7 +56,12 @@ const onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOpt
   };
 }) satisfies IntegrationFn;
 
-/** Global Exception handler */
+export const onUncaughtExceptionIntegration = defineIntegration(_onUncaughtExceptionIntegration);
+
+/**
+ * Global Exception handler.
+ * @deprecated Use `onUncaughtExceptionIntegration()` instead.
+ */
 // eslint-disable-next-line deprecation/deprecation
 export const OnUncaughtException = convertIntegrationFnToClass(
   INTEGRATION_NAME,
@@ -69,6 +74,9 @@ export const OnUncaughtException = convertIntegrationFnToClass(
     }>,
   ): Integration;
 };
+
+// eslint-disable-next-line deprecation/deprecation
+export type OnUncaughtException = typeof OnUncaughtException;
 
 type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 

@@ -10,6 +10,13 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
+## Deprecated `transactionContext` passed to `tracesSampler`
+
+Instead of an `transactionContext` being passed to the `tracesSampler` callback, the callback will directly receive
+`name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
+will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
+only be set later during the span lifecycle (and thus not be available during sampling).
+
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
 In v8, `getClient()` will stop returning `undefined` if `Sentry.init()` was not called. For cases where this may be used
@@ -34,34 +41,45 @@ integrations from the `Integrations.XXX` hash, is deprecated in favor of using t
 
 The following list shows how integrations should be migrated:
 
-| Old                       | New                              | Packages                                                                                                |
-| ------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `new InboundFilters()`    | `inboundFiltersIntegration()`    | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new FunctionToString()`  | `functionToStringIntegration()`  | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new LinkedErrors()`      | `linkedErrorsIntegration()`      | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
-| `new ModuleMetadata()`    | `moduleMetadataIntegration()`    | `@sentry/core`, `@sentry/browser`                                                                       |
-| `new RequestData()`       | `requestDataIntegration()`       | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
-| `new Wasm() `             | `wasmIntegration()`              | `@sentry/wasm`                                                                                          |
-| `new Replay()`            | `replayIntegration()`            | `@sentry/browser`                                                                                       |
-| `new ReplayCanvas()`      | `replayCanvasIntegration()`      | `@sentry/browser`                                                                                       |
-| `new Feedback()`          | `feedbackIntegration()`          | `@sentry/browser`                                                                                       |
-| `new CaptureConsole()`    | `captureConsoleIntegration()`    | `@sentry/integrations`                                                                                  |
-| `new Debug()`             | `debugIntegration()`             | `@sentry/integrations`                                                                                  |
-| `new Dedupe()`            | `dedupeIntegration()`            | `@sentry/browser`, `@sentry/integrations`, `@sentry/deno`                                               |
-| `new ExtraErrorData()`    | `extraErrorDataIntegration()`    | `@sentry/integrations`                                                                                  |
-| `new ReportingObserver()` | `reportingObserverIntegration()` | `@sentry/integrations`                                                                                  |
-| `new RewriteFrames()`     | `rewriteFramesIntegration()`     | `@sentry/integrations`                                                                                  |
-| `new SessionTiming()`     | `sessionTimingIntegration()`     | `@sentry/integrations`                                                                                  |
-| `new HttpClient()`        | `httpClientIntegration()`        | `@sentry/integrations`                                                                                  |
-| `new ContextLines()`      | `contextLinesIntegration()`      | `@sentry/browser`, `@sentry/deno`                                                                       |
-| `new Breadcrumbs()`       | `breadcrumbsIntegration()`       | `@sentry/browser`, `@sentry/deno`                                                                       |
-| `new GlobalHandlers()`    | `globalHandlersIntegration()`    | `@sentry/browser` , `@sentry/deno`                                                                      |
-| `new HttpContext()`       | `httpContextIntegration()`       | `@sentry/browser`                                                                                       |
-| `new TryCatch()`          | `browserApiErrorsIntegration()`  | `@sentry/browser`, `@sentry/deno`                                                                       |
-| `new VueIntegration()`    | `vueIntegration()`               | `@sentry/vue`                                                                                           |
-| `new DenoContext()`       | `denoContextIntegration()`       | `@sentry/deno`                                                                                          |
-| `new DenoCron()`          | `denoCronIntegration()`          | `@sentry/deno`                                                                                          |
-| `new NormalizePaths()`    | `normalizePathsIntegration()`    | `@sentry/deno`                                                                                          |
+| Old                          | New                                 | Packages                                                                                                |
+| ---------------------------- | ----------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `new InboundFilters()`       | `inboundFiltersIntegration()`       | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new FunctionToString()`     | `functionToStringIntegration()`     | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new LinkedErrors()`         | `linkedErrorsIntegration()`         | `@sentry/core`, `@sentry/browser`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge` |
+| `new ModuleMetadata()`       | `moduleMetadataIntegration()`       | `@sentry/core`, `@sentry/browser`                                                                       |
+| `new RequestData()`          | `requestDataIntegration()`          | `@sentry/core`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`, `@sentry/vercel-edge`                    |
+| `new Wasm() `                | `wasmIntegration()`                 | `@sentry/wasm`                                                                                          |
+| `new Replay()`               | `replayIntegration()`               | `@sentry/browser`                                                                                       |
+| `new ReplayCanvas()`         | `replayCanvasIntegration()`         | `@sentry/browser`                                                                                       |
+| `new Feedback()`             | `feedbackIntegration()`             | `@sentry/browser`                                                                                       |
+| `new CaptureConsole()`       | `captureConsoleIntegration()`       | `@sentry/integrations`                                                                                  |
+| `new Debug()`                | `debugIntegration()`                | `@sentry/integrations`                                                                                  |
+| `new Dedupe()`               | `dedupeIntegration()`               | `@sentry/browser`, `@sentry/integrations`, `@sentry/deno`                                               |
+| `new ExtraErrorData()`       | `extraErrorDataIntegration()`       | `@sentry/integrations`                                                                                  |
+| `new ReportingObserver()`    | `reportingObserverIntegration()`    | `@sentry/integrations`                                                                                  |
+| `new RewriteFrames()`        | `rewriteFramesIntegration()`        | `@sentry/integrations`                                                                                  |
+| `new SessionTiming()`        | `sessionTimingIntegration()`        | `@sentry/integrations`                                                                                  |
+| `new HttpClient()`           | `httpClientIntegration()`           | `@sentry/integrations`                                                                                  |
+| `new ContextLines()`         | `contextLinesIntegration()`         | `@sentry/browser`, `@sentry/node`, `@sentry/deno`                                                       |
+| `new Breadcrumbs()`          | `breadcrumbsIntegration()`          | `@sentry/browser`, `@sentry/deno`                                                                       |
+| `new GlobalHandlers()`       | `globalHandlersIntegration()`       | `@sentry/browser` , `@sentry/deno`                                                                      |
+| `new HttpContext()`          | `httpContextIntegration()`          | `@sentry/browser`                                                                                       |
+| `new TryCatch()`             | `browserApiErrorsIntegration()`     | `@sentry/browser`, `@sentry/deno`                                                                       |
+| `new VueIntegration()`       | `vueIntegration()`                  | `@sentry/vue`                                                                                           |
+| `new DenoContext()`          | `denoContextIntegration()`          | `@sentry/deno`                                                                                          |
+| `new DenoCron()`             | `denoCronIntegration()`             | `@sentry/deno`                                                                                          |
+| `new NormalizePaths()`       | `normalizePathsIntegration()`       | `@sentry/deno`                                                                                          |
+| `new Console()`              | `consoleIntegration()`              | `@sentry/node`                                                                                          |
+| `new Context()`              | `nodeContextIntegration()`          | `@sentry/node`                                                                                          |
+| `new Modules()`              | `modulesIntegration()`              | `@sentry/node`                                                                                          |
+| `new OnUncaughtException()`  | `onUncaughtExceptionIntegration()`  | `@sentry/node`                                                                                          |
+| `new OnUnhandledRejection()` | `onUnhandledRejectionIntegration()` | `@sentry/node`                                                                                          |
+| `new LocalVariables()`       | `localVariablesIntegration()`       | `@sentry/node`                                                                                          |
+| `new Spotlight()`            | `spotlightIntergation()`            | `@sentry/node`                                                                                          |
+| `new Anr()`                  | `anrIntergation()`                  | `@sentry/node`                                                                                          |
+| `new Hapi()`                 | `hapiIntegration()`                 | `@sentry/node`                                                                                          |
+| `new Undici()`               | `nativeNodeFetchIntegration()`      | `@sentry/node`                                                                                          |
+| `new Http()`                 | `httpIntegration()`                 | `@sentry/node`                                                                                          |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 
@@ -178,6 +196,32 @@ be removed. Instead, use the new performance APIs:
 - `startInactiveSpan()`
 
 You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
+
+## Deprecate variations of `Sentry.continueTrace()`
+
+The version of `Sentry.continueTrace()` which does not take a callback argument will be removed in favor of the version
+that does. Additionally, the callback argument will not receive an argument with the next major version.
+
+Use `Sentry.continueTrace()` as follows:
+
+```ts
+app.get('/your-route', req => {
+  Sentry.withIsolationScope(isolationScope => {
+    Sentry.continueTrace(
+      {
+        sentryTrace: req.headers.get('sentry-trace'),
+        baggage: req.headers.get('baggage'),
+      },
+      () => {
+        // All events recorded in this callback will be associated with the incoming trace. For example:
+        Sentry.startSpan({ name: '/my-route' }, async () => {
+          await doExpensiveWork();
+        });
+      },
+    );
+  });
+});
+```
 
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 

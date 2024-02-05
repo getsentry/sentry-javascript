@@ -28,6 +28,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return runWithAsyncContext(async () => {
+        // eslint-disable-next-line deprecation/deprecation
         const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
           sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
           baggageHeader ?? headers?.get('baggage'),

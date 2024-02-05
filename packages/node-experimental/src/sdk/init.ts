@@ -1,25 +1,25 @@
 import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
-  Integrations,
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   getSentryRelease,
   makeNodeTransport,
+  spotlightIntegration,
 } from '@sentry/node';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
   dropUndefinedKeys,
   logger,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
 import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
-import { Http } from '../integrations/http';
-import { NodeFetch } from '../integrations/node-fetch';
+import { httpIntegration } from '../integrations/http';
+import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
 import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from './api';
@@ -34,16 +34,16 @@ const ignoredDefaultIntegrations = ['Http', 'Undici'];
 export const defaultIntegrations: Integration[] = [
   // eslint-disable-next-line deprecation/deprecation
   ...defaultNodeIntegrations.filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-  new Http(),
-  new NodeFetch(),
+  httpIntegration(),
+  nativeNodeFetchIntegration(),
 ];
 
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultNodeIntegrations(options).filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-    new Http(),
-    new NodeFetch(),
+    httpIntegration(),
+    nativeNodeFetchIntegration(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
@@ -94,7 +94,7 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
         client.addIntegration(integration);
       }
       client.addIntegration(
-        new Integrations.Spotlight({
+        spotlightIntegration({
           sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
         }),
       );
@@ -190,7 +190,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

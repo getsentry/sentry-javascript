@@ -44,6 +44,7 @@ describe('Angular Tracing', () => {
     transaction = undefined;
   });
 
+  /* eslint-disable deprecation/deprecation */
   describe('instrumentAngularRouting', () => {
     it('should attach the transaction source on the pageload transaction', () => {
       const startTransaction = jest.fn();
@@ -57,6 +58,7 @@ describe('Angular Tracing', () => {
       });
     });
   });
+  /* eslint-enable deprecation/deprecation */
 
   describe('getParameterizedRouteFromSnapshot', () => {
     it.each([

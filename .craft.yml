@@ -44,6 +44,9 @@ targets:
   - name: npm
     id: '@sentry/node'
     includeNames: /^sentry-node-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/profiling-node'
+    includeNames: /^sentry-profiling-node-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
   - name: npm

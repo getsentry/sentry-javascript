@@ -3,6 +3,7 @@ import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 
 import { getClient } from '../src/custom/hub';
@@ -206,7 +207,7 @@ describe('trace', () => {
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
 
           expect(getSpanMetadata(span)).toEqual(undefined);
@@ -227,7 +228,7 @@ describe('trace', () => {
             [InternalSentrySemanticAttributes.SOURCE]: 'task',
             [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
             [InternalSentrySemanticAttributes.OP]: 'my-op',
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
 
           expect(getSpanMetadata(span)).toEqual({ requestPath: 'test-path' });
@@ -253,7 +254,7 @@ describe('trace', () => {
           expect(span).toBeDefined();
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanAttributes(span)).toEqual({
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
             test2: 2,
           });
@@ -326,7 +327,7 @@ describe('trace', () => {
 
       expect(span).toBeDefined();
       expect(getSpanAttributes(span)).toEqual({
-        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       });
 
       expect(getSpanMetadata(span)).toEqual(undefined);
@@ -341,7 +342,7 @@ describe('trace', () => {
 
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
-        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [InternalSentrySemanticAttributes.SOURCE]: 'task',
         [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
         [InternalSentrySemanticAttributes.OP]: 'my-op',
@@ -366,7 +367,7 @@ describe('trace', () => {
       expect(span).toBeDefined();
       expect(getSpanName(span)).toEqual('outer');
       expect(getSpanAttributes(span)).toEqual({
-        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         test1: 'test 1',
         test2: 2,
       });
@@ -451,7 +452,7 @@ describe('trace', () => {
           expect(span).toBeDefined();
           expect(getSpanName(span)).toEqual('outer');
           expect(getSpanAttributes(span)).toEqual({
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
             test2: 2,
           });
@@ -688,6 +689,10 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      },
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
@@ -705,6 +710,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: false,
+      name: 'inner2',
+      attributes: {},
       transactionContext: { name: 'inner2', parentSampled: false },
     });
   });
@@ -727,6 +734,10 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      },
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
@@ -744,6 +755,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: false,
+      name: 'inner2',
+      attributes: {},
       transactionContext: { name: 'inner2', parentSampled: false },
     });
 
@@ -757,6 +770,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(4);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer3',
+      attributes: {},
       transactionContext: { name: 'outer3', parentSampled: undefined },
     });
   });
@@ -799,6 +814,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: true,
+      name: 'outer',
+      attributes: {},
       transactionContext: {
         name: 'outer',
         parentSampled: true,

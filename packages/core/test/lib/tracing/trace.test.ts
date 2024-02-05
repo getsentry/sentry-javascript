@@ -4,6 +4,7 @@ import {
   addTracingExtensions,
   getCurrentScope,
   makeMain,
+  setCurrentClient,
   spanToJSON,
   withScope,
 } from '../../../src';
@@ -355,6 +356,35 @@ describe('startSpan', () => {
       });
 
       expect(span).toBeDefined();
+    });
+  });
+
+  it('samples with a tracesSampler', () => {
+    const tracesSampler = jest.fn(() => {
+      return true;
+    });
+
+    const options = getDefaultTestClientOptions({ tracesSampler });
+    client = new TestClient(options);
+    setCurrentClient(client);
+
+    startSpan(
+      { name: 'outer', attributes: { test1: 'aa', test2: 'aa' }, data: { test1: 'bb', test3: 'bb' } },
+      outerSpan => {
+        expect(outerSpan).toBeDefined();
+      },
+    );
+
+    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        test1: 'aa',
+        test2: 'aa',
+        test3: 'bb',
+      },
+      transactionContext: expect.objectContaining({ name: 'outer', parentSampled: undefined }),
     });
   });
 });
@@ -728,6 +758,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     const ctx = continueTrace({
       sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
       baggage: undefined,

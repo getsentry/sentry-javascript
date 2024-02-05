@@ -224,42 +224,81 @@ export function getActiveSpan(): Span | undefined {
   return getCurrentScope().getSpan();
 }
 
-export function continueTrace({
-  sentryTrace,
-  baggage,
-}: {
-  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-  baggage: Parameters<typeof tracingContextFromHeaders>[1];
-}): Partial<TransactionContext>;
-export function continueTrace<V>(
-  {
+interface ContinueTrace {
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers,
+   * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
+   *
+   * @deprecated Use the version of this function taking a callback as second parameter instead:
+   *
+   * ```
+   * Sentry.continueTrace(sentryTrace: '...', baggage: '...' }, () => {
+   *    // ...
+   * })
+   * ```
+   *
+   */
+  ({
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
-  },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V;
-/**
- * Continue a trace from `sentry-trace` and `baggage` values.
- * These values can be obtained from incoming request headers,
- * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
- *
- * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
- */
-export function continueTrace<V>(
+  }): Partial<TransactionContext>;
+
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+   * and `<meta name="baggage">` HTML tags.
+   *
+   * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
+   * be attached to the incoming trace.
+   *
+   * Deprecation notice: In the next major version of the SDK the provided callback will not receive a transaction
+   * context argument.
+   */
+  <V>(
+    {
+      sentryTrace,
+      baggage,
+    }: {
+      // eslint-disable-next-line deprecation/deprecation
+      sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+      // eslint-disable-next-line deprecation/deprecation
+      baggage: Parameters<typeof tracingContextFromHeaders>[1];
+    },
+    // TODO(v8): Remove parameter from this callback.
+    callback: (transactionContext: Partial<TransactionContext>) => V,
+  ): V;
+}
+
+export const continueTrace: ContinueTrace = <V>(
   {
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
-): V | Partial<TransactionContext> {
+): V | Partial<TransactionContext> => {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    return withScope((scope) => {
+      const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+      scope.setPropagationContext(propagationContext);
+      return callback();
+    })
+  */
+
   const currentScope = getCurrentScope();
 
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,
@@ -282,8 +321,10 @@ export function continueTrace<V>(
     return transactionContext;
   }
 
-  return callback(transactionContext);
-}
+  return runWithAsyncContext(() => {
+    return callback(transactionContext);
+  });
+};
 
 function createChildSpanOrTransaction(
   hub: Hub,

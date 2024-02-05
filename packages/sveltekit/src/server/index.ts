@@ -47,6 +47,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
+  setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -68,6 +69,17 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Integrations,
+  consoleIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  modulesIntegration,
+  contextLinesIntegration,
+  nodeContextIntegration,
+  localVariablesIntegration,
+  requestDataIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
   Handlers,
   setMeasurement,
   getActiveSpan,
@@ -82,11 +94,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   createGetModuleFromFilename,
-  functionToStringIntegration,
   hapiErrorPlugin,
-  inboundFiltersIntegration,
-  linkedErrorsIntegration,
-  requestDataIntegration,
   metrics,
   runWithAsyncContext,
   // eslint-disable-next-line deprecation/deprecation
