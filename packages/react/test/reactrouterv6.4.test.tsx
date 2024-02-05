@@ -21,7 +21,7 @@ import {
 } from 'react-router-6.4';
 
 import { BrowserClient, reactRouterV6Instrumentation, wrapCreateBrowserRouter } from '../src';
-import { browserTracingReactRouterV6Integration } from '../src/reactrouterv6';
+import { reactRouterV6BrowserTracingIntegration } from '../src/reactrouterv6';
 import type { CreateRouterFunction } from '../src/types';
 
 beforeAll(() => {
@@ -502,7 +502,7 @@ jest.mock('@sentry/core', () => {
   };
 });
 
-describe('browserTracingReactRouterV6Integration (v6.4)', () => {
+describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
   function createMockBrowserClient(): BrowserClient {
     return new BrowserClient({
       integrations: [],
@@ -523,7 +523,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -564,7 +564,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -609,7 +609,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -660,7 +660,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -711,7 +711,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -774,7 +774,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -815,7 +815,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -867,7 +867,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -923,7 +923,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -980,7 +980,7 @@ describe('browserTracingReactRouterV6Integration (v6.4)', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,

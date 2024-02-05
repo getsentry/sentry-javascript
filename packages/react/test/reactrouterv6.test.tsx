@@ -24,7 +24,7 @@ import {
 
 import { BrowserClient, reactRouterV6Instrumentation } from '../src';
 import {
-  browserTracingReactRouterV6Integration,
+  reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
   wrapUseRoutes,
 } from '../src/reactrouterv6';
@@ -702,7 +702,7 @@ jest.mock('@sentry/core', () => {
   };
 });
 
-describe('browserTracingReactRouterV6Integration', () => {
+describe('reactRouterV6BrowserTracingIntegration', () => {
   function createMockBrowserClient(): BrowserClient {
     return new BrowserClient({
       integrations: [],
@@ -723,7 +723,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -757,7 +757,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -784,7 +784,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -813,7 +813,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -848,7 +848,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -885,7 +885,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -922,7 +922,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -961,7 +961,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1010,7 +1010,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1051,7 +1051,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1085,7 +1085,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1124,7 +1124,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1168,7 +1168,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1218,7 +1218,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1268,7 +1268,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1324,7 +1324,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1404,7 +1404,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
@@ -1462,7 +1462,7 @@ describe('browserTracingReactRouterV6Integration', () => {
       setCurrentClient(client);
 
       client.addIntegration(
-        browserTracingReactRouterV6Integration({
+        reactRouterV6BrowserTracingIntegration({
           useEffect: React.useEffect,
           useLocation,
           useNavigationType,
