@@ -9,7 +9,7 @@ const LIGHT_BACKGROUND = '#ffffff';
 const INHERIT = 'inherit';
 const SUBMIT_COLOR = 'rgba(108, 95, 199, 1)';
 const LIGHT_THEME = {
-  fontFamily: "'Helvetica Neue', Arial, sans-serif",
+  fontFamily: "system-ui, 'Helvetica Neue', Arial, sans-serif",
   fontSize: '14px',
 
   background: LIGHT_BACKGROUND,

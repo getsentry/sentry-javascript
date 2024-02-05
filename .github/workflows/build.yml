@@ -24,6 +24,8 @@ concurrency:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
   CACHED_DEPENDENCY_PATHS: |
     ${{ github.workspace }}/node_modules
     ${{ github.workspace }}/packages/*/node_modules
@@ -33,6 +35,8 @@ env:
 
   # DEPENDENCY_CACHE_KEY: can't be set here because we don't have access to yarn.lock
 
+  # WARNING: this disables cross os caching as ~ and
+  # github.workspace evaluate to differents paths
   # packages/utils/cjs and packages/utils/esm: Symlinks to the folders inside of `build`, needed for tests
   CACHED_BUILD_PATHS: |
     ${{ github.workspace }}/dev-packages/*/build
@@ -127,7 +131,12 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/node-experimental/**'
+              - 'packages/profiling-node/**'
               - 'dev-packages/node-integration-tests/**'
+            profiling_node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/profiling-node/**'
             deno:
               - *shared
               - *browser
@@ -145,6 +154,7 @@ jobs:
       changed_ember: ${{ steps.changed.outputs.ember }}
       changed_remix: ${{ steps.changed.outputs.remix }}
       changed_node: ${{ steps.changed.outputs.node }}
+      changed_profiling_node: ${{ steps.changed.outputs.profiling_node }}
       changed_deno: ${{ steps.changed.outputs.deno }}
       changed_browser: ${{ steps.changed.outputs.browser }}
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
@@ -183,7 +193,7 @@ jobs:
         run: echo "hash=${{ hashFiles('yarn.lock', '**/package.json') }}" >> "$GITHUB_OUTPUT"
 
       - name: Check dependency cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache_dependencies
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
@@ -227,21 +237,21 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check dependency cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
           fail-on-cache-miss: true
 
       - name: Check build cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache_built_packages
         with:
           path: ${{ env.CACHED_BUILD_PATHS }}
           key: ${{ env.BUILD_CACHE_KEY }}
 
       - name: NX cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         # Disable cache when:
         # - on release branches
         # - when PR has `ci-skip-cache` label or on nightly builds
@@ -322,6 +332,8 @@ jobs:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Lint source files
         run: yarn lint:lerna
+      - name: Lint C++ files
+        run: yarn lint:clang
       - name: Validate ES5 builds
         run: yarn validate:es5
 
@@ -340,7 +352,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check dependency cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.CACHED_DEPENDENCY_PATHS }}
           key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
@@ -371,7 +383,7 @@ jobs:
 
   job_artifacts:
     name: Upload Artifacts
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04
     # Build artifacts are only needed for releasing workflow.
     if: needs.job_get_metadata.outputs.is_release == 'true'
@@ -388,10 +400,18 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Pack
-        run: yarn build:tarball
+      - name: Profiling
+        # Profiling tarball is built separately as we assemble the precompiled binaries
+        run: yarn build:tarball --ignore @sentry/profiling-node
+
+      - name: Restore profiling tarball
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-tarball-${{ github.sha }}
+          path: packages/profiling-node
+
       - name: Archive artifacts
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4.3.0
         with:
           name: ${{ github.sha }}
           path: |
@@ -425,7 +445,9 @@ jobs:
           NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -453,7 +475,9 @@ jobs:
         run: |
           yarn test-ci-bun
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -473,7 +497,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Set up Deno
-        uses: denoland/setup-deno@v1.1.3
+        uses: denoland/setup-deno@v1.1.4
         with:
           deno-version: v1.38.5
       - name: Restore caches
@@ -486,10 +510,13 @@ jobs:
           yarn build
           yarn test
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
+    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
@@ -517,7 +544,35 @@ jobs:
           [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
           yarn test-ci-node
       - name: Compute test coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  job_profiling_node_unit_tests:
+    name: Node Profiling Unit Tests
+    needs: [job_get_metadata, job_build]
+    if: needs.job_get_metadata.outputs.changed_node =='true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out current commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build Configure node-gyp
+        run: yarn lerna run build:bindings:configure --scope @sentry/profiling-node
+      - name: Build Bindings for Current Environment
+        run: yarn build --scope @sentry/profiling-node
+      - name: Unit Test
+        run: yarn lerna run test --scope @sentry/profiling-node
 
   job_nextjs_integration_test:
     name: Nextjs (Node ${{ matrix.node }}) Tests
@@ -548,7 +603,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -642,7 +697,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -698,7 +753,7 @@ jobs:
       - name: Get Playwright version
         id: playwright-version
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> $GITHUB_OUTPUT
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         name: Check if Playwright browser is cached
         id: playwright-cache
         with:
@@ -892,7 +947,7 @@ jobs:
     if:
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
-    needs: [job_get_metadata, job_build]
+    needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
     steps:
@@ -909,16 +964,33 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: NX cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: .nxcache
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
       - name: Build tarballs
-        run: yarn build:tarball
+        run: yarn build:tarball --ignore @sentry/profiling-node
+
+      # Rebuild profiling by compiling TS and pulling the precompiled binaries
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+
+      - name: Extract Profiling Node Prebuilt Binaries
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+      # End rebuild profiling
+
       - name: Stores tarballs in cache
-        uses: actions/cache/save@v3
+        uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
@@ -968,6 +1040,8 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
+            'node-profiling',
+            'vue-3'
           ]
         build-command:
           - false
@@ -1009,8 +1083,29 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      # Rebuild profiling by compiling TS and pulling the precompiled binaries
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+
+      - name: Extract Profiling Node Prebuilt Binaries
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+
+      - name: Install esbuild
+        if: ${{ matrix.test-application == 'node-profiling' }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        run: yarn add esbuild@0.19.11
+      # End rebuild profiling
+
       - name: Restore tarball cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
           key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
@@ -1055,11 +1150,13 @@ jobs:
     needs:
       [
         job_build,
+        job_compile_bindings_profiling_node,
         job_browser_build_tests,
         job_browser_unit_tests,
         job_bun_unit_tests,
         job_deno_unit_tests,
         job_node_unit_tests,
+        job_profiling_node_unit_tests,
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
@@ -1116,8 +1213,245 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload results
-        uses: actions/upload-artifact@v4.0.0
+        uses: actions/upload-artifact@v4.3.0
         if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         with:
           name: ${{ steps.process.outputs.artifactName }}
           path: ${{ steps.process.outputs.artifactPath }}
+
+  job_compile_bindings_profiling_node:
+    name: Compile & Test Profiling Bindings (v${{ matrix.node }}) ${{ matrix.target_platform || matrix.os }}, ${{ matrix.node || matrix.container }}, ${{ matrix.arch || matrix.container }}, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }}
+    needs: [job_get_metadata, job_install_deps, job_build]
+    # Compiling bindings can be very slow (especially on windows), so only run precompile
+    # if profiling or profiling node package had changed or if we are on a release branch.
+    if: |
+      (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
+      (needs.job_get_metadata.outputs.is_release == 'true') ||
+      (github.event_name != 'pull_request')
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+            # x64 glibc
+          - os: ubuntu-20.04
+            node: 16
+          - os: ubuntu-20.04
+            node: 18
+          - os: ubuntu-20.04
+            node: 20
+
+            # x64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            node: 16
+          - os: ubuntu-20.04
+            container: node:18-alpine3.17
+            node: 18
+          - os: ubuntu-20.04
+            container: node:20-alpine3.17
+            node: 20
+
+            # arm64 glibc
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 18
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 20
+
+            # arm64 musl
+          - os: ubuntu-20.04
+            container: node:16-alpine3.16
+            arch: arm64
+            node: 16
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:18-alpine3.17
+            node: 18
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:20-alpine3.17
+            node: 20
+
+            # macos x64
+          - os: macos-11
+            node: 16
+            arch: x64
+          - os: macos-11
+            node: 18
+            arch: x64
+          - os: macos-11
+            node: 20
+            arch: x64
+
+            # macos arm64
+          - os: macos-12
+            arch: arm64
+            node: 16
+            target_platform: darwin
+
+          - os: macos-12
+            arch: arm64
+            node: 18
+            target_platform: darwin
+
+          - os: macos-12
+            arch: arm64
+            node: 20
+            target_platform: darwin
+
+            # windows x64
+          - os: windows-2022
+            node: 16
+            arch: x64
+
+          - os: windows-2022
+            node: 18
+            arch: x64
+
+          - os: windows-2022
+            node: 20
+            arch: x64
+    steps:
+      - name: Setup (alpine)
+        if: contains(matrix.container, 'alpine')
+        run: |
+          apk add --no-cache build-base git g++ make curl python3
+          ln -sf python3 /usr/bin/python
+
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+
+      - name: Restore dependency cache
+        uses: actions/cache/restore@v3
+        id: restore-dependencies
+        with:
+          path: ${{ env.CACHED_DEPENDENCY_PATHS }}
+          key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
+          enableCrossOsArchive: true
+
+      - name: Restore build cache
+        uses: actions/cache/restore@v3
+        id: restore-build
+        with:
+          path: ${{ env.CACHED_BUILD_PATHS }}
+          key: ${{ needs.job_build.outputs.dependency_cache_key }}
+          enableCrossOsArchive: true
+
+      - name: Configure safe directory
+        run: |
+          git config --global --add safe.directory "*"
+
+      - name: Install yarn
+        run: npm i -g yarn@1.22.19 --force
+
+      - name: Increase yarn network timeout on Windows
+        if: contains(matrix.os, 'windows')
+        run: yarn config set network-timeout 600000 -g
+
+      - name: Setup python
+        uses: actions/setup-python@v4
+        if: ${{ !contains(matrix.container, 'alpine') }}
+        id: python-setup
+        with:
+          python-version: '3.8.10'
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Install Dependencies
+        if: steps.restore-dependencies.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --ignore-engines --ignore-scripts
+
+      - name: Setup (arm64| ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          sudo apt-get update
+          sudo apt install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+
+      - name: Setup Musl
+        if: contains(matrix.container, 'alpine')
+        run: |
+          cd packages/profiling-node
+          curl -OL https://musl.cc/aarch64-linux-musl-cross.tgz
+          tar -xzvf aarch64-linux-musl-cross.tgz
+          $(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc --version
+
+      # configure node-gyp
+      - name: Configure node-gyp
+        if: matrix.arch != 'arm64'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure
+
+      - name: Configure node-gyp (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure:arm64
+
+      - name: Configure node-gyp (arm64, darwin)
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: |
+          cd packages/profiling-node
+          yarn build:bindings:configure:arm64
+
+      # build bindings
+      - name: Build Bindings
+        if: matrix.arch != 'arm64'
+        run: |
+          yarn lerna run build:bindings --scope @sentry/profiling-node
+
+      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          CC=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-gcc \
+          CXX=$(pwd)/aarch64-linux-musl-cross/bin/aarch64-linux-musl-g++ \
+          BUILD_ARCH=arm64 \
+          yarn build:bindings
+
+      - name: Build Bindings (arm64, ${{ contains(matrix.container, 'alpine') && 'musl' || 'glibc'  }})
+        if: matrix.arch == 'arm64' && !contains(matrix.container, 'alpine') && matrix.target_platform != 'darwin'
+        run: |
+          cd packages/profiling-node
+          CC=aarch64-linux-gnu-gcc \
+          CXX=aarch64-linux-gnu-g++ \
+          BUILD_ARCH=arm64 \
+          yarn build:bindings:arm64
+
+      - name: Build Bindings (arm64, darwin)
+        if: matrix.arch == 'arm64' && matrix.target_platform == 'darwin'
+        run: |
+          cd packages/profiling-node
+          BUILD_PLATFORM=darwin \
+          BUILD_ARCH=arm64 \
+          yarn build:bindings:arm64
+
+      - name: Build Monorepo
+        if: steps.restore-build.outputs.cache-hit != 'true'
+        run: yarn build --scope @sentry/profiling-node
+
+      - name: Test Bindings
+        if: matrix.arch != 'arm64'
+        run: |
+          yarn lerna run test --scope @sentry/profiling-node
+
+      - name: Archive Binary
+        # @TODO: v4 breaks convenient merging of same name artifacts
+        # https://github.com/actions/upload-artifact/issues/478
+        uses: actions/upload-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: |
+            ${{ github.workspace }}/packages/profiling-node/lib/*.node
