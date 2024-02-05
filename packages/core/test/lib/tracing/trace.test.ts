@@ -7,7 +7,6 @@ import {
   makeMain,
   setCurrentClient,
   spanToJSON,
-  withIsolationScope,
   withScope,
 } from '../../../src';
 import { Scope } from '../../../src/scope';
