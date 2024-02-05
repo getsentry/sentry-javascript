@@ -1,5 +1,22 @@
-import { WINDOW } from '@sentry/browser';
-import type { Primitive, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
+import {
+  WINDOW,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '@sentry/core';
+import type {
+  Integration,
+  SpanAttributes,
+  StartSpanOptions,
+  Transaction,
+  TransactionContext,
+  TransactionSource,
+} from '@sentry/types';
 
 import type { Location, ReactRouterInstrumentation } from './types';
 
@@ -21,6 +38,52 @@ export type Match = (
 
 type ReactRouterV3TransactionSource = Extract<TransactionSource, 'url' | 'route'>;
 
+interface ReactRouterOptions {
+  history: HistoryV3;
+  routes: Route[];
+  match: Match;
+}
+
+/**
+ * A browser tracing integration that uses React Router v3 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export function browserTracingReactRouterV3Integration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
+
+  const { history, routes, match, instrumentPageLoad = true, instrumentNavigation = true } = options;
+
+  return {
+    ...integration,
+    afterAllSetup(client) {
+      integration.afterAllSetup(client);
+
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      // eslint-disable-next-line deprecation/deprecation
+      const instrumentation = reactRouterV3Instrumentation(history, routes, match);
+
+      // Now instrument page load & navigation with correct settings
+      instrumentation(startPageloadCallback, instrumentPageLoad, false);
+      instrumentation(startNavigationCallback, false, instrumentNavigation);
+    },
+  };
+}
+
 /**
  * Creates routing instrumentation for React Router v3
  * Works for React Router >= 3.2.0 and < 4.0.0
@@ -28,6 +91,8 @@ type ReactRouterV3TransactionSource = Extract<TransactionSource, 'url' | 'route'
  * @param history object from the `history` library
  * @param routes a list of all routes, should be
  * @param match `Router.match` utility
+ *
+ * @deprecated Use `browserTracingReactRouterV3Integration()` instead
  */
 export function reactRouterV3Instrumentation(
   history: HistoryV3,
@@ -52,13 +117,10 @@ export function reactRouterV3Instrumentation(
           prevName = localName;
           activeTransaction = startTransaction({
             name: prevName,
-            op: 'pageload',
-            origin: 'auto.pageload.react.reactrouterv3',
-            tags: {
-              'routing.instrumentation': 'react-router-v3',
-            },
-            metadata: {
-              source,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
             },
           });
         },
@@ -71,22 +133,23 @@ export function reactRouterV3Instrumentation(
           if (activeTransaction) {
             activeTransaction.end();
           }
-          const tags: Record<string, Primitive> = {
-            'routing.instrumentation': 'react-router-v3',
-          };
-          if (prevName) {
-            tags.from = prevName;
-          }
+          const from = prevName;
           normalizeTransactionName(routes, location, match, (localName: string, source: TransactionSource = 'url') => {
             prevName = localName;
+
+            const attributes: SpanAttributes = {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            };
+
+            if (from) {
+              attributes.from = from;
+            }
+
             activeTransaction = startTransaction({
               name: prevName,
-              op: 'navigation',
-              origin: 'auto.navigation.react.reactrouterv3',
-              tags,
-              metadata: {
-                source,
-              },
+              attributes,
             });
           });
         }
