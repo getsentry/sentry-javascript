@@ -1,6 +1,6 @@
-import type { Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
-import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
@@ -189,20 +189,22 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     return undefined;
   }
 
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
+
   if (parentSpan) {
     // eslint-disable-next-line deprecation/deprecation
-    return parentSpan.startChild(ctx);
+    span = parentSpan.startChild(ctx);
   } else {
-    const isolationScope = getIsolationScope();
-    const scope = getCurrentScope();
-
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };
 
     // eslint-disable-next-line deprecation/deprecation
-    return hub.startTransaction({
+    span = hub.startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -214,6 +216,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
       },
     });
   }
+
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
 }
 
 /**
@@ -335,20 +341,21 @@ function createChildSpanOrTransaction(
     return undefined;
   }
 
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
   if (parentSpan) {
     // eslint-disable-next-line deprecation/deprecation
-    return parentSpan.startChild(ctx);
+    span = parentSpan.startChild(ctx);
   } else {
-    const isolationScope = getIsolationScope();
-    const scope = getCurrentScope();
-
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };
 
     // eslint-disable-next-line deprecation/deprecation
-    return hub.startTransaction({
+    span = hub.startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -360,6 +367,10 @@ function createChildSpanOrTransaction(
       },
     });
   }
+
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
 }
 
 /**
@@ -378,4 +389,29 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
+const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
+
+type SpanWithScopes = Span & {
+  [SCOPE_ON_START_SPAN_FIELD]?: Scope;
+  [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
+};
+
+function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
+  if (span) {
+    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+  }
+}
+
+/**
+ * Grabs the scope and isolation scope off a span that were active when the span was started.
+ */
+export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationScope?: Scope } {
+  return {
+    scope: (span as SpanWithScopes)[SCOPE_ON_START_SPAN_FIELD],
+    isolationScope: (span as SpanWithScopes)[ISOLATION_SCOPE_ON_START_SPAN_FIELD],
+  };
 }
