@@ -979,7 +979,7 @@ jobs:
       - name: Build tarballs
         run: yarn build:tarball --ignore @sentry/profiling-node
 
-      # Rebuild profiling by compiling TS and pull the precompiled binary arficats
+      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
       - name: Build Profiling Node
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
@@ -1096,7 +1096,7 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      # Rebuild profiling by compiling TS and pull the precompiled binary arficats
+      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
       - name: Build Profiling Node
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
