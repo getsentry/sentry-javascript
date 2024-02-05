@@ -5,7 +5,11 @@ export { Profiler, withProfiler, useProfiler } from './profiler';
 export type { ErrorBoundaryProps, FallbackRender } from './errorboundary';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';
-export { reactRouterV3Instrumentation } from './reactrouterv3';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  reactRouterV3Instrumentation,
+  reactRouterV3BrowserTracingIntegration,
+} from './reactrouterv3';
 export {
   // eslint-disable-next-line deprecation/deprecation
   reactRouterV4Instrumentation,
