@@ -91,7 +91,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/',
       },
     });
 
@@ -105,7 +104,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/about',
       },
     });
   });
@@ -159,7 +157,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/',
       },
     });
   });
@@ -181,7 +178,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/',
       },
     });
 
@@ -197,7 +193,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/organizations/:orgid/v1/:teamid',
       },
     });
   });
@@ -218,7 +213,6 @@ describe('reactRouterV3Instrumentation', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/',
       },
     });
   });
@@ -368,7 +362,6 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-        from: '/about',
       },
     });
   });

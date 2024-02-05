@@ -133,7 +133,6 @@ export function reactRouterV3Instrumentation(
           if (activeTransaction) {
             activeTransaction.end();
           }
-          const from = prevName;
           normalizeTransactionName(routes, location, match, (localName: string, source: TransactionSource = 'url') => {
             prevName = localName;
 
@@ -142,10 +141,6 @@ export function reactRouterV3Instrumentation(
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
             };
-
-            if (from) {
-              attributes.from = from;
-            }
 
             activeTransaction = startTransaction({
               name: prevName,
