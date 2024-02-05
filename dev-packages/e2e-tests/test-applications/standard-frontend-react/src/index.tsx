@@ -19,14 +19,12 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
   integrations: [
-    new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.reactRouterV6Instrumentation(
-        React.useEffect,
-        useLocation,
-        useNavigationType,
-        createRoutesFromChildren,
-        matchRoutes,
-      ),
+    Sentry.reactRouterV6BrowserTracingIntegration({
+      useEffect: React.useEffect,
+      useLocation,
+      useNavigationType,
+      createRoutesFromChildren,
+      matchRoutes,
     }),
     replay,
   ],
