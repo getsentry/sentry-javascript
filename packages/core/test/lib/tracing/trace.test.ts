@@ -1,3 +1,4 @@
+import type { Span as SpanType } from '@sentry/types';
 import {
   Hub,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -6,6 +7,7 @@ import {
   makeMain,
   setCurrentClient,
   spanToJSON,
+  withIsolationScope,
   withScope,
 } from '../../../src';
 import { Scope } from '../../../src/scope';
@@ -387,9 +389,50 @@ describe('startSpan', () => {
       transactionContext: expect.objectContaining({ name: 'outer', parentSampled: undefined }),
     });
   });
+
+  it('includes the scope at the time the span was started when finished', async () => {
+    const transactionEventPromise = new Promise(resolve => {
+      setCurrentClient(
+        new TestClient(
+          getDefaultTestClientOptions({
+            dsn: 'https://username@domain/123',
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              resolve(event);
+              return event;
+            },
+          }),
+        ),
+      );
+    });
+
+    withScope(scope1 => {
+      scope1.setTag('scope', 1);
+      startSpanManual({ name: 'my-span' }, span => {
+        withScope(scope2 => {
+          scope2.setTag('scope', 2);
+          span?.end();
+        });
+      });
+    });
+
+    expect(await transactionEventPromise).toMatchObject({
+      tags: {
+        scope: 1,
+      },
+    });
+  });
 });
 
 describe('startSpanManual', () => {
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   it('creates & finishes span', async () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
@@ -492,6 +535,14 @@ describe('startSpanManual', () => {
 });
 
 describe('startInactiveSpan', () => {
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   it('creates & finishes span', async () => {
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
@@ -569,6 +620,41 @@ describe('startInactiveSpan', () => {
       });
 
       expect(span).toBeDefined();
+    });
+  });
+
+  it('includes the scope at the time the span was started when finished', async () => {
+    const transactionEventPromise = new Promise(resolve => {
+      setCurrentClient(
+        new TestClient(
+          getDefaultTestClientOptions({
+            dsn: 'https://username@domain/123',
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              resolve(event);
+              return event;
+            },
+          }),
+        ),
+      );
+    });
+
+    let span: SpanType | undefined;
+
+    withScope(scope => {
+      scope.setTag('scope', 1);
+      span = startInactiveSpan({ name: 'my-span' });
+    });
+
+    withScope(scope => {
+      scope.setTag('scope', 2);
+      span?.end();
+    });
+
+    expect(await transactionEventPromise).toMatchObject({
+      tags: {
+        scope: 1,
+      },
     });
   });
 });
