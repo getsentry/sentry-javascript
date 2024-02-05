@@ -28,6 +28,10 @@ const app = createApp({
 Sentry.init({
   app,
   dsn: '__PUBLIC_DSN__',
+   integrations: [
+    // Or omit `router` if you're not using vue-router
+    Sentry.browserTracingIntegration({ router }),
+  ],
 });
 ```
 
@@ -42,12 +46,16 @@ import * as Sentry from '@sentry/vue'
 Sentry.init({
   Vue: Vue,
   dsn: '__PUBLIC_DSN__',
-})
+  integrations: [
+    // Or omit `router` if you're not using vue-router
+    Sentry.browserTracingIntegration({ router }),
+  ],
+});
 
 new Vue({
   el: '#app',
   router,
   components: { App },
   template: '<App/>'
-})
+});
 ```
