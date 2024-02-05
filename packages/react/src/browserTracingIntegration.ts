@@ -21,7 +21,11 @@ interface ReactRouterOptions {
 export function browserTracingReactRouterV4Integration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
-  const integration = browserTracingIntegration(options);
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
 
   const { history, routes, matchPath, instrumentPageLoad = true, instrumentNavigation = true } = options;
 
@@ -29,6 +33,7 @@ export function browserTracingReactRouterV4Integration(
     ...integration,
     afterAllSetup(client) {
       integration.afterAllSetup(client);
+
       const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
         startBrowserTracingPageLoadSpan(client, startSpanOptions);
         return undefined;
@@ -56,7 +61,11 @@ export function browserTracingReactRouterV4Integration(
 export function browserTracingReactRouterV5Integration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
-  const integration = browserTracingIntegration(options);
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
 
   const { history, routes, matchPath } = options;
 
