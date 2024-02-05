@@ -446,6 +446,8 @@ jobs:
         run: yarn test-ci-browser
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_bun_unit_tests:
     name: Bun Unit Tests
@@ -474,6 +476,8 @@ jobs:
           yarn test-ci-bun
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -507,6 +511,8 @@ jobs:
           yarn test
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
@@ -539,6 +545,8 @@ jobs:
           yarn test-ci-node
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
