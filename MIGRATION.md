@@ -60,7 +60,7 @@ The following list shows how integrations should be migrated:
 | `new RewriteFrames()`        | `rewriteFramesIntegration()`        | `@sentry/integrations`                                                                                  |
 | `new SessionTiming()`        | `sessionTimingIntegration()`        | `@sentry/integrations`                                                                                  |
 | `new HttpClient()`           | `httpClientIntegration()`           | `@sentry/integrations`                                                                                  |
-| `new ContextLines()`         | `contextLinesIntegration()`         | `@sentry/integrations`, `@sentry/deno`                                                       |
+| `new ContextLines()`         | `contextLinesIntegration()`         | `@sentry/integrations`, `@sentry/node`, `@sentry/deno`, `@sentry/bun`                                   |
 | `new Breadcrumbs()`          | `breadcrumbsIntegration()`          | `@sentry/browser`, `@sentry/deno`                                                                       |
 | `new GlobalHandlers()`       | `globalHandlersIntegration()`       | `@sentry/browser` , `@sentry/deno`                                                                      |
 | `new HttpContext()`          | `httpContextIntegration()`          | `@sentry/browser`                                                                                       |
