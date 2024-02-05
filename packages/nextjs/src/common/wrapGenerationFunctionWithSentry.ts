@@ -3,6 +3,7 @@ import {
   addTracingExtensions,
   captureException,
   getClient,
+  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
@@ -59,6 +60,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
 
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
         isolationScope.setPropagationContext(propagationContext);
+        getCurrentScope().setPropagationContext(propagationContext);
 
         return startSpanManual(
           {
