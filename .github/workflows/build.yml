@@ -905,7 +905,7 @@ jobs:
           yarn test
 
   job_remix_integration_tests:
-    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) Tests
+    name: Remix v${{ matrix.remix }} (Node ${{ matrix.node }}) ${{ matrix.tracingIntegration && 'TracingIntegration'}} Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_remix == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-20.04
@@ -921,6 +921,8 @@ jobs:
             remix: 1
           - node: 16
             remix: 1
+          - tracingIntegration: true
+            remix: 2
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -938,6 +940,7 @@ jobs:
         env:
           NODE_VERSION: ${{ matrix.node }}
           REMIX_VERSION: ${{ matrix.remix }}
+          TRACING_INTEGRATION: ${{ matrix.tracingIntegration }}
         run: |
           cd packages/remix
           yarn test:integration:ci
