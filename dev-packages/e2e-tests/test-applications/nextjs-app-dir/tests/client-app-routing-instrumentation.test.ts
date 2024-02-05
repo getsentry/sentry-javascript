@@ -37,7 +37,7 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
     );
   });
 
-  const servercomponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+  const serverComponentTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return (
       transactionEvent?.transaction === 'Page Server Component (/server-component/parameter/[...parameters])' &&
       (await clientNavigationTransactionPromise).contexts?.trace?.trace_id ===
@@ -48,5 +48,5 @@ test('Creates a navigation transaction for app router routes', async ({ page }) 
   await page.getByText('/server-component/parameter/foo/bar/baz').click();
 
   expect(await clientNavigationTransactionPromise).toBeDefined();
-  expect(await servercomponentTransactionPromise).toBeDefined();
+  expect(await serverComponentTransactionPromise).toBeDefined();
 });
