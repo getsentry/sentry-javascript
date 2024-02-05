@@ -14,7 +14,7 @@ import { Route, Router, Switch, matchPath } from 'react-router-5';
 
 import {
   BrowserClient,
-  browserTracingReactRouterV5Integration,
+  reactRouterV5BrowserTracingIntegration,
   reactRouterV5Instrumentation,
   withSentryRouting,
 } from '../src';
@@ -371,7 +371,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -391,7 +391,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -437,7 +437,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -461,7 +461,7 @@ describe('browserTracingReactRouterV5', () => {
     const client = createMockBrowserClient();
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -496,7 +496,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -536,7 +536,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -601,7 +601,7 @@ describe('browserTracingReactRouterV5', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV5Integration({ history, routes, matchPath }));
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history, routes, matchPath }));
 
     client.init();
 

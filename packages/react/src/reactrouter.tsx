@@ -49,7 +49,7 @@ let activeTransaction: Transaction | undefined;
  * A browser tracing integration that uses React Router v4 to instrument navigations.
  * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
  */
-export function browserTracingReactRouterV4Integration(
+export function reactRouterV4BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({
@@ -89,7 +89,7 @@ export function browserTracingReactRouterV4Integration(
  * A browser tracing integration that uses React Router v5 to instrument navigations.
  * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
  */
-export function browserTracingReactRouterV5Integration(
+export function reactRouterV5BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({

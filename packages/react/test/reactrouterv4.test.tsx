@@ -14,7 +14,7 @@ import { Route, Router, Switch, matchPath } from 'react-router-4';
 
 import {
   BrowserClient,
-  browserTracingReactRouterV4Integration,
+  reactRouterV4BrowserTracingIntegration,
   reactRouterV4Instrumentation,
   withSentryRouting,
 } from '../src';
@@ -371,7 +371,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -391,7 +391,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -437,7 +437,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -461,7 +461,7 @@ describe('browserTracingReactRouterV4', () => {
     const client = createMockBrowserClient();
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -496,7 +496,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -536,7 +536,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history }));
 
     client.init();
 
@@ -601,7 +601,7 @@ describe('browserTracingReactRouterV4', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV4Integration({ history, routes, matchPath }));
+    client.addIntegration(reactRouterV4BrowserTracingIntegration({ history, routes, matchPath }));
 
     client.init();
 
