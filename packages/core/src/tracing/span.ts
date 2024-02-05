@@ -16,7 +16,6 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
@@ -625,7 +624,6 @@ export class Span implements SpanInterface {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
-      _metrics_summary: getMetricSummaryJsonForSpan(this),
     });
   }
 
