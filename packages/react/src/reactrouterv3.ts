@@ -48,7 +48,7 @@ interface ReactRouterOptions {
  * A browser tracing integration that uses React Router v3 to instrument navigations.
  * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
  */
-export function browserTracingReactRouterV3Integration(
+export function reactRouterV3BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
 ): Integration {
   const integration = browserTracingIntegration({
@@ -92,7 +92,7 @@ export function browserTracingReactRouterV3Integration(
  * @param routes a list of all routes, should be
  * @param match `Router.match` utility
  *
- * @deprecated Use `browserTracingReactRouterV3Integration()` instead
+ * @deprecated Use `reactRouterV3BrowserTracingIntegration()` instead
  */
 export function reactRouterV3Instrumentation(
   history: HistoryV3,

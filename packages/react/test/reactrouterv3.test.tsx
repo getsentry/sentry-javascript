@@ -12,7 +12,7 @@ import * as React from 'react';
 import { IndexRoute, Route, Router, createMemoryHistory, createRoutes, match } from 'react-router-3';
 
 import type { Match, Route as RouteType } from '../src/reactrouterv3';
-import { browserTracingReactRouterV3Integration } from '../src/reactrouterv3';
+import { reactRouterV3BrowserTracingIntegration } from '../src/reactrouterv3';
 import { reactRouterV3Instrumentation } from '../src/reactrouterv3';
 
 // Have to manually set types because we are using package-alias
@@ -319,7 +319,7 @@ describe('browserTracingReactRouterV3', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
 
-    client.addIntegration(browserTracingReactRouterV3Integration({ history, routes: instrumentationRoutes, match }));
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
 
     client.init();
     render(<Router history={history}>{routes}</Router>);
@@ -340,7 +340,7 @@ describe('browserTracingReactRouterV3', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV3Integration({ history, routes: instrumentationRoutes, match }));
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
 
     client.init();
     render(<Router history={history}>{routes}</Router>);
@@ -378,7 +378,7 @@ describe('browserTracingReactRouterV3', () => {
     setCurrentClient(client);
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV3Integration({ history, routes: instrumentationRoutes, match }));
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
 
     client.init();
     render(<Router history={history}>{routes}</Router>);
@@ -393,7 +393,7 @@ describe('browserTracingReactRouterV3', () => {
     const client = createMockBrowserClient();
 
     const history = createMemoryHistory();
-    client.addIntegration(browserTracingReactRouterV3Integration({ history, routes: instrumentationRoutes, match }));
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
 
     client.init();
     const { container } = render(<Router history={history}>{routes}</Router>);

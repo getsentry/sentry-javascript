@@ -8,7 +8,7 @@ export { createReduxEnhancer } from './redux';
 export {
   // eslint-disable-next-line deprecation/deprecation
   reactRouterV3Instrumentation,
-  browserTracingReactRouterV3Integration,
+  reactRouterV3BrowserTracingIntegration,
 } from './reactrouterv3';
 export {
   // eslint-disable-next-line deprecation/deprecation
