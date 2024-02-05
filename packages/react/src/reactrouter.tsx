@@ -1,4 +1,9 @@
-import { WINDOW } from '@sentry/browser';
+import {
+  WINDOW,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -7,7 +12,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Span, Transaction, TransactionSource } from '@sentry/types';
+import type { Integration, Span, StartSpanOptions, Transaction, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -32,7 +37,93 @@ export type RouteConfig = {
 
 export type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
+interface ReactRouterOptions {
+  history: RouterHistory;
+  routes?: RouteConfig[];
+  matchPath?: MatchPath;
+}
+
 let activeTransaction: Transaction | undefined;
+
+/**
+ * A browser tracing integration that uses React Router v4 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export function browserTracingReactRouterV4Integration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
+
+  const { history, routes, matchPath, instrumentPageLoad = true, instrumentNavigation = true } = options;
+
+  return {
+    ...integration,
+    afterAllSetup(client) {
+      integration.afterAllSetup(client);
+
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      // eslint-disable-next-line deprecation/deprecation
+      const instrumentation = reactRouterV4Instrumentation(history, routes, matchPath);
+
+      // Now instrument page load & navigation with correct settings
+      instrumentation(startPageloadCallback, instrumentPageLoad, false);
+      instrumentation(startNavigationCallback, false, instrumentNavigation);
+    },
+  };
+}
+
+/**
+ * A browser tracing integration that uses React Router v5 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export function browserTracingReactRouterV5Integration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
+
+  const { history, routes, matchPath } = options;
+
+  return {
+    ...integration,
+    afterAllSetup(client) {
+      integration.afterAllSetup(client);
+
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      // eslint-disable-next-line deprecation/deprecation
+      const instrumentation = reactRouterV5Instrumentation(history, routes, matchPath);
+
+      // Now instrument page load & navigation with correct settings
+      instrumentation(startPageloadCallback, options.instrumentPageLoad, false);
+      instrumentation(startNavigationCallback, false, options.instrumentNavigation);
+    },
+  };
+}
 
 /**
  * @deprecated Use `browserTracingReactRouterV4()` instead.

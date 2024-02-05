@@ -12,6 +12,8 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   reactRouterV5Instrumentation,
   withSentryRouting,
+  browserTracingReactRouterV4Integration,
+  browserTracingReactRouterV5Integration,
 } from './reactrouter';
 export {
   reactRouterV6Instrumentation,
@@ -19,8 +21,3 @@ export {
   wrapUseRoutes,
   wrapCreateBrowserRouter,
 } from './reactrouterv6';
-
-export {
-  browserTracingReactRouterV4Integration,
-  browserTracingReactRouterV5Integration,
-} from './browserTracingIntegration';
