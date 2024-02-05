@@ -15,7 +15,6 @@ import {
 import type { EventProcessor, Integration, IntegrationFn, IntegrationFnResult, Span } from '@sentry/types';
 import {
   LRUMap,
-  dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   getSanitizedUrlString,
@@ -127,7 +126,7 @@ export class Undici implements Integration {
     let ds: DiagnosticsChannel | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ds = dynamicRequire(module, 'diagnostics_channel') as DiagnosticsChannel;
+      ds = require('diagnostics_channel') as DiagnosticsChannel;
     } catch (e) {
       // no-op
     }
