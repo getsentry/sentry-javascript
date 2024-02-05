@@ -14,12 +14,10 @@ test('sends a pageload transaction with a parameterized URL', async ({ page }) =
     contexts: {
       trace: {
         data: {
-          params: {
-            id: '456',
-          },
           'sentry.source': 'route',
           'sentry.origin': 'auto.pageload.vue',
           'sentry.op': 'pageload',
+          'params.id': '456',
         },
         op: 'pageload',
         origin: 'auto.pageload.vue',
@@ -52,12 +50,10 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     contexts: {
       trace: {
         data: {
-          params: {
-            id: '123',
-          },
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.vue',
           'sentry.op': 'navigation',
+          'params.id': '456',
         },
         op: 'navigation',
         origin: 'auto.navigation.vue',
@@ -65,10 +61,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
     },
     transaction: '/users/:id',
     transaction_info: {
-      // So this is weird. The source is set to custom although the route doesn't have a name.
-      // This also only happens during a navigation. A pageload will set the source as 'route'.
-      // TODO: Figure out what's going on here.
-      source: 'custom',
+      source: 'route',
     },
   });
 });
