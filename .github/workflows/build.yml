@@ -510,6 +510,7 @@ jobs:
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
+    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
@@ -542,7 +543,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node =='true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1217,7 +1218,7 @@ jobs:
     # if profiling or profiling node package had changed or if we are on a release branch.
     if: |
       (needs.job_get_metadata.outputs.changed_profiling_node == 'true') ||
-      (needs.job_get_metadata.outputs.is_release) ||
+      (needs.job_get_metadata.outputs.is_release == 'true') ||
       (github.event_name != 'pull_request')
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
