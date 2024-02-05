@@ -2,15 +2,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
-  continueTrace,
   getClient,
-  getCurrentScope,
   handleCallbackErrors,
-  runWithAsyncContext,
   startSpanManual,
+  withIsolationScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
-import { winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
@@ -46,41 +44,30 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         data = { params, searchParams };
       }
 
-      return runWithAsyncContext(() => {
-        // eslint-disable-next-line deprecation/deprecation
-        const transactionContext = continueTrace({
-          baggage: headers?.get('baggage'),
-          sentryTrace: headers?.get('sentry-trace') ?? undefined,
+      return withIsolationScope(isolationScope => {
+        isolationScope.setSDKProcessingMetadata({
+          request: {
+            headers: headers ? winterCGHeadersToDict(headers) : undefined,
+          },
         });
+        isolationScope.setExtra('route_data', data);
 
-        // If there is no incoming trace, we are setting the transaction context to one that is shared between all other
-        // transactions for this request. We do this based on the `headers` object, which is the same for all components.
-        const propagationContext = getCurrentScope().getPropagationContext();
-        if (!transactionContext.traceId && !transactionContext.parentSpanId) {
-          const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
-            headers,
-            propagationContext,
-          );
-          transactionContext.traceId = commonTraceId;
-          transactionContext.parentSpanId = commonSpanId;
-        }
+        const incomingPropagationContext = propagationContextFromHeaders(
+          headers?.get('sentry-trace') ?? undefined,
+          headers?.get('baggage'),
+        );
+
+        const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
+        isolationScope.setPropagationContext(propagationContext);
 
         return startSpanManual(
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-            ...transactionContext,
             data,
             attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-            },
-            metadata: {
-              // eslint-disable-next-line deprecation/deprecation
-              ...transactionContext.metadata,
-              request: {
-                headers: headers ? winterCGHeadersToDict(headers) : undefined,
-              },
             },
           },
           span => {
@@ -98,9 +85,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
                   captureException(err, {
                     mechanism: {
                       handled: false,
-                      data: {
-                        function: 'wrapGenerationFunctionWithSentry',
-                      },
                     },
                   });
                 }
