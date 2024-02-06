@@ -87,10 +87,12 @@ jobs:
         id: changed
         with:
           filters: |
+            workflow: &workflow
+              - '.github/**'
             shared: &shared
+              - *workflow
               - '*.{js,ts,json,yml,lock}'
               - 'CHANGELOG.md'
-              - '.github/**'
               - 'jest/**'
               - 'scripts/**'
               - 'packages/core/**'
@@ -137,8 +139,11 @@ jobs:
               - *shared
               - 'packages/node/**'
               - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:
+              - *workflow
               - 'packages/profiling-node/bindings/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             deno:
               - *shared
               - *browser
@@ -1128,11 +1133,6 @@ jobs:
 
       - name: Build Profiling tarball
         run: yarn build:tarball --scope @sentry/profiling-node
-
-      - name: Install esbuild
-        if: ${{ matrix.test-application == 'node-profiling' }}
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        run: yarn add esbuild@0.19.11
       # End rebuild profiling
 
       - name: Restore tarball cache
