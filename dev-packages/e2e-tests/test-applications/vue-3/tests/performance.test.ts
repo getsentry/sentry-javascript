@@ -53,7 +53,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.vue',
           'sentry.op': 'navigation',
-          'params.id': '456',
+          'params.id': '123',
         },
         op: 'navigation',
         origin: 'auto.navigation.vue',
