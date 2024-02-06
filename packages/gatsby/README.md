@@ -14,95 +14,43 @@ module.exports = {
   plugins: [
     {
       resolve: "@sentry/gatsby",
-      options: {
-          dsn: process.env.SENTRY_DSN, // this is the default
-      }
     },
     // ...
   ]
 }
 ```
 
-Options will be passed directly to `Sentry.init`. See all available options in [our docs](https://docs.sentry.io/error-reporting/configuration/?platform=javascript). The `environment` value defaults to `NODE_ENV` (or `'development'` if `NODE_ENV` is not set).
-
-## GitHub Actions
-
-The `release` value is inferred from `GITHUB_SHA`.
-
-## Netlify
-
-The `release` value is inferred from `COMMIT_REF`.
-
-## Vercel
-
-To automatically capture the `release` value on Vercel you will need to register appropriate [system environment variable](https://vercel.com/docs/v2/build-step#system-environment-variables) (e.g. `VERCEL_GITHUB_COMMIT_SHA`) in your project.
-
-## Sentry Performance
-
-To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options. This will turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
+Then, create a `sentry.config.js` (can also be TS) file and add `Sentry.init` call:
 
 ```javascript
-module.exports = {
-  // ...
-  plugins: [
-    {
-      resolve: "@sentry/gatsby",
-      options: {
-        dsn: process.env.SENTRY_DSN, // this is the default
+import * as Sentry from "@sentry/gatsby";
 
-        // A rate of 1 means all traces will be sent, so it's good for testing.
-        // In production, you'll likely want to either choose a lower rate or use `tracesSampler` instead (see below).
-        tracesSampleRate: 1,
+Sentry.init({
+  dsn: "__PUBLIC_DSN__",
 
-        // Alternatively:
-        tracesSampler: samplingContext => {
-          // Examine provided context data (along with anything in the global namespace) to decide the sample rate
-          // for this transaction.
-          // Can return 0 to drop the transaction entirely.
+  integrations: [
+    Sentry.browserTracingIntegration(),
+    Sentry.replayIntegration(),
+  ],
 
-          if ("...") {
-            return 0.5 // These are important - take a big sample
-          }
-          else if ("...") {
-            return 0.01 // These are less important or happen much more frequently - only take 1% of them
-          }
-          else if ("...") {
-            return 0 // These aren't something worth tracking - drop all transactions like this
-          }
-          else {
-            return 0.1 // Default sample rate
-          }
-        }
-      }
-    },
-    // ...
-  ]
-}
-```
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
 
-If you want to supply options to the `BrowserTracing` integration, use the `browserTracingOptions` parameter.
+  // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
 
-```javascript
-module.exports = {
-  // ...
-  plugins: [
-    {
-      resolve: "@sentry/gatsby",
-      options: {
-          dsn: process.env.SENTRY_DSN, // this is the default
-          tracesSampleRate: 1, // or tracesSampler (see above)
-          browserTracingOptions: {
-            // disable creating spans for XHR requests
-            traceXHR: false,
-          }
-      }
-    },
-    // ...
-  ]
-}
+  // Capture Replay for 10% of all sessions,
+  // plus for 100% of sessions with an error
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+});
 ```
 
 ## Links
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+Check out our docs for configuring your SDK setup:
+
+* [Getting Started](https://docs.sentry.io/platforms/javascript/guides/gatsby/)
+* [Source Maps Upload](https://docs.sentry.io/platforms/javascript/guides/gatsby/sourcemaps/)

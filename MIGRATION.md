@@ -10,7 +10,11 @@ npx @sentry/migr8@latest
 This will let you select which updates to run, and automatically update your code. Make sure to still review all code
 changes!
 
-## Depreacted `BrowserTracing` integration
+## Options configuration for `@sentry/gatsby`
+
+Passing in SDK options via `gatsby-config.js` is deprecated. Instead, create a `sentry.config.js` file in the root of your gatsby project and export the options from there. See the [Gatsby SDK documentation](https://docs.sentry.io/platforms/javascript/guides/gatsby/) for more information.
+
+## Deprecated `BrowserTracing` integration
 
 The `BrowserTracing` integration, together with the custom routing instrumentations passed to it, are deprecated in v8.
 Instead, you should use `Sentry.browserTracingIntegration()`.

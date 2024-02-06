@@ -2,35 +2,9 @@ const fs = require('fs');
 
 const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 
-const sentryRelease = JSON.stringify(
-  // Always read first as Sentry takes this as precedence
-  process.env.SENTRY_RELEASE ||
-    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-    process.env.GITHUB_SHA ||
-    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
-    process.env.COMMIT_REF ||
-    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    // Zeit (now known as Vercel)
-    process.env.ZEIT_GITHUB_COMMIT_SHA ||
-    process.env.ZEIT_GITLAB_COMMIT_SHA ||
-    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-    undefined,
-);
-
-const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
 exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
-  actions.setWebpackConfig({
-    plugins: [
-      plugins.define({
-        __SENTRY_RELEASE__: sentryRelease,
-        __SENTRY_DSN__: sentryDsn,
-      }),
-    ],
-  });
-
   if (process.env.NODE_ENV === 'production') {
     actions.setWebpackConfig({
       plugins: [
@@ -80,6 +54,7 @@ exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
   if (!configFile) {
     return;
   }
+
   // `setWebpackConfig` merges the Webpack config, ignoring some props like `entry`. See
   // https://www.gatsbyjs.com/docs/reference/config-files/actions/#setWebpackConfig
   // So it's not possible to inject the Sentry properties with that method. Instead, we
