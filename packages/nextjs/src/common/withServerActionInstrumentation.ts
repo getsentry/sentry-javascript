@@ -1,3 +1,4 @@
+import { getIsolationScope } from '@sentry/core';
 import {
   addTracingExtensions,
   captureException,
@@ -115,12 +116,12 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               });
 
               if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-                isolationScope.setExtra('server_action_result', result);
+                getIsolationScope().setExtra('server_action_result', result);
               }
 
               if (options.formData) {
                 options.formData.forEach((value, key) => {
-                  isolationScope.setExtra(
+                  getIsolationScope().setExtra(
                     `server_action_form_data.${key}`,
                     typeof value === 'string' ? value : '[non-string value]',
                   );
