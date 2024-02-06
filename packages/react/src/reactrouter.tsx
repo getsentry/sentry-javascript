@@ -75,8 +75,7 @@ export function reactRouterV4BrowserTracingIntegration(
         return undefined;
       };
 
-      // eslint-disable-next-line deprecation/deprecation
-      const instrumentation = reactRouterV4Instrumentation(history, routes, matchPath);
+      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v4', routes, matchPath);
 
       // Now instrument page load & navigation with correct settings
       instrumentation(startPageloadCallback, instrumentPageLoad, false);
@@ -115,36 +114,13 @@ export function reactRouterV5BrowserTracingIntegration(
         return undefined;
       };
 
-      // eslint-disable-next-line deprecation/deprecation
-      const instrumentation = reactRouterV5Instrumentation(history, routes, matchPath);
+      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath)
 
       // Now instrument page load & navigation with correct settings
       instrumentation(startPageloadCallback, options.instrumentPageLoad, false);
       instrumentation(startNavigationCallback, false, options.instrumentNavigation);
     },
   };
-}
-
-/**
- * @deprecated Use `browserTracingReactRouterV4()` instead.
- */
-export function reactRouterV4Instrumentation(
-  history: RouterHistory,
-  routes?: RouteConfig[],
-  matchPath?: MatchPath,
-): ReactRouterInstrumentation {
-  return createReactRouterInstrumentation(history, 'reactrouter_v4', routes, matchPath);
-}
-
-/**
- * @deprecated Use `browserTracingReactRouterV5()` instead.
- */
-export function reactRouterV5Instrumentation(
-  history: RouterHistory,
-  routes?: RouteConfig[],
-  matchPath?: MatchPath,
-): ReactRouterInstrumentation {
-  return createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath);
 }
 
 function createReactRouterInstrumentation(
