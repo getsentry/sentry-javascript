@@ -48,7 +48,7 @@ export const globalHandlersIntegration = defineIntegration(_globalHandlersIntegr
 
 /**
  * Global handlers.
- * @deprecated Use `globalHandlersIntergation()` instead.
+ * @deprecated Use `globalHandlersIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const GlobalHandlers = convertIntegrationFnToClass(

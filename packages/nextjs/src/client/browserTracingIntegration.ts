@@ -13,7 +13,9 @@ import { nextRouterInstrumentation } from '../index.client';
  *
  * @deprecated Use `browserTracingIntegration` instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export class BrowserTracing extends OriginalBrowserTracing {
+  // eslint-disable-next-line deprecation/deprecation
   public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
     super({
       // eslint-disable-next-line deprecation/deprecation

@@ -98,10 +98,12 @@ describe('Sentry client SDK', () => {
       it('Merges a user-provided BrowserTracing integration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          // eslint-disable-next-line deprecation/deprecation
           integrations: [new BrowserTracing({ finalTimeout: 10 })],
           enableTracing: true,
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
@@ -122,6 +124,7 @@ describe('Sentry client SDK', () => {
           enableTracing: true,
         });
 
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 

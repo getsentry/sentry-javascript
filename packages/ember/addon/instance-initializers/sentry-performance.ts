@@ -109,7 +109,11 @@ export function _instrumentEmberRouter(
     return;
   }
 
-  if (url && browserTracingOptions.startTransactionOnPageLoad !== false) {
+  if (
+    url &&
+    browserTracingOptions.startTransactionOnPageLoad !== false &&
+    browserTracingOptions.instrumentPageLoad !== false
+  ) {
     const routeInfo = routerService.recognize(url);
     Sentry.startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
@@ -132,7 +136,10 @@ export function _instrumentEmberRouter(
     getBackburner().off('end', finishActiveTransaction);
   };
 
-  if (browserTracingOptions.startTransactionOnLocationChange === false) {
+  if (
+    browserTracingOptions.startTransactionOnLocationChange === false &&
+    browserTracingOptions.instrumentNavigation === false
+  ) {
     return;
   }
 

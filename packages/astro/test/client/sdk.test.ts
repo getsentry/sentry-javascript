@@ -104,12 +104,14 @@ describe('Sentry client SDK', () => {
       it('Overrides the automatically default BrowserTracing instance with a a user-provided BrowserTracing instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          // eslint-disable-next-line deprecation/deprecation
           integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
           enableTracing: true,
         });
 
         const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
 
+        // eslint-disable-next-line deprecation/deprecation
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
         const options = browserTracing.options;
 
@@ -120,7 +122,7 @@ describe('Sentry client SDK', () => {
         expect(options.finalTimeout).toEqual(10);
       });
 
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntergation instance', () => {
+      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntegration instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [
