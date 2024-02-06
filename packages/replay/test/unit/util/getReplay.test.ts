@@ -1,7 +1,7 @@
 import { getCurrentScope } from '@sentry/core';
 import { replayIntegration } from '../../../src/integration';
 import { getReplay } from '../../../src/util/getReplay';
-import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
+import { getDefaultClientOptions, init } from '../../utils/TestClient';
 
 describe('getReplay', () => {
   beforeEach(() => {
@@ -14,27 +14,29 @@ describe('getReplay', () => {
   });
 
   it('works with a client without Replay', () => {
-    const client = new TestClient(getDefaultClientOptions());
-    getCurrentScope().setClient(client);
+    init(
+      getDefaultClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+      }),
+    );
 
     const actual = getReplay();
     expect(actual).toBeUndefined();
   });
 
-  it('works with a client with Replay', () => {
+  it('works with a client with Replay xxx', () => {
     const replay = replayIntegration();
-    const client = new TestClient(
+    init(
       getDefaultClientOptions({
         integrations: [replay],
         replaysOnErrorSampleRate: 0,
         replaysSessionSampleRate: 0,
       }),
     );
-    getCurrentScope().setClient(client);
-    client.init();
 
     const actual = getReplay();
-    expect(actual).toBe(replay);
+    expect(actual).toBeDefined();
+    expect(actual === replay).toBe(true);
     expect(replay.getReplayId()).toBe(undefined);
   });
 });
