@@ -1,12 +1,20 @@
 import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
+import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { SpanAttributes, Transaction } from '@sentry/types';
+import type { SpanAttributes } from '@sentry/types';
 
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
-import * as vueTracing from '../src/tracing';
 
 const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+jest.mock('@sentry/core', () => {
+  const actual = jest.requireActual('@sentry/core');
+  return {
+    ...actual,
+    getActiveSpan: jest.fn().mockReturnValue({}),
+  };
+});
 
 const mockVueRouter = {
   onError: jest.fn<void, [(error: Error) => void]>(),
@@ -120,18 +128,16 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
-      const mockedTxn = {
+      const mockRootSpan = {
         updateName: jest.fn(),
-        setData: jest.fn(),
         setAttribute: jest.fn(),
         setAttributes: jest.fn(),
-        metadata: {},
       };
 
-      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn().mockImplementation(_ => {
-        return mockedTxn;
+        return mockRootSpan;
       });
       instrumentVueRouter(
         mockVueRouter,
@@ -150,9 +156,9 @@ describe('instrumentVueRouter()', () => {
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockedTxn.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
-      expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
+      expect(mockRootSpan.updateName).toHaveBeenCalledWith(transactionName);
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+      expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
         ...getAttributesForRoute(to),
       });
@@ -216,9 +222,8 @@ describe('instrumentVueRouter()', () => {
   });
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
-    const mockedTxn = {
+    const mockRootSpan = {
       updateName: jest.fn(),
-      setData: jest.fn(),
       setAttribute: jest.fn(),
       setAttributes: jest.fn(),
       name: '',
@@ -229,9 +234,9 @@ describe('instrumentVueRouter()', () => {
       }),
     };
     const mockStartSpan = jest.fn().mockImplementation(_ => {
-      return mockedTxn;
+      return mockRootSpan;
     });
-    jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+    jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
     instrumentVueRouter(
       mockVueRouter,
@@ -244,8 +249,8 @@ describe('instrumentVueRouter()', () => {
 
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
-    mockedTxn.name = 'customTxnName';
-    mockedTxn.toJSON = () => ({
+    mockRootSpan.name = 'customTxnName';
+    mockRootSpan.toJSON = () => ({
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       },
@@ -260,13 +265,13 @@ describe('instrumentVueRouter()', () => {
 
     expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-    expect(mockedTxn.updateName).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttribute).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
+    expect(mockRootSpan.updateName).not.toHaveBeenCalled();
+    expect(mockRootSpan.setAttribute).not.toHaveBeenCalled();
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
       ...getAttributesForRoute(to),
     });
-    expect(mockedTxn.name).toEqual('customTxnName');
+    expect(mockRootSpan.name).toEqual('customTxnName');
   });
 
   test.each([
@@ -275,7 +280,7 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that considers the instrumentPageLoad = %p',
     (instrumentPageLoad, expectedCallsAmount) => {
-      const mockedTxn = {
+      const mockRootSpan = {
         updateName: jest.fn(),
         setData: jest.fn(),
         setAttribute: jest.fn(),
@@ -287,7 +292,7 @@ describe('instrumentVueRouter()', () => {
           },
         }),
       };
-      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn();
       instrumentVueRouter(
@@ -302,7 +307,7 @@ describe('instrumentVueRouter()', () => {
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
       beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
 
-      expect(mockedTxn.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
+      expect(mockRootSpan.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
       expect(mockStartSpan).not.toHaveBeenCalled();
     },
   );
