@@ -1,12 +1,7 @@
 import type { EventEmitter } from 'events';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  convertIntegrationFnToClass,
-  defineIntegration,
-  getClient,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, getClient } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 interface GrpcFunction extends CallableFunction {
@@ -62,21 +57,10 @@ const _googleCloudGrpcIntegration = ((options: { optional?: boolean } = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const googleCloudGrpcIntegration = defineIntegration(_googleCloudGrpcIntegration);
-
 /**
  * Google Cloud Platform service requests tracking for GRPC APIs.
- *
- * @deprecated Use `googleCloudGrpcIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const GoogleCloudGrpc = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  googleCloudGrpcIntegration,
-) as IntegrationClass<Integration>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type GoogleCloudGrpc = typeof GoogleCloudGrpc;
+export const googleCloudGrpcIntegration = defineIntegration(_googleCloudGrpcIntegration);
 
 /** Returns a wrapped function that returns a stub with tracing enabled */
 function wrapCreateStub(origCreate: CreateStubFunc): CreateStubFunc {

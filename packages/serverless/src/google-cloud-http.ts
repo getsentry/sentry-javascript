@@ -1,12 +1,7 @@
 import type * as common from '@google-cloud/common';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  convertIntegrationFnToClass,
-  defineIntegration,
-  getClient,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, getClient } from '@sentry/core';
 import { startInactiveSpan } from '@sentry/node';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
 type RequestOptions = common.DecorateRequestOptions;
@@ -41,21 +36,10 @@ const _googleCloudHttpIntegration = ((options: { optional?: boolean } = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const googleCloudHttpIntegration = defineIntegration(_googleCloudHttpIntegration);
-
 /**
  * Google Cloud Platform service requests tracking for RESTful APIs.
- *
- * @deprecated Use `googleCloudHttpIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const GoogleCloudHttp = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  googleCloudHttpIntegration,
-) as IntegrationClass<Integration>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type GoogleCloudHttp = typeof GoogleCloudHttp;
+export const googleCloudHttpIntegration = defineIntegration(_googleCloudHttpIntegration);
 
 /** Returns a wrapped function that makes a request with tracing enabled */
 function wrapRequestFunction(orig: RequestFunction): RequestFunction {

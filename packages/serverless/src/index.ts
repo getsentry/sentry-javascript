@@ -1,10 +1,18 @@
-// https://medium.com/unsplash/named-namespace-imports-7345212bbffb
-import * as AWSLambda from './awslambda';
-import * as GCPFunction from './gcpfunction';
-export { AWSLambda, GCPFunction };
+export { awsServicesIntegration } from './awsservices';
 
-// eslint-disable-next-line deprecation/deprecation
-export { AWSServices, awsServicesIntegration } from './awsservices';
+import { init as awsLambdaInit, wrapHandler } from './awslambda';
+import { init as gcpFunctionInit } from './gcpfunction';
+
+const AWSLambda = {
+  init: awsLambdaInit,
+  wrapHandler,
+};
+
+const GCPFunction = {
+  init: gcpFunctionInit,
+};
+
+export { AWSLambda, GCPFunction };
 
 // TODO(v8): We have to explicitly export these because of the namespace exports
 // above. This is because just doing `export * from '@sentry/node'` will not
@@ -15,8 +23,6 @@ export {
   SDK_VERSION,
   Scope,
   addBreadcrumb,
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addIntegration,
   autoDiscoverNodePerformanceMonitoringIntegrations,
@@ -25,25 +31,15 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   setContext,
   setExtra,
@@ -51,35 +47,23 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   withScope,
   withIsolationScope,
   NodeClient,
   makeNodeTransport,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,
   getSentryRelease,
   init,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Handlers,
-  // eslint-disable-next-line deprecation/deprecation
-  Integrations,
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
@@ -88,12 +72,8 @@ export {
   linkedErrorsIntegration,
   inboundFiltersIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   metrics,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   runWithAsyncContext,
   consoleIntegration,
   onUncaughtExceptionIntegration,
