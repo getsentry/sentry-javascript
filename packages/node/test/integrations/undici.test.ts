@@ -20,7 +20,8 @@ beforeAll(async () => {
   } catch (e) {
     // eslint-disable-next-line no-console
     const error = new Error('Undici integration tests are skipped because test server could not be set up.');
-    error.cause = e;
+    // This needs lib es2022 and newer so marking as any
+    (error as any).cause = e;
     throw e;
   }
 });
