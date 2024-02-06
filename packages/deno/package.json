@@ -47,7 +47,7 @@
     "test": "run-s install:deno test:types test:unit",
     "test:build": "tsc -p tsconfig.test.types.json && rollup -c rollup.test.config.mjs",
     "test:types": "deno check ./build/index.mjs",
-    "test:unit": "deno test --allow-read --allow-run",
+    "test:unit": "deno test --allow-read --allow-run --coverage=coverage",
     "test:unit:update": "deno test --allow-read --allow-write --allow-run -- --update",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
