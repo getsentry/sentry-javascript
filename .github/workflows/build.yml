@@ -49,7 +49,7 @@ env:
     ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
-  BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
+  BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -408,9 +408,9 @@ jobs:
         run: yarn build:tarball --ignore @sentry/profiling-node
 
       - name: Restore profiling tarball
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
         with:
-          name: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
           path: ${{ github.workspace }}/packages/*/*.tgz
 
       - name: Archive artifacts
@@ -1014,7 +1014,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -1139,7 +1139,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
 
       - name: Get node version
         id: versions
