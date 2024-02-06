@@ -1001,7 +1001,7 @@ jobs:
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1121,7 +1121,7 @@ jobs:
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1481,7 +1481,7 @@ jobs:
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
         # https://github.com/actions/upload-artifact/issues/478
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
