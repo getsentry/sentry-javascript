@@ -1,6 +1,6 @@
 import { TestEnv, assertSentryTransaction } from '../../../utils';
 
-test('GraphQL/Apollo Tests', () => {
+describe('GraphQL/Apollo Tests', () => {
   test('should instrument GraphQL and Apollo Server.', async () => {
     const env = await TestEnv.init(__dirname);
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });

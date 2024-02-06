@@ -368,7 +368,8 @@ function extractQueryParams(req: PolymorphicRequest): string | Record<string, un
   }
 
   try {
-    return req.query || new URL(originalUrl).search.slice(1);
+    const queryParams = req.query || new URL(originalUrl).search.slice(1);
+    return queryParams.length ? queryParams : undefined;
   } catch {
     return undefined;
   }
