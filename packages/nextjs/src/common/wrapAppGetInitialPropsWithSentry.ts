@@ -1,19 +1,16 @@
 import {
   addTracingExtensions,
+  getActiveSpan,
   getClient,
-  getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
   spanToTraceHeader,
 } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
 import { isBuild } from './utils/isBuild';
-import {
-  getTransactionFromRequest,
-  withErrorInstrumentation,
-  withTracedServerSideDataFetcher,
-} from './utils/wrapperUtils';
+import { getSpanFromRequest, withErrorInstrumentation, withTracedServerSideDataFetcher } from './utils/wrapperUtils';
 
 type AppGetInitialProps = (typeof App)['getInitialProps'];
 
@@ -58,8 +55,8 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           };
         } = await tracedGetInitialProps.apply(thisArg, args);
 
-        // eslint-disable-next-line deprecation/deprecation
-        const requestTransaction = getTransactionFromRequest(req) ?? getCurrentScope().getTransaction();
+        const activeSpan = getActiveSpan();
+        const requestSpan = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
 
         // Per definition, `pageProps` is not optional, however an increased amount of users doesn't seem to call
         // `App.getInitialProps(appContext)` in their custom `_app` pages which is required as per
@@ -69,10 +66,9 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
           appGetInitialProps.pageProps = {};
         }
 
-        if (requestTransaction) {
-          appGetInitialProps.pageProps._sentryTraceData = spanToTraceHeader(requestTransaction);
-
-          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
+        if (requestSpan) {
+          appGetInitialProps.pageProps._sentryTraceData = spanToTraceHeader(requestSpan);
+          const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
           appGetInitialProps.pageProps._sentryBaggage =
             dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }

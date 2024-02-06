@@ -9,6 +9,7 @@ const {
   Context,
   RequestData,
   LocalVariables,
+  // eslint-disable-next-line deprecation/deprecation
 } = NodeIntegrations;
 
 export {
@@ -22,6 +23,7 @@ export {
   LocalVariables,
 };
 
+/* eslint-disable deprecation/deprecation */
 export { Express } from './express';
 export { Http } from './http';
 export { NodeFetch } from './node-fetch';

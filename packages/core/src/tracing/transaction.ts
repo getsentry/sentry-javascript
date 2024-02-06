@@ -19,6 +19,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { Span as SpanClass, SpanRecorder } from './span';
+import { getCapturedScopesOnSpan } from './trace';
 
 /** JSDoc */
 export class Transaction extends SpanClass implements TransactionInterface {
@@ -303,6 +304,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       });
     }
 
+    const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
+
     // eslint-disable-next-line deprecation/deprecation
     const { metadata } = this;
     // eslint-disable-next-line deprecation/deprecation
@@ -324,6 +327,8 @@ export class Transaction extends SpanClass implements TransactionInterface {
       type: 'transaction',
       sdkProcessingMetadata: {
         ...metadata,
+        capturedSpanScope,
+        capturedSpanIsolationScope,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
       },
       ...(source && {

@@ -65,8 +65,14 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
   // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
   transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {
@@ -106,8 +112,14 @@ export function startIdleTransaction(
     delayAutoFinishUntilSignal,
   );
   transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {

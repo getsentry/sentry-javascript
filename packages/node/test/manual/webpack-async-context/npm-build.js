@@ -7,6 +7,11 @@ if (Number(process.versions.node.split('.')[0]) >= 18) {
   process.exit(0);
 }
 
+// Webpack test does not work in Node 8 and below.
+if (Number(process.versions.node.split('.')[0]) <= 8) {
+  process.exit(0);
+}
+
 // biome-ignore format: Follow-up for prettier
 webpack(
   {

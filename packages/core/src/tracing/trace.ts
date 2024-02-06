@@ -1,6 +1,6 @@
-import type { Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
-import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentScope, withScope } from '../exports';
@@ -189,20 +189,22 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     return undefined;
   }
 
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
+
   if (parentSpan) {
     // eslint-disable-next-line deprecation/deprecation
-    return parentSpan.startChild(ctx);
+    span = parentSpan.startChild(ctx);
   } else {
-    const isolationScope = getIsolationScope();
-    const scope = getCurrentScope();
-
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };
 
     // eslint-disable-next-line deprecation/deprecation
-    return hub.startTransaction({
+    span = hub.startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -214,6 +216,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
       },
     });
   }
+
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
 }
 
 /**
@@ -224,42 +230,81 @@ export function getActiveSpan(): Span | undefined {
   return getCurrentScope().getSpan();
 }
 
-export function continueTrace({
-  sentryTrace,
-  baggage,
-}: {
-  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-  baggage: Parameters<typeof tracingContextFromHeaders>[1];
-}): Partial<TransactionContext>;
-export function continueTrace<V>(
-  {
+interface ContinueTrace {
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers,
+   * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
+   *
+   * @deprecated Use the version of this function taking a callback as second parameter instead:
+   *
+   * ```
+   * Sentry.continueTrace(sentryTrace: '...', baggage: '...' }, () => {
+   *    // ...
+   * })
+   * ```
+   *
+   */
+  ({
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
-  },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V;
-/**
- * Continue a trace from `sentry-trace` and `baggage` values.
- * These values can be obtained from incoming request headers,
- * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
- *
- * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
- */
-export function continueTrace<V>(
+  }): Partial<TransactionContext>;
+
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+   * and `<meta name="baggage">` HTML tags.
+   *
+   * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
+   * be attached to the incoming trace.
+   *
+   * Deprecation notice: In the next major version of the SDK the provided callback will not receive a transaction
+   * context argument.
+   */
+  <V>(
+    {
+      sentryTrace,
+      baggage,
+    }: {
+      // eslint-disable-next-line deprecation/deprecation
+      sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+      // eslint-disable-next-line deprecation/deprecation
+      baggage: Parameters<typeof tracingContextFromHeaders>[1];
+    },
+    // TODO(v8): Remove parameter from this callback.
+    callback: (transactionContext: Partial<TransactionContext>) => V,
+  ): V;
+}
+
+export const continueTrace: ContinueTrace = <V>(
   {
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
-): V | Partial<TransactionContext> {
+): V | Partial<TransactionContext> => {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    return withScope((scope) => {
+      const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+      scope.setPropagationContext(propagationContext);
+      return callback();
+    })
+  */
+
   const currentScope = getCurrentScope();
 
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,
@@ -282,8 +327,10 @@ export function continueTrace<V>(
     return transactionContext;
   }
 
-  return callback(transactionContext);
-}
+  return runWithAsyncContext(() => {
+    return callback(transactionContext);
+  });
+};
 
 function createChildSpanOrTransaction(
   hub: Hub,
@@ -294,20 +341,21 @@ function createChildSpanOrTransaction(
     return undefined;
   }
 
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
   if (parentSpan) {
     // eslint-disable-next-line deprecation/deprecation
-    return parentSpan.startChild(ctx);
+    span = parentSpan.startChild(ctx);
   } else {
-    const isolationScope = getIsolationScope();
-    const scope = getCurrentScope();
-
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };
 
     // eslint-disable-next-line deprecation/deprecation
-    return hub.startTransaction({
+    span = hub.startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -319,6 +367,10 @@ function createChildSpanOrTransaction(
       },
     });
   }
+
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
 }
 
 /**
@@ -337,4 +389,29 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
+const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
+
+type SpanWithScopes = Span & {
+  [SCOPE_ON_START_SPAN_FIELD]?: Scope;
+  [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
+};
+
+function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
+  if (span) {
+    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+  }
+}
+
+/**
+ * Grabs the scope and isolation scope off a span that were active when the span was started.
+ */
+export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationScope?: Scope } {
+  return {
+    scope: (span as SpanWithScopes)[SCOPE_ON_START_SPAN_FIELD],
+    isolationScope: (span as SpanWithScopes)[ISOLATION_SCOPE_ON_START_SPAN_FIELD],
+  };
 }

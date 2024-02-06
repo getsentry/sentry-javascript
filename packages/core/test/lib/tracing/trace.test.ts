@@ -1,9 +1,11 @@
+import type { Span as SpanType } from '@sentry/types';
 import {
   Hub,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   addTracingExtensions,
   getCurrentScope,
   makeMain,
+  setCurrentClient,
   spanToJSON,
   withScope,
 } from '../../../src';
@@ -357,9 +359,79 @@ describe('startSpan', () => {
       expect(span).toBeDefined();
     });
   });
+
+  it('samples with a tracesSampler', () => {
+    const tracesSampler = jest.fn(() => {
+      return true;
+    });
+
+    const options = getDefaultTestClientOptions({ tracesSampler });
+    client = new TestClient(options);
+    setCurrentClient(client);
+
+    startSpan(
+      { name: 'outer', attributes: { test1: 'aa', test2: 'aa' }, data: { test1: 'bb', test3: 'bb' } },
+      outerSpan => {
+        expect(outerSpan).toBeDefined();
+      },
+    );
+
+    expect(tracesSampler).toBeCalledTimes(1);
+    expect(tracesSampler).toHaveBeenLastCalledWith({
+      parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        test1: 'aa',
+        test2: 'aa',
+        test3: 'bb',
+      },
+      transactionContext: expect.objectContaining({ name: 'outer', parentSampled: undefined }),
+    });
+  });
+
+  it('includes the scope at the time the span was started when finished', async () => {
+    const transactionEventPromise = new Promise(resolve => {
+      setCurrentClient(
+        new TestClient(
+          getDefaultTestClientOptions({
+            dsn: 'https://username@domain/123',
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              resolve(event);
+              return event;
+            },
+          }),
+        ),
+      );
+    });
+
+    withScope(scope1 => {
+      scope1.setTag('scope', 1);
+      startSpanManual({ name: 'my-span' }, span => {
+        withScope(scope2 => {
+          scope2.setTag('scope', 2);
+          span?.end();
+        });
+      });
+    });
+
+    expect(await transactionEventPromise).toMatchObject({
+      tags: {
+        scope: 1,
+      },
+    });
+  });
 });
 
 describe('startSpanManual', () => {
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   it('creates & finishes span', async () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
@@ -462,6 +534,14 @@ describe('startSpanManual', () => {
 });
 
 describe('startInactiveSpan', () => {
+  beforeEach(() => {
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
   it('creates & finishes span', async () => {
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
@@ -539,6 +619,41 @@ describe('startInactiveSpan', () => {
       });
 
       expect(span).toBeDefined();
+    });
+  });
+
+  it('includes the scope at the time the span was started when finished', async () => {
+    const transactionEventPromise = new Promise(resolve => {
+      setCurrentClient(
+        new TestClient(
+          getDefaultTestClientOptions({
+            dsn: 'https://username@domain/123',
+            tracesSampleRate: 1,
+            beforeSendTransaction(event) {
+              resolve(event);
+              return event;
+            },
+          }),
+        ),
+      );
+    });
+
+    let span: SpanType | undefined;
+
+    withScope(scope => {
+      scope.setTag('scope', 1);
+      span = startInactiveSpan({ name: 'my-span' });
+    });
+
+    withScope(scope => {
+      scope.setTag('scope', 2);
+      span?.end();
+    });
+
+    expect(await transactionEventPromise).toMatchObject({
+      tags: {
+        scope: 1,
+      },
     });
   });
 });
@@ -728,6 +843,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     const ctx = continueTrace({
       sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
       baggage: undefined,

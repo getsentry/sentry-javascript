@@ -3,9 +3,9 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
+  collectReplayRequests,
+  getReplayPerformanceSpans,
   shouldSkipReplayTest,
-  waitForReplayRequest,
 } from '../../../../../utils/replayHelpers';
 
 sentryTest('captures response size from Content-Length header if available', async ({ getLocalTestPath, page }) => {
@@ -35,7 +35,10 @@ sentryTest('captures response size from Content-Length header if available', asy
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -67,9 +70,8 @@ sentryTest('captures response size from Content-Length header if available', asy
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
         method: 'GET',
@@ -123,7 +125,10 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -155,9 +160,8 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
         method: 'GET',
@@ -208,7 +212,10 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
   });
 
   const requestPromise = waitForErrorRequest(page);
-  const replayRequestPromise1 = waitForReplayRequest(page, 0);
+
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
+  });
 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
@@ -241,9 +248,8 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
     },
   });
 
-  const replayReq1 = await replayRequestPromise1;
-  const { performanceSpans: performanceSpans1 } = getCustomRecordingEvents(replayReq1);
-  expect(performanceSpans1.filter(span => span.op === 'resource.fetch')).toEqual([
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
         method: 'POST',

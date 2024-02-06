@@ -1,13 +1,15 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
-  getCurrentScope,
+  continueTrace,
   handleCallbackErrors,
-  runWithAsyncContext,
   setHttpStatus,
   startSpan,
+  withIsolationScope,
 } from '@sentry/core';
-import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { winterCGHeadersToDict } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
@@ -27,63 +29,61 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(async () => {
-        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
-          baggageHeader ?? headers?.get('baggage'),
-        );
-        getCurrentScope().setPropagationContext(propagationContext);
-
-        let result;
-
-        try {
-          result = await startSpan(
-            {
-              op: 'http.server',
-              name: `${method} ${parameterizedRoute}`,
-              status: 'ok',
-              ...traceparentData,
-              metadata: {
-                request: {
-                  headers: headers ? winterCGHeadersToDict(headers) : undefined,
+      return withIsolationScope(async isolationScope => {
+        isolationScope.setSDKProcessingMetadata({
+          request: {
+            headers: headers ? winterCGHeadersToDict(headers) : undefined,
+          },
+        });
+        return continueTrace(
+          {
+            sentryTrace: sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
+            baggage: baggageHeader ?? headers?.get('baggage'),
+          },
+          async () => {
+            try {
+              return await startSpan(
+                {
+                  op: 'http.server',
+                  name: `${method} ${parameterizedRoute}`,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                  },
                 },
-                source: 'route',
-                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-              },
-            },
-            async span => {
-              const response: Response = await handleCallbackErrors(
-                () => originalFunction.apply(thisArg, args),
-                error => {
-                  // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                  if (!isRedirectNavigationError(error)) {
-                    captureException(error, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
+                async span => {
+                  const response: Response = await handleCallbackErrors(
+                    () => originalFunction.apply(thisArg, args),
+                    error => {
+                      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                      if (!isRedirectNavigationError(error)) {
+                        captureException(error, {
+                          mechanism: {
+                            handled: false,
+                          },
+                        });
+                      }
+                    },
+                  );
+
+                  try {
+                    span && setHttpStatus(span, response.status);
+                  } catch {
+                    // best effort - response may be undefined?
                   }
+
+                  return response;
                 },
               );
-
-              try {
-                span && setHttpStatus(span, response.status);
-              } catch {
-                // best effort
+            } finally {
+              if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
+                // 1. Edge transport requires manual flushing
+                // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
+                await flushQueue();
               }
-
-              return response;
-            },
-          );
-        } finally {
-          if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-            // 1. Edge tranpsort requires manual flushing
-            // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-            await flushQueue();
-          }
-        }
-
-        return result;
+            }
+          },
+        );
       });
     },
   });

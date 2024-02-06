@@ -1,7 +1,9 @@
-import type { BrowserOptions, BrowserTracing } from '@sentry/browser';
+import type { BrowserOptions, BrowserTracing, browserTracingIntegration } from '@sentry/browser';
 import type { Transaction, TransactionContext } from '@sentry/types';
 
-type BrowserTracingOptions = ConstructorParameters<typeof BrowserTracing>[0];
+type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0] &
+  // eslint-disable-next-line deprecation/deprecation
+  ConstructorParameters<typeof BrowserTracing>[0];
 
 export type EmberSentryConfig = {
   sentry: BrowserOptions & { browserTracingOptions?: BrowserTracingOptions };
@@ -31,7 +33,7 @@ export interface EmberRouterMain {
     rootURL: string;
   };
 }
-
+/** @deprecated This will be removed in v8. */
 export type StartTransactionFunction = (context: TransactionContext) => Transaction | undefined;
 
 export type GlobalConfig = {

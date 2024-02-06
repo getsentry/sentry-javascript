@@ -22,6 +22,27 @@ const useCompiledModule = bundleKey === 'esm' || bundleKey === 'cjs';
 const useBundleOrLoader = bundleKey && !useCompiledModule;
 const useLoader = bundleKey.startsWith('loader');
 
+// These are imports that, when using CDN bundles, are not included in the main CDN bundle.
+// In this case, if we encounter this import, we want to add this CDN bundle file instead
+const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
+  httpClientIntegration: 'httpclient',
+  HttpClient: 'httpclient',
+  captureConsoleIntegration: 'captureconsole',
+  CaptureConsole: 'captureconsole',
+  debugIntegration: 'debug',
+  Debug: 'debug',
+  rewriteFramesIntegration: 'rewriteframes',
+  RewriteFrames: 'rewriteframes',
+  contextLinesIntegration: 'contextlines',
+  ContextLines: 'contextlines',
+  extraErrorDataIntegration: 'extraerrordata',
+  ExtraErrorData: 'extraerrordata',
+  reportingObserverIntegration: 'reportingobserver',
+  ReportingObserver: 'reportingobserver',
+  sessionTimingIntegration: 'sessiontiming',
+  SessionTiming: 'sessiontiming',
+};
+
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     cjs: 'build/npm/cjs/index.js',
@@ -149,8 +170,8 @@ class SentryScenarioGenerationPlugin {
           '@sentry/browser': 'Sentry',
           '@sentry/tracing': 'Sentry',
           '@sentry/replay': 'Sentry',
-          '@sentry/integrations': 'Sentry.Integrations',
-          '@sentry/wasm': 'Sentry.Integrations',
+          '@sentry/integrations': 'Sentry',
+          '@sentry/wasm': 'Sentry',
         }
       : {};
 
@@ -161,8 +182,11 @@ class SentryScenarioGenerationPlugin {
         parser.hooks.import.tap(
           this._name,
           (statement: { specifiers: [{ imported: { name: string } }] }, source: string) => {
-            if (source === '@sentry/integrations') {
-              this.requiredIntegrations.push(statement.specifiers[0].imported.name.toLowerCase());
+            const imported = statement.specifiers?.[0]?.imported?.name;
+
+            if (imported && IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported]) {
+              const bundleName = IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS[imported];
+              this.requiredIntegrations.push(bundleName);
             } else if (source === '@sentry/wasm') {
               this.requiresWASMIntegration = true;
             }

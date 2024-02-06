@@ -7,9 +7,11 @@ export { createErrorHandler, SentryErrorHandler } from './errorhandler';
 export {
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  // TODO `instrumentAngularRouting` is just an alias for `routingInstrumentation`; deprecate the latter at some point
+  // eslint-disable-next-line deprecation/deprecation
   instrumentAngularRouting, // new name
+  // eslint-disable-next-line deprecation/deprecation
   routingInstrumentation, // legacy name
+  browserTracingIntegration,
   TraceClassDecorator,
   TraceMethodDecorator,
   TraceDirective,

@@ -35,6 +35,8 @@ export const vueIntegration = defineIntegration(_vueIntegration);
 
 /**
  * Initialize Vue error & performance tracking.
+ *
+ * @deprecated Use `vueIntegration()` instead.
  */
 // eslint-disable-next-line deprecation/deprecation
 export const VueIntegration = convertIntegrationFnToClass(

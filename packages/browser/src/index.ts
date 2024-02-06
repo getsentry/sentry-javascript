@@ -54,6 +54,7 @@ export {
 } from '@sentry-internal/feedback';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
@@ -72,6 +73,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
+  setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   makeMultiplexedTransport,
@@ -83,4 +85,8 @@ export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export { BrowserProfilingIntegration } from './profiling/integration';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  BrowserProfilingIntegration,
+  browserProfilingIntegration,
+} from './profiling/integration';

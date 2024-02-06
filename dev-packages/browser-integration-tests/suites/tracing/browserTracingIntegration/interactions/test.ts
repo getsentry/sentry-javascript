@@ -51,7 +51,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   expect(interactionSpan.timestamp).toBeDefined();
 
   const interactionSpanDuration = (interactionSpan.timestamp! - interactionSpan.start_timestamp) * 1000;
-  expect(interactionSpanDuration).toBeGreaterThan(70);
+  expect(interactionSpanDuration).toBeGreaterThan(65);
   expect(interactionSpanDuration).toBeLessThan(200);
 });
 

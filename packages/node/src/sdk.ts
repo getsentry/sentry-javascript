@@ -1,15 +1,16 @@
 /* eslint-disable max-lines */
 import {
-  FunctionToString,
-  InboundFilters,
-  LinkedErrors,
   endSession,
+  functionToStringIntegration,
   getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
   getMainCarrier,
+  inboundFiltersIntegration,
   initAndBind,
+  linkedErrorsIntegration,
+  requestDataIntegration,
   startSession,
 } from '@sentry/core';
 import type { Integration, Options, SessionStatus, StackParser } from '@sentry/types';
@@ -17,52 +18,45 @@ import {
   GLOBAL_OBJ,
   createStackParser,
   nodeStackLineParser,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import { setNodeAsyncContextStrategy } from './async';
 import { NodeClient } from './client';
-import {
-  Console,
-  Context,
-  ContextLines,
-  Http,
-  LocalVariables,
-  Modules,
-  OnUncaughtException,
-  OnUnhandledRejection,
-  RequestData,
-  Spotlight,
-  Undici,
-} from './integrations';
+import { consoleIntegration } from './integrations/console';
+import { nodeContextIntegration } from './integrations/context';
+import { contextLinesIntegration } from './integrations/contextlines';
+import { httpIntegration } from './integrations/http';
+import { localVariablesIntegration } from './integrations/local-variables';
+import { modulesIntegration } from './integrations/modules';
+import { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+import { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+import { spotlightIntegration } from './integrations/spotlight';
+import { nativeNodeFetchintegration } from './integrations/undici';
 import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
 /** @deprecated Use `getDefaultIntegrations(options)` instead. */
-
 export const defaultIntegrations = [
-  /* eslint-disable deprecation/deprecation */
   // Common
-  new InboundFilters(),
-  new FunctionToString(),
-  new LinkedErrors(),
-  /* eslint-enable deprecation/deprecation */
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  requestDataIntegration(),
   // Native Wrappers
-  new Console(),
-  new Http(),
-  new Undici(),
+  consoleIntegration(),
+  httpIntegration(),
+  nativeNodeFetchintegration(),
   // Global Handlers
-  new OnUncaughtException(),
-  new OnUnhandledRejection(),
+  onUncaughtExceptionIntegration(),
+  onUnhandledRejectionIntegration(),
   // Event Info
-  new ContextLines(),
-  new LocalVariables(),
-  new Context(),
-  new Modules(),
-  // eslint-disable-next-line deprecation/deprecation
-  new RequestData(),
+  contextLinesIntegration(),
+  localVariablesIntegration(),
+  nodeContextIntegration(),
+  modulesIntegration(),
 ];
 
 /** Get the default integrations for the Node SDK. */
@@ -201,7 +195,7 @@ export function init(options: NodeOptions = {}): void {
         client.addIntegration(integration);
       }
       client.addIntegration(
-        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+        spotlightIntegration({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
       );
     }
   }
@@ -291,7 +285,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

@@ -68,6 +68,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
+  setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
   trace,
   withScope,
@@ -99,12 +100,12 @@ export {
 import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
+export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 
-const INTEGRATIONS = {
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
+export const Integrations = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   WinterCGFetch,
   RequestData,
 };
-
-export { INTEGRATIONS as Integrations };

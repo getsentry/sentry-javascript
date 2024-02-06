@@ -1,7 +1,8 @@
+/* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
 import type { Hub } from '@sentry/core';
-import { getIsolationScope } from '@sentry/core';
+import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
   getActiveSpan,
@@ -15,9 +16,18 @@ import {
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, SanitizedRequestData, TracePropagationTargets } from '@sentry/types';
+import type {
+  ClientOptions,
+  EventProcessor,
+  Integration,
+  IntegrationFn,
+  IntegrationFnResult,
+  SanitizedRequestData,
+  TracePropagationTargets,
+} from '@sentry/types';
 import {
   LRUMap,
+  dropUndefinedKeys,
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   generateSentryTraceHeader,
@@ -28,6 +38,7 @@ import {
 import type { NodeClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
 import { NODE_VERSION } from '../nodeVersion';
+import type { NodeClientOptions } from '../types';
 import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
 import { cleanSpanDescription, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
 
@@ -56,6 +67,12 @@ interface TracingOptions {
    * By default, spans will be created for all outgoing requests.
    */
   shouldCreateSpanForRequest?: (url: string) => boolean;
+
+  /**
+   * This option is just for compatibility with v7.
+   * In v8, this will be the default behavior.
+   */
+  enableIfHasTracingEnabled?: boolean;
 }
 
 interface HttpOptions {
@@ -72,9 +89,59 @@ interface HttpOptions {
   tracing?: TracingOptions | boolean;
 }
 
+/* These are the newer options for `httpIntegration`. */
+interface HttpIntegrationOptions {
+  /**
+   * Whether breadcrumbs should be recorded for requests
+   * Defaults to true.
+   */
+  breadcrumbs?: boolean;
+
+  /**
+   * Whether tracing spans should be created for requests
+   * If not set, this will be enabled/disabled based on if tracing is enabled.
+   */
+  tracing?: boolean;
+
+  /**
+   * Function determining whether or not to create spans to track outgoing requests to the given URL.
+   * By default, spans will be created for all outgoing requests.
+   */
+  shouldCreateSpanForRequest?: (url: string) => boolean;
+}
+
+const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
+  const { breadcrumbs, tracing, shouldCreateSpanForRequest } = options;
+
+  const convertedOptions: HttpOptions = {
+    breadcrumbs,
+    tracing:
+      tracing === false
+        ? false
+        : dropUndefinedKeys({
+            // If tracing is forced to `true`, we don't want to set `enableIfHasTracingEnabled`
+            enableIfHasTracingEnabled: tracing === true ? undefined : true,
+            shouldCreateSpanForRequest,
+          }),
+  };
+
+  // eslint-disable-next-line deprecation/deprecation
+  return new Http(convertedOptions) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
+
+/**
+ * The http module integration instruments Node's internal http module. It creates breadcrumbs, spans for outgoing
+ * http requests, and attaches trace data when tracing is enabled via its `tracing` option.
+ *
+ * By default, this will always create breadcrumbs, and will create spans if tracing is enabled.
+ */
+export const httpIntegration = defineIntegration(_httpIntegration);
+
 /**
  * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
  * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ *
+ * @deprecated Use `httpIntegration()` instead.
  */
 export class Http implements Integration {
   /**
@@ -85,6 +152,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public name: string = Http.id;
 
   private readonly _breadcrumbs: boolean;
@@ -105,13 +173,17 @@ export class Http implements Integration {
     _addGlobalEventProcessor: (callback: EventProcessor) => void,
     setupOnceGetCurrentHub: () => Hub,
   ): void {
-    // No need to instrument if we don't want to track anything
-    if (!this._breadcrumbs && !this._tracing) {
-      return;
-    }
-
     // eslint-disable-next-line deprecation/deprecation
     const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
+
+    // If `tracing` is not explicitly set, we default this based on whether or not tracing is enabled.
+    // But for compatibility, we only do that if `enableIfHasTracingEnabled` is set.
+    const shouldCreateSpans = _shouldCreateSpans(this._tracing, clientOptions);
+
+    // No need to instrument if we don't want to track anything
+    if (!this._breadcrumbs && !shouldCreateSpans) {
+      return;
+    }
 
     // Do not auto-instrument for other instrumenter
     if (clientOptions && clientOptions.instrumenter !== 'sentry') {
@@ -119,9 +191,8 @@ export class Http implements Integration {
       return;
     }
 
-    const shouldCreateSpanForRequest =
-      // eslint-disable-next-line deprecation/deprecation
-      this._tracing?.shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest;
+    const shouldCreateSpanForRequest = _getShouldCreateSpanForRequest(shouldCreateSpans, this._tracing, clientOptions);
+
     // eslint-disable-next-line deprecation/deprecation
     const tracePropagationTargets = clientOptions?.tracePropagationTargets || this._tracing?.tracePropagationTargets;
 
@@ -388,4 +459,30 @@ function normalizeBaggageHeader(
   // Technically this the following could be of type `(number | string)[]` but for the sake of simplicity
   // we say this is undefined behaviour, since it would not be baggage spec conform if the user did this.
   return [requestOptions.headers.baggage, sentryBaggageHeader] as string[];
+}
+
+/** Exported for tests only. */
+export function _shouldCreateSpans(
+  tracingOptions: TracingOptions | undefined,
+  clientOptions: Partial<ClientOptions> | undefined,
+): boolean {
+  return tracingOptions === undefined
+    ? false
+    : tracingOptions.enableIfHasTracingEnabled
+      ? hasTracingEnabled(clientOptions)
+      : true;
+}
+
+/** Exported for tests only. */
+export function _getShouldCreateSpanForRequest(
+  shouldCreateSpans: boolean,
+  tracingOptions: TracingOptions | undefined,
+  clientOptions: Partial<NodeClientOptions> | undefined,
+): undefined | ((url: string) => boolean) {
+  const handler = shouldCreateSpans
+    ? // eslint-disable-next-line deprecation/deprecation
+      tracingOptions?.shouldCreateSpanForRequest || clientOptions?.shouldCreateSpanForRequest
+    : () => false;
+
+  return handler;
 }

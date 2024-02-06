@@ -201,6 +201,7 @@ export function bundleBrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] = {},
 ): Integration {
   // Migrate some options from the old integration to the new one
+  // eslint-disable-next-line deprecation/deprecation
   const opts: ConstructorParameters<typeof BrowserTracing>[0] = options;
 
   if (typeof options.markBackgroundSpan === 'boolean') {
@@ -215,5 +216,6 @@ export function bundleBrowserTracingIntegration(
     opts.startTransactionOnLocationChange = options.instrumentNavigation;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return new BrowserTracing(opts);
 }

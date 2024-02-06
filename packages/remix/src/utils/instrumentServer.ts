@@ -401,6 +401,7 @@ export function startRequestHandlerTransaction(
     method: string;
   },
 ): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     request.headers['sentry-trace'],
     request.headers.baggage,

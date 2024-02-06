@@ -32,52 +32,52 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
       baggage = req.headers.get('baggage');
     }
 
-    const transactionContext = continueTrace({
-      sentryTrace,
-      baggage,
-    });
-
-    return startSpan(
+    return continueTrace(
       {
-        ...transactionContext,
-        name: options.spanDescription,
-        op: options.spanOp,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
-        },
-        metadata: {
-          // eslint-disable-next-line deprecation/deprecation
-          ...transactionContext.metadata,
-          request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
-        },
+        sentryTrace,
+        baggage,
       },
-      async span => {
-        const handlerResult = await handleCallbackErrors(
-          () => handler.apply(this, args),
-          error => {
-            captureException(error, {
-              mechanism: {
-                type: 'instrument',
-                handled: false,
-                data: {
-                  function: options.mechanismFunctionName,
-                },
-              },
-            });
+      () => {
+        return startSpan(
+          {
+            name: options.spanDescription,
+            op: options.spanOp,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
+            },
+            metadata: {
+              request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
+            },
           },
-        );
+          async span => {
+            const handlerResult = await handleCallbackErrors(
+              () => handler.apply(this, args),
+              error => {
+                captureException(error, {
+                  mechanism: {
+                    type: 'instrument',
+                    handled: false,
+                    data: {
+                      function: options.mechanismFunctionName,
+                    },
+                  },
+                });
+              },
+            );
 
-        if (span) {
-          if (handlerResult instanceof Response) {
-            setHttpStatus(span, handlerResult.status);
-          } else {
-            span.setStatus('ok');
-          }
-        }
+            if (span) {
+              if (handlerResult instanceof Response) {
+                setHttpStatus(span, handlerResult.status);
+              } else {
+                span.setStatus('ok');
+              }
+            }
 
-        return handlerResult;
+            return handlerResult;
+          },
+        ).finally(() => flushQueue());
       },
-    ).finally(() => flushQueue());
+    );
   };
 }
