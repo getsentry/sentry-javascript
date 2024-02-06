@@ -7,10 +7,6 @@ export default makeBaseNPMConfig({
   packageSpecificConfig: {
     input: 'src/index.ts',
     output: { file: 'lib/index.js', format: 'cjs', dir: undefined, preserveModules: false },
-    plugins: [
-      resolve(),
-      commonjs(),
-      typescript({ tsconfig: './tsconfig.json' }),
-    ]
-  }
+    plugins: [resolve(), commonjs(), typescript({ tsconfig: './tsconfig.json' })],
+  },
 });
