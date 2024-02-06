@@ -156,6 +156,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead.
  */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented

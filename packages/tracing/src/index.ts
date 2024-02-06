@@ -38,6 +38,7 @@ import {
  * import { BrowserTracing } from '@sentry/browser';
  * new BrowserTracing()
  */
+// eslint-disable-next-line deprecation/deprecation
 export const BrowserTracing = BrowserTracingT;
 
 // BrowserTracing is already exported as part of `Integrations` below (and for the moment will remain so for
@@ -50,6 +51,7 @@ export const BrowserTracing = BrowserTracingT;
  * import { BrowserTracing } from '@sentry/browser';
  * new BrowserTracing()
  */
+// eslint-disable-next-line deprecation/deprecation
 export type BrowserTracing = BrowserTracingT;
 
 /**

@@ -1,5 +1,5 @@
 import { hasTracingEnabled } from '@sentry/core';
-import { BrowserTracing } from '@sentry/react';
+import { browserTracingIntegration } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 
 import type { GatsbyOptions } from './types';
@@ -31,8 +31,8 @@ export function getIntegrationsFromOptions(options: GatsbyOptions): UserIntegrat
  * @param isTracingEnabled Whether the user has enabled tracing.
  */
 function getIntegrationsFromArray(userIntegrations: Integration[], isTracingEnabled: boolean): Integration[] {
-  if (isTracingEnabled && !userIntegrations.some(integration => integration.name === BrowserTracing.name)) {
-    userIntegrations.push(new BrowserTracing());
+  if (isTracingEnabled && !userIntegrations.some(integration => integration.name === 'BrowserTracing')) {
+    userIntegrations.push(browserTracingIntegration());
   }
   return userIntegrations;
 }

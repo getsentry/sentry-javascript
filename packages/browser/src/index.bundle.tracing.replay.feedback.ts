@@ -11,6 +11,7 @@ import * as Sentry from './index.bundle.base';
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.Replay = Replay;
 
+// eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 // We are patching the global object with our hub extension methods
@@ -23,6 +24,7 @@ export {
   Replay,
   feedbackIntegration,
   replayIntegration,
+  // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   browserTracingIntegration,
   Span,
