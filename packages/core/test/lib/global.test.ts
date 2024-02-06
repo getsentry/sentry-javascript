@@ -28,7 +28,7 @@ describe('global', () => {
     const newestHub = new Hub(undefined, undefined, undefined, 999999);
     GLOBAL_OBJ.__SENTRY__.hub = newestHub;
     const fn = jest.fn().mockImplementation(function (...args: []) {
-      expect(this).toBe(newestHub);
+      expect(this as any).toBe(newestHub);
       expect(args).toEqual([1, 2, 3]);
     });
     GLOBAL_OBJ.__SENTRY__.extensions = {};
