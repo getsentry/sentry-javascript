@@ -1,8 +1,12 @@
 import { WINDOW, captureException } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getRootSpan,
+  spanToJSON,
+} from '@sentry/core';
 import type { SpanAttributes, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-
-import { getActiveTransaction } from './tracing';
 
 interface VueRouterInstrumationOptions {
   /**
@@ -139,17 +143,17 @@ export function instrumentVueRouter(
     }
 
     if (options.instrumentPageLoad && isPageLoadNavigation) {
-      // eslint-disable-next-line deprecation/deprecation
-      const pageloadTransaction = getActiveTransaction();
-      if (pageloadTransaction) {
-        const existingAttributes = spanToJSON(pageloadTransaction).data || {};
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
+      if (rootSpan) {
+        const existingAttributes = spanToJSON(rootSpan).data || {};
         if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-          pageloadTransaction.updateName(transactionName);
-          pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+          rootSpan.updateName(transactionName);
+          rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
         }
         // Set router attributes on the existing pageload transaction
-        // This will  the origin, and add params & query attributes
-        pageloadTransaction.setAttributes({
+        // This will override the origin, and add params & query attributes
+        rootSpan.setAttributes({
           ...attributes,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
         });
@@ -158,6 +162,7 @@ export function instrumentVueRouter(
 
     if (options.instrumentNavigation && !isPageLoadNavigation) {
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.navigation.vue';
       startNavigationSpanFn({
         name: transactionName,
         op: 'navigation',
