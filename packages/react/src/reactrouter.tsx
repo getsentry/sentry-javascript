@@ -114,7 +114,7 @@ export function reactRouterV5BrowserTracingIntegration(
         return undefined;
       };
 
-      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath)
+      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath);
 
       // Now instrument page load & navigation with correct settings
       instrumentation(startPageloadCallback, options.instrumentPageLoad, false);

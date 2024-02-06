@@ -12,11 +12,7 @@ import { createMemoryHistory } from 'history-4';
 import * as React from 'react';
 import { Route, Router, Switch, matchPath } from 'react-router-4';
 
-import {
-  BrowserClient,
-  reactRouterV4BrowserTracingIntegration,
-  withSentryRouting,
-} from '../src';
+import { BrowserClient, reactRouterV4BrowserTracingIntegration, withSentryRouting } from '../src';
 import type { RouteConfig } from '../src/reactrouter';
 
 const mockStartBrowserTracingPageLoadSpan = jest.fn();
