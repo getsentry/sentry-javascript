@@ -477,10 +477,6 @@ jobs:
       - name: Run tests
         run: |
           yarn test-ci-bun
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -512,10 +508,6 @@ jobs:
           cd packages/deno
           yarn build
           yarn test
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
