@@ -122,7 +122,7 @@ describe('Sentry client SDK', () => {
         expect(options.finalTimeout).toEqual(10);
       });
 
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntergation instance', () => {
+      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntegration instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [

@@ -192,8 +192,8 @@ The following list shows how integrations should be migrated:
 | `new OnUncaughtException()`  | `onUncaughtExceptionIntegration()`  | `@sentry/node`                                                                                          |
 | `new OnUnhandledRejection()` | `onUnhandledRejectionIntegration()` | `@sentry/node`                                                                                          |
 | `new LocalVariables()`       | `localVariablesIntegration()`       | `@sentry/node`                                                                                          |
-| `new Spotlight()`            | `spotlightIntergation()`            | `@sentry/node`                                                                                          |
-| `new Anr()`                  | `anrIntergation()`                  | `@sentry/node`                                                                                          |
+| `new Spotlight()`            | `spotlightIntegration()`            | `@sentry/node`                                                                                          |
+| `new Anr()`                  | `anrIntegration()`                  | `@sentry/node`                                                                                          |
 | `new Hapi()`                 | `hapiIntegration()`                 | `@sentry/node`                                                                                          |
 | `new Undici()`               | `nativeNodeFetchIntegration()`      | `@sentry/node`                                                                                          |
 | `new Http()`                 | `httpIntegration()`                 | `@sentry/node`                                                                                          |
