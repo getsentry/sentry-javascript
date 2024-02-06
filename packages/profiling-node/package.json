@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "1.3.5",
+  "version": "7.100.0",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
