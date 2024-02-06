@@ -1,6 +1,6 @@
-import { TestEnv, assertSentryTransaction, conditionalTest } from '../../../utils';
+import { TestEnv, assertSentryTransaction } from '../../../utils';
 
-conditionalTest({ min: 12 })('Prisma ORM Integration', () => {
+describe('Prisma ORM Integration', () => {
   test('should instrument Prisma client for tracing.', async () => {
     const env = await TestEnv.init(__dirname);
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });

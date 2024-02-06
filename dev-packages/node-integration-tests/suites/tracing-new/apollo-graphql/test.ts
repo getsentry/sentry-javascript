@@ -1,8 +1,6 @@
-import { TestEnv, assertSentryTransaction, conditionalTest } from '../../../utils';
+import { TestEnv, assertSentryTransaction } from '../../../utils';
 
-// Node 10 is not supported by `graphql-js`
-// Ref: https://github.com/graphql/graphql-js/blob/main/package.json
-conditionalTest({ min: 12 })('GraphQL/Apollo Tests', () => {
+test('GraphQL/Apollo Tests', () => {
   test('should instrument GraphQL and Apollo Server.', async () => {
     const env = await TestEnv.init(__dirname);
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });

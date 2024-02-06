@@ -1,7 +1,6 @@
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 14 })('mysql auto instrumentation', () => {
+describe('mysql auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

@@ -69,7 +69,8 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
   req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
+  // TODO(v8): Remove this parameter in v8
+  _deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
   // eslint-disable-next-line deprecation/deprecation
@@ -87,7 +88,7 @@ export function addRequestDataToTransaction(
   }
   // TODO: We need to rewrite this to a flat format?
   // eslint-disable-next-line deprecation/deprecation
-  transaction.setData('query', extractQueryParams(req, deps));
+  transaction.setData('query', extractQueryParams(req));
 }
 
 /**
@@ -188,10 +189,11 @@ export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
+    // TODO(v8): Remove this paramater
     deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
+  const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestData: { [key: string]: any } = {};
 
@@ -257,7 +259,7 @@ export function extractRequestData(
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = extractQueryParams(req, deps);
+        requestData.query_string = extractQueryParams(req);
         break;
       }
       case 'data': {
@@ -349,10 +351,7 @@ export function addRequestDataToEvent(
   return event;
 }
 
-function extractQueryParams(
-  req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
-): string | Record<string, unknown> | undefined {
+function extractQueryParams(req: PolymorphicRequest): string | Record<string, unknown> | undefined {
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
@@ -369,13 +368,7 @@ function extractQueryParams(
   }
 
   try {
-    return (
-      req.query ||
-      (typeof URL !== 'undefined' && new URL(originalUrl).search.slice(1)) ||
-      // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-      (deps && deps.url && deps.url.parse(originalUrl).query) ||
-      undefined
-    );
+    return req.query || new URL(originalUrl).search.slice(1);
   } catch {
     return undefined;
   }

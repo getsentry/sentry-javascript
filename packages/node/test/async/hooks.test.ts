@@ -10,9 +10,8 @@ import {
 } from '@sentry/core';
 
 import { setHooksAsyncContextStrategy } from '../../src/async/hooks';
-import { conditionalTest } from '../utils';
 
-conditionalTest({ min: 12 })('setHooksAsyncContextStrategy()', () => {
+describe('setHooksAsyncContextStrategy()', () => {
   beforeEach(() => {
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
