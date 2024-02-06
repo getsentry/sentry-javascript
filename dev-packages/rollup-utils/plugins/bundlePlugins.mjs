@@ -157,7 +157,6 @@ export function makeTSPlugin(jsVersion) {
       paths: {
         '@sentry/browser': ['../browser/src'],
         '@sentry/core': ['../core/src'],
-        '@sentry/hub': ['../hub/src'],
         '@sentry/types': ['../types/src'],
         '@sentry/utils': ['../utils/src'],
         '@sentry-internal/integration-shims': ['../integration-shims/src'],
