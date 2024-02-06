@@ -130,11 +130,11 @@ test('Should send a transaction for instrumented server actions', async ({ page 
   await page.getByText('Run Action').click();
 
   expect(await serverComponentTransactionPromise).toBeDefined();
-  expect(
-    (await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_form_data.some-text-value'],
-  ).toEqual('some-default-value');
-  expect((await serverComponentTransactionPromise).contexts?.trace?.data?.['server_action_result']).toEqual({
-    city: 'Vienna',
+  expect((await serverComponentTransactionPromise).extra).toMatchObject({
+    'server_action_form_data.some-text-value': 'some-default-value',
+    server_action_result: {
+      city: 'Vienna',
+    },
   });
 
   expect(Object.keys((await serverComponentTransactionPromise).request?.headers || {}).length).toBeGreaterThan(0);
