@@ -1,4 +1,4 @@
-import * as Sentry from './index';
+import { init, tryPatchHandler } from './awslambda';
 
 const lambdaTaskRoot = process.env.LAMBDA_TASK_ROOT;
 if (lambdaTaskRoot) {
@@ -7,11 +7,11 @@ if (lambdaTaskRoot) {
     throw Error(`LAMBDA_TASK_ROOT is non-empty(${lambdaTaskRoot}) but _HANDLER is not set`);
   }
 
-  Sentry.AWSLambda.init({
+  init({
     _invokedByLambdaLayer: true,
   });
 
-  Sentry.AWSLambda.tryPatchHandler(lambdaTaskRoot, handlerString);
+  tryPatchHandler(lambdaTaskRoot, handlerString);
 } else {
   throw Error('LAMBDA_TASK_ROOT environment variable is not set');
 }

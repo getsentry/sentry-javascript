@@ -26,8 +26,6 @@ import { awsServicesIntegration } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
-export * from '@sentry/node';
-
 const { isPromise } = types;
 
 // https://www.npmjs.com/package/aws-lambda-consumer
@@ -37,7 +35,7 @@ type SyncHandler<T extends Handler> = (
   callback: Parameters<T>[2],
 ) => void;
 
-export type AsyncHandler<T extends Handler> = (
+type AsyncHandler<T extends Handler> = (
   event: Parameters<T>[0],
   context: Parameters<T>[1],
 ) => Promise<NonNullable<Parameters<Parameters<T>[2]>[1]>>;

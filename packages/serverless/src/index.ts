@@ -1,11 +1,11 @@
 export { awsServicesIntegration } from './awsservices';
-
-import { init as awsLambdaInit, wrapHandler } from './awslambda';
+import { init as awsLambdaInit, tryPatchHandler, wrapHandler } from './awslambda';
 import { init as gcpFunctionInit } from './gcpfunction';
 
 const AWSLambda = {
   init: awsLambdaInit,
   wrapHandler,
+  tryPatchHandler,
 };
 
 const GCPFunction = {
@@ -13,6 +13,9 @@ const GCPFunction = {
 };
 
 export { AWSLambda, GCPFunction };
+
+import type { WrapperOptions as AWSWrapperOptions } from './awslambda';
+export type { AWSWrapperOptions };
 
 // TODO(v8): We have to explicitly export these because of the namespace exports
 // above. This is because just doing `export * from '@sentry/node'` will not
