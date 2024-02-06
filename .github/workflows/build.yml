@@ -49,7 +49,7 @@ env:
     ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
-  BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
+  BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -403,15 +403,15 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Profiling
+      - name: Pack tarballs
         # Profiling tarball is built separately as we assemble the precompiled binaries
         run: yarn build:tarball --ignore @sentry/profiling-node
 
       - name: Restore profiling tarball
-        uses: actions/download-artifact@v4
+        uses: actions/cache/restore@v4
         with:
-          name: profiling-node-tarball-${{ github.sha }}
-          path: packages/profiling-node
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+          path: ${{ github.workspace }}/packages/*/*.tgz
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
@@ -1001,7 +1001,7 @@ jobs:
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1014,7 +1014,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -1121,7 +1121,7 @@ jobs:
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
           (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
@@ -1139,7 +1139,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
 
       - name: Get node version
         id: versions
@@ -1481,7 +1481,7 @@ jobs:
       - name: Archive Binary
         # @TODO: v4 breaks convenient merging of same name artifacts
         # https://github.com/actions/upload-artifact/issues/478
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: |
