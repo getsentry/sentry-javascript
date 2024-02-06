@@ -952,7 +952,13 @@ jobs:
 
   job_e2e_prepare:
     name: Prepare E2E tests
-    if:
+    # We want to run this if:
+    # - The build job was successful, not skipped
+    # - AND if the profiling node bindings were either successful or skipped
+    # AND if this is not a PR from a fork or dependabot
+    if: |
+      always() && needs.job_build.result == 'success' &&
+      (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped') &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
       github.actor != 'dependabot[bot]'
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
