@@ -58,6 +58,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
       return runWithAsyncContext(() => {
         return continueTrace(
           {
+            // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
             sentryTrace: req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
             baggage: req.headers?.baggage,
           },

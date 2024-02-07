@@ -36,6 +36,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         });
         return continueTrace(
           {
+            // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
             sentryTrace: headers?.get('sentry-trace') ?? undefined,
             baggage: headers?.get('baggage'),
           },
