@@ -4,15 +4,15 @@ import {
   continueTrace,
   convertIntegrationFnToClass,
   defineIntegration,
-  getActiveSpan,
+  getActiveTransaction,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   setHttpStatus,
   spanToTraceHeader,
-  startInactiveSpan,
+  startTransaction,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, propagationContextFromHeaders } from '@sentry/utils';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -48,7 +48,8 @@ export const hapiErrorPlugin = {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
-      const span = getActiveSpan();
+      // eslint-disable-next-line deprecation/deprecation
+      const transaction = getActiveTransaction();
 
       if (request.response && isBoomObject(request.response)) {
         sendErrorToSentry(request.response);
@@ -56,9 +57,9 @@ export const hapiErrorPlugin = {
         sendErrorToSentry(event.error);
       }
 
-      if (span) {
-        span.setStatus('internal_error');
-        span.end();
+      if (transaction) {
+        transaction.setStatus('internal_error');
+        transaction.end();
       }
     });
   },
@@ -72,36 +73,38 @@ export const hapiTracingPlugin = {
     const server = serverArg as unknown as Server;
 
     server.ext('onPreHandler', (request, h) => {
-      const span = continueTrace(
-        {
-          sentryTrace: request.headers['sentry-trace'] || undefined,
-          baggage: request.headers['baggage'] || undefined,
-        },
-        () => {
-          // eslint-disable-next-line deprecation/deprecation
-          return startInactiveSpan({
-            op: 'hapi.request',
-            name: request.route.path,
-            description: `${request.route.method} ${request.path}`,
-          });
-        },
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(
+        request.headers['sentry-trace'] || undefined,
+        request.headers['baggage'] || undefined,
       );
 
       // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(span);
+      const transaction = startTransaction({
+        name: request.route.path,
+        op: 'hapi.request',
+        traceId,
+        parentSampled: sampled,
+        parentSpanId,
+        metadata: { dynamicSamplingContext: dsc },
+        description: `${request.route.method} ${request.path}`,
+      });
+
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
       return h.continue;
     });
 
     server.ext('onPreResponse', (request, h) => {
-      const span = getActiveSpan();
+      // eslint-disable-next-line deprecation/deprecation
+      const transaction = getActiveTransaction();
 
-      if (request.response && isResponseObject(request.response) && span) {
+      if (request.response && isResponseObject(request.response) && transaction) {
         const response = request.response as ResponseObject;
-        response.header('sentry-trace', spanToTraceHeader(span));
+        response.header('sentry-trace', spanToTraceHeader(transaction));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-          getDynamicSamplingContextFromSpan(span),
+          getDynamicSamplingContextFromSpan(transaction),
         );
 
         if (dynamicSamplingContext) {
@@ -113,14 +116,15 @@ export const hapiTracingPlugin = {
     });
 
     server.ext('onPostHandler', (request, h) => {
-      const span = getActiveSpan();
+      // eslint-disable-next-line deprecation/deprecation
+      const transaction = getActiveTransaction();
 
-      if (span) {
+      if (transaction) {
         if (request.response && isResponseObject(request.response)) {
-          setHttpStatus(span, request.response.statusCode);
+          setHttpStatus(transaction, request.response.statusCode);
         }
 
-        span.end();
+        transaction.end();
       }
 
       return h.continue;
