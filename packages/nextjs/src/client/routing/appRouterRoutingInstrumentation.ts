@@ -1,8 +1,7 @@
 import { WINDOW } from '@sentry/react';
-import type { Primitive, Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
+import type { Primitive, StartSpanOptions } from '@sentry/types';
 import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
 
-type StartTransactionCb = (context: TransactionContext) => Transaction | undefined;
 type StartSpanCb = (context: StartSpanOptions) => void;
 
 const DEFAULT_TAGS = {
@@ -12,23 +11,18 @@ const DEFAULT_TAGS = {
 /**
  * Instruments the Next.js Client App Router.
  */
-// TODO(v8): Clean this function up by splitting into pageload and navigation instrumentation respectively. Also remove startTransactionCb in the process.
 export function appRouterInstrumentation(
-  startTransactionCb: StartTransactionCb,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
+  shouldInstrumentPageload: boolean,
+  shouldInstrumentNavigation: boolean,
   startPageloadSpanCallback: StartSpanCb,
   startNavigationSpanCallback: StartSpanCb,
 ): void {
-  // We keep track of the active transaction so we can finish it when we start a navigation transaction.
-  let activeTransaction: Span | undefined = undefined;
-
   // We keep track of the previous location name so we can set the `from` field on navigation transactions.
   // This is either a route or a pathname.
   let prevLocationName = WINDOW.location.pathname;
 
-  if (startTransactionOnPageLoad) {
-    const transactionContext = {
+  if (shouldInstrumentPageload) {
+    startPageloadSpanCallback({
       name: prevLocationName,
       op: 'pageload',
       origin: 'auto.pageload.nextjs.app_router_instrumentation',
@@ -36,12 +30,10 @@ export function appRouterInstrumentation(
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       metadata: { source: 'url' },
-    } as const;
-    activeTransaction = startTransactionCb(transactionContext);
-    startPageloadSpanCallback(transactionContext);
+    });
   }
 
-  if (startTransactionOnLocationChange) {
+  if (shouldInstrumentNavigation) {
     addFetchInstrumentationHandler(handlerData => {
       // The instrumentation handler is invoked twice - once for starting a request and once when the req finishes
       // We can use the existence of the end-timestamp to filter out "finishing"-events.
@@ -68,20 +60,13 @@ export function appRouterInstrumentation(
 
       prevLocationName = transactionName;
 
-      if (activeTransaction) {
-        activeTransaction.end();
-      }
-
-      const transactionContext = {
+      startNavigationSpanCallback({
         name: transactionName,
         op: 'navigation',
         origin: 'auto.navigation.nextjs.app_router_instrumentation',
         tags,
         metadata: { source: 'url' },
-      } as const;
-
-      startTransactionCb(transactionContext);
-      startNavigationSpanCallback(transactionContext);
+      });
     });
   }
 }
