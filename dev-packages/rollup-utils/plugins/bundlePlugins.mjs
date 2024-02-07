@@ -116,12 +116,6 @@ export function makeTerserPlugin() {
         reserved: [
           // ...except for `_experiments`, which we want to remain usable from the outside
           '_experiments',
-          // ...except for some localforage internals, which if we replaced them would break the localforage package
-          // with the error "Error: Custom driver not compliant": https://github.com/getsentry/sentry-javascript/issues/5527.
-          // Reference for which fields are affected: https://localforage.github.io/localForage/ (ctrl-f for "_")
-          '_driver',
-          '_initStorage',
-          '_support',
           // We want to keep some replay fields unmangled to enable integration tests to access them
           '_replay',
           '_canvas',
