@@ -96,10 +96,6 @@ const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-pages-router',
 } as const;
 
-// We keep track of the previous location name so we can set the `from` field on navigation transactions.
-// This is either a route or a pathname.
-let prevLocationName: string | undefined = undefined;
-
 const client = getClient();
 
 /**
@@ -118,8 +114,7 @@ export function pagesRouterInstrumentation(
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
-
-  prevLocationName = route || globalObject.location.pathname;
+  let prevLocationName = route || globalObject.location.pathname;
 
   if (shouldInstrumentPageload) {
     const source = route ? 'route' : 'url';
