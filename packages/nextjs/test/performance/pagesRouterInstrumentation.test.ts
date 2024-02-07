@@ -121,17 +121,11 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/[user]/posts/[id]',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
-          },
-          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
-          parentSpanId: 'a755953cd3394d5f',
-          parentSampled: true,
         },
       ],
       [
@@ -147,17 +141,11 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/some-page',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
-          },
-          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
-          parentSpanId: 'a755953cd3394d5f',
-          parentSampled: true,
         },
       ],
       [
@@ -168,12 +156,10 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
-          },
-          metadata: {
-            source: 'route',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
         },
       ],
@@ -185,12 +171,10 @@ describe('pagesRouterInstrumentation', () => {
         false, // no __NEXT_DATA__ tag
         {
           name: '/lforst/posts/1337',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
-          },
-          metadata: {
-            source: 'url',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'url',
           },
         },
       ],
@@ -258,13 +242,11 @@ describe('pagesRouterInstrumentation', () => {
         expect(mockStartNavigationSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: expectedTransactionName,
-            op: 'navigation',
-            tags: expect.objectContaining({
-              'routing.instrumentation': 'next-pages-router',
-            }),
-            metadata: expect.objectContaining({
-              source: expectedTransactionSource,
-            }),
+            attributes: {
+              'sentry.op': 'navigation',
+              'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
+              'sentry.source': expectedTransactionSource,
+            },
           }),
         );
       },

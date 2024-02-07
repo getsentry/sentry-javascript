@@ -1,7 +1,12 @@
 import type { ParsedUrlQuery } from 'querystring';
-import { getClient } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  withScope,
+} from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { StartSpanOptions, TransactionSource } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
   logger,
@@ -96,8 +101,6 @@ const DEFAULT_TAGS = {
   'routing.instrumentation': 'next-pages-router',
 } as const;
 
-const client = getClient();
-
 /**
  * Instruments the Next.js pages router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -113,26 +116,31 @@ export function pagesRouterInstrumentation(
   startNavigationSpanCallback: StartSpanCb,
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
+  const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
   let prevLocationName = route || globalObject.location.pathname;
 
   if (shouldInstrumentPageload) {
-    const source = route ? 'route' : 'url';
-    startPageloadSpanCallback({
-      name: prevLocationName,
-      op: 'pageload',
-      origin: 'auto.pageload.nextjs.pages_router_instrumentation',
-      tags: DEFAULT_TAGS,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-      ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      parentSpanId,
-      traceId,
-      parentSampled: sampled,
-      metadata: {
-        source,
-        dynamicSamplingContext: dsc,
-      },
+    withScope(scope => {
+      scope.setTags(DEFAULT_TAGS);
+      scope.setPropagationContext(propagationContext);
+
+      const client = scope.getClient();
+      if (params && client && client.getOptions().sendDefaultPii) {
+        scope.setExtras({
+          routeParams: params,
+        });
+      }
+
+      startPageloadSpanCallback({
+        name: prevLocationName,
+        // pageload should always start at timeOrigin (and needs to be in s, not ms)
+        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        },
+      });
     });
   }
 
@@ -141,33 +149,33 @@ export function pagesRouterInstrumentation(
       const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
       const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
 
-      let transactionName: string;
-      let transactionSource: TransactionSource;
+      let spanName: string;
+      let spanSource: TransactionSource;
 
       if (matchedRoute) {
-        transactionName = matchedRoute;
-        transactionSource = 'route';
+        spanName = matchedRoute;
+        spanSource = 'route';
       } else {
-        transactionName = strippedNavigationTarget;
-        transactionSource = 'url';
+        spanName = strippedNavigationTarget;
+        spanSource = 'url';
       }
 
-      const tags: Record<string, Primitive> = {
-        ...DEFAULT_TAGS,
-        from: prevLocationName,
-      };
+      prevLocationName = spanName;
 
-      prevLocationName = transactionName;
-
-      const transactionContext = {
-        name: transactionName,
-        op: 'navigation',
-        origin: 'auto.navigation.nextjs.pages_router_instrumentation',
-        tags,
-        metadata: { source: transactionSource },
-      } satisfies StartSpanOptions;
-
-      startNavigationSpanCallback(transactionContext);
+      withScope(scope => {
+        scope.setTags({
+          ...DEFAULT_TAGS,
+          from: prevLocationName,
+        });
+        startNavigationSpanCallback({
+          name: spanName,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+          },
+        });
+      });
     });
   }
 }

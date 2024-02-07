@@ -1,3 +1,9 @@
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  withScope,
+} from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { Primitive, StartSpanOptions } from '@sentry/types';
 import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
@@ -19,17 +25,21 @@ export function appRouterInstrumentation(
 ): void {
   // We keep track of the previous location name so we can set the `from` field on navigation transactions.
   // This is either a route or a pathname.
-  let prevLocationName = WINDOW.location.pathname;
+  let currPathname = WINDOW.location.pathname;
 
   if (shouldInstrumentPageload) {
-    startPageloadSpanCallback({
-      name: prevLocationName,
-      op: 'pageload',
-      origin: 'auto.pageload.nextjs.app_router_instrumentation',
-      tags: DEFAULT_TAGS,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-      metadata: { source: 'url' },
+    withScope(scope => {
+      scope.setTags(DEFAULT_TAGS);
+      startPageloadSpanCallback({
+        name: currPathname,
+        // pageload should always start at timeOrigin (and needs to be in s, not ms)
+        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        },
+      });
     });
   }
 
@@ -52,20 +62,25 @@ export function appRouterInstrumentation(
         return;
       }
 
-      const transactionName = parsedNavigatingRscFetchArgs.targetPathname;
+      const newPathname = parsedNavigatingRscFetchArgs.targetPathname;
+
       const tags: Record<string, Primitive> = {
         ...DEFAULT_TAGS,
-        from: prevLocationName,
+        from: currPathname,
       };
 
-      prevLocationName = transactionName;
+      currPathname = newPathname;
 
-      startNavigationSpanCallback({
-        name: transactionName,
-        op: 'navigation',
-        origin: 'auto.navigation.nextjs.app_router_instrumentation',
-        tags,
-        metadata: { source: 'url' },
+      withScope(scope => {
+        scope.setTags(tags);
+        startNavigationSpanCallback({
+          name: newPathname,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
+        });
       });
     });
   }

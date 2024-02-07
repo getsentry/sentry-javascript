@@ -36,12 +36,11 @@ describe('appRouterInstrumentation', () => {
     expect(mockStartPageloadSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/some/page',
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        tags: {
-          'routing.instrumentation': 'next-app-router',
+        attributes: {
+          'sentry.op': 'pageload',
+          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
+          'sentry.source': 'url',
         },
-        metadata: { source: 'url' },
       }),
     );
   });
@@ -84,12 +83,10 @@ describe('appRouterInstrumentation', () => {
 
     expect(mockStartNavigationSpan).toHaveBeenCalledWith({
       name: '/some/server/component/page',
-      op: 'navigation',
-      origin: 'auto.navigation.nextjs.app_router_instrumentation',
-      metadata: { source: 'url' },
-      tags: {
-        from: '/some/page',
-        'routing.instrumentation': 'next-app-router',
+      attributes: {
+        'sentry.op': 'navigation',
+        'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
+        'sentry.source': 'url',
       },
     });
   });
