@@ -18,10 +18,49 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "default": "./build/npm/esm/index.js",
+        "types": "./build/npm/types/index.d.ts"
+      },
+      "require": {
+        "default": "./build/npm/cjs/index.js",
+        "types": "./build/npm/types/index.d.ts"
+      }
+    },
+    "./aws": {
+      "import": {
+        "default": "./build/npm/esm/index.aws.js",
+        "types": "./build/npm/types/index.aws.d.ts"
+      },
+      "require": {
+        "default": "./build/npm/cjs/index.aws.js",
+        "types": "./build/npm/types/index.aws.d.ts"
+      }
+    },
+    "./gcp": {
+      "import": {
+        "default": "./build/npm/esm/index.gcp.js",
+        "types": "./build/npm/types/index.gcp.d.ts"
+      },
+      "require": {
+        "default": "./build/npm/cjs/index.gcp.js",
+        "types": "./build/npm/types/index.gcp.d.ts"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
         "build/npm/types-ts3.8/index.d.ts"
+      ],
+      "build/npm/types/index.aws.d.ts": [
+        "build/npm/types-ts3.8/index.aws.d.ts"
+      ],
+      "build/npm/types/index.gcp.d.ts": [
+        "build/npm/types-ts3.8/index.gcp.d.ts"
       ]
     }
   },

@@ -58,7 +58,12 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryRemix),
   },
   {
-    package: '@sentry/serverless',
+    package: '@sentry/serverless/aws',
+    exports: Object.keys(SentryServerless),
+    ignoreExports: ['cron', 'hapiErrorPlugin', 'enableAnrDetection'],
+  },
+  {
+    package: '@sentry/serverless/gcp',
     exports: Object.keys(SentryServerless),
     ignoreExports: ['cron', 'hapiErrorPlugin', 'enableAnrDetection'],
   },
