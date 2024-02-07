@@ -87,10 +87,12 @@ jobs:
         id: changed
         with:
           filters: |
+            workflow: &workflow
+              - '.github/**'
             shared: &shared
+              - *workflow
               - '*.{js,ts,json,yml,lock}'
               - 'CHANGELOG.md'
-              - '.github/**'
               - 'jest/**'
               - 'scripts/**'
               - 'packages/core/**'
@@ -115,6 +117,11 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
+            node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/node-experimental/**'
+              - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
@@ -127,18 +134,16 @@ jobs:
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
-            node:
+            profiling_node:
               - *shared
               - 'packages/node/**'
               - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
-              - 'dev-packages/node-integration-tests/**'
-            profiling_node:
-              - *shared
-              - 'packages/node/**'
-              - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:
-              - 'packages/profiling-node/bindings/**'
+              - *workflow
+              - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             deno:
               - *shared
               - *browser
@@ -554,7 +559,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node =='true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -1064,7 +1069,6 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
-            'node-profiling',
             'vue-3'
           ]
         build-command:
@@ -1086,7 +1090,6 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
-
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1106,34 +1109,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
-      - name: Build Profiling Node
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
-          (needs.job_get_metadata.outputs.is_release == 'true') ||
-          (github.event_name != 'pull_request')
-        run: yarn lerna run build:lib --scope @sentry/profiling-node
-
-      - name: Extract Profiling Node Prebuilt Binaries
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
-          (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v3
-        with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
-
-      - name: Build Profiling tarball
-        run: yarn build:tarball --scope @sentry/profiling-node
-
-      - name: Install esbuild
-        if: ${{ matrix.test-application == 'node-profiling' }}
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        run: yarn add esbuild@0.19.11
-      # End rebuild profiling
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
@@ -1176,6 +1151,93 @@ jobs:
           directory: dist
           workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
+  job_profiling_e2e_tests:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
+    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    # We need to add the `always()` check here because the previous step has this as well :(
+    # See: https://github.com/actions/runner/issues/2205
+    if:
+      # Only run profiling e2e tests if profiling node bindings have changed
+      always() && needs.job_e2e_prepare.result == 'success' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]' && (
+        (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+        (needs.job_get_metadata.outputs.is_release == 'true') ||
+        (github.event_name != 'pull_request')
+      )
+    needs: [job_get_metadata, job_build, job_e2e_prepare]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        test-application: ['node-profiling']
+        build-command:
+          - false
+        label:
+          - false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.3.1
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'dev-packages/e2e-tests/package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+      - name: Extract Profiling Node Prebuilt Binaries
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+      - name: Restore tarball cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/packages/*/*.tgz
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+
+      - name: Get node version
+        id: versions
+        run: |
+          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
+
+      - name: Validate Verdaccio
+        run: yarn test:validate
+        working-directory: dev-packages/e2e-tests
+
+      - name: Prepare Verdaccio
+        run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+        env:
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
+
+      - name: Build E2E app
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn ${{ matrix.build-command || 'test:build' }}
+
+      - name: Run E2E test
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn test:assert
+
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:
@@ -1195,6 +1257,7 @@ jobs:
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
+        job_profiling_e2e_tests,
         job_artifacts,
         job_lint,
         job_check_format,
