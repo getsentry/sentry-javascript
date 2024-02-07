@@ -215,14 +215,14 @@ describe('ExtraErrorData()', () => {
     });
   });
 
-  it('captures Error causes when captureErrorCause = true', () => {
+  it('captures Error causes when captureErrorCause = true (default)', () => {
     // Error.cause is only available from node 16 upwards
     const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
     if (nodeMajorVersion < 16) {
       return;
     }
 
-    const extraErrorDataWithCauseCapture = extraErrorDataIntegration({ captureErrorCause: true });
+    const extraErrorDataWithCauseCapture = extraErrorDataIntegration();
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
@@ -251,7 +251,7 @@ describe('ExtraErrorData()', () => {
       return;
     }
 
-    const extraErrorDataWithoutCauseCapture = extraErrorDataIntegration();
+    const extraErrorDataWithoutCauseCapture = extraErrorDataIntegration({ captureErrorCause: false });
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
