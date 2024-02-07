@@ -5,7 +5,7 @@ import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
-import { googleCloudHttpIntegration } from '../src/google-cloud-http';
+import { googleCloudHttpIntegration } from '../src/index.gcp';
 
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));

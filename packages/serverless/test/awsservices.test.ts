@@ -3,7 +3,7 @@ import * as AWS from 'aws-sdk';
 import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { awsServicesIntegration } from '../src/awsservices';
+import { awsServicesIntegration } from '../src/index.aws';
 
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));

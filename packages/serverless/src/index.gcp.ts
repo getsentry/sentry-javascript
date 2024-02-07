@@ -1,24 +1,18 @@
-export { awsServicesIntegration } from './awsservices';
-import { init as awsLambdaInit, tryPatchHandler, wrapHandler } from './awslambda';
-import { init as gcpFunctionInit } from './gcpfunction';
+export { init, getDefaultIntegrations } from './gcp/sdk';
 
-export const AWSLambda = {
-  init: awsLambdaInit,
-  wrapHandler,
-  tryPatchHandler,
-};
+export { wrapHttpFunction } from './gcp/http';
+export type { HttpFunctionWrapperOptions } from './gcp/http';
 
-export const GCPFunction = {
-  init: gcpFunctionInit,
-};
+export { wrapCloudEventFunction } from './gcp/cloud_events';
+export type { CloudEventFunctionWrapperOptions } from './gcp/cloud_events';
 
-import type { WrapperOptions as AWSWrapperOptions } from './awslambda';
-export type { AWSWrapperOptions };
+export { wrapEventFunction } from './gcp/events';
+export type { EventFunctionWrapperOptions } from './gcp/events';
 
-// TODO(v8): We have to explicitly export these because of the namespace exports
-// above. This is because just doing `export * from '@sentry/node'` will not
-// work with Node native esm while we also have namespace exports in a package.
-// What we should do is get rid of the namespace exports.
+export { googleCloudGrpcIntegration } from './gcp/google-cloud-grpc';
+export { googleCloudHttpIntegration } from './gcp/google-cloud-http';
+
+// These exports should not export `init` or `getDefaultIntegrations`.
 export {
   Hub,
   SDK_VERSION,
@@ -53,11 +47,9 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
-  getDefaultIntegrations,
   defaultStackParser,
   flush,
   getSentryRelease,
-  init,
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,

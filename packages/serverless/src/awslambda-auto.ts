@@ -1,4 +1,4 @@
-import { init, tryPatchHandler } from './awslambda';
+import { init, tryPatchHandler } from './aws/sdk';
 
 const lambdaTaskRoot = process.env.LAMBDA_TASK_ROOT;
 if (lambdaTaskRoot) {

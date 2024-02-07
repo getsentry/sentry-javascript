@@ -10,7 +10,7 @@ import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
-import { googleCloudGrpcIntegration } from '../src/google-cloud-grpc';
+import { googleCloudGrpcIntegration } from '../src/index.gcp';
 
 const spyConnect = jest.spyOn(http2, 'connect');
 

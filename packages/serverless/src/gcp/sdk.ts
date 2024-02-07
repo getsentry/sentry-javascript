@@ -2,12 +2,8 @@ import type { NodeOptions } from '@sentry/node';
 import { SDK_VERSION, getDefaultIntegrations as getDefaultNodeIntegrations, init as initNode } from '@sentry/node';
 import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
-import { googleCloudGrpcIntegration } from '../google-cloud-grpc';
-import { googleCloudHttpIntegration } from '../google-cloud-http';
-
-export * from './http';
-export * from './events';
-export * from './cloud_events';
+import { googleCloudGrpcIntegration } from './google-cloud-grpc';
+import { googleCloudHttpIntegration } from './google-cloud-http';
 
 /** Get the default integrations for the GCP SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {

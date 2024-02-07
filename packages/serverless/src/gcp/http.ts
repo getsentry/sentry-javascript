@@ -12,7 +12,7 @@ import { captureException, flush } from '@sentry/node';
 import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { domainify, markEventUnhandled, proxyFunction } from './../utils';
+import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 // TODO (v8 / #5257): Remove this whole old/new business and just use the new stuff

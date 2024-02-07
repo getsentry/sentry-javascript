@@ -2,8 +2,6 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/cor
 import { getClient, startInactiveSpan } from '@sentry/node';
 import type { Client, IntegrationFn, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
-// 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
-// When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
 import type * as AWS from 'aws-sdk/global';
 
 type GenericParams = { [key: string]: any }; // eslint-disable-line @typescript-eslint/no-explicit-any

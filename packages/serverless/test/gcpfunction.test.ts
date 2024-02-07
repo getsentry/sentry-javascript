@@ -4,7 +4,6 @@ import type { Event, Integration } from '@sentry/types';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
-import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/gcpfunction';
 import type {
   CloudEventFunction,
   CloudEventFunctionWithCallback,
@@ -13,9 +12,10 @@ import type {
   HttpFunction,
   Request,
   Response,
-} from '../src/gcpfunction/general';
+} from '../src/gcp/general';
+import { wrapCloudEventFunction, wrapEventFunction, wrapHttpFunction } from '../src/index.gcp';
 
-import { init } from '../src/gcpfunction';
+import { init } from '../src/gcp/sdk';
 
 const mockStartInactiveSpan = jest.fn((...spanArgs) => ({ ...spanArgs }));
 const mockStartSpanManual = jest.fn((...spanArgs) => ({ ...spanArgs }));

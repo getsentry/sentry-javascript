@@ -23,8 +23,8 @@ import { performance } from 'perf_hooks';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { awsServicesIntegration } from './awsservices';
 
-import { DEBUG_BUILD } from './debug-build';
-import { markEventUnhandled } from './utils';
+import { DEBUG_BUILD } from '../debug-build';
+import { markEventUnhandled } from '../utils';
 
 const { isPromise } = types;
 
