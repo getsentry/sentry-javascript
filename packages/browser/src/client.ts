@@ -9,7 +9,6 @@ import type {
   EventHint,
   Options,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
@@ -76,8 +75,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   public eventFromMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);

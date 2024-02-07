@@ -1,6 +1,6 @@
 import { getGlobalScope as _getGlobalScope, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type { Breadcrumb, Client, Event, EventHint, Severity, SeverityLevel } from '@sentry/types';
+import type { Breadcrumb, Client, Event, EventHint, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getGlobalCarrier } from './globals';
@@ -140,12 +140,7 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
   }
 
   /** Capture a message for this scope. */
-  public captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string {
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error(message);
 

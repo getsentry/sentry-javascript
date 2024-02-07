@@ -6,7 +6,7 @@ import type { Integration, IntegrationClass } from './integration';
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import type { User } from './user';
 
@@ -116,12 +116,7 @@ export interface Hub {
    *
    * @deprecated Use `Sentry.captureMessage()` instead.
    */
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
