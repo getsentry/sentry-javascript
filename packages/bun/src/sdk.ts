@@ -37,7 +37,6 @@ export const defaultIntegrations = [
   // new NodeIntegrations.OnUnhandledRejection(),
   // Event Info
   contextLinesIntegration(),
-  // new NodeIntegrations.LocalVariables(), # does't work with Bun
   nodeContextIntegration(),
   modulesIntegration(),
   // Bun Specific
