@@ -15,16 +15,28 @@ http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-cac
 
 The `AWSServices`, `GoogleCloudGrpc`, and `GoogleCloudHttp`. integrations have been removed from `@sentry/serverless` package. See the [table below](#deprecate-class-based-integrations) to find what to upgrade to.
 
-Using the `Sentry.AWSLambda` export has also changed. It no longer re-exports all of methods of the Node SDK, you'll have to import them directly from `@sentry/serverless`, instead it only exports `init`, `wrapHandler` and `tryPatchHandler`.
+We've also updated the package to use subpath exports instead of namespace exports with `Sentry.AWSLambda` and `Sentry.GCPFunction`. This helps with tree-shaking and organizes the code better. Below is an example of how your imports should look after the upgrade:
 
 ```js
+// before
 import * as Sentry from '@sentry/serverless';
 
-// before
-Sentry.AWSLambda.captureException(...);
+Sentry.AWSLambda.init(...);
 
 // after
-Sentry.captureException(...);
+import * as Sentry from '@sentry/serverless/aws';
+
+Sentry.init(...);
+
+// before
+import * as Sentry from '@sentry/serverless';
+
+Sentry.GCPFunction.init(...);
+
+// after
+import * as Sentry from '@sentry/serverless/gcp';
+
+Sentry.init(...);
 ```
 
 # Deprecations in 7.x
