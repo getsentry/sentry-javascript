@@ -74,7 +74,6 @@ export function reactRouterV3BrowserTracingIntegration(
         return undefined;
       };
 
-      // eslint-disable-next-line deprecation/deprecation
       const instrumentation = reactRouterV3Instrumentation(history, routes, match);
 
       // Now instrument page load & navigation with correct settings
@@ -91,14 +90,8 @@ export function reactRouterV3BrowserTracingIntegration(
  * @param history object from the `history` library
  * @param routes a list of all routes, should be
  * @param match `Router.match` utility
- *
- * @deprecated Use `reactRouterV3BrowserTracingIntegration()` instead
  */
-export function reactRouterV3Instrumentation(
-  history: HistoryV3,
-  routes: Route[],
-  match: Match,
-): ReactRouterInstrumentation {
+function reactRouterV3Instrumentation(history: HistoryV3, routes: Route[], match: Match): ReactRouterInstrumentation {
   return (
     startTransaction: (context: TransactionContext) => Transaction | undefined,
     startTransactionOnPageLoad: boolean = true,
