@@ -10,8 +10,7 @@ import {
   resetInstrumentationHandlers,
 } from '@sentry/utils';
 
-import type { captureConsoleIntegration } from '../src/captureconsole';
-import { CaptureConsole } from '../src/captureconsole';
+import { captureConsoleIntegration } from '../src/captureconsole';
 
 const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
   debug: jest.fn(),
@@ -22,11 +21,6 @@ const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
   info: jest.fn(),
   trace: jest.fn(),
 };
-
-function getIntegration(...args: Parameters<typeof captureConsoleIntegration>) {
-  // eslint-disable-next-line deprecation/deprecation
-  return new CaptureConsole(...args);
-}
 
 describe('CaptureConsole setup', () => {
   // Ensure we've initialized the instrumentation so we can get the original one
@@ -71,8 +65,8 @@ describe('CaptureConsole setup', () => {
 
   describe('monkeypatching', () => {
     it('should patch user-configured console levels', () => {
-      const captureConsoleIntegration = getIntegration({ levels: ['log', 'warn'] });
-      captureConsoleIntegration.setup(mockClient);
+      const captureConsole = captureConsoleIntegration({ levels: ['log', 'warn'] });
+      captureConsole.setup?.(mockClient);
 
       GLOBAL_OBJ.console.error('msg 1');
       GLOBAL_OBJ.console.log('msg 2');
@@ -82,8 +76,8 @@ describe('CaptureConsole setup', () => {
     });
 
     it('should fall back to default console levels if none are provided', () => {
-      const captureConsoleIntegration = getIntegration();
-      captureConsoleIntegration.setup(mockClient);
+      const captureConsole = captureConsoleIntegration();
+      captureConsole.setup?.(mockClient);
 
       // Assert has a special handling
       (['debug', 'info', 'warn', 'error', 'log', 'trace'] as const).forEach(key => {
@@ -96,8 +90,8 @@ describe('CaptureConsole setup', () => {
     });
 
     it('should not wrap any functions with an empty levels option', () => {
-      const captureConsoleIntegration = getIntegration({ levels: [] });
-      captureConsoleIntegration.setup(mockClient);
+      const captureConsole = captureConsoleIntegration({ levels: [] });
+      captureConsole.setup?.(mockClient);
 
       CONSOLE_LEVELS.forEach(key => {
         GLOBAL_OBJ.console[key]('msg');
@@ -112,9 +106,9 @@ describe('CaptureConsole setup', () => {
     // @ts-expect-error remove console
     delete GLOBAL_OBJ.console;
 
-    const captureConsoleIntegration = getIntegration();
+    const captureConsole = captureConsoleIntegration();
     expect(() => {
-      captureConsoleIntegration.setup(mockClient);
+      captureConsole.setup?.(mockClient);
     }).not.toThrow();
 
     // reinstate initial console
@@ -122,8 +116,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should send empty arguments as extra data', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['log'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['log'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.log();
 
@@ -132,8 +126,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should add an event processor that sets the `logger` field of events', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['log'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['log'] });
+    captureConsole.setup?.(mockClient);
 
     // call a wrapped function
     GLOBAL_OBJ.console.log('some message');
@@ -148,8 +142,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture message on a failed assertion', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['assert'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['assert'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 3);
 
@@ -162,8 +156,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture correct message on a failed assertion with message', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['assert'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['assert'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 3, 'expression is false');
 
@@ -176,15 +170,15 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should not capture message on a successful assertion', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['assert'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['assert'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 2);
   });
 
   it('should capture exception when console logs an error object with level set to "error"', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['error'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['error'] });
+    captureConsole.setup?.(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
@@ -197,8 +191,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture exception on `console.error` when no levels are provided in constructor', () => {
-    const captureConsoleIntegration = getIntegration();
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration();
+    captureConsole.setup?.(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
@@ -211,8 +205,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture exception when console logs an error object in any of the args when level set to "error"', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['error'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['error'] });
+    captureConsole.setup?.(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error('Something went wrong', someError);
@@ -225,8 +219,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture message on `console.log` when no levels are provided in constructor', () => {
-    const captureConsoleIntegration = getIntegration();
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration();
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.error('some message');
 
@@ -238,8 +232,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture message when console logs a non-error object with level set to "error"', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['error'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['error'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.error('some non-error message');
 
@@ -252,8 +246,8 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should capture a message for non-error log levels', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['info'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['info'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.info('some message');
 
@@ -270,8 +264,8 @@ describe('CaptureConsole setup', () => {
     const mockConsoleLog = jest.fn();
     GLOBAL_OBJ.console.log = mockConsoleLog;
 
-    const captureConsoleIntegration = getIntegration({ levels: ['log'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['log'] });
+    captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.log('some message 1', 'some message 2');
 
@@ -283,17 +277,17 @@ describe('CaptureConsole setup', () => {
   });
 
   it('should not wrap any levels that are not members of console', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['log', 'someNonExistingLevel', 'error'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['log', 'someNonExistingLevel', 'error'] });
+    captureConsole.setup?.(mockClient);
 
     // The provided level should not be created
     expect((GLOBAL_OBJ.console as any)['someNonExistingLevel']).toBeUndefined();
   });
 
   it('should wrap the console when the client does not have a registered captureconsole integration, but not capture any messages', () => {
-    const captureConsoleIntegration = getIntegration({ levels: ['log', 'error'] });
+    const captureConsole = captureConsoleIntegration({ levels: ['log', 'error'] });
     // when `setup` is not called on the current client, it will not trigger
-    captureConsoleIntegration.setup({} as Client);
+    captureConsole.setup?.({} as Client);
 
     // Should not capture messages
     GLOBAL_OBJ.console.log('some message');
@@ -303,8 +297,8 @@ describe('CaptureConsole setup', () => {
   it("should not crash when the original console methods don't exist at time of invocation", () => {
     originalConsoleMethods.log = undefined;
 
-    const captureConsoleIntegration = getIntegration({ levels: ['log'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['log'] });
+    captureConsole.setup?.(mockClient);
 
     expect(() => {
       GLOBAL_OBJ.console.log('some message');
@@ -314,8 +308,8 @@ describe('CaptureConsole setup', () => {
   it("marks captured exception's mechanism as unhandled", () => {
     // const addExceptionMechanismSpy = jest.spyOn(utils, 'addExceptionMechanism');
 
-    const captureConsoleIntegration = getIntegration({ levels: ['error'] });
-    captureConsoleIntegration.setup(mockClient);
+    const captureConsole = captureConsoleIntegration({ levels: ['error'] });
+    captureConsole.setup?.(mockClient);
 
     const someError = new Error('some error');
     GLOBAL_OBJ.console.error(someError);
