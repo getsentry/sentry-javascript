@@ -1,6 +1,6 @@
-import { captureException, getCurrentScope, setTag, withScope } from '@sentry/core';
+import { captureException, getClient, getCurrentHub, getCurrentScope, setTag, withScope } from '@sentry/core';
 
-import { OpenTelemetryHub, getClient, getCurrentHub } from '../../src/custom/hub';
+import { OpenTelemetryHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
 import { getSpanScope } from '../../src/utils/spanData';
@@ -22,6 +22,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
 
@@ -129,6 +130,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();

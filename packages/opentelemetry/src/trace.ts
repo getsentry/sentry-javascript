@@ -2,10 +2,9 @@ import type { Span, Tracer } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { SDK_VERSION, handleCallbackErrors } from '@sentry/core';
+import { SDK_VERSION, getClient, handleCallbackErrors } from '@sentry/core';
 import type { Client } from '@sentry/types';
 
-import { getClient } from './custom/hub';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { setSpanMetadata } from './utils/spanData';

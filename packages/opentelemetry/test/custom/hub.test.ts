@@ -1,12 +1,19 @@
-import { OpenTelemetryHub, getCurrentHub } from '../../src/custom/hub';
+import { getCurrentHub } from '@sentry/core';
+import { OpenTelemetryHub, setupGlobalHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 
 describe('OpenTelemetryHub', () => {
+  beforeEach(() => {
+    setupGlobalHub();
+  });
+
   it('getCurrentHub() returns the correct hub', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     expect(hub).toBeDefined();
     expect(hub).toBeInstanceOf(OpenTelemetryHub);
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub2 = getCurrentHub();
     expect(hub2).toBe(hub);
 
