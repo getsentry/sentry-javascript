@@ -72,7 +72,7 @@ export interface ErrorEvent extends Event {
 }
 export interface TransactionEvent extends Event {
   type: 'transaction';
-  _metrics_summary?: Record<string, MetricSummary>;
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 /** JSDoc */

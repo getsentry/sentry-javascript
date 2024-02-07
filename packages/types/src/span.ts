@@ -55,7 +55,7 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  _metrics_summary?: Record<string, MetricSummary>;
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 // These are aligned with OpenTelemetry trace flags
