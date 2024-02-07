@@ -88,6 +88,10 @@ describe('appRouterInstrumentation', () => {
         'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
         'sentry.source': 'url',
       },
+      tags: {
+        from: '/some/server/component/page',
+        'routing.instrumentation': 'next-app-router',
+      },
     });
   });
 

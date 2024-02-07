@@ -2,10 +2,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  withScope,
 } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
-import type { Primitive, StartSpanOptions } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/types';
 import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
 
 type StartSpanCb = (context: StartSpanOptions) => void;
@@ -28,18 +27,16 @@ export function appRouterInstrumentation(
   let currPathname = WINDOW.location.pathname;
 
   if (shouldInstrumentPageload) {
-    withScope(scope => {
-      scope.setTags(DEFAULT_TAGS);
-      startPageloadSpanCallback({
-        name: currPathname,
-        // pageload should always start at timeOrigin (and needs to be in s, not ms)
-        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        },
-      });
+    startPageloadSpanCallback({
+      name: currPathname,
+      tags: DEFAULT_TAGS,
+      // pageload should always start at timeOrigin (and needs to be in s, not ms)
+      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 
@@ -63,24 +60,19 @@ export function appRouterInstrumentation(
       }
 
       const newPathname = parsedNavigatingRscFetchArgs.targetPathname;
-
-      const tags: Record<string, Primitive> = {
-        ...DEFAULT_TAGS,
-        from: currPathname,
-      };
-
       currPathname = newPathname;
 
-      withScope(scope => {
-        scope.setTags(tags);
-        startNavigationSpanCallback({
-          name: newPathname,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-          },
-        });
+      startNavigationSpanCallback({
+        name: newPathname,
+        tags: {
+          ...DEFAULT_TAGS,
+          from: currPathname,
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        },
       });
     });
   }

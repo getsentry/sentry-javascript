@@ -3,7 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  withScope,
+  getClient,
 } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { StartSpanOptions, TransactionSource } from '@sentry/types';
@@ -116,31 +116,28 @@ export function pagesRouterInstrumentation(
   startNavigationSpanCallback: StartSpanCb,
 ): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+  const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
   let prevLocationName = route || globalObject.location.pathname;
 
   if (shouldInstrumentPageload) {
-    withScope(scope => {
-      scope.setTags(DEFAULT_TAGS);
-      scope.setPropagationContext(propagationContext);
-
-      const client = scope.getClient();
-      if (params && client && client.getOptions().sendDefaultPii) {
-        scope.setExtras({
-          routeParams: params,
-        });
-      }
-
-      startPageloadSpanCallback({
-        name: prevLocationName,
-        // pageload should always start at timeOrigin (and needs to be in s, not ms)
-        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
-        },
-      });
+    const client = getClient();
+    startPageloadSpanCallback({
+      name: prevLocationName,
+      tags: DEFAULT_TAGS,
+      // pageload should always start at timeOrigin (and needs to be in s, not ms)
+      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+      },
+      metadata: {
+        dynamicSamplingContext: dsc,
+      },
     });
   }
 
@@ -162,19 +159,17 @@ export function pagesRouterInstrumentation(
 
       prevLocationName = spanName;
 
-      withScope(scope => {
-        scope.setTags({
+      startNavigationSpanCallback({
+        name: spanName,
+        tags: {
           ...DEFAULT_TAGS,
           from: prevLocationName,
-        });
-        startNavigationSpanCallback({
-          name: spanName,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
-          },
-        });
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+        },
       });
     });
   }
