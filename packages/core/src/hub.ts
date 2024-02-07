@@ -509,19 +509,6 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
-   *
-   * @deprecated Use `getScope()` directly.
-   */
-  public configureScope(callback: (scope: Scope) => void): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const { scope, client } = this.getStackTop();
-    if (client) {
-      callback(scope);
-    }
-  }
-
-  /**
-   * @inheritDoc
    */
   public run(callback: (hub: Hub) => void): void {
     // eslint-disable-next-line deprecation/deprecation

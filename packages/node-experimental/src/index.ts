@@ -45,8 +45,6 @@ export {
   withScope,
   withIsolationScope,
   withActiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,

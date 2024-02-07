@@ -16,8 +16,6 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,

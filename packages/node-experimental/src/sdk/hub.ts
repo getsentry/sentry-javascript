@@ -13,7 +13,6 @@ import { endSession, startSession } from '@sentry/core';
 import {
   addBreadcrumb,
   captureEvent,
-  configureScope,
   getClient,
   getCurrentScope,
   setContext,
@@ -77,8 +76,6 @@ export function getCurrentHub(): Hub {
     setExtra,
     setExtras,
     setContext,
-    // eslint-disable-next-line deprecation/deprecation
-    configureScope: configureScope,
 
     run(callback: (hub: Hub) => void): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

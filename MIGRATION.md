@@ -33,6 +33,10 @@ The `enableAnrDetection` and `Anr` class have been removed. See the
 [docs](https://docs.sentry.io/platforms/node/configuration/application-not-responding/) for more details how to migrate
 to `anrIntegration`, the new integration for ANR detection.
 
+## Removal of `Sentry.configureScope`.
+
+The top level `Sentry.configureScope` function has been removed. Instead, you should use the `Sentry.getCurrentScope()` to access and mutate the current scope.
+
 ## Other changes
 
 - Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
