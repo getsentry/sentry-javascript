@@ -108,9 +108,6 @@ import { createGetModuleFromFilename } from './module';
 export const getModuleFromFilename = createGetModuleFromFilename();
 export { createGetModuleFromFilename };
 
-// eslint-disable-next-line deprecation/deprecation
-export { enableAnrDetection } from './integrations/anr/legacy';
-
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 import * as Handlers from './handlers';
