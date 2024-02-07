@@ -8,24 +8,15 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getSpanStatusFromHttpCode,
   hasTracingEnabled,
   runWithAsyncContext,
-  setHttpStatus,
-  startTransaction,
+  startSpanManual,
   withScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
-import {
-  addRequestDataToTransaction,
-  dropUndefinedKeys,
-  extractPathForTransaction,
-  extractRequestData,
-  isString,
-  isThenable,
-  logger,
-  normalize,
-} from '@sentry/utils';
+import { dropUndefinedKeys, extractPathForTransaction, isString, isThenable, logger, normalize } from '@sentry/utils';
 
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -65,53 +56,35 @@ export function tracingHandler(): (
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
-      // TODO: Refactor this to use `startSpan()`
-      // eslint-disable-next-line deprecation/deprecation
-      startTransaction(
-        {
-          name,
-          op: 'http.server',
-          origin: 'auto.http.node.tracingHandler',
-          ...ctx,
-          data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+
+    continueTrace({ sentryTrace, baggage }, () => {
+      withScope(scope => {
+        scope.setSDKProcessingMetadata({
+          request: req,
+        });
+        startSpanManual(
+          {
+            name,
+            op: 'http.server',
+            origin: 'auto.http.node.tracingHandler',
+            data: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            },
           },
-          metadata: {
-            // eslint-disable-next-line deprecation/deprecation
-            ...ctx.metadata,
-            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-            // be sure
-            request: req,
+          span => {
+            res.once('finish', () => {
+              // Push `span.end` to the next event loop so open spans have a chance to finish before the transaction
+              // closes
+              setImmediate(() => {
+                span?.setStatus(getSpanStatusFromHttpCode(res.statusCode));
+                span?.end();
+              });
+            });
+            next();
           },
-        },
-        // extra context passed to the tracesSampler
-        { request: extractRequestData(req) },
-      ),
-    );
-
-    // We put the transaction on the scope so users can attach children to it
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
-
-    // We also set __sentry_transaction on the response so people can grab the transaction there to add
-    // spans to it later.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (res as any).__sentry_transaction = transaction;
-
-    res.once('finish', () => {
-      // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
-      // closes
-      setImmediate(() => {
-        addRequestDataToTransaction(transaction, req);
-        setHttpStatus(transaction, res.statusCode);
-        transaction.end();
+        );
       });
     });
-
-    next();
   };
 }
 

@@ -4,12 +4,12 @@ import {
   continueTrace,
   convertIntegrationFnToClass,
   defineIntegration,
-  getActiveTransaction,
+  getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   setHttpStatus,
   spanToTraceHeader,
-  startTransaction,
+  startInactiveSpan,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
@@ -48,8 +48,7 @@ export const hapiErrorPlugin = {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction();
+      const span = getActiveSpan();
 
       if (request.response && isBoomObject(request.response)) {
         sendErrorToSentry(request.response);
@@ -57,9 +56,9 @@ export const hapiErrorPlugin = {
         sendErrorToSentry(event.error);
       }
 
-      if (transaction) {
-        transaction.setStatus('internal_error');
-        transaction.end();
+      if (span) {
+        span.setStatus('internal_error');
+        span.end();
       }
     });
   },
@@ -73,15 +72,14 @@ export const hapiTracingPlugin = {
     const server = serverArg as unknown as Server;
 
     server.ext('onPreHandler', (request, h) => {
-      const transaction = continueTrace(
+      const span = continueTrace(
         {
           sentryTrace: request.headers['sentry-trace'] || undefined,
           baggage: request.headers['baggage'] || undefined,
         },
-        transactionContext => {
+        () => {
           // eslint-disable-next-line deprecation/deprecation
-          return startTransaction({
-            ...transactionContext,
+          return startInactiveSpan({
             op: 'hapi.request',
             name: request.route.path,
             description: `${request.route.method} ${request.path}`,
@@ -90,21 +88,20 @@ export const hapiTracingPlugin = {
       );
 
       // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(transaction);
+      getCurrentScope().setSpan(span);
 
       return h.continue;
     });
 
     server.ext('onPreResponse', (request, h) => {
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction();
+      const span = getActiveSpan();
 
-      if (request.response && isResponseObject(request.response) && transaction) {
+      if (request.response && isResponseObject(request.response) && span) {
         const response = request.response as ResponseObject;
-        response.header('sentry-trace', spanToTraceHeader(transaction));
+        response.header('sentry-trace', spanToTraceHeader(span));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-          getDynamicSamplingContextFromSpan(transaction),
+          getDynamicSamplingContextFromSpan(span),
         );
 
         if (dynamicSamplingContext) {
@@ -116,15 +113,14 @@ export const hapiTracingPlugin = {
     });
 
     server.ext('onPostHandler', (request, h) => {
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction();
+      const span = getActiveSpan();
 
-      if (transaction) {
+      if (span) {
         if (request.response && isResponseObject(request.response)) {
-          setHttpStatus(transaction, request.response.statusCode);
+          setHttpStatus(span, request.response.statusCode);
         }
 
-        transaction.end();
+        span.end();
       }
 
       return h.continue;

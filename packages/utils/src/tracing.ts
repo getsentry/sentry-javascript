@@ -19,7 +19,7 @@ export const TRACEPARENT_REGEXP = new RegExp(
  *
  * @returns Object containing data from the header, or undefined if traceparent string is malformed
  */
-export function extractTraceparentData(traceparent?: string): TraceparentData | undefined {
+export function extractTraceparentData(traceparent?: string | null): TraceparentData | undefined {
   if (!traceparent) {
     return undefined;
   }
@@ -90,7 +90,7 @@ export function tracingContextFromHeaders(
  * Create a propagation context from incoming headers.
  */
 export function propagationContextFromHeaders(
-  sentryTrace: string | undefined,
+  sentryTrace: string | undefined | null,
   baggage: string | number | boolean | string[] | null | undefined,
 ): PropagationContext {
   const traceparentData = extractTraceparentData(sentryTrace);
