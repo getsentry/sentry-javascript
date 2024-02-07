@@ -27,6 +27,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,
   replayIntegration,
+  getReplay,
 } from '@sentry/replay';
 export type {
   ReplayEventType,
