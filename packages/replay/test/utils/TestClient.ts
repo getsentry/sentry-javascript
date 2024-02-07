@@ -39,7 +39,7 @@ export function init(options: TestClientOptions): void {
   initAndBind(TestClient, options);
 }
 
-export function getDefaultClientOptions(options: Partial<ClientOptions> = {}): ClientOptions {
+export function getDefaultClientOptions(options: Partial<TestClientOptions> = {}): ClientOptions {
   return {
     integrations: [],
     dsn: 'https://username@domain/123',
