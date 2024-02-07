@@ -19,6 +19,6 @@ Sentry.init({
     ),
 
     // Used for testing http tracing
-    new Sentry.Integrations.Http({ tracing: true }),
+    Sentry.httpIntegration({ tracing: true }),
   ],
 });
