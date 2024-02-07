@@ -20,7 +20,7 @@ Sentry.init({
   // `release` value here - use the environment variable `SENTRY_RELEASE`, so
   // that it will also get attached to your source maps
 
-  integrations: [new Sentry.Integrations.LocalVariables()],
+  integrations: [Sentry.localVariablesIntegration()],
 });
 
 Sentry.addEventProcessor(event => {
