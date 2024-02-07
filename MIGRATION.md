@@ -2,7 +2,9 @@
 
 ## Removal of Severity Enum
 
-In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity` enum. If you were using the `Severity` enum, you should replace it with the `SeverityLevel` type. See [below](#severity-severitylevel-and-severitylevels) for code snippet examples
+In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`
+enum. If you were using the `Severity` enum, you should replace it with the `SeverityLevel` type. See
+[below](#severity-severitylevel-and-severitylevels) for code snippet examples
 
 # Deprecations in 7.x
 
