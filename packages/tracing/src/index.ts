@@ -19,7 +19,6 @@ import {
   Transaction as TransactionT,
   addExtensionMethods as addExtensionMethodsT,
   defaultRequestInstrumentationOptions as defaultRequestInstrumentationOptionsT,
-  extractTraceparentData as extractTraceparentDataT,
   getActiveTransaction as getActiveTransactionT,
   hasTracingEnabled as hasTracingEnabledT,
   instrumentOutgoingRequests as instrumentOutgoingRequestsT,
@@ -65,14 +64,6 @@ export const addExtensionMethods = addExtensionMethodsT;
  */
 // eslint-disable-next-line deprecation/deprecation
 export const getActiveTransaction = getActiveTransactionT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-// eslint-disable-next-line deprecation/deprecation
-export const extractTraceparentData = extractTraceparentDataT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
