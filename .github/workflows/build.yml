@@ -1061,7 +1061,6 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
-            'node-profiling',
             'vue-3'
           ]
         build-command:
@@ -1083,6 +1082,14 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
+          # Only run node-profiling e2e test if profiling node bindings were changed
+          - test-application: 'node-profiling'
+            build-command: false
+            label: false
+            if: |
+              (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+              (needs.job_get_metadata.outputs.is_release == 'true') ||
+              (github.event_name != 'pull_request')
 
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -1117,6 +1124,7 @@ jobs:
         # https://github.com/actions/upload-artifact/issues/478
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+          (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v3
         with:
