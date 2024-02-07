@@ -37,7 +37,7 @@ describe('Tracekit - React Tests', () => {
             lineno: 1,
             colno: 21841,
             in_app: true,
-          }
+          },
         ],
       },
     });
@@ -125,7 +125,7 @@ describe('Tracekit - React Tests', () => {
             lineno: 1,
             colno: 21841,
             in_app: true,
-          }
+          },
         ],
       },
     });
