@@ -2,11 +2,11 @@ import { Hub, makeMain, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
-import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
 import { TestClient } from '../utils/TestClient';
 
-conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
+describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
   let hub: Hub;
   beforeEach(() => {

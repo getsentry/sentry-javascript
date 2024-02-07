@@ -8,7 +8,7 @@
 
 ## Pre-requisites
 
-Replay with canvas requires Node 12+, and browsers newer than IE11.
+Replay with canvas requires Node 14+, and browsers newer than IE11.
 
 ## Installation
 

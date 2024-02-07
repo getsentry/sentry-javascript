@@ -18,7 +18,7 @@
 ## Usage
 
 To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options.
+hook into the environment. Note that you can turn off almost all side effects using the respective options. Minimum supported Node version is Node 14.
 
 ```javascript
 // CJS syntax
