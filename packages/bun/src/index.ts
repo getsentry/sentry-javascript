@@ -90,8 +90,6 @@ export {
 export type { SpanStatusType } from '@sentry/core';
 export {
   // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
-  // eslint-disable-next-line deprecation/deprecation
   enableAnrDetection,
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
