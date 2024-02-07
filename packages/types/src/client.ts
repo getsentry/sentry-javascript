@@ -14,7 +14,7 @@ import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
@@ -48,13 +48,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-    scope?: Scope,
-  ): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -175,12 +169,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
-  eventFromMessage(
-    message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): PromiseLike<Event>;
+  eventFromMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event, hint?: EventHint): void;

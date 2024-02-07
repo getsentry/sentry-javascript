@@ -15,7 +15,6 @@ import type {
   Scope as ScopeInterface,
   Session,
   SessionContext,
-  Severity,
   SeverityLevel,
   Span,
   TransactionContext,
@@ -56,11 +55,7 @@ export function captureException(
  * @param captureContext Define the level of the message or pass in additional data to attach to the message.
  * @returns the id of the captured message.
  */
-export function captureMessage(
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
