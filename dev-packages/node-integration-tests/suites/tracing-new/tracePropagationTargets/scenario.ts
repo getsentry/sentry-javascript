@@ -1,5 +1,4 @@
 import * as http from 'http';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
@@ -7,7 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   tracePropagationTargets: [/\/v0/, 'v1'],
-  integrations: [new Sentry.Integrations.Http({ tracing: true })],
+  integrations: [Sentry.httpIntegration({ tracing: true })],
 });
 
 // eslint-disable-next-line deprecation/deprecation

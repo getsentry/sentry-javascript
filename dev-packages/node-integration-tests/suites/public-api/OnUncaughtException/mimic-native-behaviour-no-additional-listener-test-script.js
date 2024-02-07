@@ -5,7 +5,7 @@ Sentry.init({
   integrations: integrations => {
     return integrations.map(integration => {
       if (integration.name === 'OnUncaughtException') {
-        return new Sentry.Integrations.OnUncaughtException({
+        return Sentry.onUncaughtExceptionIntegration({
           exitEvenIfOtherHandlersAreRegistered: false,
         });
       } else {
