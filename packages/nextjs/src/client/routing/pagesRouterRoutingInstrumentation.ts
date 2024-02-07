@@ -146,21 +146,19 @@ export function pagesRouterInstrumentation(
       const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
       const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
 
-      let spanName: string;
+      let newLocation: string;
       let spanSource: TransactionSource;
 
       if (matchedRoute) {
-        spanName = matchedRoute;
+        newLocation = matchedRoute;
         spanSource = 'route';
       } else {
-        spanName = strippedNavigationTarget;
+        newLocation = strippedNavigationTarget;
         spanSource = 'url';
       }
 
-      prevLocationName = spanName;
-
       startNavigationSpanCallback({
-        name: spanName,
+        name: newLocation,
         tags: {
           ...DEFAULT_TAGS,
           from: prevLocationName,
@@ -171,6 +169,8 @@ export function pagesRouterInstrumentation(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
         },
       });
+
+      prevLocationName = newLocation;
     });
   }
 }
