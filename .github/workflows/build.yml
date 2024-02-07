@@ -117,6 +117,11 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
+            node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/node-experimental/**'
+              - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
@@ -129,20 +134,15 @@ jobs:
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
-            node:
+            profiling_node:
               - *shared
               - 'packages/node/**'
               - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
-              - 'dev-packages/node-integration-tests/**'
-            profiling_node:
-              - *shared
-              - 'packages/node/**'
-              - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:
               - *workflow
-              - 'packages/profiling-node/bindings/**'
+              - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             deno:
               - *shared
@@ -551,7 +551,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node =='true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
