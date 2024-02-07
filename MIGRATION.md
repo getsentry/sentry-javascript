@@ -11,6 +11,22 @@ enum. If you were using the `Severity` enum, you should replace it with the `Sev
 The `Offline` integration has been removed in favor of the offline transport wrapper:
 http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
 
+## Updating `@sentry/serverless` exports
+
+The `AWSServices`, `GoogleCloudGrpc`, and `GoogleCloudHttp`. integrations have been removed from `@sentry/serverless` package. See the [table below](#deprecate-class-based-integrations) to find what to upgrade to.
+
+Using the `Sentry.AWSLambda` export has also changed. It no longer re-exports all of methods of the Node SDK, you'll have to import them directly from `@sentry/serverless`, instead it only exports `init`, `wrapHandler` and `tryPatchHandler`.
+
+```js
+import * as Sentry from '@sentry/serverless';
+
+// before
+Sentry.AWSLambda.captureException(...);
+
+// after
+Sentry.captureException(...);
+```
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
@@ -210,6 +226,9 @@ The following list shows how integrations should be migrated:
 | `new Hapi()`                 | `hapiIntegration()`                 | `@sentry/node`                                                                                          |
 | `new Undici()`               | `nativeNodeFetchIntegration()`      | `@sentry/node`                                                                                          |
 | `new Http()`                 | `httpIntegration()`                 | `@sentry/node`                                                                                          |
+| `new AWSServices()`          | `awsServicesIntegration()`          | `@sentry/serverless`                                                                                    |
+| `new GoogleCloudGrpc()`      | `googleCloudGrpcIntegration()`      | `@sentry/serverless`                                                                                    |
+| `new GoogleCloudHttp()`      | `googleCloudHttpIntegration()`      | `@sentry/serverless`                                                                                    |
 
 ## Deprecate `hub.bindClient()` and `makeMain()`
 

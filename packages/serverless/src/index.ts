@@ -2,17 +2,15 @@ export { awsServicesIntegration } from './awsservices';
 import { init as awsLambdaInit, tryPatchHandler, wrapHandler } from './awslambda';
 import { init as gcpFunctionInit } from './gcpfunction';
 
-const AWSLambda = {
+export const AWSLambda = {
   init: awsLambdaInit,
   wrapHandler,
   tryPatchHandler,
 };
 
-const GCPFunction = {
+export const GCPFunction = {
   init: gcpFunctionInit,
 };
-
-export { AWSLambda, GCPFunction };
 
 import type { WrapperOptions as AWSWrapperOptions } from './awslambda';
 export type { AWSWrapperOptions };
