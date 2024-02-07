@@ -17,7 +17,7 @@ Sentry.init({
 });
 
 // Configure
-const scope = Sentry.getCurrentScope()
+const scope = Sentry.getCurrentScope();
 scope.setExtra('foo', 'bar');
 scope.setFingerprint('foo');
 scope.setLevel('warning');

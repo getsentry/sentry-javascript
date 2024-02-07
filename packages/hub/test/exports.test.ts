@@ -1,7 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 
 import { getCurrentScope } from '@sentry/core';
-import type { Scope } from '../src';
 import {
   captureEvent,
   captureException,
