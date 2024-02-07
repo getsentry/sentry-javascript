@@ -14,7 +14,6 @@ import type {
   Primitive,
   Session,
   SessionContext,
-  Severity,
   SeverityLevel,
   Transaction,
   TransactionContext,
@@ -320,12 +319,7 @@ export class Hub implements HubInterface {
    *
    * @deprecated Use  `Sentry.captureMessage()` instead.
    */
-  public captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string {
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
     const syntheticException = new Error(message);
     // eslint-disable-next-line deprecation/deprecation

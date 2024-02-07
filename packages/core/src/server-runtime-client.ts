@@ -8,7 +8,6 @@ import type {
   MonitorConfig,
   ParameterizedString,
   SerializedCheckIn,
-  Severity,
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
@@ -70,8 +69,7 @@ export class ServerRuntimeClient<
    */
   public eventFromMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return resolvedSyncPromise(

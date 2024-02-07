@@ -7,7 +7,7 @@ import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
@@ -19,8 +19,7 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 /** JSDocs */
 export interface ScopeContext {
   user: User;
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel;
+  level: SeverityLevel;
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
@@ -119,10 +118,7 @@ export interface Scope {
    * Sets the level on the scope for future events.
    * @param level string {@link SeverityLevel}
    */
-  setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this;
+  setLevel(level: SeverityLevel): this;
 
   /**
    * Sets the transaction name on the scope for future events.

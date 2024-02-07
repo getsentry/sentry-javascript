@@ -7,7 +7,6 @@ import type {
   Hub,
   Mechanism,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
@@ -133,8 +132,7 @@ export function eventFromUnknownInput(
 export function eventFromMessage(
   stackParser: StackParser,
   message: ParameterizedString,
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel = 'info',
+  level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): Event {
