@@ -18,7 +18,6 @@ import type {
   ScopeContext,
   ScopeData,
   Session,
-  Severity,
   SeverityLevel,
   Span,
   Transaction,
@@ -86,8 +85,7 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _level?: Severity | SeverityLevel;
+  protected _level?: SeverityLevel;
 
   /**
    * Transaction Name
@@ -283,10 +281,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this {
+  public setLevel(level: SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;

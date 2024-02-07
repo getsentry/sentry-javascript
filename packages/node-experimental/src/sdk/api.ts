@@ -12,7 +12,6 @@ import type {
   Extra,
   Extras,
   Primitive,
-  Severity,
   SeverityLevel,
   User,
 } from '@sentry/types';
@@ -120,11 +119,7 @@ export function captureException(exception: unknown, hint?: ExclusiveEventHintOr
 }
 
 /** Record a message and send it to Sentry. */
-export function captureMessage(
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  captureContext?: CaptureContext | Severity | SeverityLevel,
-): string {
+export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;

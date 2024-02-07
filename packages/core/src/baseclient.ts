@@ -23,7 +23,6 @@ import type {
   SdkMetadata,
   Session,
   SessionAggregates,
-  Severity,
   SeverityLevel,
   StartSpanOptions,
   Transaction,
@@ -186,8 +185,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
+    level?: SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
@@ -876,8 +874,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public abstract eventFromMessage(
     _message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    _level?: Severity | SeverityLevel,
+    _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
