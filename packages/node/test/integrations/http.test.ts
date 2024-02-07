@@ -682,17 +682,11 @@ describe('default protocols', () => {
   it('makes https request over http proxy', async () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
-    let nockProtocol = 'https';
 
     const proxy = 'http://some.url:3128';
     const agent = new HttpsProxyAgent(proxy);
 
-    // TODO (v8): No longer needed once we drop Node 8 support
-    if (NODE_VERSION.major < 9) {
-      nockProtocol = 'http';
-    }
-
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
+    nock(`https://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,

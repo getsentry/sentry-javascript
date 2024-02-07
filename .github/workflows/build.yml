@@ -523,7 +523,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [8, 10, 12, 14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 21]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -540,9 +540,7 @@ jobs:
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: |
-          [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
-          yarn test-ci-node
+        run: yarn test-ci-node
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
@@ -874,7 +872,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 21]
         typescript:
           - false
         include:

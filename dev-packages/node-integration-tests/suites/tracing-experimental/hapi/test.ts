@@ -1,9 +1,8 @@
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 jest.setTimeout(20000);
 
-conditionalTest({ min: 14 })('hapi auto-instrumentation', () => {
+describe('hapi auto-instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
