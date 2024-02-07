@@ -24,8 +24,7 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
     const frames: StackFrame[] = [];
     const lines = stack.split('\n');
 
-    for (let i = skipFirst; i < lines.length; i++) {
-      const line = lines[i];
+    for (const line of lines) {
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
       // input size. Huge strings can result in hangs/Denial of Service:
@@ -53,12 +52,12 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
         }
       }
 
-      if (frames.length >= STACKTRACE_FRAME_LIMIT) {
+      if (frames.length >= STACKTRACE_FRAME_LIMIT + skipFirst) {
         break;
       }
     }
 
-    return stripSentryFramesAndReverse(frames);
+    return stripSentryFramesAndReverse(frames.slice(skipFirst));
   };
 }
 
