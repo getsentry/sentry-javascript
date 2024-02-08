@@ -14,6 +14,7 @@ function sendErrorToSentry(e: unknown): unknown {
   const objectifiedErr = objectify(e);
 
   // We don't want to capture thrown `Redirect`s as these are not errors but expected behaviour
+  // Neither 400 errors, given that they are not valuable.
   if (
     isRedirect(objectifiedErr) ||
     (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
