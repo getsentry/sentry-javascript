@@ -30,6 +30,7 @@ const DEFAULT_OPTIONS = {
     email: 'email',
     name: 'username',
   },
+  includeReplay: true,
   isEmailRequired: false,
   isNameRequired: false,
 

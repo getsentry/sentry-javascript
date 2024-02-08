@@ -33,6 +33,9 @@
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0"
   },
+  "devDependencies": {
+    "@sentry/replay": "7.100.0"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
     "build:transpile": "rollup -c rollup.npm.config.mjs",

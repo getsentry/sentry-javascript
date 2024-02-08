@@ -1,4 +1,5 @@
-import { getCurrentScope } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
+import { type replayIntegration } from '@sentry/replay';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
@@ -8,6 +9,8 @@ import { Actor } from './Actor';
 import type { DialogComponent } from './Dialog';
 import { Dialog } from './Dialog';
 import { SuccessMessage } from './SuccessMessage';
+
+import { DEBUG_BUILD } from '../debug-build';
 
 interface CreateWidgetParams {
   /**
@@ -125,6 +128,25 @@ export function createWidget({
   }
 
   /**
+   * Internal handler when dialog is opened
+   */
+  function handleOpenDialog({ includeReplay }: { includeReplay?: boolean } = {}): void {
+    if (!includeReplay) {
+      return;
+    }
+
+    // Flush replay if integration exists
+    const client = getClient();
+    const replay = client && client.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
+    if (!replay) {
+      return;
+    }
+    replay.flush().catch(err => {
+      DEBUG_BUILD && logger.error(err);
+    });
+  }
+
+  /**
    * Displays the default actor
    */
   function showActor(): void {
@@ -156,6 +178,7 @@ export function createWidget({
         if (options.onFormOpen) {
           options.onFormOpen();
         }
+        handleOpenDialog({ includeReplay: options.includeReplay });
         return;
       }
 
@@ -208,6 +231,7 @@ export function createWidget({
       if (options.onFormOpen) {
         options.onFormOpen();
       }
+      handleOpenDialog({ includeReplay: options.includeReplay });
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);

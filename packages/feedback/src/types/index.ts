@@ -73,6 +73,11 @@ export interface FeedbackGeneralConfiguration {
   showName: boolean;
 
   /**
+   * Should Feedback attempt to include a Session Replay if the integration is installed?
+   */
+  includeReplay: boolean;
+
+  /**
    * Fill in email/name input fields with Sentry user context if it exists.
    * The value of the email/name keys represent the properties of your user context.
    */
