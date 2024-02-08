@@ -162,7 +162,6 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
 }
 
 function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
-  const { scope } = getSpanScopes(span) || {};
   // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
   const spanContext = span.spanContext();
@@ -171,7 +170,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   const parentSpanId = span.parentSpanId;
 
   const parentSampled = span.attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] as boolean | undefined;
-  const dynamicSamplingContext = scope ? scope.getPropagationContext().dsc : undefined;
 
   const { op, description, tags, data, origin, source } = getSpanData(span);
   const metadata = getSpanMetadata(span);
@@ -187,7 +185,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
-      dynamicSamplingContext,
       source,
       sampleRate: span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined,
       ...metadata,
