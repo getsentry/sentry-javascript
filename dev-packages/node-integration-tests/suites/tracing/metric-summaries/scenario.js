@@ -23,12 +23,12 @@ Sentry.startSpan(
     Sentry.metrics.increment('root-counter', 1, {
       tags: {
         email: 'jon.doe@example.com',
-      }
+      },
     });
     Sentry.metrics.increment('root-counter', 1, {
       tags: {
         email: 'jane.doe@example.com',
-      }
+      },
     });
 
     Sentry.startSpan(
