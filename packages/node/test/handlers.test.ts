@@ -3,14 +3,14 @@ import * as sentryCore from '@sentry/core';
 import {
   Hub,
   Scope,
-  Transaction,
+  Span,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   makeMain,
   setAsyncContextStrategy,
-  spanToJSON,
+  startSpanManual,
 } from '@sentry/core';
-import type { Event, PropagationContext } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
 import { NodeClient } from '../src/client';
@@ -218,94 +218,77 @@ describe('tracingHandler', () => {
     jest.restoreAllMocks();
   });
 
-  function getPropagationContext(): PropagationContext {
-    // @ts-expect-error accesing private property for test
-    return getCurrentScope()._propagationContext;
-  }
-
-  it('creates a transaction when handling a request', () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+  it('creates a span when handling a request', () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).toHaveBeenCalled();
+    expect(startSpanManualSpy).toHaveBeenCalled();
   });
 
-  it("doesn't create a transaction when handling a `HEAD` request", () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+  it("doesn't create a span when handling a `HEAD` request", () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
     req.method = 'HEAD';
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startSpanManualSpy).not.toHaveBeenCalled();
   });
 
-  it("doesn't create a transaction when handling an `OPTIONS` request", () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+  it("doesn't create a span when handling an `OPTIONS` request", () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
     req.method = 'OPTIONS';
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startSpanManualSpy).not.toHaveBeenCalled();
   });
 
-  it("doesn't create a transaction if tracing is disabled", () => {
+  it("doesn't create a span if tracing is disabled", () => {
     delete getClient()?.getOptions().tracesSampleRate;
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startSpanManualSpy).not.toHaveBeenCalled();
   });
 
-  it("pulls parent's data from tracing header on the request", () => {
+  it("provides the right propagation context within the handler based on request's sentry-trace header", () => {
+    expect.assertions(1);
+
     req.headers = { 'sentry-trace': '12312012123120121231201212312012-1121201211212012-0' };
 
-    sentryTracingMiddleware(req, res, next);
-
-    const transaction = (res as any).__sentry_transaction;
-
-    expect(getPropagationContext()).toEqual({
-      traceId: '12312012123120121231201212312012',
-      parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
-      sampled: false,
-      dsc: {}, // There is an incoming trace but no baggage header, so the DSC must be frozen (empty object)
+    sentryTracingMiddleware(req, res, () => {
+      expect(getCurrentScope().getPropagationContext()).toMatchObject({
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        sampled: false,
+        dsc: {},
+      });
     });
-
-    // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
-    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-    expect(transaction.parentSpanId).toEqual('1121201211212012');
-    expect(transaction.sampled).toEqual(false);
-    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({});
   });
 
-  it("pulls parent's data from tracing and baggage headers on the request", () => {
+  it("provides the right propagation context within the handler based on request's headers", () => {
+    expect.assertions(1);
+
     req.headers = {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-1',
       baggage: 'sentry-version=1.0,sentry-environment=production',
     };
 
-    sentryTracingMiddleware(req, res, next);
-
-    expect(getPropagationContext()).toEqual({
-      traceId: '12312012123120121231201212312012',
-      parentSpanId: '1121201211212012',
-      spanId: expect.any(String),
-      sampled: true,
-      dsc: { version: '1.0', environment: 'production' },
+    sentryTracingMiddleware(req, res, () => {
+      expect(getCurrentScope().getPropagationContext()).toMatchObject({
+        traceId: '12312012123120121231201212312012',
+        parentSpanId: '1121201211212012',
+        sampled: true,
+        dsc: { version: '1.0', environment: 'production' },
+      });
     });
-
-    const transaction = (res as any).__sentry_transaction;
-
-    // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
-    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-    expect(transaction.parentSpanId).toEqual('1121201211212012');
-    expect(transaction.sampled).toEqual(true);
-    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
   it("doesn't populate dynamic sampling context with 3rd party baggage", () => {
+    expect.assertions(1);
+
     req.headers = {
       'sentry-trace': '12312012123120121231201212312012-1121201211212012-0',
       baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
@@ -313,180 +296,141 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(getPropagationContext().dsc).toEqual({ version: '1.0', environment: 'production' });
-
-    const transaction = (res as any).__sentry_transaction;
-    expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
-  });
-
-  it('extracts request data for sampling context', () => {
-    const tracesSampler = jest.fn();
-    const options = getDefaultNodeClientOptions({ tracesSampler });
-    const hub = new Hub(new NodeClient(options));
-    mockAsyncContextStrategy(() => hub);
-
-    hub.run(() => {
-      sentryTracingMiddleware(req, res, next);
-
-      expect(tracesSampler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          request: {
-            headers,
-            method,
-            url: `http://${hostname}${path}?${queryString}`,
-            cookies: { favorite: 'zukes' },
-            query_string: queryString,
-          },
-        }),
-      );
+    sentryTracingMiddleware(req, res, () => {
+      expect(getCurrentScope().getPropagationContext()).toMatchObject({
+        dsc: { version: '1.0', environment: 'production' },
+      });
     });
   });
 
-  it('puts its transaction on the scope', () => {
-    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new Hub(new NodeClient(options));
+  it("makes it's span active in the handler", () => {
+    const span = new Span();
+    jest.spyOn(sentryCore, 'startSpanManual').mockImplementationOnce(() => span);
 
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
-
-    sentryTracingMiddleware(req, res, next);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getCurrentScope().getTransaction();
-
-    expect(transaction).toBeDefined();
-    expect(transaction).toEqual(
-      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
-    );
+    sentryTracingMiddleware(req, res, () => {
+      expect(getActiveSpan()).toBe(span);
+    });
   });
 
-  it('puts its transaction on the response object', () => {
-    sentryTracingMiddleware(req, res, next);
-
-    const transaction = (res as any).__sentry_transaction;
-
-    expect(transaction).toBeDefined();
-    expect(transaction).toEqual(
-      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
-    );
-  });
-
-  it('pulls status code from the response', done => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishTransaction = jest.spyOn(transaction, 'end');
+  it('sets span status from the response status code', done => {
+    const mockBeforeSendTransaction = jest.fn(event => event);
+    const options = getDefaultNodeClientOptions({
+      tracesSampleRate: 1.0,
+      beforeSendTransaction: mockBeforeSendTransaction,
+    });
+    sentryCore.setCurrentClient(new NodeClient(options));
 
     sentryTracingMiddleware(req, res, next);
     res.statusCode = 200;
     res.emit('finish');
 
     setImmediate(() => {
-      expect(finishTransaction).toHaveBeenCalled();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.status).toBe('ok');
-      expect(spanToJSON(transaction).status).toBe('ok');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.tags).toEqual(expect.objectContaining({ 'http.status_code': '200' }));
-      expect(spanToJSON(transaction).data).toEqual(expect.objectContaining({ 'http.response.status_code': 200 }));
+      expect(mockBeforeSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          contexts: expect.objectContaining({
+            trace: expect.objectContaining({
+              status: 'ok',
+              data: expect.objectContaining({
+                'http.status_code': '200',
+              }),
+            }),
+          }),
+        }),
+        expect.anything(),
+      );
       done();
     });
   });
 
   it('strips query string from request path', () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
     req.url = `${path}?${queryString}`;
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
-
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: `${method.toUpperCase()} ${path}` }),
+      expect.any(Function),
+    );
   });
 
   it('strips fragment from request path', () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
     req.url = `${path}${fragment}`;
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
-
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: `${method.toUpperCase()} ${path}` }),
+      expect.any(Function),
+    );
   });
 
   it('strips query string and fragment from request path', () => {
+    const startSpanManualSpy = jest.spyOn(sentryCore, 'startSpanManual');
     req.url = `${path}?${queryString}${fragment}`;
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
-
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(startSpanManualSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: `${method.toUpperCase()} ${path}` }),
+      expect.any(Function),
+    );
   });
 
   it('closes the transaction when request processing is done', done => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishTransaction = jest.spyOn(transaction, 'end');
+    let spanEndSpy: any;
 
-    sentryTracingMiddleware(req, res, next);
+    sentryTracingMiddleware(req, res, () => {
+      const span = getActiveSpan();
+      spanEndSpy = jest.spyOn(span!, 'end');
+    });
+
     res.emit('finish');
 
     setImmediate(() => {
-      expect(finishTransaction).toHaveBeenCalled();
+      expect(spanEndSpy).toHaveBeenCalled();
       done();
     });
   });
 
-  it('waits to finish transaction until all spans are finished, even though `transaction.end()` is registered on `res.finish` event first', done => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = new Transaction({ name: 'mockTransaction', sampled: true });
-    transaction.initSpanRecorder();
-    // eslint-disable-next-line deprecation/deprecation
-    const span = transaction.startChild({
-      description: 'reallyCoolHandler',
-      op: 'middleware',
+  it('gives child spans the opportunity to end on `res.finish`', done => {
+    const mockBeforeSendTransaction = jest.fn(event => event);
+    const options = getDefaultNodeClientOptions({
+      tracesSampleRate: 1.0,
+      beforeSendTransaction: mockBeforeSendTransaction,
     });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
-    const finishSpan = jest.spyOn(span, 'end');
-    const finishTransaction = jest.spyOn(transaction, 'end');
+    sentryCore.setCurrentClient(new NodeClient(options));
 
-    let sentEvent: Event;
-    jest.spyOn((transaction as any)._hub, 'captureEvent').mockImplementation(event => {
-      sentEvent = event as Event;
+    sentryTracingMiddleware(req, res, () => {
+      startSpanManual({ name: 'child-span' }, span => {
+        res.once('finish', () => {
+          span?.end();
+        });
+      });
     });
 
-    sentryTracingMiddleware(req, res, next);
-    res.once('finish', () => {
-      span.end();
-    });
     res.emit('finish');
 
     setImmediate(() => {
-      expect(finishSpan).toHaveBeenCalled();
-      expect(finishTransaction).toHaveBeenCalled();
-      expect(spanToJSON(span).timestamp).toBeLessThanOrEqual(spanToJSON(transaction).timestamp!);
-      expect(sentEvent.spans?.length).toEqual(1);
-      expect(sentEvent.spans?.[0].spanContext().spanId).toEqual(span.spanContext().spanId);
+      expect(mockBeforeSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          spans: expect.arrayContaining([expect.objectContaining({ description: 'child-span' })]),
+        }),
+        expect.anything(),
+      );
       done();
     });
+
+    expect.assertions(1);
   });
 
-  it('stores request in transaction metadata', () => {
-    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    const hub = new Hub(new NodeClient(options));
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    // eslint-disable-next-line deprecation/deprecation
-    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-
-    sentryTracingMiddleware(req, res, next);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getCurrentScope().getTransaction();
-
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction?.metadata.request).toEqual(req);
+  it('stores request in scope metadata', () => {
+    expect.assertions(1);
+    sentryTracingMiddleware(req, res, () => {
+      const scopeMetadata = getCurrentScope().getScopeData().sdkProcessingMetadata;
+      expect(scopeMetadata.request).toBe(req);
+    });
   });
 });
 

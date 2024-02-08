@@ -1,7 +1,6 @@
 import {
   SDK_VERSION,
   captureException,
-  continueTrace,
   convertIntegrationFnToClass,
   defineIntegration,
   getActiveTransaction,
