@@ -38,8 +38,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
