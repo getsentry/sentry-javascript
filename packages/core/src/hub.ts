@@ -19,15 +19,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import {
-  GLOBAL_OBJ,
-  consoleSandbox,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  isThenable,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -86,19 +78,39 @@ export interface Layer {
  * @hidden
  */
 export interface Carrier {
-  __SENTRY__?: {
-    hub?: Hub;
-    acs?: AsyncContextStrategy;
-    /**
-     * Extra Hub properties injected by various SDKs
-     */
-    integrations?: Integration[];
-    extensions?: {
-      /** Extension methods for the hub, which are bound to the current Hub instance */
-      // eslint-disable-next-line @typescript-eslint/ban-types
-      [key: string]: Function;
-    };
+  __SENTRY__?: SentryCarrier;
+}
+
+type CreateHub = (...options: ConstructorParameters<typeof Hub>) => Hub;
+
+interface SentryCarrier {
+  hub?: Hub;
+  createHub?: CreateHub;
+  acs?: AsyncContextStrategy;
+  /**
+   * Extra Hub properties injected by various SDKs
+   */
+  integrations?: Integration[];
+  extensions?: {
+    /** Extension methods for the hub, which are bound to the current Hub instance */
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    [key: string]: Function;
   };
+}
+
+/**
+ * Create a hub. If a custom `createHub` is registered on the main carrier, use that instead.
+ * This only exists to make POTEL migration easier.
+ */
+function createHub(...options: ConstructorParameters<typeof Hub>): Hub {
+  const carrier = getMainCarrier();
+  const sentry = getSentryCarrier(carrier);
+
+  if (sentry.createHub) {
+    return sentry.createHub(...options);
+  }
+
+  return new Hub(...options);
 }
 
 /**
@@ -663,8 +675,8 @@ Sentry.init({...});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _callExtensionMethod<T>(method: string, ...args: any[]): T {
     const carrier = getMainCarrier();
-    const sentry = carrier.__SENTRY__;
-    if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+    const sentry = getSentryCarrier(carrier);
+    if (sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
     DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
@@ -679,10 +691,8 @@ Sentry.init({...});
  * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
  **/
 export function getMainCarrier(): Carrier {
-  GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {
-    extensions: {},
-    hub: undefined,
-  };
+  // This ensures a Sentry carrier exists
+  getSentryCarrier(GLOBAL_OBJ);
   return GLOBAL_OBJ;
 }
 
@@ -711,10 +721,11 @@ export function makeMain(hub: Hub): Hub {
  */
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
-  const registry = getMainCarrier();
+  const carrier = getMainCarrier();
+  const sentry = getSentryCarrier(carrier);
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    const hub = registry.__SENTRY__.acs.getCurrentHub();
+  if (sentry.acs) {
+    const hub = sentry.acs.getCurrentHub();
 
     if (hub) {
       return hub;
@@ -722,7 +733,7 @@ export function getCurrentHub(): Hub {
   }
 
   // Return hub that lives on a global object
-  return getGlobalHub(registry);
+  return getGlobalHub();
 }
 
 /**
@@ -735,7 +746,9 @@ export function getIsolationScope(): Scope {
   return getCurrentHub().getIsolationScope();
 }
 
-function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
+function getGlobalHub(): Hub {
+  const registry = getMainCarrier();
+
   // If there's no hub, or its an old API, assign a new one
 
   if (
@@ -743,7 +756,7 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
     // eslint-disable-next-line deprecation/deprecation
     getHubFromCarrier(registry).isOlderThan(API_VERSION)
   ) {
-    setHubOnCarrier(registry, new Hub());
+    setHubOnCarrier(registry, createHub());
   }
 
   // Return hub that lives on a global object
@@ -768,7 +781,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
     const scope = parent.getScope();
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = parent.getIsolationScope();
-    setHubOnCarrier(carrier, new Hub(client, scope.clone(), isolationScope.clone()));
+    setHubOnCarrier(carrier, createHub(client, scope.clone(), isolationScope.clone()));
   }
 }
 
@@ -780,8 +793,8 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
 export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
-  registry.__SENTRY__ = registry.__SENTRY__ || {};
-  registry.__SENTRY__.acs = strategy;
+  const sentry = getSentryCarrier(registry);
+  sentry.acs = strategy;
 }
 
 /**
@@ -793,9 +806,10 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  */
 export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
+  const sentry = getSentryCarrier(registry);
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    return registry.__SENTRY__.acs.runWithAsyncContext(callback, options);
+  if (sentry.acs) {
+    return sentry.acs.runWithAsyncContext(callback, options);
   }
 
   // if there was no strategy, fallback to just calling the callback
@@ -807,7 +821,7 @@ export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncC
  * @param carrier object
  */
 function hasHubOnCarrier(carrier: Carrier): boolean {
-  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
+  return !!getSentryCarrier(carrier).hub;
 }
 
 /**
@@ -817,7 +831,12 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  return getGlobalSingleton<Hub>('hub', () => new Hub(), carrier);
+  const sentry = getSentryCarrier(carrier);
+  if (!sentry.hub) {
+    sentry.hub = createHub();
+  }
+
+  return sentry.hub;
 }
 
 /**
@@ -828,7 +847,18 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
-  const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
-  __SENTRY__.hub = hub;
+  const sentry = getSentryCarrier(carrier);
+  sentry.hub = hub;
   return true;
+}
+
+/** Will either get the existing sentry carrier, or create a new one. */
+function getSentryCarrier(carrier: Carrier): SentryCarrier {
+  if (!carrier.__SENTRY__) {
+    carrier.__SENTRY__ = {
+      extensions: {},
+      hub: undefined,
+    };
+  }
+  return carrier.__SENTRY__;
 }

@@ -1,5 +1,4 @@
-import { setCurrentClient, spanToJSON } from '@sentry/core';
-import { getCurrentHub } from '../../src/custom/hub';
+import { getCurrentHub, setCurrentClient, spanToJSON } from '@sentry/core';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { OpenTelemetryTransaction, startTransaction } from '../../src/custom/transaction';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
@@ -14,6 +13,7 @@ describe('NodeExperimentalTransaction', () => {
 
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     setCurrentClient(client);
     client.init();
@@ -65,6 +65,7 @@ describe('NodeExperimentalTransaction', () => {
 
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     setCurrentClient(client);
     client.init();
@@ -91,6 +92,7 @@ describe('NodeExperimentalTransaction', () => {
 
     const mockSend = jest.spyOn(client, 'captureEvent').mockImplementation(() => 'mocked');
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     setCurrentClient(client);
     client.init();
@@ -152,6 +154,7 @@ describe('startTranscation', () => {
 
   it('creates a NodeExperimentalTransaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     setCurrentClient(client);
     client.init();
@@ -182,6 +185,7 @@ describe('startTranscation', () => {
 
   it('allows to pass data to transaction', () => {
     const client = new TestClient(getDefaultTestClientOptions());
+    // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     setCurrentClient(client);
     client.init();
