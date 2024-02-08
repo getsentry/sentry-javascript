@@ -1,6 +1,7 @@
 import * as api from '@opentelemetry/api';
 import type { Hub, RunWithAsyncContextOptions } from '@sentry/core';
 import { setAsyncContextStrategy } from '@sentry/core';
+import { SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 
 import { getHubFromContext } from './utils/contextData';
 
@@ -30,7 +31,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     const ctx = api.context.active();
 
     // We depend on the otelContextManager to handle the context/hub
-    return api.context.with(ctx, () => {
+    return api.context.with(ctx.setValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY, true), () => {
       return callback();
     });
   }
