@@ -43,7 +43,7 @@ const EXPECTED_TRANSACTION = {
               release: '1.0',
               transaction: 'Test Transaction',
             },
-          }
+          },
         ],
         'g:root-gauge@none': [
           {
@@ -56,7 +56,7 @@ const EXPECTED_TRANSACTION = {
               transaction: 'Test Transaction',
             },
           },
-        ]
+        ],
         'd:root-distribution@none': [
           {
             min: 20,
