@@ -13,7 +13,6 @@ export class OpenTelemetryHub extends Hub {
   public constructor(client?: Client, scope: Scope = new OpenTelemetryScope(), isolationScope?: Scope) {
     super(client, scope, isolationScope);
   }
-
 }
 
 /**

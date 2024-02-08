@@ -99,7 +99,7 @@ describe('Integration | Transactions', () => {
         environment: 'production',
         event_id: expect.any(String),
         platform: 'node',
-        sdkProcessingMetadata: {
+        sdkProcessingMetadata: expect.objectContaining({
           dynamicSamplingContext: expect.objectContaining({
             environment: 'production',
             public_key: expect.any(String),
@@ -112,7 +112,7 @@ describe('Integration | Transactions', () => {
           source: 'task',
           spanMetadata: expect.any(Object),
           requestPath: 'test-path',
-        },
+        }),
         server_name: expect.any(String),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
@@ -321,6 +321,159 @@ describe('Integration | Transactions', () => {
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
+        type: 'transaction',
+      }),
+      {
+        event_id: expect.any(String),
+      },
+    );
+  });
+
+  it('correctly creates concurrent transaction & spans when using native OTEL tracer', async () => {
+    const beforeSendTransaction = jest.fn(() => null);
+
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+
+    const client = Sentry.getClient<NodeExperimentalClient>();
+
+    Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
+
+    Sentry.withIsolationScope(() => {
+      client.tracer.startActiveSpan('test name', span => {
+        Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+
+        span.setAttributes({
+          'test.outer': 'test value',
+        });
+
+        const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
+
+        Sentry.setTag('test.tag', 'test value');
+
+        client.tracer.startActiveSpan('inner span 2', innerSpan => {
+          Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+
+          innerSpan.setAttributes({
+            'test.inner': 'test value',
+          });
+
+          innerSpan.end();
+        });
+
+        span.end();
+      });
+    });
+
+    Sentry.withIsolationScope(() => {
+      client.tracer.startActiveSpan('test name b', span => {
+        Sentry.addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
+
+        span.setAttributes({
+          'test.outer': 'test value b',
+        });
+
+        const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1b' });
+        subSpan.end();
+
+        Sentry.setTag('test.tag', 'test value b');
+
+        client.tracer.startActiveSpan('inner span 2b', innerSpan => {
+          Sentry.addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
+
+          innerSpan.setAttributes({
+            'test.inner': 'test value b',
+          });
+
+          innerSpan.end();
+        });
+
+        span.end();
+      });
+    });
+
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [
+          { message: 'test breadcrumb 1', timestamp: 123456 },
+          { message: 'test breadcrumb 2', timestamp: 123456 },
+          { message: 'test breadcrumb 3', timestamp: 123456 },
+        ],
+        contexts: expect.objectContaining({
+          otel: expect.objectContaining({
+            attributes: {
+              'test.outer': 'test value',
+            },
+          }),
+          trace: {
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.origin': 'manual',
+            },
+            span_id: expect.any(String),
+            status: 'ok',
+            trace_id: expect.any(String),
+            origin: 'manual',
+          },
+        }),
+        spans: [
+          expect.objectContaining({
+            description: 'inner span 1',
+          }),
+          expect.objectContaining({
+            description: 'inner span 2',
+          }),
+        ],
+        start_timestamp: expect.any(Number),
+        tags: { 'test.tag': 'test value' },
+        timestamp: expect.any(Number),
+        transaction: 'test name',
+        type: 'transaction',
+      }),
+      {
+        event_id: expect.any(String),
+      },
+    );
+
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        breadcrumbs: [
+          { message: 'test breadcrumb 1', timestamp: 123456 },
+          { message: 'test breadcrumb 2b', timestamp: 123456 },
+          { message: 'test breadcrumb 3b', timestamp: 123456 },
+        ],
+        contexts: expect.objectContaining({
+          otel: expect.objectContaining({
+            attributes: {
+              'test.outer': 'test value b',
+            },
+          }),
+          trace: {
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.origin': 'manual',
+            },
+            span_id: expect.any(String),
+            status: 'ok',
+            trace_id: expect.any(String),
+            origin: 'manual',
+          },
+        }),
+        spans: [
+          expect.objectContaining({
+            description: 'inner span 1b',
+          }),
+          expect.objectContaining({
+            description: 'inner span 2b',
+          }),
+        ],
+        start_timestamp: expect.any(Number),
+        tags: { 'test.tag': 'test value b' },
+        timestamp: expect.any(Number),
+        transaction: 'test name b',
         type: 'transaction',
       }),
       {
