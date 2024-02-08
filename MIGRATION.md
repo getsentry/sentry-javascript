@@ -316,7 +316,7 @@ hub.captureException()
 
 instead capture isolated events as follows:
 
-````
+```js
 // NEW
 const client = new Client();
 const scope = new Scope();
