@@ -289,43 +289,45 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
 
-The `Hub` constructor is also deprecated and will be removed in the next major version. If you are creating
-Hubs for multi-client use like so:
+The `Hub` constructor is also deprecated and will be removed in the next major version. If you are creating Hubs for
+multi-client use like so:
 
-```js
+```ts
 // OLD
 const hub = new Hub();
 hub.bindClient(client);
-makeMain(hub)
+makeMain(hub);
 ```
 
 instead initialize the client as follows:
 
-```js
+```ts
 // NEW
 Sentry.withIsolationScope(() => {
-   Sentry.setCurrentClient(client);
-   client.init();
+  Sentry.setCurrentClient(client);
+  client.init();
 });
 ```
 
 If you are using the Hub to capture events like so:
 
-```js
+```ts
 // OLD
 const client = new Client();
 const hub = new Hub(client);
-hub.captureException()
+hub.captureException();
 ```
 
 instead capture isolated events as follows:
 
-```js
+```ts
 // NEW
 const client = new Client();
 const scope = new Scope();
 scope.setClient(client);
 scope.captureException();
+```
+
 ## Deprecate `client.setupIntegrations()`
 
 Instead, use the new `client.init()` method. You should probably not use this directly and instead use `Sentry.init()`,
@@ -392,7 +394,7 @@ app.get('/your-route', req => {
     );
   });
 });
-````
+```
 
 ## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
 
