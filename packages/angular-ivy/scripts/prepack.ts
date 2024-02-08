@@ -26,6 +26,7 @@ pkgJson.exports = {
     fesm2015: './fesm2015/sentry-angular-ivy.js',
     import: './fesm2015/sentry-angular-ivy.js',
     require: './bundles/sentry-angular-ivy.umd.js',
+    types: './sentry-angular-ivy.d.ts',
   },
   './*': './*',
 };
