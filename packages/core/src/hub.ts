@@ -110,6 +110,7 @@ function createHub(...options: ConstructorParameters<typeof Hub>): Hub {
     return sentry.createHub(...options);
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return new Hub(...options);
 }
 

@@ -87,6 +87,7 @@ describe('SDK', () => {
 
 describe('captureCheckIn', () => {
   afterEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

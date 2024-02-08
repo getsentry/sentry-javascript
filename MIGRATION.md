@@ -285,7 +285,8 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
 
-The `Hub` constructor is also gonna be deprecated. If you are creating Hubs for multi-client use like so:
+The `Hub` constructor is also gonna be deprecated and will be removed in the next major version. If you are creating
+Hubs for multi-client use like so:
 
 ```
 // OLD

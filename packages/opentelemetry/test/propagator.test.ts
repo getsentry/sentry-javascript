@@ -41,6 +41,7 @@ describe('SentryPropagator', () => {
       }),
     };
     // @ts-expect-error Use mock client for unit tests
+    // eslint-disable-next-line deprecation/deprecation
     const hub: Hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
