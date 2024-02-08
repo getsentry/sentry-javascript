@@ -29,7 +29,11 @@ export function getMetricSummaryJsonForSpan(span: Span): Record<string, Array<Me
   const output: Record<string, Array<MetricSummary>> = {};
 
   for (const [, [exportKey, summary]] of storage) {
-    output[exportKey] = [...(output[exportKey] || []), dropUndefinedKeys(summary)];
+    if (!output[exportKey]) {
+      output[exportKey] = [];
+    }
+    
+    output[exportKey].push(dropUndefinedKeys(summary));
   }
 
   return output;
