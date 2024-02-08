@@ -76,7 +76,7 @@ export function tracingHandler(): (
               // Push `span.end` to the next event loop so open spans have a chance to finish before the transaction
               // closes
               setImmediate(() => {
-                span?.setAttribute('http.status_code', `${res.statusCode}`);
+                span?.setAttribute('http.response.status_code', `${res.statusCode}`);
                 span?.setStatus(getSpanStatusFromHttpCode(res.statusCode));
                 span?.end();
               });

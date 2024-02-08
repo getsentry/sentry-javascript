@@ -331,7 +331,7 @@ describe('tracingHandler', () => {
             trace: expect.objectContaining({
               status: 'ok',
               data: expect.objectContaining({
-                'http.status_code': '200',
+                'http.response.status_code': '200',
               }),
             }),
           }),
