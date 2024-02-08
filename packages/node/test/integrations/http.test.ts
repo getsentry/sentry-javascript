@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Span } from '@sentry/core';
+import { Span, withIsolationScope } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
@@ -10,6 +10,7 @@ import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
+import { setNodeAsyncContextStrategy } from '../../src/async';
 import { NodeClient } from '../../src/client';
 import {
   Http as HttpIntegration,
