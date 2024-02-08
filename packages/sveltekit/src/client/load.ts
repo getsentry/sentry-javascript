@@ -4,7 +4,7 @@ import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent } from '@sveltejs/kit';
 
 import type { SentryWrappedFlag } from '../common/utils';
-import { isRedirect } from '../common/utils';
+import { isHttpError, isRedirect } from '../common/utils';
 
 type PatchedLoadEvent = LoadEvent & Partial<SentryWrappedFlag>;
 
@@ -14,7 +14,10 @@ function sendErrorToSentry(e: unknown): unknown {
   const objectifiedErr = objectify(e);
 
   // We don't want to capture thrown `Redirect`s as these are not errors but expected behaviour
-  if (isRedirect(objectifiedErr)) {
+  if (
+    isRedirect(objectifiedErr) ||
+    (isHttpError(objectifiedErr) && objectifiedErr.status < 500 && objectifiedErr.status >= 400)
+  ) {
     return objectifiedErr;
   }
 
