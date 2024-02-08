@@ -679,7 +679,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           ...evt.contexts,
         };
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
 
         evt.sdkProcessingMetadata = {
           dynamicSamplingContext,

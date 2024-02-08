@@ -275,6 +275,6 @@ export class ServerRuntimeClient<
       return [dsc, traceContext];
     }
 
-    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
+    return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
   }
 }

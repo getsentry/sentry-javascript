@@ -1,8 +1,8 @@
-import type { Client, DynamicSamplingContext, Scope, Span, Transaction } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Span, Transaction } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient, getCurrentScope } from '../exports';
+import { getClient } from '../exports';
 import { getRootSpan } from '../utils/getRootSpan';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
@@ -47,7 +47,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // passing emit=false here to only emit later once the DSC is actually populated
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope());
+  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
   const txn = getRootSpan(span) as TransactionWithV7FrozenDsc | undefined;
