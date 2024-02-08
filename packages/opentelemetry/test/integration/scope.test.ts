@@ -12,7 +12,7 @@ import {
 import { OpenTelemetryHub } from '../../src/custom/hub';
 import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
-import { getSpanScope } from '../../src/utils/spanData';
+import { getSpanScopes } from '../../src/utils/spanData';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -57,7 +57,11 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getSpanScope(span)).toBe(enableTracing ? scope2 : undefined);
+            // TODO: This is "incorrect" until we stop cloning the current scope for setSpanScopes
+            // Once we change this, the scopes _should_ be the same again
+            if (enableTracing) {
+              expect(getSpanScopes(span)?.scope).not.toBe(scope2);
+            }
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

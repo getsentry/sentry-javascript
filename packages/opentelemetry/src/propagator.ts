@@ -7,7 +7,7 @@ import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContex
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
-import { getSpanScope } from './utils/spanData';
+import { getSpanScopes } from './utils/spanData';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -91,7 +91,7 @@ function getDsc(
   // Else, we try to generate a new one
   const client = getClient();
   const activeSpan = trace.getSpan(context);
-  const scope = activeSpan ? getSpanScope(activeSpan) : undefined;
+  const { scope } = (activeSpan && getSpanScopes(activeSpan)) || {};
 
   if (client) {
     return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client, scope);

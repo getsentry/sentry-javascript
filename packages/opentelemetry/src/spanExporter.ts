@@ -24,7 +24,7 @@ import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanFinishScopes, getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
+import { getSpanHub, getSpanMetadata, getSpanScopes } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -130,7 +130,7 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 function getScopesForTransactionFinish(span: ReadableSpan): { scope: Scope; isolationScope: Scope } {
   // The finish scope should normally always be there (and it is already a clone),
   // but for the sake of type safety we fall back to a clone of the current scope
-  const scopes = getSpanFinishScopes(span);
+  const scopes = getSpanScopes(span);
   const scope = scopes?.scope || getCurrentScope().clone();
   const isolationScope = scopes?.isolationScope || getIsolationScope();
 
@@ -162,7 +162,7 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
 }
 
 function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
-  const scope = getSpanScope(span);
+  const { scope } = getSpanScopes(span) || {};
   // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
   const spanContext = span.spanContext();

@@ -10,9 +10,8 @@ export {
   getSpanHub,
   getSpanMetadata,
   getSpanParent,
-  getSpanScope,
   setSpanMetadata,
-  getSpanFinishScopes,
+  getSpanScopes,
 } from './utils/spanData';
 
 export { getPropagationContextFromContext, setPropagationContextOnContext, setHubOnContext } from './utils/contextData';
