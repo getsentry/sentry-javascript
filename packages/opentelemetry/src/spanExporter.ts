@@ -3,6 +3,8 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import type {
+  Transaction} from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   flush,
@@ -13,9 +15,8 @@ import {
 } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
-
-import type { OpenTelemetryTransaction } from './custom/transaction';
 import { startTransaction } from './custom/transaction';
+
 import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
@@ -161,7 +162,7 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransaction {
+function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   const scope = getSpanScope(span);
   // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
@@ -196,7 +197,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
     origin,
     tags,
     sampled: true,
-  }) as OpenTelemetryTransaction;
+  });
 
   return transaction;
 }
