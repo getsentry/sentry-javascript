@@ -133,9 +133,6 @@ describe('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
           },

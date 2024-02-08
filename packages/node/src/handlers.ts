@@ -5,16 +5,14 @@ import {
   captureException,
   continueTrace,
   flush,
-  getActiveSpan,
   getClient,
   getCurrentScope,
-  getSpanStatusFromHttpCode,
   hasTracingEnabled,
   runWithAsyncContext,
+  setHttpStatus,
   startSpanManual,
   withScope,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import { dropUndefinedKeys, extractPathForTransaction, isString, isThenable, logger, normalize } from '@sentry/utils';
 
@@ -76,9 +74,10 @@ export function tracingHandler(): (
               // Push `span.end` to the next event loop so open spans have a chance to finish before the transaction
               // closes
               setImmediate(() => {
-                span?.setAttribute('http.response.status_code', `${res.statusCode}`);
-                span?.setStatus(getSpanStatusFromHttpCode(res.statusCode));
-                span?.end();
+                if (span) {
+                  setHttpStatus(span, res.statusCode);
+                  span.end();
+                }
               });
             });
             next();
@@ -236,27 +235,19 @@ export function errorHandler(options?: {
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
-    if (shouldHandleError(error)) {
-      withScope(_scope => {
-        // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
-        // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
-        // hurt to be sure
-        _scope.setSDKProcessingMetadata({ request: _req });
+    withScope(scope => {
+      // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
+      // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
+      // hurt to be sure
+      scope.setSDKProcessingMetadata({ request: req });
 
-        // For some reason we need to set the transaction on the scope again
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const transaction = (res as any).__sentry_transaction as Span;
-        if (transaction && !getActiveSpan()) {
-          // eslint-disable-next-line deprecation/deprecation
-          _scope.setSpan(transaction);
-        }
-
+      if (shouldHandleError(error)) {
         const client = getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
@@ -266,7 +257,7 @@ export function errorHandler(options?: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = _scope.getRequestSession();
+            const requestSession = scope.getRequestSession();
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
@@ -279,13 +270,10 @@ export function errorHandler(options?: {
         const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
-        next(error);
-      });
+      }
 
-      return;
-    }
-
-    next(error);
+      return next(error);
+    });
   };
 }
 
