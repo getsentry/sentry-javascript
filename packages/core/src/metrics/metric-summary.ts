@@ -20,16 +20,16 @@ function getMetricStorageForSpan(span: Span): MetricSummaryStorage | undefined {
 /**
  * Fetches the metric summary if it exists for the passed span
  */
-export function getMetricSummaryJsonForSpan(span: Span): Record<string, MetricSummary> | undefined {
+export function getMetricSummaryJsonForSpan(span: Span): Record<string, Array<MetricSummary>> | undefined {
   const storage = getMetricStorageForSpan(span);
 
   if (!storage) {
     return undefined;
   }
-  const output: Record<string, MetricSummary> = {};
+  const output: Record<string, Array<MetricSummary>> = {};
 
   for (const [, [exportKey, summary]] of storage) {
-    output[exportKey] = dropUndefinedKeys(summary);
+    output[exportKey].push(dropUndefinedKeys(summary));
   }
 
   return output;
