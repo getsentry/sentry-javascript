@@ -66,8 +66,6 @@ export {
   DEFAULT_USER_INCLUDES,
   extractRequestData,
   // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
-  // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   createGetModuleFromFilename,
   close,

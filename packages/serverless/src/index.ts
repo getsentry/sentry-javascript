@@ -70,8 +70,6 @@ export {
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Handlers,
   // eslint-disable-next-line deprecation/deprecation
   Integrations,
