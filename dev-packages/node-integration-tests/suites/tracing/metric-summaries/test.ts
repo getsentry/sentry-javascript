@@ -7,11 +7,23 @@ const EXPECTED_TRANSACTION = {
       {
         min: 1,
         max: 1,
-        count: 2,
-        sum: 2,
+        count: 1,
+        sum: 1,
         tags: {
           release: '1.0',
           transaction: 'Test Transaction',
+          email: 'jon.doe@example.com',
+        },
+      },
+      {
+        min: 1,
+        max: 1,
+        count: 1,
+        sum: 1,
+        tags: {
+          release: '1.0',
+          transaction: 'Test Transaction',
+          email: 'jane.doe@example.com',
         },
       },
     ],
