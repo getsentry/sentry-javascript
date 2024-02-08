@@ -147,12 +147,13 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
 // TODO: Not ideal that we're hard-coding this, and it's easy to get when we're in a package directory, but would take
 // more work to get from the repo level. Fortunately this list is unlikely to change very often, and we're the only ones
 // we'll break if it gets out of date.
-const dependencies = ['@sentry/utils', '@sentry/hub', '@sentry/core'];
+const dependencies = ['@sentry/utils', '@sentry/core'];
 
 if (['sentry-javascript', 'tracing', 'wasm'].includes(path.basename(process.cwd()))) {
   dependencies.push('@sentry/browser');
 }
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 void ensureBundleBuildPrereqs({
   dependencies,
 });

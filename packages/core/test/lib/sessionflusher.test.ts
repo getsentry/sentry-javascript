@@ -2,7 +2,7 @@
 
 import type { Client } from '@sentry/types';
 
-import { SessionFlusher } from '../src';
+import { SessionFlusher } from '../../src/sessionflusher';
 
 describe('Session Flusher', () => {
   let sendSession: jest.Mock;
