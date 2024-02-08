@@ -11,6 +11,10 @@ enum. If you were using the `Severity` enum, you should replace it with the `Sev
 The `Offline` integration has been removed in favor of the offline transport wrapper:
 http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
 
+## Other changes
+
+- Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update

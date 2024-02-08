@@ -8,8 +8,6 @@ export {
   Span,
   // eslint-disable-next-line deprecation/deprecation
   SpanStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   startIdleTransaction,
   Transaction,
 } from '@sentry/core';

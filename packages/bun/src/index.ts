@@ -64,8 +64,6 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
@@ -89,8 +87,6 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   // eslint-disable-next-line deprecation/deprecation
   enableAnrDetection,
   // eslint-disable-next-line deprecation/deprecation
