@@ -7,7 +7,13 @@ import type { AbstractSpan } from '../types';
 // This way we can enhance the data that an OTEL Span natively gives us
 // and since we are using weakmaps, we do not need to clean up after ourselves
 const SpanScope = new WeakMap<AbstractSpan, Scope>();
-const SpanFinishScope = new WeakMap<AbstractSpan, Scope>();
+const SpanFinishScopes = new WeakMap<
+  AbstractSpan,
+  {
+    scope: Scope;
+    isolationScope: Scope;
+  }
+>();
 const SpanHub = new WeakMap<AbstractSpan, Hub>();
 const SpanParent = new WeakMap<AbstractSpan, Span>();
 const SpanMetadata = new WeakMap<AbstractSpan, Partial<TransactionMetadata>>();
@@ -53,11 +59,22 @@ export function getSpanMetadata(span: AbstractSpan): Partial<TransactionMetadata
 }
 
 /** Set the Sentry scope to be used for finishing a given OTEL span. */
-export function setSpanFinishScope(span: AbstractSpan, scope: Scope): void {
-  SpanFinishScope.set(span, scope);
+export function setSpanFinishScopes(
+  span: AbstractSpan,
+  scopes: {
+    scope: Scope;
+    isolationScope: Scope;
+  },
+): void {
+  SpanFinishScopes.set(span, scopes);
 }
 
 /** Get the Sentry scope to use for finishing an OTEL span. */
-export function getSpanFinishScope(span: AbstractSpan): Scope | undefined {
-  return SpanFinishScope.get(span);
+export function getSpanFinishScopes(span: AbstractSpan):
+  | {
+      scope: Scope;
+      isolationScope: Scope;
+    }
+  | undefined {
+  return SpanFinishScopes.get(span);
 }

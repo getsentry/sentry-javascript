@@ -3,7 +3,14 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentHub, getCurrentScope } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  flush,
+  getCurrentHub,
+  getCurrentScope,
+  getIsolationScope,
+  setCapturedScopesOnSpan,
+} from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -17,7 +24,7 @@ import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanFinishScope, getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
+import { getSpanFinishScopes, getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -109,8 +116,10 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     // Now finish the transaction, which will send it together with all the spans
     // We make sure to use the finish scope
-    const scope = getScopeForTransactionFinish(span);
-    transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), scope);
+    const { scope, isolationScope } = getScopesForTransactionFinish(span);
+    setCapturedScopesOnSpan(transaction, scope, isolationScope);
+
+    transaction.end(span.endTime);
   });
 
   return Array.from(remaining)
@@ -118,15 +127,19 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
     .filter((span): span is ReadableSpan => !!span);
 }
 
-function getScopeForTransactionFinish(span: ReadableSpan): Scope {
+function getScopesForTransactionFinish(span: ReadableSpan): { scope: Scope; isolationScope: Scope } {
   // The finish scope should normally always be there (and it is already a clone),
   // but for the sake of type safety we fall back to a clone of the current scope
-  const scope = getSpanFinishScope(span) || getCurrentScope().clone();
+  const scopes = getSpanFinishScopes(span);
+  const scope = scopes?.scope || getCurrentScope().clone();
+  const isolationScope = scopes?.isolationScope || getIsolationScope();
+
   scope.setContext('otel', {
     attributes: removeSentryAttributes(span.attributes),
     resource: span.resource.attributes,
   });
-  return scope;
+
+  return { scope, isolationScope };
 }
 
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {

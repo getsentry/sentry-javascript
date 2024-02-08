@@ -399,7 +399,8 @@ type SpanWithScopes = Span & {
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
 };
 
-function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
+/** Store the scope & isolation scope for a span, which can the be used when it is finished. */
+export function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
   if (span) {
     addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
     addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);

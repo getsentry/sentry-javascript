@@ -22,6 +22,7 @@ export {
   startActiveSpan,
   startSpanManual,
   continueTrace,
+  setCapturedScopesOnSpan,
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';

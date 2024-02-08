@@ -10,7 +10,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getHubFromContext } from './utils/contextData';
-import { getSpanHub, setSpanFinishScope, setSpanHub, setSpanParent, setSpanScope } from './utils/spanData';
+import { getSpanHub, setSpanFinishScopes, setSpanHub, setSpanParent, setSpanScope } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof OpenTelemetryScope): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
@@ -34,13 +34,16 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
   if (actualHub) {
     // eslint-disable-next-line deprecation/deprecation
     const scope = actualHub.getScope();
+    // eslint-disable-next-line deprecation/deprecation
+    const isolationScope = actualHub.getIsolationScope();
     setSpanScope(span, scope);
     setSpanHub(span, actualHub);
 
     // Use this scope for finishing the span
     const finishScope = (scope as OpenTelemetryScope).clone();
+    // this is needed for breadcrumbs, for now, as they are stored on the span currently
     finishScope.activeSpan = span;
-    setSpanFinishScope(span, finishScope);
+    setSpanFinishScopes(span, { scope: finishScope, isolationScope });
   }
 }
 

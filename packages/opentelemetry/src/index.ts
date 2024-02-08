@@ -12,7 +12,7 @@ export {
   getSpanParent,
   getSpanScope,
   setSpanMetadata,
-  getSpanFinishScope,
+  getSpanFinishScopes,
 } from './utils/spanData';
 
 export { getPropagationContextFromContext, setPropagationContextOnContext, setHubOnContext } from './utils/contextData';
