@@ -22,7 +22,6 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      user_segment: 'segmentB',
       sample_rate: '1',
       transaction: expect.stringContaining('/index.html'),
       trace_id: expect.any(String),

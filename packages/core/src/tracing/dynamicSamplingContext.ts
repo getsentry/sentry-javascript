@@ -11,22 +11,14 @@ import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
  *
  * Dispatches the `createDsc` lifecycle hook as a side effect.
  */
-export function getDynamicSamplingContextFromClient(
-  trace_id: string,
-  client: Client,
-  scope?: Scope,
-): DynamicSamplingContext {
+export function getDynamicSamplingContextFromClient(trace_id: string, client: Client): DynamicSamplingContext {
   const options = client.getOptions();
 
   const { publicKey: public_key } = client.getDsn() || {};
-  // TODO(v8): Remove segment from User
-  // eslint-disable-next-line deprecation/deprecation
-  const { segment: user_segment } = (scope && scope.getUser()) || {};
 
   const dsc = dropUndefinedKeys({
     environment: options.environment || DEFAULT_ENVIRONMENT,
     release: options.release,
-    user_segment,
     public_key,
     trace_id,
   }) as DynamicSamplingContext;

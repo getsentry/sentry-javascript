@@ -36,7 +36,7 @@ sentryTest(
 
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
-      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setUser({ id: 'user123' });
       scope.addEventProcessor(event => {
         event.transaction = 'testTransactionDSC';
         return event;
@@ -53,7 +53,6 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      user_segment: 'segmentB',
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
@@ -84,7 +83,7 @@ sentryTest(
 
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
-      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setUser({ id: 'user123' });
       scope.addEventProcessor(event => {
         event.transaction = 'testTransactionDSC';
         return event;
@@ -101,7 +100,6 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      user_segment: 'segmentB',
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
@@ -144,7 +142,7 @@ sentryTest(
 
     await page.evaluate(() => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
-      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setUser({ id: 'user123' });
       scope.addEventProcessor(event => {
         event.transaction = 'testTransactionDSC';
         return event;
@@ -162,7 +160,6 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      user_segment: 'segmentB',
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
@@ -195,7 +192,7 @@ sentryTest(
 
     await page.evaluate(async () => {
       const scope = (window as unknown as TestWindow).Sentry.getCurrentScope();
-      scope.setUser({ id: 'user123', segment: 'segmentB' });
+      scope.setUser({ id: 'user123' });
       scope.addEventProcessor(event => {
         event.transaction = 'testTransactionDSC';
         return event;
@@ -213,7 +210,6 @@ sentryTest(
     expect(envHeader.trace).toBeDefined();
     expect(envHeader.trace).toEqual({
       environment: 'production',
-      user_segment: 'segmentB',
       sample_rate: '1',
       trace_id: expect.any(String),
       public_key: 'public',
