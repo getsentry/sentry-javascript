@@ -1,11 +1,10 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, setTag } from '@sentry/core';
+import { addBreadcrumb, getClient, setTag } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
-import { getClient } from '../../src/custom/hub';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';

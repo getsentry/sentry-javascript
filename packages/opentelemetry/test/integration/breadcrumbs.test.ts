@@ -1,6 +1,6 @@
-import { addBreadcrumb, captureException, withScope } from '@sentry/core';
+import { addBreadcrumb, captureException, getClient, getCurrentHub, withScope } from '@sentry/core';
 
-import { OpenTelemetryHub, getClient, getCurrentHub } from '../../src/custom/hub';
+import { OpenTelemetryHub } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -19,6 +19,7 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
 
@@ -59,6 +60,7 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
 

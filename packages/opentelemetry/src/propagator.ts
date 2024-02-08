@@ -1,12 +1,11 @@
 import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { getDynamicSamplingContextFromClient } from '@sentry/core';
+import { getClient, getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
 import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContextFromHeaders } from '@sentry/utils';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
-import { getClient } from './custom/hub';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
 import { getSpanScope } from './utils/spanData';
 

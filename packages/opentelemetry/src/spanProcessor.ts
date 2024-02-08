@@ -2,9 +2,9 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { getCurrentHub } from './custom/hub';
 import { OpenTelemetryScope } from './custom/scope';
 import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
@@ -26,6 +26,7 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
   // We do this instead of just falling back to `getCurrentHub` to avoid attaching the wrong hub
   let actualHub = hub;
   if (parentContext === ROOT_CONTEXT) {
+    // eslint-disable-next-line deprecation/deprecation
     actualHub = getCurrentHub();
   }
 
@@ -45,6 +46,7 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
 
 function onSpanEnd(span: Span): void {
   // Capture exceptions as events
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
   span.events.forEach(event => {
     maybeCaptureExceptionForTimedEvent(hub, event, span);

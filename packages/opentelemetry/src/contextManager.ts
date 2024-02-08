@@ -1,8 +1,8 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
 import type { Carrier, Hub } from '@sentry/core';
+import { getCurrentHub, getHubFromCarrier } from '@sentry/core';
 import { ensureHubOnCarrier } from '@sentry/core';
 
-import { getCurrentHub, getHubFromCarrier } from './custom/hub';
 import { setHubOnContext } from './utils/contextData';
 
 function createNewHub(parent: Hub | undefined): Hub {
@@ -46,6 +46,7 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
+      // eslint-disable-next-line deprecation/deprecation
       const existingHub = getCurrentHub();
       const newHub = createNewHub(existingHub);
 
