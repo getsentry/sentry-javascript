@@ -3,8 +3,7 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type {
-  Transaction} from '@sentry/core';
+import type { Transaction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   flush,
