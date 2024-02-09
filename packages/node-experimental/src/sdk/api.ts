@@ -96,23 +96,6 @@ export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T
   });
 }
 
-/**
-<<<<<<< HEAD
- * Configure the current scope.
- * @deprecated Use `getCurrentScope()` instead.
- */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callback(getCurrentScope());
-=======
- * Get the ID of the last sent error event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().lastEventId();
->>>>>>> 63597e2af (feat(v8): Remove deprecated configureScope call)
-}
-
 /** Record an exception and send it to Sentry. */
 export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
