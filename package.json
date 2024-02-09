@@ -56,6 +56,7 @@
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/feedback",
+    "packages/feedback-screenshot",
     "packages/gatsby",
     "packages/integrations",
     "packages/integration-shims",

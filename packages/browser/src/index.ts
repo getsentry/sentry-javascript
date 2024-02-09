@@ -90,3 +90,5 @@ export {
   BrowserProfilingIntegration,
   browserProfilingIntegration,
 } from './profiling/integration';
+
+console.log('browser');
