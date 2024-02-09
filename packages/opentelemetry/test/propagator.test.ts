@@ -41,7 +41,7 @@ describe('SentryPropagator', () => {
       }),
     };
     // eslint-disable-next-line deprecation/deprecation
-    const hub: Hub = new Hub(client as any);
+    const hub = new Hub(client as any);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
