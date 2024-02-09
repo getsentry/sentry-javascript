@@ -46,6 +46,7 @@ describe('SentrySpanProcessor', () => {
     SPAN_MAP.clear();
 
     client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -964,6 +965,7 @@ describe('SentrySpanProcessor', () => {
         return null;
       },
     });
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -1011,6 +1013,7 @@ describe('SentrySpanProcessor', () => {
         return null;
       },
     });
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -1058,6 +1061,7 @@ describe('SentrySpanProcessor', () => {
       sentryTransaction = transaction;
     });
 
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

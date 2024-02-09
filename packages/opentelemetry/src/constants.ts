@@ -8,3 +8,5 @@ export const SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY = createContextKey('SENTRY_P
 
 /** Context Key to hold a Hub. */
 export const SENTRY_HUB_CONTEXT_KEY = createContextKey('sentry_hub');
+
+export const SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY = createContextKey('sentry_fork_isolation_scope');

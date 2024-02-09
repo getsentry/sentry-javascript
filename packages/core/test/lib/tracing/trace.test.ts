@@ -36,6 +36,7 @@ describe('startSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -427,6 +428,7 @@ describe('startSpanManual', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -537,6 +539,7 @@ describe('startInactiveSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -662,6 +665,7 @@ describe('continueTrace', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

@@ -1,6 +1,6 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, getClient, setTag } from '@sentry/core';
+import { addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -123,6 +123,7 @@ describe('Integration | Transactions', () => {
         start_timestamp: expect.any(Number),
         tags: {
           'outer.tag': 'test value',
+          'test.tag': 'test value',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -173,7 +174,7 @@ describe('Integration | Transactions', () => {
     ]);
   });
 
-  it('correctly creates concurrent transaction & spans', async () => {
+  it('correctly creates concurrent transaction & spans xxx', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -182,44 +183,48 @@ describe('Integration | Transactions', () => {
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
-    startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value',
-      });
+        span.setAttributes({
+          'test.outer': 'test value',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value');
+        setTag('test.tag', 'test value');
 
-      startSpan({ name: 'inner span 2' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+        startSpan({ name: 'inner span 2' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value',
+          innerSpan.setAttributes({
+            'test.inner': 'test value',
+          });
         });
       });
     });
 
-    startSpan({ op: 'test op b', name: 'test name b' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op b', name: 'test name b' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value b',
-      });
+        span.setAttributes({
+          'test.outer': 'test value b',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1b' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1b' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value b');
+        setTag('test.tag', 'test value b');
 
-      startSpan({ name: 'inner span 2b' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
+        startSpan({ name: 'inner span 2b' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value b',
+          innerSpan.setAttributes({
+            'test.inner': 'test value b',
+          });
         });
       });
     });
@@ -262,7 +267,7 @@ describe('Integration | Transactions', () => {
           }),
         ],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -308,7 +313,7 @@ describe('Integration | Transactions', () => {
           }),
         ],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },

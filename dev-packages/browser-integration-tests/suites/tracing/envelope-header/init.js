@@ -12,7 +12,7 @@ Sentry.init({
 });
 
 const scope = Sentry.getCurrentScope();
-scope.setUser({ id: 'user123', segment: 'segmentB' });
+scope.setUser({ id: 'user123' });
 scope.addEventProcessor(event => {
   event.transaction = 'testTransactionDSC';
   return event;
