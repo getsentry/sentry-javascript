@@ -109,4 +109,4 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/trycatch';
 
 // eslint-disable-next-line deprecation/deprecation
-export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

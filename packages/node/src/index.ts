@@ -63,8 +63,6 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
@@ -102,8 +100,6 @@ export {
   getSentryRelease,
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-// eslint-disable-next-line deprecation/deprecation
-export { deepReadDirSync } from './utils';
 
 import { createGetModuleFromFilename } from './module';
 /**

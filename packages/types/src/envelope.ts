@@ -20,10 +20,6 @@ export type DynamicSamplingContext = {
   release?: string;
   environment?: string;
   transaction?: string;
-  /**
-   * @deprecated Functonality for segment has been removed.
-   */
-  user_segment?: string;
   replay_id?: string;
   sampled?: string;
 };

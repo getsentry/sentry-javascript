@@ -38,8 +38,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   getHubFromCarrier,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
@@ -70,8 +68,6 @@ export {
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Handlers,
   // eslint-disable-next-line deprecation/deprecation
   Integrations,

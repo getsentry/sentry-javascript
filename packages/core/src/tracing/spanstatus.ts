@@ -124,17 +124,6 @@ export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatusType {
 }
 
 /**
- * Converts a HTTP status code into a {@link SpanStatusType}.
- *
- * @deprecated Use {@link spanStatusFromHttpCode} instead.
- * This export will be removed in v8 as the signature contains a typo.
- *
- * @param httpStatus The HTTP response status code.
- * @returns The span status or unknown_error.
- */
-export const spanStatusfromHttpCode = getSpanStatusFromHttpCode;
-
-/**
  * Sets the Http status attributes on the current span based on the http code.
  * Additionally, the span's status is updated, depending on the http code.
  */
