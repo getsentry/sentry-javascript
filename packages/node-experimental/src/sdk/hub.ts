@@ -138,7 +138,7 @@ export function getCurrentHub(): Hub {
  */
 export function makeMain(hub: Hub): Hub {
   // eslint-disable-next-line no-console
-  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentScope` instead.');
+  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');
   return hub;
 }
 

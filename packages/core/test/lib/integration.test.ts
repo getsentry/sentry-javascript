@@ -617,6 +617,7 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -635,6 +636,7 @@ describe('addIntegration', () => {
       setupOnce = jest.fn();
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -660,6 +662,7 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -683,6 +686,7 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

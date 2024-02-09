@@ -15,6 +15,7 @@ describe('registerBackgroundTabDetection', () => {
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(new TestClient(options));
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
