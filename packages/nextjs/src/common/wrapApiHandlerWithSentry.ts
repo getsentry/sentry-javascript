@@ -45,7 +45,7 @@ export const withSentryAPI = wrapApiHandlerWithSentry;
  * @param parameterizedRoute The route whose handler is being wrapped. Meant for internal use only.
  * @returns A wrapped version of the handler
  *
- * @deprecated Use `wrapApiWithSentry()` instead
+ * @deprecated Use `wrapApiHandlerWithSentry()` instead
  */
 export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: string): NextApiHandler {
   return new Proxy(apiHandler, {
