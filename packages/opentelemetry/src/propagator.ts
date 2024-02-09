@@ -7,7 +7,6 @@ import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContex
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
-import { getSpanScopes } from './utils/spanData';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -25,7 +24,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const propagationContext = getPropagationContextFromContext(context);
     const { spanId, traceId, sampled } = getSentryTraceData(context, propagationContext);
-    const dynamicSamplingContext = propagationContext ? getDsc(context, propagationContext, traceId) : undefined;
+    const dynamicSamplingContext = propagationContext ? getDsc(propagationContext, traceId) : undefined;
 
     if (dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
@@ -79,7 +78,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
 }
 
 function getDsc(
-  context: Context,
   propagationContext: PropagationContext,
   traceId: string | undefined,
 ): Partial<DynamicSamplingContext> | undefined {
@@ -90,11 +88,9 @@ function getDsc(
 
   // Else, we try to generate a new one
   const client = getClient();
-  const activeSpan = trace.getSpan(context);
-  const { scope } = (activeSpan && getSpanScopes(activeSpan)) || {};
 
   if (client) {
-    return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client, scope);
+    return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client);
   }
 
   return undefined;
