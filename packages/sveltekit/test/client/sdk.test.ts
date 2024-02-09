@@ -1,4 +1,4 @@
-import { getClient, getCurrentScope, getIsolationScope } from '@sentry/core';
+import { getClient, getIsolationScope } from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
