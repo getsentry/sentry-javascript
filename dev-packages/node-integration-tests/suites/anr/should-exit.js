@@ -6,7 +6,7 @@ function configureSentry() {
     release: '1.0',
     debug: true,
     autoSessionTracking: false,
-    integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true })],
+    integrations: [Sentry.anrIntegration({ captureStackTrace: true })],
   });
 }
 

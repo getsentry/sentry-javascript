@@ -98,8 +98,6 @@ export {
   createGetModuleFromFilename,
   hapiErrorPlugin,
   runWithAsyncContext,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
