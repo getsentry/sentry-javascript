@@ -8,6 +8,7 @@ import deepMerge from 'deepmerge';
 
 import {
   getEs5Polyfills,
+  makeAliasPlugin,
   makeBrowserBuildPlugin,
   makeCleanupPlugin,
   makeCommonJSPlugin,
@@ -29,6 +30,7 @@ export function makeBaseBundleConfig(options) {
 
   const isEs5 = jsVersion.toLowerCase() === 'es5';
 
+  const aliasPlugin = makeAliasPlugin();
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const cleanupPlugin = makeCleanupPlugin();
@@ -124,8 +126,8 @@ export function makeBaseBundleConfig(options) {
       esModule: false,
     },
     plugins: isEs5
-      ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
-      : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+      ? [tsPlugin, aliasPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
+      : [sucrasePlugin, aliasPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
     treeshake: 'smallest',
   };
 

@@ -5,4 +5,4 @@ export {
 } from './screenshot';
 export type { FeedbackScreenshotIntegrationOptions } from './screenshot';
 
-console.log('screenshot 6');
+console.log('screenshot 9');

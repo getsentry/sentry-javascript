@@ -1,4 +1,5 @@
 /**
+ * Alias plugin docs: https://github.com/rollup/plugins/tree/master/packages/alias
  * CommonJS plugin docs: https://github.com/rollup/plugins/tree/master/packages/commonjs
  * License plugin docs: https://github.com/mjeanroy/rollup-plugin-license
  * Replace plugin docs: https://github.com/rollup/plugins/tree/master/packages/replace
@@ -13,6 +14,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 
+import alias from '@rollup/plugin-alias';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
@@ -189,3 +191,14 @@ export function makeNodeResolvePlugin() {
 }
 
 export { commonjs as makeCommonJSPlugin };
+
+export function makeAliasPlugin() {
+  return alias({
+    entries: [
+      { find: 'react', replacement: 'preact/compat' },
+      { find: 'react-dom/test-utils', replacement: 'preact/test-utils' },
+      { find: 'react-dom', replacement: 'preact/compat' },
+      { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' }
+    ]
+  });
+}

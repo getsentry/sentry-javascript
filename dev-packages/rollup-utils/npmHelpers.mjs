@@ -9,6 +9,7 @@ import * as path from 'path';
 import deepMerge from 'deepmerge';
 
 import {
+  makeAliasPlugin,
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
@@ -30,6 +31,7 @@ export function makeBaseNPMConfig(options = {}) {
     addPolyfills = true,
   } = options;
 
+  const aliasPlugin = makeAliasPlugin();
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
@@ -91,6 +93,7 @@ export function makeBaseNPMConfig(options = {}) {
     },
 
     plugins: [
+      aliasPlugin,
       nodeResolvePlugin,
       setSdkSourcePlugin,
       sucrasePlugin,

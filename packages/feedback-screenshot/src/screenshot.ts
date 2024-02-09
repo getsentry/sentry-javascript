@@ -6,12 +6,12 @@ import { h, render } from 'preact';
 
 interface FeedbackScreenshotOptions {
   el: Element;
-  props: string;
+  props: unknown;
 }
 
 export interface FeedbackScreenshotIntegrationOptions {
   el: Element;
-  props: string;
+  props: unknown;
 }
 
 const INTEGRATION_NAME = 'FeedbackScreenshot';
@@ -24,7 +24,7 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     getOptions(): FeedbackScreenshotIntegrationOptions {
-      return { el: options.el || WINDOW.document.createElement('div'), props: options.props || 'prop' };
+      return { el: options.el || WINDOW.document.createElement('div'), props: options.props || null };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
       return render(h(Hello, null), options.el);

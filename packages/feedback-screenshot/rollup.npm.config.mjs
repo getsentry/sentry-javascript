@@ -1,5 +1,4 @@
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
-import alias from '@rollup/plugin-alias';
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
@@ -13,15 +12,5 @@ export default makeNPMConfigVariants(
         preserveModules: false,
       },
     },
-    plugins: ['@babel/transform-react-jsx', { pragma: 'h' },
-      alias({
-        entries: [
-          { find: 'react', replacement: 'preact/compat' },
-          { find: 'react-dom/test-utils', replacement: 'preact/test-utils' },
-          { find: 'react-dom', replacement: 'preact/compat' },
-          { find: 'react/jsx-runtime', replacement: 'preact/jsx-runtime' }
-        ]
-      })
-    ],
   }),
 );

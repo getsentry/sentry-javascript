@@ -1,12 +1,7 @@
-import { h, render } from 'preact';
-
-interface FeedbackScreenshotOptions {
-  el: Element;
-  props: string;
-}
+import { h, createElement } from 'preact';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function Hello(options: FeedbackScreenshotOptions) {
-  console.log('screenshot widget');
+export function Hello() {
+  console.log('screenshot widget 1');
   return h('div', null, 'hello');
 }
