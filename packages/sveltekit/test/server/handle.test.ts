@@ -228,7 +228,7 @@ describe('handleSentry', () => {
               if (key === 'baggage') {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-                  'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+                  'sentry-public_key=dogsarebadatkeepingsecrets,' +
                   'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
                 );
               }
@@ -258,7 +258,6 @@ describe('handleSentry', () => {
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
-        user_segment: 'segmentA',
       });
     });
 

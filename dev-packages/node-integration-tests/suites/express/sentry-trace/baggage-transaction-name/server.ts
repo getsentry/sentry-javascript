@@ -24,7 +24,7 @@ Sentry.init({
   transport: loggingTransport,
 });
 
-Sentry.setUser({ id: 'user123', segment: 'SegmentA' });
+Sentry.setUser({ id: 'user123' });
 
 app.use(Sentry.Handlers.requestHandler());
 app.use(Sentry.Handlers.tracingHandler());

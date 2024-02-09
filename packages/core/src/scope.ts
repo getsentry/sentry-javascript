@@ -193,7 +193,6 @@ export class Scope implements ScopeInterface {
       email: undefined,
       id: undefined,
       ip_address: undefined,
-      segment: undefined,
       username: undefined,
     };
 
