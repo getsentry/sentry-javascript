@@ -87,9 +87,6 @@ test.each([['array1'], ['array5']])(
               },
               op: 'http.server',
               status: 'ok',
-              tags: {
-                'http.status_code': '200',
-              },
             },
           },
         },
@@ -127,9 +124,6 @@ test.each([
             },
             op: 'http.server',
             status: 'ok',
-            tags: {
-              'http.status_code': '200',
-            },
           },
         },
       },

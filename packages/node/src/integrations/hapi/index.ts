@@ -1,7 +1,6 @@
 import {
   SDK_VERSION,
   captureException,
-  continueTrace,
   convertIntegrationFnToClass,
   defineIntegration,
   getActiveTransaction,
@@ -12,7 +11,7 @@ import {
   startTransaction,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, fill, propagationContextFromHeaders } from '@sentry/utils';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -73,21 +72,21 @@ export const hapiTracingPlugin = {
     const server = serverArg as unknown as Server;
 
     server.ext('onPreHandler', (request, h) => {
-      const transaction = continueTrace(
-        {
-          sentryTrace: request.headers['sentry-trace'] || undefined,
-          baggage: request.headers['baggage'] || undefined,
-        },
-        transactionContext => {
-          // eslint-disable-next-line deprecation/deprecation
-          return startTransaction({
-            ...transactionContext,
-            op: 'hapi.request',
-            name: request.route.path,
-            description: `${request.route.method} ${request.path}`,
-          });
-        },
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(
+        request.headers['sentry-trace'] || undefined,
+        request.headers['baggage'] || undefined,
       );
+
+      // eslint-disable-next-line deprecation/deprecation
+      const transaction = startTransaction({
+        name: request.route.path,
+        op: 'hapi.request',
+        traceId,
+        parentSampled: sampled,
+        parentSpanId,
+        metadata: { dynamicSamplingContext: dsc },
+        description: `${request.route.method} ${request.path}`,
+      });
 
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);

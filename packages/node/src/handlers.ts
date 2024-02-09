@@ -5,27 +5,16 @@ import {
   captureException,
   continueTrace,
   flush,
-  getActiveSpan,
   getClient,
   getCurrentScope,
   hasTracingEnabled,
   runWithAsyncContext,
   setHttpStatus,
-  startTransaction,
+  startSpanManual,
   withScope,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
-import {
-  addRequestDataToTransaction,
-  dropUndefinedKeys,
-  extractPathForTransaction,
-  extractRequestData,
-  isString,
-  isThenable,
-  logger,
-  normalize,
-} from '@sentry/utils';
+import { dropUndefinedKeys, extractPathForTransaction, isString, isThenable, logger, normalize } from '@sentry/utils';
 
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
@@ -65,53 +54,37 @@ export function tracingHandler(): (
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
-      // TODO: Refactor this to use `startSpan()`
-      // eslint-disable-next-line deprecation/deprecation
-      startTransaction(
-        {
-          name,
-          op: 'http.server',
-          origin: 'auto.http.node.tracingHandler',
-          ...ctx,
-          data: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+
+    continueTrace({ sentryTrace, baggage }, () => {
+      withScope(scope => {
+        scope.setSDKProcessingMetadata({
+          request: req,
+        });
+        startSpanManual(
+          {
+            name,
+            op: 'http.server',
+            origin: 'auto.http.node.tracingHandler',
+            data: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            },
           },
-          metadata: {
-            // eslint-disable-next-line deprecation/deprecation
-            ...ctx.metadata,
-            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-            // be sure
-            request: req,
+          span => {
+            res.once('finish', () => {
+              // Push `span.end` to the next event loop so open spans have a chance to finish before the transaction
+              // closes
+              setImmediate(() => {
+                if (span) {
+                  setHttpStatus(span, res.statusCode);
+                  span.end();
+                }
+              });
+            });
+            next();
           },
-        },
-        // extra context passed to the tracesSampler
-        { request: extractRequestData(req) },
-      ),
-    );
-
-    // We put the transaction on the scope so users can attach children to it
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
-
-    // We also set __sentry_transaction on the response so people can grab the transaction there to add
-    // spans to it later.
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-    (res as any).__sentry_transaction = transaction;
-
-    res.once('finish', () => {
-      // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
-      // closes
-      setImmediate(() => {
-        addRequestDataToTransaction(transaction, req);
-        setHttpStatus(transaction, res.statusCode);
-        transaction.end();
+        );
       });
     });
-
-    next();
   };
 }
 
@@ -262,27 +235,19 @@ export function errorHandler(options?: {
 ) => void {
   return function sentryErrorMiddleware(
     error: MiddlewareError,
-    _req: http.IncomingMessage,
+    req: http.IncomingMessage,
     res: http.ServerResponse,
     next: (error: MiddlewareError) => void,
   ): void {
     const shouldHandleError = (options && options.shouldHandleError) || defaultShouldHandleError;
 
-    if (shouldHandleError(error)) {
-      withScope(_scope => {
-        // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
-        // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
-        // hurt to be sure
-        _scope.setSDKProcessingMetadata({ request: _req });
+    withScope(scope => {
+      // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
+      // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
+      // hurt to be sure
+      scope.setSDKProcessingMetadata({ request: req });
 
-        // For some reason we need to set the transaction on the scope again
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const transaction = (res as any).__sentry_transaction as Span;
-        if (transaction && !getActiveSpan()) {
-          // eslint-disable-next-line deprecation/deprecation
-          _scope.setSpan(transaction);
-        }
-
+      if (shouldHandleError(error)) {
         const client = getClient<NodeClient>();
         if (client && isAutoSessionTrackingEnabled(client)) {
           // Check if the `SessionFlusher` is instantiated on the client to go into this branch that marks the
@@ -292,7 +257,7 @@ export function errorHandler(options?: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = _scope.getRequestSession();
+            const requestSession = scope.getRequestSession();
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
@@ -305,13 +270,10 @@ export function errorHandler(options?: {
         const eventId = captureException(error, { mechanism: { type: 'middleware', handled: false } });
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         (res as any).sentry = eventId;
-        next(error);
-      });
+      }
 
-      return;
-    }
-
-    next(error);
+      return next(error);
+    });
   };
 }
 

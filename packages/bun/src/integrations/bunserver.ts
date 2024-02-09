@@ -72,8 +72,8 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
         const url = getSanitizedUrlString(parsedUrl);
 
         return continueTrace(
-          { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-          ctx => {
+          { sentryTrace: request.headers.get('sentry-trace'), baggage: request.headers.get('baggage') },
+          () => {
             return startSpan(
               {
                 attributes: {
@@ -81,11 +81,8 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                 },
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                ...ctx,
                 data,
                 metadata: {
-                  // eslint-disable-next-line deprecation/deprecation
-                  ...ctx.metadata,
                   request: {
                     url,
                     method: request.method,
