@@ -121,9 +121,6 @@ export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
 
-  /** Contains the last event id of a captured event.  */
-  private _lastEventId?: string;
-
   private _isolationScope: Scope;
 
   /**
@@ -354,7 +351,7 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error('Sentry syntheticException');
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureException(exception, {
@@ -373,7 +370,7 @@ export class Hub implements HubInterface {
    * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error(message);
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureMessage(message, level, {
@@ -393,21 +390,9 @@ export class Hub implements HubInterface {
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
-    if (!event.type) {
-      this._lastEventId = eventId;
-    }
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated This will be removed in v8.
-   */
-  public lastEventId(): string | undefined {
-    return this._lastEventId;
   }
 
   /**

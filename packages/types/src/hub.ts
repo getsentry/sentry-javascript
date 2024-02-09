@@ -129,15 +129,6 @@ export interface Hub {
   captureEvent(event: Event, hint?: EventHint): string;
 
   /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
-   *
-   * @deprecated This will be removed in v8.
-   */
-  lastEventId(): string | undefined;
-
-  /**
    * Records a new breadcrumb which will be attached to future events.
    *
    * Breadcrumbs will be added to subsequent events to provide more context on

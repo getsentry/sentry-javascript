@@ -30,10 +30,6 @@ export interface ScopeData {
 export interface Scope extends BaseScope {
   // @ts-expect-error typeof this is what we want here
   clone(scope?: Scope): typeof this;
-  /**
-   * @deprecated This function will be removed in the next major version of the Sentry SDK.
-   */
-  lastEventId(): string | undefined;
   getScopeData(): ScopeData;
 }
 
