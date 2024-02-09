@@ -71,7 +71,7 @@ export function wrapClientClass<
       event: Event,
       hint: EventHint,
       scope?: Scope,
-      _isolationScope?: Scope,
+      isolationScope?: Scope,
     ): PromiseLike<Event | null> {
       let actualScope = scope;
 
@@ -81,7 +81,7 @@ export function wrapClientClass<
         delete hint.captureContext;
       }
 
-      return super._prepareEvent(event, hint, actualScope);
+      return super._prepareEvent(event, hint, actualScope, isolationScope);
     }
   }
 

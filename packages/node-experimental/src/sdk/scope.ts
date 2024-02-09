@@ -72,9 +72,6 @@ export function isInitialized(): boolean {
 
 /** A fork of the classic scope with some otel specific stuff. */
 export class Scope extends OpenTelemetryScope implements ScopeInterface {
-  // Overwrite this if you want to use a specific isolation scope here
-  public isolationScope: Scope | undefined;
-
   protected _client: Client | undefined;
 
   protected _lastEventId: string | undefined;
