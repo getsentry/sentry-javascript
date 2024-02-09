@@ -10,8 +10,8 @@ import { OpenTelemetryScope } from './scope';
  * Exported only for testing
  */
 export class OpenTelemetryHub extends Hub {
-  public constructor(client?: Client, scope: Scope = new OpenTelemetryScope()) {
-    super(client, scope);
+  public constructor(client?: Client, scope: Scope = new OpenTelemetryScope(), isolationScope?: Scope) {
+    super(client, scope, isolationScope);
   }
 }
 
