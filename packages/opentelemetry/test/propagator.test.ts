@@ -40,9 +40,10 @@ describe('SentryPropagator', () => {
         publicKey: 'abc',
       }),
     };
-    // eslint-disable-next-line deprecation/deprecation, @typescript-eslint/ban-ts-comment
-    // @ts-ignore f this s
-    const hub = new Hub(client as any);
+
+    // @ts-expect-error Use mock client for unit tests
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
