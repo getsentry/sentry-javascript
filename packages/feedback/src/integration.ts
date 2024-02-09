@@ -111,6 +111,8 @@ export class Feedback implements Integration {
     onFormOpen,
     onSubmitError,
     onSubmitSuccess,
+
+    // getScreenshotIntegration,
   }: OptionalFeedbackConfiguration = {}) {
     // eslint-disable-next-line deprecation/deprecation
     this.name = Feedback.id;
@@ -158,6 +160,8 @@ export class Feedback implements Integration {
       onFormOpen,
       onSubmitError,
       onSubmitSuccess,
+
+      // getScreenshotIntegration,
     };
   }
 
@@ -182,6 +186,7 @@ export class Feedback implements Integration {
       this._createWidget(this.options);
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
+      console.log(err);
     }
   }
 
@@ -241,6 +246,7 @@ export class Feedback implements Integration {
       });
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
+      console.log(err);
       return null;
     }
   }
@@ -255,6 +261,7 @@ export class Feedback implements Integration {
       return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
+      console.log(err);
       return null;
     }
   }
@@ -281,6 +288,7 @@ export class Feedback implements Integration {
         return true;
       }
     } catch (err) {
+      console.log(err);
       DEBUG_BUILD && logger.error(err);
     }
 

@@ -76,6 +76,7 @@ export function createWidget({
     } catch (err) {
       // TODO: error handling
       logger.error(err);
+      console.log(err);
     }
   }
 
@@ -211,6 +212,7 @@ export function createWidget({
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);
+      console.log(err);
     }
   }
 

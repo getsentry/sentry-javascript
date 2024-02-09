@@ -1,6 +1,7 @@
 import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
+import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
 
 export interface FormComponentProps
   extends Pick<
@@ -139,7 +140,7 @@ export function Form({
     name: 'message',
     required: true,
     className: 'form__input form__input--textarea',
-    placeholder: messagePlaceholder,
+    placeholder: 'message placeholder',
   });
 
   const cancelEl = createElement(
@@ -154,6 +155,14 @@ export function Form({
     },
     cancelButtonLabel,
   );
+
+  const screenshot = createElement('div', { className: 'btn-group' });
+
+  // @ts-expect-error testing
+  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
+    el: screenshot,
+    props: null,
+  });
 
   const formEl = createElement(
     'form',
@@ -218,6 +227,8 @@ export function Form({
           messageEl,
         ],
       ),
+
+      screenshot,
 
       createElement(
         'div',
