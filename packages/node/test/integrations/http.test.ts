@@ -67,6 +67,7 @@ describe('tracing', () => {
       ...customOptions,
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -270,6 +271,7 @@ describe('tracing', () => {
       environment: 'production',
       instrumenter: 'otel',
     });
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
 
     // eslint-disable-next-line deprecation/deprecation
@@ -371,6 +373,7 @@ describe('tracing', () => {
       });
 
       const client = new NodeClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client);
       // eslint-disable-next-line deprecation/deprecation
       makeMain(hub);
@@ -622,6 +625,7 @@ describe('default protocols', () => {
       },
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -715,6 +719,7 @@ describe('httpIntegration', () => {
       environment: 'production',
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -775,6 +780,7 @@ describe('httpIntegration', () => {
 
 describe('_shouldCreateSpans', () => {
   beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -796,6 +802,7 @@ describe('_shouldCreateSpans', () => {
 
 describe('_getShouldCreateSpanForRequest', () => {
   beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

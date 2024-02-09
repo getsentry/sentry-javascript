@@ -91,6 +91,7 @@ beforeAll(() => {
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
+  // eslint-disable-next-line deprecation/deprecation
   hub = new Hub(client);
   // eslint-disable-next-line deprecation/deprecation
   makeMain(hub);

@@ -121,6 +121,46 @@ export class Hub implements HubInterface {
    * @param client bound to the hub.
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
+   *
+   * @deprecated Instantiation of Hub objects is deprecated and the constructor will be removed in version 8 of the SDK.
+   *
+   * If you are currently using the Hub for multi-client use like so:
+   *
+   * ```
+   * // OLD
+   * const hub = new Hub();
+   * hub.bindClient(client);
+   * makeMain(hub)
+   * ```
+   *
+   * instead initialize the client as follows:
+   *
+   * ```
+   * // NEW
+   * Sentry.withIsolationScope(() => {
+   *    Sentry.setCurrentClient(client);
+   *    client.init();
+   * });
+   * ```
+   *
+   * If you are using the Hub to capture events like so:
+   *
+   * ```
+   * // OLD
+   * const client = new Client();
+   * const hub = new Hub(client);
+   * hub.captureException()
+   * ```
+   *
+   * instead capture isolated events as follows:
+   *
+   * ```
+   * // NEW
+   * const client = new Client();
+   * const scope = new Scope();
+   * scope.setClient(client);
+   * scope.captureException();
+   * ```
    */
   public constructor(
     client?: Client,
@@ -749,6 +789,7 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
     // eslint-disable-next-line deprecation/deprecation
     getHubFromCarrier(registry).isOlderThan(API_VERSION)
   ) {
+    // eslint-disable-next-line deprecation/deprecation
     setHubOnCarrier(registry, new Hub());
   }
 
@@ -774,6 +815,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
     const scope = parent.getScope();
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = parent.getIsolationScope();
+    // eslint-disable-next-line deprecation/deprecation
     setHubOnCarrier(carrier, new Hub(client, scope.clone(), isolationScope.clone()));
   }
 }
@@ -823,6 +865,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
+  // eslint-disable-next-line deprecation/deprecation
   return getGlobalSingleton<Hub>('hub', () => new Hub(), carrier);
 }
 

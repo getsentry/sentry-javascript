@@ -119,6 +119,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
@@ -134,6 +135,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
@@ -149,6 +151,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
@@ -165,6 +168,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' });
@@ -181,6 +185,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -196,6 +201,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -211,6 +217,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -226,6 +233,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
 
       // eslint-disable-next-line deprecation/deprecation
@@ -620,6 +628,7 @@ describe('BaseClient', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
       const client = new TestClient(options);
       const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client, scope);
       // eslint-disable-next-line deprecation/deprecation
       hub.addBreadcrumb({ message: '1' });
