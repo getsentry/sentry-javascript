@@ -4,16 +4,9 @@ import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { Transaction } from '@sentry/core';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-  flush,
-  getCurrentHub,
-  getCurrentScope,
-  getIsolationScope,
-  setCapturedScopesOnSpan,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentHub } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { addNonEnumerableProperty, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -114,32 +107,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
       createAndFinishSpanForOtelSpan(child, transaction, remaining);
     });
 
-    // Now finish the transaction, which will send it together with all the spans
-    // We make sure to use the finish scope
-    const { scope, isolationScope } = getScopesForTransactionFinish(span);
-    setCapturedScopesOnSpan(transaction, scope, isolationScope);
-
     transaction.end(span.endTime);
   });
 
   return Array.from(remaining)
     .map(node => node.span)
     .filter((span): span is ReadableSpan => !!span);
-}
-
-function getScopesForTransactionFinish(span: ReadableSpan): { scope: Scope; isolationScope: Scope } {
-  // The finish scope should normally always be there (and it is already a clone),
-  // but for the sake of type safety we fall back to a clone of the current scope
-  const scopes = getSpanScopes(span);
-  const scope = scopes?.scope || getCurrentScope().clone();
-  const isolationScope = scopes?.isolationScope || getIsolationScope();
-
-  scope.setContext('otel', {
-    attributes: removeSentryAttributes(span.attributes),
-    resource: span.resource.attributes,
-  });
-
-  return { scope, isolationScope };
 }
 
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
@@ -173,6 +146,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
 
   const { op, description, tags, data, origin, source } = getSpanData(span);
   const metadata = getSpanMetadata(span);
+  const capturedSpanScopes = getSpanScopes(span);
 
   const transaction = startTransaction(hub, {
     spanId,
@@ -194,6 +168,18 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     tags,
     sampled: true,
   });
+
+  // We currently don't want to write this to the scope because it would mutate it.
+  // In the future we will likely have some sort of transaction payload factory where we can pass this context in directly
+  // eslint-disable-next-line deprecation/deprecation
+  transaction.setContext('otel', {
+    attributes: removeSentryAttributes(span.attributes),
+    resource: span.resource.attributes,
+  });
+
+  if (capturedSpanScopes) {
+    setCapturedScopesOnTransaction(transaction, capturedSpanScopes.scope, capturedSpanScopes.isolationScope);
+  }
 
   return transaction;
 }
@@ -320,4 +306,15 @@ function getData(span: ReadableSpan): Record<string, unknown> {
   }
 
   return data;
+}
+
+const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
+const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
+
+/** Sets the scope and isolation scope to be used for when the transaction is finished. */
+function setCapturedScopesOnTransaction(span: Transaction, scope: Scope, isolationScope: Scope): void {
+  if (span) {
+    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+  }
 }
