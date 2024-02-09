@@ -1,5 +1,21 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of deprecated API in `@sentry/nextjs`
+
+The following previously deprecated API has been removed from the `@sentry/nextjs` package:
+
+- `withSentryApi` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryAPI` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryGetServerSideProps` (Replacement: `wrapGetServerSidePropsWithSentry`)
+- `withSentryGetStaticProps` (Replacement: `wrapGetStaticPropsWithSentry`)
+- `withSentryServerSideGetInitialProps` (Replacement: `wrapGetInitialPropsWithSentry`)
+- `withSentryServerSideAppGetInitialProps` (Replacement: `wrapAppGetInitialPropsWithSentry`)
+- `withSentryServerSideDocumentGetInitialProps` (Replacement: `wrapDocumentGetInitialPropsWithSentry`)
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+- `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
+- `IS_BUILD`
+- `isBuild`
+
 ## Removal of Severity Enum
 
 In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`

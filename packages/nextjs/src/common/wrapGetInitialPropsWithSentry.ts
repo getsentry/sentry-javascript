@@ -69,8 +69,3 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
     },
   });
 }
-
-/**
- * @deprecated Use `wrapGetInitialPropsWithSentry` instead.
- */
-export const withSentryServerSideGetInitialProps = wrapGetInitialPropsWithSentry;

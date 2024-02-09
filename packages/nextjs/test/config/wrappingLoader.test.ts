@@ -100,6 +100,4 @@ describe('wrappingLoader', () => {
 
     expect(callback).toHaveBeenCalledWith(null, expect.stringContaining("'/my/route'"), expect.anything());
   });
-
-  it.todo('should correctly wrap API routes on unix');
 });
