@@ -23,7 +23,6 @@ import {
   getActiveTransaction as getActiveTransactionT,
   hasTracingEnabled as hasTracingEnabledT,
   instrumentOutgoingRequests as instrumentOutgoingRequestsT,
-  spanStatusfromHttpCode as spanStatusfromHttpCodeT,
   startIdleTransaction as startIdleTransactionT,
   stripUrlQueryAndFragment as stripUrlQueryAndFragmentT,
 } from '@sentry-internal/tracing';
@@ -74,14 +73,6 @@ export const getActiveTransaction = getActiveTransactionT;
  */
 // eslint-disable-next-line deprecation/deprecation
 export const extractTraceparentData = extractTraceparentDataT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `spanStatusfromHttpCode` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-// eslint-disable-next-line deprecation/deprecation
-export const spanStatusfromHttpCode = spanStatusfromHttpCodeT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.

@@ -1,8 +1,8 @@
-import type { Client, DynamicSamplingContext, Scope, Span, Transaction } from '@sentry/types';
+import type { Client, DynamicSamplingContext, Span, Transaction } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient, getCurrentScope } from '../exports';
+import { getClient } from '../exports';
 import { getRootSpan } from '../utils/getRootSpan';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
@@ -11,22 +11,14 @@ import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
  *
  * Dispatches the `createDsc` lifecycle hook as a side effect.
  */
-export function getDynamicSamplingContextFromClient(
-  trace_id: string,
-  client: Client,
-  scope?: Scope,
-): DynamicSamplingContext {
+export function getDynamicSamplingContextFromClient(trace_id: string, client: Client): DynamicSamplingContext {
   const options = client.getOptions();
 
   const { publicKey: public_key } = client.getDsn() || {};
-  // TODO(v8): Remove segment from User
-  // eslint-disable-next-line deprecation/deprecation
-  const { segment: user_segment } = (scope && scope.getUser()) || {};
 
   const dsc = dropUndefinedKeys({
     environment: options.environment || DEFAULT_ENVIRONMENT,
     release: options.release,
-    user_segment,
     public_key,
     trace_id,
   }) as DynamicSamplingContext;
@@ -55,7 +47,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   }
 
   // passing emit=false here to only emit later once the DSC is actually populated
-  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client, getCurrentScope());
+  const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
   const txn = getRootSpan(span) as TransactionWithV7FrozenDsc | undefined;

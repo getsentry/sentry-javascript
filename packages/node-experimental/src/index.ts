@@ -66,8 +66,6 @@ export {
   DEFAULT_USER_INCLUDES,
   extractRequestData,
   // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
-  // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   createGetModuleFromFilename,
   close,
@@ -78,8 +76,6 @@ export {
   Hub,
   runWithAsyncContext,
   SDK_VERSION,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation

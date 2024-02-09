@@ -19,7 +19,7 @@
 
 ## General
 
-This package contains extensions to the `@sentry/hub` to enable Sentry AM related functionality. It also provides integrations for Browser and Node that provide a good experience out of the box.
+This package contains extensions to the Sentry SDKs to enable Sentry AM related functionality. It also provides integrations for Browser and Node that provide a good experience out of the box.
 
 ## Migrating from @sentry/apm to @sentry/tracing
 

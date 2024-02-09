@@ -309,8 +309,7 @@ export function xhrCallback(
     const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
     const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-      dsc ||
-        (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client, scope)),
+      dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
     );
 
     setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);

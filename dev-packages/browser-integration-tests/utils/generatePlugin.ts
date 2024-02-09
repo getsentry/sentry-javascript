@@ -115,7 +115,7 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  * When using compiled versions of the tracing and browser packages, their aliases look for example like
  *     '@sentry/browser': 'path/to/sentry-javascript/packages/browser/esm/index.js'
  * and all other monorepo packages' aliases look for example like
- *     '@sentry/hub': 'path/to/sentry-javascript/packages/hub'
+ *     '@sentry/react': 'path/to/sentry-javascript/packages/react'
  *
  * When using bundled versions of the tracing and browser packages, all aliases look for example like
  *     '@sentry/browser': false

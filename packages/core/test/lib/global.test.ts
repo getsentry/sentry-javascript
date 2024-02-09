@@ -2,7 +2,7 @@
 
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-import { Hub, getCurrentHub, getHubFromCarrier } from '../src';
+import { Hub, getCurrentHub, getHubFromCarrier } from '../../src/hub';
 
 describe('global', () => {
   test('getGlobalHub', () => {
@@ -28,7 +28,7 @@ describe('global', () => {
     const newestHub = new Hub(undefined, undefined, undefined, 999999);
     GLOBAL_OBJ.__SENTRY__.hub = newestHub;
     const fn = jest.fn().mockImplementation(function (...args: []) {
-      // @ts-expect-error typescript complains that this can be `any`
+      // @ts-expect-error 'this' implicitly has type 'any' because it does not have a type annotation
       expect(this).toBe(newestHub);
       expect(args).toEqual([1, 2, 3]);
     });

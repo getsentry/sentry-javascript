@@ -9,8 +9,6 @@ export { extractTraceparentData, getActiveTransaction } from './utils';
 export { SpanStatus } from './spanstatus';
 export {
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
 } from './spanstatus';
 export type { SpanStatusType } from './spanstatus';
