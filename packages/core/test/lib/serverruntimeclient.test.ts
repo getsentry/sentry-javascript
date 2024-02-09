@@ -172,8 +172,8 @@ describe('ServerRuntimeClient', () => {
           [
             expect.any(Object),
             expect.objectContaining({
-              level: 'error'
-            })
+              level: 'error',
+            }),
           ],
         ],
       ]);
@@ -197,8 +197,8 @@ describe('ServerRuntimeClient', () => {
           [
             expect.any(Object),
             expect.objectContaining({
-              level: 'info'
-            })
+              level: 'info',
+            }),
           ],
         ],
       ]);
