@@ -198,13 +198,6 @@ export const showReportDialog: ShowReportDialogFunction = (
     };
   }
 
-  // TODO(v8): Remove this entire if statement. `eventId` will be a required option.
-  // eslint-disable-next-line deprecation/deprecation
-  if (!options.eventId) {
-    // eslint-disable-next-line deprecation/deprecation
-    options.eventId = hub.lastEventId();
-  }
-
   const script = WINDOW.document.createElement('script');
   script.async = true;
   script.crossOrigin = 'anonymous';

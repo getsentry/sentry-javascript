@@ -16,7 +16,6 @@ import {
   configureScope,
   getClient,
   getCurrentScope,
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -71,7 +70,6 @@ export function getCurrentHub(): Hub {
       return getCurrentScope().captureMessage(message, level, hint);
     },
     captureEvent,
-    lastEventId,
     addBreadcrumb,
     setUser,
     setTags,

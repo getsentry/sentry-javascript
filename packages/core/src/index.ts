@@ -20,8 +20,6 @@ export {
   configureScope,
   flush,
   // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   setContext,
   setExtra,
