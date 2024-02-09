@@ -79,17 +79,6 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * @example
  * ```
  *
- * import { configureScope } from '@sentry/browser';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
- * });
- * ```
- *
- * @example
- * ```
- *
  * import { addBreadcrumb } from '@sentry/browser';
  * addBreadcrumb({
  *   message: 'My Breadcrumb',

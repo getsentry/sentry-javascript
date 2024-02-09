@@ -73,17 +73,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
- * });
- * ```
- *
- * @example
- * ```
- *
  * const { addBreadcrumb } = require('@sentry/node');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',

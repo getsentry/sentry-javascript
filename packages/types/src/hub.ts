@@ -198,14 +198,6 @@ export interface Hub {
   setContext(name: string, context: { [key: string]: any } | null): void;
 
   /**
-   * Callback to set context information onto the scope.
-   *
-   * @param callback Callback function that receives Scope.
-   * @deprecated Use `getScope()` directly.
-   */
-  configureScope(callback: (scope: Scope) => void): void;
-
-  /**
    * For the duration of the callback, this hub will be set as the global current Hub.
    * This function is useful if you want to run your own client and hook into an already initialized one
    * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
