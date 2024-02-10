@@ -43,6 +43,41 @@ snapshot[`captureException 1`] = `
         stacktrace: {
           frames: [
             {
+              colno: 20,
+              filename: "ext:cli/40_test.js",
+              function: "outerWrapped",
+              in_app: false,
+              lineno: 548,
+            },
+            {
+              colno: 33,
+              filename: "ext:cli/40_test.js",
+              function: "exitSanitizer",
+              in_app: false,
+              lineno: 534,
+            },
+            {
+              colno: 31,
+              filename: "ext:cli/40_test.js",
+              function: "resourceSanitizer",
+              in_app: false,
+              lineno: 486,
+            },
+            {
+              colno: 33,
+              filename: "ext:cli/40_test.js",
+              function: "asyncOpSanitizer",
+              in_app: false,
+              lineno: 251,
+            },
+            {
+              colno: 11,
+              filename: "ext:cli/40_test.js",
+              function: "innerWrapped",
+              in_app: false,
+              lineno: 605,
+            },
+            {
               colno: 27,
               context_line: "  client.captureException(something());",
               filename: "app:///test/mod.test.ts",
@@ -101,8 +136,8 @@ snapshot[`captureException 1`] = `
       },
     ],
   },
-  platform: "javascript",
   level: "error",
+  platform: "javascript",
   sdk: {
     integrations: [
       "InboundFilters",
