@@ -6,6 +6,10 @@ const baseBundleConfig = makeBaseBundleConfig({
   jsVersion: 'es6',
   licenseTitle: '@sentry-internal/feedback-screenshot',
   outputFileBase: () => 'bundles/feedback-screenshot',
+  sucrase: {
+    jsxPragma: 'h',
+    jsxFragmentPragma: 'Fragment',
+  }
 });
 
 const builds = makeBundleConfigVariants(baseBundleConfig);

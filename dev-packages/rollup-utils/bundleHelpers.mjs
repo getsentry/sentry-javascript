@@ -32,7 +32,7 @@ export function makeBaseBundleConfig(options) {
 
   const aliasPlugin = makeAliasPlugin();
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin();
+  const sucrasePlugin = makeSucrasePlugin(options.sucrase);
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
