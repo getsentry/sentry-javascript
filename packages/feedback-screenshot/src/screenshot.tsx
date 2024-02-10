@@ -27,7 +27,7 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
       return { el: options.el || WINDOW.document.createElement('div'), props: options.props || null };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
-      return render(h(Hello, null), options.el);
+      return render(<Hello />, options.el);
     },
   };
 }) satisfies IntegrationFn;
