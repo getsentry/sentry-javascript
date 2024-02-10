@@ -158,7 +158,7 @@ export function Form({
 
   const screenshot = createElement('div', { className: 'btn-group' });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  // @ts-expect-error temp
   ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
     el: screenshot,
     props: null,
