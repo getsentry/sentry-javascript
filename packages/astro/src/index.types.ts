@@ -26,4 +26,5 @@ export declare const defaultStackParser: StackParser;
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 export default sentryAstro;

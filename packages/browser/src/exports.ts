@@ -63,12 +63,12 @@ export {
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
 } from '@sentry/core';
 
+export * from './metrics';
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
 export { makeFetchTransport, makeXHRTransport } from './transports';

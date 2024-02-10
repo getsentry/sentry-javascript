@@ -68,7 +68,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
-  metrics,
+  metricsNode as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,

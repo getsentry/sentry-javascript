@@ -94,9 +94,9 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
-   * A reference to a metrics aggregator
+   * TODO (v8): Remove
    *
-   * @experimental Note this is alpha API. It may experience breaking changes in the future.
+   * @deprecated The metricsAggregator is no longer referenced on the client.
    */
   public metricsAggregator?: MetricsAggregator;
 
@@ -280,9 +280,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
-      if (this.metricsAggregator) {
-        this.metricsAggregator.flush();
-      }
+      this.emit('flush');
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -297,9 +295,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
-      if (this.metricsAggregator) {
-        this.metricsAggregator.close();
-      }
+      this.emit('close');
       return result;
     });
   }
@@ -495,6 +491,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
+  public on(hook: 'flush', callback: () => void): void;
+
+  public on(hook: 'close', callback: () => void): void;
+
   /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
@@ -540,6 +540,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'flush'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'close'): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
