@@ -6,9 +6,6 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
-  _experiments: {
-    metricsAggregator: true,
-  },
 });
 
 // Stop the process from exiting before the transaction is sent

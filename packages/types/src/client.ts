@@ -273,6 +273,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on?(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
+   * A hook that is called when the client is flushing
+   */
+  on?(hook: 'flush', callback: () => void): void;
+
+  /**
+   * A hook that is called when the client is closing
+   */
+  on?(hook: 'close', callback: () => void): void;
+
+  /**
    * Fire a hook event for transaction start.
    * Expects to be given a transaction as the second argument.
    */
@@ -342,6 +352,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Emit a hook event for BrowserTracing to trigger a span for a navigation.
    */
   emit?(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /**
+   * Emit a hook event for client flush
+   */
+  emit?(hook: 'flush'): void;
+
+  /**
+   * Emit a hook event for client close
+   */
+  emit?(hook: 'close'): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }

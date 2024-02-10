@@ -30,6 +30,8 @@ declare const runtime: 'client' | 'server';
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
 
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+
 /**
  * @deprecated This function will be removed in the next major version of the Sentry SDK.
  */
