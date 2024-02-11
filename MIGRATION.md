@@ -1,5 +1,10 @@
 # Upgrading from 7.x to 8.x
 
+## Dropping Support for React 15
+
+Sentry will no longer officially support React 15 in version 8. This means that React 15.x will be removed
+from`@sentry/react`'s peer dependencies.
+
 ## Removal of deprecated API in `@sentry/nextjs`
 
 The following previously deprecated API has been removed from the `@sentry/nextjs` package:
