@@ -419,9 +419,7 @@ export class Hub implements HubInterface {
 
     if (finalBreadcrumb === null) return;
 
-    if (client.emit) {
-      client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-    }
+    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
     // TODO(v8): I know this comment doesn't make much sense because the hub will be deprecated but I still wanted to
     // write it down. In theory, we would have to add the breadcrumbs to the isolation scope here, however, that would

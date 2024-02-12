@@ -23,10 +23,6 @@ const _debugIntegration = ((options: DebugOptions = {}) => {
     // TODO v8: Remove this
     setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
-      if (!client.on) {
-        return;
-      }
-
       client.on('beforeSendEvent', (event: Event, hint?: EventHint) => {
         if (_options.debugger) {
           // eslint-disable-next-line no-debugger

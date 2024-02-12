@@ -134,9 +134,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
 
   if (finalBreadcrumb === null) return;
 
-  if (client.emit) {
-    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-  }
+  client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
   getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
 }
