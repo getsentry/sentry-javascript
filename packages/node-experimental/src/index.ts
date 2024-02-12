@@ -74,8 +74,6 @@ export {
   SDK_VERSION,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   captureCheckIn,
   withMonitor,
   hapiErrorPlugin,

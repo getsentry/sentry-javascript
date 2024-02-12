@@ -31,6 +31,14 @@ export type SpanAttributes = Partial<{
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
+export type MetricSummary = {
+  min: number;
+  max: number;
+  count: number;
+  sum: number;
+  tags?: Record<string, Primitive> | undefined;
+};
+
 /** This type is aligned with the OpenTelemetry TimeInput type. */
 export type SpanTimeInput = HrTime | number | Date;
 
@@ -47,6 +55,7 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 // These are aligned with OpenTelemetry trace flags
