@@ -1,11 +1,9 @@
 /* eslint-disable no-console */
 const Sentry = require('../../build/npm/cjs/index.js');
-const Integrations = require('../../../integrations/build/npm/cjs/dedupe.js');
 
 // Init
 Sentry.init({
   dsn: 'https://completelyrandom@dsn.asdf/42',
-  integrations: [new Integrations.Dedupe()],
   beforeSend(_event) {
     console.log('Got an event');
     return null;
