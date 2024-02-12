@@ -30,7 +30,6 @@ export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@s
 export {
   getClient,
   isInitialized,
-  addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
@@ -55,6 +54,7 @@ export { getCurrentHub, makeMain } from './sdk/hub';
 export { Scope } from './sdk/scope';
 
 export {
+  addBreadcrumb,
   makeNodeTransport,
   defaultStackParser,
   getSentryRelease,

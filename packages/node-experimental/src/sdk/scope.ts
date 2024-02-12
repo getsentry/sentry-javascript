@@ -1,6 +1,6 @@
 import { getGlobalScope as _getGlobalScope, setGlobalScope } from '@sentry/core';
 import { OpenTelemetryScope } from '@sentry/opentelemetry';
-import type { Breadcrumb, Client, Event, EventHint, SeverityLevel } from '@sentry/types';
+import type { Client, Event, EventHint, SeverityLevel } from '@sentry/types';
 import { uuid4 } from '@sentry/utils';
 
 import { getGlobalCarrier } from './globals';
@@ -159,13 +159,6 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
     getClient().captureEvent(event, { ...hint, event_id: eventId }, this);
 
     return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    return this._addBreadcrumb(breadcrumb, maxBreadcrumbs);
   }
 
   /** Get scope data for this scope only. */

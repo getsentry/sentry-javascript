@@ -37,15 +37,7 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = actualHub.getIsolationScope();
     setSpanHub(span, actualHub);
-
-    // Use this scope for finishing the span
-    // TODO: For now we need to clone this, as we need to store the `activeSpan` on it
-    // Once we can get rid of this (when we move breadcrumbs to the isolation scope),
-    // we can stop cloning this here
-    const finishScope = (scope as OpenTelemetryScope).clone();
-    // this is needed for breadcrumbs, for now, as they are stored on the span currently
-    finishScope.activeSpan = span;
-    setSpanScopes(span, { scope: finishScope, isolationScope });
+    setSpanScopes(span, { scope, isolationScope });
   }
 }
 
