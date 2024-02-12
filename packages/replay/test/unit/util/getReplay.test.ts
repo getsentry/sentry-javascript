@@ -24,7 +24,7 @@ describe('getReplay', () => {
     expect(actual).toBeUndefined();
   });
 
-  it('works with a client with Replay xxx', () => {
+  it('works with a client with Replay', () => {
     const replay = replayIntegration();
     init(
       getDefaultClientOptions({
