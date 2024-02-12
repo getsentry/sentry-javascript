@@ -35,6 +35,7 @@ const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
 
 beforeEach(() => {
   const client = new NodeClient(DEFAULT_OPTIONS);
+  // eslint-disable-next-line deprecation/deprecation
   hub = new Hub(client);
   // eslint-disable-next-line deprecation/deprecation
   makeMain(hub);
@@ -387,6 +388,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         environment: 'production',
       });
       const client = new NodeClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client);
       // eslint-disable-next-line deprecation/deprecation
       makeMain(hub);

@@ -31,6 +31,7 @@ function getTestClient(): TestClient {
 describe('withScope', () => {
   beforeEach(() => {
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -173,6 +174,7 @@ describe('withScope', () => {
 describe('session APIs', () => {
   beforeEach(() => {
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -326,6 +328,7 @@ describe('isInitialized', () => {
 
   it('returns true if client is setup', () => {
     const client = getTestClient();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
