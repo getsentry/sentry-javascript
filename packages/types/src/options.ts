@@ -223,22 +223,26 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   denyUrls?: Array<string | RegExp>;
 
   /**
-   * List of strings/regex controlling to which outgoing requests
-   * the SDK will attach tracing headers.
+   * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * headers attached.
    *
-   * By default the SDK will attach those headers to all requests to localhost
-   * and same origin. If this option is provided, the SDK will match the
-   * request URL of outgoing requests against the items in this
-   * array, and only attach tracing headers if a match was found.
+   * By default, if this option is not provided, tracing headers will be attached to all outgoing requests to the same origin as the current page.
    *
-   * @example
-   * ```js
-   * Sentry.init({
-   *   tracePropagationTargets: ['api.site.com'],
-   * });
-   * ```
+   * NOTE: Carelessly setting this option may result into CORS errors.
    *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * If you provide a `tracePropagationTargets` array, the entries you provide will be matched against two values:
+   * - The entire URL of the outgoing request.
+   * - The pathname of the outgoing request (only if it is a same-origin request)
+   *
+   * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
+   *
+   * Examples:
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
+   *   - Tracing headers will be attached because the request is sent to the same origin and the regex matches the pathname "/api/posts".
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://different-origin.com/api/posts`:
+   *   - Tracing headers will not be attached because the pathname will only be compared when the request target lives on the same origin.
+   * - `tracePropagationTargets: [/^\/api/, 'https://external-api.com']` and request to `https://external-api.com/v1/data`:
+   *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
   tracePropagationTargets?: TracePropagationTargets;
 

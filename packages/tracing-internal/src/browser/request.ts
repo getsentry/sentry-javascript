@@ -26,8 +26,7 @@ import {
 
 import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
-
-export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
+import { WINDOW } from './types';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -35,9 +34,25 @@ export interface RequestInstrumentationOptions {
    * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
-   * Default: ['localhost', /^\//]
+   * By default, if this option is not provided, tracing headers will be attached to all outgoing requests to the same origin as the current page.
+   *
+   * NOTE: Carelessly setting this option may result into CORS errors.
+   *
+   * If you provide a `tracePropagationTargets` array, the entries you provide will be matched against two values:
+   * - The entire URL of the outgoing request.
+   * - The pathname of the outgoing request (only if it is a same-origin request)
+   *
+   * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
+   *
+   * Examples:
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
+   *   - Tracing headers will be attached because the request is sent to the same origin and the regex matches the pathname "/api/posts".
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://different-origin.com/api/posts`:
+   *   - Tracing headers will not be attached because the pathname will only be compared when the request target lives on the same origin.
+   * - `tracePropagationTargets: [/^\/api/, 'https://external-api.com']` and request to `https://external-api.com/v1/data`:
+   *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
-  tracePropagationTargets: Array<string | RegExp>;
+  tracePropagationTargets?: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -73,7 +88,6 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -208,10 +222,23 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 /**
  * A function that determines whether to attach tracing headers to a request.
  * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
- * We only export this fuction for testing purposes.
+ * We only export this function for testing purposes.
  */
-export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
-  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
+export function shouldAttachHeaders(
+  targetUrl: string,
+  tracePropagationTargets: (string | RegExp)[] | undefined,
+): boolean {
+  const resolvedUrl = new URL(targetUrl, WINDOW.location.origin);
+  const isSameOriginRequest = resolvedUrl.origin === WINDOW.location.origin;
+
+  if (!tracePropagationTargets) {
+    return isSameOriginRequest;
+  }
+
+  return (
+    stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
+    (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+  );
 }
 
 /**
