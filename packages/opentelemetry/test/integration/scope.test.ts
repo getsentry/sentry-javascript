@@ -1,7 +1,6 @@
 import {
   captureException,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getIsolationScope,
   setTag,
@@ -9,8 +8,6 @@ import {
   withScope,
 } from '@sentry/core';
 
-import { OpenTelemetryHub } from '../../src/custom/hub';
-import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
 import { getSpanScopes } from '../../src/utils/spanData';
 import type { TestClientInterface } from '../helpers/TestClient';
@@ -31,14 +28,9 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
 
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error = new Error('test error');
       let spanId: string | undefined;
@@ -140,13 +132,8 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');
@@ -264,13 +251,8 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');

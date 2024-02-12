@@ -33,7 +33,6 @@ export {
   captureException,
   captureEvent,
   captureMessage,
-  addGlobalEventProcessor,
   addEventProcessor,
   setContext,
   setExtra,
@@ -45,19 +44,18 @@ export {
   withIsolationScope,
   withActiveSpan,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   setIsolationScope,
   setCurrentScope,
 } from './sdk/api';
 export { getCurrentHub, makeMain } from './sdk/hub';
-export { Scope } from './sdk/scope';
 
 export {
   addBreadcrumb,
   makeNodeTransport,
   defaultStackParser,
   getSentryRelease,
+  getGlobalScope,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,

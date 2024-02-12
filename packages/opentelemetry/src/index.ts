@@ -30,8 +30,8 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan } from './trace';
 
+// eslint-disable-next-line deprecation/deprecation
 export { setupGlobalHub } from './custom/hub';
-export { OpenTelemetryScope } from './custom/scope';
 export { addTracingExtensions } from './custom/hubextensions';
 export { setupEventContextTrace } from './setupEventContextTrace';
 

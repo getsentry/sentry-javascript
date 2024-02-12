@@ -38,7 +38,6 @@ This package exposes a few building blocks you can add to your OpenTelemetry set
 
 This is how you can use this in your app:
 
-1. Setup the global hub for OpenTelemetry compatibility - ensure `setupGlobalHub()` is called before anything else!
 1. Initialize Sentry, e.g. `@sentry/node` - make sure to set `instrumenter: 'otel'` in the SDK `init({})`!
 1. Call `setupEventContextTrace(client)`
 1. Add `SentrySampler` as sampler
@@ -52,8 +51,6 @@ For example, you could set this up as follows:
 ```js
 import * as Sentry from '@sentry/node';
 import {
-  getCurrentHub,
-  setupGlobalHub,
   SentryPropagator,
   SentrySampler,
   SentrySpanProcessor,
@@ -64,14 +61,12 @@ import {
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
 
 function setupSentry() {
-  setupGlobalHub();
-
   Sentry.init({
     dsn: 'xxx',
     instrumenter: 'otel'
   });
 
-  const client = getCurrentHub().getClient();
+  const client = Sentry.getClient();
   setupEventContextTrace(client);
 
   const provider = new BasicTracerProvider({

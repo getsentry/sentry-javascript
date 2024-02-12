@@ -1,8 +1,7 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import type { Hub } from '@sentry/core';
+import { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import { SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
-import { OpenTelemetryHub } from './custom/hub';
 
 import { setHubOnContext } from './utils/contextData';
 
@@ -15,14 +14,12 @@ function createNewHub(parent: Hub | undefined, shouldForkIsolationScope: boolean
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = parent.getIsolationScope();
 
-    return new OpenTelemetryHub(
-      client,
-      scope.clone(),
-      shouldForkIsolationScope ? isolationScope.clone() : isolationScope,
-    );
+    // eslint-disable-next-line deprecation/deprecation
+    return new Hub(client, scope.clone(), shouldForkIsolationScope ? isolationScope.clone() : isolationScope);
   }
 
-  return new OpenTelemetryHub();
+  // eslint-disable-next-line deprecation/deprecation
+  return new Hub();
 }
 
 // Typescript complains if we do not use `...args: any[]` for the mixin, with:

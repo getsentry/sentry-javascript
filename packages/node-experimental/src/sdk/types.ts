@@ -8,7 +8,7 @@ import type {
   Integration,
   Primitive,
   PropagationContext,
-  Scope as BaseScope,
+  Scope,
   SeverityLevel,
   User,
 } from '@sentry/types';
@@ -25,12 +25,6 @@ export interface ScopeData {
   sdkProcessingMetadata: { [key: string]: unknown };
   fingerprint: string[];
   level?: SeverityLevel;
-}
-
-export interface Scope extends BaseScope {
-  // @ts-expect-error typeof this is what we want here
-  clone(scope?: Scope): typeof this;
-  getScopeData(): ScopeData;
 }
 
 export interface CurrentScopes {
