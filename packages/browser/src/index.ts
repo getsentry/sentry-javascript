@@ -74,8 +74,6 @@ export {
   getActiveTransaction,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,

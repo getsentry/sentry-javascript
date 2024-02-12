@@ -13,13 +13,9 @@ export {
 } from './spanstatus';
 export type { SpanStatusType } from './spanstatus';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   getActiveSpan,
   startSpan,
   startInactiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startSpanManual,
   continueTrace,
 } from './trace';

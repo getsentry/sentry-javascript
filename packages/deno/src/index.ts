@@ -61,8 +61,6 @@ export {
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
