@@ -3,8 +3,6 @@
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   Event,
   EventHint,
@@ -15,7 +13,6 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '../utils/contextData';
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
@@ -114,29 +111,6 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 /** Capture a generic event and send it to Sentry. */
 export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentScope().captureEvent(event, hint);
-}
-
-/**
- * Add a breadcrumb to the current isolation scope.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-  const client = getClient();
-
-  const { beforeBreadcrumb, maxBreadcrumbs } = client.getOptions();
-
-  if (maxBreadcrumbs && maxBreadcrumbs <= 0) return;
-
-  const timestamp = dateTimestampInSeconds();
-  const mergedBreadcrumb = { timestamp, ...breadcrumb };
-  const finalBreadcrumb = beforeBreadcrumb
-    ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
-    : mergedBreadcrumb;
-
-  if (finalBreadcrumb === null) return;
-
-  client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-
-  getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
 }
 
 /**

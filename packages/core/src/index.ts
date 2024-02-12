@@ -9,7 +9,6 @@ export * from './tracing';
 export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
-  addBreadcrumb,
   captureCheckIn,
   withMonitor,
   captureException,
@@ -95,6 +94,7 @@ export { RequestData } from './integrations/requestdata';
 export { InboundFilters } from './integrations/inboundfilters';
 export { FunctionToString } from './integrations/functiontostring';
 export { LinkedErrors } from './integrations/linkederrors';
+export { addBreadcrumb } from './breadcrumbs';
 /* eslint-enable deprecation/deprecation */
 import * as INTEGRATIONS from './integrations';
 export { functionToStringIntegration } from './integrations/functiontostring';

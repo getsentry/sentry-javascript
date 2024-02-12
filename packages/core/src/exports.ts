@@ -1,6 +1,4 @@
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   CheckIn,
   Client,
@@ -75,19 +73,6 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 export function captureEvent(event: Event, hint?: EventHint): string {
   // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureEvent(event, hint);
-}
-
-/**
- * Records a new breadcrumb which will be attached to future events.
- *
- * Breadcrumbs will be added to subsequent events to provide more context on
- * user's actions prior to an error or crash.
- *
- * @param breadcrumb The breadcrumb to record.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().addBreadcrumb(breadcrumb, hint);
 }
 
 /**

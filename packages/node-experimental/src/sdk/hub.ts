@@ -9,9 +9,8 @@ import type {
   TransactionContext,
 } from '@sentry/types';
 
-import { endSession, startSession } from '@sentry/core';
+import { addBreadcrumb, endSession, startSession } from '@sentry/core';
 import {
-  addBreadcrumb,
   captureEvent,
   getClient,
   getCurrentScope,
