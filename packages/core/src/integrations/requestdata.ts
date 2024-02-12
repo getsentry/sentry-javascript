@@ -50,7 +50,7 @@ const DEFAULT_OPTIONS = {
       email: true,
     },
   },
-  transactionNamingScheme: 'methodPath',
+  transactionNamingScheme: 'methodPath' as const,
 };
 
 const INTEGRATION_NAME = 'RequestData';
@@ -61,9 +61,6 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
     ...DEFAULT_OPTIONS,
     ...options,
     include: {
-      // @ts-expect-error It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
-      // `addRequestDataToEvent` for legacy reasons. TODO (v8): Change that.)
-      method: true,
       ...DEFAULT_OPTIONS.include,
       ...options.include,
       user:
