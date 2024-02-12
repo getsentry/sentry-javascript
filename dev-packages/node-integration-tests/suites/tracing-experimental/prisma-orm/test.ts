@@ -1,7 +1,7 @@
 import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 14 })('Prisma ORM Tests', () => {
+conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
   test('CJS - should instrument PostgreSQL queries from Prisma ORM', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',

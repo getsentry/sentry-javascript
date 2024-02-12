@@ -3,7 +3,7 @@ import { parseSemver } from '@sentry/utils';
 
 const NODE_VERSION = parseSemver(process.versions.node);
 
-if (NODE_VERSION.major && NODE_VERSION.major < 12) {
+if (NODE_VERSION.major && NODE_VERSION.major < 16) {
   // eslint-disable-next-line no-console
   console.warn(`Skipping Prisma tests on Node: ${NODE_VERSION.major}`);
   process.exit(0);
