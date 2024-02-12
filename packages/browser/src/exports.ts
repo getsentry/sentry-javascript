@@ -30,8 +30,6 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   flush,
   getHubFromCarrier,
@@ -41,8 +39,6 @@ export {
   isInitialized,
   getCurrentScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   // eslint-disable-next-line deprecation/deprecation
   makeMain,

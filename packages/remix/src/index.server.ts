@@ -21,8 +21,6 @@ export {
   captureException,
   captureEvent,
   captureMessage,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
@@ -62,8 +60,6 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -98,8 +94,6 @@ export {
   createGetModuleFromFilename,
   hapiErrorPlugin,
   runWithAsyncContext,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

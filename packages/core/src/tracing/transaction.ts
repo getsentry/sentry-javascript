@@ -277,7 +277,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
-    if (client && client.emit) {
+    if (client) {
       client.emit('finishTransaction', this);
     }
 

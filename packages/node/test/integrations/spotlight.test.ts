@@ -120,16 +120,6 @@ describe('Spotlight', () => {
       integration.setup!(client);
       expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid sidecar URL: invalid-url'));
     });
-
-    it("the client doesn't support life cycle hooks", () => {
-      const integration = spotlightIntegration({ sidecarUrl: 'http://mylocalhost:8969' });
-      const clientWithoutHooks = { ...client };
-      // @ts-expect-error - this is fine in tests
-      delete client.on;
-      // @ts-expect-error - this is fine in tests
-      integration.setup(clientWithoutHooks);
-      expect(loggerSpy).toHaveBeenCalledWith(expect.stringContaining(' missing method on SDK client (`client.on`)'));
-    });
   });
 
   it('warns if the NODE_ENV variable doesn\'t equal "development"', () => {

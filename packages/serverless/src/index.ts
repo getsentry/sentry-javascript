@@ -25,8 +25,6 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -63,8 +61,6 @@ export {
   flush,
   getSentryRelease,
   init,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,

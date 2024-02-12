@@ -74,8 +74,6 @@ export function isInitialized(): boolean {
 export class Scope extends OpenTelemetryScope implements ScopeInterface {
   protected _client: Client | undefined;
 
-  protected _lastEventId: string | undefined;
-
   /**
    * @inheritDoc
    */
@@ -131,8 +129,6 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
       this,
     );
 
-    this._lastEventId = eventId;
-
     return eventId;
   }
 
@@ -153,26 +149,16 @@ export class Scope extends OpenTelemetryScope implements ScopeInterface {
       this,
     );
 
-    this._lastEventId = eventId;
-
     return eventId;
   }
 
   /** Capture a message for this scope. */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
-    if (!event.type) {
-      this._lastEventId = eventId;
-    }
 
     getClient().captureEvent(event, { ...hint, event_id: eventId }, this);
 
     return eventId;
-  }
-
-  /** Get the ID of the last sent error event. */
-  public lastEventId(): string | undefined {
-    return this._lastEventId;
   }
 
   /**

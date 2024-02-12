@@ -13,10 +13,8 @@ import { endSession, startSession } from '@sentry/core';
 import {
   addBreadcrumb,
   captureEvent,
-  configureScope,
   getClient,
   getCurrentScope,
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -71,7 +69,6 @@ export function getCurrentHub(): Hub {
       return getCurrentScope().captureMessage(message, level, hint);
     },
     captureEvent,
-    lastEventId,
     addBreadcrumb,
     setUser,
     setTags,
@@ -79,8 +76,6 @@ export function getCurrentHub(): Hub {
     setExtra,
     setExtras,
     setContext,
-    // eslint-disable-next-line deprecation/deprecation
-    configureScope: configureScope,
 
     run(callback: (hub: Hub) => void): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

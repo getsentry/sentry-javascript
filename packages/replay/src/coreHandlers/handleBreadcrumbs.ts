@@ -1,4 +1,5 @@
-import type { Breadcrumb, Scope } from '@sentry/types';
+import { getClient } from '@sentry/core';
+import type { Breadcrumb } from '@sentry/types';
 import { normalize } from '@sentry/utils';
 
 import { CONSOLE_ARG_MAX_SIZE } from '../constants';
@@ -7,61 +8,55 @@ import type { ReplayFrame } from '../types/replayFrame';
 import { createBreadcrumb } from '../util/createBreadcrumb';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
-let _LAST_BREADCRUMB: null | Breadcrumb = null;
-
 type BreadcrumbWithCategory = Required<Pick<Breadcrumb, 'category'>>;
 
-function isBreadcrumbWithCategory(breadcrumb: Breadcrumb): breadcrumb is BreadcrumbWithCategory {
-  return !!breadcrumb.category;
-}
-
-export const handleScopeListener: (replay: ReplayContainer) => (scope: Scope) => void =
-  (replay: ReplayContainer) =>
-  (scope: Scope): void => {
-    if (!replay.isEnabled()) {
-      return;
-    }
-
-    const result = handleScope(scope);
-
-    if (!result) {
-      return;
-    }
-
-    addBreadcrumbEvent(replay, result);
-  };
-
 /**
- * An event handler to handle scope changes.
+ * Handle breadcrumbs that Sentry captures, and make sure to capture relevant breadcrumbs to Replay as well.
  */
-export function handleScope(scope: Scope): Breadcrumb | null {
-  // TODO (v8): Remove this guard. This was put in place because we introduced
-  // Scope.getLastBreadcrumb mid-v7 which caused incompatibilities with older SDKs.
-  // For now, we'll just return null if the method doesn't exist but we should eventually
-  // get rid of this guard.
-  const newBreadcrumb = scope.getLastBreadcrumb && scope.getLastBreadcrumb();
+export function handleBreadcrumbs(replay: ReplayContainer): void {
+  const client = getClient();
 
-  // Listener can be called when breadcrumbs have not changed, so we store the
-  // reference to the last crumb and only return a crumb if it has changed
-  if (_LAST_BREADCRUMB === newBreadcrumb || !newBreadcrumb) {
-    return null;
+  if (!client) {
+    return;
   }
 
-  _LAST_BREADCRUMB = newBreadcrumb;
+  client.on('beforeAddBreadcrumb', breadcrumb => beforeAddBreadcrumb(replay, breadcrumb));
+}
 
+function beforeAddBreadcrumb(replay: ReplayContainer, breadcrumb: Breadcrumb): void {
+  if (!replay.isEnabled() || !isBreadcrumbWithCategory(breadcrumb)) {
+    return;
+  }
+
+  const result = normalizeBreadcrumb(breadcrumb);
+  if (result) {
+    addBreadcrumbEvent(replay, result);
+  }
+}
+
+/** Exported only for tests. */
+export function normalizeBreadcrumb(breadcrumb: Breadcrumb): Breadcrumb | null {
   if (
-    !isBreadcrumbWithCategory(newBreadcrumb) ||
-    ['fetch', 'xhr', 'sentry.event', 'sentry.transaction'].includes(newBreadcrumb.category) ||
-    newBreadcrumb.category.startsWith('ui.')
+    !isBreadcrumbWithCategory(breadcrumb) ||
+    [
+      // fetch & xhr are handled separately,in handleNetworkBreadcrumbs
+      'fetch',
+      'xhr',
+      // These two are breadcrumbs for emitted sentry events, we don't care about them
+      'sentry.event',
+      'sentry.transaction',
+    ].includes(breadcrumb.category) ||
+    // We capture UI breadcrumbs separately
+    breadcrumb.category.startsWith('ui.')
   ) {
     return null;
   }
 
-  if (newBreadcrumb.category === 'console') {
-    return normalizeConsoleBreadcrumb(newBreadcrumb);
+  if (breadcrumb.category === 'console') {
+    return normalizeConsoleBreadcrumb(breadcrumb);
   }
 
-  return createBreadcrumb(newBreadcrumb);
+  return createBreadcrumb(breadcrumb);
 }
 
 /** exported for tests only */
@@ -115,4 +110,8 @@ export function normalizeConsoleBreadcrumb(
       ...(isTruncated ? { _meta: { warnings: ['CONSOLE_ARG_TRUNCATED'] } } : {}),
     },
   });
+}
+
+function isBreadcrumbWithCategory(breadcrumb: Breadcrumb): breadcrumb is BreadcrumbWithCategory {
+  return !!breadcrumb.category;
 }

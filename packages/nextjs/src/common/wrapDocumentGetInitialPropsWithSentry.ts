@@ -49,8 +49,3 @@ export function wrapDocumentGetInitialPropsWithSentry(
     },
   });
 }
-
-/**
- * @deprecated Use `wrapDocumentGetInitialPropsWithSentry` instead.
- */
-export const withSentryServerSideDocumentGetInitialProps = wrapDocumentGetInitialPropsWithSentry;

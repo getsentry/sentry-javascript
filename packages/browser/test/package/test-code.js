@@ -17,13 +17,12 @@ Sentry.init({
 });
 
 // Configure
-Sentry.configureScope(scope => {
-  scope.setExtra('foo', 'bar');
-  scope.setFingerprint('foo');
-  scope.setLevel('warning');
-  scope.setTag('foo', 'bar');
-  scope.setUser('foo', 'bar');
-});
+const scope = Sentry.getCurrentScope();
+scope.setExtra('foo', 'bar');
+scope.setFingerprint('foo');
+scope.setLevel('warning');
+scope.setTag('foo', 'bar');
+scope.setUser('foo', 'bar');
 
 // Breadcrumbs integration
 window.console.log('Console', 'Breadcrumb');

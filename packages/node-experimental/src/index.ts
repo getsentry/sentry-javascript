@@ -36,8 +36,6 @@ export {
   captureMessage,
   addGlobalEventProcessor,
   addEventProcessor,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -47,8 +45,6 @@ export {
   withScope,
   withIsolationScope,
   withActiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,

@@ -309,27 +309,25 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location.href;
 
-      if (client.on) {
-        client.on('startNavigationSpan', (context: StartSpanOptions) => {
-          if (activeSpan) {
-            DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
-            // If there's an open transaction on the scope, we need to finish it before creating an new one.
-            activeSpan.end();
-          }
-          activeSpan = _createRouteTransaction(context);
-        });
+      client.on('startNavigationSpan', (context: StartSpanOptions) => {
+        if (activeSpan) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open transaction on the scope, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+        activeSpan = _createRouteTransaction(context);
+      });
 
-        client.on('startPageLoadSpan', (context: StartSpanOptions) => {
-          if (activeSpan) {
-            DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
-            // If there's an open transaction on the scope, we need to finish it before creating an new one.
-            activeSpan.end();
-          }
-          activeSpan = _createRouteTransaction(context);
-        });
-      }
+      client.on('startPageLoadSpan', (context: StartSpanOptions) => {
+        if (activeSpan) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open transaction on the scope, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+        activeSpan = _createRouteTransaction(context);
+      });
 
-      if (options.instrumentPageLoad && client.emit) {
+      if (options.instrumentPageLoad) {
         const context: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
@@ -343,7 +341,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         startBrowserTracingPageLoadSpan(client, context);
       }
 
-      if (options.instrumentNavigation && client.emit) {
+      if (options.instrumentNavigation) {
         addHistoryInstrumentationHandler(({ to, from }) => {
           /**
            * This early return is there to account for some cases where a navigation transaction starts right after
@@ -402,10 +400,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
  * This will only do something if the BrowserTracing integration has been setup.
  */
 export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
-  if (!client.emit) {
-    return;
-  }
-
   client.emit('startPageLoadSpan', spanOptions);
 }
 
@@ -414,10 +408,6 @@ export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: Sta
  * This will only do something if the BrowserTracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
-  if (!client.emit) {
-    return;
-  }
-
   client.emit('startNavigationSpan', spanOptions);
 }
 

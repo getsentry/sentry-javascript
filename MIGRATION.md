@@ -1,5 +1,21 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of deprecated API in `@sentry/nextjs`
+
+The following previously deprecated API has been removed from the `@sentry/nextjs` package:
+
+- `withSentryApi` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryAPI` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryGetServerSideProps` (Replacement: `wrapGetServerSidePropsWithSentry`)
+- `withSentryGetStaticProps` (Replacement: `wrapGetStaticPropsWithSentry`)
+- `withSentryServerSideGetInitialProps` (Replacement: `wrapGetInitialPropsWithSentry`)
+- `withSentryServerSideAppGetInitialProps` (Replacement: `wrapAppGetInitialPropsWithSentry`)
+- `withSentryServerSideDocumentGetInitialProps` (Replacement: `wrapDocumentGetInitialPropsWithSentry`)
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+- `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
+- `IS_BUILD`
+- `isBuild`
+
 ## Removal of Severity Enum
 
 In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`
@@ -11,9 +27,26 @@ enum. If you were using the `Severity` enum, you should replace it with the `Sev
 The `Offline` integration has been removed in favor of the offline transport wrapper:
 http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
 
-## Other changes
+## Removal of `enableAnrDetection` and `Anr` class (##10562)
+
+The `enableAnrDetection` and `Anr` class have been removed. See the
+[docs](https://docs.sentry.io/platforms/node/configuration/application-not-responding/) for more details how to migrate
+to `anrIntegration`, the new integration for ANR detection.
+
+## Removal of `Sentry.configureScope` (#10565)
+
+The top level `Sentry.configureScope` function has been removed. Instead, you should use the `Sentry.getCurrentScope()`
+to access and mutate the current scope.
+
+## Deletion of `@sentry/hub` package (#10530)
+
+`@sentry/hub` has been removed. All exports from `@sentry.hub` should be available in `@sentry/core`.
+
+## General API Changes
 
 - Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
+- Remove deprecated `deepReadDirSync` export from `@sentry/node` (#10564)
+- Remove `_eventFromIncompleteOnError` usage (#10553)
 
 # Deprecations in 7.x
 

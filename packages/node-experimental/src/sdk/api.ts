@@ -96,23 +96,6 @@ export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T
   });
 }
 
-/**
- * Get the ID of the last sent error event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().lastEventId();
-}
-
-/**
- * Configure the current scope.
- * @deprecated Use `getCurrentScope()` instead.
- */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callback(getCurrentScope());
-}
-
 /** Record an exception and send it to Sentry. */
 export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
@@ -151,9 +134,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): vo
 
   if (finalBreadcrumb === null) return;
 
-  if (client.emit) {
-    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-  }
+  client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
   getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
 }

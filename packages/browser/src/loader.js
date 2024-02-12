@@ -184,6 +184,7 @@
     'captureMessage',
     'captureException',
     'captureEvent',
+    // TODO: Remove configureScope from loader
     'configureScope',
     'withScope',
     'showReportDialog'

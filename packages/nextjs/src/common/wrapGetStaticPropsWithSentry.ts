@@ -39,8 +39,3 @@ export function wrapGetStaticPropsWithSentry(
     },
   });
 }
-
-/**
- * @deprecated Use `wrapGetStaticPropsWithSentry` instead.
- */
-export const withSentryGetStaticProps = wrapGetStaticPropsWithSentry;

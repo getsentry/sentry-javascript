@@ -30,8 +30,6 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
@@ -47,8 +45,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,

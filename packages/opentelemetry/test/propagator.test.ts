@@ -39,6 +39,7 @@ describe('SentryPropagator', () => {
       getDsn: () => ({
         publicKey: 'abc',
       }),
+      emit: () => {},
     };
 
     // @ts-expect-error Use mock client for unit tests

@@ -44,10 +44,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         });
 
         const incomingPropagationContext = propagationContextFromHeaders(
-          // eslint-disable-next-line deprecation/deprecation
-          context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],
-          // eslint-disable-next-line deprecation/deprecation
-          context.baggageHeader ?? completeHeadersDict['baggage'],
+          completeHeadersDict['sentry-trace'],
+          completeHeadersDict['baggage'],
         );
 
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);

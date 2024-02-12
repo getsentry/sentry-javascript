@@ -140,7 +140,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
     integration.setup(client);
   }
 
-  if (client.on && typeof integration.preprocessEvent === 'function') {
+  if (typeof integration.preprocessEvent === 'function') {
     const callback = integration.preprocessEvent.bind(integration) as typeof integration.preprocessEvent;
     client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
   }

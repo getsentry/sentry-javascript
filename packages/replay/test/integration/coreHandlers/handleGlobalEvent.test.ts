@@ -146,7 +146,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     );
   });
 
-  it('does not collect errorIds when hooks are available', async () => {
+  it('does not collect errorIds', async () => {
     const error1 = Error({ event_id: 'err1' });
     const error2 = Error({ event_id: 'err2' });
     const error3 = Error({ event_id: 'err3' });
@@ -160,21 +160,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
   });
 
-  it('collects errorIds when hooks are not available', async () => {
-    const error1 = Error({ event_id: 'err1' });
-    const error2 = Error({ event_id: 'err2' });
-    const error3 = Error({ event_id: 'err3' });
-
-    const handler = handleGlobalEventListener(replay, true);
-
-    handler(error1, {});
-    handler(error2, {});
-    handler(error3, {});
-
-    expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err2', 'err3']);
-  });
-
-  it('does not collect traceIds when hooks are available', async () => {
+  it('does not collect traceIds', async () => {
     const transaction1 = Transaction('tr1');
     const transaction2 = Transaction('tr2');
     const transaction3 = Transaction('tr3');
@@ -188,33 +174,16 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
   });
 
-  it('collects traceIds when hooks are not available', async () => {
-    const transaction1 = Transaction('tr1');
-    const transaction2 = Transaction('tr2');
-    const transaction3 = Transaction('tr3');
-
-    const handler = handleGlobalEventListener(replay, true);
-
-    handler(transaction1, {});
-    handler(transaction2, {});
-    handler(transaction3, {});
-
-    expect(Array.from(replay.getContext().traceIds)).toEqual(['tr1', 'tr2', 'tr3']);
-  });
-
   it('ignores profile & replay events', async () => {
     const profileEvent: Event = { type: 'profile' };
     const replayEvent: Event = { type: 'replay_event' };
 
     const handler = handleGlobalEventListener(replay);
-    const handler2 = handleGlobalEventListener(replay, true);
 
     expect(replay.recordingMode).toBe('buffer');
 
     handler(profileEvent, {});
     handler(replayEvent, {});
-    handler2(profileEvent, {});
-    handler2(replayEvent, {});
 
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);

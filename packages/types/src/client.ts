@@ -201,63 +201,60 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Register a callback for transaction start.
    * Receives the transaction as argument.
    */
-  on?(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
    * Register a callback for transaction finish.
    * Receives the transaction as argument.
    */
-  on?(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
    * Register a callback for transaction start and finish.
    */
-  on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
    * Register a callback for before sending an event.
    * This is called right before an event is sent and should not be used to mutate the event.
    * Receives an Event & EventHint as arguments.
    */
-  on?(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
+  on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
 
   /**
    * Register a callback for preprocessing an event,
    * before it is passed to (global) event processors.
    * Receives an Event & EventHint as arguments.
    */
-  on?(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
+  on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
 
   /**
    * Register a callback for when an event has been sent.
    */
-  on?(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
    */
-  on?(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /**
    * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
-  on?(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+  on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
 
   /**
    * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
    * The option argument may be mutated to drop the span.
    */
-  on?(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
+  on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
    * Register a callback when a Feedback event has been prepared.
    * This should be used to mutate the event. The options argument can hint
    * about what kind of mutation it expects.
    */
-  on?(
+  on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
   ): void;
@@ -265,83 +262,83 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * A hook for BrowserTracing to trigger a span start for a page load.
    */
-  on?(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
    * A hook for BrowserTracing to trigger a span for a navigation.
    */
-  on?(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+  on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
    * Fire a hook event for transaction start.
    * Expects to be given a transaction as the second argument.
    */
-  emit?(hook: 'startTransaction', transaction: Transaction): void;
+  emit(hook: 'startTransaction', transaction: Transaction): void;
 
   /**
    * Fire a hook event for transaction finish.
    * Expects to be given a transaction as the second argument.
    */
-  emit?(hook: 'finishTransaction', transaction: Transaction): void;
+  emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
-  emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
+  emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /**
    * Fire a hook event before sending an event.
    * This is called right before an event is sent and should not be used to mutate the event.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+  emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
   /**
    * Fire a hook event to process events before they are passed to (global) event processors.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
+  emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
    */
-  emit?(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
+  emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /**
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
-  emit?(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+  emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
 
   /**
    * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
    * Expects the OTEL span & as second argument, and an option object as third argument.
    * The option argument may be mutated to drop the span.
    */
-  emit?(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+  emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /**
    * Fire a hook event for after preparing a feedback event. Events to be given
    * a feedback event as the second argument, and an optional options object as
    * third argument.
    */
-  emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
+  emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
    * Emit a hook event for BrowserTracing to trigger a span start for a page load.
    */
-  emit?(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
 
   /**
    * Emit a hook event for BrowserTracing to trigger a span for a navigation.
    */
-  emit?(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+  emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }
