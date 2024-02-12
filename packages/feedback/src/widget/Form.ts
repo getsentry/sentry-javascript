@@ -140,7 +140,7 @@ export function Form({
     name: 'message',
     required: true,
     className: 'form__input form__input--textarea',
-    placeholder: 'message placeholder',
+    placeholder: messagePlaceholder,
   });
 
   const cancelEl = createElement(
@@ -156,11 +156,11 @@ export function Form({
     cancelButtonLabel,
   );
 
-  const screenshot = createElement('div', { className: 'btn-group' });
+  const button = createElement('div', { className: 'btn-group' });
 
   // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
-    el: screenshot,
+  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotButton({
+    el: button,
     props: null,
   });
 
@@ -228,7 +228,7 @@ export function Form({
         ],
       ),
 
-      screenshot,
+      button,
 
       createElement(
         'div',
