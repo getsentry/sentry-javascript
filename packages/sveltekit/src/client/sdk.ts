@@ -1,7 +1,7 @@
-import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
+import { applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
-import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
+import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
 
 import {
@@ -42,7 +42,7 @@ export function init(options: BrowserOptions): void {
     restoreFetch(actualFetch);
   }
 
-  getCurrentScope().setTag('runtime', 'browser');
+  setTag('runtime', 'browser');
 }
 
 // TODO v8: Remove this again

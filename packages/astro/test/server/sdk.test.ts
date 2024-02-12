@@ -36,16 +36,16 @@ describe('Sentry server SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the scope', () => {
-      const currentScope = SentryNode.getCurrentScope();
+    it('sets the runtime tag on the isolation scope', () => {
+      const isolationScope = SentryNode.getIsolationScope();
 
       // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({});
+      expect(isolationScope._tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({ runtime: 'node' });
+      expect(isolationScope._tags).toEqual({ runtime: 'node' });
     });
   });
 });
