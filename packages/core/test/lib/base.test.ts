@@ -1,7 +1,15 @@
 import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, Scope, makeSession, setGlobalScope } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  getIsolationScope,
+  makeSession,
+  setCurrentClient,
+  setGlobalScope,
+} from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -55,6 +63,8 @@ describe('BaseClient', () => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
     setGlobalScope(undefined);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   afterEach(() => {
@@ -109,6 +119,113 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
 
       expect(client.getTransport()).toBeUndefined();
+    });
+  });
+
+  describe('getBreadcrumbs() / addBreadcrumb()', () => {
+    test('adds a breadcrumb', () => {
+      const options = getDefaultTestClientOptions({});
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello' }, 100);
+      addBreadcrumb({ message: 'world' });
+
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: expect.any(Number) }]);
+    });
+
+    test('accepts a timestamp for new breadcrumbs', () => {
+      const options = getDefaultTestClientOptions({});
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello', timestamp: 1234 }, 100);
+      addBreadcrumb({ message: 'world', timestamp: 12345 });
+
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: 1234 }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: 12345 }]);
+    });
+
+    test('discards breadcrumbs beyond `maxBreadcrumbs`', () => {
+      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello1' });
+      addBreadcrumb({ message: 'hello2' });
+      addBreadcrumb({ message: 'hello3' });
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello3', timestamp: expect.any(Number) }]);
+    });
+
+    test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
+      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello' });
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
+    });
+
+    test('calls `beforeBreadcrumb` and uses the new one', () => {
+      const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello' });
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'changed', timestamp: expect.any(Number) }]);
+    });
+
+    test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
+      const beforeBreadcrumb = jest.fn(() => null);
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello' });
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([]);
+    });
+
+    test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
+      const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
+      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
+      const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
+
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([
+        { message: 'hello', data: 'someRandomThing', timestamp: expect.any(Number) },
+      ]);
     });
   });
 
@@ -495,13 +612,12 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
       const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: '1' });
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: '2' });
+
+      addBreadcrumb({ message: '1' });
+      addBreadcrumb({ message: '2' });
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
@@ -1825,11 +1941,11 @@ describe('BaseClient', () => {
           traceId: '86f39e84263a4de99c326acab3bfe3bd',
         } as Transaction;
 
-        client.on?.('startTransaction', transaction => {
+        client.on('startTransaction', transaction => {
           expect(transaction).toEqual(mockTransaction);
         });
 
-        client.emit?.('startTransaction', mockTransaction);
+        client.emit('startTransaction', mockTransaction);
       });
 
       it('should call a beforeEnvelope hook', () => {
@@ -1842,11 +1958,11 @@ describe('BaseClient', () => {
           {},
         ] as Envelope;
 
-        client.on?.('beforeEnvelope', envelope => {
+        client.on('beforeEnvelope', envelope => {
           expect(envelope).toEqual(mockEnvelope);
         });
 
-        client.emit?.('beforeEnvelope', mockEnvelope);
+        client.emit('beforeEnvelope', mockEnvelope);
       });
     });
   });

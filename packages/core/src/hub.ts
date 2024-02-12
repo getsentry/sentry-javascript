@@ -121,9 +121,6 @@ export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
 
-  /** Contains the last event id of a captured event.  */
-  private _lastEventId?: string;
-
   private _isolationScope: Scope;
 
   /**
@@ -354,7 +351,7 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error('Sentry syntheticException');
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureException(exception, {
@@ -373,7 +370,7 @@ export class Hub implements HubInterface {
    * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error(message);
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureMessage(message, level, {
@@ -393,21 +390,9 @@ export class Hub implements HubInterface {
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
-    if (!event.type) {
-      this._lastEventId = eventId;
-    }
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated This will be removed in v8.
-   */
-  public lastEventId(): string | undefined {
-    return this._lastEventId;
   }
 
   /**
@@ -434,9 +419,7 @@ export class Hub implements HubInterface {
 
     if (finalBreadcrumb === null) return;
 
-    if (client.emit) {
-      client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-    }
+    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
@@ -447,9 +430,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setUser()` instead.
    */
   public setUser(user: User | null): void {
-    // TODO(v8): The top level `Sentry.setUser()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setUser(user);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setUser(user);
   }
@@ -459,9 +439,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTags()` instead.
    */
   public setTags(tags: { [key: string]: Primitive }): void {
-    // TODO(v8): The top level `Sentry.setTags()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setTags(tags);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setTags(tags);
   }
@@ -471,9 +448,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtras()` instead.
    */
   public setExtras(extras: Extras): void {
-    // TODO(v8): The top level `Sentry.setExtras()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setExtras(extras);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setExtras(extras);
   }
@@ -483,9 +457,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTag()` instead.
    */
   public setTag(key: string, value: Primitive): void {
-    // TODO(v8): The top level `Sentry.setTag()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setTag(key, value);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setTag(key, value);
   }
@@ -495,9 +466,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtra()` instead.
    */
   public setExtra(key: string, extra: Extra): void {
-    // TODO(v8): The top level `Sentry.setExtra()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setExtra(key, extra);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setExtra(key, extra);
   }
@@ -508,24 +476,8 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
-    // TODO(v8): The top level `Sentry.setContext()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setContext(name, context);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setContext(name, context);
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `getScope()` directly.
-   */
-  public configureScope(callback: (scope: Scope) => void): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const { scope, client } = this.getStackTop();
-    if (client) {
-      callback(scope);
-    }
   }
 
   /**

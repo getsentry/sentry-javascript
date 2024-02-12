@@ -1,6 +1,5 @@
-import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { NodeClient, getClient, getCurrentHub, getCurrentScope } from '@sentry/node';
+import { getClient, getCurrentScope } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
@@ -113,44 +112,6 @@ describe('Server init()', () => {
     expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
-  it("initializes both global hub and domain hub when there's an active domain", () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const globalHub = getCurrentHub();
-
-    runWithAsyncContext(() => {
-      // eslint-disable-next-line deprecation/deprecation
-      const globalHub2 = getCurrentHub();
-      // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
-      // strategy yet
-      expect(globalHub2).toBe(globalHub);
-      // eslint-disable-next-line deprecation/deprecation
-      expect(globalHub.getClient()).toBeUndefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(globalHub2.getClient()).toBeUndefined();
-
-      init({});
-
-      runWithAsyncContext(() => {
-        // eslint-disable-next-line deprecation/deprecation
-        const domainHub = getCurrentHub();
-        // this tag should end up only in the domain hub
-        // eslint-disable-next-line deprecation/deprecation
-        domainHub.setTag('dogs', 'areGreat');
-
-        // eslint-disable-next-line deprecation/deprecation
-        expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
-        // eslint-disable-next-line deprecation/deprecation
-        expect(domainHub.getClient()).toBe(globalHub.getClient());
-        // @ts-expect-error need access to protected _tags attribute
-        // eslint-disable-next-line deprecation/deprecation
-        expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
-        // @ts-expect-error need access to protected _tags attribute
-        // eslint-disable-next-line deprecation/deprecation
-        expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
-      });
-    });
-  });
-
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
     type ModifiedInitOptions = { integrations: Integration[]; defaultIntegrations: Integration[] };
@@ -159,14 +120,14 @@ describe('Server init()', () => {
       init({});
 
       const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-      const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'RewriteFrames');
+      const integrationNames = nodeInitOptions.defaultIntegrations.map(integration => integration.name);
       const httpIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'Http');
       const onUncaughtExceptionIntegration = findIntegrationByName(
         nodeInitOptions.defaultIntegrations,
         'OnUncaughtException',
       );
 
-      expect(rewriteFramesIntegration).toBeDefined();
+      expect(integrationNames).toContain('DistDirRewriteFrames');
       expect(httpIntegration).toBeDefined();
       expect(onUncaughtExceptionIntegration).toBeDefined();
     });

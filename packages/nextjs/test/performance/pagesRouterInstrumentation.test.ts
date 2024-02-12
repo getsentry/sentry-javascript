@@ -1,5 +1,4 @@
 import { WINDOW } from '@sentry/react';
-import type { Transaction } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
@@ -44,18 +43,6 @@ jest.mock('next/router', () => {
     },
   };
 });
-
-function createMockStartTransaction() {
-  return jest.fn(
-    () =>
-      ({
-        startChild: () => ({
-          end: () => undefined,
-        }),
-        end: () => undefined,
-      }) as Transaction,
-  );
-}
 
 describe('pagesRouterInstrumentation', () => {
   const originalGlobalDocument = WINDOW.document;
@@ -134,17 +121,11 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/[user]/posts/[id]',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
-          },
-          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
-          parentSpanId: 'a755953cd3394d5f',
-          parentSampled: true,
         },
       ],
       [
@@ -160,17 +141,11 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/some-page',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: { environment: 'myEnv', release: '2.1.0' },
-          },
-          traceId: 'c82b8554881b4d28ad977de04a4fb40a',
-          parentSpanId: 'a755953cd3394d5f',
-          parentSampled: true,
         },
       ],
       [
@@ -181,12 +156,10 @@ describe('pagesRouterInstrumentation', () => {
         true,
         {
           name: '/',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
-          },
-          metadata: {
-            source: 'route',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'route',
           },
         },
       ],
@@ -198,55 +171,25 @@ describe('pagesRouterInstrumentation', () => {
         false, // no __NEXT_DATA__ tag
         {
           name: '/lforst/posts/1337',
-          op: 'pageload',
-          tags: {
-            'routing.instrumentation': 'next-pages-router',
-          },
-          metadata: {
-            source: 'url',
+          attributes: {
+            'sentry.op': 'pageload',
+            'sentry.origin': 'auto.pageload.nextjs.pages_router_instrumentation',
+            'sentry.source': 'url',
           },
         },
       ],
     ])(
       'creates a pageload transaction (#%#)',
       (url, route, query, props, hasNextData, expectedStartTransactionArgument) => {
-        const mockStartTransaction = createMockStartTransaction();
         const mockStartPageloadSpan = jest.fn();
         const mockStartNavigationSpan = jest.fn();
 
         setUpNextPage({ url, route, query, props, hasNextData });
-        pagesRouterInstrumentation(
-          mockStartTransaction,
-          undefined,
-          undefined,
-          mockStartPageloadSpan,
-          mockStartNavigationSpan,
-        );
+        pagesRouterInstrumentation(true, true, mockStartPageloadSpan, mockStartNavigationSpan);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-        expect(mockStartTransaction).toHaveBeenLastCalledWith(
-          expect.objectContaining(expectedStartTransactionArgument),
-        );
         expect(mockStartPageloadSpan).toHaveBeenCalledWith(expect.objectContaining(expectedStartTransactionArgument));
       },
     );
-
-    it('does not create a pageload transaction if option not given', () => {
-      const mockStartTransaction = createMockStartTransaction();
-      const mockStartPageloadSpan = jest.fn();
-      const mockStartNavigationSpan = jest.fn();
-
-      setUpNextPage({ url: 'https://example.com/', route: '/', hasNextData: false });
-      pagesRouterInstrumentation(
-        mockStartTransaction,
-        false,
-        undefined,
-        mockStartPageloadSpan,
-        mockStartNavigationSpan,
-      );
-      expect(mockStartTransaction).not.toHaveBeenCalled();
-      expect(mockStartPageloadSpan).not.toHaveBeenCalled();
-    });
   });
 
   describe('new navigation transactions', () => {
@@ -272,7 +215,6 @@ describe('pagesRouterInstrumentation', () => {
     ])(
       'should create a parameterized transaction on route change (%s)',
       (targetLocation, expectedTransactionName, expectedTransactionSource) => {
-        const mockStartTransaction = createMockStartTransaction();
         const mockStartPageloadSpan = jest.fn();
         const mockStartNavigationSpan = jest.fn();
 
@@ -293,46 +235,24 @@ describe('pagesRouterInstrumentation', () => {
           ],
         });
 
-        pagesRouterInstrumentation(mockStartTransaction, false, true, mockStartPageloadSpan, mockStartNavigationSpan);
+        pagesRouterInstrumentation(false, true, mockStartPageloadSpan, mockStartNavigationSpan);
 
         Router.events.emit('routeChangeStart', targetLocation);
 
-        expect(mockStartTransaction).toHaveBeenCalledTimes(1);
-        expect(mockStartTransaction).toHaveBeenCalledWith(
-          expect.objectContaining({
-            name: expectedTransactionName,
-            op: 'navigation',
-            tags: expect.objectContaining({
-              'routing.instrumentation': 'next-pages-router',
-            }),
-            metadata: expect.objectContaining({
-              source: expectedTransactionSource,
-            }),
-          }),
-        );
         expect(mockStartNavigationSpan).toHaveBeenCalledWith(
           expect.objectContaining({
             name: expectedTransactionName,
-            op: 'navigation',
-            tags: expect.objectContaining({
-              'routing.instrumentation': 'next-pages-router',
-            }),
-            metadata: expect.objectContaining({
-              source: expectedTransactionSource,
-            }),
+            attributes: {
+              'sentry.op': 'navigation',
+              'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
+              'sentry.source': expectedTransactionSource,
+            },
           }),
         );
-
-        Router.events.emit('routeChangeComplete', targetLocation);
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(Router.events.off).toHaveBeenCalledWith('routeChangeComplete', expect.anything());
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        expect(Router.events.off).toHaveBeenCalledTimes(1);
       },
     );
 
     it('should not create transaction when navigation transactions are disabled', () => {
-      const mockStartTransaction = createMockStartTransaction();
       const mockStartPageloadSpan = jest.fn();
       const mockStartNavigationSpan = jest.fn();
 
@@ -343,11 +263,10 @@ describe('pagesRouterInstrumentation', () => {
         navigatableRoutes: ['/home', '/posts/[id]'],
       });
 
-      pagesRouterInstrumentation(mockStartTransaction, false, false, mockStartPageloadSpan, mockStartNavigationSpan);
+      pagesRouterInstrumentation(false, false, mockStartPageloadSpan, mockStartNavigationSpan);
 
       Router.events.emit('routeChangeStart', '/posts/42');
 
-      expect(mockStartTransaction).not.toHaveBeenCalled();
       expect(mockStartNavigationSpan).not.toHaveBeenCalled();
     });
   });

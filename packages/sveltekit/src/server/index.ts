@@ -14,8 +14,6 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
@@ -56,8 +54,6 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -93,8 +89,6 @@ export {
   hapiErrorPlugin,
   metrics,
   runWithAsyncContext,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

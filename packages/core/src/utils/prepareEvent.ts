@@ -75,7 +75,7 @@ export function prepareEvent(
     addExceptionMechanism(prepared, hint.mechanism);
   }
 
-  const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+  const clientEventProcessors = client ? client.getEventProcessors() : [];
 
   // This should be the last thing called, since we want that
   // {@link Hub.addEventProcessor} gets the finished prepared event.

@@ -1,6 +1,6 @@
-import { captureException, withScope } from '@sentry/core';
+import { addBreadcrumb, captureException, withScope } from '@sentry/core';
 import { startSpan } from '@sentry/opentelemetry';
-import { addBreadcrumb, getClient, withIsolationScope } from '../../src/sdk/api';
+import { getClient, withIsolationScope } from '../../src/sdk/api';
 
 import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';

@@ -30,14 +30,11 @@ export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@s
 export {
   getClient,
   isInitialized,
-  addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
   addGlobalEventProcessor,
   addEventProcessor,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -47,8 +44,6 @@ export {
   withScope,
   withIsolationScope,
   withActiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -59,6 +54,7 @@ export { getCurrentHub, makeMain } from './sdk/hub';
 export { Scope } from './sdk/scope';
 
 export {
+  addBreadcrumb,
   makeNodeTransport,
   defaultStackParser,
   getSentryRelease,

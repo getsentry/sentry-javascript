@@ -17,8 +17,6 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
@@ -58,8 +56,6 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,

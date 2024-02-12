@@ -60,7 +60,7 @@ const DEPENDENTS: Dependent[] = [
   {
     package: '@sentry/serverless',
     exports: Object.keys(SentryServerless),
-    ignoreExports: ['cron', 'hapiErrorPlugin', 'enableAnrDetection'],
+    ignoreExports: ['cron', 'hapiErrorPlugin'],
   },
   {
     package: '@sentry/sveltekit',
