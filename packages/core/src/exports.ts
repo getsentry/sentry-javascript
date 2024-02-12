@@ -466,7 +466,7 @@ function _sendSessionUpdate(): void {
   // TODO (v8): Remove currentScope and only use the isolation scope(?).
   // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
   const session = currentScope.getSession() || isolationScope.getSession();
-  if (session && client && client.captureSession) {
+  if (session && client) {
     client.captureSession(session);
   }
 }

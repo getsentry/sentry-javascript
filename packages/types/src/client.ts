@@ -65,7 +65,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @param session Session to be delivered
    */
-  captureSession?(session: Session): void;
+  captureSession(session: Session): void;
 
   /**
    * Create a cron monitor check in and send it to Sentry. This method is not available on all clients.
@@ -89,7 +89,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * TODO (v8): Make this a required method.
    */
-  getSdkMetadata?(): SdkMetadata | undefined;
+  getSdkMetadata(): SdkMetadata | undefined;
 
   /**
    * Returns the transport that is used by the client.
@@ -121,17 +121,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Adds an event processor that applies to any event processed by this client.
-   *
-   * TODO (v8): Make this a required method.
    */
-  addEventProcessor?(eventProcessor: EventProcessor): void;
+  addEventProcessor(eventProcessor: EventProcessor): void;
 
   /**
    * Get all added event processors for this client.
-   *
-   * TODO (v8): Make this a required method.
    */
-  getEventProcessors?(): EventProcessor[];
+  getEventProcessors(): EventProcessor[];
 
   /**
    * Returns the client's instance of the given integration class, it any.
@@ -140,7 +136,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /** Get the instance of the integration with the given name on the client, if it was added. */
-  getIntegrationByName?<T extends Integration = Integration>(name: string): T | undefined;
+  getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined;
 
   /**
    * Add an integration to the client.
@@ -150,7 +146,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * TODO (v8): Make this a required method.
    * */
-  addIntegration?(integration: Integration): void;
+  addIntegration(integration: Integration): void;
 
   /**
    * This is an internal function to setup all integrations that should run on the client.
@@ -162,7 +158,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Initialize this client.
    * Call this after the client was set on a scope.
    */
-  init?(): void;
+  init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,7 +187,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @experimental This API is experimental and might experience breaking changes
    */
-  captureAggregateMetrics?(metricBucketItems: Array<MetricBucketItem>): void;
+  captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void;
 
   // HOOKS
   // TODO(v8): Make the hooks non-optional.

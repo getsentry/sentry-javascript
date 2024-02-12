@@ -145,7 +145,7 @@ function _sendSessionUpdate(): void {
   const client = getClient();
 
   const session = scope.getSession();
-  if (session && client.captureSession) {
+  if (session) {
     client.captureSession(session);
   }
 }
