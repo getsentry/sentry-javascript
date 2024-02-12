@@ -5,10 +5,6 @@ import { spanHasParentId } from './utils/spanTypes';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
-  if (!client.addEventProcessor) {
-    return;
-  }
-
   client.addEventProcessor(event => {
     const span = getActiveSpan();
     if (!span) {

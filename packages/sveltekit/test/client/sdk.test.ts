@@ -1,4 +1,4 @@
-import { getClient, getCurrentScope } from '@sentry/core';
+import { getClient, getIsolationScope } from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
@@ -38,16 +38,16 @@ describe('Sentry client SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentScope();
+    it('sets the runtime tag on the isolation scope', () => {
+      const isolationScope = getIsolationScope();
 
       // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({});
+      expect(isolationScope._tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
       // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({ runtime: 'browser' });
+      expect(isolationScope._tags).toEqual({ runtime: 'browser' });
     });
 
     describe('automatically added integrations', () => {

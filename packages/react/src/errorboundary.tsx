@@ -108,7 +108,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     this._openFallbackReportDialog = true;
 
     const client = getClient();
-    if (client && client.on && props.showDialog) {
+    if (client && props.showDialog) {
       this._openFallbackReportDialog = false;
       client.on('afterSendEvent', event => {
         if (!event.type && this._lastEventId && event.event_id === this._lastEventId) {

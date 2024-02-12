@@ -23,7 +23,7 @@ export function getDynamicSamplingContextFromClient(trace_id: string, client: Cl
     trace_id,
   }) as DynamicSamplingContext;
 
-  client.emit && client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc);
 
   return dsc;
 }
@@ -81,7 +81,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
 
   dsc.sampled = String(spanIsSampled(txn));
 
-  client.emit && client.emit('createDsc', dsc);
+  client.emit('createDsc', dsc);
 
   return dsc;
 }

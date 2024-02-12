@@ -17,7 +17,7 @@ export function startTransaction(hub: HubInterface, transactionContext: Transact
   // Any sampling decision happens in OpenTelemetry's sampler
   transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
 
-  if (client && client.emit) {
+  if (client) {
     client.emit('startTransaction', transaction);
   }
   return transaction;

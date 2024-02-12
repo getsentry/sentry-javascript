@@ -9,11 +9,9 @@ import type {
   TransactionContext,
 } from '@sentry/types';
 
-import { endSession, startSession } from '@sentry/core';
+import { addBreadcrumb, endSession, startSession } from '@sentry/core';
 import {
-  addBreadcrumb,
   captureEvent,
-  configureScope,
   getClient,
   getCurrentScope,
   setContext,
@@ -77,8 +75,6 @@ export function getCurrentHub(): Hub {
     setExtra,
     setExtras,
     setContext,
-    // eslint-disable-next-line deprecation/deprecation
-    configureScope: configureScope,
 
     run(callback: (hub: Hub) => void): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -148,7 +144,7 @@ function _sendSessionUpdate(): void {
   const client = getClient();
 
   const session = scope.getSession();
-  if (session && client.captureSession) {
+  if (session) {
     client.captureSession(session);
   }
 }

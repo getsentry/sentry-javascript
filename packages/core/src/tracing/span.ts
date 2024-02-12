@@ -67,13 +67,13 @@ export class SpanRecorder {
 export class Span implements SpanInterface {
   /**
    * Tags for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   public tags: { [key: string]: Primitive };
 
   /**
    * Data for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
@@ -263,7 +263,7 @@ export class Span implements SpanInterface {
 
   /**
    * Attributes for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   public get attributes(): SpanAttributes {
     return this._attributes;

@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import * as Redux from 'redux';
 
 import { createReduxEnhancer } from '../src/redux';
 
-const mockAddBreadcrumb = jest.fn();
 const mockSetContext = jest.fn();
 const mockGlobalScopeAddEventProcessor = jest.fn();
 
@@ -11,7 +11,6 @@ jest.mock('@sentry/core', () => ({
   ...jest.requireActual('@sentry/core'),
   getCurrentScope() {
     return {
-      addBreadcrumb: mockAddBreadcrumb,
       setContext: mockSetContext,
     };
   },
@@ -21,15 +20,22 @@ jest.mock('@sentry/core', () => ({
     };
   },
   addEventProcessor: jest.fn(),
+  addBreadcrumb: jest.fn(),
 }));
 
 afterEach(() => {
-  mockAddBreadcrumb.mockReset();
   mockSetContext.mockReset();
   mockGlobalScopeAddEventProcessor.mockReset();
 });
 
 describe('createReduxEnhancer', () => {
+  let mockAddBreadcrumb: jest.SpyInstance;
+
+  beforeEach(() => {
+    mockAddBreadcrumb = SentryCore.addBreadcrumb as unknown as jest.SpyInstance;
+    mockAddBreadcrumb.mockReset();
+  });
+
   it('logs redux action as breadcrumb', () => {
     const enhancer = createReduxEnhancer();
 

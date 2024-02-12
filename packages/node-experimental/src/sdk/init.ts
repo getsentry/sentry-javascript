@@ -86,19 +86,18 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
 
   if (options.spotlight) {
     const client = getClient();
-    if (client.addIntegration) {
-      // force integrations to be setup even if no DSN was set
-      // If they have already been added before, they will be ignored anyhow
-      const integrations = client.getOptions().integrations;
-      for (const integration of integrations) {
-        client.addIntegration(integration);
-      }
-      client.addIntegration(
-        spotlightIntegration({
-          sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-        }),
-      );
+
+    // force integrations to be setup even if no DSN was set
+    // If they have already been added before, they will be ignored anyhow
+    const integrations = client.getOptions().integrations;
+    for (const integration of integrations) {
+      client.addIntegration(integration);
     }
+    client.addIntegration(
+      spotlightIntegration({
+        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
+      }),
+    );
   }
 
   // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration

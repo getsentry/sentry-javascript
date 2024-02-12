@@ -35,11 +35,6 @@ const _browserProfilingIntegration = (() => {
         }
       }
 
-      if (typeof client.on !== 'function') {
-        logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');
-        return;
-      }
-
       client.on('startTransaction', (transaction: Transaction) => {
         if (shouldProfileTransaction(transaction)) {
           startProfileForTransaction(transaction);

@@ -1,4 +1,4 @@
-import { addBreadcrumb, captureException, getClient, getCurrentHub, withScope } from '@sentry/core';
+import { addBreadcrumb, captureException, getClient, getCurrentHub, withIsolationScope, withScope } from '@sentry/core';
 
 import { OpenTelemetryHub } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
@@ -54,7 +54,7 @@ describe('Integration | breadcrumbs', () => {
       );
     });
 
-    it('handles parallel scopes', async () => {
+    it('handles parallel isolation scopes', async () => {
       const beforeSend = jest.fn(() => null);
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
@@ -70,17 +70,17 @@ describe('Integration | breadcrumbs', () => {
 
       addBreadcrumb({ timestamp: 123456, message: 'test0' });
 
-      withScope(() => {
+      withIsolationScope(() => {
         addBreadcrumb({ timestamp: 123456, message: 'test1' });
       });
 
-      withScope(() => {
+      withIsolationScope(() => {
         addBreadcrumb({ timestamp: 123456, message: 'test2' });
         // eslint-disable-next-line deprecation/deprecation
         captureException(error);
       });
 
-      withScope(() => {
+      withIsolationScope(() => {
         addBreadcrumb({ timestamp: 123456, message: 'test3' });
       });
 
@@ -150,7 +150,7 @@ describe('Integration | breadcrumbs', () => {
     );
   });
 
-  it('correctly adds & retrieves breadcrumbs for the current root span only', async () => {
+  it('correctly adds & retrieves breadcrumbs for the current isolation scope only', async () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
@@ -160,22 +160,26 @@ describe('Integration | breadcrumbs', () => {
 
     const error = new Error('test');
 
-    startSpan({ name: 'test1' }, () => {
-      addBreadcrumb({ timestamp: 123456, message: 'test1-a' });
+    withIsolationScope(() => {
+      startSpan({ name: 'test1' }, () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1-a' });
 
-      startSpan({ name: 'inner1' }, () => {
-        addBreadcrumb({ timestamp: 123457, message: 'test1-b' });
+        startSpan({ name: 'inner1' }, () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test1-b' });
+        });
       });
     });
 
-    startSpan({ name: 'test2' }, () => {
-      addBreadcrumb({ timestamp: 123456, message: 'test2-a' });
+    withIsolationScope(() => {
+      startSpan({ name: 'test2' }, () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test2-a' });
 
-      startSpan({ name: 'inner2' }, () => {
-        addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        startSpan({ name: 'inner2' }, () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        });
+
+        captureException(error);
       });
-
-      captureException(error);
     });
 
     await client.flush();
@@ -297,7 +301,7 @@ describe('Integration | breadcrumbs', () => {
     );
   });
 
-  it('correctly adds & retrieves breadcrumbs in async spans', async () => {
+  it('correctly adds & retrieves breadcrumbs in async isolation scopes', async () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
@@ -307,31 +311,35 @@ describe('Integration | breadcrumbs', () => {
 
     const error = new Error('test');
 
-    const promise1 = startSpan({ name: 'test' }, async () => {
-      addBreadcrumb({ timestamp: 123456, message: 'test1' });
+    const promise1 = withIsolationScope(() => {
+      return startSpan({ name: 'test' }, async () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1' });
 
-      await startSpan({ name: 'inner1' }, async () => {
-        addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        await startSpan({ name: 'inner1' }, async () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        });
+
+        await startSpan({ name: 'inner2' }, async () => {
+          addBreadcrumb({ timestamp: 123455, message: 'test3' });
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        captureException(error);
       });
-
-      await startSpan({ name: 'inner2' }, async () => {
-        addBreadcrumb({ timestamp: 123455, message: 'test3' });
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      captureException(error);
     });
 
-    const promise2 = startSpan({ name: 'test-b' }, async () => {
-      addBreadcrumb({ timestamp: 123456, message: 'test1-b' });
+    const promise2 = withIsolationScope(() => {
+      return startSpan({ name: 'test-b' }, async () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1-b' });
 
-      await startSpan({ name: 'inner1' }, async () => {
-        addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
-      });
+        await startSpan({ name: 'inner1' }, async () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        });
 
-      await startSpan({ name: 'inner2' }, async () => {
-        addBreadcrumb({ timestamp: 123455, message: 'test3-b' });
+        await startSpan({ name: 'inner2' }, async () => {
+          addBreadcrumb({ timestamp: 123455, message: 'test3-b' });
+        });
       });
     });
 

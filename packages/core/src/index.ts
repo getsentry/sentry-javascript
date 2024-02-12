@@ -9,15 +9,12 @@ export * from './tracing';
 export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
-  addBreadcrumb,
   captureCheckIn,
   withMonitor,
   captureException,
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -36,6 +33,7 @@ export {
   endSession,
   captureSession,
   withActiveSpan,
+  addEventProcessor,
 } from './exports';
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -60,7 +58,7 @@ export {
   addGlobalEventProcessor,
 } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export { BaseClient, addEventProcessor } from './baseclient';
+export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -96,6 +94,7 @@ export { RequestData } from './integrations/requestdata';
 export { InboundFilters } from './integrations/inboundfilters';
 export { FunctionToString } from './integrations/functiontostring';
 export { LinkedErrors } from './integrations/linkederrors';
+export { addBreadcrumb } from './breadcrumbs';
 /* eslint-enable deprecation/deprecation */
 import * as INTEGRATIONS from './integrations';
 export { functionToStringIntegration } from './integrations/functiontostring';

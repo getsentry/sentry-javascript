@@ -17,9 +17,7 @@ export async function prepareFeedbackEvent({
   event,
 }: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
   const eventHint = {};
-  if (client.emit) {
-    client.emit('preprocessEvent', event, eventHint);
-  }
+  client.emit('preprocessEvent', event, eventHint);
 
   const preparedEvent = (await prepareEvent(
     client.getOptions(),

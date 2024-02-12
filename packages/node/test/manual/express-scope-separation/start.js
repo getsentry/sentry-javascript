@@ -64,32 +64,24 @@ Sentry.init({
   },
 });
 
-Sentry.configureScope(scope => {
-  scope.setTag('global', 'wat');
-});
+Sentry.setTag('global', 'wat');
 
 app.use(Sentry.Handlers.requestHandler());
 
 app.get('/foo', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('foo', 'wat');
-  });
+  Sentry.setTag('foo', 'wat');
 
   throw new Error('foo');
 });
 
 app.get('/bar', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('bar', 'wat');
-  });
+  Sentry.setTag('bar', 'wat');
 
   throw new Error('bar');
 });
 
 app.get('/baz', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('baz', 'wat');
-  });
+  Sentry.setTag('baz', 'wat');
 
   throw new Error('baz');
 });
