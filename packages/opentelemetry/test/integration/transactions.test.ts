@@ -174,7 +174,7 @@ describe('Integration | Transactions', () => {
     ]);
   });
 
-  it('correctly creates concurrent transaction & spans xxx', async () => {
+  it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
