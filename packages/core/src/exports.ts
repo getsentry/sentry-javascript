@@ -357,7 +357,8 @@ export function getClient<C extends Client>(): C | undefined {
  * Returns true if Sentry has been properly initialized.
  */
 export function isInitialized(): boolean {
-  return !!getClient();
+  const client = getClient();
+  return !!client && !!client.getDsn();
 }
 
 /**

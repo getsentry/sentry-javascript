@@ -18,9 +18,9 @@ import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '.
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
-import { getClient, getCurrentScope, getIsolationScope, isInitialized } from './scope';
+import { getClient, getCurrentScope, getIsolationScope } from './scope';
 
-export { getCurrentScope, getIsolationScope, getClient, isInitialized };
+export { getCurrentScope, getIsolationScope, getClient };
 export { setCurrentScope, setIsolationScope } from './scope';
 
 /**
