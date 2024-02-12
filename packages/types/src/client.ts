@@ -87,7 +87,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * @inheritdoc
    *
-   * TODO (v8): Make this a required method.
    */
   getSdkMetadata(): SdkMetadata | undefined;
 
@@ -144,7 +143,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * In most cases, this should not be necessary, and you're better off just passing the integrations via `integrations: []` at initialization time.
    * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
    *
-   * TODO (v8): Make this a required method.
    * */
   addIntegration(integration: Integration): void;
 
