@@ -1,6 +1,6 @@
 import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-import { Hello } from './screenshotWidget';
+import { ScreenshotButton } from './screenshotWidget';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { h, render } from 'preact';
 
@@ -27,7 +27,7 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
       return { el: options.el || WINDOW.document.createElement('div'), props: options.props || null };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
-      return render(<Hello />, options.el);
+      return render(<ScreenshotButton />, options.el);
     },
   };
 }) satisfies IntegrationFn;
