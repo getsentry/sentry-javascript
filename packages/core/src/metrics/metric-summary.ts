@@ -32,7 +32,7 @@ export function getMetricSummaryJsonForSpan(span: Span): Record<string, Array<Me
     if (!output[exportKey]) {
       output[exportKey] = [];
     }
-    
+
     output[exportKey].push(dropUndefinedKeys(summary));
   }
 
