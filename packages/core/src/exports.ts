@@ -7,6 +7,7 @@ import type {
   CustomSamplingContext,
   Event,
   EventHint,
+  EventProcessor,
   Extra,
   Extras,
   FinishedCheckIn,
@@ -380,6 +381,15 @@ export function isInitialized(): boolean {
 export function getCurrentScope(): Scope {
   // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getScope();
+}
+
+/**
+ * Add an event processor.
+ * This will be added to the current isolation scope, ensuring any event that is processed in the current execution
+ * context will have the processor applied.
+ */
+export function addEventProcessor(callback: EventProcessor): void {
+  getIsolationScope().addEventProcessor(callback);
 }
 
 /**
