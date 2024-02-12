@@ -4,7 +4,6 @@ import type { ClientOptions, Options } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
-import { setupGlobalHub } from '../../src/custom/hub';
 import { init as initTestClient } from './TestClient';
 import { initOtel } from './initOtel';
 
@@ -14,8 +13,6 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * Initialize Sentry for Node.
  */
 function init(options: Partial<Options> | undefined = {}): void {
-  setupGlobalHub();
-
   const fullOptions: Partial<Options> = {
     instrumenter: 'otel',
     ...options,

@@ -5,6 +5,7 @@ import type {
   Hub,
   Integration,
   IntegrationClass,
+  Scope,
   SeverityLevel,
   TransactionContext,
 } from '@sentry/types';
@@ -23,7 +24,6 @@ import {
   withScope,
 } from './api';
 import { callExtensionMethod, getGlobalCarrier } from './globals';
-import type { Scope } from './scope';
 import { getIsolationScope } from './scope';
 import type { SentryCarrier } from './types';
 

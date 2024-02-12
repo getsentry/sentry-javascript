@@ -1,6 +1,5 @@
-import { addBreadcrumb, captureException, getClient, getCurrentHub, withIsolationScope, withScope } from '@sentry/core';
+import { addBreadcrumb, captureException, getClient, withIsolationScope, withScope } from '@sentry/core';
 
-import { OpenTelemetryHub } from '../../src/custom/hub';
 import { startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -19,18 +18,13 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
 
       addBreadcrumb({ timestamp: 123456, message: 'test1' });
       addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
       addBreadcrumb({ timestamp: 123455, message: 'test3' });
 
       const error = new Error('test');
-      // eslint-disable-next-line deprecation/deprecation
       captureException(error);
 
       await client.flush();
@@ -60,11 +54,7 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
 
       const error = new Error('test');
 
@@ -76,7 +66,6 @@ describe('Integration | breadcrumbs', () => {
 
       withIsolationScope(() => {
         addBreadcrumb({ timestamp: 123456, message: 'test2' });
-        // eslint-disable-next-line deprecation/deprecation
         captureException(error);
       });
 

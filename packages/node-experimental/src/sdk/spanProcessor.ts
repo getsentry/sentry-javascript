@@ -6,16 +6,11 @@ import { SentrySpanProcessor, getClient } from '@sentry/opentelemetry';
 import type { Http } from '../integrations/http';
 import type { NodeFetch } from '../integrations/node-fetch';
 import type { NodeExperimentalClient } from '../types';
-import { Scope } from './scope';
 
 /**
  * Implement custom code to avoid sending spans in certain cases.
  */
 export class NodeExperimentalSentrySpanProcessor extends SentrySpanProcessor {
-  public constructor() {
-    super({ scopeClass: Scope });
-  }
-
   /** @inheritDoc */
   protected _shouldSendSpanToSentry(span: Span): boolean {
     const client = getClient<NodeExperimentalClient>();
