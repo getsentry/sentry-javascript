@@ -2,7 +2,7 @@ import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
 conditionalTest({ min: 14 })('Prisma ORM Tests', () => {
-  test('CJS - should instrument GraphQL queries used from Apollo Server.', done => {
+  test('CJS - should instrument PostgreSQL queries from Prisma ORM', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
