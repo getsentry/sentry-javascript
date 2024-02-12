@@ -1,14 +1,16 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { getActiveTransaction, setMeasurement } from '@sentry/core';
+import { Span, createInteractionEnvelope, getActiveTransaction, getClient, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
+import type { InteractionSpan } from '@sentry/types/build/types/interaction';
 import { DEBUG_BUILD } from '../../common/debug-build';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
+  addInpInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
 } from '../instrument';
@@ -127,6 +129,22 @@ export function startTrackingInteractions(): void {
   });
 }
 
+/**
+ * Start tracking INP webvital events.
+ */
+export function startTrackingINP(interactionIdtoRouteNameMapping: { [key: number]: string }): () => void {
+  const performance = getBrowserPerformanceAPI();
+  if (performance && browserPerformanceTimeOrigin) {
+    const inpCallback = _trackINP(interactionIdtoRouteNameMapping);
+
+    return (): void => {
+      inpCallback();
+    };
+  }
+
+  return () => undefined;
+}
+
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
@@ -168,6 +186,36 @@ function _trackFID(): () => void {
     DEBUG_BUILD && logger.log('[Measurements] Adding FID');
     _measurements['fid'] = { value: metric.value, unit: 'millisecond' };
     _measurements['mark.fid'] = { value: timeOrigin + startTime, unit: 'second' };
+  });
+}
+
+/** Starts tracking the Interaction to Next Paint on the current page. */
+function _trackINP(interactionIdtoRouteNameMapping: { [key: number]: string }): () => void {
+  return addInpInstrumentationHandler(({ metric }) => {
+    const entry = metric.entries.find(e => e.name === 'click');
+    if (!entry) {
+      return;
+    }
+    /** Build the INP span, create an envelope from the span, and then send the envelope */
+    const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
+    const duration = msToSec(metric.value);
+    const span: InteractionSpan = new Span({
+      startTimestamp: startTime,
+      endTimestamp: startTime + duration,
+      op: 'ui.interaction.click',
+      name: entry.interactionId !== undefined ? interactionIdtoRouteNameMapping[entry.interactionId] : undefined,
+    });
+    span.measurements = {
+      inp: { value: metric.value, unit: 'millisecond' },
+    };
+    const envelope = span ? createInteractionEnvelope(span) : undefined;
+    const client = getClient();
+    const transport = client && client.getTransport();
+    if (transport && envelope) {
+      transport.send(envelope).then(null, reason => {
+        DEBUG_BUILD && logger.error('Error while sending interaction:', reason);
+      });
+    }
   });
 }
 

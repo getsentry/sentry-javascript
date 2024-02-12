@@ -79,6 +79,7 @@ export {
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
+export { createInteractionEnvelope } from './interaction';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';

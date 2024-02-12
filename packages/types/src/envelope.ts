@@ -3,6 +3,7 @@ import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent } from './feedback';
+import type { InteractionSpan } from './interaction';
 import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
@@ -41,7 +42,8 @@ export type EnvelopeItemType =
   | 'replay_event'
   | 'replay_recording'
   | 'check_in'
-  | 'statsd';
+  | 'statsd'
+  | 'interaction';
 
 export type BaseEnvelopeHeaders = {
   [key: string]: unknown;
@@ -82,6 +84,7 @@ type ReplayRecordingItemHeaders = { type: 'replay_recording'; length: number };
 type CheckInItemHeaders = { type: 'check_in' };
 type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
+type InteractionItemHeaders = { type: 'interaction' };
 
 // TODO (v8): Replace `Event` with `SerializedEvent`
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
@@ -98,6 +101,7 @@ type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRe
 export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
+export type InteractionItem = BaseEnvelopeItem<InteractionItemHeaders, InteractionSpan>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
@@ -105,6 +109,7 @@ type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
+type InteractionEnvelopeHeaders = BaseEnvelopeHeaders;
 
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,
@@ -115,6 +120,7 @@ export type ClientReportEnvelope = BaseEnvelope<ClientReportEnvelopeHeaders, Cli
 export type ReplayEnvelope = [ReplayEnvelopeHeaders, [ReplayEventItem, ReplayRecordingItem]];
 export type CheckInEnvelope = BaseEnvelope<CheckInEnvelopeHeaders, CheckInItem>;
 export type StatsdEnvelope = BaseEnvelope<StatsdEnvelopeHeaders, StatsdItem>;
+export type InteractionEnvelope = BaseEnvelope<InteractionEnvelopeHeaders, InteractionItem>;
 
 export type Envelope =
   | EventEnvelope
@@ -122,5 +128,6 @@ export type Envelope =
   | ClientReportEnvelope
   | ReplayEnvelope
   | CheckInEnvelope
-  | StatsdEnvelope;
+  | StatsdEnvelope
+  | InteractionEnvelope;
 export type EnvelopeItem = Envelope[1][number];

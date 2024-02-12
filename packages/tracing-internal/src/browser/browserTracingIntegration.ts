@@ -28,8 +28,10 @@ import {
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
+import { addPerformanceInstrumentationHandler } from './instrument';
 import {
   addPerformanceEntries,
+  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingWebVitals,
@@ -126,6 +128,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    enableInp: boolean;
   }>;
 
   /**
@@ -179,6 +182,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   const _collectWebVitals = startTrackingWebVitals();
+
+  /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
+  const interactionIdtoRouteNameMapping: { [key: number]: string } = {};
+  if (options._experiments.enableInp) {
+    startTrackingINP(interactionIdtoRouteNameMapping);
+  }
 
   if (options.enableLongTask) {
     startTrackingLongTasks();
@@ -383,6 +392,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(options, latestRouteName, latestRouteSource);
       }
 
+      if (_experiments.enableInp) {
+        registerInpInteractionListener(interactionIdtoRouteNameMapping);
+      }
+
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
@@ -488,6 +501,26 @@ function registerInteractionListener(
 
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+  });
+}
+
+function isPerformanceEventTiming(entry: PerformanceEntry): entry is PerformanceEventTiming {
+  return 'duration' in entry;
+}
+
+/** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
+function registerInpInteractionListener(interactionIdtoRouteNameMapping: { [key: number]: string }): void {
+  addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    for (const entry of entries) {
+      if (isPerformanceEventTiming(entry)) {
+        const interactionId = entry.interactionId;
+        const route = entry.target?.baseURI;
+        const path = route ? new URL(route).pathname : undefined;
+        if (interactionId && path) {
+          interactionIdtoRouteNameMapping[interactionId] = path;
+        }
+      }
+    }
   });
 }
 
