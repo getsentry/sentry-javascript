@@ -402,7 +402,7 @@ export class Hub implements HubInterface {
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     // eslint-disable-next-line deprecation/deprecation
-    const { scope, client } = this.getStackTop();
+    const { client } = this.getStackTop();
 
     if (!client) return;
 
@@ -421,15 +421,8 @@ export class Hub implements HubInterface {
 
     client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
-    // TODO(v8): I know this comment doesn't make much sense because the hub will be deprecated but I still wanted to
-    // write it down. In theory, we would have to add the breadcrumbs to the isolation scope here, however, that would
-    // duplicate all of the breadcrumbs. There was the possibility of adding breadcrumbs to both, the isolation scope
-    // and the normal scope, and deduplicating it down the line in the event processing pipeline. However, that would
-    // have been very fragile, because the breadcrumb objects would have needed to keep their identity all throughout
-    // the event processing pipeline.
-    // In the new implementation, the top level `Sentry.addBreadcrumb()` should ONLY write to the isolation scope.
-
-    scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
   }
 
   /**
