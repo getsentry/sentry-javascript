@@ -26,11 +26,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
   const eventProcessor = handleGlobalEventListener(replay);
-  if (client && client.addEventProcessor) {
-    client.addEventProcessor(eventProcessor);
-  } else {
-    addEventProcessor(eventProcessor);
-  }
+  addEventProcessor(eventProcessor);
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
   if (client) {
