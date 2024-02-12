@@ -24,9 +24,7 @@ export async function prepareReplayEvent({
 
   const eventHint: EventHint = { event_id, integrations };
 
-  if (client.emit) {
-    client.emit('preprocessEvent', event, eventHint);
-  }
+  client.emit('preprocessEvent', event, eventHint);
 
   const preparedEvent = (await prepareEvent(
     client.getOptions(),

@@ -118,7 +118,7 @@ class SentryErrorHandler implements AngularErrorHandler {
     if (this._options.showDialog) {
       const client = Sentry.getClient();
 
-      if (client && client.on && !this._registeredAfterSendEventHandler) {
+      if (client && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {
           if (!event.type) {
             // eslint-disable-next-line deprecation/deprecation
@@ -128,7 +128,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
         // We only want to register this hook once in the lifetime of the error handler
         this._registeredAfterSendEventHandler = true;
-      } else if (!client || !client.on) {
+      } else if (!client) {
         Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
       }
     }

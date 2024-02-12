@@ -1957,11 +1957,11 @@ describe('BaseClient', () => {
           traceId: '86f39e84263a4de99c326acab3bfe3bd',
         } as Transaction;
 
-        client.on?.('startTransaction', transaction => {
+        client.on('startTransaction', transaction => {
           expect(transaction).toEqual(mockTransaction);
         });
 
-        client.emit?.('startTransaction', mockTransaction);
+        client.emit('startTransaction', mockTransaction);
       });
 
       it('should call a beforeEnvelope hook', () => {
@@ -1974,11 +1974,11 @@ describe('BaseClient', () => {
           {},
         ] as Envelope;
 
-        client.on?.('beforeEnvelope', envelope => {
+        client.on('beforeEnvelope', envelope => {
           expect(envelope).toEqual(mockEnvelope);
         });
 
-        client.emit?.('beforeEnvelope', mockEnvelope);
+        client.emit('beforeEnvelope', mockEnvelope);
       });
     });
   });

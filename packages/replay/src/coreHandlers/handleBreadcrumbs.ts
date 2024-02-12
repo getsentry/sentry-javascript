@@ -16,7 +16,7 @@ type BreadcrumbWithCategory = Required<Pick<Breadcrumb, 'category'>>;
 export function handleBreadcrumbs(replay: ReplayContainer): void {
   const client = getClient();
 
-  if (!client || !client.on) {
+  if (!client) {
     return;
   }
 

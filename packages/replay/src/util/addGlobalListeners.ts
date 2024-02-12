@@ -1,6 +1,5 @@
-import type { BaseClient } from '@sentry/core';
 import { addEventProcessor, getClient } from '@sentry/core';
-import type { Client, DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/types';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
@@ -26,7 +25,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
 
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
-  const eventProcessor = handleGlobalEventListener(replay, !hasHooks(client));
+  const eventProcessor = handleGlobalEventListener(replay);
   if (client && client.addEventProcessor) {
     client.addEventProcessor(eventProcessor);
   } else {
@@ -34,7 +33,7 @@ export function addGlobalListeners(replay: ReplayContainer): void {
   }
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
-  if (hasHooks(client)) {
+  if (client) {
     client.on('beforeSendEvent', handleBeforeSendEvent(replay));
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
@@ -72,9 +71,4 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       }
     });
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function hasHooks(client: Client | undefined): client is BaseClient<any> {
-  return !!(client && client.on);
 }
