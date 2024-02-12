@@ -1,15 +1,14 @@
-import type { Hub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
   captureSession,
   getClient,
-  getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
   startSession,
 } from '@sentry/core';
-import type { Integration, Options, UserFeedback } from '@sentry/types';
+import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
   logger,
@@ -20,7 +19,6 @@ import {
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { dedupeIntegration } from './integrations/dedupe';
@@ -139,42 +137,52 @@ export function init(options: BrowserOptions = {}): void {
   }
 }
 
-type NewReportDialogOptions = ReportDialogOptions & { eventId: string }; // eslint-disable-line
-
-interface ShowReportDialogFunction {
-  /**
-   * Present the user with a report dialog.
-   *
-   * @param options Everything is optional, we try to fetch all info need from the global scope.
-   */
-  (options: NewReportDialogOptions): void;
-
-  /**
-   * Present the user with a report dialog.
-   *
-   * @param options Everything is optional, we try to fetch all info need from the global scope.
-   *
-   * @deprecated Please always pass an `options` argument with `eventId`. The `hub` argument will not be used in the next version of the SDK.
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  (options?: ReportDialogOptions, hub?: Hub): void;
+/**
+ * All properties the report dialog supports
+ */
+export interface ReportDialogOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+  eventId: string;
+  dsn?: DsnLike;
+  user?: {
+    email?: string;
+    name?: string;
+  };
+  lang?: string;
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorGeneric?: string;
+  errorFormEntry?: string;
+  successMessage?: string;
+  /** Callback after reportDialog showed up */
+  onLoad?(this: void): void;
+  /** Callback after reportDialog closed */
+  onClose?(this: void): void;
 }
 
-export const showReportDialog: ShowReportDialogFunction = (
-  // eslint-disable-next-line deprecation/deprecation
-  options: ReportDialogOptions = {},
-  // eslint-disable-next-line deprecation/deprecation
-  hub: Hub = getCurrentHub(),
-) => {
+/**
+ * Present the user with a report dialog.
+ *
+ * @param options Everything is optional, we try to fetch all info need from the global scope.
+ */
+export function showReportDialog(options: ReportDialogOptions): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const { client, scope } = hub.getStackTop();
-  const dsn = options.dsn || (client && client.getDsn());
+  const scope = getCurrentScope();
+  const client = scope.getClient();
+  const dsn = client && client.getDsn();
+
   if (!dsn) {
     DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
     return;
@@ -216,7 +224,7 @@ export const showReportDialog: ShowReportDialogFunction = (
   } else {
     DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
-};
+}
 
 /**
  * This function is here to be API compatible with the loader.
