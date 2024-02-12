@@ -4,6 +4,6 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [new Sentry.BrowserTracing()],
+  integrations: [new Sentry.BrowserTracing({ tracingOrigins: ['http://example.com'] })],
   tracesSampleRate: 1,
 });

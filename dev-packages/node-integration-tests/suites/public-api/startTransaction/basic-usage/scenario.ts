@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import '@sentry/tracing';
-
 import * as Sentry from '@sentry/node';
 
 Sentry.init({

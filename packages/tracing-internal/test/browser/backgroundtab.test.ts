@@ -1,10 +1,8 @@
-import { Hub, makeMain, spanToJSON, startSpan } from '@sentry/core';
+import { Hub, addTracingExtensions, makeMain, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
-import { addExtensionMethods } from '../../../tracing/src';
-import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
-import { TestClient } from '../utils/TestClient';
+import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
@@ -14,15 +12,13 @@ describe('registerBackgroundTabDetection', () => {
     // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
-    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
+    const options = getDefaultClientOptions({ tracesSampleRate: 1 });
     // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(new TestClient(options));
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
-    // If we do not add extension methods, invoking hub.startTransaction returns undefined
-    // eslint-disable-next-line deprecation/deprecation
-    addExtensionMethods();
+    addTracingExtensions();
 
     // @ts-expect-error need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {

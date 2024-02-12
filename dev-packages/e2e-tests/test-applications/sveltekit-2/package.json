@@ -33,8 +33,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/tracing": "latest || *"
+      "@sentry/node": "latest || *"
     }
   },
   "type": "module"

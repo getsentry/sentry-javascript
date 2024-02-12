@@ -1,5 +1,3 @@
-import '@sentry/tracing';
-
 import * as Sentry from '@sentry/node';
 import mysql from 'mysql';
 

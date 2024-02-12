@@ -1,7 +1,7 @@
 import type { HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
+import { conditionalTest } from '../../../node/test/utils';
 
-import { conditionalTest } from '../../../tracing/test/testutils';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 
 let mockChangeHistory: undefined | ((data: HandlerDataHistory) => void);

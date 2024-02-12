@@ -118,7 +118,7 @@ export interface SpanContext {
 
   /**
    * Completion status of the Span.
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {SpanStatusType} for possible values
    */
   status?: string;
 
@@ -267,7 +267,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   /**
    * Completion status of the Span.
    *
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {SpanStatusType} for possible values
    *
    * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
    */
@@ -333,7 +333,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
 
   /**
    * Sets the status attribute on the current span
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {@sentry/core SpanStatusType} for possible values
    * @param status http code used to set the status
    */
   setStatus(status: string): this;

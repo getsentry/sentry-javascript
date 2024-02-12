@@ -1,6 +1,4 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import '@sentry/tracing';
-
 import * as http from 'http';
 import * as Sentry from '@sentry/node';
 

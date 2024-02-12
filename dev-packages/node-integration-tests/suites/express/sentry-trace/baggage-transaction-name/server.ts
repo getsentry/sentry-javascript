@@ -2,7 +2,6 @@ import http from 'http';
 import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 import cors from 'cors';
 import express from 'express';
 
@@ -16,8 +15,7 @@ Sentry.init({
   environment: 'prod',
   // disable requests to /express
   tracePropagationTargets: [/^(?!.*express).*$/],
-  // eslint-disable-next-line deprecation/deprecation
-  integrations: [new Sentry.Integrations.Http({ tracing: true }), new Tracing.Integrations.Express({ app })],
+  integrations: [new Sentry.Integrations.Http({ tracing: true }), new Sentry.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
   // sendDefaultPii: true,

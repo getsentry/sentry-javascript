@@ -1,6 +1,5 @@
 import { httpClientIntegration } from '@sentry/integrations';
 import * as Sentry from '@sentry/node';
-import '@sentry/tracing';
 import express from 'express';
 
 declare global {

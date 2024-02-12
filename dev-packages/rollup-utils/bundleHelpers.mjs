@@ -45,7 +45,7 @@ export function makeBaseBundleConfig(options) {
   // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
   const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
 
-  // used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in and of themselves)
+  // used by `@sentry/browser`
   const standAloneBundleConfig = {
     output: {
       format: 'iife',

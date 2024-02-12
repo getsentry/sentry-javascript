@@ -1,5 +1,3 @@
-import '@sentry/tracing';
-
 import * as http from 'http';
 import * as Sentry from '@sentry/node';
 
