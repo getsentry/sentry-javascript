@@ -49,9 +49,14 @@ to access and mutate the current scope.
 
 ## General API Changes
 
+- The minumum supported Node version for all the SDK packages is Node 14 (#10527)
 - Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
 - Remove deprecated `deepReadDirSync` export from `@sentry/node` (#10564)
 - Remove `_eventFromIncompleteOnError` usage (#10553)
+- The `Transaction` integration in `@sentry/integrations` has been removed. There is no replacement API. (#10556)
+- `extraErrorDataIntegration` now looks at
+  [`error.cause`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause) by
+  default.
 
 # Deprecations in 7.x
 

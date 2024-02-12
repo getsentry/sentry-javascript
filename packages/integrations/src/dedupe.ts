@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -33,16 +33,10 @@ const _dedupeIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const dedupeIntegration = defineIntegration(_dedupeIntegration);
-
 /**
  * Deduplication filter.
- * @deprecated Use `dedupeIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const Dedupe = convertIntegrationFnToClass(INTEGRATION_NAME, dedupeIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Event }
->;
+export const dedupeIntegration = defineIntegration(_dedupeIntegration);
 
 /** only exported for tests. */
 export function _shouldDropEvent(currentEvent: Event, previousEvent?: Event): boolean {

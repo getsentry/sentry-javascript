@@ -1,8 +1,7 @@
 import * as SentryCore from '@sentry/core';
-import type { Client, Hub } from '@sentry/types';
+import type { Client } from '@sentry/types';
 
-import type { reportingObserverIntegration } from '../src/reportingobserver';
-import { ReportingObserver } from '../src/reportingobserver';
+import { reportingObserverIntegration } from '../src/reportingobserver';
 
 const mockScope = {
   setExtra: jest.fn(),
@@ -14,8 +13,6 @@ const withScope = jest.fn(callback => {
 
 const captureMessage = jest.fn();
 
-const mockHub = {} as unknown as Hub;
-
 const mockReportingObserverConstructor = jest.fn();
 const mockObserve = jest.fn();
 
@@ -25,11 +22,6 @@ class MockReportingObserver {
   constructor(callback: () => void, options: unknown) {
     mockReportingObserverConstructor(callback, options);
   }
-}
-
-function getIntegration(...args: Parameters<typeof reportingObserverIntegration>) {
-  // eslint-disable-next-line deprecation/deprecation
-  return new ReportingObserver(...args);
 }
 
 describe('ReportingObserver', () => {
@@ -55,13 +47,10 @@ describe('ReportingObserver', () => {
       // Act like ReportingObserver is unavailable
       delete (global as any).ReportingObserver;
 
-      const reportingObserverIntegration = getIntegration();
+      const reportingObserver = reportingObserverIntegration();
 
       expect(() => {
-        reportingObserverIntegration.setupOnce(
-          () => undefined,
-          () => mockHub,
-        );
+        reportingObserver.setupOnce();
       }).not.toThrow();
 
       expect(mockReportingObserverConstructor).not.toHaveBeenCalled();
@@ -69,12 +58,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use default report types', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -84,12 +70,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use user-provided report types', () => {
-      const reportingObserverIntegration = getIntegration({ types: ['crash'] });
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration({ types: ['crash'] });
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -99,12 +82,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use `buffered` option', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
 
       expect(mockReportingObserverConstructor).toHaveBeenCalledTimes(1);
       expect(mockReportingObserverConstructor).toHaveBeenCalledWith(
@@ -114,12 +94,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should call `observe` function', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
 
       expect(mockObserve).toHaveBeenCalledTimes(1);
     });
@@ -127,11 +104,8 @@ describe('ReportingObserver', () => {
 
   describe('handler', () => {
     it('should abort gracefully and not do anything when integration is not installed', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
       // without calling setup, the integration is not registered
 
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
@@ -144,12 +118,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture messages', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([
@@ -161,12 +132,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should set extra including the url of a report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([
@@ -179,12 +147,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should set extra including the report body if available', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report1 = { type: 'crash', url: 'some url 1', body: { crashId: 'id1' } } as const;
@@ -197,12 +162,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should not set extra report body extra when no body is set', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       handler([{ type: 'crash', url: 'some url' }]);
@@ -211,12 +173,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report details from body on crash report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -232,12 +191,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report message from body on deprecation report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -252,12 +208,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should capture report message from body on intervention report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -272,12 +225,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body is available', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -291,12 +241,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body details are available for crash report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = { type: 'crash', url: 'some url', body: { crashId: '', reason: '' } } as const;
@@ -307,12 +254,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body message is available for deprecation report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
@@ -327,12 +271,9 @@ describe('ReportingObserver', () => {
     });
 
     it('should use fallback message when no body message is available for intervention report', () => {
-      const reportingObserverIntegration = getIntegration();
-      reportingObserverIntegration.setupOnce(
-        () => undefined,
-        () => mockHub,
-      );
-      reportingObserverIntegration.setup(mockClient);
+      const reportingObserver = reportingObserverIntegration();
+      reportingObserver.setupOnce();
+      reportingObserver.setup?.(mockClient);
       const handler = mockReportingObserverConstructor.mock.calls[0][0];
 
       const report = {
