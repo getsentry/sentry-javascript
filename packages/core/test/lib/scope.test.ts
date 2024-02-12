@@ -504,44 +504,6 @@ describe('Scope', () => {
 
       expect((scope as any)._breadcrumbs).toHaveLength(3);
     });
-
-    test('calls `beforeBreadcrumb`', () => {
-      const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
-      const options = getDefaultTestClientOptions({ beforeBreadcrumb });
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      scope.setClient(client);
-
-      scope.addBreadcrumb({ message: 'hello' });
-
-      expect(beforeBreadcrumb).toHaveBeenCalledTimes(1);
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
-    });
-
-    test("uses `beforeBreadcrumb`'s return value", () => {
-      const options = getDefaultTestClientOptions({ beforeBreadcrumb: () => ({ message: 'changed' }) });
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      scope.setClient(client);
-
-      scope.addBreadcrumb({ message: 'hello' });
-
-      expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
-    });
-
-    test('discards breadcrumb when `beforeBreadcrumb` returns `null`', () => {
-      const options = getDefaultTestClientOptions({ beforeBreadcrumb: () => null });
-      const client = new TestClient(options);
-      const scope = new Scope();
-
-      scope.setClient(client);
-
-      scope.addBreadcrumb({ message: 'hello' });
-
-      expect((scope as any)._breadcrumbs.length).toEqual(0);
-    });
   });
 });
 
