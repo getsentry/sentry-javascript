@@ -49,7 +49,6 @@ import {
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
 import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
@@ -932,18 +931,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

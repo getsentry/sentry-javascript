@@ -34,6 +34,7 @@ export {
   endSession,
   captureSession,
   withActiveSpan,
+  addEventProcessor,
 } from './exports';
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -58,7 +59,7 @@ export {
   addGlobalEventProcessor,
 } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export { BaseClient, addEventProcessor } from './baseclient';
+export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
