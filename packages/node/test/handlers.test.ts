@@ -179,7 +179,6 @@ describe('requestHandler', () => {
     const scope = getCurrentScope();
     expect((scope as any)._sdkProcessingMetadata).toEqual({
       request: req,
-      requestDataOptionsFromExpressHandler: requestHandlerOptions,
     });
   });
 });

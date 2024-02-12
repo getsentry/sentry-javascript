@@ -247,7 +247,6 @@ describe('GCPFunction', () => {
         headers: { host: 'hostname', 'content-type': 'application/json' },
         body: { foo: 'bar' },
       },
-      requestDataOptionsFromGCPWrapper: { include: { ip: true } },
     });
   });
 

@@ -82,11 +82,10 @@ describe('`RequestData` integration', () => {
 
     it('uses options from GCP wrapper', async () => {
       type GCPHandler = (req: PolymorphicRequest, res: http.ServerResponse) => void;
-      const mockGCPWrapper = (origHandler: GCPHandler, options: Record<string, unknown>): GCPHandler => {
+      const mockGCPWrapper = (origHandler: GCPHandler, _options: Record<string, unknown>): GCPHandler => {
         const wrappedHandler: GCPHandler = (req, res) => {
           getCurrentScope().setSDKProcessingMetadata({
             request: req,
-            requestDataOptionsFromGCPWrapper: options,
           });
           origHandler(req, res);
         };
