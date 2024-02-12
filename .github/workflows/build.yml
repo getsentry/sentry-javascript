@@ -516,7 +516,6 @@ jobs:
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
