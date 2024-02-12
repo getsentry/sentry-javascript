@@ -4,7 +4,7 @@ export type { BeforeFinishCallback } from './idletransaction';
 export { Span } from './span';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
-export { extractTraceparentData, getActiveTransaction } from './utils';
+export { getActiveTransaction } from './utils';
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
 export {
