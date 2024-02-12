@@ -10,7 +10,7 @@ window.Replay = new Sentry.Replay({
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [new Sentry.browserTracingIntegration(), window.Replay],
+  integrations: [Sentry.browserTracingIntegration(), window.Replay],
   tracePropagationTargets: [/.*/],
   environment: 'production',
   tracesSampleRate: 1,
