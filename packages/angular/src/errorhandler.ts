@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import type { ErrorHandler as AngularErrorHandler } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
+import type { ReportDialogOptions } from '@sentry/browser';
 import type { Event } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
@@ -13,8 +14,7 @@ import { runOutsideAngular } from './zone';
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
   showDialog?: boolean;
-  // eslint-disable-next-line deprecation/deprecation
-  dialogOptions?: Omit<Sentry.ReportDialogOptions, 'eventId'>;
+  dialogOptions?: Omit<ReportDialogOptions, 'eventId'>;
   /**
    * Custom implementation of error extraction from the raw value captured by the Angular.
    * @param error Value captured by Angular's ErrorHandler provider
@@ -120,8 +120,7 @@ class SentryErrorHandler implements AngularErrorHandler {
 
       if (client && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {
-          if (!event.type) {
-            // eslint-disable-next-line deprecation/deprecation
+          if (!event.type && event.event_id) {
             Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
           }
         });

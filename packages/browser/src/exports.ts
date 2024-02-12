@@ -17,8 +17,7 @@ export type {
 
 export type { BrowserOptions } from './client';
 
-// eslint-disable-next-line deprecation/deprecation
-export type { ReportDialogOptions } from './helpers';
+export type { ReportDialogOptions } from './sdk';
 
 export {
   // eslint-disable-next-line deprecation/deprecation

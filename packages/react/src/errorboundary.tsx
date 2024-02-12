@@ -28,7 +28,6 @@ export type ErrorBoundaryProps = {
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  // eslint-disable-next-line deprecation/deprecation
   dialogOptions?: Omit<ReportDialogOptions, 'eventId'> | undefined;
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
