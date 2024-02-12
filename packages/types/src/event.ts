@@ -11,7 +11,7 @@ import type { Request } from './request';
 import type { CaptureContext } from './scope';
 import type { SdkInfo } from './sdkinfo';
 import type { Severity, SeverityLevel } from './severity';
-import type { Span, SpanJSON } from './span';
+import type { MetricSummary, Span, SpanJSON } from './span';
 import type { Thread } from './thread';
 import type { TransactionSource } from './transaction';
 import type { User } from './user';
@@ -73,6 +73,7 @@ export interface ErrorEvent extends Event {
 }
 export interface TransactionEvent extends Event {
   type: 'transaction';
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 /** JSDoc */
