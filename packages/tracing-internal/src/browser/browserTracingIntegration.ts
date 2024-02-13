@@ -28,8 +28,10 @@ import {
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
+import { addPerformanceInstrumentationHandler } from './instrument';
 import {
   addPerformanceEntries,
+  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingWebVitals,
@@ -37,6 +39,7 @@ import {
 import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { WINDOW } from './types';
+import type { InteractionRouteNameMapping } from './web-vitals/types';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -126,6 +129,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
+    enableInp: boolean;
   }>;
 
   /**
@@ -179,6 +183,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   const _collectWebVitals = startTrackingWebVitals();
+
+  /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
+  const interactionIdtoRouteNameMapping: InteractionRouteNameMapping = {};
+  if (options._experiments.enableInp) {
+    startTrackingINP(interactionIdtoRouteNameMapping);
+  }
 
   if (options.enableLongTask) {
     startTrackingLongTasks();
@@ -383,6 +393,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(options, latestRouteName, latestRouteSource);
       }
 
+      if (_experiments.enableInp) {
+        registerInpInteractionListener(interactionIdtoRouteNameMapping);
+      }
+
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
@@ -488,6 +502,44 @@ function registerInteractionListener(
 
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+  });
+}
+
+function isPerformanceEventTiming(entry: PerformanceEntry): entry is PerformanceEventTiming {
+  return 'duration' in entry;
+}
+
+const MAX_INTERACTIONS = 10;
+
+/** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
+function registerInpInteractionListener(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): void {
+  addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    for (const entry of entries) {
+      if (isPerformanceEventTiming(entry)) {
+        const duration = entry.duration;
+        const keys = Object.keys(interactionIdtoRouteNameMapping);
+        const minInteractionId =
+          keys.length > 0
+            ? keys.reduce((a, b) => {
+                return interactionIdtoRouteNameMapping[a].duration < interactionIdtoRouteNameMapping[b].duration
+                  ? a
+                  : b;
+              })
+            : undefined;
+        if (minInteractionId === undefined || duration > interactionIdtoRouteNameMapping[minInteractionId].duration) {
+          const interactionId = entry.interactionId;
+          const route = entry.target?.baseURI;
+          const path = route ? new URL(route).pathname : undefined;
+          if (interactionId && path) {
+            if (minInteractionId && Object.keys(interactionIdtoRouteNameMapping).length >= MAX_INTERACTIONS) {
+              // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
+              delete interactionIdtoRouteNameMapping[minInteractionId];
+            }
+            interactionIdtoRouteNameMapping[interactionId] = { routeName: path, duration };
+          }
+        }
+      }
+    }
   });
 }
 

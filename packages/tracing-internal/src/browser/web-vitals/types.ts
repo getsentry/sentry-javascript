@@ -162,3 +162,5 @@ declare global {
     element?: Element;
   }
 }
+
+export type InteractionRouteNameMapping = { [key: string]: { routeName: string; duration: number } };
