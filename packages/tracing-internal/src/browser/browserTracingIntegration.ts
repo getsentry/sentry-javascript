@@ -1,5 +1,6 @@
 /* eslint-disable max-lines, complexity */
 import type { IdleTransaction } from '@sentry/core';
+import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -315,7 +316,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction(context);
+        activeSpan = _createRouteTransaction({
+          op: 'navigation',
+          ...context,
+        });
       });
 
       client.on('startPageLoadSpan', (context: StartSpanOptions) => {
@@ -324,7 +328,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction(context);
+        activeSpan = _createRouteTransaction({
+          op: 'pageload',
+          ...context,
+        });
       });
 
       if (options.instrumentPageLoad) {
@@ -332,7 +339,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
           startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-          op: 'pageload',
           origin: 'auto.pageload.browser',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -361,7 +367,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const context: StartSpanOptions = {
               name: WINDOW.location.pathname,
-              op: 'navigation',
               origin: 'auto.navigation.browser',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -399,16 +404,24 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
  * Manually start a page load span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
+export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'pageload' ? span : undefined;
 }
 
 /**
  * Manually start a navigation span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
+export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'navigation' ? span : undefined;
 }
 
 /** Returns the value of a meta tag */
