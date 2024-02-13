@@ -1,4 +1,4 @@
-/* eslint-disable max-lines, complexity */
+/* eslint-disable max-lines */
 import type { IdleTransaction } from '@sentry/core';
 import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
@@ -238,7 +238,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     latestRouteName = finalContext.name;
     latestRouteSource = getSource(finalContext);
 
-    // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
