@@ -8,19 +8,14 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
   getCurrentScope,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getActiveSpan,
-  getClient,
-  spanToJSON,
-  startInactiveSpan,
-} from '@sentry/core';
+import { getClient, spanToJSON, startInactiveSpan } from '@sentry/core';
 import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -126,24 +121,30 @@ export class TraceService implements OnDestroy {
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
 
       if (client && hooksBasedInstrumentation) {
-        if (!getActiveSpan()) {
+        if (!this._pageloadOngoing) {
           startBrowserTracingNavigationSpan(client, {
             name: strippedUrl,
-            origin: 'auto.navigation.angular',
             attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             },
           });
+        } else {
+          // The first time we end up here, we set the pageload flag to false
+          // Subsequent navigations are going to get their own navigation root span
+          // even if the pageload root span is still ongoing.
+          this._pageloadOngoing = false;
         }
 
-        // eslint-disable-next-line deprecation/deprecation
         this._routingSpan =
           startInactiveSpan({
             name: `${navigationEvent.url}`,
             op: ANGULAR_ROUTING_OP,
-            origin: 'auto.ui.angular',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
             tags: {
-              'routing.instrumentation': '@sentry/angular',
               url: strippedUrl,
               ...(navigationEvent.navigationTrigger && {
                 navigationTrigger: navigationEvent.navigationTrigger,
@@ -232,8 +233,18 @@ export class TraceService implements OnDestroy {
 
   private _subscription: Subscription;
 
+  /**
+   * Flag used to determine if navigation events belong to the ongoing pageload.
+   * The first navigation event after pageload is considered the end of the pageload,
+   * meaning afterwards, every new navigation start event will create its own
+   * navigation root span.
+   */
+  private _pageloadOngoing: boolean;
+
   public constructor(private readonly _router: Router) {
     this._routingSpan = null;
+    this._pageloadOngoing = true;
+
     this._subscription = new Subscription();
 
     this._subscription.add(this.navStart$.subscribe());
