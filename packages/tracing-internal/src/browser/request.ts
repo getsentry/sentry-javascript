@@ -232,11 +232,11 @@ export function shouldAttachHeaders(
   targetUrl: string,
   tracePropagationTargets: (string | RegExp)[] | undefined,
 ): boolean {
-  // window.location.origin not being defined is an edge case in the browser but we need to handle it.
+  // window.location.href not being defined is an edge case in the browser but we need to handle it.
   // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
-  const origin: string | undefined = WINDOW.location && WINDOW.location.origin;
+  const href: string | undefined = WINDOW.location && WINDOW.location.href;
 
-  if (!origin) {
+  if (!href) {
     // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
     // BIG DISCLAIMER: Users can call URLs with a double slash (fetch("//example.com/api")), this is a shorthand for "send to the same protocol",
     // so we need a to exclude those requests, because they might be cross origin.
@@ -247,12 +247,26 @@ export function shouldAttachHeaders(
       return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
     }
   } else {
-    const resolvedUrl = new URL(targetUrl, origin);
-    const isSameOriginRequest = resolvedUrl.origin === WINDOW.location.origin;
-    return (
-      stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
-      (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
-    );
+    let resolvedUrl;
+    let currentOrigin;
+
+    // URL parsing may fail, we default to not attaching trace headers in that case.
+    try {
+      resolvedUrl = new URL(targetUrl, href);
+      currentOrigin = new URL(href).origin;
+    } catch (e) {
+      return false;
+    }
+
+    const isSameOriginRequest = resolvedUrl.origin === currentOrigin;
+    if (!tracePropagationTargets) {
+      return isSameOriginRequest;
+    } else {
+      return (
+        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+      );
+    }
   }
 }
 
