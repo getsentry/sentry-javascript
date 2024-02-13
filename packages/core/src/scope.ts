@@ -163,8 +163,8 @@ export class Scope implements ScopeInterface {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  public getClient(): Client | undefined {
-    return this._client;
+  public getClient<C extends Client>(): C | undefined {
+    return this._client as C | undefined;
   }
 
   /**

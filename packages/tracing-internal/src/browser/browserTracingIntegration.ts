@@ -1,5 +1,6 @@
-/* eslint-disable max-lines, complexity */
+/* eslint-disable max-lines */
 import type { IdleTransaction } from '@sentry/core';
+import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -34,14 +35,13 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from './metrics';
-import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { WINDOW } from './types';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
 /** Options for Browser Tracing integration */
-export interface BrowserTracingOptions extends RequestInstrumentationOptions {
+export interface BrowserTracingOptions {
   /**
    * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
    * by a moment where there are no in-progress spans.
@@ -103,6 +103,27 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * Flag to disable patching all together for fetch requests.
+   *
+   * Default: true
+   */
+  traceFetch: boolean;
+
+  /**
+   * Flag to disable patching all together for xhr requests.
+   *
+   * Default: true
+   */
+  traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -118,9 +139,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * _experiments allows the user to send options to define how this integration works.
-   * Note that the `enableLongTask` options is deprecated in favor of the option at the top level, and will be removed in v8.
-   *
-   * TODO (v8): Remove enableLongTask
    *
    * Default: undefined
    */
@@ -133,6 +151,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * It receives the options passed to `startSpan`, and expects to return an updated options object.
    */
   beforeStartSpan?: (options: StartSpanOptions) => StartSpanOptions;
+
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * Default: (url: string) => true
+   */
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -155,23 +181,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  const _hasSetTracePropagationTargets = DEBUG_BUILD
-    ? !!(
-        // eslint-disable-next-line deprecation/deprecation
-        (_options.tracePropagationTargets || _options.tracingOrigins)
-      )
-    : false;
-
   addTracingExtensions();
-
-  // TODO (v8): remove this block after tracingOrigins is removed
-  // Set tracePropagationTargets to tracingOrigins if specified by the user
-  // In case both are specified, tracePropagationTargets takes precedence
-  // eslint-disable-next-line deprecation/deprecation
-  if (!_options.tracePropagationTargets && _options.tracingOrigins) {
-    // eslint-disable-next-line deprecation/deprecation
-    _options.tracePropagationTargets = _options.tracingOrigins;
-  }
 
   const options = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -237,7 +247,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     latestRouteName = finalContext.name;
     latestRouteSource = getSource(finalContext);
 
-    // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
@@ -282,29 +291,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce: () => {},
     afterAllSetup(client) {
-      const clientOptions = client.getOptions();
-
       const { markBackgroundSpan, traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, _experiments } =
         options;
-
-      const clientOptionsTracePropagationTargets = clientOptions && clientOptions.tracePropagationTargets;
-      // There are three ways to configure tracePropagationTargets:
-      // 1. via top level client option `tracePropagationTargets`
-      // 2. via BrowserTracing option `tracePropagationTargets`
-      // 3. via BrowserTracing option `tracingOrigins` (deprecated)
-      //
-      // To avoid confusion, favour top level client option `tracePropagationTargets`, and fallback to
-      // BrowserTracing option `tracePropagationTargets` and then `tracingOrigins` (deprecated).
-      // This is done as it minimizes bundle size (we don't have to have undefined checks).
-      //
-      // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
-      // eslint-disable-next-line deprecation/deprecation
-      const tracePropagationTargets = clientOptionsTracePropagationTargets || options.tracePropagationTargets;
-      if (DEBUG_BUILD && _hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
-        logger.warn(
-          '[Tracing] The `tracePropagationTargets` option was set in the BrowserTracing integration and top level `Sentry.init`. The top level `Sentry.init` value is being used.',
-        );
-      }
 
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location.href;
@@ -315,7 +303,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction(context);
+        activeSpan = _createRouteTransaction({
+          op: 'navigation',
+          ...context,
+        });
       });
 
       client.on('startPageLoadSpan', (context: StartSpanOptions) => {
@@ -324,7 +315,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction(context);
+        activeSpan = _createRouteTransaction({
+          op: 'pageload',
+          ...context,
+        });
       });
 
       if (options.instrumentPageLoad) {
@@ -332,7 +326,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
           startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-          op: 'pageload',
           origin: 'auto.pageload.browser',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -361,7 +354,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const context: StartSpanOptions = {
               name: WINDOW.location.pathname,
-              op: 'navigation',
               origin: 'auto.navigation.browser',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -384,7 +376,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
-        tracePropagationTargets,
+        tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
       });
@@ -399,16 +391,24 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
  * Manually start a page load span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
+export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'pageload' ? span : undefined;
 }
 
 /**
  * Manually start a navigation span.
  * This will only do something if the BrowserTracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
+export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'navigation' ? span : undefined;
 }
 
 /** Returns the value of a meta tag */

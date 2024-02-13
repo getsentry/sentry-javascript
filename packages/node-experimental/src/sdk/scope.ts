@@ -46,11 +46,6 @@ export function getClient<C extends Client>(): C {
   return {} as C;
 }
 
-/** If the SDK was initialized. */
-export function isInitialized(): boolean {
-  return !!getClient().getDsn();
-}
-
 function getScopes(): CurrentScopes {
   const carrier = getGlobalCarrier();
 
