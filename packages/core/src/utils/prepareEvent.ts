@@ -12,8 +12,9 @@ import type {
 import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
+import { getGlobalScope } from '../currentScopes';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
-import { Scope, getGlobalScope } from '../scope';
+import { Scope } from '../scope';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 import { spanToJSON } from './spanUtils';
 
@@ -49,7 +50,7 @@ export function prepareEvent(
   hint: EventHint,
   scope?: Scope,
   client?: Client,
-  isolationScope?: Scope,
+  isolationScope?: ScopeInterface,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {

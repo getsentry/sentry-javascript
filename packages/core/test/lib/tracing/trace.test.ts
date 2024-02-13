@@ -692,7 +692,7 @@ describe('continueTrace', () => {
       traceId: expect.any(String),
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace data', () => {
@@ -728,7 +728,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & baggage data', () => {
@@ -770,7 +770,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & 3rd party baggage data', () => {
@@ -812,7 +812,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('returns response of callback', () => {

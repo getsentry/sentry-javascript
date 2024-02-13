@@ -1,8 +1,9 @@
 import type { ClientOptions, MeasurementUnit, Primitive } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
+import { getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient, getCurrentScope } from '../exports';
+import { getClient } from '../exports';
 import { spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import { MetricsAggregator, metricsAggregatorIntegration } from './integration';

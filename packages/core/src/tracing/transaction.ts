@@ -2,6 +2,7 @@ import type {
   Context,
   Contexts,
   DynamicSamplingContext,
+  Hub as HubInterface,
   MeasurementUnit,
   Measurements,
   SpanTimeInput,
@@ -27,7 +28,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
-  public _hub: Hub;
+  public _hub: HubInterface;
 
   protected _name: string;
 

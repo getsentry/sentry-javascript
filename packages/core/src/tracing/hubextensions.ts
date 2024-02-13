@@ -1,9 +1,9 @@
 import type { ClientOptions, CustomSamplingContext, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { getMainCarrier } from '../asyncContext';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { Hub } from '../hub';
-import { getMainCarrier } from '../hub';
 import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
