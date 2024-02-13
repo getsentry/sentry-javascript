@@ -225,7 +225,6 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
 /**
  * A function that determines whether to attach tracing headers to a request.
- * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
  * We only export this function for testing purposes.
  */
 export function shouldAttachHeaders(
