@@ -17,7 +17,6 @@ import type {
   Integration,
   IntegrationClass,
   MetricBucketItem,
-  MetricsAggregator,
   Outcome,
   ParameterizedString,
   SdkMetadata,
