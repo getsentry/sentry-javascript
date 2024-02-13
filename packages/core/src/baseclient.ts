@@ -93,13 +93,6 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
-  /**
-   * TODO (v8): Remove
-   *
-   * @deprecated The metricsAggregator is no longer referenced on the client.
-   */
-  public metricsAggregator?: MetricsAggregator;
-
   /** Options passed to the SDK. */
   protected readonly _options: O;
 

@@ -10,7 +10,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getClient, getCurrentScope } from '../exports';
 import { spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
-import { MetricsAggregator, metricsAggregatorIntegration } from './integration';
 import type { MetricType } from './types';
 
 export interface MetricData {
@@ -112,8 +111,4 @@ export const metrics = {
   distribution,
   set,
   gauge,
-  /** @deprecated Use `metrics.metricsAggregratorIntegration()` instead. */
-  // eslint-disable-next-line deprecation/deprecation
-  MetricsAggregator,
-  metricsAggregatorIntegration,
 };

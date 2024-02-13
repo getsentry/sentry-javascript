@@ -42,10 +42,4 @@ export const metrics = {
   distribution,
   set,
   gauge,
-  /** @deprecated An integration is no longer required to use the metrics feature */
-  // eslint-disable-next-line deprecation/deprecation
-  MetricsAggregator: metricsCore.MetricsAggregator,
-  /** @deprecated An integration is no longer required to use the metrics feature */
-  // eslint-disable-next-line deprecation/deprecation
-  metricsAggregatorIntegration: metricsCore.metricsAggregatorIntegration,
 };
