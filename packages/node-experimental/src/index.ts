@@ -29,11 +29,9 @@ export type { Span } from './types';
 export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
   getClient,
-  isInitialized,
   captureException,
   captureEvent,
   captureMessage,
-  addGlobalEventProcessor,
   addEventProcessor,
   setContext,
   setExtra,
@@ -45,19 +43,19 @@ export {
   withIsolationScope,
   withActiveSpan,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   setIsolationScope,
   setCurrentScope,
 } from './sdk/api';
 export { getCurrentHub, makeMain } from './sdk/hub';
-export { Scope } from './sdk/scope';
 
 export {
   addBreadcrumb,
+  isInitialized,
   makeNodeTransport,
   defaultStackParser,
   getSentryRelease,
+  getGlobalScope,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
@@ -66,8 +64,6 @@ export {
   createGetModuleFromFilename,
   close,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   Hub,
   runWithAsyncContext,

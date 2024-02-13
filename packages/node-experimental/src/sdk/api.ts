@@ -10,6 +10,7 @@ import type {
   Extra,
   Extras,
   Primitive,
+  Scope,
   SeverityLevel,
   User,
 } from '@sentry/types';
@@ -17,10 +18,9 @@ import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '.
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
-import type { Scope } from './scope';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope, isInitialized } from './scope';
+import { getClient, getCurrentScope, getIsolationScope } from './scope';
 
-export { getCurrentScope, getGlobalScope, getIsolationScope, getClient, isInitialized };
+export { getCurrentScope, getIsolationScope, getClient };
 export { setCurrentScope, setIsolationScope } from './scope';
 
 /**
@@ -111,13 +111,6 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 /** Capture a generic event and send it to Sentry. */
 export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentScope().captureEvent(event, hint);
-}
-
-/**
- * Add a global event processor.
- */
-export function addGlobalEventProcessor(eventProcessor: EventProcessor): void {
-  getGlobalScope().addEventProcessor(eventProcessor);
 }
 
 /**

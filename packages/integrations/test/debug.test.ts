@@ -1,18 +1,12 @@
-import type { Client, Event, EventHint, Integration } from '@sentry/types';
+import type { Client, Event, EventHint } from '@sentry/types';
 
-import type { debugIntegration } from '../src/debug';
-import { Debug } from '../src/debug';
+import { debugIntegration } from '../src/debug';
 
-interface IntegrationWithSetup extends Integration {
-  setup: (client: Client) => void;
-}
-
-function getIntegration(...args: Parameters<typeof debugIntegration>) {
-  // eslint-disable-next-line deprecation/deprecation
-  return new Debug(...args);
-}
-
-function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, testEventHint?: EventHint) {
+function testEventLogged(
+  integration: ReturnType<typeof debugIntegration>,
+  testEvent?: Event,
+  testEventHint?: EventHint,
+) {
   const callbacks: ((event: Event, hint?: EventHint) => void)[] = [];
 
   const client: Client = {
@@ -22,7 +16,7 @@ function testEventLogged(integration: IntegrationWithSetup, testEvent?: Event, t
     },
   } as Client;
 
-  integration.setup(client);
+  integration.setup?.(client);
 
   expect(callbacks.length).toEqual(1);
 
@@ -48,22 +42,22 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs an event', () => {
-    const debugIntegration = getIntegration();
+    const debug = debugIntegration();
     const testEvent = { event_id: 'some event' };
 
-    testEventLogged(debugIntegration, testEvent);
+    testEventLogged(debug, testEvent);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(1);
     expect(mockConsoleLog).toBeCalledWith(testEvent);
   });
 
   it('logs an event hint if available', () => {
-    const debugIntegration = getIntegration();
+    const debug = debugIntegration();
 
     const testEvent = { event_id: 'some event' };
     const testEventHint = { event_id: 'some event hint' };
 
-    testEventLogged(debugIntegration, testEvent, testEventHint);
+    testEventLogged(debug, testEvent, testEventHint);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(2);
     expect(mockConsoleLog).toBeCalledWith(testEvent);
@@ -71,22 +65,22 @@ describe('Debug integration setup should register an event processor that', () =
   });
 
   it('logs events in stringified format when `stringify` option was set', () => {
-    const debugIntegration = getIntegration({ stringify: true });
+    const debug = debugIntegration({ stringify: true });
     const testEvent = { event_id: 'some event' };
 
-    testEventLogged(debugIntegration, testEvent);
+    testEventLogged(debug, testEvent);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(1);
     expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEvent, null, 2));
   });
 
   it('logs event hints in stringified format when `stringify` option was set', () => {
-    const debugIntegration = getIntegration({ stringify: true });
+    const debug = debugIntegration({ stringify: true });
 
     const testEvent = { event_id: 'some event' };
     const testEventHint = { event_id: 'some event hint' };
 
-    testEventLogged(debugIntegration, testEvent, testEventHint);
+    testEventLogged(debug, testEvent, testEventHint);
 
     expect(mockConsoleLog).toHaveBeenCalledTimes(2);
     expect(mockConsoleLog).toBeCalledWith(JSON.stringify(testEventHint, null, 2));

@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 
 const INTEGRATION_NAME = 'SessionTiming';
 
@@ -26,14 +26,8 @@ const _sessionTimingIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const sessionTimingIntegration = defineIntegration(_sessionTimingIntegration);
-
 /**
- * This function adds duration since Sentry was initialized till the time event was sent.
- * @deprecated Use `sessionTimingIntegration()` instead.
+ * This function adds duration since the sessionTimingIntegration was initialized
+ * till the time event was sent.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const SessionTiming = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  sessionTimingIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;
+export const sessionTimingIntegration = defineIntegration(_sessionTimingIntegration);

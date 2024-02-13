@@ -3,9 +3,9 @@
 import { BrowserClient } from '@sentry/browser';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
-import { logger } from '@sentry/utils';
+import { extractTraceparentData, logger } from '@sentry/utils';
 
-import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods, extractTraceparentData } from '../src';
+import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods } from '../src';
 import {
   addDOMPropertiesToGlobal,
   getDefaultBrowserClientOptions,

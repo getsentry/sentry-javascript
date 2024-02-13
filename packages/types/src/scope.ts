@@ -259,4 +259,9 @@ export interface Scope {
    * @returns the id of the captured event.
    */
   captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Clone all data from this scope into a new scope.
+   */
+  clone(): Scope;
 }

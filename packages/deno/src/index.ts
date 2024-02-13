@@ -30,8 +30,6 @@ export {
   captureMessage,
   close,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   continueTrace,
   flush,
   // eslint-disable-next-line deprecation/deprecation
