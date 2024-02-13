@@ -70,25 +70,6 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
   sentry.acs = strategy;
 }
 
-/**
- * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
- *
- * @param callback The callback to run in its own async context
- * @param options Options to pass to the async context strategy
- * @returns The result of the callback
- */
-export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
-  const registry = getMainCarrier();
-  const sentry = getSentryCarrier(registry);
-
-  if (sentry.acs) {
-    return sentry.acs.runWithAsyncContext(callback, options);
-  }
-
-  // if there was no strategy, fallback to just calling the callback
-  return callback();
-}
-
 /** Will either get the existing sentry carrier, or create a new one. */
 export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   if (!carrier.__SENTRY__) {

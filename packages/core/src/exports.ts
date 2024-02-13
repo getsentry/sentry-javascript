@@ -20,13 +20,12 @@ import type {
   User,
 } from '@sentry/types';
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
-import { runWithAsyncContext } from './asyncContext';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
-import { getCurrentHub } from './hub';
+import { getCurrentHub, runWithAsyncContext } from './hub';
 import type { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
