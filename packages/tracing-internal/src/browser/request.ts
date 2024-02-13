@@ -232,17 +232,28 @@ export function shouldAttachHeaders(
   targetUrl: string,
   tracePropagationTargets: (string | RegExp)[] | undefined,
 ): boolean {
-  const resolvedUrl = new URL(targetUrl, WINDOW.location.origin);
-  const isSameOriginRequest = resolvedUrl.origin === WINDOW.location.origin;
+  // window.location.origin not being defined is an edge case in the browser but we need to handle it.
+  // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
+  const origin: string | undefined = WINDOW.location && WINDOW.location.origin;
 
-  if (!tracePropagationTargets) {
-    return isSameOriginRequest;
+  if (!origin) {
+    // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
+    // BIG DISCLAIMER: Users can call URLs with a double slash (fetch("//example.com/api")), this is a shorthand for "send to the same protocol",
+    // so we need a to exclude those requests, because they might be cross origin.
+    const isRelativeSameOriginRequest = !!targetUrl.match(/^\/(?!\/)/);
+    if (!tracePropagationTargets) {
+      return isRelativeSameOriginRequest;
+    } else {
+      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+    }
+  } else {
+    const resolvedUrl = new URL(targetUrl, origin);
+    const isSameOriginRequest = resolvedUrl.origin === WINDOW.location.origin;
+    return (
+      stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
+      (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+    );
   }
-
-  return (
-    stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
-    (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
-  );
 }
 
 /**
