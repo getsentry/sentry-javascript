@@ -115,7 +115,7 @@ module.exports = [
     path: 'packages/browser/build/bundles/bundle.tracing.min.js',
     gzip: false,
     brotli: false,
-    limit: '105 KB',
+    limit: '112 KB',
   },
   {
     name: '@sentry/browser - ES6 CDN Bundle (minified & uncompressed)',

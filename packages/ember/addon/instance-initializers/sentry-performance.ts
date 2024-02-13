@@ -11,7 +11,7 @@ import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { BrowserClient } from '..';
 import { getActiveSpan, startInactiveSpan } from '..';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
@@ -115,17 +115,18 @@ export function _instrumentEmberRouter(
     browserTracingOptions.instrumentPageLoad !== false
   ) {
     const routeInfo = routerService.recognize(url);
-    Sentry.startBrowserTracingPageLoadSpan(client, {
+    activeRootSpan = Sentry.startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
-      op: 'pageload',
       origin: 'auto.pageload.ember',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      },
       tags: {
         url,
         toRoute: routeInfo.name,
         'routing.instrumentation': '@sentry/ember',
       },
     });
-    activeRootSpan = getActiveSpan();
   }
 
   const finishActiveTransaction = (_: unknown, nextInstance: unknown): void => {
@@ -147,18 +148,18 @@ export function _instrumentEmberRouter(
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
     activeRootSpan?.end();
 
-    Sentry.startBrowserTracingNavigationSpan(client, {
+    activeRootSpan = Sentry.startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
-      op: 'navigation',
       origin: 'auto.navigation.ember',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      },
       tags: {
         fromRoute,
         toRoute,
         'routing.instrumentation': '@sentry/ember',
       },
     });
-
-    activeRootSpan = getActiveSpan();
 
     transitionSpan = startInactiveSpan({
       attributes: {
