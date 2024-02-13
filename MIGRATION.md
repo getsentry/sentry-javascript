@@ -1,5 +1,10 @@
 # Upgrading from 7.x to 8.x
 
+## `framesToPop` applies to parsed frames
+
+Error with `framesToPop` property will have the specified number of frames removed from the top of the stack.
+This changes compared to the v7 where the property `framesToPop` was used to remove top n lines from the stack string.
+
 ## Removal of Severity Enum
 
 In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`
