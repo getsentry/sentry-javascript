@@ -9,7 +9,6 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
-import { Scope } from '../../../src/scope';
 import {
   Span,
   continueTrace,
@@ -304,7 +303,7 @@ describe('startSpan', () => {
   it('allows to pass a scope', () => {
     const initialScope = getCurrentScope();
 
-    const manualScope = new Scope();
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
@@ -463,7 +462,7 @@ describe('startSpanManual', () => {
   it('allows to pass a scope', () => {
     const initialScope = getCurrentScope();
 
-    const manualScope = new Scope();
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
@@ -568,7 +567,9 @@ describe('startInactiveSpan', () => {
   });
 
   it('allows to pass a scope', () => {
-    const manualScope = new Scope();
+    const initialScope = getCurrentScope();
+
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
