@@ -349,8 +349,7 @@ export async function close(timeout?: number): Promise<boolean> {
  * Get the currently active client.
  */
 export function getClient<C extends Client>(): C | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().getClient<C>();
+  return getCurrentScope().getClient<C>();
 }
 
 /**
