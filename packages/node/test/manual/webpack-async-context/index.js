@@ -43,15 +43,10 @@ Sentry.init({
   },
 });
 
-Sentry.configureScope(scope => {
-  scope.setTag('a', 'b');
-});
+Sentry.setTag('a', 'b');
 
 Sentry.runWithAsyncContext(() => {
-  Sentry.configureScope(scope => {
-    scope.setTag('a', 'x');
-    scope.setTag('b', 'c');
-  });
+  Sentry.setTag('a', 'x');
   Sentry.captureMessage('inside');
 });
 

@@ -14,11 +14,7 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
@@ -44,12 +40,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
@@ -58,16 +50,12 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Integrations,
   consoleIntegration,
   onUncaughtExceptionIntegration,
@@ -84,8 +72,6 @@ export {
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
@@ -97,8 +83,6 @@ export {
   hapiErrorPlugin,
   metrics,
   runWithAsyncContext,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

@@ -73,8 +73,3 @@ export function wrapErrorGetInitialPropsWithSentry(
     },
   });
 }
-
-/**
- * @deprecated Use `wrapErrorGetInitialPropsWithSentry` instead.
- */
-export const withSentryServerSideErrorGetInitialProps = wrapErrorGetInitialPropsWithSentry;

@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, EventHint, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Debug';
@@ -11,6 +11,10 @@ interface DebugOptions {
   debugger?: boolean;
 }
 
+/**
+ * Integration to debug sent Sentry events.
+ * This integration should not be used in production.
+ */
 const _debugIntegration = ((options: DebugOptions = {}) => {
   const _options = {
     debugger: false,
@@ -23,10 +27,6 @@ const _debugIntegration = ((options: DebugOptions = {}) => {
     // TODO v8: Remove this
     setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
-      if (!client.on) {
-        return;
-      }
-
       client.on('beforeSendEvent', (event: Event, hint?: EventHint) => {
         if (_options.debugger) {
           // eslint-disable-next-line no-debugger
@@ -54,19 +54,3 @@ const _debugIntegration = ((options: DebugOptions = {}) => {
 }) satisfies IntegrationFn;
 
 export const debugIntegration = defineIntegration(_debugIntegration);
-
-/**
- * Integration to debug sent Sentry events.
- * This integration should not be used in production.
- *
- * @deprecated Use `debugIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Debug = convertIntegrationFnToClass(INTEGRATION_NAME, debugIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
-> & {
-  new (options?: {
-    stringify?: boolean;
-    debugger?: boolean;
-  }): Integration;
-};

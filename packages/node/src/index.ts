@@ -30,11 +30,7 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -47,8 +43,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
@@ -63,12 +57,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -76,8 +66,6 @@ export {
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
@@ -102,8 +90,6 @@ export {
   getSentryRelease,
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-// eslint-disable-next-line deprecation/deprecation
-export { deepReadDirSync } from './utils';
 
 import { createGetModuleFromFilename } from './module';
 /**
@@ -111,9 +97,6 @@ import { createGetModuleFromFilename } from './module';
  */
 export const getModuleFromFilename = createGetModuleFromFilename();
 export { createGetModuleFromFilename };
-
-// eslint-disable-next-line deprecation/deprecation
-export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

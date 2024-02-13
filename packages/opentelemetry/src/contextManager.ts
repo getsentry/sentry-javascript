@@ -1,14 +1,25 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import type { Carrier, Hub } from '@sentry/core';
-import { ensureHubOnCarrier } from '@sentry/core';
+import { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import { SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 
-import { getCurrentHub, getHubFromCarrier } from './custom/hub';
 import { setHubOnContext } from './utils/contextData';
 
-function createNewHub(parent: Hub | undefined): Hub {
-  const carrier: Carrier = {};
-  ensureHubOnCarrier(carrier, parent);
-  return getHubFromCarrier(carrier);
+function createNewHub(parent: Hub | undefined, shouldForkIsolationScope: boolean): Hub {
+  if (parent) {
+    // eslint-disable-next-line deprecation/deprecation
+    const client = parent.getClient();
+    // eslint-disable-next-line deprecation/deprecation
+    const scope = parent.getScope();
+    // eslint-disable-next-line deprecation/deprecation
+    const isolationScope = parent.getIsolationScope();
+
+    // eslint-disable-next-line deprecation/deprecation
+    return new Hub(client, scope.clone(), shouldForkIsolationScope ? isolationScope.clone() : isolationScope);
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return new Hub();
 }
 
 // Typescript complains if we do not use `...args: any[]` for the mixin, with:
@@ -46,10 +57,18 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
-      const existingHub = getCurrentHub();
-      const newHub = createNewHub(existingHub);
+      const shouldForkIsolationScope = context.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
 
-      return super.with(setHubOnContext(context, newHub), fn, thisArg, ...args);
+      // eslint-disable-next-line deprecation/deprecation
+      const existingHub = getCurrentHub();
+      const newHub = createNewHub(existingHub, shouldForkIsolationScope);
+
+      return super.with(
+        setHubOnContext(context.deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY), newHub),
+        fn,
+        thisArg,
+        ...args,
+      );
     }
   }
 

@@ -1,5 +1,5 @@
-import { captureMessage, convertIntegrationFnToClass, defineIntegration, getClient, withScope } from '@sentry/core';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { captureMessage, defineIntegration, getClient, withScope } from '@sentry/core';
+import type { Client, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, supportsReportingObserver } from '@sentry/utils';
 
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
@@ -115,18 +115,7 @@ const _reportingObserverIntegration = ((options: ReportingObserverOptions = {}) 
   };
 }) satisfies IntegrationFn;
 
-export const reportingObserverIntegration = defineIntegration(_reportingObserverIntegration);
-
 /**
  * Reporting API integration - https://w3c.github.io/reporting/
- * @deprecated Use `reportingObserverIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const ReportingObserver = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  reportingObserverIntegration,
-) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
-  new (options?: {
-    types?: ReportTypes[];
-  }): Integration;
-};
+export const reportingObserverIntegration = defineIntegration(_reportingObserverIntegration);

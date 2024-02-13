@@ -62,21 +62,16 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  DEFAULT_TRACE_PROPAGATION_TARGETS,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,

@@ -69,6 +69,30 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
+  it.each([400, 404, 499])("doesn't call captureException for thrown `HttpError`s with status %s", async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it.each([500, 501, 599])('calls captureException for thrown `HttpError`s with status %s', async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+  });
+
   describe('calls trace function', async () => {
     it('creates a load span', async () => {
       async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {

@@ -45,9 +45,11 @@ describe('SentryPropagator', () => {
         getDsn: () => ({
           publicKey: 'abc',
         }),
+        emit: () => {},
       };
       // @ts-expect-error Use mock client for unit tests
-      const hub: Hub = new Hub(client);
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = new Hub(client);
       // eslint-disable-next-line deprecation/deprecation
       makeMain(hub);
 

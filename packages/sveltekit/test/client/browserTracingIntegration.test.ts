@@ -58,7 +58,7 @@ describe('browserTracingIntegration', () => {
       };
     });
 
-  const fakeClient = { getOptions: () => undefined };
+  const fakeClient = { getOptions: () => ({}), on: () => {} };
 
   const mockedRoutingSpan = {
     end: () => {},

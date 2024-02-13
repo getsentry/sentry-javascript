@@ -4,8 +4,6 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { applySdkMetadata } from '@sentry/core';
-import type { CaptureContext, Event, EventHint } from '@sentry/types';
-import { Scope, getIsolationScope } from './scope';
 
 /** A client for using Sentry with Node & OpenTelemetry. */
 export class NodeExperimentalClient extends NodeClient {
@@ -45,33 +43,4 @@ export class NodeExperimentalClient extends NodeClient {
 
     return super.flush(timeout);
   }
-
-  /**
-   * Extends the base `_prepareEvent` so that we can properly handle `captureContext`.
-   * This uses `new Scope()`, which we need to replace with our own Scope  for this client.
-   */
-  protected _prepareEvent(
-    event: Event,
-    hint: EventHint,
-    scope?: Scope,
-    _isolationScope?: Scope,
-  ): PromiseLike<Event | null> {
-    let actualScope = scope;
-
-    // Remove `captureContext` hint and instead clone already here
-    if (hint && hint.captureContext) {
-      actualScope = getScopeForEvent(scope, hint.captureContext);
-      delete hint.captureContext;
-    }
-
-    const isolationScope = _isolationScope || (scope && scope.isolationScope) || getIsolationScope();
-
-    return super._prepareEvent(event, hint, actualScope, isolationScope);
-  }
-}
-
-function getScopeForEvent(scope: Scope | undefined, captureContext: CaptureContext): Scope | undefined {
-  const finalScope = scope ? scope.clone() : new Scope();
-  finalScope.update(captureContext);
-  return finalScope;
 }

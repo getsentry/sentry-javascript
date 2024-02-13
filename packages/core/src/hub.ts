@@ -19,15 +19,7 @@ import type {
   TransactionContext,
   User,
 } from '@sentry/types';
-import {
-  GLOBAL_OBJ,
-  consoleSandbox,
-  dateTimestampInSeconds,
-  getGlobalSingleton,
-  isThenable,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -86,19 +78,40 @@ export interface Layer {
  * @hidden
  */
 export interface Carrier {
-  __SENTRY__?: {
-    hub?: Hub;
-    acs?: AsyncContextStrategy;
-    /**
-     * Extra Hub properties injected by various SDKs
-     */
-    integrations?: Integration[];
-    extensions?: {
-      /** Extension methods for the hub, which are bound to the current Hub instance */
-      // eslint-disable-next-line @typescript-eslint/ban-types
-      [key: string]: Function;
-    };
+  __SENTRY__?: SentryCarrier;
+}
+
+type CreateHub = (...options: ConstructorParameters<typeof Hub>) => Hub;
+
+interface SentryCarrier {
+  hub?: Hub;
+  createHub?: CreateHub;
+  acs?: AsyncContextStrategy;
+  /**
+   * Extra Hub properties injected by various SDKs
+   */
+  integrations?: Integration[];
+  extensions?: {
+    /** Extension methods for the hub, which are bound to the current Hub instance */
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    [key: string]: Function;
   };
+}
+
+/**
+ * Create a hub. If a custom `createHub` is registered on the main carrier, use that instead.
+ * This only exists to make POTEL migration easier.
+ */
+function createHub(...options: ConstructorParameters<typeof Hub>): Hub {
+  const carrier = getMainCarrier();
+  const sentry = getSentryCarrier(carrier);
+
+  if (sentry.createHub) {
+    return sentry.createHub(...options);
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return new Hub(...options);
 }
 
 /**
@@ -107,9 +120,6 @@ export interface Carrier {
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
-
-  /** Contains the last event id of a captured event.  */
-  private _lastEventId?: string;
 
   private _isolationScope: Scope;
 
@@ -120,6 +130,46 @@ export class Hub implements HubInterface {
    * @param client bound to the hub.
    * @param scope bound to the hub.
    * @param version number, higher number means higher priority.
+   *
+   * @deprecated Instantiation of Hub objects is deprecated and the constructor will be removed in version 8 of the SDK.
+   *
+   * If you are currently using the Hub for multi-client use like so:
+   *
+   * ```
+   * // OLD
+   * const hub = new Hub();
+   * hub.bindClient(client);
+   * makeMain(hub)
+   * ```
+   *
+   * instead initialize the client as follows:
+   *
+   * ```
+   * // NEW
+   * Sentry.withIsolationScope(() => {
+   *    Sentry.setCurrentClient(client);
+   *    client.init();
+   * });
+   * ```
+   *
+   * If you are using the Hub to capture events like so:
+   *
+   * ```
+   * // OLD
+   * const client = new Client();
+   * const hub = new Hub(client);
+   * hub.captureException()
+   * ```
+   *
+   * instead capture isolated events as follows:
+   *
+   * ```
+   * // NEW
+   * const client = new Client();
+   * const scope = new Scope();
+   * scope.setClient(client);
+   * scope.captureException();
+   * ```
    */
   public constructor(
     client?: Client,
@@ -301,7 +351,7 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.captureException()` instead.
    */
   public captureException(exception: unknown, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error('Sentry syntheticException');
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureException(exception, {
@@ -320,7 +370,7 @@ export class Hub implements HubInterface {
    * @deprecated Use  `Sentry.captureMessage()` instead.
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
-    const eventId = (this._lastEventId = hint && hint.event_id ? hint.event_id : uuid4());
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
     const syntheticException = new Error(message);
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureMessage(message, level, {
@@ -340,21 +390,9 @@ export class Hub implements HubInterface {
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
-    if (!event.type) {
-      this._lastEventId = eventId;
-    }
     // eslint-disable-next-line deprecation/deprecation
     this.getScope().captureEvent(event, { ...hint, event_id: eventId });
     return eventId;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated This will be removed in v8.
-   */
-  public lastEventId(): string | undefined {
-    return this._lastEventId;
   }
 
   /**
@@ -364,7 +402,7 @@ export class Hub implements HubInterface {
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
     // eslint-disable-next-line deprecation/deprecation
-    const { scope, client } = this.getStackTop();
+    const { client } = this.getStackTop();
 
     if (!client) return;
 
@@ -381,19 +419,10 @@ export class Hub implements HubInterface {
 
     if (finalBreadcrumb === null) return;
 
-    if (client.emit) {
-      client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-    }
+    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
 
-    // TODO(v8): I know this comment doesn't make much sense because the hub will be deprecated but I still wanted to
-    // write it down. In theory, we would have to add the breadcrumbs to the isolation scope here, however, that would
-    // duplicate all of the breadcrumbs. There was the possibility of adding breadcrumbs to both, the isolation scope
-    // and the normal scope, and deduplicating it down the line in the event processing pipeline. However, that would
-    // have been very fragile, because the breadcrumb objects would have needed to keep their identity all throughout
-    // the event processing pipeline.
-    // In the new implementation, the top level `Sentry.addBreadcrumb()` should ONLY write to the isolation scope.
-
-    scope.addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
+    // eslint-disable-next-line deprecation/deprecation
+    this.getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
   }
 
   /**
@@ -401,9 +430,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setUser()` instead.
    */
   public setUser(user: User | null): void {
-    // TODO(v8): The top level `Sentry.setUser()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setUser(user);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setUser(user);
   }
@@ -413,9 +439,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTags()` instead.
    */
   public setTags(tags: { [key: string]: Primitive }): void {
-    // TODO(v8): The top level `Sentry.setTags()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setTags(tags);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setTags(tags);
   }
@@ -425,9 +448,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtras()` instead.
    */
   public setExtras(extras: Extras): void {
-    // TODO(v8): The top level `Sentry.setExtras()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setExtras(extras);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setExtras(extras);
   }
@@ -437,9 +457,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setTag()` instead.
    */
   public setTag(key: string, value: Primitive): void {
-    // TODO(v8): The top level `Sentry.setTag()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setTag(key, value);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setTag(key, value);
   }
@@ -449,9 +466,6 @@ export class Hub implements HubInterface {
    * @deprecated Use `Sentry.setExtra()` instead.
    */
   public setExtra(key: string, extra: Extra): void {
-    // TODO(v8): The top level `Sentry.setExtra()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setExtra(key, extra);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setExtra(key, extra);
   }
@@ -462,24 +476,8 @@ export class Hub implements HubInterface {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public setContext(name: string, context: { [key: string]: any } | null): void {
-    // TODO(v8): The top level `Sentry.setContext()` function should write ONLY to the isolation scope.
-    // eslint-disable-next-line deprecation/deprecation
-    this.getScope().setContext(name, context);
     // eslint-disable-next-line deprecation/deprecation
     this.getIsolationScope().setContext(name, context);
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `getScope()` directly.
-   */
-  public configureScope(callback: (scope: Scope) => void): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const { scope, client } = this.getStackTop();
-    if (client) {
-      callback(scope);
-    }
   }
 
   /**
@@ -663,8 +661,8 @@ Sentry.init({...});
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _callExtensionMethod<T>(method: string, ...args: any[]): T {
     const carrier = getMainCarrier();
-    const sentry = carrier.__SENTRY__;
-    if (sentry && sentry.extensions && typeof sentry.extensions[method] === 'function') {
+    const sentry = getSentryCarrier(carrier);
+    if (sentry.extensions && typeof sentry.extensions[method] === 'function') {
       return sentry.extensions[method].apply(this, args);
     }
     DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
@@ -679,10 +677,8 @@ Sentry.init({...});
  * at the call-site. We always access the carrier through this function, so we can guarantee that `__SENTRY__` is there.
  **/
 export function getMainCarrier(): Carrier {
-  GLOBAL_OBJ.__SENTRY__ = GLOBAL_OBJ.__SENTRY__ || {
-    extensions: {},
-    hub: undefined,
-  };
+  // This ensures a Sentry carrier exists
+  getSentryCarrier(GLOBAL_OBJ);
   return GLOBAL_OBJ;
 }
 
@@ -711,10 +707,11 @@ export function makeMain(hub: Hub): Hub {
  */
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
-  const registry = getMainCarrier();
+  const carrier = getMainCarrier();
+  const sentry = getSentryCarrier(carrier);
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    const hub = registry.__SENTRY__.acs.getCurrentHub();
+  if (sentry.acs) {
+    const hub = sentry.acs.getCurrentHub();
 
     if (hub) {
       return hub;
@@ -722,7 +719,7 @@ export function getCurrentHub(): Hub {
   }
 
   // Return hub that lives on a global object
-  return getGlobalHub(registry);
+  return getGlobalHub();
 }
 
 /**
@@ -735,7 +732,9 @@ export function getIsolationScope(): Scope {
   return getCurrentHub().getIsolationScope();
 }
 
-function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
+function getGlobalHub(): Hub {
+  const registry = getMainCarrier();
+
   // If there's no hub, or its an old API, assign a new one
 
   if (
@@ -743,7 +742,7 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
     // eslint-disable-next-line deprecation/deprecation
     getHubFromCarrier(registry).isOlderThan(API_VERSION)
   ) {
-    setHubOnCarrier(registry, new Hub());
+    setHubOnCarrier(registry, createHub());
   }
 
   // Return hub that lives on a global object
@@ -768,7 +767,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
     const scope = parent.getScope();
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = parent.getIsolationScope();
-    setHubOnCarrier(carrier, new Hub(client, scope.clone(), isolationScope.clone()));
+    setHubOnCarrier(carrier, createHub(client, scope.clone(), isolationScope.clone()));
   }
 }
 
@@ -780,8 +779,8 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
 export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefined): void {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
-  registry.__SENTRY__ = registry.__SENTRY__ || {};
-  registry.__SENTRY__.acs = strategy;
+  const sentry = getSentryCarrier(registry);
+  sentry.acs = strategy;
 }
 
 /**
@@ -793,9 +792,10 @@ export function setAsyncContextStrategy(strategy: AsyncContextStrategy | undefin
  */
 export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
   const registry = getMainCarrier();
+  const sentry = getSentryCarrier(registry);
 
-  if (registry.__SENTRY__ && registry.__SENTRY__.acs) {
-    return registry.__SENTRY__.acs.runWithAsyncContext(callback, options);
+  if (sentry.acs) {
+    return sentry.acs.runWithAsyncContext(callback, options);
   }
 
   // if there was no strategy, fallback to just calling the callback
@@ -807,7 +807,7 @@ export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncC
  * @param carrier object
  */
 function hasHubOnCarrier(carrier: Carrier): boolean {
-  return !!(carrier && carrier.__SENTRY__ && carrier.__SENTRY__.hub);
+  return !!getSentryCarrier(carrier).hub;
 }
 
 /**
@@ -817,7 +817,12 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @hidden
  */
 export function getHubFromCarrier(carrier: Carrier): Hub {
-  return getGlobalSingleton<Hub>('hub', () => new Hub(), carrier);
+  const sentry = getSentryCarrier(carrier);
+  if (!sentry.hub) {
+    sentry.hub = createHub();
+  }
+
+  return sentry.hub;
 }
 
 /**
@@ -828,7 +833,18 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  */
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
-  const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});
-  __SENTRY__.hub = hub;
+  const sentry = getSentryCarrier(carrier);
+  sentry.hub = hub;
   return true;
+}
+
+/** Will either get the existing sentry carrier, or create a new one. */
+function getSentryCarrier(carrier: Carrier): SentryCarrier {
+  if (!carrier.__SENTRY__) {
+    carrier.__SENTRY__ = {
+      extensions: {},
+      hub: undefined,
+    };
+  }
+  return carrier.__SENTRY__;
 }

@@ -31,11 +31,7 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -48,8 +44,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
@@ -64,12 +58,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -89,10 +79,6 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   DEFAULT_USER_INCLUDES,

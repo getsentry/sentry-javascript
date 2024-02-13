@@ -114,7 +114,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     const client = getClient();
 
     const mutableOptions = { drop: false };
-    client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
+    client && client.emit('otelSpanEnd', otelSpan, mutableOptions);
 
     if (mutableOptions.drop) {
       clearSpan(otelSpanId);

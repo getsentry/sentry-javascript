@@ -3,6 +3,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+
 import { addBreadcrumb, defineIntegration, hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
 import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { EventProcessor, Hub, Integration, IntegrationFn } from '@sentry/types';

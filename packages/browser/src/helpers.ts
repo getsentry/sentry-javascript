@@ -1,7 +1,7 @@
 import type { browserTracingIntegration } from '@sentry-internal/tracing';
 import { BrowserTracing } from '@sentry-internal/tracing';
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Integration, Mechanism, WrappedFunction } from '@sentry/types';
+import type { Integration, Mechanism, WrappedFunction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
@@ -154,38 +154,6 @@ export function wrap(
   } catch (_oO) {}
 
   return sentryWrapped;
-}
-
-/**
- * All properties the report dialog supports
- *
- * @deprecated This type will be removed in the next major version of the Sentry SDK. `showReportDialog` will still be around, however the `eventId` option will now be required.
- */
-export interface ReportDialogOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
 }
 
 /**

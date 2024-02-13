@@ -35,7 +35,7 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 
   const client = new clientClass(options);
   setCurrentClient(client);
-  initializeClient(client);
+  client.init();
 }
 
 /**
@@ -48,19 +48,4 @@ export function setCurrentClient(client: Client): void {
   const top = hub.getStackTop();
   top.client = client;
   top.scope.setClient(client);
-}
-
-/**
- * Initialize the client for the current scope.
- * Make sure to call this after `setCurrentClient()`.
- */
-function initializeClient(client: Client): void {
-  if (client.init) {
-    client.init();
-    // TODO v8: Remove this fallback
-    // eslint-disable-next-line deprecation/deprecation
-  } else if (client.setupIntegrations) {
-    // eslint-disable-next-line deprecation/deprecation
-    client.setupIntegrations();
-  }
 }

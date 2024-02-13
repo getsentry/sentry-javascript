@@ -16,6 +16,7 @@ import type {
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
@@ -67,13 +68,13 @@ export class SpanRecorder {
 export class Span implements SpanInterface {
   /**
    * Tags for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   public tags: { [key: string]: Primitive };
 
   /**
    * Data for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
@@ -263,7 +264,7 @@ export class Span implements SpanInterface {
 
   /**
    * Attributes for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   public get attributes(): SpanAttributes {
     return this._attributes;
@@ -624,6 +625,7 @@ export class Span implements SpanInterface {
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+      _metrics_summary: getMetricSummaryJsonForSpan(this),
     });
   }
 

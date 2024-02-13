@@ -8,20 +8,10 @@ const {
   ContextLines,
   Context,
   RequestData,
-  LocalVariables,
   // eslint-disable-next-line deprecation/deprecation
 } = NodeIntegrations;
 
-export {
-  Console,
-  OnUncaughtException,
-  OnUnhandledRejection,
-  Modules,
-  ContextLines,
-  Context,
-  RequestData,
-  LocalVariables,
-};
+export { Console, OnUncaughtException, OnUnhandledRejection, Modules, ContextLines, Context, RequestData };
 
 /* eslint-disable deprecation/deprecation */
 export { Express } from './express';

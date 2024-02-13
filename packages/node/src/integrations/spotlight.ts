@@ -65,11 +65,6 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
 
   let failedRequests = 0;
 
-  if (typeof client.on !== 'function') {
-    logger.warn('[Spotlight] Cannot connect to spotlight due to missing method on SDK client (`client.on`)');
-    return;
-  }
-
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failedRequests > 3) {
       logger.warn('[Spotlight] Disabled Sentry -> Spotlight integration due to too many failed requests');

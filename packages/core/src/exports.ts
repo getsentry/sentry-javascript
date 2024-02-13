@@ -1,12 +1,11 @@
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   CheckIn,
   Client,
   CustomSamplingContext,
   Event,
   EventHint,
+  EventProcessor,
   Extra,
   Extras,
   FinishedCheckIn,
@@ -74,30 +73,6 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 export function captureEvent(event: Event, hint?: EventHint): string {
   // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureEvent(event, hint);
-}
-
-/**
- * Callback to set context information onto the scope.
- * @param callback Callback function that receives Scope.
- *
- * @deprecated Use getCurrentScope() directly.
- */
-export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().configureScope(callback);
-}
-
-/**
- * Records a new breadcrumb which will be attached to future events.
- *
- * Breadcrumbs will be added to subsequent events to provide more context on
- * user's actions prior to an error or crash.
- *
- * @param breadcrumb The breadcrumb to record.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().addBreadcrumb(breadcrumb, hint);
 }
 
 /**
@@ -371,17 +346,6 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
- * This is the getter for lastEventId.
- *
- * @returns The last event id of a captured event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().lastEventId();
-}
-
-/**
  * Get the currently active client.
  */
 export function getClient<C extends Client>(): C | undefined {
@@ -402,6 +366,15 @@ export function isInitialized(): boolean {
 export function getCurrentScope(): Scope {
   // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().getScope();
+}
+
+/**
+ * Add an event processor.
+ * This will be added to the current isolation scope, ensuring any event that is processed in the current execution
+ * context will have the processor applied.
+ */
+export function addEventProcessor(callback: EventProcessor): void {
+  getIsolationScope().addEventProcessor(callback);
 }
 
 /**
@@ -478,7 +451,7 @@ function _sendSessionUpdate(): void {
   // TODO (v8): Remove currentScope and only use the isolation scope(?).
   // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
   const session = currentScope.getSession() || isolationScope.getSession();
-  if (session && client && client.captureSession) {
+  if (session && client) {
     client.captureSession(session);
   }
 }

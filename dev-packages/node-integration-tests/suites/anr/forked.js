@@ -12,7 +12,7 @@ Sentry.init({
   release: '1.0',
   debug: true,
   autoSessionTracking: false,
-  integrations: [new Sentry.Integrations.Anr({ captureStackTrace: true, anrThreshold: 100 })],
+  integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
 });
 
 function longWork() {

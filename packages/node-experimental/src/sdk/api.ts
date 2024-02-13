@@ -3,8 +3,6 @@
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   Event,
   EventHint,
@@ -12,18 +10,17 @@ import type {
   Extra,
   Extras,
   Primitive,
+  Scope,
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
 import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '../utils/contextData';
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
-import type { Scope } from './scope';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope, isInitialized } from './scope';
+import { getClient, getCurrentScope, getIsolationScope } from './scope';
 
-export { getCurrentScope, getGlobalScope, getIsolationScope, getClient, isInitialized };
+export { getCurrentScope, getIsolationScope, getClient };
 export { setCurrentScope, setIsolationScope } from './scope';
 
 /**
@@ -96,23 +93,6 @@ export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T
   });
 }
 
-/**
- * Get the ID of the last sent error event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().lastEventId();
-}
-
-/**
- * Configure the current scope.
- * @deprecated Use `getCurrentScope()` instead.
- */
-export function configureScope(callback: (scope: Scope) => void): void {
-  callback(getCurrentScope());
-}
-
 /** Record an exception and send it to Sentry. */
 export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
   return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
@@ -131,38 +111,6 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 /** Capture a generic event and send it to Sentry. */
 export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentScope().captureEvent(event, hint);
-}
-
-/**
- * Add a breadcrumb to the current isolation scope.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void {
-  const client = getClient();
-
-  const { beforeBreadcrumb, maxBreadcrumbs } = client.getOptions();
-
-  if (maxBreadcrumbs && maxBreadcrumbs <= 0) return;
-
-  const timestamp = dateTimestampInSeconds();
-  const mergedBreadcrumb = { timestamp, ...breadcrumb };
-  const finalBreadcrumb = beforeBreadcrumb
-    ? (consoleSandbox(() => beforeBreadcrumb(mergedBreadcrumb, hint)) as Breadcrumb | null)
-    : mergedBreadcrumb;
-
-  if (finalBreadcrumb === null) return;
-
-  if (client.emit) {
-    client.emit('beforeAddBreadcrumb', finalBreadcrumb, hint);
-  }
-
-  getIsolationScope().addBreadcrumb(finalBreadcrumb, maxBreadcrumbs);
-}
-
-/**
- * Add a global event processor.
- */
-export function addGlobalEventProcessor(eventProcessor: EventProcessor): void {
-  getGlobalScope().addEventProcessor(eventProcessor);
 }
 
 /**

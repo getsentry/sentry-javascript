@@ -7,7 +7,7 @@ Sentry.init({
   includeLocalVariables: true,
   transport: loggingTransport,
   // Stop the rate limiting from kicking in
-  integrations: [new Sentry.Integrations.LocalVariables({ maxExceptionsPerSecond: 10000000 })],
+  integrations: [Sentry.localVariablesIntegration({ maxExceptionsPerSecond: 10000000 })],
 });
 
 class Some {

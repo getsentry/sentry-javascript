@@ -5,6 +5,33 @@
 Error with `framesToPop` property will have the specified number of frames removed from the top of the stack.
 This changes compared to the v7 where the property `framesToPop` was used to remove top n lines from the stack string.
 
+## Removal of the `tracingOrigins` option
+
+After its deprecation in v7 the `tracingOrigins` option is now removed in favor of the `tracePropagationTargets` option.
+The `tracePropagationTargets` option should be set in the `Sentry.init()` options, or in your custom `Client`s option if
+you create them. The `tracePropagationTargets` option can no longer be set in the `browserTracingIntegration()` options.
+
+## Dropping Support for React 15
+
+Sentry will no longer officially support React 15 in version 8. This means that React 15.x will be removed
+from`@sentry/react`'s peer dependencies.
+
+## Removal of deprecated API in `@sentry/nextjs`
+
+The following previously deprecated API has been removed from the `@sentry/nextjs` package:
+
+- `withSentryApi` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryAPI` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryGetServerSideProps` (Replacement: `wrapGetServerSidePropsWithSentry`)
+- `withSentryGetStaticProps` (Replacement: `wrapGetStaticPropsWithSentry`)
+- `withSentryServerSideGetInitialProps` (Replacement: `wrapGetInitialPropsWithSentry`)
+- `withSentryServerSideAppGetInitialProps` (Replacement: `wrapAppGetInitialPropsWithSentry`)
+- `withSentryServerSideDocumentGetInitialProps` (Replacement: `wrapDocumentGetInitialPropsWithSentry`)
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+- `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
+- `IS_BUILD`
+- `isBuild`
+
 ## Removal of Severity Enum
 
 In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`
@@ -15,6 +42,32 @@ enum. If you were using the `Severity` enum, you should replace it with the `Sev
 
 The `Offline` integration has been removed in favor of the offline transport wrapper:
 http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
+
+## Removal of `enableAnrDetection` and `Anr` class (##10562)
+
+The `enableAnrDetection` and `Anr` class have been removed. See the
+[docs](https://docs.sentry.io/platforms/node/configuration/application-not-responding/) for more details how to migrate
+to `anrIntegration`, the new integration for ANR detection.
+
+## Removal of `Sentry.configureScope` (#10565)
+
+The top level `Sentry.configureScope` function has been removed. Instead, you should use the `Sentry.getCurrentScope()`
+to access and mutate the current scope.
+
+## Deletion of `@sentry/hub` package (#10530)
+
+`@sentry/hub` has been removed. All exports from `@sentry.hub` should be available in `@sentry/core`.
+
+## General API Changes
+
+- The minumum supported Node version for all the SDK packages is Node 14 (#10527)
+- Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
+- Remove deprecated `deepReadDirSync` export from `@sentry/node` (#10564)
+- Remove `_eventFromIncompleteOnError` usage (#10553)
+- The `Transaction` integration in `@sentry/integrations` has been removed. There is no replacement API. (#10556)
+- `extraErrorDataIntegration` now looks at
+  [`error.cause`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause) by
+  default.
 
 # Deprecations in 7.x
 
@@ -289,6 +342,45 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | startSession()         | `Sentry.startSession()`                                                              |
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
+
+The `Hub` constructor is also deprecated and will be removed in the next major version. If you are creating Hubs for
+multi-client use like so:
+
+```ts
+// OLD
+const hub = new Hub();
+hub.bindClient(client);
+makeMain(hub);
+```
+
+instead initialize the client as follows:
+
+```ts
+// NEW
+Sentry.withIsolationScope(() => {
+  Sentry.setCurrentClient(client);
+  client.init();
+});
+```
+
+If you are using the Hub to capture events like so:
+
+```ts
+// OLD
+const client = new Client();
+const hub = new Hub(client);
+hub.captureException();
+```
+
+instead capture isolated events as follows:
+
+```ts
+// NEW
+const client = new Client();
+const scope = new Scope();
+scope.setClient(client);
+scope.captureException();
+```
 
 ## Deprecate `client.setupIntegrations()`
 

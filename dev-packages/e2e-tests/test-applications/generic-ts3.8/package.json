@@ -15,7 +15,6 @@
   "dependencies": {
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
-    "@sentry/hub": "latest || *",
     "@sentry/integrations": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/opentelemetry-node": "latest || *",

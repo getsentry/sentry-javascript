@@ -3,7 +3,7 @@
 import type { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
-import { closeSession, makeSession, updateSession } from '../src';
+import { closeSession, makeSession, updateSession } from '../../src/session';
 
 describe('Session', () => {
   it('initializes with the proper defaults', () => {

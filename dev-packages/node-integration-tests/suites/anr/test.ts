@@ -56,11 +56,6 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     cleanupChildProcesses();
   });
 
-  // TODO (v8): Remove this old API and this test
-  test('Legacy API', done => {
-    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
-  });
-
   test('CJS', done => {
     createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });

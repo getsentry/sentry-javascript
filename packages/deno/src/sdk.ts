@@ -65,17 +65,6 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * @example
  * ```
  *
- * import { configureScope } from 'npm:@sentry/deno';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
- * });
- * ```
- *
- * @example
- * ```
- *
  * import { addBreadcrumb } from 'npm:@sentry/deno';
  * addBreadcrumb({
  *   message: 'My Breadcrumb',

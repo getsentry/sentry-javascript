@@ -76,7 +76,7 @@ jobs:
         with:
           list-files: json
           filters: |
-            browser_integration: dev-packages/browser-integration-tests/suites/**
+            browser_integration: dev-packages/browser-integration-tests/suites/**/test.ts
 
       - name: Detect flaky tests
         run: yarn test:detect-flaky

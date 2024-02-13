@@ -514,7 +514,7 @@ describe('SentryErrorHandler', () => {
         expect(client.on).toHaveBeenCalledWith('afterSendEvent', expect.any(Function));
 
         // this simulates the afterSend hook being called
-        client.cb({});
+        client.cb({ event_id: 'foobar' });
 
         expect(showReportDialogSpy).toBeCalledTimes(1);
       });
