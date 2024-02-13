@@ -22,7 +22,7 @@ import type {
 } from '@sentry/types';
 import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
-import type { Carrier } from './asyncContext';
+import type { AsyncContextStrategy, Carrier, RunWithAsyncContextOptions } from './asyncContext';
 import { getMainCarrier, getSentryCarrier } from './asyncContext';
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -649,18 +649,24 @@ export function setHubOnCarrier(carrier: Carrier, hub: HubInterface): boolean {
 export function getCurrentHub(): HubInterface {
   // Get main carrier (global for every environment)
   const carrier = getMainCarrier();
-  const sentry = getSentryCarrier(carrier);
 
-  if (sentry.acs) {
-    const hub = sentry.acs.getCurrentHub();
+  const acs = getAsyncContextStrategy(carrier);
+  return acs.getCurrentHub() || getGlobalHub();
+}
 
-    if (hub) {
-      return hub;
-    }
-  }
+/**
+ * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
+ *
+ * @param callback The callback to run in its own async context
+ * @param options Options to pass to the async context strategy
+ * @returns The result of the callback
+ */
+export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
+  // Get main carrier (global for every environment)
+  const carrier = getMainCarrier();
 
-  // Return hub that lives on a global object
-  return getGlobalHub();
+  const acs = getAsyncContextStrategy(carrier);
+  return acs.runWithAsyncContext(callback, options);
 }
 
 function getGlobalHub(): HubInterface {
@@ -726,4 +732,28 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: HubInterface = getG
     // eslint-disable-next-line deprecation/deprecation
     setHubOnCarrier(carrier, new Hub(client, scope.clone() as Scope, isolationScope.clone() as Scope));
   }
+}
+
+/**
+ * Get the current async context strategy.
+ * If none has been setup, the default will be used.
+ */
+export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy {
+  const sentry = getSentryCarrier(carrier);
+
+  if (sentry.acs) {
+    return sentry.acs;
+  }
+
+  // Otherwise, use the default one
+  return getHubStackAsyncContextStrategy();
+}
+
+function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
+  return {
+    getCurrentHub: getGlobalHub,
+    runWithAsyncContext: <T>(callback: () => T, _options: RunWithAsyncContextOptions = {}): T => {
+      return callback();
+    },
+  };
 }

@@ -44,6 +44,7 @@ export {
   makeMain,
   setHubOnCarrier,
   ensureHubOnCarrier,
+  runWithAsyncContext,
 } from './hub';
 export {
   getCurrentScope,
@@ -53,7 +54,6 @@ export {
 } from './currentScopes';
 export {
   getMainCarrier,
-  runWithAsyncContext,
   setAsyncContextStrategy,
 } from './asyncContext';
 export { makeSession, closeSession, updateSession } from './session';
