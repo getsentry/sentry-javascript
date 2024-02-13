@@ -7,7 +7,7 @@ import { addExceptionMechanism } from '@sentry/utils';
  * @returns function which runs in the newly created domain or in the existing one
  */
 export function domainify<A extends unknown[], R>(fn: (...args: A) => R): (...args: A) => R | void {
-  return (...args) => runWithAsyncContext(() => fn(...args), { reuseExisting: true });
+  return (...args) => runWithAsyncContext(() => fn(...args));
 }
 
 /**

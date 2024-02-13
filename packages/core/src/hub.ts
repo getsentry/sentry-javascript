@@ -22,7 +22,7 @@ import type {
 } from '@sentry/types';
 import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
-import type { AsyncContextStrategy, Carrier, RunWithAsyncContextOptions } from './asyncContext';
+import type { AsyncContextStrategy, Carrier } from './asyncContext';
 import { getMainCarrier, getSentryCarrier } from './asyncContext';
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
@@ -661,12 +661,12 @@ export function getCurrentHub(): HubInterface {
  * @param options Options to pass to the async context strategy
  * @returns The result of the callback
  */
-export function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions = {}): T {
+export function runWithAsyncContext<T>(callback: () => T): T {
   // Get main carrier (global for every environment)
   const carrier = getMainCarrier();
 
   const acs = getAsyncContextStrategy(carrier);
-  return acs.runWithAsyncContext(callback, options);
+  return acs.runWithAsyncContext(callback);
 }
 
 function getGlobalHub(): HubInterface {
@@ -752,7 +752,7 @@ export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy 
 function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
     getCurrentHub: getGlobalHub,
-    runWithAsyncContext: <T>(callback: () => T, _options: RunWithAsyncContextOptions = {}): T => {
+    runWithAsyncContext: <T>(callback: () => T): T => {
       return callback();
     },
   };

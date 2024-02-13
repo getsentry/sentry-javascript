@@ -1,11 +1,6 @@
 import type { Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
-export interface RunWithAsyncContextOptions {
-  /** Whether to reuse an existing async context if one exists. Defaults to false. */
-  reuseExisting?: boolean;
-}
-
 /**
  * @private Private API with no semver guarantees!
  *
@@ -20,7 +15,7 @@ export interface AsyncContextStrategy {
   /**
    * Runs the supplied callback in its own async context.
    */
-  runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T;
+  runWithAsyncContext<T>(callback: () => T): T;
 }
 
 /**

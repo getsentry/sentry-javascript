@@ -160,21 +160,6 @@ describe('setDomainAsyncContextStrategy()', () => {
       });
     });
 
-    test('within a domain reused when requested', () => {
-      setDomainAsyncContextStrategy();
-
-      runWithAsyncContext(() => {
-        const hub1 = getCurrentHub();
-        runWithAsyncContext(
-          () => {
-            const hub2 = getCurrentHub();
-            expect(hub1).toBe(hub2);
-          },
-          { reuseExisting: true },
-        );
-      });
-    });
-
     test('concurrent hub contexts', done => {
       setDomainAsyncContextStrategy();
 

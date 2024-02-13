@@ -166,21 +166,6 @@ describe('setHooksAsyncContextStrategy()', () => {
       });
     });
 
-    test('context within a context reused when requested', () => {
-      setHooksAsyncContextStrategy();
-
-      runWithAsyncContext(() => {
-        const hub1 = getCurrentHub();
-        runWithAsyncContext(
-          () => {
-            const hub2 = getCurrentHub();
-            expect(hub1).toBe(hub2);
-          },
-          { reuseExisting: true },
-        );
-      });
-    });
-
     test('concurrent hub contexts', done => {
       setHooksAsyncContextStrategy();
 
