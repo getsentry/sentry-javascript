@@ -74,7 +74,7 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
-  metricsNode as metrics,
+  metricsDefault as metrics,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';

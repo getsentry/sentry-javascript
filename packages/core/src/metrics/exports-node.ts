@@ -38,7 +38,7 @@ function gauge(name: string, value: number, data?: MetricData): void {
   metricsCore.gauge(MetricsAggregator, name, value, data);
 }
 
-export const metricsNode = {
+export const metricsDefault = {
   increment,
   distribution,
   set,

@@ -70,7 +70,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
-  metricsNode as metrics,
+  metricsDefault as metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
