@@ -2,7 +2,7 @@ import type { BrowserClient } from '@sentry/browser';
 import { getActiveSpan } from '@sentry/browser';
 import { browserTracingIntegration } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
+import { SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { getIsolationScope } from '@sentry/core';
