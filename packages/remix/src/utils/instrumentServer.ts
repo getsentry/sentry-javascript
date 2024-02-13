@@ -12,9 +12,8 @@ import {
   spanToJSON,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
-import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,

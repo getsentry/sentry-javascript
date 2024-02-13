@@ -58,7 +58,7 @@ export function getCurrentHub(): Hub {
     },
 
     withScope,
-    getClient,
+    getClient: <C extends Client>() => getClient() as C | undefined,
     getScope: getCurrentScope,
     getIsolationScope,
     captureException: (exception: unknown, hint?: EventHint) => {

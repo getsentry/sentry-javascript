@@ -1,11 +1,12 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
 import { Hub } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
+import type { Hub as HubInterface } from '@sentry/types';
 import { SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 
 import { setHubOnContext } from './utils/contextData';
 
-function createNewHub(parent: Hub | undefined, shouldForkIsolationScope: boolean): Hub {
+function createNewHub(parent: HubInterface | undefined, shouldForkIsolationScope: boolean): Hub {
   if (parent) {
     // eslint-disable-next-line deprecation/deprecation
     const client = parent.getClient();

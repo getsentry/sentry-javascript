@@ -20,12 +20,13 @@ import type {
   User,
 } from '@sentry/types';
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { runWithAsyncContext } from './asyncContext';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
+import { getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
-import { runWithAsyncContext } from './hub';
-import { getCurrentHub, getIsolationScope } from './hub';
+import { getCurrentHub } from './hub';
 import type { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -148,19 +149,21 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
  *     callback();
  *     popScope();
  */
-export function withScope<T>(callback: (scope: Scope) => T): T;
+export function withScope<T>(callback: (scope: ScopeInterface) => T): T;
 /**
  * Set the given scope as the active scope in the callback.
  */
-export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: Scope) => T): T;
+export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T): T;
 /**
  * Either creates a new active scope, or sets the given scope as active scope in the given callback.
  */
 export function withScope<T>(
-  ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: Scope) => T]
+  ...rest:
+    | [callback: (scope: ScopeInterface) => T]
+    | [scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T]
 ): T {
   // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
+  const hub = getCurrentHub() as Hub;
 
   // If a scope is defined, we want to make this the active scope instead of the default one
   if (rest.length === 2) {
@@ -196,7 +199,7 @@ export function withScope<T>(
  * context strategy, the currently active isolation scope may change within execution of the callback.)
  * @returns The same value that `callback` returns.
  */
-export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
+export function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T): T {
   return runWithAsyncContext(() => {
     return callback(getIsolationScope());
   });
@@ -209,7 +212,7 @@ export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T
  * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
  * @returns the value returned from the provided callback function.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+export function withActiveSpan<T>(span: Span, callback: (scope: ScopeInterface) => T): T {
   return withScope(scope => {
     // eslint-disable-next-line deprecation/deprecation
     scope.setSpan(span);
@@ -357,14 +360,6 @@ export function getClient<C extends Client>(): C | undefined {
  */
 export function isInitialized(): boolean {
   return !!getClient();
-}
-
-/**
- * Get the currently active scope.
- */
-export function getCurrentScope(): Scope {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().getScope();
 }
 
 /**

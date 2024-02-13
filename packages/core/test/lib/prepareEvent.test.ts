@@ -9,9 +9,9 @@ import type {
   ScopeContext,
 } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getIsolationScope, setGlobalScope } from '../../src';
+import { getGlobalScope, getIsolationScope, setGlobalScope } from '../../src';
 
-import { Scope, getGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import {
   applyDebugIds,
   applyDebugMeta,
