@@ -111,21 +111,6 @@ describe('asyncContextStrategy', () => {
     });
   });
 
-  test('context within a context reused when requested', () => {
-    runWithAsyncContext(() => {
-      // eslint-disable-next-line deprecation/deprecation
-      const hub1 = getCurrentHub();
-      runWithAsyncContext(
-        () => {
-          // eslint-disable-next-line deprecation/deprecation
-          const hub2 = getCurrentHub();
-          expect(hub1).toBe(hub2);
-        },
-        { reuseExisting: true },
-      );
-    });
-  });
-
   test('concurrent hub contexts', done => {
     let d1done = false;
     let d2done = false;

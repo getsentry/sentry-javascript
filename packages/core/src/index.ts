@@ -1,6 +1,6 @@
 export type { ClientClass } from './sdk';
 export type { Layer } from './hub';
-export type { AsyncContextStrategy, Carrier, RunWithAsyncContextOptions } from './asyncContext';
+export type { AsyncContextStrategy, Carrier } from './asyncContext';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
