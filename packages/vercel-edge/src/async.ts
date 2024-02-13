@@ -1,5 +1,6 @@
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import type { Carrier, RunWithAsyncContextOptions } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import type { Hub } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';

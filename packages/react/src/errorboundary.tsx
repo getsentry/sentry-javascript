@@ -1,5 +1,6 @@
-import type { ReportDialogOptions, Scope } from '@sentry/browser';
+import type { ReportDialogOptions } from '@sentry/browser';
 import { captureException, getClient, showReportDialog, withScope } from '@sentry/browser';
+import type { Scope } from '@sentry/types';
 import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';

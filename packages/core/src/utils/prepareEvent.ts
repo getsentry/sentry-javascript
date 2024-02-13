@@ -48,7 +48,7 @@ export function prepareEvent(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  scope?: Scope,
+  scope?: ScopeInterface,
   client?: Client,
   isolationScope?: ScopeInterface,
 ): PromiseLike<Event | null> {
@@ -343,7 +343,10 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   return normalized;
 }
 
-function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+function getFinalScope(
+  scope: ScopeInterface | undefined,
+  captureContext: CaptureContext | undefined,
+): ScopeInterface | undefined {
   if (!captureContext) {
     return scope;
   }

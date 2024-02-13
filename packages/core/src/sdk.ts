@@ -3,7 +3,7 @@ import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
-import type { Hub} from './hub';
+import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 
 /** A class object that can instantiate Client objects. */

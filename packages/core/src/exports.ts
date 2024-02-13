@@ -158,7 +158,9 @@ export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope
  * Either creates a new active scope, or sets the given scope as active scope in the given callback.
  */
 export function withScope<T>(
-  ...rest: [callback: (scope: Scope) => T] | [scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T]
+  ...rest:
+    | [callback: (scope: ScopeInterface) => T]
+    | [scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T]
 ): T {
   // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub() as Hub;

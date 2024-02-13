@@ -97,8 +97,6 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      // @ts-expect-error need to pass in hub
-      // eslint-disable-next-line deprecation/deprecation
       const otherTransaction = new Transaction({ name: 'bar' }, hub);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(otherTransaction);

@@ -12,6 +12,7 @@ import type {
   Integration,
   IntegrationClass,
   Primitive,
+  Scope as ScopeInterface,
   Session,
   SessionContext,
   SeverityLevel,
@@ -51,7 +52,7 @@ const DEFAULT_BREADCRUMBS = 100;
  */
 export interface Layer {
   client?: Client;
-  scope: Scope;
+  scope: ScopeInterface;
 }
 
 /**
@@ -61,7 +62,7 @@ export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
 
-  private _isolationScope: Scope;
+  private _isolationScope: ScopeInterface;
 
   /**
    * Creates a new instance of the hub, will push one {@link Layer} into the
@@ -113,8 +114,8 @@ export class Hub implements HubInterface {
    */
   public constructor(
     client?: Client,
-    scope?: Scope,
-    isolationScope?: Scope,
+    scope?: ScopeInterface,
+    isolationScope?: ScopeInterface,
     private readonly _version: number = API_VERSION,
   ) {
     let assignedScope;
@@ -178,7 +179,7 @@ export class Hub implements HubInterface {
    *
    * @deprecated Use `withScope` instead.
    */
-  public pushScope(): Scope {
+  public pushScope(): ScopeInterface {
     // We want to clone the content of prev scope
     // eslint-disable-next-line deprecation/deprecation
     const scope = this.getScope().clone();
@@ -208,7 +209,7 @@ export class Hub implements HubInterface {
    *
    * @deprecated Use `Sentry.withScope()` instead.
    */
-  public withScope<T>(callback: (scope: Scope) => T): T {
+  public withScope<T>(callback: (scope: ScopeInterface) => T): T {
     // eslint-disable-next-line deprecation/deprecation
     const scope = this.pushScope();
 
@@ -257,7 +258,7 @@ export class Hub implements HubInterface {
    *
    * @deprecated Use `Sentry.getCurrentScope()` instead.
    */
-  public getScope(): Scope {
+  public getScope(): ScopeInterface {
     // eslint-disable-next-line deprecation/deprecation
     return this.getStackTop().scope;
   }
@@ -265,7 +266,7 @@ export class Hub implements HubInterface {
   /**
    * @deprecated Use `Sentry.getIsolationScope()` instead.
    */
-  public getIsolationScope(): Scope {
+  public getIsolationScope(): ScopeInterface {
     return this._isolationScope;
   }
 

@@ -1,5 +1,6 @@
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import type { Carrier, RunWithAsyncContextOptions } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import type { Hub } from '@sentry/types';
 import * as async_hooks from 'async_hooks';
 
 interface AsyncLocalStorage<T> {
