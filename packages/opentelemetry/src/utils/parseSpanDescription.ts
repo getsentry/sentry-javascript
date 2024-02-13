@@ -140,6 +140,7 @@ export function getSanitizedUrl(
   // This is the normalized route name - may not always be available!
   const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
 
+  // TODO(@anonrig): Use WHATWG URL API when we drop Node.js v10 support.
   const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
   const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;
   const query = parsedUrl && parsedUrl.search ? parsedUrl.search : undefined;

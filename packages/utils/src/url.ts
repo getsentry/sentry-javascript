@@ -1,11 +1,14 @@
-type PartialURL = {
-  host?: string;
-  path?: string;
-  protocol?: string;
-  relative?: string;
-  search?: string;
-  hash?: string;
-};
+type PartialURL = Partial<{
+  host: string;
+  path: string;
+  protocol: string;
+  relative: string;
+  search: string;
+  hash: string;
+  urlInstance: URL;
+}>;
+
+const urlRegex = /^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/;
 
 /**
  * Parses string form of URL into an object
@@ -19,7 +22,32 @@ export function parseUrl(url: string): PartialURL {
     return {};
   }
 
-  const match = url.match(/^(([^:/?#]+):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?$/);
+  // Node.js v10 and above supports WHATWG URL API. We can use it when available.
+  // TODO(@anonrig): Remove this check when we drop support for Node v10.
+  if (typeof URL !== undefined) {
+    try {
+      const parsed = new URL(url);
+      const pathname = parsed.pathname;
+
+      return {
+        host: parsed.host,
+        // WHATWG URL API includes the leading slash in the pathname
+        // Example: Returns `/` for `https://sentry.io`
+        path: pathname.length === 1 ? '' : pathname,
+        // WHATWG URL API includes the trailing colon in the protocol
+        // Example: Returns `https:` for `https://sentry.io`
+        protocol: parsed.protocol.slice(0, -1),
+        search: parsed.search,
+        hash: parsed.hash,
+        relative: parsed.pathname + parsed.search + parsed.hash,
+        urlInstance: parsed,
+      };
+    } catch {
+      // If URL is invalid, fallback to regex parsing to support URLs without protocols.
+    }
+  }
+
+  const match = url.match(urlRegex);
 
   if (!match) {
     return {};
@@ -62,7 +90,44 @@ export function getNumberOfUrlSegments(url: string): number {
  * see: https://develop.sentry.dev/sdk/data-handling/#structuring-data
  */
 export function getSanitizedUrlString(url: PartialURL): string {
-  const { protocol, host, path } = url;
+  const { protocol, host, path, urlInstance } = url;
+
+  // This means that the environment supports WHATWG URL API.
+  // This case will not be executed if URL does not have a protocol
+  // since WHATWG URL specification requires protocol to be present.
+  if (urlInstance !== undefined) {
+    const { port, username, password, hostname, pathname, protocol } = urlInstance;
+    const hasAuthority = username.length > 0 || password.length > 0;
+    let output = `${protocol}//`;
+
+    if (hasAuthority) {
+      if (username) {
+        output += '[filtered]';
+      }
+
+      output += ':';
+
+      if (password) {
+        output += '[filtered]';
+      }
+
+      output += '@';
+    }
+
+    output += hostname;
+
+    if (port && port !== '80' && port !== '443') {
+      output += `:${port}`;
+    }
+
+    // Do not append pathname if it is empty.
+    // For example: Pathname is `/` for `https://sentry.io`
+    if (pathname.length > 1) {
+      output += pathname;
+    }
+
+    return output;
+  }
 
   const filteredHost =
     (host &&
@@ -70,7 +135,6 @@ export function getSanitizedUrlString(url: PartialURL): string {
         // Always filter out authority
         .replace(/^.*@/, '[filtered]:[filtered]@')
         // Don't show standard :80 (http) and :443 (https) ports to reduce the noise
-        // TODO: Use new URL global if it exists
         .replace(/(:80)$/, '')
         .replace(/(:443)$/, '')) ||
     '';
