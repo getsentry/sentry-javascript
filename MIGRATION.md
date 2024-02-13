@@ -1,5 +1,11 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of the `tracingOrigins` option
+
+After its deprecation in v7 the `tracingOrigins` option is now removed in favor of the `tracePropagationTargets` option.
+The `tracePropagationTargets` option should be set in the `Sentry.init()` options, or in your custom `Client`s option if
+you create them. The `tracePropagationTargets` option can no longer be set in the `browserTracingIntegration()` options.
+
 ## Dropping Support for React 15
 
 Sentry will no longer officially support React 15 in version 8. This means that React 15.x will be removed
