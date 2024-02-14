@@ -15,7 +15,7 @@ import {
   getCurrentScope,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
-import { getClient, spanToJSON, startInactiveSpan } from '@sentry/core';
+import { getActiveSpan, getClient, getRootSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
 import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
@@ -121,7 +121,8 @@ export class TraceService implements OnDestroy {
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
 
       if (client && hooksBasedInstrumentation) {
-        if (!this._pageloadOngoing) {
+        // see comment in `_isPageloadOngoing` for rationale
+        if (!this._isPageloadOngoing()) {
           startBrowserTracingNavigationSpan(client, {
             name: strippedUrl,
             attributes: {
@@ -234,10 +235,7 @@ export class TraceService implements OnDestroy {
   private _subscription: Subscription;
 
   /**
-   * Flag used to determine if navigation events belong to the ongoing pageload.
-   * The first navigation event after pageload is considered the end of the pageload,
-   * meaning afterwards, every new navigation start event will create its own
-   * navigation root span.
+   * @see _isPageloadOngoing()
    */
   private _pageloadOngoing: boolean;
 
@@ -258,6 +256,49 @@ export class TraceService implements OnDestroy {
    */
   public ngOnDestroy(): void {
     this._subscription.unsubscribe();
+  }
+
+  /**
+   * We only _avoid_ creating a navigation root span in one case:
+   *
+   * There is an ongoing pageload span AND the router didn't yet emit the first navigation start event
+   *
+   * The first navigation start event will create the child routing span
+   * and update the pageload root span name on ResolveEnd.
+   *
+   * There's an edge case we need to avoid here: If the router fires the first navigation start event
+   * _after_ the pageload root span finished. This is why we check for the pageload root span.
+   * Possible real-world scenario: Angular application and/or router is bootstrapped after the pageload
+   * idle root span finished
+   *
+   * The overall rationale is:
+   * - if we already avoided creating a navigation root span once, we don't avoid it again
+   *   (i.e. set `_pageloadOngoing` to `false`)
+   * - if `_pageloadOngoing` is already `false`, create a navigation root span
+   * - if there's no active/pageload root span, create a navigation root span
+   * - only if there's an ongoing pageload root span AND `_pageloadOngoing` is still `true,
+   *   con't create a navigation root span
+   */
+  private _isPageloadOngoing(): boolean {
+    if (!this._pageloadOngoing) {
+      // pageload is already finished, no need to update
+      return false;
+    }
+
+    const activeSpan = getActiveSpan();
+    if (!activeSpan) {
+      this._pageloadOngoing = false;
+      return false;
+    }
+
+    const rootSpan = getRootSpan(activeSpan);
+    if (!rootSpan) {
+      this._pageloadOngoing = false;
+      return false;
+    }
+
+    this._pageloadOngoing = spanToJSON(rootSpan).op === 'pageload';
+    return this._pageloadOngoing;
   }
 }
 
