@@ -72,13 +72,12 @@ export function assertSentryTransactions(
       return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
     })
     .map(s => {
-      // eslint-disable-next-line deprecation/deprecation
-      return `${s.op} | ${spanToJSON(s).description}`;
+      const spanJson = spanToJSON(s);
+      return `${spanJson.op} | ${spanJson.description}`;
     });
 
   assert.true(
-    // eslint-disable-next-line deprecation/deprecation
-    spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
+    spans.some(span => spanToJSON(span).op?.startsWith('ui.ember.runloop.')),
     'it captures runloop spans',
   );
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');

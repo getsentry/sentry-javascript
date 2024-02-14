@@ -32,20 +32,10 @@ export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * @deprecated Will be removed in v8.
-   * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
-   * trace header attachment.
-   */
-  tracingOrigins: Array<string | RegExp>;
-
-  /**
-   * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
-   * @deprecated Use the top-level `tracePropagationTargets` option in `Sentry.init` instead.
-   * This option will be removed in v8.
-   *
-   * Default: ['localhost', /^\//] @see {DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * Default: ['localhost', /^\//]
    */
   tracePropagationTargets: Array<string | RegExp>;
 
@@ -83,23 +73,12 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  // TODO (v8): Remove this property
-  tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
   tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  const {
-    traceFetch,
-    traceXHR,
-    // eslint-disable-next-line deprecation/deprecation
-    tracePropagationTargets,
-    // eslint-disable-next-line deprecation/deprecation
-    tracingOrigins,
-    shouldCreateSpanForRequest,
-    enableHTTPTimings,
-  } = {
+  const { traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -108,11 +87,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  // TODO(v8) Remove tracingOrigins here
-  // The only reason we're passing it in here is because this instrumentOutgoingRequests function is publicly exported
-  // and we don't want to break the API. We can remove it in v8.
-  const shouldAttachHeadersWithTargets = (url: string): boolean =>
-    shouldAttachHeaders(url, tracePropagationTargets || tracingOrigins);
+  const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
 
@@ -309,8 +284,7 @@ export function xhrCallback(
     const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
     const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-      dsc ||
-        (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client, scope)),
+      dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
     );
 
     setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);

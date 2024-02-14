@@ -19,11 +19,9 @@ import {
   Transaction as TransactionT,
   addExtensionMethods as addExtensionMethodsT,
   defaultRequestInstrumentationOptions as defaultRequestInstrumentationOptionsT,
-  extractTraceparentData as extractTraceparentDataT,
   getActiveTransaction as getActiveTransactionT,
   hasTracingEnabled as hasTracingEnabledT,
   instrumentOutgoingRequests as instrumentOutgoingRequestsT,
-  spanStatusfromHttpCode as spanStatusfromHttpCodeT,
   startIdleTransaction as startIdleTransactionT,
   stripUrlQueryAndFragment as stripUrlQueryAndFragmentT,
 } from '@sentry-internal/tracing';
@@ -38,6 +36,7 @@ import {
  * import { BrowserTracing } from '@sentry/browser';
  * new BrowserTracing()
  */
+// eslint-disable-next-line deprecation/deprecation
 export const BrowserTracing = BrowserTracingT;
 
 // BrowserTracing is already exported as part of `Integrations` below (and for the moment will remain so for
@@ -50,6 +49,7 @@ export const BrowserTracing = BrowserTracingT;
  * import { BrowserTracing } from '@sentry/browser';
  * new BrowserTracing()
  */
+// eslint-disable-next-line deprecation/deprecation
 export type BrowserTracing = BrowserTracingT;
 
 /**
@@ -64,22 +64,6 @@ export const addExtensionMethods = addExtensionMethodsT;
  */
 // eslint-disable-next-line deprecation/deprecation
 export const getActiveTransaction = getActiveTransactionT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-// eslint-disable-next-line deprecation/deprecation
-export const extractTraceparentData = extractTraceparentDataT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `spanStatusfromHttpCode` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-// eslint-disable-next-line deprecation/deprecation
-export const spanStatusfromHttpCode = spanStatusfromHttpCodeT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.

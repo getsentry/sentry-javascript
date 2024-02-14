@@ -354,7 +354,7 @@ function _createWrappedRequestMethodFactory(
           dsc ||
             (requestSpan
               ? getDynamicSamplingContextFromSpan(requestSpan)
-              : getDynamicSamplingContextFromClient(traceId, client, scope)),
+              : getDynamicSamplingContextFromClient(traceId, client)),
         );
 
         addHeadersToRequestOptions(requestOptions, requestUrl, sentryTraceHeader, sentryBaggageHeader);

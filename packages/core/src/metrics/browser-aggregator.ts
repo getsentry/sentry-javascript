@@ -77,11 +77,11 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     if (this._buckets.size === 0) {
       return;
     }
-    if (this._client.captureAggregateMetrics) {
-      // TODO(@anonrig): Use Object.values() when we support ES6+
-      const metricBuckets = Array.from(this._buckets).map(([, bucketItem]) => bucketItem);
-      this._client.captureAggregateMetrics(metricBuckets);
-    }
+
+    // TODO(@anonrig): Use Object.values() when we support ES6+
+    const metricBuckets = Array.from(this._buckets).map(([, bucketItem]) => bucketItem);
+    this._client.captureAggregateMetrics(metricBuckets);
+
     this._buckets.clear();
   }
 

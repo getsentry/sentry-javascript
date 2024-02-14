@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/e2e-tests",
-  "version": "7.99.0",
+  "version": "7.100.0",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -22,7 +22,8 @@
     "dotenv": "16.0.3",
     "glob": "8.0.3",
     "ts-node": "10.9.1",
-    "yaml": "2.2.2"
+    "yaml": "2.2.2",
+    "esbuild": "0.20.0"
   },
   "volta": {
     "node": "18.17.1",

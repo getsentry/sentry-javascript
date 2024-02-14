@@ -128,7 +128,7 @@ interface ReplayOptionFrame {
 }
 
 interface ReplayFeedbackFrameData {
-  feedback_id: string;
+  feedbackId: string;
 }
 
 interface ReplayFeedbackFrame extends ReplayBaseBreadcrumbFrame {

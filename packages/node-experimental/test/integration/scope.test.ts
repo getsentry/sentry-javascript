@@ -1,5 +1,5 @@
 import { getCurrentScope, setGlobalScope } from '@sentry/core';
-import { getClient, getSpanScope } from '@sentry/opentelemetry';
+import { getClient, getSpanScopes } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
 import type { NodeExperimentalClient } from '../../src/types';
@@ -41,7 +41,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            expect(getSpanScope(span)).toBe(enableTracing ? scope2 : undefined);
+            expect(getSpanScopes(span)?.scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -234,7 +234,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const globalScope = Sentry.getGlobalScope();
       expect(globalScope).toBeDefined();
-      expect(globalScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(globalScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -248,7 +247,7 @@ describe('Integration | Scope', () => {
       // Now when we call init, the global scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
 
-      expect(globalScope.getClient()).toBeDefined();
+      expect(globalScope.getClient()).toBeUndefined();
       expect(Sentry.getGlobalScope()).toBe(globalScope);
       expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
@@ -292,7 +291,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const isolationScope = Sentry.getIsolationScope();
       expect(isolationScope).toBeDefined();
-      expect(isolationScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(isolationScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -444,7 +442,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const currentScope = Sentry.getCurrentScope();
       expect(currentScope).toBeDefined();
-      expect(currentScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(currentScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -458,8 +455,8 @@ describe('Integration | Scope', () => {
       // Now when we call init, the current scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
 
-      // client is only attached to global scope by default
-      expect(currentScope.getClient()).toBeUndefined();
+      // client is attached to current scope
+      expect(currentScope.getClient()).toBeDefined();
       // current scope remains intact
       expect(Sentry.getCurrentScope()).toBe(currentScope);
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });

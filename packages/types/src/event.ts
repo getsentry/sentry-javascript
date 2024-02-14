@@ -10,7 +10,7 @@ import type { Primitive } from './misc';
 import type { Request } from './request';
 import type { CaptureContext } from './scope';
 import type { SdkInfo } from './sdkinfo';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { MetricSummary, Span, SpanJSON } from './span';
 import type { Thread } from './thread';
 import type { TransactionSource } from './transaction';
@@ -26,8 +26,7 @@ export interface Event {
   };
   timestamp?: number;
   start_timestamp?: number;
-  // eslint-disable-next-line deprecation/deprecation
-  level?: Severity | SeverityLevel;
+  level?: SeverityLevel;
   platform?: string;
   logger?: string;
   server_name?: string;
@@ -73,7 +72,7 @@ export interface ErrorEvent extends Event {
 }
 export interface TransactionEvent extends Event {
   type: 'transaction';
-  _metrics_summary?: Record<string, MetricSummary>;
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 /** JSDoc */

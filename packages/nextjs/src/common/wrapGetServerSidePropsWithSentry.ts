@@ -66,8 +66,3 @@ export function wrapGetServerSidePropsWithSentry(
     },
   });
 }
-
-/**
- * @deprecated Use `withSentryGetServerSideProps` instead.
- */
-export const withSentryGetServerSideProps = wrapGetServerSidePropsWithSentry;

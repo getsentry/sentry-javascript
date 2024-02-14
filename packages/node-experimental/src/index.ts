@@ -29,15 +29,10 @@ export type { Span } from './types';
 export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
   getClient,
-  isInitialized,
-  addBreadcrumb,
   captureException,
   captureEvent,
   captureMessage,
-  addGlobalEventProcessor,
   addEventProcessor,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -47,43 +42,34 @@ export {
   withScope,
   withIsolationScope,
   withActiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   getCurrentScope,
-  getGlobalScope,
   getIsolationScope,
   setIsolationScope,
   setCurrentScope,
 } from './sdk/api';
 export { getCurrentHub, makeMain } from './sdk/hub';
-export { Scope } from './sdk/scope';
 
 export {
+  addBreadcrumb,
+  isInitialized,
   makeNodeTransport,
   defaultStackParser,
   getSentryRelease,
+  getGlobalScope,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
   createGetModuleFromFilename,
   close,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   Hub,
   runWithAsyncContext,
   SDK_VERSION,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   captureCheckIn,
   withMonitor,
   hapiErrorPlugin,
@@ -98,6 +84,10 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/node';
 
 export type {

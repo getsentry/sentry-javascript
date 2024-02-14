@@ -18,7 +18,6 @@ import type {
   ScopeContext,
   ScopeData,
   Session,
-  Severity,
   SeverityLevel,
   Span,
   Transaction,
@@ -34,12 +33,6 @@ import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
  * Default value for maximum number of breadcrumbs added to an event.
  */
 const DEFAULT_MAX_BREADCRUMBS = 100;
-
-/**
- * The global scope is kept in this module.
- * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
- */
-let globalScope: ScopeInterface | undefined;
 
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be
@@ -86,8 +79,7 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _level?: Severity | SeverityLevel;
+  protected _level?: SeverityLevel;
 
   /**
    * Transaction Name
@@ -165,8 +157,8 @@ export class Scope implements ScopeInterface {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  public getClient(): Client | undefined {
-    return this._client;
+  public getClient<C extends Client>(): C | undefined {
+    return this._client as C | undefined;
   }
 
   /**
@@ -195,7 +187,6 @@ export class Scope implements ScopeInterface {
       email: undefined,
       id: undefined,
       ip_address: undefined,
-      segment: undefined,
       username: undefined,
     };
 
@@ -283,10 +274,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this {
+  public setLevel(level: SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;
@@ -700,27 +688,6 @@ export class Scope implements ScopeInterface {
       this._notifyingListeners = false;
     }
   }
-}
-
-/**
- * Get the global scope.
- * This scope is applied to _all_ events.
- */
-export function getGlobalScope(): ScopeInterface {
-  if (!globalScope) {
-    globalScope = new Scope();
-  }
-
-  return globalScope;
-}
-
-/**
- * This is mainly needed for tests.
- * DO NOT USE this, as this is an internal API and subject to change.
- * @hidden
- */
-export function setGlobalScope(scope: ScopeInterface | undefined): void {
-  globalScope = scope;
 }
 
 function generatePropagationContext(): PropagationContext {

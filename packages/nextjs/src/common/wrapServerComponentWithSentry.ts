@@ -2,6 +2,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
+  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
@@ -43,14 +44,13 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         });
 
         const incomingPropagationContext = propagationContextFromHeaders(
-          // eslint-disable-next-line deprecation/deprecation
-          context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],
-          // eslint-disable-next-line deprecation/deprecation
-          context.baggageHeader ?? completeHeadersDict['baggage'],
+          completeHeadersDict['sentry-trace'],
+          completeHeadersDict['baggage'],
         );
 
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
         isolationScope.setPropagationContext(propagationContext);
+        getCurrentScope().setPropagationContext(propagationContext);
 
         return startSpanManual(
           {

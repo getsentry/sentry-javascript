@@ -8,8 +8,6 @@ export type {
   EventHint,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
@@ -32,11 +30,7 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -49,8 +43,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
@@ -65,12 +57,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -78,8 +66,6 @@ export {
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
@@ -90,7 +76,16 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
 } from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/core';
+
 export type { SpanStatusType } from '@sentry/core';
+
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
@@ -104,8 +99,6 @@ export {
   getSentryRelease,
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-// eslint-disable-next-line deprecation/deprecation
-export { deepReadDirSync } from './utils';
 
 import { createGetModuleFromFilename } from './module';
 /**
@@ -113,9 +106,6 @@ import { createGetModuleFromFilename } from './module';
  */
 export const getModuleFromFilename = createGetModuleFromFilename();
 export { createGetModuleFromFilename };
-
-// eslint-disable-next-line deprecation/deprecation
-export { enableAnrDetection } from './integrations/anr/legacy';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

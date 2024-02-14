@@ -1,5 +1,6 @@
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import type { Carrier } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import type { Hub } from '@sentry/types';
 import * as async_hooks from 'async_hooks';
 
 interface AsyncLocalStorage<T> {
@@ -32,14 +33,8 @@ export function setHooksAsyncContextStrategy(): void {
     return getHubFromCarrier(carrier);
   }
 
-  function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
+  function runWithAsyncContext<T>(callback: () => T): T {
     const existingHub = getCurrentHub();
-
-    if (existingHub && options?.reuseExisting) {
-      // We're already in an async context, so we don't need to create a new one
-      // just call the callback with the current hub
-      return callback();
-    }
 
     const newHub = createNewHub(existingHub);
 

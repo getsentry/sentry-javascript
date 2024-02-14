@@ -4,6 +4,92 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.101.0
+
+- feat: Export semantic attribute keys from SDK packages (#10637)
+- feat(core): Add metric summaries to spans (#10554)
+- feat(core): Deprecate the `Hub` constructor (#10584)
+- feat(core): Make custom tracing methods return spans & set default op (#10633)
+- feat(replay): Add `getReplay` utility function (#10510)
+- fix(angular-ivy): Add `exports` field to `package.json` (#10569)
+- fix(sveltekit): Avoid capturing Http 4xx errors on the client (#10571)
+- fix(sveltekit): Properly await sourcemaps flattening (#10602)
+
+## 7.100.1
+
+This release contains build fixes for profiling-node.
+
+- build(profiling-node): make sure debug build plugin is used #10534
+- build: Only run profiling e2e test if bindings have changed #10542
+- fix(feedback): Replay breadcrumb for feedback events was incorrect #10536
+
+## 7.100.0
+
+### Important Changes
+
+#### Deprecations
+
+This release includes some deprecations. For more details please look at our
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md).
+
+The deprecation most likely to affect you is the one of `BrowserTracing`. Instead of `new BrowserTracing()`, you should
+now use `browserTracingIntegration()`, which will also handle framework-specific instrumentation out of the box for
+you - no need to pass a custom `routingInstrumentation` anymore. For `@sentry/react`, we expose dedicated integrations
+for the different react-router versions:
+
+- `reactRouterV6BrowserTracingIntegration()`
+- `reactRouterV5BrowserTracingIntegration()`
+- `reactRouterV4BrowserTracingIntegration()`
+- `reactRouterV3BrowserTracingIntegration()`
+
+See the
+[migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#depreacted-browsertracing-integration)
+for details.
+
+- feat(angular): Export custom `browserTracingIntegration()` (#10353)
+- feat(browser): Deprecate `BrowserTracing` integration (#10493)
+- feat(browser): Export `browserProfilingIntegration` (#10438)
+- feat(bun): Export `bunServerIntegration()` (#10439)
+- feat(nextjs): Add `browserTracingIntegration` (#10397)
+- feat(react): Add `reactRouterV3BrowserTracingIntegration` for react router v3 (#10489)
+- feat(react): Add `reactRouterV4/V5BrowserTracingIntegration` for react router v4 & v5 (#10488)
+- feat(react): Add `reactRouterV6BrowserTracingIntegration` for react router v6 & v6.4 (#10491)
+- feat(remix): Add custom `browserTracingIntegration` (#10442)
+- feat(node): Expose functional integrations to replace classes (#10356)
+- feat(vercel-edge): Replace `WinterCGFetch` with `winterCGFetchIntegration` (#10436)
+- feat: Deprecate non-callback based `continueTrace` (#10301)
+- feat(vue): Deprecate `new VueIntegration()` (#10440)
+- feat(vue): Implement vue `browserTracingIntegration()` (#10477)
+- feat(sveltekit): Add custom `browserTracingIntegration()` (#10450)
+
+#### Profiling Node
+
+`@sentry/profiling-node` has been ported into the monorepo. Future development for it will happen here!
+
+- pkg(profiling-node): port profiling-node repo to monorepo (#10151)
+
+### Other Changes
+
+- feat: Export `setHttpStatus` from all packages (#10475)
+- feat(bundles): Add pluggable integrations on CDN to `Sentry` namespace (#10452)
+- feat(core): Pass `name` & `attributes` to `tracesSampler` (#10426)
+- feat(feedback): Add `system-ui` to start of font family (#10464)
+- feat(node-experimental): Add koa integration (#10451)
+- feat(node-experimental): Update opentelemetry packages (#10456)
+- feat(node-experimental): Update tracing integrations to functional style (#10443)
+- feat(replay): Bump `rrweb` to 2.10.0 (#10445)
+- feat(replay): Enforce masking of credit card fields (#10472)
+- feat(utils): Add `propagationContextFromHeaders` (#10313)
+- fix: Make `startSpan`, `startSpanManual` and `startInactiveSpan` pick up the scopes at time of creation instead of
+  termination (#10492)
+- fix(feedback): Fix logo color when colorScheme is "system" (#10465)
+- fix(nextjs): Do not report redirects and notFound calls as errors in server actions (#10474)
+- fix(nextjs): Fix navigation tracing on app router (#10502)
+- fix(nextjs): Apply server action data to correct isolation scope (#10514)
+- fix(node): Use normal `require` call to import Undici (#10388)
+- ref(nextjs): Remove internally used deprecated APIs (#10453)
+- ref(vue): use startInactiveSpan in tracing mixin (#10406)
+
 ## 7.99.0
 
 ### Important Changes

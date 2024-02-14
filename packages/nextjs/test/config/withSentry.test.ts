@@ -3,7 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, add
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
-import { withSentry } from '../../src/server';
+import { wrapApiHandlerWithSentry } from '../../src/server';
 
 // The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
 // constructor but the client isn't used in these tests.
@@ -18,8 +18,7 @@ describe('withSentry', () => {
     res.send('Good dog, Maisey!');
   };
 
-  // eslint-disable-next-line deprecation/deprecation
-  const wrappedHandlerNoError = withSentry(origHandlerNoError);
+  const wrappedHandlerNoError = wrapApiHandlerWithSentry(origHandlerNoError, '/my-parameterized-route');
 
   beforeEach(() => {
     req = { url: 'http://dogs.are.great' } as NextApiRequest;
@@ -42,7 +41,7 @@ describe('withSentry', () => {
       await wrappedHandlerNoError(req, res);
       expect(startSpanManualSpy).toHaveBeenCalledWith(
         {
-          name: 'GET http://dogs.are.great',
+          name: 'GET /my-parameterized-route',
           op: 'http.server',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',

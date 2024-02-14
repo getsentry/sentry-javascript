@@ -22,7 +22,7 @@ import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from './api';
+import { getClient, getCurrentScope, getIsolationScope } from './api';
 import { NodeExperimentalClient } from './client';
 import { getGlobalCarrier } from './globals';
 import { setLegacyHubOnCarrier } from './hub';
@@ -70,9 +70,8 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   scope.update(options.initialScope);
 
   const client = new NodeExperimentalClient(clientOptions);
-  // The client is on the global scope, from where it generally is inherited
-  // unless somebody specifically sets a different one on a scope/isolations cope
-  getGlobalScope().setClient(client);
+  // The client is on the current scope, from where it generally is inherited
+  getCurrentScope().setClient(client);
 
   if (isEnabled(client)) {
     client.init();
@@ -86,19 +85,18 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
 
   if (options.spotlight) {
     const client = getClient();
-    if (client.addIntegration) {
-      // force integrations to be setup even if no DSN was set
-      // If they have already been added before, they will be ignored anyhow
-      const integrations = client.getOptions().integrations;
-      for (const integration of integrations) {
-        client.addIntegration(integration);
-      }
-      client.addIntegration(
-        spotlightIntegration({
-          sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
-        }),
-      );
+
+    // force integrations to be setup even if no DSN was set
+    // If they have already been added before, they will be ignored anyhow
+    const integrations = client.getOptions().integrations;
+    for (const integration of integrations) {
+      client.addIntegration(integration);
     }
+    client.addIntegration(
+      spotlightIntegration({
+        sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined,
+      }),
+    );
   }
 
   // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration

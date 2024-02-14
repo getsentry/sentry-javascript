@@ -39,7 +39,6 @@ describe('tracing', () => {
 
     setUser({
       id: 'uid123',
-      segment: 'segmentA',
     });
 
     const transaction = startInactiveSpan({
@@ -67,6 +66,7 @@ describe('tracing', () => {
       ...customOptions,
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -139,7 +139,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual(
       'sentry-environment=production,sentry-release=1.0.0,' +
-        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,' +
         'sentry-transaction=dogpark,sentry-sampled=true',
     );
@@ -155,7 +155,7 @@ describe('tracing', () => {
 
     expect(baggageHeader[0]).toEqual('dog=great');
     expect(baggageHeader[1]).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     );
   });
 
@@ -169,7 +169,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     ]);
   });
 
@@ -183,7 +183,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     ]);
   });
 
@@ -220,7 +220,7 @@ describe('tracing', () => {
     expect(parts[1]).toEqual(expect.any(String));
 
     expect(baggageHeader).toEqual(
-      `sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
+      `sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
     );
   });
 
@@ -270,6 +270,7 @@ describe('tracing', () => {
       environment: 'production',
       instrumenter: 'otel',
     });
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
 
     // eslint-disable-next-line deprecation/deprecation
@@ -371,6 +372,7 @@ describe('tracing', () => {
       });
 
       const client = new NodeClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       const hub = new Hub(client);
       // eslint-disable-next-line deprecation/deprecation
       makeMain(hub);
@@ -622,6 +624,7 @@ describe('default protocols', () => {
       },
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -682,17 +685,11 @@ describe('default protocols', () => {
   it('makes https request over http proxy', async () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
-    let nockProtocol = 'https';
 
     const proxy = 'http://some.url:3128';
     const agent = new HttpsProxyAgent(proxy);
 
-    // TODO (v8): No longer needed once we drop Node 8 support
-    if (NODE_VERSION.major < 9) {
-      nockProtocol = 'http';
-    }
-
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
+    nock(`https://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,
@@ -715,6 +712,7 @@ describe('httpIntegration', () => {
       environment: 'production',
     });
     const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -775,6 +773,7 @@ describe('httpIntegration', () => {
 
 describe('_shouldCreateSpans', () => {
   beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -796,6 +795,7 @@ describe('_shouldCreateSpans', () => {
 
 describe('_getShouldCreateSpanForRequest', () => {
   beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub();
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

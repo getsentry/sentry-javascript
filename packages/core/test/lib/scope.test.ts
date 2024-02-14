@@ -5,8 +5,10 @@ import {
   applyScopeDataToEvent,
   getActiveSpan,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
   makeMain,
+  setGlobalScope,
   spanToJSON,
   startInactiveSpan,
   startSpan,
@@ -14,7 +16,7 @@ import {
 } from '../../src';
 
 import { withActiveSpan } from '../../src/exports';
-import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Scope', () => {
@@ -473,6 +475,38 @@ describe('Scope', () => {
       );
     });
   });
+
+  describe('addBreadcrumb()', () => {
+    test('adds a breadcrumb', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello world');
+    });
+
+    test('adds a timestamp to new breadcrumbs', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0].timestamp).toEqual(expect.any(Number));
+    });
+
+    test('overrides the `maxBreadcrumbs` defined in client options', () => {
+      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
+      const client = new TestClient(options);
+      const scope = new Scope();
+
+      scope.setClient(client);
+
+      scope.addBreadcrumb({ message: 'hello' }, 100);
+      scope.addBreadcrumb({ message: 'world' }, 100);
+      scope.addBreadcrumb({ message: '!' }, 100);
+
+      expect((scope as any)._breadcrumbs).toHaveLength(3);
+    });
+  });
 });
 
 describe('isolation scope', () => {
@@ -522,6 +556,7 @@ describe('withActiveSpan()', () => {
     const options = getDefaultTestClientOptions({ enableTracing: true });
     const client = new TestClient(options);
     const scope = new Scope();
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client, scope);
     makeMain(hub); // eslint-disable-line deprecation/deprecation
   });

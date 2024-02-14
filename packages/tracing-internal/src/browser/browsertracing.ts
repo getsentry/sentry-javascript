@@ -18,7 +18,6 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from './metrics';
-import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
 import { WINDOW } from './types';
@@ -26,7 +25,7 @@ import { WINDOW } from './types';
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
 /** Options for Browser Tracing integration */
-export interface BrowserTracingOptions extends RequestInstrumentationOptions {
+export interface BrowserTracingOptions {
   /**
    * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
    * by a moment where there are no in-progress spans.
@@ -88,6 +87,27 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * Flag to disable patching all together for fetch requests.
+   *
+   * Default: true
+   */
+  traceFetch: boolean;
+
+  /**
+   * Flag to disable patching all together for xhr requests.
+   *
+   * Default: true
+   */
+  traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -137,6 +157,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
+
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * Default: (url: string) => true
+   */
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -156,6 +184,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead.
  */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
@@ -178,21 +208,10 @@ export class BrowserTracing implements Integration {
 
   private _collectWebVitals: () => void;
 
-  private _hasSetTracePropagationTargets: boolean;
-
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.name = BROWSER_TRACING_INTEGRATION_ID;
-    this._hasSetTracePropagationTargets = false;
 
     addTracingExtensions();
-
-    if (DEBUG_BUILD) {
-      this._hasSetTracePropagationTargets = !!(
-        _options &&
-        // eslint-disable-next-line deprecation/deprecation
-        (_options.tracePropagationTargets || _options.tracingOrigins)
-      );
-    }
 
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -203,15 +222,6 @@ export class BrowserTracing implements Integration {
     // TODO (v8): Remove this in v8
     if (this.options._experiments.enableLongTask !== undefined) {
       this.options.enableLongTask = this.options._experiments.enableLongTask;
-    }
-
-    // TODO (v8): remove this block after tracingOrigins is removed
-    // Set tracePropagationTargets to tracingOrigins if specified by the user
-    // In case both are specified, tracePropagationTargets takes precedence
-    // eslint-disable-next-line deprecation/deprecation
-    if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
     this._collectWebVitals = startTrackingWebVitals();
@@ -245,25 +255,6 @@ export class BrowserTracing implements Integration {
       _experiments,
     } = this.options;
 
-    const clientOptionsTracePropagationTargets = clientOptions && clientOptions.tracePropagationTargets;
-    // There are three ways to configure tracePropagationTargets:
-    // 1. via top level client option `tracePropagationTargets`
-    // 2. via BrowserTracing option `tracePropagationTargets`
-    // 3. via BrowserTracing option `tracingOrigins` (deprecated)
-    //
-    // To avoid confusion, favour top level client option `tracePropagationTargets`, and fallback to
-    // BrowserTracing option `tracePropagationTargets` and then `tracingOrigins` (deprecated).
-    // This is done as it minimizes bundle size (we don't have to have undefined checks).
-    //
-    // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
-    // eslint-disable-next-line deprecation/deprecation
-    const tracePropagationTargets = clientOptionsTracePropagationTargets || this.options.tracePropagationTargets;
-    if (DEBUG_BUILD && this._hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
-      logger.warn(
-        '[Tracing] The `tracePropagationTargets` option was set in the BrowserTracing integration and top level `Sentry.init`. The top level `Sentry.init` value is being used.',
-      );
-    }
-
     instrumentRouting(
       (context: TransactionContext) => {
         const transaction = this._createRouteTransaction(context);
@@ -288,7 +279,7 @@ export class BrowserTracing implements Integration {
     instrumentOutgoingRequests({
       traceFetch,
       traceXHR,
-      tracePropagationTargets,
+      tracePropagationTargets: clientOptions && clientOptions.tracePropagationTargets,
       shouldCreateSpanForRequest,
       enableHTTPTimings,
     });

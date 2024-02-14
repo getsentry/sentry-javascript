@@ -1,7 +1,6 @@
-import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 14 })('GraphQL/Apollo Tests', () => {
+describe('GraphQL/Apollo Tests', () => {
   test('CJS - should instrument GraphQL queries used from Apollo Server.', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',

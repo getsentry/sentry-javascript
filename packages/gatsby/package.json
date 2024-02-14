@@ -1,6 +1,6 @@
 {
   "name": "@sentry/gatsby",
-  "version": "7.99.0",
+  "version": "7.100.0",
   "description": "Official Sentry SDK for Gatsby.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
@@ -11,7 +11,7 @@
     "gatsby-plugin"
   ],
   "engines": {
-    "node": ">=8"
+    "node": ">=14"
   },
   "files": [
     "cjs",
@@ -37,15 +37,15 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.99.0",
-    "@sentry/react": "7.99.0",
-    "@sentry/types": "7.99.0",
-    "@sentry/utils": "7.99.0",
+    "@sentry/core": "7.100.0",
+    "@sentry/react": "7.100.0",
+    "@sentry/types": "7.100.0",
+    "@sentry/utils": "7.100.0",
     "@sentry/webpack-plugin": "1.19.0"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0",
-    "react": "15.x || 16.x || 17.x || 18.x"
+    "react": "16.x || 17.x || 18.x"
   },
   "devDependencies": {
     "@testing-library/react": "^13.0.0",

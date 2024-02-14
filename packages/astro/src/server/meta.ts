@@ -42,7 +42,7 @@ export function getTracingMetaTags(
     : dsc
       ? dsc
       : client
-        ? getDynamicSamplingContextFromClient(traceId, client, scope)
+        ? getDynamicSamplingContextFromClient(traceId, client)
         : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);

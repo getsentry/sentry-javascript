@@ -55,7 +55,7 @@ export interface SpanJSON {
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
-  _metrics_summary?: Record<string, MetricSummary>;
+  _metrics_summary?: Record<string, Array<MetricSummary>>;
 }
 
 // These are aligned with OpenTelemetry trace flags
@@ -235,19 +235,19 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
 
   /**
    * Tags for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   tags: { [key: string]: Primitive };
 
   /**
    * Data for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   data: { [key: string]: any };
 
   /**
    * Attributes for the span.
-   * @deprecated Use `getSpanAttributes(span)` instead.
+   * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   attributes: SpanAttributes;
 

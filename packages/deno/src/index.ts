@@ -8,8 +8,6 @@ export type {
   EventHint,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
@@ -31,11 +29,7 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   continueTrace,
   flush,
   // eslint-disable-next-line deprecation/deprecation
@@ -50,8 +44,6 @@ export {
   getIsolationScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
   runWithAsyncContext,
@@ -65,12 +57,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -85,7 +73,12 @@ export {
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
+
 export type { SpanStatusType } from '@sentry/core';
 
 export { DenoClient } from './client';

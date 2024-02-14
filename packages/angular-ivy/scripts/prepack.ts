@@ -6,6 +6,7 @@ type PackageJson = {
   type?: string;
   nx?: string;
   volta?: any;
+  exports?: Record<string, string | Record<string, string>>;
 };
 
 const buildDir = path.join(process.cwd(), 'build');
@@ -17,6 +18,18 @@ const pkgJson: PackageJson = JSON.parse(fs.readFileSync(pkjJsonPath).toString())
 // use the fesm2015 bundle instead of the UMD bundle.
 delete pkgJson.main;
 pkgJson.type = 'module';
+
+pkgJson.exports = {
+  '.': {
+    es2015: './fesm2015/sentry-angular-ivy.js',
+    esm2015: './esm2015/sentry-angular-ivy.js',
+    fesm2015: './fesm2015/sentry-angular-ivy.js',
+    import: './fesm2015/sentry-angular-ivy.js',
+    require: './bundles/sentry-angular-ivy.umd.js',
+    types: './sentry-angular-ivy.d.ts',
+  },
+  './*': './*',
+};
 
 // no need to keep around other properties that are only relevant for our reop:
 delete pkgJson.nx;

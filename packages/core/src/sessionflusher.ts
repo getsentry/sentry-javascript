@@ -6,7 +6,7 @@ import type {
   SessionFlusherLike,
 } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { getCurrentScope } from './exports';
+import { getCurrentScope } from './currentScopes';
 
 type ReleaseHealthAttributes = {
   environment?: string;

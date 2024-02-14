@@ -88,7 +88,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
       if (_options.history) {
         addHistoryInstrumentationHandler(_getHistoryBreadcrumbHandler(client));
       }
-      if (_options.sentry && client.on) {
+      if (_options.sentry) {
         client.on('beforeSendEvent', _getSentryBreadcrumbHandler(client));
       }
     },

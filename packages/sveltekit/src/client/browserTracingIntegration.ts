@@ -19,7 +19,9 @@ import { svelteKitRoutingInstrumentation } from './router';
  * includes SvelteKit-specific routing instrumentation out of the box. Therefore there's no need
  * to pass in `svelteKitRoutingInstrumentation` anymore.
  */
+// eslint-disable-next-line deprecation/deprecation
 export class BrowserTracing extends OriginalBrowserTracing {
+  // eslint-disable-next-line deprecation/deprecation
   public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
     super({
       // eslint-disable-next-line deprecation/deprecation

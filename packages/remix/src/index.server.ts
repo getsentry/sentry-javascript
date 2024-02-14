@@ -21,11 +21,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
@@ -50,12 +46,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
@@ -64,16 +56,12 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Integrations,
   consoleIntegration,
   onUncaughtExceptionIntegration,
@@ -102,8 +90,10 @@ export {
   createGetModuleFromFilename,
   hapiErrorPlugin,
   runWithAsyncContext,
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

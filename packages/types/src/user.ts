@@ -7,10 +7,6 @@ export interface User {
   ip_address?: string;
   email?: string;
   username?: string;
-  /**
-   * @deprecated Functonality for segment has been removed. Use a custom tag or context instead to capture this information.
-   */
-  segment?: string;
 }
 
 export interface UserFeedback {

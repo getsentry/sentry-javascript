@@ -7,7 +7,7 @@ import { JSDOM } from 'jsdom';
 import { timestampInSeconds } from '@sentry/utils';
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
-import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
@@ -55,7 +55,7 @@ beforeAll(() => {
   WINDOW.location = dom.window.location;
 });
 
-conditionalTest({ min: 10 })('BrowserTracing', () => {
+describe('BrowserTracing', () => {
   let hub: Hub;
   beforeEach(() => {
     jest.useFakeTimers();
@@ -185,129 +185,6 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
       transaction.end(timestamp + 12345);
 
       expect(spanToJSON(transaction).timestamp).toBe(timestamp);
-    });
-
-    // TODO (v8): remove these tests
-    describe('tracingOrigins', () => {
-      it('sets tracing origins if provided and does not warn', () => {
-        const sampleTracingOrigins = ['something'];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: sampleTracingOrigins,
-        });
-
-        // eslint-disable-next-line deprecation/deprecation
-        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
-      });
-
-      it('sets tracing origins to an empty array and does not warn', () => {
-        const sampleTracingOrigins: string[] = [];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: sampleTracingOrigins,
-        });
-
-        // eslint-disable-next-line deprecation/deprecation
-        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
-      });
-    });
-
-    describe('tracePropagationTargets', () => {
-      it('sets tracePropagationTargets if provided', () => {
-        const sampleTracePropagationTargets = ['something'];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
-      });
-
-      it('sets tracePropagationTargets to an empty array and does not warn', () => {
-        const sampleTracePropagationTargets: string[] = [];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
-      });
-
-      it('correctly passes tracePropagationTargets to `instrumentOutgoingRequests` in `setupOnce`', () => {
-        jest.clearAllMocks();
-        const sampleTracePropagationTargets = ['something'];
-        createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
-          traceFetch: true,
-          traceXHR: true,
-          tracePropagationTargets: ['something'],
-          enableHTTPTimings: true,
-        });
-      });
-
-      it('uses `tracePropagationTargets` set by client over integration set targets', () => {
-        jest.clearAllMocks();
-        hub.getClient()!.getOptions().tracePropagationTargets = ['something-else'];
-        const sampleTracePropagationTargets = ['something'];
-        createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
-          enableHTTPTimings: true,
-          traceFetch: true,
-          traceXHR: true,
-          tracePropagationTargets: ['something-else'],
-        });
-      });
-
-      it.each([
-        [true, 'tracePropagationTargets', 'defined', { tracePropagationTargets: ['something'] }],
-        [false, 'tracePropagationTargets', 'undefined', { tracePropagationTargets: undefined }],
-        [true, 'tracingOrigins', 'defined', { tracingOrigins: ['something'] }],
-        [false, 'tracingOrigins', 'undefined', { tracingOrigins: undefined }],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'defined',
-          { tracePropagationTargets: ['something'], tracingOrigins: ['something-else'] },
-        ],
-        [
-          false,
-          'tracePropagationTargets and tracingOrigins',
-          'undefined',
-          { tracePropagationTargets: undefined, tracingOrigins: undefined },
-        ],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'defined and undefined',
-          { tracePropagationTargets: ['something'], tracingOrigins: undefined },
-        ],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'undefined and defined',
-          { tracePropagationTargets: undefined, tracingOrigins: ['something'] },
-        ],
-      ])(
-        'sets `_hasSetTracePropagationTargets` to %s if %s is %s',
-        (hasSet: boolean, _: string, __: string, options: Partial<BrowserTracingOptions>) => {
-          jest.clearAllMocks();
-          const inst = createBrowserTracing(true, {
-            routingInstrumentation: customInstrumentRouting,
-            ...options,
-          });
-
-          // @ts-expect-error accessing private property
-          expect(inst._hasSetTracePropagationTargets).toBe(hasSet);
-        },
-      );
     });
 
     describe('beforeNavigate', () => {

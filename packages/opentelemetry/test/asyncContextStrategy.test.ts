@@ -1,9 +1,9 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
 import { runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
-import { getCurrentHub } from '../src/custom/hub';
 import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
 import { setupOtel } from './helpers/initOtel';
 import { cleanupOtel } from './helpers/mockSdkInit';
@@ -28,11 +28,13 @@ describe('asyncContextStrategy', () => {
   });
 
   test('hub scope inheritance', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
     globalHub.setExtra('a', 'b');
 
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub1 = getCurrentHub();
       expect(hub1).toEqual(globalHub);
 
@@ -41,6 +43,7 @@ describe('asyncContextStrategy', () => {
       expect(hub1).not.toEqual(globalHub);
 
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
         expect(hub2).not.toEqual(globalHub);
@@ -63,17 +66,20 @@ describe('asyncContextStrategy', () => {
       });
     }
 
-    const globalHub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const globalHub = getCurrentHub() as Hub;
     await addRandomExtra(globalHub, 'a');
 
     await runWithAsyncContext(async () => {
-      const hub1 = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const hub1 = getCurrentHub() as Hub;
       expect(hub1).toEqual(globalHub);
 
       await addRandomExtra(hub1, 'b');
       expect(hub1).not.toEqual(globalHub);
 
       await runWithAsyncContext(async () => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
         expect(hub2).not.toEqual(globalHub);
@@ -85,32 +91,23 @@ describe('asyncContextStrategy', () => {
   });
 
   test('context single instance', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(globalHub).not.toBe(getCurrentHub());
     });
   });
 
   test('context within a context not reused', () => {
     runWithAsyncContext(() => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub1 = getCurrentHub();
       runWithAsyncContext(() => {
+        // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub1).not.toBe(hub2);
       });
-    });
-  });
-
-  test('context within a context reused when requested', () => {
-    runWithAsyncContext(() => {
-      const hub1 = getCurrentHub();
-      runWithAsyncContext(
-        () => {
-          const hub2 = getCurrentHub();
-          expect(hub1).toBe(hub2);
-        },
-        { reuseExisting: true },
-      );
     });
   });
 
@@ -119,7 +116,8 @@ describe('asyncContextStrategy', () => {
     let d2done = false;
 
     runWithAsyncContext(() => {
-      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub() as Hub;
       // eslint-disable-next-line deprecation/deprecation
       hub.getStack().push({ client: 'process' } as any);
       // eslint-disable-next-line deprecation/deprecation
@@ -135,7 +133,8 @@ describe('asyncContextStrategy', () => {
     });
 
     runWithAsyncContext(() => {
-      const hub = getCurrentHub();
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = getCurrentHub() as Hub;
       // eslint-disable-next-line deprecation/deprecation
       hub.getStack().push({ client: 'local' } as any);
       // eslint-disable-next-line deprecation/deprecation

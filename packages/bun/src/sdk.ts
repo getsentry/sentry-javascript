@@ -37,7 +37,6 @@ export const defaultIntegrations = [
   // new NodeIntegrations.OnUnhandledRejection(),
   // Event Info
   contextLinesIntegration(),
-  // new NodeIntegrations.LocalVariables(), # does't work with Bun
   nodeContextIntegration(),
   modulesIntegration(),
   // Bun Specific
@@ -68,17 +67,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *

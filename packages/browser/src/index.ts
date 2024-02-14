@@ -27,6 +27,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,
   replayIntegration,
+  getReplay,
 } from '@sentry/replay';
 export type {
   ReplayEventType,
@@ -54,27 +55,23 @@ export {
 } from '@sentry-internal/feedback';
 
 export {
+  // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  DEFAULT_TRACE_PROPAGATION_TARGETS,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,

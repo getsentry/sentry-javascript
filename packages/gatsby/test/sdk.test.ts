@@ -1,4 +1,4 @@
-import { BrowserTracing, SDK_VERSION, init } from '@sentry/react';
+import { SDK_VERSION, browserTracingIntegration, init } from '@sentry/react';
 import type { Integration } from '@sentry/types';
 
 import { init as gatsbyInit } from '../src/sdk';
@@ -68,27 +68,27 @@ describe('Integrations from options', () => {
     [
       'tracing disabled, with BrowserTracing as an array',
       [],
-      { integrations: [new BrowserTracing()] },
+      { integrations: [browserTracingIntegration()] },
       ['BrowserTracing'],
     ],
     [
       'tracing disabled, with BrowserTracing as a function',
       [],
       {
-        integrations: () => [new BrowserTracing()],
+        integrations: () => [browserTracingIntegration()],
       },
       ['BrowserTracing'],
     ],
     [
       'tracing enabled, with BrowserTracing as an array',
       [],
-      { tracesSampleRate: 1, integrations: [new BrowserTracing()] },
+      { tracesSampleRate: 1, integrations: [browserTracingIntegration()] },
       ['BrowserTracing'],
     ],
     [
       'tracing enabled, with BrowserTracing as a function',
       [],
-      { tracesSampleRate: 1, integrations: () => [new BrowserTracing()] },
+      { tracesSampleRate: 1, integrations: () => [browserTracingIntegration()] },
       ['BrowserTracing'],
     ],
   ] as TestArgs[])(

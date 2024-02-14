@@ -1,6 +1,6 @@
 import type { BrowserOptions } from '@sentry/browser';
 import {
-  BrowserTracing,
+  browserTracingIntegration,
   getDefaultIntegrations as getBrowserDefaultIntegrations,
   init as initBrowserSdk,
   setTag,
@@ -8,7 +8,7 @@ import {
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 
-// Treeshakable guard to remove all code related to tracing
+// Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
 /**
@@ -34,7 +34,7 @@ function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefi
   // in which case everything inside will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      return [...getBrowserDefaultIntegrations(options), new BrowserTracing()];
+      return [...getBrowserDefaultIntegrations(options), browserTracingIntegration()];
     }
   }
 

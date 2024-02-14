@@ -1,5 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
+export type { Layer } from './hub';
+export type { AsyncContextStrategy, Carrier } from './asyncContext';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -9,18 +10,13 @@ export * from './tracing';
 export * from './semanticAttributes';
 export { createEventEnvelope, createSessionEnvelope } from './envelope';
 export {
-  addBreadcrumb,
   captureCheckIn,
   withMonitor,
   captureException,
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   setContext,
@@ -33,36 +29,43 @@ export {
   withIsolationScope,
   getClient,
   isInitialized,
-  getCurrentScope,
   startSession,
   endSession,
   captureSession,
   withActiveSpan,
+  addEventProcessor,
 } from './exports';
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  getIsolationScope,
   getHubFromCarrier,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
-  getMainCarrier,
-  runWithAsyncContext,
   setHubOnCarrier,
   ensureHubOnCarrier,
-  setAsyncContextStrategy,
+  runWithAsyncContext,
 } from './hub';
+export {
+  getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
+  setGlobalScope,
+} from './currentScopes';
+export {
+  getMainCarrier,
+  setAsyncContextStrategy,
+} from './asyncContext';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
-export { Scope, getGlobalScope, setGlobalScope } from './scope';
+export { Scope } from './scope';
 export {
   notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation
   addGlobalEventProcessor,
 } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
-export { BaseClient, addEventProcessor } from './baseclient';
+export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
 export { initAndBind, setCurrentClient } from './sdk';
 export { createTransport } from './transports/base';
@@ -98,6 +101,7 @@ export { RequestData } from './integrations/requestdata';
 export { InboundFilters } from './integrations/inboundfilters';
 export { FunctionToString } from './integrations/functiontostring';
 export { LinkedErrors } from './integrations/linkederrors';
+export { addBreadcrumb } from './breadcrumbs';
 /* eslint-enable deprecation/deprecation */
 import * as INTEGRATIONS from './integrations';
 export { functionToStringIntegration } from './integrations/functiontostring';

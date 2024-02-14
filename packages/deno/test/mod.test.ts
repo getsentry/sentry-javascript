@@ -22,6 +22,7 @@ function getTestClient(
   });
 
   const scope = new Scope();
+  // eslint-disable-next-line deprecation/deprecation
   const hub = new Hub(client, scope);
 
   return [hub, client];

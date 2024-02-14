@@ -129,7 +129,6 @@ export class TraceService implements OnDestroy {
         if (!getActiveSpan()) {
           startBrowserTracingNavigationSpan(client, {
             name: strippedUrl,
-            op: 'navigation',
             origin: 'auto.navigation.angular',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',

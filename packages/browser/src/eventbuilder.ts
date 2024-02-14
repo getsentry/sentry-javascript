@@ -4,7 +4,6 @@ import type {
   EventHint,
   Exception,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
@@ -178,8 +177,7 @@ export function eventFromException(
 export function eventFromMessage(
   stackParser: StackParser,
   message: ParameterizedString,
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel = 'info',
+  level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): PromiseLike<Event> {

@@ -6,7 +6,7 @@ import type { Integration, IntegrationClass } from './integration';
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import type { User } from './user';
 
@@ -79,7 +79,7 @@ export interface Hub {
    * Returns the client of the top stack.
    * @deprecated Use `Sentry.getClient()` instead.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
   /**
    * Returns the scope of the top stack.
@@ -116,12 +116,7 @@ export interface Hub {
    *
    * @deprecated Use `Sentry.captureMessage()` instead.
    */
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -132,15 +127,6 @@ export interface Hub {
    * @deprecated Use `Sentry.captureEvent()` instead.
    */
   captureEvent(event: Event, hint?: EventHint): string;
-
-  /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
-   *
-   * @deprecated This will be removed in v8.
-   */
-  lastEventId(): string | undefined;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -210,14 +196,6 @@ export interface Hub {
    * @deprecated Use `Sentry.setContext()` instead.
    */
   setContext(name: string, context: { [key: string]: any } | null): void;
-
-  /**
-   * Callback to set context information onto the scope.
-   *
-   * @param callback Callback function that receives Scope.
-   * @deprecated Use `getScope()` directly.
-   */
-  configureScope(callback: (scope: Scope) => void): void;
 
   /**
    * For the duration of the callback, this hub will be set as the global current Hub.

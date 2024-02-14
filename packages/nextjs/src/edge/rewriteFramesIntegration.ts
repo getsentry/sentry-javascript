@@ -1,8 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import {
-  RewriteFrames as OriginalRewriteFrames,
-  rewriteFramesIntegration as originalRewriteFramesIntegration,
-} from '@sentry/integrations';
+import { rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/integrations';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
 import { GLOBAL_OBJ, escapeStringForRegex } from '@sentry/utils';
 
@@ -42,7 +39,7 @@ export const customRewriteFramesIntegration = ((options?: RewriteFramesOptions) 
   // Do nothing if we can't find a distDirName
   return {
     // eslint-disable-next-line deprecation/deprecation
-    name: OriginalRewriteFrames.id,
+    name: 'RewriteFrames',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce: () => {},
     processEvent: event => event,

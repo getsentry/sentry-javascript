@@ -5,16 +5,6 @@ import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorag
 export type ServerComponentContext = {
   componentRoute: string;
   componentType: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  sentryTraceHeader?: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  baggageHeader?: string;
   headers?: WebFetchHeaders;
 };
 
@@ -28,16 +18,6 @@ export type GenerationFunctionContext = {
 export interface RouteHandlerContext {
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
   parameterizedRoute: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  sentryTraceHeader?: string;
-  // TODO(v8): Remove
-  /**
-   * @deprecated pass a complete `Headers` object with the `headers` field instead.
-   */
-  baggageHeader?: string;
   headers?: WebFetchHeaders;
 }
 

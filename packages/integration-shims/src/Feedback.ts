@@ -6,7 +6,7 @@ import { consoleSandbox } from '@sentry/utils';
  * It is needed in order for the CDN bundles to continue working when users add/remove feedback
  * from it, without changing their config. This is necessary for the loader mechanism.
  *
- * @deprecated Use `feedbackIntergation()` instead.
+ * @deprecated Use `feedbackIntegration()` instead.
  */
 class FeedbackShim implements Integration {
   /**

@@ -1,65 +1,14 @@
-import type { Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getCurrentScope, getIsolationScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentScope, withScope } from '../exports';
-import type { Hub } from '../hub';
-import { runWithAsyncContext } from '../hub';
-import { getIsolationScope } from '../hub';
-import { getCurrentHub } from '../hub';
+import { withScope } from '../exports';
+import { getCurrentHub, runWithAsyncContext } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-
-/**
- * Wraps a function with a transaction/span and finishes the span after the function is done.
- *
- * Note that if you have not enabled tracing extensions via `addTracingExtensions`
- * or you didn't set `tracesSampleRate`, this function will not generate spans
- * and the `span` returned from the callback will be undefined.
- *
- * This function is meant to be used internally and may break at any time. Use at your own risk.
- *
- * @internal
- * @private
- *
- * @deprecated Use `startSpan` instead.
- */
-export function trace<T>(
-  context: TransactionContext,
-  callback: (span?: Span) => T,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onError: (error: unknown, span?: Span) => void = () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  afterFinish: () => void = () => {},
-): T {
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  // eslint-disable-next-line deprecation/deprecation
-  const parentSpan = scope.getSpan();
-
-  const ctx = normalizeContext(context);
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-
-  // eslint-disable-next-line deprecation/deprecation
-  scope.setSpan(activeSpan);
-
-  return handleCallbackErrors(
-    () => callback(activeSpan),
-    error => {
-      activeSpan && activeSpan.setStatus('internal_error');
-      onError(error, activeSpan);
-    },
-    () => {
-      activeSpan && activeSpan.end();
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(parentSpan);
-      afterFinish();
-    },
-  );
-}
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -104,11 +53,6 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
     });
   });
 }
-
-/**
- * @deprecated Use {@link startSpan} instead.
- */
-export const startActiveSpan = startSpan;
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
@@ -399,6 +343,7 @@ type SpanWithScopes = Span & {
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
 };
 
+/** Store the scope & isolation scope for a span, which can the be used when it is finished. */
 function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
   if (span) {
     addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);

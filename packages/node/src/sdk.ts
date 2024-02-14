@@ -93,17 +93,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
- * });
- * ```
- *
- * @example
- * ```
- *
  * const { addBreadcrumb } = require('@sentry/node');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
@@ -187,7 +176,7 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.spotlight) {
     const client = getClient();
-    if (client && client.addIntegration) {
+    if (client) {
       // force integrations to be setup even if no DSN was set
       // If they have already been added before, they will be ignored anyhow
       const integrations = client.getOptions().integrations;

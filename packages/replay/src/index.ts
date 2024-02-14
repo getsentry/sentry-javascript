@@ -19,5 +19,7 @@ export type {
   CanvasManagerOptions,
 } from './types';
 
+export { getReplay } from './util/getReplay';
+
 // TODO (v8): Remove deprecated types
 export * from './types/deprecated';

@@ -9,7 +9,6 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
-import { Scope } from '../../../src/scope';
 import {
   Span,
   continueTrace,
@@ -36,6 +35,7 @@ describe('startSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -303,7 +303,7 @@ describe('startSpan', () => {
   it('allows to pass a scope', () => {
     const initialScope = getCurrentScope();
 
-    const manualScope = new Scope();
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
@@ -427,6 +427,7 @@ describe('startSpanManual', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -461,7 +462,7 @@ describe('startSpanManual', () => {
   it('allows to pass a scope', () => {
     const initialScope = getCurrentScope();
 
-    const manualScope = new Scope();
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
@@ -537,6 +538,7 @@ describe('startInactiveSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -565,7 +567,9 @@ describe('startInactiveSpan', () => {
   });
 
   it('allows to pass a scope', () => {
-    const manualScope = new Scope();
+    const initialScope = getCurrentScope();
+
+    const manualScope = initialScope.clone();
     const parentSpan = new Span({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
@@ -662,6 +666,7 @@ describe('continueTrace', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
@@ -687,7 +692,7 @@ describe('continueTrace', () => {
       traceId: expect.any(String),
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace data', () => {
@@ -723,7 +728,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & baggage data', () => {
@@ -765,7 +770,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('works with trace & 3rd party baggage data', () => {
@@ -807,7 +812,7 @@ describe('continueTrace', () => {
       traceId: '12312012123120121231201212312012',
     });
 
-    expect(scope['_sdkProcessingMetadata']).toEqual({});
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
   });
 
   it('returns response of callback', () => {

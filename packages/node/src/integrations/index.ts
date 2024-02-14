@@ -7,8 +7,6 @@ export { Modules } from './modules';
 export { ContextLines } from './contextlines';
 export { Context } from './context';
 export { RequestData } from '@sentry/core';
-export { LocalVariables } from './local-variables';
 export { Undici } from './undici';
 export { Spotlight } from './spotlight';
-export { Anr } from './anr';
 export { Hapi } from './hapi';

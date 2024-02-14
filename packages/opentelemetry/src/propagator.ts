@@ -1,14 +1,12 @@
 import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { getDynamicSamplingContextFromClient } from '@sentry/core';
+import { getClient, getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
 import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContextFromHeaders } from '@sentry/utils';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
-import { getClient } from './custom/hub';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
-import { getSpanScope } from './utils/spanData';
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -26,7 +24,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const propagationContext = getPropagationContextFromContext(context);
     const { spanId, traceId, sampled } = getSentryTraceData(context, propagationContext);
-    const dynamicSamplingContext = propagationContext ? getDsc(context, propagationContext, traceId) : undefined;
+    const dynamicSamplingContext = propagationContext ? getDsc(propagationContext, traceId) : undefined;
 
     if (dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
@@ -80,7 +78,6 @@ export class SentryPropagator extends W3CBaggagePropagator {
 }
 
 function getDsc(
-  context: Context,
   propagationContext: PropagationContext,
   traceId: string | undefined,
 ): Partial<DynamicSamplingContext> | undefined {
@@ -91,11 +88,9 @@ function getDsc(
 
   // Else, we try to generate a new one
   const client = getClient();
-  const activeSpan = trace.getSpan(context);
-  const scope = activeSpan ? getSpanScope(activeSpan) : undefined;
 
   if (client) {
-    return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client, scope);
+    return getDynamicSamplingContextFromClient(traceId || propagationContext.traceId, client);
   }
 
   return undefined;

@@ -6,8 +6,6 @@ export type {
   Event,
   EventHint,
   Exception,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   StackFrame,
   Stacktrace,
@@ -19,8 +17,7 @@ export type {
 
 export type { BrowserOptions } from './client';
 
-// eslint-disable-next-line deprecation/deprecation
-export type { ReportDialogOptions } from './helpers';
+export type { ReportDialogOptions } from './sdk';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -32,8 +29,6 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   flush,
   getHubFromCarrier,
@@ -43,8 +38,6 @@ export {
   isInitialized,
   getCurrentScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
@@ -74,6 +67,13 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
+} from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -111,4 +111,4 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/trycatch';
 
 // eslint-disable-next-line deprecation/deprecation
-export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

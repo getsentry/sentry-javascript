@@ -87,8 +87,7 @@ export type {
   SerializedSession,
 } from './session';
 
-// eslint-disable-next-line deprecation/deprecation
-export type { Severity, SeverityLevel } from './severity';
+export type { SeverityLevel } from './severity';
 export type {
   Span,
   SpanContext,

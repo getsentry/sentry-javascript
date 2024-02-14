@@ -1,7 +1,7 @@
 import type { browserTracingIntegration } from '@sentry-internal/tracing';
 import { BrowserTracing } from '@sentry-internal/tracing';
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Integration, Mechanism, WrappedFunction } from '@sentry/types';
+import type { Integration, Mechanism, WrappedFunction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
@@ -157,38 +157,6 @@ export function wrap(
 }
 
 /**
- * All properties the report dialog supports
- *
- * @deprecated This type will be removed in the next major version of the Sentry SDK. `showReportDialog` will still be around, however the `eventId` option will now be required.
- */
-export interface ReportDialogOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
-}
-
-/**
  * This is a slim shim of `browserTracingIntegration` for the CDN bundles.
  * Since the actual functional integration uses a different code from `BrowserTracing`,
  * we want to avoid shipping both of them in the CDN bundles, as that would blow up the size.
@@ -201,6 +169,7 @@ export function bundleBrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] = {},
 ): Integration {
   // Migrate some options from the old integration to the new one
+  // eslint-disable-next-line deprecation/deprecation
   const opts: ConstructorParameters<typeof BrowserTracing>[0] = options;
 
   if (typeof options.markBackgroundSpan === 'boolean') {
@@ -215,5 +184,6 @@ export function bundleBrowserTracingIntegration(
     opts.startTransactionOnLocationChange = options.instrumentNavigation;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   return new BrowserTracing(opts);
 }

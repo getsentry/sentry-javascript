@@ -80,8 +80,3 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
     },
   });
 }
-
-/**
- * @deprecated Use `wrapAppGetInitialPropsWithSentry` instead.
- */
-export const withSentryServerSideAppGetInitialProps = wrapAppGetInitialPropsWithSentry;

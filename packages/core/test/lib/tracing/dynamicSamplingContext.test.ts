@@ -9,6 +9,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0, release: '1.0.1' });
     const client = new TestClient(options);
+    // eslint-disable-next-line deprecation/deprecation
     hub = new Hub(client);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);

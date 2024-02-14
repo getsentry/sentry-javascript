@@ -10,9 +10,8 @@ export {
   getSpanHub,
   getSpanMetadata,
   getSpanParent,
-  getSpanScope,
   setSpanMetadata,
-  getSpanFinishScope,
+  getSpanScopes,
 } from './utils/spanData';
 
 export { getPropagationContextFromContext, setPropagationContextOnContext, setHubOnContext } from './utils/contextData';
@@ -31,8 +30,8 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan } from './trace';
 
-export { getCurrentHub, setupGlobalHub, getClient } from './custom/hub';
-export { OpenTelemetryScope } from './custom/scope';
+// eslint-disable-next-line deprecation/deprecation
+export { setupGlobalHub } from './custom/hub';
 export { addTracingExtensions } from './custom/hubextensions';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
@@ -41,6 +40,10 @@ export { wrapContextManagerClass } from './contextManager';
 export { SentryPropagator } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export { SentrySampler } from './sampler';
+
+// Legacy
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHub, getClient } from '@sentry/core';
 
 /**
  * The following internal utils are not considered public API and are subject to change.

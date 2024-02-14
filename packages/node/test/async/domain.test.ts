@@ -118,11 +118,11 @@ describe('setDomainAsyncContextStrategy()', () => {
         });
       }
 
-      const globalHub = getCurrentHub();
+      const globalHub = getCurrentHub() as Hub;
       await addRandomExtra(globalHub, 'a');
 
       await runWithAsyncContext(async () => {
-        const hub1 = getCurrentHub();
+        const hub1 = getCurrentHub() as Hub;
         expect(hub1).toEqual(globalHub);
 
         await addRandomExtra(hub1, 'b');
@@ -160,21 +160,6 @@ describe('setDomainAsyncContextStrategy()', () => {
       });
     });
 
-    test('within a domain reused when requested', () => {
-      setDomainAsyncContextStrategy();
-
-      runWithAsyncContext(() => {
-        const hub1 = getCurrentHub();
-        runWithAsyncContext(
-          () => {
-            const hub2 = getCurrentHub();
-            expect(hub1).toBe(hub2);
-          },
-          { reuseExisting: true },
-        );
-      });
-    });
-
     test('concurrent hub contexts', done => {
       setDomainAsyncContextStrategy();
 
@@ -182,7 +167,7 @@ describe('setDomainAsyncContextStrategy()', () => {
       let d2done = false;
 
       runWithAsyncContext(() => {
-        const hub = getCurrentHub();
+        const hub = getCurrentHub() as Hub;
         // eslint-disable-next-line deprecation/deprecation
         hub.getStack().push({ client: 'process' } as any);
         // eslint-disable-next-line deprecation/deprecation
@@ -198,7 +183,7 @@ describe('setDomainAsyncContextStrategy()', () => {
       });
 
       runWithAsyncContext(() => {
-        const hub = getCurrentHub();
+        const hub = getCurrentHub() as Hub;
         // eslint-disable-next-line deprecation/deprecation
         hub.getStack().push({ client: 'local' } as any);
         // eslint-disable-next-line deprecation/deprecation

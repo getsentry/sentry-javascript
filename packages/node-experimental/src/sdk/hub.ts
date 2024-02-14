@@ -5,19 +5,16 @@ import type {
   Hub,
   Integration,
   IntegrationClass,
-  Severity,
+  Scope,
   SeverityLevel,
   TransactionContext,
 } from '@sentry/types';
 
-import { endSession, startSession } from '@sentry/core';
+import { addBreadcrumb, endSession, startSession } from '@sentry/core';
 import {
-  addBreadcrumb,
   captureEvent,
-  configureScope,
   getClient,
   getCurrentScope,
-  lastEventId,
   setContext,
   setExtra,
   setExtras,
@@ -27,7 +24,6 @@ import {
   withScope,
 } from './api';
 import { callExtensionMethod, getGlobalCarrier } from './globals';
-import type { Scope } from './scope';
 import { getIsolationScope } from './scope';
 import type { SentryCarrier } from './types';
 
@@ -62,22 +58,16 @@ export function getCurrentHub(): Hub {
     },
 
     withScope,
-    getClient,
+    getClient: <C extends Client>() => getClient() as C | undefined,
     getScope: getCurrentScope,
     getIsolationScope,
     captureException: (exception: unknown, hint?: EventHint) => {
       return getCurrentScope().captureException(exception, hint);
     },
-    captureMessage: (
-      message: string,
-      // eslint-disable-next-line deprecation/deprecation
-      level?: Severity | SeverityLevel,
-      hint?: EventHint,
-    ) => {
+    captureMessage: (message: string, level?: SeverityLevel, hint?: EventHint) => {
       return getCurrentScope().captureMessage(message, level, hint);
     },
     captureEvent,
-    lastEventId,
     addBreadcrumb,
     setUser,
     setTags,
@@ -85,8 +75,6 @@ export function getCurrentHub(): Hub {
     setExtra,
     setExtras,
     setContext,
-    // eslint-disable-next-line deprecation/deprecation
-    configureScope: configureScope,
 
     run(callback: (hub: Hub) => void): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,7 +132,7 @@ export function getCurrentHub(): Hub {
  */
 export function makeMain(hub: Hub): Hub {
   // eslint-disable-next-line no-console
-  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentScope` instead.');
+  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');
   return hub;
 }
 
@@ -156,7 +144,7 @@ function _sendSessionUpdate(): void {
   const client = getClient();
 
   const session = scope.getSession();
-  if (session && client.captureSession) {
+  if (session) {
     client.captureSession(session);
   }
 }

@@ -162,7 +162,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
    * @param flushedBuckets
    */
   private _captureMetrics(flushedBuckets: MetricBucket): void {
-    if (flushedBuckets.size > 0 && this._client.captureAggregateMetrics) {
+    if (flushedBuckets.size > 0) {
       // TODO(@anonrig): Optimization opportunity.
       // This copy operation can be avoided if we store the key in the bucketItem.
       const buckets = Array.from(flushedBuckets).map(([, bucketItem]) => bucketItem);

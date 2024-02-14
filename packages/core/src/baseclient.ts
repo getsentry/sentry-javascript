@@ -23,7 +23,6 @@ import type {
   SdkMetadata,
   Session,
   SessionAggregates,
-  Severity,
   SeverityLevel,
   StartSpanOptions,
   Transaction,
@@ -48,10 +47,9 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
@@ -186,8 +184,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
+    level?: SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
@@ -681,7 +678,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           ...evt.contexts,
         };
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
 
         evt.sdkProcessingMetadata = {
           dynamicSamplingContext,
@@ -876,8 +873,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public abstract eventFromMessage(
     _message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    _level?: Severity | SeverityLevel,
+    _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
@@ -935,18 +931,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }
