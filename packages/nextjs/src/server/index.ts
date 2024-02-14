@@ -1,11 +1,6 @@
-import { addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import {
-  Integrations as OriginalIntegrations,
-  getCurrentScope,
-  getDefaultIntegrations,
-  init as nodeInit,
-} from '@sentry/node';
+import { Integrations as OriginalIntegrations, getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -120,16 +115,15 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'node');
+  setTag('runtime', 'node');
   if (IS_VERCEL) {
-    scope.setTag('vercel', true);
+    setTag('vercel', true);
   }
 
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');

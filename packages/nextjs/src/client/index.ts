@@ -1,8 +1,7 @@
-import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
 import {
   DEFAULT_TRACE_PROPAGATION_TARGETS,
-  getCurrentScope,
   getDefaultIntegrations as getReactDefaultIntegrations,
   init as reactInit,
 } from '@sentry/react';
@@ -49,15 +48,14 @@ export function init(options: BrowserOptions): void {
 
   reactInit(opts);
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'browser');
+  setTag('runtime', 'browser');
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 }
 

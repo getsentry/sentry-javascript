@@ -1,4 +1,4 @@
-import { BaseClient } from '@sentry/core';
+import { BaseClient, getGlobalScope, getIsolationScope } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import type { BrowserClient } from '@sentry/react';
 import { WINDOW, getClient, getCurrentScope } from '@sentry/react';
@@ -36,7 +36,10 @@ const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 describe('Client init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    WINDOW.__SENTRY__.hub = undefined;
+
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
   });
 
   it('inits the React SDK', () => {
@@ -72,15 +75,11 @@ describe('Client init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentScope();
+    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
 
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'browser' });
+    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
   });
 
   it('adds 404 transaction filter', () => {
