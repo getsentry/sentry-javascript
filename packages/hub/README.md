@@ -15,7 +15,7 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-## General
+## IMPORTANT
 
 This package only exists anymore to enable a seamless publishing process between v7 and v8 of the JS SDK packages. It
 will be removed in a future version.
