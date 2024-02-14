@@ -137,20 +137,23 @@ function _instrumentNavigations(client: Client): void {
       routingSpan.end();
     }
 
+    const navigationInfo = {
+      //  `navigation.type` denotes the origin of the navigation. e.g.:
+      //   - link (clicking on a link)
+      //   - goto (programmatic via goto() or redirect())
+      //   - popstate (back/forward navigation)
+      'sentry.sveltekit.navigation.type': navigation.type,
+      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
+      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+    };
+
     startBrowserTracingNavigationSpan(client, {
       name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
       op: 'navigation',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
-        'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
-        'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
-
-        //  `navigation.type` denotes the origin of the navigation. e.g.:
-        //   - link (clicking on a link)
-        //   - goto (programmatic via goto() or redirect())
-        //   - popstate (back/forward navigation)
-        'sentry.sveltekit.navigation.type': navigation.type,
+        ...navigationInfo,
       },
     });
 
@@ -159,6 +162,7 @@ function _instrumentNavigations(client: Client): void {
       name: 'SvelteKit Route Change',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+        ...navigationInfo,
       },
       onlyIfParent: true,
     });
