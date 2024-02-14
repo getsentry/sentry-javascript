@@ -15,6 +15,7 @@
   },
   "scripts": {
     "build": "mkdir -p build && touch build/dummy.js",
+    "build:transpile": "yarn build",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf build coverage sentry-hub-*.tgz"
   },
