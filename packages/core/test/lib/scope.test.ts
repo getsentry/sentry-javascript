@@ -5,8 +5,10 @@ import {
   applyScopeDataToEvent,
   getActiveSpan,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
   makeMain,
+  setGlobalScope,
   spanToJSON,
   startInactiveSpan,
   startSpan,
@@ -14,7 +16,7 @@ import {
 } from '../../src';
 
 import { withActiveSpan } from '../../src/exports';
-import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Scope', () => {

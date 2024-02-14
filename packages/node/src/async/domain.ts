@@ -1,6 +1,7 @@
 import * as domain from 'domain';
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import type { Carrier } from '@sentry/core';
 import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy, setHubOnCarrier } from '@sentry/core';
+import type { Hub } from '@sentry/types';
 
 function getActiveDomain<T>(): T | undefined {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -26,13 +27,8 @@ function createNewHub(parent: Hub | undefined): Hub {
   return getHubFromCarrier(carrier);
 }
 
-function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
+function runWithAsyncContext<T>(callback: () => T): T {
   const activeDomain = getActiveDomain<domain.Domain & Carrier>();
-
-  if (activeDomain && options?.reuseExisting) {
-    // We're already in a domain, so we don't need to create a new one, just call the callback with the current hub
-    return callback();
-  }
 
   const local = domain.create() as domain.Domain & Carrier;
 

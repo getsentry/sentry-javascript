@@ -2,7 +2,7 @@ import type { BrowserClient } from '@sentry/browser';
 import { getActiveSpan } from '@sentry/browser';
 import { browserTracingIntegration } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
+import { SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
 import { getIsolationScope } from '@sentry/core';
@@ -100,27 +100,6 @@ describe('Sentry client SDK', () => {
         expect(browserTracing).toBeUndefined();
 
         delete globalThis.__SENTRY_TRACING__;
-      });
-
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided BrowserTracing instance', () => {
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          // eslint-disable-next-line deprecation/deprecation
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
-          enableTracing: true,
-        });
-
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
-
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
-        const options = browserTracing.options;
-
-        expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
-        expect(browserTracing).toBeDefined();
-
-        // This shows that the user-configured options are still here
-        expect(options.finalTimeout).toEqual(10);
       });
 
       it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntegration instance', () => {

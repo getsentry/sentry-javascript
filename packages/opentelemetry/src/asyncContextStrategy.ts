@@ -1,5 +1,5 @@
 import * as api from '@opentelemetry/api';
-import type { Hub, RunWithAsyncContextOptions } from '@sentry/core';
+import type { Hub } from '@sentry/core';
 import { setAsyncContextStrategy } from '@sentry/core';
 import { SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY } from './constants';
 
@@ -19,15 +19,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   }
 
   /* This is more or less a NOOP - we rely on the OTEL context manager for this */
-  function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
-    const existingHub = getCurrentHub();
-
-    if (existingHub && options?.reuseExisting) {
-      // We're already in an async context, so we don't need to create a new one
-      // just call the callback with the current hub
-      return callback();
-    }
-
+  function runWithAsyncContext<T>(callback: () => T): T {
     const ctx = api.context.active();
 
     // We depend on the otelContextManager to handle the context/hub

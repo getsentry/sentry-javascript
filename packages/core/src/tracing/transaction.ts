@@ -2,6 +2,7 @@ import type {
   Context,
   Contexts,
   DynamicSamplingContext,
+  Hub,
   MeasurementUnit,
   Measurements,
   SpanTimeInput,
@@ -13,7 +14,6 @@ import type {
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';

@@ -1,9 +1,8 @@
 /* eslint-disable max-lines */
-import type { SpanTimeInput, TransactionContext } from '@sentry/types';
+import type { Hub, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import type { Span } from './span';
 import { SpanRecorder } from './span';

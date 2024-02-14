@@ -1,13 +1,11 @@
-import type { Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getCurrentScope, getIsolationScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentScope, withScope } from '../exports';
-import type { Hub } from '../hub';
-import { runWithAsyncContext } from '../hub';
-import { getIsolationScope } from '../hub';
-import { getCurrentHub } from '../hub';
+import { withScope } from '../exports';
+import { getCurrentHub, runWithAsyncContext } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';

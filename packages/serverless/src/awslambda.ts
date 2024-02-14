@@ -2,7 +2,7 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions, Scope } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node';
 import { SDK_VERSION } from '@sentry/node';
 import {
   captureException,
@@ -16,7 +16,7 @@ import {
   startSpanManual,
   withScope,
 } from '@sentry/node';
-import type { Integration, Options, SdkMetadata, Span } from '@sentry/types';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
