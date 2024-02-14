@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.101.1
+
+In version 7.101.0 the `@sentry/hub` package was missing due to a publishing issue. This release contains the package
+again.
+
+- fix(nextjs): Remove `webpack://` prefix more broadly from source map `sources` field (#10641)
+
 ## 7.101.0
 
 - feat: Export semantic attribute keys from SDK packages (#10637)
