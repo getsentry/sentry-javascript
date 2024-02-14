@@ -37,7 +37,7 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
 }) satisfies IntegrationFn;
 
 /**
- * Add this in addition to `replayIntegration()` to enable canvas recording.
+ * Add this in addition to `feedbackIntegration()` to allow your users to provide screen shots with their ad-hoc feedback.
  */
 export const feedbackScreenshotIntegration = defineIntegration(_feedbackScreenshotIntegration);
 
