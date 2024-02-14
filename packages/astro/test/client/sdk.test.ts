@@ -40,15 +40,11 @@ describe('Sentry client SDK', () => {
     });
 
     it('sets the runtime tag on the isolation scope', () => {
-      const isolationScope = getIsolationScope();
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(isolationScope._tags).toEqual({});
+      expect(getIsolationScope().getScopeData().tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      // @ts-expect-error need access to protected _tags attribute
-      expect(isolationScope._tags).toEqual({ runtime: 'browser' });
+      expect(getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
     });
 
     describe('automatically adds integrations', () => {

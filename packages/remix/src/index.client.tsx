@@ -1,5 +1,5 @@
-import { applySdkMetadata } from '@sentry/core';
-import { getCurrentScope, init as reactInit } from '@sentry/react';
+import { applySdkMetadata, setTag } from '@sentry/core';
+import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from './utils/remixOptions';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export {
@@ -22,5 +22,5 @@ export function init(options: RemixOptions): void {
 
   reactInit(opts);
 
-  getCurrentScope().setTag('runtime', 'browser');
+  setTag('runtime', 'browser');
 }
