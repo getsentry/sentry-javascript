@@ -35,7 +35,7 @@ describe('Sentry webpack plugin config', () => {
         org: 'squirrelChasers', // from user webpack plugin config
         project: 'simulator', // from user webpack plugin config
         authToken: 'dogsarebadatkeepingsecrets', // picked up from env
-        stripPrefix: ['webpack://_N_E/'], // default
+        stripPrefix: ['webpack://_N_E/', 'webpack://'], // default
         urlPrefix: '~/_next', // default
         entries: [],
         release: 'doGsaREgReaT', // picked up from env
