@@ -64,7 +64,7 @@ export function browserTracingIntegration(
 function _instrumentPageload(client: Client): void {
   const initialPath = WINDOW && WINDOW.location && WINDOW.location.pathname;
 
-  startBrowserTracingPageLoadSpan(client, {
+  const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
     name: initialPath,
     op: 'pageload',
     description: initialPath,
@@ -76,8 +76,9 @@ function _instrumentPageload(client: Client): void {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
-
-  const pageloadSpan = getActiveSpan();
+  if (!pageloadSpan) {
+    return;
+  }
 
   page.subscribe(page => {
     if (!page) {
@@ -86,7 +87,7 @@ function _instrumentPageload(client: Client): void {
 
     const routeId = page.route && page.route.id;
 
-    if (pageloadSpan && routeId) {
+    if (routeId) {
       pageloadSpan.updateName(routeId);
       pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
@@ -98,7 +99,6 @@ function _instrumentPageload(client: Client): void {
  */
 function _instrumentNavigations(client: Client): void {
   let routingSpan: Span | undefined;
-  let activeNavigationSpan: Span | undefined;
 
   navigating.subscribe(navigation => {
     if (!navigation) {
@@ -129,22 +129,30 @@ function _instrumentNavigations(client: Client): void {
     const parameterizedRouteOrigin = from && from.route.id;
     const parameterizedRouteDestination = to && to.route.id;
 
-    // if (!activeNavigationSpan) {
-    activeNavigationSpan = startBrowserTracingNavigationSpan(client, {
+    if (routingSpan) {
+      // If a routing span is still open from a previous navigation, we finish it.
+      // This is important for e.g. redirects when a new navigation root span finishes
+      // the first root span. If we don't `.end()` the previous span, it will get
+      // status 'cancelled' which isn't entirely correct.
+      routingSpan.end();
+    }
+
+    startBrowserTracingNavigationSpan(client, {
       name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
       op: 'navigation',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
         'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
+        'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+
+        //  `navigation.type` denotes the origin of the navigation. e.g.:
+        //   - link (clicking on a link)
+        //   - goto (programmatic via goto() or redirect())
+        //   - popstate (back/forward navigation)
+        'sentry.sveltekit.navigation.type': navigation.type,
       },
     });
-    // }
-
-    if (routingSpan) {
-      // If a routing span is still open from a previous navigation, we finish it.
-      routingSpan.end();
-    }
 
     routingSpan = startInactiveSpan({
       op: 'ui.sveltekit.routing',

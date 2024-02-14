@@ -189,12 +189,11 @@ test.describe('performance events', () => {
     await page.goto('/');
 
     const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      return txnEvent?.contexts?.trace?.op === 'pageload';
+      return txnEvent?.contexts?.trace?.op === 'pageload' && txnEvent?.tags?.runtime === 'browser';
     });
 
     const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
-      console.log(txnEvent);
-      return txnEvent?.contexts?.trace?.op === 'navigation';
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
     });
 
     const navigationClickPromise = page.locator('#routeWithParamsLink').click();
@@ -225,9 +224,81 @@ test.describe('performance events', () => {
       type: 'transaction',
       contexts: {
         trace: {
-          op: 'http.server',
-          origin: 'auto.http.sveltekit',
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
         },
+      },
+    });
+
+    const routingSpans = navigationTxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(routingSpans).toHaveLength(1);
+
+    const routingSpan = routingSpans && routingSpans[0];
+    expect(routingSpan).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
+      },
+    });
+  });
+
+  test.only('captures a navigation transaction directly after pageload', async ({ page }) => {
+    await page.goto('/');
+
+    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.contexts?.trace?.op === 'pageload' && txnEvent?.tags?.runtime === 'browser';
+    });
+
+    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
+    });
+
+    const navigationClickPromise = page.locator('#routeWithParamsLink').click();
+
+    const [pageloadTxnEvent, navigationTxnEvent, _] = await Promise.all([
+      clientPageloadTxnPromise,
+      clientNavigationTxnPromise,
+      navigationClickPromise,
+    ]);
+
+    expect(pageloadTxnEvent).toMatchObject({
+      transaction: '/',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'pageload',
+          origin: 'auto.pageload.sveltekit',
+        },
+      },
+    });
+
+    expect(navigationTxnEvent).toMatchObject({
+      transaction: '/users/[id]',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
+        },
+      },
+    });
+
+    const routingSpans = navigationTxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(routingSpans).toHaveLength(1);
+
+    const routingSpan = routingSpans && routingSpans[0];
+    expect(routingSpan).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
       },
     });
   });
