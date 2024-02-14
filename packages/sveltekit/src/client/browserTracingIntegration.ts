@@ -10,6 +10,7 @@ import {
   startInactiveSpan,
 } from '@sentry/svelte';
 import type { Client, Integration, Span } from '@sentry/types';
+import { dropUndefinedKeys } from '@sentry/utils';
 import { svelteKitRoutingInstrumentation } from './router';
 
 /**
@@ -137,7 +138,7 @@ function _instrumentNavigations(client: Client): void {
       routingSpan.end();
     }
 
-    const navigationInfo = {
+    const navigationInfo = dropUndefinedKeys({
       //  `navigation.type` denotes the origin of the navigation. e.g.:
       //   - link (clicking on a link)
       //   - goto (programmatic via goto() or redirect())
@@ -145,7 +146,7 @@ function _instrumentNavigations(client: Client): void {
       'sentry.sveltekit.navigation.type': navigation.type,
       'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
       'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
-    };
+    });
 
     startBrowserTracingNavigationSpan(client, {
       name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
