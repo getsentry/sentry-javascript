@@ -14,7 +14,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "mkdir -p build",
+    "build": "mkdir -p build && touch build/dummy.js",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "clean": "rimraf build coverage sentry-hub-*.tgz"
   },
