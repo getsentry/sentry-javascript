@@ -8,9 +8,6 @@
     document.body.classList.add("hydrated");
   });
 
-  navigating.subscribe((navigation) => {
-    console.log("XXX navigating", navigation);
-  });
 
 </script>
 
