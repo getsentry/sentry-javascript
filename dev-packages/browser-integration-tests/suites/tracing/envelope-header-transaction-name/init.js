@@ -4,16 +4,18 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration({ tracingOrigins: [/.*/] })],
+  integrations: [Sentry.browserTracingIntegration()],
   environment: 'production',
   tracesSampleRate: 1,
   debug: true,
 });
 
-const scope = Sentry.getCurrentScope();
-scope.setUser({ id: 'user123' });
-scope.addEventProcessor(event => {
+Sentry.setUser({ id: 'user123' });
+
+Sentry.addEventProcessor(event => {
   event.transaction = 'testTransactionDSC';
   return event;
 });
+
+const scope = Sentry.getCurrentScope();
 scope.getTransaction().setMetadata({ source: 'custom' });
