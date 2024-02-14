@@ -57,7 +57,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
   const integrations: string[] = [];
 
   if (options.tracesSampleRate == null || options.tracesSampleRate) {
-    integrations.push('new Sentry.BrowserTracing()');
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (

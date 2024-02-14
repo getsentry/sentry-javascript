@@ -12,8 +12,10 @@ import { hydrateRoot } from 'react-dom/client';
 Sentry.init({
   dsn: window.ENV.SENTRY_DSN,
   integrations: [
-    new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),
+    Sentry.browserTracingIntegration({
+      useEffect,
+      useLocation,
+      useMatches,
     }),
     new Sentry.Replay(),
   ],
