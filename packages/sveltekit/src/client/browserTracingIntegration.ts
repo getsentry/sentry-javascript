@@ -4,7 +4,6 @@ import {
   BrowserTracing as OriginalBrowserTracing,
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
-  getActiveSpan,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
