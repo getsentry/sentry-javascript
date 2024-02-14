@@ -184,4 +184,51 @@ test.describe('performance events', () => {
       },
     });
   });
+
+  test.only('captures a navigation transaction directly after pageload', async ({ page }) => {
+    await page.goto('/');
+
+    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.contexts?.trace?.op === 'pageload';
+    });
+
+    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      console.log(txnEvent);
+      return txnEvent?.contexts?.trace?.op === 'navigation';
+    });
+
+    const navigationClickPromise = page.locator('#routeWithParamsLink').click();
+
+    const [pageloadTxnEvent, navigationTxnEvent, _] = await Promise.all([
+      clientPageloadTxnPromise,
+      clientNavigationTxnPromise,
+      navigationClickPromise,
+    ]);
+
+    expect(pageloadTxnEvent).toMatchObject({
+      transaction: '/',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'pageload',
+          origin: 'auto.pageload.sveltekit',
+        },
+      },
+    });
+
+    expect(navigationTxnEvent).toMatchObject({
+      transaction: '/users/[id]',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'http.server',
+          origin: 'auto.http.sveltekit',
+        },
+      },
+    });
+  });
 });

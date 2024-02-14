@@ -98,7 +98,7 @@ function _instrumentPageload(client: Client): void {
  */
 function _instrumentNavigations(client: Client): void {
   let routingSpan: Span | undefined;
-  let activeSpan: Span | undefined;
+  let activeNavigationSpan: Span | undefined;
 
   navigating.subscribe(navigation => {
     if (!navigation) {
@@ -129,36 +129,30 @@ function _instrumentNavigations(client: Client): void {
     const parameterizedRouteOrigin = from && from.route.id;
     const parameterizedRouteDestination = to && to.route.id;
 
-    activeSpan = getActiveSpan();
+    // if (!activeNavigationSpan) {
+    activeNavigationSpan = startBrowserTracingNavigationSpan(client, {
+      name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
+      op: 'navigation',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+        'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
+      },
+    });
+    // }
 
-    if (!activeSpan) {
-      startBrowserTracingNavigationSpan(client, {
-        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
-        op: 'navigation',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
-        },
-        tags: {
-          'routing.instrumentation': '@sentry/sveltekit',
-        },
-      });
-      activeSpan = getActiveSpan();
+    if (routingSpan) {
+      // If a routing span is still open from a previous navigation, we finish it.
+      routingSpan.end();
     }
 
-    if (activeSpan) {
-      if (routingSpan) {
-        // If a routing span is still open from a previous navigation, we finish it.
-        routingSpan.end();
-      }
-      routingSpan = startInactiveSpan({
-        op: 'ui.sveltekit.routing',
-        name: 'SvelteKit Route Change',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
-        },
-      });
-      activeSpan.setAttribute('sentry.sveltekit.navigation.from', parameterizedRouteOrigin || undefined);
-    }
+    routingSpan = startInactiveSpan({
+      op: 'ui.sveltekit.routing',
+      name: 'SvelteKit Route Change',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+      },
+      onlyIfParent: true,
+    });
   });
 }
