@@ -37,7 +37,8 @@ export function wrapHttpFunction(fn: HttpFunction, wrapOptions: Partial<WrapperO
 }
 
 /** */
-function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions> = { flushTimeout: 2000 }): HttpFunction {
+function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): HttpFunction {
+  const flushTimeout = options.flushTimeout || 2000;
   return (req, res) => {
     const reqMethod = (req.method || '').toUpperCase();
     const reqUrl = stripUrlQueryAndFragment(req.originalUrl || req.url || '');
@@ -78,7 +79,7 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions> = 
             }
 
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            flush(options.flushTimeout)
+            flush(flushTimeout)
               .then(null, e => {
                 DEBUG_BUILD && logger.error(e);
               })
