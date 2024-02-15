@@ -15,12 +15,15 @@
     <a href="/server-route-error">Server Route error</a>
   </li>
   <li>
-    <a href="/users/123abc">Route with Params</a>
+    <a id="routeWithParamsLink" href="/users/123abc">Route with Params</a>
   </li>
   <li>
     <a href="/users">Route with Server Load</a>
   </li>
   <li>
     <a href="/universal-load-fetch">Route with fetch in universal load</a>
+  </li>
+  <li>
+    <a id="redirectLink" href="/redirect1">Redirect</a>
   </li>
 </ul>

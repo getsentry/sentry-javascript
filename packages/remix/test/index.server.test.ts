@@ -8,6 +8,11 @@ const nodeInit = jest.spyOn(SentryNode, 'init');
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
+
+    SentryNode.getGlobalScope().clear();
+    SentryNode.getIsolationScope().clear();
+    SentryNode.getCurrentScope().clear();
+
     GLOBAL_OBJ.__SENTRY__.hub = undefined;
   });
 
@@ -46,15 +51,11 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = SentryNode.getCurrentScope();
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
 
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'node' });
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
   });
 
   it('has both node and tracing integrations', () => {

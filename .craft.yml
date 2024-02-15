@@ -133,6 +133,9 @@ targets:
 
   ## 8. Deprecated packages we still release (but no packages depend on them anymore)
   - name: npm
+    id: '@sentry/hub'
+    includeNames: /^sentry-hub-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/tracing'
     includeNames: /^sentry-tracing-\d.*\.tgz$/
 

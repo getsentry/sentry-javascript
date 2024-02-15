@@ -35,7 +35,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _contexts: Contexts;
 
-  private _trimEnd?: boolean;
+  private _trimEnd?: boolean | undefined;
 
   // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
   private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
