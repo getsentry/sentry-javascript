@@ -173,6 +173,7 @@ describe('`Transaction` class', () => {
               data: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
               },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
@@ -204,6 +205,7 @@ describe('`Transaction` class', () => {
               data: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
               },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,

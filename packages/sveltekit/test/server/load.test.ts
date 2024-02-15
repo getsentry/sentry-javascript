@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
@@ -199,13 +199,11 @@ describe('wrapLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.load',
         name: '/users/[id]',
         status: 'ok',
-        metadata: {
-          source: 'route',
-        },
       },
       expect.any(Function),
     );
@@ -220,13 +218,11 @@ describe('wrapLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         op: 'function.sveltekit.load',
         name: '/users/123',
         status: 'ok',
-        metadata: {
-          source: 'url',
-        },
       },
       expect.any(Function),
     );
@@ -256,6 +252,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
@@ -275,7 +272,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
           },
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -291,15 +287,13 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
         status: 'ok',
         data: {
           'http.method': 'GET',
-        },
-        metadata: {
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -315,6 +309,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
@@ -327,7 +322,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         },
         metadata: {
           dynamicSamplingContext: {},
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -346,6 +340,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/123',
@@ -365,7 +360,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
           },
-          source: 'url',
         },
       },
       expect.any(Function),

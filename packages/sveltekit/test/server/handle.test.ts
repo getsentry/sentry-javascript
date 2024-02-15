@@ -1,4 +1,4 @@
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions, makeMain } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import type { Transaction } from '@sentry/types';
@@ -136,7 +136,7 @@ describe('handleSentry', () => {
       expect(ref.name).toEqual('GET /users/[id]');
       expect(ref.op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
       expect(ref.spanRecorder.spans).toHaveLength(1);
@@ -172,7 +172,7 @@ describe('handleSentry', () => {
       expect(ref.name).toEqual('GET /users/[id]');
       expect(ref.op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
 
