@@ -27,6 +27,7 @@ import {
   normalize,
 } from '@sentry/utils';
 
+import { ServerRuntimeClient } from '@sentry/core';
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { isAutoSessionTrackingEnabled } from './sdk';
@@ -131,9 +132,9 @@ export function requestHandler(
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const isolationScope = getIsolationScope();
-    if (isolationScope.getSession()) {
-      isolationScope.setSession();
+    const scope = getCurrentScope();
+    if (scope.getSession()) {
+      scope.setSession();
     }
   }
 
@@ -164,19 +165,17 @@ export function requestHandler(
       const client = getClient<NodeClient>();
       if (isAutoSessionTrackingEnabled(client)) {
         // Set `status` of `RequestSession` to Ok, at the beginning of the request
-        isolationScope.setRequestSession({ status: 'ok' });
+        getCurrentScope().setRequestSession({ status: 'ok' });
       }
 
       res.once('finish', () => {
-        const client = getClient<NodeClient>();
-        if (isAutoSessionTrackingEnabled(client)) {
+        const client = getClient<ServerRuntimeClient>();
+        if (client && isAutoSessionTrackingEnabled(client)) {
           setImmediate(() => {
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            if (client && (client as any)._captureRequestSession) {
+            if (client['_captureRequestSession']) {
               // Calling _captureRequestSession to capture request session at the end of the request by incrementing
               // the correct SessionAggregates bucket i.e. crashed, errored or exited
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-              (client as any)._captureRequestSession();
+              client['_captureRequestSession']();
             }
           });
         }
@@ -237,7 +236,7 @@ export function errorHandler(options?: {
         // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
         // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
         // hurt to be sure
-        _scope.setSDKProcessingMetadata({ request: _req });
+        getIsolationScope().setSDKProcessingMetadata({ request: _req });
 
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

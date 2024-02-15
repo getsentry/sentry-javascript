@@ -12,7 +12,7 @@ import {
   mergeScopeData,
   spanToJSON,
 } from '@sentry/core';
-import type { Event, PropagationContext } from '@sentry/types';
+import type { Event, PropagationContext, Scope } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
 
 import { NodeClient } from '../src/client';
@@ -61,7 +61,7 @@ describe('requestHandler', () => {
     jest.restoreAllMocks();
   });
 
-  it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', () => {
+  it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
@@ -69,10 +69,16 @@ describe('requestHandler', () => {
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
-    sentryRequestMiddleware(req, res, next);
+    let scope: Scope;
+    sentryRequestMiddleware(req, res, () => {
+      scope = getCurrentScope();
+      return next();
+    });
 
-    const isolationScope = getIsolationScope();
-    expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
+    setImmediate(() => {
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+      done();
+    });
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
@@ -83,13 +89,18 @@ describe('requestHandler', () => {
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
-    sentryRequestMiddleware(req, res, next);
+    let scope: Scope;
+    sentryRequestMiddleware(req, res, () => {
+      scope = getCurrentScope();
+      return next();
+    });
 
-    const scope = getCurrentScope();
-    expect(scope?.getRequestSession()).toBeUndefined();
+    setImmediate(() => {
+      expect(scope.getRequestSession()).toBeUndefined();
+    });
   });
 
-  it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
+  it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish xxx', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
@@ -99,13 +110,16 @@ describe('requestHandler', () => {
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
-    sentryRequestMiddleware(req, res, next);
+    let scope: Scope;
+    sentryRequestMiddleware(req, res, () => {
+      scope = getCurrentScope();
+      return next();
+    });
 
-    const isolationScope = getIsolationScope();
     res.emit('finish');
 
     setImmediate(() => {
-      expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
       expect(captureRequestSession).toHaveBeenCalled();
       done();
     });
@@ -122,11 +136,10 @@ describe('requestHandler', () => {
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
     sentryRequestMiddleware(req, res, next);
-    const scope = getCurrentScope();
     res.emit('finish');
 
     setImmediate(() => {
-      expect(scope?.getRequestSession()).toBeUndefined();
+      expect(getCurrentScope().getRequestSession()).toBeUndefined();
       expect(captureRequestSession).not.toHaveBeenCalled();
       done();
     });
@@ -478,10 +491,8 @@ describe('tracingHandler', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
     // eslint-disable-next-line deprecation/deprecation
-    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
+    makeMain(hub);
 
     sentryTracingMiddleware(req, res, next);
 
@@ -537,31 +548,40 @@ describe('errorHandler()', () => {
     const scope = getCurrentScope();
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: 'ok' });
+    scope.setRequestSession({ status: 'ok' });
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = scope?.getRequestSession();
+    const requestSession = scope.getRequestSession();
     expect(requestSession).toEqual({ status: 'ok' });
   });
 
-  it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', () => {
+  it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
     client = new NodeClient(options);
 
-    const scope = getCurrentScope();
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
-    scope?.setRequestSession({ status: 'ok' });
-    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual({ status: 'ok' });
+    getCurrentScope().setRequestSession({ status: 'ok' });
+
+    let scope: Scope;
+    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
+      scope = getCurrentScope();
+      return next();
+    });
+
+    setImmediate(() => {
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+      done();
+    });
   });
 
   it('when autoSessionTracking is enabled, should set requestSession status to Crashed when an unhandled error occurs within the bounds of a request', () => {
@@ -579,16 +599,16 @@ describe('errorHandler()', () => {
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
     hub.run(() => {
-      scope?.setRequestSession({ status: 'ok' });
+      scope.setRequestSession({ status: 'ok' });
       sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
         const scope = getCurrentScope();
-        const requestSession = scope?.getRequestSession();
+        const requestSession = scope.getRequestSession();
         expect(requestSession).toEqual({ status: 'crashed' });
       });
     });
   });
 
-  it('when autoSessionTracking is enabled, should not set requestSession status on Crash when it occurs outside the bounds of a request', () => {
+  it('when autoSessionTracking is enabled, should not set requestSession status on Crash when it occurs outside the bounds of a request', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '2.2' });
     client = new NodeClient(options);
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
@@ -597,13 +617,21 @@ describe('errorHandler()', () => {
     const scope = new ScopeClass();
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client, scope);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
-    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
-    const requestSession = scope?.getRequestSession();
-    expect(requestSession).toEqual(undefined);
+    let currentScope: Scope;
+    sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
+      currentScope = getCurrentScope();
+      return next();
+    });
+
+    setImmediate(() => {
+      expect(currentScope.getRequestSession()).toEqual(undefined);
+      done();
+    });
   });
 
   it('stores request in `sdkProcessingMetadata`', () => {
@@ -619,9 +647,8 @@ describe('errorHandler()', () => {
     // `captureException` in order to examine the scope as it exists inside the `withScope` callback
     // eslint-disable-next-line deprecation/deprecation
     hub.captureException = function (this: Hub, _exception: any) {
-      // eslint-disable-next-line deprecation/deprecation
-      const scope = this.getScope();
-      expect((scope as any)._sdkProcessingMetadata.request).toEqual(req);
+      const scope = getIsolationScope();
+      expect(scope.getScopeData().sdkProcessingMetadata.request).toEqual(req);
     } as any;
 
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, next);
