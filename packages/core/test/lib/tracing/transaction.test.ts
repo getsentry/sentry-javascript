@@ -1,4 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Transaction } from '../../../src';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  Transaction,
+} from '../../../src';
 
 describe('transaction', () => {
   describe('name', () => {
@@ -69,11 +74,17 @@ describe('transaction', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.5,
         },
       });
+
       expect(transaction.metadata).toEqual({
-        source: 'url',
         sampleRate: 0.5,
         spanMetadata: {},
         request: {},
+      });
+
+      expect(transaction.attributes).toEqual({
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.5,
       });
     });
 

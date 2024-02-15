@@ -1,3 +1,4 @@
+import { TransactionSource } from '@sentry/types';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
 import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { addTracingExtensions } from '../../../src/tracing';
@@ -112,7 +113,7 @@ describe('getDynamicSamplingContextFromSpan', () => {
     test.each([
       ['is included if transaction source is parameterized route/url', 'route'],
       ['is included if transaction source is a custom name', 'custom'],
-    ])('%s', (_: string, source) => {
+    ] as const)('%s', (_: string, source: TransactionSource) => {
       const transaction = startInactiveSpan({
         name: 'tx',
         attributes: {

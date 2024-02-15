@@ -117,9 +117,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
       ...this._metadata,
 
       // From attributes
-      ...{
-        source: (this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined) || 'custom',
-      },
       ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
         sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
       }),

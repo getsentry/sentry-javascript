@@ -256,6 +256,7 @@ describe('startSpan', () => {
         data: {
           'sentry.origin': 'auto.http.browser',
           'sentry.sample_rate': 0,
+          'sentry.source': 'custom',
         },
         origin: 'auto.http.browser',
         description: 'GET users/[id]',
