@@ -237,7 +237,7 @@ export function errorHandler(options?: {
         // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
         // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
         // hurt to be sure
-        _scope.setSDKProcessingMetadata({ request: _req });
+        getIsolationScope().setSDKProcessingMetadata({ request: _req });
 
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -256,7 +256,7 @@ export function errorHandler(options?: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = _scope.getRequestSession();
+            const requestSession = getIsolationScope().getRequestSession();
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
