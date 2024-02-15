@@ -73,6 +73,7 @@ describe('Integration | Transactions', () => {
           otel: {
             attributes: {
               'test.outer': 'test value',
+              'sentry.source': 'custom',
             },
             resource: {
               'service.name': 'opentelemetry-test',
@@ -109,7 +110,6 @@ describe('Integration | Transactions', () => {
             transaction: 'test name',
           }),
           sampleRate: 1,
-          source: 'task',
           spanMetadata: expect.any(Object),
           requestPath: 'test-path',
         }),
@@ -253,7 +253,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
-              'sentry.source': 'custom',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -381,7 +381,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
-              'sentry.source': 'custom',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
