@@ -29,6 +29,7 @@ import type { SentryCarrier } from './types';
 /** Ensure the global hub is our proxied hub. */
 export function setupGlobalHub(): void {
   const carrier = getGlobalCarrier();
+  // eslint-disable-next-line deprecation/deprecation
   carrier.hub = getCurrentHub();
 }
 
@@ -142,6 +143,7 @@ function _sendSessionUpdate(): void {
  * Set a mocked hub on the current carrier.
  */
 export function setLegacyHubOnCarrier(carrier: SentryCarrier): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   carrier.hub = getCurrentHub();
   return true;
 }

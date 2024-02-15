@@ -40,6 +40,7 @@ export {
   setIsolationScope,
   setCurrentScope,
 } from './sdk/api';
+// eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
 
 export {
