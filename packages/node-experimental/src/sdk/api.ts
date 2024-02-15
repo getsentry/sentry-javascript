@@ -2,18 +2,7 @@
 
 import type { Span } from '@opentelemetry/api';
 import { context, trace } from '@opentelemetry/api';
-import type {
-  CaptureContext,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extra,
-  Extras,
-  Primitive,
-  Scope,
-  SeverityLevel,
-  User,
-} from '@sentry/types';
+import type { CaptureContext, Event, EventHint, Scope, SeverityLevel } from '@sentry/types';
 import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '../utils/contextData';
 
 import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
@@ -111,45 +100,4 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
 /** Capture a generic event and send it to Sentry. */
 export function captureEvent(event: Event, hint?: EventHint): string {
   return getCurrentScope().captureEvent(event, hint);
-}
-
-/**
- * Add an event processor to the current isolation scope.
- */
-export function addEventProcessor(eventProcessor: EventProcessor): void {
-  getIsolationScope().addEventProcessor(eventProcessor);
-}
-
-/** Set the user for the current isolation scope. */
-export function setUser(user: User | null): void {
-  getIsolationScope().setUser(user);
-}
-
-/** Set tags for the current isolation scope. */
-export function setTags(tags: { [key: string]: Primitive }): void {
-  getIsolationScope().setTags(tags);
-}
-
-/** Set a single tag user for the current isolation scope. */
-export function setTag(key: string, value: Primitive): void {
-  getIsolationScope().setTag(key, value);
-}
-
-/** Set extra data for the current isolation scope. */
-export function setExtra(key: string, extra: Extra): void {
-  getIsolationScope().setExtra(key, extra);
-}
-
-/** Set multiple extra data for the current isolation scope. */
-export function setExtras(extras: Extras): void {
-  getIsolationScope().setExtras(extras);
-}
-
-/** Set context data for the current isolation scope. */
-export function setContext(
-  name: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: { [key: string]: any } | null,
-): void {
-  getIsolationScope().setContext(name, context);
 }

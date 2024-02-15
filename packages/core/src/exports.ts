@@ -82,8 +82,7 @@ export function captureEvent(event: Event, hint?: EventHint): string {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setContext(name, context);
+  getIsolationScope().setContext(name, context);
 }
 
 /**
@@ -91,8 +90,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * @param extras Extras object to merge into current context.
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtras(extras);
+  getIsolationScope().setExtras(extras);
 }
 
 /**
@@ -101,8 +99,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param extra Any kind of data. This data will be normalized.
  */
 export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtra(key, extra);
+  getIsolationScope().setExtra(key, extra);
 }
 
 /**
@@ -110,8 +107,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * @param tags Tags context object to merge into current context.
  */
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTags(tags);
+  getIsolationScope().setTags(tags);
 }
 
 /**
@@ -123,8 +119,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param value Value of tag
  */
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTag(key, value);
+  getIsolationScope().setTag(key, value);
 }
 
 /**
@@ -133,8 +128,7 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setUser(user);
+  getIsolationScope().setUser(user);
 }
 
 /**
