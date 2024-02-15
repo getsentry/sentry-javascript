@@ -2,7 +2,7 @@ import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
-import type { Transaction } from './transaction';
+import type { Transaction, TransactionSource } from './transaction';
 
 type SpanOriginType = 'manual' | 'auto';
 type SpanOriginCategory = string; // e.g. http, db, ui, ....
@@ -26,7 +26,7 @@ export type SpanAttributeValue =
 export type SpanAttributes = Partial<{
   'sentry.origin': string;
   'sentry.op': string;
-  'sentry.source': string;
+  'sentry.source': TransactionSource;
   'sentry.sample_rate': number;
 }> &
   Record<string, SpanAttributeValue | undefined>;

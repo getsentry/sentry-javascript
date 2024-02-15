@@ -1,6 +1,6 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -31,9 +31,11 @@ describe('Integration | Transactions', () => {
       {
         op: 'test op',
         name: 'test name',
-        source: 'task',
         origin: 'auto.test',
         metadata: { requestPath: 'test-path' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        },
       },
       span => {
         addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });

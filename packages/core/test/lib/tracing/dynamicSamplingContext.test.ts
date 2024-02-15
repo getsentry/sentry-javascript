@@ -1,4 +1,3 @@
-import type { TransactionSource } from '@sentry/types';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
 import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { addTracingExtensions } from '../../../src/tracing';
@@ -74,7 +73,9 @@ describe('getDynamicSamplingContextFromSpan', () => {
       name: 'tx',
       metadata: {
         sampleRate: 0.56,
-        source: 'route',
+      },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       },
       sampled: true,
     });
@@ -97,8 +98,10 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const transaction = new Transaction({
         name: 'tx',
         metadata: {
-          source: 'url',
           sampleRate: 0.56,
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       });
 
@@ -112,8 +115,8 @@ describe('getDynamicSamplingContextFromSpan', () => {
     ])('%s', (_: string, source) => {
       const transaction = startInactiveSpan({
         name: 'tx',
-        metadata: {
-          ...(source && { source: source as TransactionSource }),
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
       });
 

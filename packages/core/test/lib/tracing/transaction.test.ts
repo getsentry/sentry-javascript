@@ -16,7 +16,7 @@ describe('transaction', () => {
       transaction.name = 'new name';
 
       expect(transaction.name).toEqual('new name');
-      expect(transaction.metadata.source).toEqual('custom');
+      expect(transaction.attributes['sentry.source']).toEqual('custom');
     });
 
     it('allows to update the name via setName', () => {
@@ -27,7 +27,7 @@ describe('transaction', () => {
       transaction.setName('new name');
 
       expect(transaction.name).toEqual('new name');
-      expect(transaction.metadata.source).toEqual('custom');
+      expect(transaction.attributes['sentry.source']).toEqual('custom');
     });
 
     it('allows to update the name via updateName', () => {
@@ -38,7 +38,7 @@ describe('transaction', () => {
       transaction.updateName('new name');
 
       expect(transaction.name).toEqual('new name');
-      expect(transaction.metadata.source).toEqual('route');
+      expect(transaction.attributes['sentry.source']).toEqual('route');
     });
     /* eslint-enable deprecation/deprecation */
   });
@@ -48,15 +48,13 @@ describe('transaction', () => {
     it('works with defaults', () => {
       const transaction = new Transaction({ name: 'span name' });
       expect(transaction.metadata).toEqual({
-        source: 'custom',
         spanMetadata: {},
       });
     });
 
     it('allows to set metadata in constructor', () => {
-      const transaction = new Transaction({ name: 'span name', metadata: { source: 'url', request: {} } });
+      const transaction = new Transaction({ name: 'span name', metadata: { request: {} } });
       expect(transaction.metadata).toEqual({
-        source: 'url',
         spanMetadata: {},
         request: {},
       });
@@ -80,28 +78,16 @@ describe('transaction', () => {
     });
 
     it('allows to update metadata via setMetadata', () => {
-      const transaction = new Transaction({ name: 'span name', metadata: { source: 'url', request: {} } });
+      const transaction = new Transaction({ name: 'span name', metadata: {} });
 
-      transaction.setMetadata({ source: 'route' });
+      transaction.setMetadata({ request: {} });
 
       expect(transaction.metadata).toEqual({
-        source: 'route',
         spanMetadata: {},
         request: {},
       });
     });
 
-    it('allows to update metadata via setAttribute', () => {
-      const transaction = new Transaction({ name: 'span name', metadata: { source: 'url', request: {} } });
-
-      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-
-      expect(transaction.metadata).toEqual({
-        source: 'route',
-        spanMetadata: {},
-        request: {},
-      });
-    });
     /* eslint-enable deprecation/deprecation */
   });
 });

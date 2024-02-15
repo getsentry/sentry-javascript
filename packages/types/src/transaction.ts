@@ -109,7 +109,7 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    *
    * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
-  setName(name: string, source?: TransactionMetadata['source']): void;
+  setName(name: string, source?: TransactionSource): void;
 
   /**
    * Set the context of a transaction event.
@@ -214,12 +214,6 @@ export interface TransactionMetadata {
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
-
-  /**
-   * Information on how a transaction name was generated.
-   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` attribute instead.
-   */
-  source: TransactionSource;
 
   /**
    * Metadata for the transaction's spans, keyed by spanId.
