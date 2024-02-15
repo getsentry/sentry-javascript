@@ -56,7 +56,6 @@ const DEFAULT_OPTIONS = {
 const INTEGRATION_NAME = 'RequestData';
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
-  const _addRequestData = addRequestDataToEvent;
   const _options: Required<RequestDataIntegrationOptions> = {
     ...DEFAULT_OPTIONS,
     ...options,
@@ -94,7 +93,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
-      const processedEvent = _addRequestData(event, req, addRequestDataOptions);
+      const processedEvent = addRequestDataToEvent(event, req, addRequestDataOptions);
 
       // Transaction events already have the right `transaction` value
       if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
@@ -176,7 +175,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
     include: { ip, user, ...requestOptions },
   } = integrationOptions;
 
-  const requestIncludeKeys: string[] = [];
+  const requestIncludeKeys: string[] = ['method'];
   for (const [key, value] of Object.entries(requestOptions)) {
     if (value) {
       requestIncludeKeys.push(key);
