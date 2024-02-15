@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Span } from '@sentry/core';
+import type { Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';

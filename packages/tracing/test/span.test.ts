@@ -1,7 +1,7 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain, spanToJSON } from '@sentry/core';
-import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
+import type { BaseTransportOptions, ClientOptions } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
@@ -638,8 +638,8 @@ describe('Span', () => {
         const transaction = new Transaction(
           {
             name: 'tx',
-            metadata: {
-              source: 'url',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             },
           },
           hub,
@@ -652,12 +652,12 @@ describe('Span', () => {
       test.each([
         ['is included if transaction source is paremeterized route/url', 'route'],
         ['is included if transaction source is a custom name', 'custom'],
-      ])('%s', (_: string, source) => {
+      ] as const)('%s', (_, source) => {
         const transaction = new Transaction(
           {
             name: 'tx',
-            metadata: {
-              ...(source && { source: source as TransactionSource }),
+            attributes: {
+              ...(source && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source }),
             },
           },
           hub,

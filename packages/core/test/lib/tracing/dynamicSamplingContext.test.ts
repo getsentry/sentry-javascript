@@ -1,4 +1,4 @@
-import { TransactionSource } from '@sentry/types';
+import type { TransactionSource } from '@sentry/types';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
 import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { addTracingExtensions } from '../../../src/tracing';
