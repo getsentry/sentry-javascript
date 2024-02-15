@@ -231,7 +231,7 @@ describe('GCPFunction', () => {
     const handler: HttpFunction = (_req, res) => {
       res.end();
     };
-    const wrappedHandler = wrapHttpFunction(handler, { addRequestDataToEventOptions: { include: { ip: true } } });
+    const wrappedHandler = wrapHttpFunction(handler);
 
     await handleHttp(wrappedHandler);
 
@@ -247,7 +247,6 @@ describe('GCPFunction', () => {
         headers: { host: 'hostname', 'content-type': 'application/json' },
         body: { foo: 'bar' },
       },
-      requestDataOptionsFromGCPWrapper: { include: { ip: true } },
     });
   });
 
