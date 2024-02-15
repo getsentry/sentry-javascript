@@ -1,10 +1,6 @@
 import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import {
-  DEFAULT_TRACE_PROPAGATION_TARGETS,
-  getDefaultIntegrations as getReactDefaultIntegrations,
-  init as reactInit,
-} from '@sentry/react';
+import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
@@ -28,17 +24,6 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: BrowserOptions): void {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
-
-    tracePropagationTargets:
-      process.env.NODE_ENV === 'development'
-        ? [
-            // Will match any URL that contains "localhost" but not "webpack.hot-update.json" - The webpack dev-server
-            // has cors and it doesn't like extra headers when it's accessed from a different URL.
-            // TODO(v8): Ideally we rework our tracePropagationTargets logic so this hack won't be necessary anymore (see issue #9764)
-            /^(?=.*localhost)(?!.*webpack\.hot-update\.json).*/,
-            /^\/(?!\/)/,
-          ]
-        : [...DEFAULT_TRACE_PROPAGATION_TARGETS, /^(api\/)/],
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   } satisfies BrowserOptions;
