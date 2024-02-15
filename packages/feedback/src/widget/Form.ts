@@ -34,6 +34,8 @@ interface FormComponent extends FeedbackComponent<HTMLFormElement> {
    * Hides the error message
    */
   hideError: () => void;
+
+  screenshotButton: HTMLDivElement;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
@@ -156,13 +158,7 @@ export function Form({
     cancelButtonLabel,
   );
 
-  const button = createElement('div', { className: 'btn-group' });
-
-  // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotButton({
-    el: button,
-    props: null,
-  });
+  const screenshotButton = createElement('div', { className: 'btn-group' });
 
   const formEl = createElement(
     'form',
@@ -228,7 +224,7 @@ export function Form({
         ],
       ),
 
-      button,
+      screenshotButton,
 
       createElement(
         'div',
@@ -244,6 +240,7 @@ export function Form({
     get el() {
       return formEl;
     },
+    screenshotButton,
     showError,
     hideError,
   };

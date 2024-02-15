@@ -98,16 +98,11 @@ export function Dialog({
 
   const screenshot = createElement('div', { className: 'dialog-content' });
 
-  // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
-    el: screenshot,
-    props: null,
-  });
-
   const {
     el: formEl,
     showError,
     hideError,
+    screenshotButton,
   } = Form({
     showEmail,
     showName,
@@ -119,6 +114,13 @@ export function Dialog({
     onSubmit,
     onCancel,
     ...textLabels,
+  });
+
+  // @ts-expect-error temp
+  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
+    croppingRef: screenshot,
+    buttonRef: screenshotButton,
+    props: null,
   });
 
   el = createElement(
