@@ -169,6 +169,7 @@ jobs:
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
+      # is_develop for v7 now also means we're on the `v7` branch.
       is_develop: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v7' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       # When merging into master, or from master
@@ -314,7 +315,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           skip_step: build
-          main_branch: develop
+          main_branch: v7
           # When on release branch, we want to always run
           # Else, we fall back to the default handling of the action
           run_for_branch: ${{ (needs.job_get_metadata.outputs.is_release == 'true' && 'true') || '' }}
