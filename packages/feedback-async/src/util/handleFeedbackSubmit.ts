@@ -4,8 +4,7 @@ import { logger } from '@sentry/utils';
 import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import { sendFeedback } from '../sendFeedback';
-import type { FeedbackFormData, SendFeedbackOptions } from '../types';
-import type { DialogComponent } from '../widget/Dialog';
+import type { DialogComponent, FeedbackFormData, SendFeedbackOptions } from '../types';
 
 /**
  * Handles UI behavior of dialog when feedback is submitted, calls

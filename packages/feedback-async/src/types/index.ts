@@ -1,7 +1,6 @@
 import type { Primitive } from '@sentry/types';
 
 import type { ActorComponent } from '../widget/Actor';
-import type { DialogComponent } from '../widget/Dialog';
 
 export type SentryTags = { [key: string]: Primitive } | undefined;
 
@@ -322,6 +321,33 @@ export interface FeedbackThemes {
 
 export interface FeedbackComponent<T extends HTMLElement> {
   el: T | null;
+}
+
+export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
+  /**
+   * Shows the error message
+   */
+  showError: (message: string) => void;
+
+  /**
+   * Hides the error message
+   */
+  hideError: () => void;
+
+  /**
+   * Opens and shows the dialog and form
+   */
+  open: () => void;
+
+  /**
+   * Closes the dialog and form
+   */
+  close: () => void;
+
+  /**
+   * Check if dialog is currently opened
+   */
+  checkIsOpen: () => boolean;
 }
 
 /**
