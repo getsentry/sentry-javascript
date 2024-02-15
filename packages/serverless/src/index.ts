@@ -82,6 +82,7 @@ export {
   getModuleFromFilename,
   createGetModuleFromFilename,
   metrics,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   consoleIntegration,
   onUncaughtExceptionIntegration,

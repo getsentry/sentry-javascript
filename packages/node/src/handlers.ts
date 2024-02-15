@@ -8,10 +8,11 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getIsolationScope,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   startTransaction,
+  withIsolationScope,
   withScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
@@ -130,9 +131,9 @@ export function requestHandler(
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = getCurrentScope();
-    if (scope.getSession()) {
-      scope.setSession();
+    const isolationScope = getIsolationScope();
+    if (isolationScope.getSession()) {
+      isolationScope.setSession();
     }
   }
 
@@ -155,16 +156,15 @@ export function requestHandler(
           });
       };
     }
-    runWithAsyncContext(() => {
-      const scope = getCurrentScope();
-      scope.setSDKProcessingMetadata({
+    return withIsolationScope(isolationScope => {
+      isolationScope.setSDKProcessingMetadata({
         request: req,
       });
 
       const client = getClient<NodeClient>();
       if (isAutoSessionTrackingEnabled(client)) {
         // Set `status` of `RequestSession` to Ok, at the beginning of the request
-        scope.setRequestSession({ status: 'ok' });
+        isolationScope.setRequestSession({ status: 'ok' });
       }
 
       res.once('finish', () => {

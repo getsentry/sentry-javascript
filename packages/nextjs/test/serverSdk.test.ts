@@ -22,8 +22,8 @@ describe('Server init()', () => {
     SentryNode.getGlobalScope().clear();
     SentryNode.getIsolationScope().clear();
     SentryNode.getCurrentScope().clear();
+    SentryNode.getCurrentScope().setClient(undefined);
 
-    GLOBAL_OBJ.__SENTRY__.hub = undefined;
     delete process.env.VERCEL;
   });
 

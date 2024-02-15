@@ -2,12 +2,14 @@ import * as http from 'http';
 import * as sentryCore from '@sentry/core';
 import {
   Hub,
-  Scope,
+  Scope as ScopeClass,
   Transaction,
   getClient,
   getCurrentScope,
+  getIsolationScope,
+  getMainCarrier,
   makeMain,
-  setAsyncContextStrategy,
+  mergeScopeData,
   spanToJSON,
 } from '@sentry/core';
 import type { Event, PropagationContext } from '@sentry/types';
@@ -17,19 +19,15 @@ import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
-function mockAsyncContextStrategy(getHub: () => Hub): void {
-  function getCurrentHub(): Hub | undefined {
-    return getHub();
-  }
-
-  function runWithAsyncContext<T>(fn: (hub: Hub) => T): T {
-    return fn(getHub());
-  }
-
-  setAsyncContextStrategy({ getCurrentHub, runWithAsyncContext });
-}
-
 describe('requestHandler', () => {
+  beforeEach(() => {
+    // Ensure we reset a potentially set acs to use the default
+    const sentry = getMainCarrier().__SENTRY__;
+    if (sentry) {
+      sentry.acs = undefined;
+    }
+  });
+
   const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
   const method = 'wagging';
   const protocol = 'mutualsniffing';
@@ -68,14 +66,13 @@ describe('requestHandler', () => {
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = getCurrentScope();
-    expect(scope?.getRequestSession()).toEqual({ status: 'ok' });
+    const isolationScope = getIsolationScope();
+    expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
   });
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', () => {
@@ -83,9 +80,8 @@ describe('requestHandler', () => {
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     sentryRequestMiddleware(req, res, next);
 
@@ -98,19 +94,18 @@ describe('requestHandler', () => {
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = getCurrentScope();
+    const isolationScope = getIsolationScope();
     res.emit('finish');
 
     setImmediate(() => {
-      expect(scope?.getRequestSession()).toEqual({ status: 'ok' });
+      expect(isolationScope.getRequestSession()).toEqual({ status: 'ok' });
       expect(captureRequestSession).toHaveBeenCalled();
       done();
     });
@@ -121,9 +116,8 @@ describe('requestHandler', () => {
     client = new NodeClient(options);
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -168,16 +162,18 @@ describe('requestHandler', () => {
   it('stores request and request data options in `sdkProcessingMetadata`', () => {
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(getDefaultNodeClientOptions()));
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     const requestHandlerOptions = { include: { ip: false } };
     const sentryRequestMiddleware = requestHandler(requestHandlerOptions);
 
     sentryRequestMiddleware(req, res, next);
 
-    const scope = getCurrentScope();
-    expect((scope as any)._sdkProcessingMetadata).toEqual({
+    const scopeData = getIsolationScope().getScopeData();
+    mergeScopeData(scopeData, getCurrentScope().getScopeData());
+
+    expect(scopeData.sdkProcessingMetadata).toEqual({
       request: req,
     });
   });
@@ -207,7 +203,6 @@ describe('tracingHandler', () => {
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 
-    mockAsyncContextStrategy(() => hub);
     req = {
       headers,
       method,
@@ -329,7 +324,8 @@ describe('tracingHandler', () => {
     const options = getDefaultNodeClientOptions({ tracesSampler });
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     hub.run(() => {
       sentryTracingMiddleware(req, res, next);
@@ -352,9 +348,8 @@ describe('tracingHandler', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     sentryTracingMiddleware(req, res, next);
 
@@ -575,10 +570,11 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new Scope();
+    const scope = new ScopeClass();
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client, scope);
-    mockAsyncContextStrategy(() => hub);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -598,7 +594,7 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new Scope();
+    const scope = new ScopeClass();
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client, scope);
 
@@ -616,7 +612,6 @@ describe('errorHandler()', () => {
 
     // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(client);
-    mockAsyncContextStrategy(() => hub);
     // eslint-disable-next-line deprecation/deprecation
     makeMain(hub);
 

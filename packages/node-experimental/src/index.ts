@@ -32,13 +32,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
-  withScope,
-  withIsolationScope,
   withActiveSpan,
-  getCurrentScope,
-  getIsolationScope,
-  setIsolationScope,
-  setCurrentScope,
 } from './sdk/api';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
@@ -60,6 +54,7 @@ export {
   createTransport,
   flush,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   SDK_VERSION,
   getSpanStatusFromHttpCode,
@@ -97,6 +92,10 @@ export {
   parameterize,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  getCurrentScope,
+  getIsolationScope,
+  withScope,
+  withIsolationScope,
 } from '@sentry/node';
 
 export type {

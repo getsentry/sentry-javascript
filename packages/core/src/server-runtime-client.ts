@@ -15,8 +15,8 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { getClient } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { getClient } from './exports';
 import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';

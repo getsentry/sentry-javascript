@@ -11,6 +11,7 @@ describe('Client init()', () => {
     SentryReact.getGlobalScope().clear();
     SentryReact.getIsolationScope().clear();
     SentryReact.getCurrentScope().clear();
+    SentryReact.getCurrentScope().setClient(undefined);
   });
 
   it('inits the React SDK', () => {

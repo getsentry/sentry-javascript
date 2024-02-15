@@ -11,6 +11,7 @@ useFakeTimers();
 describe('Integration | eventProcessors', () => {
   beforeEach(() => {
     getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   afterEach(() => {
