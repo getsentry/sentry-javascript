@@ -1,3 +1,3 @@
-packages/replay                                   @getsentry/replay-sdk
-packages/replay-worker                            @getsentry/replay-sdk
-dev-packages/browser-integration-tests/suites/replay  @getsentry/replay-sdk
+packages/replay                                   @getsentry/replay-sdk-web
+packages/replay-worker                            @getsentry/replay-sdk-web
+dev-packages/browser-integration-tests/suites/replay  @getsentry/replay-sdk-web
