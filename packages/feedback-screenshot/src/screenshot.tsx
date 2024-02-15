@@ -1,17 +1,18 @@
 import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { ScreenshotButton } from './screenshotButton';
-import { ScreenshotWidget } from './screenshotWidget';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { h, render } from 'preact';
 
 interface FeedbackScreenshotOptions {
-  el: Element;
+  buttonRef: HTMLDivElement;
+  croppingRef: HTMLDivElement;
   props: unknown;
 }
 
 export interface FeedbackScreenshotIntegrationOptions {
-  el: Element;
+  buttonRef: HTMLDivElement;
+  croppingRef: HTMLDivElement;
   props: unknown;
 }
 
@@ -25,13 +26,14 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     getOptions(): FeedbackScreenshotIntegrationOptions {
-      return { el: options.el || WINDOW.document.createElement('div'), props: options.props || null };
+      return {
+        buttonRef: options.buttonRef || WINDOW.document.createElement('div'),
+        croppingRef: options.croppingRef || WINDOW.document.createElement('div'),
+        props: options.props || null,
+      };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
-      return render(<ScreenshotWidget />, options.el);
-    },
-    renderScreenshotButton: (options: FeedbackScreenshotOptions) => {
-      return render(<ScreenshotButton />, options.el);
+      return render(<ScreenshotButton croppingRef={options.croppingRef} />, options.buttonRef);
     },
   };
 }) satisfies IntegrationFn;
