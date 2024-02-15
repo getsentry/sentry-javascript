@@ -466,6 +466,7 @@ describe('Integration | Transactions', () => {
             data: {
               'otel.kind': 'INTERNAL',
               'sentry.origin': 'manual',
+              'sentry.source': 'custom',
             },
             span_id: expect.any(String),
             status: 'ok',

@@ -73,7 +73,6 @@ describe('Integration | Transactions', () => {
           otel: {
             attributes: {
               'test.outer': 'test value',
-              'sentry.source': 'custom',
             },
             resource: {
               'service.name': 'opentelemetry-test',
@@ -89,7 +88,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
-              'sentry.source': 'custom',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -149,6 +148,7 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -164,6 +164,7 @@ describe('Integration | Transactions', () => {
           'otel.kind': 'INTERNAL',
           'test.inner': 'test value',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         description: 'inner span 2',
         origin: 'manual',
@@ -300,6 +301,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
+              'sentry.source': 'custom',
             },
             op: 'test op b',
             span_id: expect.any(String),
@@ -423,6 +425,7 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -437,6 +440,7 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         },
         description: 'inner span 2',
         origin: 'manual',
