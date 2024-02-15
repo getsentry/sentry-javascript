@@ -10,6 +10,7 @@ import deepMerge from 'deepmerge';
 
 import {
   makeCleanupPlugin,
+  makeCodeCovPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
@@ -28,6 +29,7 @@ export function makeBaseNPMConfig(options = {}) {
     hasBundles = false,
     packageSpecificConfig = {},
     addPolyfills = true,
+    bundleAnalysis,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -111,6 +113,10 @@ export function makeBaseNPMConfig(options = {}) {
     defaultBaseConfig.plugins.push(extractPolyfillsPlugin);
   }
 
+  if (bundleAnalysis && bundleAnalysis.length) {
+    defaultBaseConfig.plugins.push(makeCodeCovPlugin(bundleAnalysis));
+  }
+
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {
     // Plugins have to be in the correct order or everything breaks, so when merging we have to manually re-order them
     customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
@@ -118,6 +124,9 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig) {
+  baseConfig.plugins = baseConfig.plugins || [];
+  baseConfig.plugins.push()
+
   const variantSpecificConfigs = [
     { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
     { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') } },

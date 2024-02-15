@@ -7,6 +7,7 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
+import { codecovRollupPlugin } from '@codecov/rollup-plugin';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 import cleanup from 'rollup-plugin-cleanup';
@@ -129,6 +130,18 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
     preventAssignment: true,
     values,
   });
+}
+
+/**
+ * Plugin that uploads bundle analysis to codecov.
+ */
+export function makeCodeCovPlugin(bundleName) {
+  console.log(process.env.GITHUB_ACTIONS, process.env.CODECOV_TOKEN === undefined)
+  return codecovRollupPlugin({
+    enableBundleAnalysis: process.env.GITHUB_ACTIONS === 'true' && process.env.CODECOV_TOKEN,
+    bundleName,
+    uploadToken: process.env.CODECOV_TOKEN,
+  })
 }
 
 export { makeExtractPolyfillsPlugin } from './extractPolyfillsPlugin.mjs';
