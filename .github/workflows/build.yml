@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - develop
+      - v7
       - master
       - release/**
   pull_request:
@@ -168,7 +169,7 @@ jobs:
       changed_browser_integration: ${{ steps.changed.outputs.browser_integration }}
       changed_any_code: ${{ steps.changed.outputs.any_code }}
       # Note: These next three have to be checked as strings ('true'/'false')!
-      is_develop: ${{ github.ref == 'refs/heads/develop' }}
+      is_develop: ${{ github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/v7' }}
       is_release: ${{ startsWith(github.ref, 'refs/heads/release/') }}
       # When merging into master, or from master
       is_gitflow_sync: ${{ github.head_ref == 'master' || github.ref == 'refs/heads/master' }}
