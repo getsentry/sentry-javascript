@@ -1,5 +1,5 @@
-import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions, makeMain } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
@@ -81,7 +81,6 @@ function resolve(
   };
 }
 
-let hub: Hub;
 let client: NodeClient;
 
 beforeAll(() => {
@@ -91,10 +90,8 @@ beforeAll(() => {
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
-  // eslint-disable-next-line deprecation/deprecation
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 
   mockCaptureException.mockClear();
 });

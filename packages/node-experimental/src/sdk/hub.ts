@@ -10,19 +10,18 @@ import type {
   TransactionContext,
 } from '@sentry/types';
 
-import { addBreadcrumb, endSession, startSession } from '@sentry/core';
 import {
-  captureEvent,
-  getClient,
-  getCurrentScope,
+  addBreadcrumb,
+  endSession,
   setContext,
   setExtra,
   setExtras,
   setTag,
   setTags,
   setUser,
-  withScope,
-} from './api';
+  startSession,
+} from '@sentry/core';
+import { captureEvent, getClient, getCurrentScope, withScope } from './api';
 import { callExtensionMethod, getGlobalCarrier } from './globals';
 import { getIsolationScope } from './scope';
 import type { SentryCarrier } from './types';

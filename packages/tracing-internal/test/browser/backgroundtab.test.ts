@@ -1,4 +1,5 @@
-import { Hub, makeMain, spanToJSON, startSpan } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
@@ -8,17 +9,15 @@ import { TestClient } from '../utils/TestClient';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
-  let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(new TestClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined
     // eslint-disable-next-line deprecation/deprecation
@@ -32,8 +31,7 @@ describe('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    // eslint-disable-next-line deprecation/deprecation
-    hub.getScope().setSpan(undefined);
+    getCurrentScope().clear();
   });
 
   it('does not create an event listener if global document is undefined', () => {
