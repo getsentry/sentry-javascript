@@ -7,10 +7,14 @@ export default makeNPMConfigVariants(
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn
         exports: 'named',
-        // set preserveModules to false because for feedback we actually want
+        // set preserveModules to false because for Replay we actually want
         // to bundle everything into one file.
         preserveModules: false,
       },
+    },
+    sucrase: {
+      jsxPragma: 'h',
+      jsxFragmentPragma: 'Fragment',
     },
   }),
 );

@@ -4,5 +4,3 @@ export {
   FeedbackAsync,
   feedbackAsyncIntegration,
 } from './integration';
-
-console.log('Feedback 4');

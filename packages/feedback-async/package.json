@@ -31,7 +31,9 @@
   "dependencies": {
     "@sentry/core": "7.100.0",
     "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry/utils": "7.100.0",
+    "preact": "^10.19.4",
+    "preact-compat": "^3.19.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",

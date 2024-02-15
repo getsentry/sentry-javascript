@@ -9,7 +9,7 @@ const baseBundleConfig = makeBaseBundleConfig({
   sucrase: {
     jsxPragma: 'h',
     jsxFragmentPragma: 'Fragment',
-  }
+  },
 });
 
 const builds = makeBundleConfigVariants(baseBundleConfig);
