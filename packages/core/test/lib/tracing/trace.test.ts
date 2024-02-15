@@ -1,10 +1,11 @@
 import type { Span as SpanType } from '@sentry/types';
 import {
-  Hub,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   addTracingExtensions,
+  getCurrentHub,
   getCurrentScope,
-  makeMain,
+  getGlobalScope,
+  getIsolationScope,
   setCurrentClient,
   spanToJSON,
   withScope,
@@ -28,17 +29,24 @@ const enum Type {
   Async = 'async',
 }
 
-let hub: Hub;
 let client: TestClient;
 
 describe('startSpan', () => {
   beforeEach(() => {
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe.each([
@@ -70,7 +78,9 @@ describe('startSpan', () => {
       // @ts-expect-error we are force overriding the transaction return to be undefined
       // The `startTransaction` types are actually wrong - it can return undefined
       // if tracingExtensions are not enabled
-      jest.spyOn(hub, 'startTransaction').mockReturnValue(undefined);
+      // eslint-disable-next-line deprecation/deprecation
+      jest.spyOn(getCurrentHub(), 'startTransaction').mockImplementationOnce(() => undefined);
+
       try {
         const result = await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();
@@ -280,7 +290,7 @@ describe('startSpan', () => {
     expect(spanToJSON(_span!).timestamp).toBeDefined();
   });
 
-  it('allows to pass a `startTime`', () => {
+  it('allows to pass a `startTime` yyy', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
       return spanToJSON(span!).start_timestamp;
     });
@@ -368,6 +378,7 @@ describe('startSpan', () => {
     const options = getDefaultTestClientOptions({ tracesSampler });
     client = new TestClient(options);
     setCurrentClient(client);
+    client.init();
 
     startSpan(
       { name: 'outer', attributes: { test1: 'aa', test2: 'aa' }, data: { test1: 'bb', test3: 'bb' } },
@@ -390,20 +401,17 @@ describe('startSpan', () => {
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const transactionEventPromise = new Promise(resolve => {
-      setCurrentClient(
-        new TestClient(
-          getDefaultTestClientOptions({
-            dsn: 'https://username@domain/123',
-            tracesSampleRate: 1,
-            beforeSendTransaction(event) {
-              resolve(event);
-              return event;
-            },
-          }),
-        ),
-      );
-    });
+    const beforeSendTransaction = jest.fn(event => event);
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        tracesSampleRate: 1,
+        beforeSendTransaction,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
 
     withScope(scope1 => {
       scope1.setTag('scope', 1);
@@ -415,11 +423,17 @@ describe('startSpan', () => {
       });
     });
 
-    expect(await transactionEventPromise).toMatchObject({
-      tags: {
-        scope: 1,
-      },
-    });
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          scope: 1,
+        }),
+      }),
+      expect.anything(),
+    );
   });
 });
 
@@ -427,10 +441,8 @@ describe('startSpanManual', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('creates & finishes span', async () => {
@@ -538,10 +550,8 @@ describe('startInactiveSpan', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('creates & finishes span', async () => {
@@ -627,20 +637,17 @@ describe('startInactiveSpan', () => {
   });
 
   it('includes the scope at the time the span was started when finished', async () => {
-    const transactionEventPromise = new Promise(resolve => {
-      setCurrentClient(
-        new TestClient(
-          getDefaultTestClientOptions({
-            dsn: 'https://username@domain/123',
-            tracesSampleRate: 1,
-            beforeSendTransaction(event) {
-              resolve(event);
-              return event;
-            },
-          }),
-        ),
-      );
-    });
+    const beforeSendTransaction = jest.fn(event => event);
+
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://username@domain/123',
+        tracesSampleRate: 1,
+        beforeSendTransaction,
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
 
     let span: SpanType | undefined;
 
@@ -654,11 +661,17 @@ describe('startInactiveSpan', () => {
       span?.end();
     });
 
-    expect(await transactionEventPromise).toMatchObject({
-      tags: {
-        scope: 1,
-      },
-    });
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tags: expect.objectContaining({
+          scope: 1,
+        }),
+      }),
+      expect.anything(),
+    );
   });
 });
 
@@ -666,10 +679,8 @@ describe('continueTrace', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
     client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('works without trace & baggage data', () => {
