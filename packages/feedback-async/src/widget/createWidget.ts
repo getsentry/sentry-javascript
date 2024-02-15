@@ -5,8 +5,8 @@ import type { DialogComponent, FeedbackFormData, FeedbackInternalOptions, Feedba
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
-import { Dialog } from './Dialog';
 import { SuccessMessage } from './SuccessMessage';
+import { loadDialog } from './loadDialog';
 
 interface CreateWidgetParams {
   /**
@@ -163,51 +163,59 @@ export function createWidget({
       const scope = getCurrentScope();
       const user = scope && scope.getUser();
 
-      dialog = Dialog({
-        colorScheme: options.colorScheme,
-        showBranding: options.showBranding,
-        showName: options.showName || options.isNameRequired,
-        showEmail: options.showEmail || options.isEmailRequired,
-        isNameRequired: options.isNameRequired,
-        isEmailRequired: options.isEmailRequired,
-        formTitle: options.formTitle,
-        cancelButtonLabel: options.cancelButtonLabel,
-        submitButtonLabel: options.submitButtonLabel,
-        emailLabel: options.emailLabel,
-        emailPlaceholder: options.emailPlaceholder,
-        messageLabel: options.messageLabel,
-        messagePlaceholder: options.messagePlaceholder,
-        nameLabel: options.nameLabel,
-        namePlaceholder: options.namePlaceholder,
-        defaultName: (userKey && user && user[userKey.name]) || '',
-        defaultEmail: (userKey && user && user[userKey.email]) || '',
-        onClosed: () => {
-          showActor();
-          isDialogOpen = false;
+      loadDialog()
+        .then(Dialog => {
+          dialog = Dialog({
+            colorScheme: options.colorScheme,
+            showBranding: options.showBranding,
+            showName: options.showName || options.isNameRequired,
+            showEmail: options.showEmail || options.isEmailRequired,
+            isNameRequired: options.isNameRequired,
+            isEmailRequired: options.isEmailRequired,
+            formTitle: options.formTitle,
+            cancelButtonLabel: options.cancelButtonLabel,
+            submitButtonLabel: options.submitButtonLabel,
+            emailLabel: options.emailLabel,
+            emailPlaceholder: options.emailPlaceholder,
+            messageLabel: options.messageLabel,
+            messagePlaceholder: options.messagePlaceholder,
+            nameLabel: options.nameLabel,
+            namePlaceholder: options.namePlaceholder,
+            defaultName: (userKey && user && user[userKey.name]) || '',
+            defaultEmail: (userKey && user && user[userKey.email]) || '',
+            onClosed: () => {
+              showActor();
+              isDialogOpen = false;
 
-          if (options.onFormClose) {
-            options.onFormClose();
+              if (options.onFormClose) {
+                options.onFormClose();
+              }
+            },
+            onCancel: () => {
+              closeDialog();
+              showActor();
+            },
+            onSubmit: _handleFeedbackSubmit,
+          });
+
+          if (!dialog.el) {
+            throw new Error('Unable to open Feedback dialog');
           }
-        },
-        onCancel: () => {
-          closeDialog();
-          showActor();
-        },
-        onSubmit: _handleFeedbackSubmit,
-      });
 
-      if (!dialog.el) {
-        throw new Error('Unable to open Feedback dialog');
-      }
+          shadow.appendChild(dialog.el);
 
-      shadow.appendChild(dialog.el);
+          // Hides the default actor whenever dialog is opened
+          hideActor();
 
-      // Hides the default actor whenever dialog is opened
-      hideActor();
-
-      if (options.onFormOpen) {
-        options.onFormOpen();
-      }
+          if (options.onFormOpen) {
+            options.onFormOpen();
+          }
+        })
+        .catch(err => {
+          // TODO: Error handling?
+          logger.error(err);
+          console.log(err);
+        });
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);
