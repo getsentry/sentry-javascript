@@ -4,7 +4,7 @@ window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [Sentry.browserTracingIntegration()],
+  integrations: [new Sentry.BrowserTracing()],
   environment: 'production',
   tracesSampleRate: 1,
   debug: true,
@@ -19,3 +19,4 @@ Sentry.addEventProcessor(event => {
 
 const scope = Sentry.getCurrentScope();
 scope.getTransaction().setMetadata({ source: 'custom' });
+scope.getTransaction().setAttributes({ [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });

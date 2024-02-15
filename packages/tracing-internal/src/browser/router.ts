@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { Transaction, TransactionContext } from '@sentry/types';
 import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
@@ -17,17 +18,20 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
     return;
   }
 
-  let startingUrl: string | undefined = WINDOW.location.href;
+  let startingUrl: string | undefined = 'wtf4';
 
   let activeTransaction: T | undefined;
   if (startTransactionOnPageLoad) {
     activeTransaction = customStartTransaction({
-      name: WINDOW.location.pathname,
+      name: WINDOW.location.pathname, // wtf5
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
       origin: 'auto.pageload.browser',
       metadata: { source: 'url' },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 
@@ -55,7 +59,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
           activeTransaction.end();
         }
         activeTransaction = customStartTransaction({
-          name: WINDOW.location.pathname,
+          name: 'wtf6',
           op: 'navigation',
           origin: 'auto.navigation.browser',
           metadata: { source: 'url' },
