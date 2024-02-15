@@ -23,6 +23,7 @@ concurrency:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
+  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # WARNING: this disables cross os caching as ~ and
   # github.workspace evaluate to differents paths
