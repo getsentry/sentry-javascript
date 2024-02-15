@@ -1,19 +1,35 @@
 /* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, Scope, makeMain, spanToJSON } from '@sentry/core';
+import {
+  Hub,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
+  getCurrentHub,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  setCurrentClient,
+  spanToJSON,
+} from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
 import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('Span', () => {
-  let hub: Hub;
-
   beforeEach(() => {
-    const myScope = new Scope();
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new BrowserClient(options), myScope);
-    makeMain(hub);
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   describe('new Span', () => {
@@ -190,6 +206,12 @@ describe('Span', () => {
     });
 
     describe('hub.startTransaction', () => {
+      let hub: Hub;
+
+      beforeEach(() => {
+        hub = getCurrentHub() as Hub;
+      });
+
       test('finish a transaction', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
         const transaction = hub.startTransaction({ name: 'test' });
@@ -333,6 +355,12 @@ describe('Span', () => {
     });
 
     describe('hub.startTransaction', () => {
+      let hub: Hub;
+
+      beforeEach(() => {
+        hub = getCurrentHub() as Hub;
+      });
+
       test('finish a transaction', () => {
         const spy = jest.spyOn(hub as any, 'captureEvent') as any;
         const transaction = hub.startTransaction({ name: 'test' });
@@ -587,7 +615,7 @@ describe('Span', () => {
 
   describe('getDynamicSamplingContext', () => {
     beforeEach(() => {
-      hub.getClient()!.getOptions = () => {
+      getClient()!.getOptions = () => {
         return {
           release: '1.0.1',
           environment: 'production',
@@ -601,7 +629,7 @@ describe('Span', () => {
           name: 'tx',
           metadata: { dynamicSamplingContext: { environment: 'myEnv' } },
         },
-        hub,
+        getCurrentHub(),
       );
 
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
@@ -618,7 +646,7 @@ describe('Span', () => {
         sampled: true,
       });
 
-      const getOptionsSpy = jest.spyOn(hub.getClient()!, 'getOptions');
+      const getOptionsSpy = jest.spyOn(getClient()!, 'getOptions');
 
       const dynamicSamplingContext = transaction.getDynamicSamplingContext();
 
@@ -642,7 +670,7 @@ describe('Span', () => {
               source: 'url',
             },
           },
-          hub,
+          getCurrentHub(),
         );
 
         const dsc = transaction.getDynamicSamplingContext()!;
@@ -660,7 +688,7 @@ describe('Span', () => {
               ...(source && { source: source as TransactionSource }),
             },
           },
-          hub,
+          getCurrentHub(),
         );
 
         const dsc = transaction.getDynamicSamplingContext()!;
@@ -672,6 +700,8 @@ describe('Span', () => {
 
   describe('Transaction source', () => {
     test('is included when transaction metadata is set', () => {
+      const hub = getCurrentHub();
+
       const spy = jest.spyOn(hub as any, 'captureEvent') as any;
       const transaction = hub.startTransaction({ name: 'test', sampled: true });
       transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'url');
