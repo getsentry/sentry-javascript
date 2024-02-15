@@ -8,7 +8,6 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   integrations: [Sentry.httpIntegration({})],
-  debug: true,
 });
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
