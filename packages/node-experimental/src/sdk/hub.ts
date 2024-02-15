@@ -34,6 +34,7 @@ export function setupGlobalHub(): void {
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
+ * @deprecated Use the methods directly.
  */
 export function getCurrentHub(): Hub {
   return {
@@ -122,17 +123,6 @@ export function getCurrentHub(): Hub {
       return Boolean(options.sendDefaultPii);
     },
   };
-}
-
-/**
- * Replaces the current main hub with the passed one on the global object
- *
- * @returns The old replaced hub
- */
-export function makeMain(hub: Hub): Hub {
-  // eslint-disable-next-line no-console
-  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');
-  return hub;
 }
 
 /**

@@ -21,7 +21,7 @@ export const Integrations = {
   ...NodeExperimentalIntegrations,
 };
 
-export { init } from './sdk/init';
+export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
@@ -40,7 +40,7 @@ export {
   setIsolationScope,
   setCurrentScope,
 } from './sdk/api';
-export { getCurrentHub, makeMain } from './sdk/hub';
+export { getCurrentHub } from './sdk/hub';
 
 export {
   addBreadcrumb,
@@ -88,6 +88,14 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  Scope,
+  setMeasurement,
+  continueTrace,
+  cron,
+  parameterize,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
 } from '@sentry/node';
 
 export type {
@@ -108,4 +116,5 @@ export type {
   Stacktrace,
   Thread,
   User,
+  NodeOptions,
 } from '@sentry/node';
