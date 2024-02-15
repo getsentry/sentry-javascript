@@ -1,5 +1,12 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, TRACING_DEFAULTS, makeMain, setCurrentClient, spanToJSON } from '@sentry/core';
+import {
+  Hub,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  TRACING_DEFAULTS,
+  makeMain,
+  setCurrentClient,
+  spanToJSON,
+} from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
@@ -240,7 +247,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.name).toBe('newName');
-        expect(transaction.metadata.source).toBe('custom');
+        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -252,13 +259,17 @@ describe('BrowserTracing', () => {
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: (customStartTransaction: (obj: any) => void) => {
-            customStartTransaction({ name: 'a/path', op: 'pageload', metadata: { source: 'url' } });
+            customStartTransaction({
+              name: 'a/path',
+              op: 'pageload',
+              attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+            });
           },
         });
         const transaction = getActiveTransaction(hub) as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.name).toBe('a/path');
-        expect(transaction.metadata.source).toBe('url');
+        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
