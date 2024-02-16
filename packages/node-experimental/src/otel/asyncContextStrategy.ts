@@ -33,6 +33,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   }
 
   function getCurrentHub(): Hub {
+    // eslint-disable-next-line deprecation/deprecation
     const hub = _getCurrentHub();
     return {
       ...hub,

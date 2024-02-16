@@ -46,7 +46,7 @@ export class SentryContextManager extends AsyncLocalStorageContextManager {
     const scopes: CurrentScopes = { scope: newCurrentScope, isolationScope: newIsolationScope };
 
     const mockHub = {
-      // eslint-disable-next-line deprecation/depreaction
+      // eslint-disable-next-line deprecation/deprecation
       ...getCurrentHub(),
       getScope: () => newCurrentScope,
       getIsolationScope: () => newIsolationScope,
