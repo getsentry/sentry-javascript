@@ -4,7 +4,8 @@
   "scripts": {
     "ng": "ng",
     "dev": "ng serve",
-    "preview": "http-server dist/angular-17/browser",
+    "proxy": "ts-node-script start-event-proxy.ts",
+    "preview": "http-server dist/angular-17/browser --port 8080",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
@@ -22,6 +23,7 @@
     "@angular/platform-browser": "^17.1.0",
     "@angular/platform-browser-dynamic": "^17.1.0",
     "@angular/router": "^17.1.0",
+    "@sentry/angular-ivy": "* || latest",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"
@@ -31,7 +33,6 @@
     "@angular/cli": "^17.1.1",
     "@angular/compiler-cli": "^17.1.0",
     "@playwright/test": "^1.41.1",
-    "@sentry/angular-ivy": "latest || *",
     "@types/jasmine": "~5.1.0",
     "http-server": "^14.1.1",
     "jasmine-core": "~5.1.0",
@@ -40,11 +41,18 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "typescript": "~5.3.2",
     "ts-node": "10.9.1",
+    "typescript": "~5.3.2",
     "wait-port": "1.0.4"
   },
   "volta": {
     "extends": "../../package.json"
+  },
+  "pnpm": {
+    "overrides": {
+      "@sentry/browser": "latest || *",
+      "@sentry/core": "latest || *",
+      "@sentry/utils": "latest || *"
+    }
   }
 }

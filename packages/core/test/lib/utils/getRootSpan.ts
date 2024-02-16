@@ -1,8 +1,8 @@
-import { Span, Transaction, getRootSpan } from '../../../src';
+import { SentrySpan, Transaction, getRootSpan } from '../../../src';
 
 describe('getRootSpan', () => {
-  it('returns the root span of a span (Span)', () => {
-    const root = new Span({ name: 'test' });
+  it('returns the root span of a span (SentrySpan)', () => {
+    const root = new SentrySpan({ name: 'test' });
     // @ts-expect-error this is highly illegal and shouldn't happen IRL
     // eslint-disable-next-line deprecation/deprecation
     root.transaction = root;
@@ -29,7 +29,7 @@ describe('getRootSpan', () => {
   });
 
   it('returns undefined if span has no root span', () => {
-    const span = new Span({ name: 'test' });
+    const span = new SentrySpan({ name: 'test' });
 
     expect(getRootSpan(span)).toBe(undefined);
   });

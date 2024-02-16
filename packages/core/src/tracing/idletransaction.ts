@@ -4,8 +4,8 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import type { Span } from './span';
-import { SpanRecorder } from './span';
+import type { SentrySpan } from './sentrySpan';
+import { SpanRecorder } from './sentrySpan';
 import { Transaction } from './transaction';
 
 export const TRACING_DEFAULTS = {
@@ -41,7 +41,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   /**
    * @inheritDoc
    */
-  public add(span: Span): void {
+  public add(span: SentrySpan): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
     if (span.spanContext().spanId !== this.transactionSpanId) {
@@ -178,7 +178,7 @@ export class IdleTransaction extends Transaction {
       }
 
       // eslint-disable-next-line deprecation/deprecation
-      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
+      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: SentrySpan) => {
         // If we are dealing with the transaction itself, we just return it
         if (span.spanContext().spanId === this.spanContext().spanId) {
           return true;

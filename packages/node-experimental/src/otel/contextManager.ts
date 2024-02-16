@@ -1,11 +1,18 @@
 import type { Context } from '@opentelemetry/api';
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks';
+import { getCurrentScope, getIsolationScope } from '@sentry/core';
 import { setHubOnContext } from '@sentry/opentelemetry';
+import type { Scope } from '@sentry/types';
 import { getCurrentHub } from '../sdk/hub';
 
-import { getCurrentScope, getIsolationScope } from './../sdk/api';
 import type { CurrentScopes } from './../sdk/types';
-import { getScopesFromContext, setScopesOnContext } from './../utils/contextData';
+import {
+  SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
+  getScopesFromContext,
+  setScopesOnContext,
+} from './../utils/contextData';
 
 /**
  * This is a custom ContextManager for OpenTelemetry, which extends the default AsyncLocalStorageContextManager.
@@ -25,20 +32,35 @@ export class SentryContextManager extends AsyncLocalStorageContextManager {
     thisArg?: ThisParameterType<F>,
     ...args: A
   ): ReturnType<F> {
-    const previousScopes = getScopesFromContext(context);
+    const currentScopes = getScopesFromContext(context);
+    const currentScope = currentScopes?.scope || getCurrentScope();
+    const currentIsolationScope = currentScopes?.isolationScope || getIsolationScope();
 
-    const currentScope = previousScopes ? previousScopes.scope : getCurrentScope();
-    const isolationScope = previousScopes ? previousScopes.isolationScope : getIsolationScope();
+    const shouldForkIsolationScope = context.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
+    const scope = context.getValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY) as Scope | undefined;
+    const isolationScope = context.getValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY) as Scope | undefined;
 
-    const newCurrentScope = currentScope.clone();
-    const scopes: CurrentScopes = { scope: newCurrentScope, isolationScope };
+    const newCurrentScope = scope || currentScope.clone();
+    const newIsolationScope =
+      isolationScope || (shouldForkIsolationScope ? currentIsolationScope.clone() : currentIsolationScope);
+    const scopes: CurrentScopes = { scope: newCurrentScope, isolationScope: newIsolationScope };
 
-    // We also need to "mock" the hub on the context, as the original @sentry/opentelemetry uses that...
-    const mockHub = { ...getCurrentHub(), getScope: () => scopes.scope };
+    const mockHub = {
+      // eslint-disable-next-line deprecation/deprecation
+      ...getCurrentHub(),
+      getScope: () => newCurrentScope,
+      getIsolationScope: () => newIsolationScope,
+    };
 
     const ctx1 = setHubOnContext(context, mockHub);
     const ctx2 = setScopesOnContext(ctx1, scopes);
 
-    return super.with(ctx2, fn, thisArg, ...args);
+    // Remove the unneeded values again
+    const ctx3 = ctx2
+      .deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY)
+      .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
+      .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY);
+
+    return super.with(ctx3, fn, thisArg, ...args);
   }
 }

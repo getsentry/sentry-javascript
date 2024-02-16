@@ -82,6 +82,7 @@ export {
   createGetModuleFromFilename,
   hapiErrorPlugin,
   metrics,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,

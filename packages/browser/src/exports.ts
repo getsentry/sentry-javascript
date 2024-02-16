@@ -37,8 +37,9 @@ export {
   getClient,
   isInitialized,
   getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,

@@ -45,7 +45,7 @@ Sentry.init({
 
 Sentry.setTag('a', 'b');
 
-Sentry.runWithAsyncContext(() => {
+Sentry.withIsolationScope(() => {
   Sentry.setTag('a', 'x');
   Sentry.captureMessage('inside');
 });

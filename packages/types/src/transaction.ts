@@ -21,12 +21,12 @@ export interface TransactionContext extends SpanContext {
    * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
    * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
-  trimEnd?: boolean;
+  trimEnd?: boolean | undefined;
 
   /**
    * If this transaction has a parent, the parent's sampling decision
    */
-  parentSampled?: boolean;
+  parentSampled?: boolean | undefined;
 
   /**
    * Metadata associated with the transaction, for internal SDK use.
@@ -204,12 +204,6 @@ export interface TransactionMetadata {
 
   /** For transactions tracing server-side request handling, the request being tracked. */
   request?: PolymorphicRequest;
-
-  /** Compatibility shim for transitioning to the `RequestData` integration. The options passed to our Express request
-   * handler controlling what request data is added to the event.
-   * TODO (v8): This should go away
-   */
-  requestDataOptionsFromExpressHandler?: { [key: string]: unknown };
 
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */

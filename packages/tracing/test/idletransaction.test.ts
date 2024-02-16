@@ -3,23 +3,35 @@ import { BrowserClient } from '@sentry/browser';
 import {
   TRACING_DEFAULTS,
   Transaction,
+  getCurrentHub,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  setCurrentClient,
   spanToJSON,
   startInactiveSpan,
   startSpan,
   startSpanManual,
 } from '@sentry/core';
 
-import { Hub, IdleTransaction, Span, getClient, makeMain } from '../../core/src';
+import { IdleTransaction, SentrySpan, getClient } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';
-let hub: Hub;
 beforeEach(() => {
+  getCurrentScope().clear();
+  getIsolationScope().clear();
+  getGlobalScope().clear();
+
   const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1 });
-  hub = new Hub(new BrowserClient(options));
-  makeMain(hub);
+  const client = new BrowserClient(options);
+  setCurrentClient(client);
+  client.init();
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
 });
 
 describe('IdleTransaction', () => {
@@ -27,7 +39,7 @@ describe('IdleTransaction', () => {
     it('sets the transaction on the scope on creation if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -41,7 +53,7 @@ describe('IdleTransaction', () => {
     });
 
     it('does not set the transaction on the scope on creation if onScope is falsey', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub);
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
       transaction.initSpanRecorder(10);
 
       const scope = getCurrentScope();
@@ -52,7 +64,7 @@ describe('IdleTransaction', () => {
     it('removes sampled transaction from scope on finish if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -71,7 +83,7 @@ describe('IdleTransaction', () => {
     it('removes unsampled transaction from scope on finish if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo', sampled: false },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -89,7 +101,7 @@ describe('IdleTransaction', () => {
     it('does not remove transaction from scope on finish if another transaction was set there', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -97,7 +109,7 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      const otherTransaction = new Transaction({ name: 'bar' }, hub);
+      const otherTransaction = new Transaction({ name: 'bar' }, getCurrentHub());
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(otherTransaction);
 
@@ -115,7 +127,7 @@ describe('IdleTransaction', () => {
   });
 
   it('push and pops activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
@@ -135,7 +147,7 @@ describe('IdleTransaction', () => {
   });
 
   it('does not push activities if a span already has an end timestamp', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
     // eslint-disable-next-line deprecation/deprecation
@@ -146,7 +158,7 @@ describe('IdleTransaction', () => {
   });
 
   it('does not finish if there are still active activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
@@ -170,7 +182,7 @@ describe('IdleTransaction', () => {
   it('calls beforeFinish callback before finishing', () => {
     const mockCallback1 = jest.fn();
     const mockCallback2 = jest.fn();
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     transaction.initSpanRecorder(10);
     transaction.registerBeforeFinishCallback(mockCallback1);
     transaction.registerBeforeFinishCallback(mockCallback2);
@@ -190,7 +202,7 @@ describe('IdleTransaction', () => {
   });
 
   it('filters spans on finish', () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
     transaction.initSpanRecorder(10);
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
@@ -219,11 +231,11 @@ describe('IdleTransaction', () => {
       expect(spans).toHaveLength(3);
       expect(spans[0].spanContext().spanId).toBe(transaction.spanContext().spanId);
 
-      // Regular Span - should not modified
+      // Regular SentrySpan - should not modified
       expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
       expect(spans[1]['_endTime']).not.toBe(spanToJSON(transaction).timestamp);
 
-      // Cancelled Span - has endtimestamp of transaction
+      // Cancelled SentrySpan - has endtimestamp of transaction
       expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
       expect(spans[2].status).toBe('cancelled');
       expect(spans[2]['_endTime']).toBe(spanToJSON(transaction).timestamp);
@@ -231,7 +243,7 @@ describe('IdleTransaction', () => {
   });
 
   it('filters out spans that exceed final timeout', () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000, 3000);
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), 1000, 3000);
     transaction.initSpanRecorder(10);
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(transaction);
@@ -246,7 +258,11 @@ describe('IdleTransaction', () => {
   });
 
   it('should record dropped transactions', async () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
+    const transaction = new IdleTransaction(
+      { name: 'foo', startTimestamp: 1234, sampled: false },
+      getCurrentHub(),
+      1000,
+    );
 
     const client = getClient()!;
 
@@ -260,7 +276,7 @@ describe('IdleTransaction', () => {
 
   describe('_idleTimeout', () => {
     it('finishes if no activities are added to the transaction', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
       transaction.initSpanRecorder(10);
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
@@ -268,7 +284,7 @@ describe('IdleTransaction', () => {
     });
 
     it('does not finish if a activity is started', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -281,7 +297,7 @@ describe('IdleTransaction', () => {
 
     it('does not finish when idleTimeout is not exceed after last activity finished', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -299,7 +315,7 @@ describe('IdleTransaction', () => {
 
     it('finish when idleTimeout is exceeded after last activity finished', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -319,7 +335,7 @@ describe('IdleTransaction', () => {
   describe('cancelIdleTimeout', () => {
     it('permanent idle timeout cancel is not restarted by child span start', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -335,7 +351,7 @@ describe('IdleTransaction', () => {
 
     it('permanent idle timeout cancel finished the transaction with the last child', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -357,7 +373,7 @@ describe('IdleTransaction', () => {
 
     it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -373,7 +389,7 @@ describe('IdleTransaction', () => {
 
     it('default idle cancel timeout is restarted by child span change', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
@@ -397,7 +413,7 @@ describe('IdleTransaction', () => {
   describe('heartbeat', () => {
     it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
       // 20s to exceed 3 heartbeats
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), 20000);
       const mockFinish = jest.spyOn(transaction, 'end');
 
       expect(transaction.status).not.toEqual('deadline_exceeded');
@@ -420,7 +436,7 @@ describe('IdleTransaction', () => {
     });
 
     it('finishes a transaction after 3 beats', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), TRACING_DEFAULTS.idleTimeout);
       const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
@@ -443,7 +459,7 @@ describe('IdleTransaction', () => {
     });
 
     it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout, 50000);
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), TRACING_DEFAULTS.idleTimeout, 50000);
       const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
       // eslint-disable-next-line deprecation/deprecation
@@ -506,7 +522,7 @@ describe('IdleTransactionSpanRecorder', () => {
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
-    const span = new Span({ sampled: true });
+    const span = new SentrySpan({ sampled: true });
 
     expect(spanRecorder.spans).toHaveLength(0);
     spanRecorder.add(span);
@@ -527,7 +543,7 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPopActivity = jest.fn();
     const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, '', 10);
 
-    const span = new Span({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
+    const span = new SentrySpan({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
     spanRecorder.add(span);
 
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
@@ -537,7 +553,7 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPushActivity = jest.fn();
     const mockPopActivity = jest.fn();
 
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     const spanRecorder = new IdleTransactionSpanRecorder(
       mockPushActivity,
       mockPopActivity,

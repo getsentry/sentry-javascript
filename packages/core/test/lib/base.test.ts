@@ -64,6 +64,7 @@ describe('BaseClient', () => {
     TestClient.instance = undefined;
     setGlobalScope(undefined);
     getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
     getIsolationScope().clear();
   });
 

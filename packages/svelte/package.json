@@ -59,7 +59,7 @@
     "clean": "rimraf build coverage sentry-svelte-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "vitest",
+    "test": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },

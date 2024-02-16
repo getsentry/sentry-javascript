@@ -37,7 +37,7 @@ import { setHttpStatus } from './spanstatus';
  * @hidden
  */
 export class SpanRecorder {
-  public spans: Span[];
+  public spans: SentrySpan[];
 
   private readonly _maxlen: number;
 
@@ -52,7 +52,7 @@ export class SpanRecorder {
    * trace tree (i.e.the first n spans with the smallest
    * start_timestamp).
    */
-  public add(span: Span): void {
+  public add(span: SentrySpan): void {
     if (this.spans.length > this._maxlen) {
       // eslint-disable-next-line deprecation/deprecation
       span.spanRecorder = undefined;
@@ -65,7 +65,7 @@ export class SpanRecorder {
 /**
  * Span contains all data about a span
  */
-export class Span implements SpanInterface {
+export class SentrySpan implements SpanInterface {
   /**
    * Tags for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
@@ -105,16 +105,16 @@ export class Span implements SpanInterface {
 
   protected _traceId: string;
   protected _spanId: string;
-  protected _parentSpanId?: string;
+  protected _parentSpanId?: string | undefined;
   protected _sampled: boolean | undefined;
-  protected _name?: string;
+  protected _name?: string | undefined;
   protected _attributes: SpanAttributes;
   /** Epoch timestamp in seconds when the span started. */
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
-  protected _endTime?: number;
+  protected _endTime?: number | undefined;
   /** Internal keeper of the status */
-  protected _status?: SpanStatusType | string;
+  protected _status?: SpanStatusType | string | undefined;
 
   private _logMessage?: string;
 
@@ -385,8 +385,8 @@ export class Span implements SpanInterface {
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span {
-    const childSpan = new Span({
+  ): SpanInterface {
+    const childSpan = new SentrySpan({
       ...spanContext,
       parentSpanId: this._spanId,
       sampled: this._sampled,

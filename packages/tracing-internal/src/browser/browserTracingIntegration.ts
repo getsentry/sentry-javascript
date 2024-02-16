@@ -266,7 +266,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
     );
 
-    if (isPageloadTransaction) {
+    if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
         if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
           idleTransaction.sendAutoFinishSignal();
@@ -295,7 +295,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         options;
 
       let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location.href;
+      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
       client.on('startNavigationSpan', (context: StartSpanOptions) => {
         if (activeSpan) {
@@ -321,7 +321,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
-      if (options.instrumentPageLoad) {
+      if (options.instrumentPageLoad && WINDOW.location) {
         const context: StartSpanOptions = {
           name: 'wtf2',
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
@@ -334,7 +334,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         startBrowserTracingPageLoadSpan(client, context);
       }
 
-      if (options.instrumentNavigation) {
+      if (options.instrumentNavigation && WINDOW.location) {
         addHistoryInstrumentationHandler(({ to, from }) => {
           /**
            * This early return is there to account for some cases where a navigation transaction starts right after

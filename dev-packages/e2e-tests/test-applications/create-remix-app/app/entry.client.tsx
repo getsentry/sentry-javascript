@@ -10,6 +10,7 @@ import { StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: window.ENV.SENTRY_DSN,
   integrations: [Sentry.browserTracingIntegration({ useEffect, useMatches, useLocation }), new Sentry.Replay()],
   // Performance Monitoring

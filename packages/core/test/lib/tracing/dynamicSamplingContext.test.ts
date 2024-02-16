@@ -1,18 +1,19 @@
 import type { TransactionSource } from '@sentry/types';
-import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setCurrentClient,
+} from '../../../src';
 import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { addTracingExtensions } from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
-  let hub: Hub;
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0, release: '1.0.1' });
     const client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
     addTracingExtensions();
   });
 

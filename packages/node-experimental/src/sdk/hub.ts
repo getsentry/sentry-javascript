@@ -10,31 +10,26 @@ import type {
   TransactionContext,
 } from '@sentry/types';
 
-import { addBreadcrumb, endSession, startSession } from '@sentry/core';
 import {
-  captureEvent,
-  getClient,
+  addBreadcrumb,
+  endSession,
   getCurrentScope,
+  getIsolationScope,
   setContext,
   setExtra,
   setExtras,
   setTag,
   setTags,
   setUser,
+  startSession,
   withScope,
-} from './api';
-import { callExtensionMethod, getGlobalCarrier } from './globals';
-import { getIsolationScope } from './scope';
-import type { SentryCarrier } from './types';
-
-/** Ensure the global hub is our proxied hub. */
-export function setupGlobalHub(): void {
-  const carrier = getGlobalCarrier();
-  carrier.hub = getCurrentHub();
-}
+} from '@sentry/core';
+import { captureEvent, getClient } from './api';
+import { callExtensionMethod } from './globals';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
+ * @deprecated Use the methods directly.
  */
 export function getCurrentHub(): Hub {
   return {
@@ -126,17 +121,6 @@ export function getCurrentHub(): Hub {
 }
 
 /**
- * Replaces the current main hub with the passed one on the global object
- *
- * @returns The old replaced hub
- */
-export function makeMain(hub: Hub): Hub {
-  // eslint-disable-next-line no-console
-  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');
-  return hub;
-}
-
-/**
  * Sends the current Session on the scope
  */
 function _sendSessionUpdate(): void {
@@ -147,12 +131,4 @@ function _sendSessionUpdate(): void {
   if (session) {
     client.captureSession(session);
   }
-}
-
-/**
- * Set a mocked hub on the current carrier.
- */
-export function setLegacyHubOnCarrier(carrier: SentryCarrier): boolean {
-  carrier.hub = getCurrentHub();
-  return true;
 }

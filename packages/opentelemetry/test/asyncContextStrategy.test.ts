@@ -1,7 +1,8 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { Hub } from '@sentry/core';
+import { withIsolationScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
-import { runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
+import { setAsyncContextStrategy } from '@sentry/core';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '../src/asyncContextStrategy';
 import { TestClient, getDefaultTestClientOptions } from './helpers/TestClient';
@@ -33,7 +34,7 @@ describe('asyncContextStrategy', () => {
     // eslint-disable-next-line deprecation/deprecation
     globalHub.setExtra('a', 'b');
 
-    runWithAsyncContext(() => {
+    withIsolationScope(() => {
       // eslint-disable-next-line deprecation/deprecation
       const hub1 = getCurrentHub();
       expect(hub1).toEqual(globalHub);
@@ -42,7 +43,7 @@ describe('asyncContextStrategy', () => {
       hub1.setExtra('c', 'd');
       expect(hub1).not.toEqual(globalHub);
 
-      runWithAsyncContext(() => {
+      withIsolationScope(() => {
         // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
@@ -70,7 +71,7 @@ describe('asyncContextStrategy', () => {
     const globalHub = getCurrentHub() as Hub;
     await addRandomExtra(globalHub, 'a');
 
-    await runWithAsyncContext(async () => {
+    await withIsolationScope(async () => {
       // eslint-disable-next-line deprecation/deprecation
       const hub1 = getCurrentHub() as Hub;
       expect(hub1).toEqual(globalHub);
@@ -78,7 +79,7 @@ describe('asyncContextStrategy', () => {
       await addRandomExtra(hub1, 'b');
       expect(hub1).not.toEqual(globalHub);
 
-      await runWithAsyncContext(async () => {
+      await withIsolationScope(async () => {
         // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub2).toEqual(hub1);
@@ -93,17 +94,17 @@ describe('asyncContextStrategy', () => {
   test('context single instance', () => {
     // eslint-disable-next-line deprecation/deprecation
     const globalHub = getCurrentHub();
-    runWithAsyncContext(() => {
+    withIsolationScope(() => {
       // eslint-disable-next-line deprecation/deprecation
       expect(globalHub).not.toBe(getCurrentHub());
     });
   });
 
   test('context within a context not reused', () => {
-    runWithAsyncContext(() => {
+    withIsolationScope(() => {
       // eslint-disable-next-line deprecation/deprecation
       const hub1 = getCurrentHub();
-      runWithAsyncContext(() => {
+      withIsolationScope(() => {
         // eslint-disable-next-line deprecation/deprecation
         const hub2 = getCurrentHub();
         expect(hub1).not.toBe(hub2);
@@ -115,7 +116,7 @@ describe('asyncContextStrategy', () => {
     let d1done = false;
     let d2done = false;
 
-    runWithAsyncContext(() => {
+    withIsolationScope(() => {
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub() as Hub;
       // eslint-disable-next-line deprecation/deprecation
@@ -132,7 +133,7 @@ describe('asyncContextStrategy', () => {
       });
     });
 
-    runWithAsyncContext(() => {
+    withIsolationScope(() => {
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub() as Hub;
       // eslint-disable-next-line deprecation/deprecation
