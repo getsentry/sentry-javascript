@@ -105,13 +105,6 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   instrumenter: Instrumenter;
 
   /**
-   * Set the name of the transaction
-   *
-   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
-   */
-  setName(name: string, source?: TransactionSource): void;
-
-  /**
    * Set the context of a transaction event.
    * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
    */

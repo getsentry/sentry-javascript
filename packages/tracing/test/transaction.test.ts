@@ -55,7 +55,7 @@ describe('`Transaction` class', () => {
     describe('`setName` method', () => {
       it("sets source to `'custom'` if no source provided", () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setName('ballpit');
+        transaction.updateName('ballpit');
 
         expect(transaction.name).toEqual('ballpit');
         expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
@@ -63,7 +63,7 @@ describe('`Transaction` class', () => {
 
       it('uses given `source` value', () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setName('ballpit', 'route');
+        transaction.updateName('ballpit', 'route');
 
         expect(transaction.name).toEqual('ballpit');
         expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');

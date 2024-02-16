@@ -165,22 +165,6 @@ export class SentrySpan implements SpanInterface {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * An alias for `description` of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get name(): string {
-    return this._name || '';
-  }
-
-  /**
-   * Update the name of the span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set name(name: string) {
-    this.updateName(name);
-  }
-
-  /**
    * The ID of the trace.
    * @deprecated Use `spanContext().traceId` instead.
    */
@@ -467,15 +451,6 @@ export class SentrySpan implements SpanInterface {
   public setHttpStatus(httpStatus: number): this {
     setHttpStatus(this, httpStatus);
     return this;
-  }
-
-  /**
-   * @inheritdoc
-   *
-   * @deprecated Use `.updateName()` instead.
-   */
-  public setName(name: string): void {
-    this.updateName(name);
   }
 
   /**

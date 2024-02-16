@@ -176,12 +176,6 @@ export interface SpanContext {
 /** Span holding trace_id, span_id */
 export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   /**
-   * Human-readable identifier for the span. Identical to span.description.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  name: string;
-
-  /**
    * Operation of the Span.
    *
    * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
@@ -337,13 +331,6 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * @deprecated Use top-level `setHttpStatus()` instead.
    */
   setHttpStatus(httpStatus: number): this;
-
-  /**
-   * Set the name of the span.
-   *
-   * @deprecated Use `updateName()` instead.
-   */
-  setName(name: string): void;
 
   /**
    * Update the name of the span.
