@@ -348,7 +348,6 @@ describe('SentrySpanProcessor', () => {
           'test-attribute-3': 0,
           'test-attribute-4': false,
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         });
       });
 
@@ -588,7 +587,6 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
-            'sentry.source': 'custom',
           });
 
           parentOtelSpan.end();
@@ -620,7 +618,6 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
-            'sentry.source': 'custom',
           });
           expect(op).toBe('http');
 
@@ -655,7 +652,6 @@ describe('SentrySpanProcessor', () => {
             'http.fragment': '#myHash',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
-            'sentry.source': 'custom',
           });
           expect(op).toBe('http');
 
