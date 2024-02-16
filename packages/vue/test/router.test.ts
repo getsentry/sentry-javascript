@@ -1,8 +1,7 @@
 import * as SentryBrowser from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
-import type { Span } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { SpanAttributes } from '@sentry/types';
+import type { Span, SpanAttributes } from '@sentry/types';
 
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
@@ -129,12 +128,13 @@ describe('instrumentVueRouter()', () => {
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockRootSpan = {
+        getSpanJSON: jest.fn().mockReturnValue({ op: 'pageload' }),
         updateName: jest.fn(),
         setAttribute: jest.fn(),
         setAttributes: jest.fn(),
       };
 
-      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      const spy = jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn().mockImplementation(_ => {
         return mockRootSpan;
@@ -227,7 +227,8 @@ describe('instrumentVueRouter()', () => {
       setAttribute: jest.fn(),
       setAttributes: jest.fn(),
       name: '',
-      toJSON: () => ({
+      getSpanJSON: () => ({
+        op: 'pageload',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
@@ -250,7 +251,8 @@ describe('instrumentVueRouter()', () => {
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
     mockRootSpan.name = 'customTxnName';
-    mockRootSpan.toJSON = () => ({
+    mockRootSpan.getSpanJSON = () => ({
+      op: 'pageload',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       },
@@ -287,6 +289,7 @@ describe('instrumentVueRouter()', () => {
         setAttributes: jest.fn(),
         name: '',
         toJSON: () => ({
+          op: 'pageload',
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
