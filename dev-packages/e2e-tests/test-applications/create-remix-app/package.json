@@ -2,7 +2,7 @@
   "private": true,
   "sideEffects": false,
   "scripts": {
-    "build": "pnpm typecheck && remix build --sourcemap && ./upload-sourcemaps.sh",
+    "build": "remix build --sourcemap && ./upload-sourcemaps.sh",
     "dev": "remix dev",
     "start": "remix-serve build",
     "typecheck": "tsc",
