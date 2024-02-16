@@ -1,5 +1,9 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of the `MetricsAggregator` integration class and `metricsAggregatorIntegration`
+
+The SDKs now support metrics features without any additional configuration.
+
 ## Removal of the `tracingOrigins` option
 
 After its deprecation in v7 the `tracingOrigins` option is now removed in favor of the `tracePropagationTargets` option.
