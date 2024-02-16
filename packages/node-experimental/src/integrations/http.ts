@@ -83,7 +83,10 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             // Update the isolation scope, isolate this request
             if (getSpanKind(span) === SpanKind.SERVER) {
-              setIsolationScope(getIsolationScope().clone());
+              const isolationScope = getIsolationScope().clone();
+              isolationScope.setSDKProcessingMetadata({ request: req });
+              isolationScope.setRequestSession({ status: 'ok' });
+              setIsolationScope(isolationScope);
             }
           },
           responseHook: (span, res) => {
