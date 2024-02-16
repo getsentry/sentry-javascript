@@ -9,12 +9,7 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  logger,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { addHistoryInstrumentationHandler, logger, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -27,7 +22,7 @@ import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
-import { makeFetchTransport, makeXHRTransport } from './transports';
+import { makeFetchTransport } from './transports';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -120,7 +115,7 @@ export function init(options: BrowserOptions = {}): void {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
+    transport: options.transport || makeFetchTransport,
   };
 
   initAndBind(BrowserClient, clientOptions);
