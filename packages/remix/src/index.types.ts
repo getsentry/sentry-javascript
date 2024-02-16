@@ -18,7 +18,6 @@ export declare const Integrations: typeof clientSdk.Integrations & typeof server
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 
-export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 

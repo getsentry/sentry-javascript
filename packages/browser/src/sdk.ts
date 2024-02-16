@@ -29,24 +29,17 @@ import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  browserApiErrorsIntegration(),
-  breadcrumbsIntegration(),
-  globalHandlersIntegration(),
-  linkedErrorsIntegration(),
-  dedupeIntegration(),
-  httpContextIntegration(),
-];
-
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
-  // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    browserApiErrorsIntegration(),
+    breadcrumbsIntegration(),
+    globalHandlersIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    httpContextIntegration(),
   ];
 }
 

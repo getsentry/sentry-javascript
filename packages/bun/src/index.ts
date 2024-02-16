@@ -110,8 +110,6 @@ export {
 
 export { BunClient } from './client';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';
