@@ -16,14 +16,8 @@ export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanc
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
-export {
-  getClient,
-  captureException,
-  captureEvent,
-  captureMessage,
-  withActiveSpan,
-} from './sdk/api';
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
+export { getClient } from './sdk/api';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
 
@@ -86,6 +80,9 @@ export {
   getIsolationScope,
   withScope,
   withIsolationScope,
+  captureException,
+  captureEvent,
+  captureMessage,
 } from '@sentry/node';
 
 export type {

@@ -3,14 +3,13 @@ import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
-import { SentryPropagator, SentrySampler, setupEventContextTrace } from '@sentry/opentelemetry';
+import { SentryPropagator, SentrySampler, SentrySpanProcessor, setupEventContextTrace } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SentryContextManager } from '../otel/contextManager';
 import type { NodeExperimentalClient } from '../types';
 import { getClient } from './api';
-import { NodeExperimentalSentrySpanProcessor } from './spanProcessor';
 
 /**
  * Initialize OpenTelemetry for Node.
@@ -55,7 +54,7 @@ export function setupOtel(client: NodeExperimentalClient): BasicTracerProvider {
     }),
     forceFlushTimeoutMillis: 500,
   });
-  provider.addSpanProcessor(new NodeExperimentalSentrySpanProcessor());
+  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // Initialize the provider
   provider.register({

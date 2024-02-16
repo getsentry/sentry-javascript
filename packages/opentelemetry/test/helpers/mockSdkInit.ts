@@ -18,9 +18,9 @@ function init(options: Partial<Options> | undefined = {}): void {
     ...options,
   };
 
+  setOpenTelemetryContextAsyncContextStrategy();
   initTestClient(fullOptions);
   initOtel();
-  setOpenTelemetryContextAsyncContextStrategy();
 }
 
 function resetGlobals(): void {

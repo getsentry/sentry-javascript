@@ -1,30 +1,51 @@
 import * as api from '@opentelemetry/api';
-import { getGlobalHub } from '@sentry/core';
-import { setAsyncContextStrategy } from '@sentry/core';
+import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
 import type { Hub, Scope } from '@sentry/types';
+
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from './constants';
-
-import { getHubFromContext } from './utils/contextData';
+import { getCurrentHub as _getCurrentHub } from './custom/getCurrentHub';
+import type { CurrentScopes } from './types';
+import { getScopesFromContext } from './utils/contextData';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
  * We handle forking a hub inside of our custom OTEL Context Manager (./otelContextManager.ts)
  */
 export function setOpenTelemetryContextAsyncContextStrategy(): void {
-  function getCurrentFromContext(): Hub | undefined {
+  function getScopes(): CurrentScopes {
     const ctx = api.context.active();
+    const scopes = getScopesFromContext(ctx);
 
-    // Returning undefined means the global hub will be used
-    // Need to cast from @sentry/type's `Hub` to @sentry/core's `Hub`
-    return getHubFromContext(ctx) as Hub | undefined;
+    if (scopes) {
+      return scopes;
+    }
+
+    // fallback behavior:
+    // if, for whatever reason, we can't find scopes on the context here, we have to fix this somehow
+    return {
+      scope: getDefaultCurrentScope(),
+      isolationScope: getDefaultIsolationScope(),
+    };
   }
 
   function getCurrentHub(): Hub {
-    return getCurrentFromContext() || getGlobalHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = _getCurrentHub();
+    return {
+      ...hub,
+      getScope: () => {
+        const scopes = getScopes();
+        return scopes.scope;
+      },
+      getIsolationScope: () => {
+        const scopes = getScopes();
+        return scopes.isolationScope;
+      },
+    };
   }
 
   function withScope<T>(callback: (scope: Scope) => T): T {
@@ -36,8 +57,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // fork the isolation scope, or not
     // as by default, we don't want to fork this, unless triggered explicitly by `runWithAsyncContext`
     return api.context.with(ctx, () => {
-      // eslint-disable-next-line deprecation/deprecation
-      return callback(getCurrentHub().getScope());
+      return callback(getCurrentScope());
     });
   }
 
@@ -60,8 +80,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // the OTEL context manager, which uses the presence of this key to determine if it should
     // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY, true), () => {
-      // eslint-disable-next-line deprecation/deprecation
-      return callback(getCurrentHub().getIsolationScope());
+      return callback(getIsolationScope());
     });
   }
 
@@ -73,20 +92,25 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // the OTEL context manager, which uses the presence of this key to determine if it should
     // fork the isolation scope, or not
     return api.context.with(ctx.setValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY, isolationScope), () => {
-      // eslint-disable-next-line deprecation/deprecation
-      return callback(getCurrentHub().getIsolationScope());
+      return callback(getIsolationScope());
     });
+  }
+
+  function getCurrentScope(): Scope {
+    return getScopes().scope;
+  }
+
+  function getIsolationScope(): Scope {
+    return getScopes().isolationScope;
   }
 
   setAsyncContextStrategy({
     getCurrentHub,
     withScope,
     withSetScope,
-    withIsolationScope,
     withSetIsolationScope,
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope: () => getCurrentHub().getScope(),
-    // eslint-disable-next-line deprecation/deprecation
-    getIsolationScope: () => getCurrentHub().getIsolationScope(),
+    withIsolationScope,
+    getCurrentScope,
+    getIsolationScope,
   });
 }
