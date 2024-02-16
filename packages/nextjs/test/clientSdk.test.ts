@@ -40,6 +40,7 @@ describe('Client init()', () => {
     getGlobalScope().clear();
     getIsolationScope().clear();
     getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   it('inits the React SDK', () => {

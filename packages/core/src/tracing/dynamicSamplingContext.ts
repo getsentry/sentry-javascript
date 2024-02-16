@@ -2,7 +2,7 @@ import type { Client, DynamicSamplingContext, Span, Transaction } from '@sentry/
 import { dropUndefinedKeys } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
-import { getClient } from '../exports';
+import { getClient } from '../currentScopes';
 import { getRootSpan } from '../utils/getRootSpan';
 import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
 

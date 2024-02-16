@@ -654,22 +654,32 @@ export function getCurrentHub(): HubInterface {
   return acs.getCurrentHub() || getGlobalHub();
 }
 
-/**
- * Runs the supplied callback in its own async context. Async Context strategies are defined per SDK.
- *
- * @param callback The callback to run in its own async context
- * @param options Options to pass to the async context strategy
- * @returns The result of the callback
- */
-export function runWithAsyncContext<T>(callback: () => T): T {
-  // Get main carrier (global for every environment)
-  const carrier = getMainCarrier();
+let defaultCurrentScope: Scope | undefined;
+let defaultIsolationScope: Scope | undefined;
 
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.runWithAsyncContext(callback);
+/** Get the default current scope. */
+export function getDefaultCurrentScope(): Scope {
+  if (!defaultCurrentScope) {
+    defaultCurrentScope = new Scope();
+  }
+
+  return defaultCurrentScope;
 }
 
-function getGlobalHub(): HubInterface {
+/** Get the default isolation scope. */
+export function getDefaultIsolationScope(): Scope {
+  if (!defaultIsolationScope) {
+    defaultIsolationScope = new Scope();
+  }
+
+  return defaultIsolationScope;
+}
+
+/**
+ * Get the global hub.
+ * This will be removed during the v8 cycle and is only here to make migration easier.
+ */
+export function getGlobalHub(): HubInterface {
   const registry = getMainCarrier();
 
   // If there's no hub, or its an old API, assign a new one
@@ -680,7 +690,7 @@ function getGlobalHub(): HubInterface {
     getHubFromCarrier(registry).isOlderThan(API_VERSION)
   ) {
     // eslint-disable-next-line deprecation/deprecation
-    setHubOnCarrier(registry, new Hub());
+    setHubOnCarrier(registry, new Hub(undefined, getDefaultCurrentScope(), getDefaultIsolationScope()));
   }
 
   // Return hub that lives on a global object
@@ -749,11 +759,41 @@ export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy 
   return getHubStackAsyncContextStrategy();
 }
 
+function withScope<T>(callback: (scope: ScopeInterface) => T): T {
+  // eslint-disable-next-line deprecation/deprecation
+  return getGlobalHub().withScope(callback);
+}
+
+function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
+  const hub = getGlobalHub() as Hub;
+  // eslint-disable-next-line deprecation/deprecation
+  return hub.withScope(() => {
+    // eslint-disable-next-line deprecation/deprecation
+    hub.getStackTop().scope = scope as Scope;
+    return callback(scope);
+  });
+}
+
+function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T): T {
+  // eslint-disable-next-line deprecation/deprecation
+  return getGlobalHub().withScope(() => {
+    // eslint-disable-next-line deprecation/deprecation
+    return callback(getGlobalHub().getIsolationScope());
+  });
+}
+
+/* eslint-disable deprecation/deprecation */
 function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
     getCurrentHub: getGlobalHub,
-    runWithAsyncContext: <T>(callback: () => T): T => {
-      return callback();
+    withIsolationScope,
+    withScope,
+    withSetScope,
+    withSetIsolationScope: <T>(_isolationScope: ScopeInterface, callback: (isolationScope: ScopeInterface) => T) => {
+      return withIsolationScope(callback);
     },
+    getCurrentScope: () => getGlobalHub().getScope(),
+    getIsolationScope: () => getGlobalHub().getIsolationScope(),
   };
 }
+/* eslint-enable deprecation/deprecation */

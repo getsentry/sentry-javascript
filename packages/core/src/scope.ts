@@ -420,6 +420,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public clear(): this {
+    // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
     this._extra = {};

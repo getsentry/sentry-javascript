@@ -13,6 +13,8 @@ import type {
 import {
   addBreadcrumb,
   endSession,
+  getCurrentScope,
+  getIsolationScope,
   setContext,
   setExtra,
   setExtras,
@@ -20,18 +22,10 @@ import {
   setTags,
   setUser,
   startSession,
+  withScope,
 } from '@sentry/core';
-import { captureEvent, getClient, getCurrentScope, withScope } from './api';
-import { callExtensionMethod, getGlobalCarrier } from './globals';
-import { getIsolationScope } from './scope';
-import type { SentryCarrier } from './types';
-
-/** Ensure the global hub is our proxied hub. */
-export function setupGlobalHub(): void {
-  const carrier = getGlobalCarrier();
-  // eslint-disable-next-line deprecation/deprecation
-  carrier.hub = getCurrentHub();
-}
+import { captureEvent, getClient } from './api';
+import { callExtensionMethod } from './globals';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -137,13 +131,4 @@ function _sendSessionUpdate(): void {
   if (session) {
     client.captureSession(session);
   }
-}
-
-/**
- * Set a mocked hub on the current carrier.
- */
-export function setLegacyHubOnCarrier(carrier: SentryCarrier): boolean {
-  // eslint-disable-next-line deprecation/deprecation
-  carrier.hub = getCurrentHub();
-  return true;
 }

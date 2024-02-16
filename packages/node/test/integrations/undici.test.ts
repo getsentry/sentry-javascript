@@ -1,7 +1,15 @@
 import * as http from 'http';
-import { Transaction, getActiveSpan, getClient, getCurrentScope, setCurrentClient, startSpan } from '@sentry/core';
+import {
+  Transaction,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  setCurrentClient,
+  startSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
-import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
+import { Hub, makeMain } from '@sentry/core';
 import { fetch } from 'undici';
 
 import { NodeClient } from '../../src/client';
@@ -215,7 +223,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   it.skip('attaches the sentry trace and baggage headers if there is an active span', async () => {
     expect.assertions(3);
 
-    await runWithAsyncContext(async () => {
+    await withIsolationScope(async () => {
       await startSpan({ name: 'outer-span' }, async outerSpan => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         // eslint-disable-next-line deprecation/deprecation

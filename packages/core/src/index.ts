@@ -25,9 +25,6 @@ export {
   setTag,
   setTags,
   setUser,
-  withScope,
-  withIsolationScope,
-  getClient,
   isInitialized,
   startSession,
   endSession,
@@ -44,13 +41,20 @@ export {
   makeMain,
   setHubOnCarrier,
   ensureHubOnCarrier,
-  runWithAsyncContext,
+  getGlobalHub,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './hub';
 export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   setGlobalScope,
+  withScope,
+  withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
+  runWithAsyncContext,
+  getClient,
 } from './currentScopes';
 export {
   getMainCarrier,

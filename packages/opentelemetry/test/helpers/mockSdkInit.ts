@@ -1,8 +1,8 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ClientOptions, Options } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
 import { init as initTestClient } from './TestClient';
 import { initOtel } from './initOtel';
@@ -23,13 +23,15 @@ function init(options: Partial<Options> | undefined = {}): void {
   setOpenTelemetryContextAsyncContextStrategy();
 }
 
+function resetGlobals(): void {
+  getCurrentScope().clear();
+  getCurrentScope().setClient(undefined);
+  getIsolationScope().clear();
+  getGlobalScope().clear();
+}
+
 export function mockSdkInit(options?: Partial<ClientOptions>) {
-  GLOBAL_OBJ.__SENTRY__ = {
-    extensions: {},
-    hub: undefined,
-    globalEventProcessors: [],
-    logger: undefined,
-  };
+  resetGlobals();
 
   init({ dsn: PUBLIC_DSN, ...options });
 }
