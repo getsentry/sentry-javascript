@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { BrowserClient } from '@sentry/browser';
+import { BrowserClient, browserTracingIntegration } from '@sentry/browser';
 import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
 import { extractTraceparentData, logger } from '@sentry/utils';
@@ -457,7 +457,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           const options = getDefaultBrowserClientOptions({
             dsn: 'https://1231@dogs.are.great/1121',
             tracesSampleRate: 1,
-            integrations: [new BrowserTracing()],
+            integrations: [browserTracingIntegration()],
           });
           const hub = new Hub(new BrowserClient(options));
           makeMain(hub);
@@ -496,7 +496,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
           const options = getDefaultBrowserClientOptions({
             dsn: 'https://1231@dogs.are.great/1121',
             tracesSampleRate: 1,
-            integrations: [new BrowserTracing()],
+            integrations: [browserTracingIntegration()],
           });
           const hub = new Hub(new BrowserClient(options));
           makeMain(hub);

@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
   getClient,
-  getCurrentHub,
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
@@ -11,12 +10,14 @@ import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
+import { BrowserClient } from '@sentry/browser';
 import { timestampInSeconds } from '@sentry/utils';
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { browserTracingIntegration } from '../../build/types';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
-import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
+import { getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import { WINDOW } from '../../src/browser/types';
@@ -82,11 +83,10 @@ describe('BrowserTracing', () => {
     }
   });
 
-  function createBrowserTracing(setup?: boolean, _options?: Partial<BrowserTracingOptions>): BrowserTracing {
-    const instance = new BrowserTracing(_options);
+  function createBrowserTracing(setup?: boolean, options?: Partial<BrowserTracingOptions>) {
+    const instance = browserTracingIntegration(options);
     if (setup) {
-      const processor = () => undefined;
-      instance.setupOnce(processor, () => getCurrentHub() as hubExtensions.Hub);
+      instance.afterAllSetup(new BrowserClient());
     }
 
     return instance;

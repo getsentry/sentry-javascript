@@ -380,9 +380,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         enableHTTPTimings,
       });
     },
-    // TODO v8: Remove this again
-    // This is private API that we use to fix converted BrowserTracing integrations in Next.js & SvelteKit
-    options,
   };
 }) satisfies IntegrationFn;
 
