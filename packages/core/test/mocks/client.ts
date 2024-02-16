@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type {
   ClientOptions,
   Event,
