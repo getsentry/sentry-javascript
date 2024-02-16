@@ -907,43 +907,20 @@ function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions
   // https://github.com/vercel/next.js/blob/de7aa2d6e486c40b8be95a1327639cbed75a8782/packages/next/lib/eslint/runLintCheck.ts#L321-L323.
   const codeFormat = (str: string): string => chalk.bold.cyan(str);
 
-  const _warningPrefix_ = `${chalk.yellow('warn')}  -`;
-  const _sentryNextjs_ = codeFormat('@sentry/nextjs');
+  const _infoPrefix_ = `${chalk.cyan('info')}  -`;
   const _hideSourceMaps_ = codeFormat('hideSourceMaps');
   const _true_ = codeFormat('true');
   const _false_ = codeFormat('false');
   const _sentry_ = codeFormat('sentry');
   const _nextConfigJS_ = codeFormat('next.config.js');
 
-  if (isServer && userSentryOptions.hideSourceMaps === undefined && !showedHiddenSourceMapsWarningMsg) {
+  if (isServer && userSentryOptions.hideSourceMaps !== false && !showedHiddenSourceMapsWarningMsg) {
     // eslint-disable-next-line no-console
     console.warn(
-      `\n${_warningPrefix_} In order to be able to deminify errors, ${_sentryNextjs_} creates sourcemaps and uploads ` +
-        'them to the Sentry server. Depending on your deployment setup, this means your original code may be visible ' +
-        `in browser devtools in production. To prevent this, set ${_hideSourceMaps_} to ${_true_} in the ${_sentry_} ` +
-        `options in your ${_nextConfigJS_}. To disable this warning without changing sourcemap behavior, set ` +
-        `${_hideSourceMaps_} to ${_false_}. (In ${_sentryNextjs_} version 8.0.0 and beyond, this option will default ` +
-        `to ${_true_}.) See https://webpack.js.org/configuration/devtool/ and ` +
-        'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
-        'information.\n',
+      `\n${_infoPrefix_} Sentry configured Next.js to generate source maps and added a Next.js Rewrite to block requests attempting to access your source maps. This is to prevent your source code from leaking to the public. If you want to disable this behaviour to allow accessing your source maps, set the ${_hideSourceMaps_} option to ${_false_} in the ${_sentry_} options in your ${_nextConfigJS_}. To disable this warning without changing sourcemap behavior, set ${_hideSourceMaps_} to ${_true_}.`,
     );
     showedHiddenSourceMapsWarningMsg = true;
   }
-
-  // TODO (v8): Remove the check above in favor of the one below
-
-  //   const infoPrefix = `${chalk.cyan('info')}  -`;
-  //
-  //   if (isServer && userSentryOptions.hideSourceMaps === true) {
-  //     // eslint-disable-next-line no-console
-  //     console.log(
-  //       `\n${infoPrefix} Starting in ${_sentryNextjs_} version 8.0.0, ${_hideSourceMaps_} defaults to ${_true_}, and ` +
-  //         `thus can be removed from the ${_sentry_} options in ${_nextConfigJS_}. See ` +
-  //         'https://webpack.js.org/configuration/devtool/ and ' +
-  //         'https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#use-hidden-source-map for more ' +
-  //         'information.\n',
-  //     );
-  //   }
 }
 
 /**
@@ -1097,9 +1074,23 @@ class SentryCliDownloadPlugin implements WebpackPluginInstance {
         downloadingCliAttempted = true;
         // eslint-disable-next-line no-console
         logger.info(
-          `\n${chalk.cyan('info')}  - ${chalk.bold(
-            'Sentry binary to upload source maps not found.',
-          )} Package manager post-install scripts are likely disabled or there is a caching issue. Manually downloading instead...`,
+          `\n${chalk.cyan('info')}  - ${chalk.bold('Sentry binary to upload source maps not found.')}
+  Package;
+  manager;
+  post - install;
+  scripts;
+  are;
+  likely;
+  disabled;
+  or;
+  there;
+  is;
+  a;
+  caching;
+  issue.Manually;
+  downloading;
+  instead;
+  ...`,
         );
 
         // @ts-expect-error - this exists, the dynamic import just doesn't know it

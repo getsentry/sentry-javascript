@@ -119,7 +119,7 @@ function setUpRewriteRules(userNextConfig: NextConfigObject, userSentryOptions: 
     }
 
     // Block requests to sourcemaps.
-    if (userSentryOptions?.hideSourceMaps && userNextConfig.output !== 'export') {
+    if (userSentryOptions?.hideSourceMaps !== false && userNextConfig.output !== 'export') {
       rewritesToInject.push({
         source: '/:anyPath(.*).map',
         destination: '/404',
