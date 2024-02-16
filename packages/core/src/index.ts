@@ -1,5 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
+export type { Layer } from './hub';
+export type { AsyncContextStrategy, Carrier } from './asyncContext';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -24,11 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
-  withScope,
-  withIsolationScope,
-  getClient,
   isInitialized,
-  getCurrentScope,
   startSession,
   endSession,
   captureSession,
@@ -38,20 +35,34 @@ export {
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  getIsolationScope,
   getHubFromCarrier,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
-  getMainCarrier,
-  runWithAsyncContext,
   setHubOnCarrier,
   ensureHubOnCarrier,
-  setAsyncContextStrategy,
+  getGlobalHub,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './hub';
+export {
+  getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
+  setGlobalScope,
+  withScope,
+  withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
+  runWithAsyncContext,
+  getClient,
+} from './currentScopes';
+export {
+  getMainCarrier,
+  setAsyncContextStrategy,
+} from './asyncContext';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
-export { Scope, getGlobalScope, setGlobalScope } from './scope';
+export { Scope } from './scope';
 export {
   notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation

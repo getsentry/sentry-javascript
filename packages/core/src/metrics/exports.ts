@@ -6,8 +6,9 @@ import type {
 } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
+import { getCurrentScope } from '../currentScopes';
+import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { getClient, getCurrentScope } from '../exports';
 import { spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import type { MetricType } from './types';

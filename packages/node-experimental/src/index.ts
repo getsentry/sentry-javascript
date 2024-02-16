@@ -1,6 +1,3 @@
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
-import * as NodeExperimentalIntegrations from './integrations';
 export { expressIntegration } from './integrations/express';
 export { fastifyIntegration } from './integrations/fastify';
 export { graphqlIntegration } from './integrations/graphql';
@@ -14,40 +11,15 @@ export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { postgresIntegration } from './integrations/postgres';
 export { prismaIntegration } from './integrations/prisma';
 
-/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
-export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
-  ...NodeExperimentalIntegrations,
-};
-
-export { init } from './sdk/init';
+export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
-export {
-  getClient,
-  captureException,
-  captureEvent,
-  captureMessage,
-  addEventProcessor,
-  setContext,
-  setExtra,
-  setExtras,
-  setTag,
-  setTags,
-  setUser,
-  withScope,
-  withIsolationScope,
-  withActiveSpan,
-  getCurrentScope,
-  getIsolationScope,
-  setIsolationScope,
-  setCurrentScope,
-} from './sdk/api';
-export { getCurrentHub, makeMain } from './sdk/hub';
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
+export { getClient } from './sdk/api';
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHub } from './sdk/hub';
 
 export {
   addBreadcrumb,
@@ -66,6 +38,7 @@ export {
   createTransport,
   flush,
   Hub,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   SDK_VERSION,
   getSpanStatusFromHttpCode,
@@ -84,10 +57,32 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
+  addEventProcessor,
+  setContext,
+  setExtra,
+  setExtras,
+  setTag,
+  setTags,
+  setUser,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  Scope,
+  setMeasurement,
+  continueTrace,
+  cron,
+  parameterize,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
+  getCurrentScope,
+  getIsolationScope,
+  withScope,
+  withIsolationScope,
+  captureException,
+  captureEvent,
+  captureMessage,
 } from '@sentry/node';
 
 export type {
@@ -108,4 +103,5 @@ export type {
   Stacktrace,
   Thread,
   User,
+  NodeOptions,
 } from '@sentry/node';

@@ -1,14 +1,14 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, getCurrentHub, getCurrentScope, makeMain, setAsyncContextStrategy, withScope } from '@sentry/core';
 import { getIsolationScope, withIsolationScope } from '@sentry/core';
-import { getCurrentHub, runWithAsyncContext, setAsyncContextStrategy } from '@sentry/core';
+import type { Scope } from '@sentry/types';
 
 import { setDomainAsyncContextStrategy } from '../../src/async/domain';
 
 describe('setDomainAsyncContextStrategy()', () => {
   beforeEach(() => {
     const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
+
     makeMain(hub);
   });
 
@@ -77,30 +77,41 @@ describe('setDomainAsyncContextStrategy()', () => {
     });
   });
 
-  describe('with runWithAsyncContext()', () => {
+  describe('with withScope()', () => {
     test('hub scope inheritance', () => {
       setDomainAsyncContextStrategy();
 
       const globalHub = getCurrentHub();
-      // eslint-disable-next-line deprecation/deprecation
-      globalHub.setExtra('a', 'b');
+      const initialIsolationScope = getIsolationScope();
+      const initialScope = getCurrentScope();
 
-      runWithAsyncContext(() => {
+      initialScope.setExtra('a', 'b');
+
+      withScope(scope => {
         const hub1 = getCurrentHub();
+        expect(hub1).not.toBe(globalHub);
         expect(hub1).toEqual(globalHub);
 
-        // eslint-disable-next-line deprecation/deprecation
-        hub1.setExtra('c', 'd');
-        expect(hub1).not.toEqual(globalHub);
+        expect(hub1.getScope()).toBe(scope);
+        expect(getCurrentScope()).toBe(scope);
+        expect(scope).not.toBe(initialScope);
 
-        runWithAsyncContext(() => {
+        scope.setExtra('c', 'd');
+
+        expect(hub1.getIsolationScope()).toBe(initialIsolationScope);
+        expect(getIsolationScope()).toBe(initialIsolationScope);
+
+        withScope(scope2 => {
           const hub2 = getCurrentHub();
+          expect(hub2).not.toBe(hub1);
           expect(hub2).toEqual(hub1);
           expect(hub2).not.toEqual(globalHub);
 
-          // eslint-disable-next-line deprecation/deprecation
-          hub2.setExtra('e', 'f');
-          expect(hub2).not.toEqual(hub1);
+          expect(scope2).toEqual(scope);
+          expect(scope2).not.toBe(scope);
+
+          scope.setExtra('e', 'f');
+          expect(scope2).not.toEqual(scope);
         });
       });
     });
@@ -108,70 +119,68 @@ describe('setDomainAsyncContextStrategy()', () => {
     test('async hub scope inheritance', async () => {
       setDomainAsyncContextStrategy();
 
-      async function addRandomExtra(hub: Hub, key: string): Promise<void> {
+      async function addRandomExtra(scope: Scope, key: string): Promise<void> {
         return new Promise(resolve => {
           setTimeout(() => {
-            // eslint-disable-next-line deprecation/deprecation
-            hub.setExtra(key, Math.random());
+            scope.setExtra(key, Math.random());
             resolve();
           }, 100);
         });
       }
 
       const globalHub = getCurrentHub();
-      await addRandomExtra(globalHub, 'a');
+      const initialIsolationScope = getIsolationScope();
+      const initialScope = getCurrentScope();
 
-      await runWithAsyncContext(async () => {
+      await addRandomExtra(initialScope, 'a');
+
+      await withScope(async scope => {
         const hub1 = getCurrentHub();
+        expect(hub1).not.toBe(globalHub);
         expect(hub1).toEqual(globalHub);
 
-        await addRandomExtra(hub1, 'b');
-        expect(hub1).not.toEqual(globalHub);
+        expect(hub1.getScope()).toBe(scope);
+        expect(getCurrentScope()).toBe(scope);
+        expect(scope).not.toBe(initialScope);
 
-        await runWithAsyncContext(async () => {
+        await addRandomExtra(scope, 'b');
+
+        expect(hub1.getIsolationScope()).toBe(initialIsolationScope);
+        expect(getIsolationScope()).toBe(initialIsolationScope);
+
+        await withScope(async scope2 => {
           const hub2 = getCurrentHub();
+          expect(hub2).not.toBe(hub1);
           expect(hub2).toEqual(hub1);
           expect(hub2).not.toEqual(globalHub);
 
-          await addRandomExtra(hub1, 'c');
-          expect(hub2).not.toEqual(hub1);
+          expect(scope2).toEqual(scope);
+          expect(scope2).not.toBe(scope);
+
+          await addRandomExtra(scope2, 'c');
+          expect(scope2).not.toEqual(scope);
         });
       });
     });
 
-    test('hub single instance', () => {
+    test('context single instance', () => {
       setDomainAsyncContextStrategy();
 
-      runWithAsyncContext(() => {
-        const hub = getCurrentHub();
-        expect(hub).toBe(getCurrentHub());
+      const globalHub = getCurrentHub();
+      withScope(() => {
+        expect(globalHub).not.toBe(getCurrentHub());
       });
     });
 
-    test('within a domain not reused', () => {
+    test('context within a context not reused', () => {
       setDomainAsyncContextStrategy();
 
-      runWithAsyncContext(() => {
+      withScope(() => {
         const hub1 = getCurrentHub();
-        runWithAsyncContext(() => {
+        withScope(() => {
           const hub2 = getCurrentHub();
           expect(hub1).not.toBe(hub2);
         });
-      });
-    });
-
-    test('within a domain reused when requested', () => {
-      setDomainAsyncContextStrategy();
-
-      runWithAsyncContext(() => {
-        const hub1 = getCurrentHub();
-        runWithAsyncContext(
-          () => {
-            const hub2 = getCurrentHub();
-            expect(hub1).toBe(hub2);
-          },
-          { reuseExisting: true },
-        );
       });
     });
 
@@ -181,11 +190,11 @@ describe('setDomainAsyncContextStrategy()', () => {
       let d1done = false;
       let d2done = false;
 
-      runWithAsyncContext(() => {
-        const hub = getCurrentHub();
-        // eslint-disable-next-line deprecation/deprecation
+      withScope(() => {
+        const hub = getCurrentHub() as Hub;
+
         hub.getStack().push({ client: 'process' } as any);
-        // eslint-disable-next-line deprecation/deprecation
+
         expect(hub.getStack()[1]).toEqual({ client: 'process' });
         // Just in case so we don't have to worry which one finishes first
         // (although it always should be d2)
@@ -197,11 +206,11 @@ describe('setDomainAsyncContextStrategy()', () => {
         }, 0);
       });
 
-      runWithAsyncContext(() => {
-        const hub = getCurrentHub();
-        // eslint-disable-next-line deprecation/deprecation
+      withScope(() => {
+        const hub = getCurrentHub() as Hub;
+
         hub.getStack().push({ client: 'local' } as any);
-        // eslint-disable-next-line deprecation/deprecation
+
         expect(hub.getStack()[1]).toEqual({ client: 'local' });
         setTimeout(() => {
           d2done = true;

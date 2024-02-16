@@ -6,5 +6,4 @@ module.exports = {
   // serverBuildPath: 'build/index.js',
   // publicPath: '/build/',
   serverModuleFormat: 'cjs',
-  entry,
 };

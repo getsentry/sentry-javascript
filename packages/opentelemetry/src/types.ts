@@ -34,3 +34,8 @@ export interface OpenTelemetrySpanContext {
 export type AbstractSpan = WriteableSpan | ReadableSpan;
 
 export type { Span };
+
+export interface CurrentScopes {
+  scope: Scope;
+  isolationScope: Scope;
+}

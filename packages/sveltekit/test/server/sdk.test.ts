@@ -1,7 +1,6 @@
 import * as SentryNode from '@sentry/node';
 import type { NodeClient } from '@sentry/node';
 import { SDK_VERSION, getClient } from '@sentry/node';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../../src/server/sdk';
 
@@ -11,7 +10,11 @@ describe('Sentry server SDK', () => {
   describe('init', () => {
     afterEach(() => {
       vi.clearAllMocks();
-      GLOBAL_OBJ.__SENTRY__.hub = undefined;
+
+      SentryNode.getGlobalScope().clear();
+      SentryNode.getIsolationScope().clear();
+      SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {
@@ -37,15 +40,11 @@ describe('Sentry server SDK', () => {
     });
 
     it('sets the runtime tag on the isolation scope', () => {
-      const isolationScope = SentryNode.getIsolationScope();
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(isolationScope._tags).toEqual({});
+      expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      // @ts-expect-error need access to protected _tags attribute
-      expect(isolationScope._tags).toEqual({ runtime: 'node' });
+      expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
     });
 
     it('adds rewriteFramesIntegration by default', () => {

@@ -79,7 +79,7 @@ export interface Hub {
    * Returns the client of the top stack.
    * @deprecated Use `Sentry.getClient()` instead.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
   /**
    * Returns the scope of the top stack.

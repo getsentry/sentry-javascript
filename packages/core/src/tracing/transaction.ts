@@ -2,6 +2,7 @@ import type {
   Context,
   Contexts,
   DynamicSamplingContext,
+  Hub,
   MeasurementUnit,
   Measurements,
   SpanTimeInput,
@@ -13,17 +14,16 @@ import type {
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-import { Span as SpanClass, SpanRecorder } from './span';
+import { SentrySpan, SpanRecorder } from './sentrySpan';
 import { getCapturedScopesOnSpan } from './trace';
 
 /** JSDoc */
-export class Transaction extends SpanClass implements TransactionInterface {
+export class Transaction extends SentrySpan implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
@@ -35,7 +35,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   private _contexts: Contexts;
 
-  private _trimEnd?: boolean;
+  private _trimEnd?: boolean | undefined;
 
   // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
   private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;

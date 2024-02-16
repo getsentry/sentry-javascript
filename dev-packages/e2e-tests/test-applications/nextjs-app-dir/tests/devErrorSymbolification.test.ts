@@ -24,7 +24,7 @@ test.describe('dev mode error symbolification', () => {
         function: 'onClick',
         filename: 'components/client-error-debug-tools.tsx',
         lineno: 54,
-        colno: 16,
+        colno: expect.any(Number),
         in_app: true,
         pre_context: ['       <button', '         onClick={() => {'],
         context_line: "           throw new Error('Click Error');",

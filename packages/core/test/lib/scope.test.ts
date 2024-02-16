@@ -1,12 +1,13 @@
 import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
 import {
-  Hub,
   addTracingExtensions,
   applyScopeDataToEvent,
   getActiveSpan,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
-  makeMain,
+  setCurrentClient,
+  setGlobalScope,
   spanToJSON,
   startInactiveSpan,
   startSpan,
@@ -14,7 +15,7 @@ import {
 } from '../../src';
 
 import { withActiveSpan } from '../../src/exports';
-import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Scope', () => {
@@ -553,10 +554,8 @@ describe('withActiveSpan()', () => {
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ enableTracing: true });
     const client = new TestClient(options);
-    const scope = new Scope();
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client, scope);
-    makeMain(hub); // eslint-disable-line deprecation/deprecation
+    setCurrentClient(client);
+    client.init();
   });
 
   it('should set the active span within the callback', () => {

@@ -1,7 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { getClient } from '@sentry/node';
-import { getCurrentScope, init as nodeInit } from '@sentry/node';
+import { getClient, init as nodeInit, setTag } from '@sentry/node';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
@@ -89,6 +88,7 @@ export {
   getModuleFromFilename,
   createGetModuleFromFilename,
   hapiErrorPlugin,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -127,5 +127,5 @@ export function init(options: RemixOptions): void {
 
   nodeInit(options as NodeOptions);
 
-  getCurrentScope().setTag('runtime', 'node');
+  setTag('runtime', 'node');
 }

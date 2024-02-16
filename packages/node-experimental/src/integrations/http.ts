@@ -4,13 +4,11 @@ import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
-import { addBreadcrumb, defineIntegration, hasTracingEnabled, isSentryRequestUrl } from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getIsolationScope, isSentryRequestUrl } from '@sentry/core';
 import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
-import type { EventProcessor, Hub, Integration, IntegrationFn } from '@sentry/types';
-import { stringMatchesSomePattern } from '@sentry/utils';
+import type { IntegrationFn } from '@sentry/types';
 
-import { getIsolationScope, setIsolationScope } from '../sdk/api';
-import type { NodeExperimentalClient } from '../types';
+import { setIsolationScope } from '../sdk/scope';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
 
@@ -85,7 +83,10 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             // Update the isolation scope, isolate this request
             if (getSpanKind(span) === SpanKind.SERVER) {
-              setIsolationScope(getIsolationScope().clone());
+              const isolationScope = getIsolationScope().clone();
+              isolationScope.setSDKProcessingMetadata({ request: req });
+              isolationScope.setRequestSession({ status: 'ok' });
+              setIsolationScope(isolationScope);
             }
           },
           responseHook: (span, res) => {
@@ -104,148 +105,6 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 }) satisfies IntegrationFn;
 
 export const httpIntegration = defineIntegration(_httpIntegration);
-
-interface OldHttpOptions {
-  /**
-   * Whether breadcrumbs should be recorded for requests
-   * Defaults to true
-   */
-  breadcrumbs?: boolean;
-
-  /**
-   * Whether tracing spans should be created for requests
-   * Defaults to false
-   */
-  spans?: boolean;
-
-  /**
-   * Do not capture spans or breadcrumbs for outgoing HTTP requests to URLs matching the given patterns.
-   */
-  ignoreOutgoingRequests?: (string | RegExp)[];
-}
-
-/**
- * Http instrumentation based on @opentelemetry/instrumentation-http.
- * This instrumentation does two things:
- * * Create breadcrumbs for outgoing requests
- * * Create spans for outgoing requests
- *
- * Note that this integration is also needed for the Express integration to work!
- *
- * @deprecated Use `httpIntegration()` instead.
- */
-export class Http implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Http';
-
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  /**
-   * If spans for HTTP requests should be captured.
-   */
-  public shouldCreateSpansForRequests: boolean;
-
-  private _unload?: () => void;
-  private readonly _breadcrumbs: boolean;
-  // If this is undefined, use default behavior based on client settings
-  private readonly _spans: boolean | undefined;
-  private _ignoreOutgoingRequests: (string | RegExp)[];
-
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: OldHttpOptions = {}) {
-    // eslint-disable-next-line deprecation/deprecation
-    this.name = Http.id;
-    this._breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
-    this._spans = typeof options.spans === 'undefined' ? undefined : options.spans;
-
-    this._ignoreOutgoingRequests = options.ignoreOutgoingRequests || [];
-
-    // Properly set in setupOnce based on client settings
-    this.shouldCreateSpansForRequests = false;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
-    // No need to instrument if we don't want to track anything
-    if (!this._breadcrumbs && this._spans === false) {
-      return;
-    }
-
-    const client = getClient<NodeExperimentalClient>();
-    const clientOptions = client?.getOptions();
-
-    // This is used in the sampler function
-    this.shouldCreateSpansForRequests =
-      typeof this._spans === 'boolean' ? this._spans : hasTracingEnabled(clientOptions);
-
-    // Register instrumentations we care about
-    this._unload = registerInstrumentations({
-      instrumentations: [
-        new HttpInstrumentation({
-          ignoreOutgoingRequestHook: request => {
-            const url = getRequestUrl(request);
-
-            if (!url) {
-              return false;
-            }
-
-            if (isSentryRequestUrl(url, getClient())) {
-              return true;
-            }
-
-            if (this._ignoreOutgoingRequests.length && stringMatchesSomePattern(url, this._ignoreOutgoingRequests)) {
-              return true;
-            }
-
-            return false;
-          },
-
-          ignoreIncomingRequestHook: request => {
-            const method = request.method?.toUpperCase();
-            // We do not capture OPTIONS/HEAD requests as transactions
-            if (method === 'OPTIONS' || method === 'HEAD') {
-              return true;
-            }
-
-            return false;
-          },
-
-          requireParentforOutgoingSpans: true,
-          requireParentforIncomingSpans: false,
-          requestHook: (span, req) => {
-            _updateSpan(span, req);
-
-            // Update the isolation scope, isolate this request
-            if (getSpanKind(span) === SpanKind.SERVER) {
-              setIsolationScope(getIsolationScope().clone());
-            }
-          },
-          responseHook: (span, res) => {
-            if (this._breadcrumbs) {
-              _addRequestBreadcrumb(span, res);
-            }
-          },
-        }),
-      ],
-    });
-  }
-
-  /**
-   *  Unregister this integration.
-   */
-  public unregister(): void {
-    this._unload?.();
-  }
-}
 
 /** Update the span with data we need. */
 function _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void {

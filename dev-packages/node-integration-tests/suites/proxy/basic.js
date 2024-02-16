@@ -8,7 +8,6 @@ proxy.listen(0, () => {
 
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    debug: true,
     transportOptions: {
       proxy: `http://localhost:${proxyPort}`,
     },

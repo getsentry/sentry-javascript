@@ -9,10 +9,10 @@ import type {
   Options,
 } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
+import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
 import { addGlobalEventProcessor } from './eventProcessors';
-import { getClient } from './exports';
 import { getCurrentHub } from './hub';
 
 declare module '@sentry/types' {

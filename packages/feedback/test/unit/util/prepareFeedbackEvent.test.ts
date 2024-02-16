@@ -1,7 +1,6 @@
-import type { Scope } from '@sentry/core';
 import { setCurrentClient } from '@sentry/core';
 import { getCurrentScope } from '@sentry/core';
-import type { FeedbackEvent } from '@sentry/types';
+import type { FeedbackEvent, Scope } from '@sentry/types';
 
 import { prepareFeedbackEvent } from '../../../src/util/prepareFeedbackEvent';
 import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';

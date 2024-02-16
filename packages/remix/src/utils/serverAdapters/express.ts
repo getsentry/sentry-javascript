@@ -1,11 +1,4 @@
-import {
-  getClient,
-  getCurrentHub,
-  getCurrentScope,
-  hasTracingEnabled,
-  runWithAsyncContext,
-  setHttpStatus,
-} from '@sentry/core';
+import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
@@ -52,7 +45,7 @@ function wrapExpressRequestHandler(
       }
     }
 
-    await runWithAsyncContext(async () => {
+    await withIsolationScope(async isolationScope => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       res.end = wrapEndMethod(res.end);
 
@@ -60,9 +53,8 @@ function wrapExpressRequestHandler(
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
-      scope.setSDKProcessingMetadata({ request });
+      isolationScope.setSDKProcessingMetadata({ request });
 
       if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
         return origRequestHandler.call(this, req, res, next);
