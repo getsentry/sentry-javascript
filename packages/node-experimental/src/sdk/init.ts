@@ -7,7 +7,6 @@ import {
   startSession,
 } from '@sentry/core';
 import {
-  defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   getSentryRelease,
@@ -33,14 +32,6 @@ import { NodeExperimentalClient } from './client';
 import { initOtel } from './initOtel';
 
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations: Integration[] = [
-  // eslint-disable-next-line deprecation/deprecation
-  ...defaultNodeIntegrations.filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-  httpIntegration(),
-  nativeNodeFetchIntegration(),
-];
 
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
