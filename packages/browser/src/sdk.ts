@@ -27,7 +27,7 @@ import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
-import { makeFetchTransport } from './transports';
+import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
