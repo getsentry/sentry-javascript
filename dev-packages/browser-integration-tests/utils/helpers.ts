@@ -1,5 +1,6 @@
 import type { Page, Request } from '@playwright/test';
-import type { EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
+import type { EnvelopeItem, EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
+import { parseEnvelope } from '@sentry/utils';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
 
@@ -19,6 +20,27 @@ export const envelopeParser = (request: Request | null): unknown[] => {
 
 export const envelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 2): T => {
   return envelopeParser(request)[envelopeIndex] as T;
+};
+
+/**
+ * The above envelope parser does not follow the envelope spec...
+ * ...but modifying it to follow the spec breaks a lot of the test which rely on the current indexing behavior.
+ *
+ * This parser is a temporary solution to allow us to test metrics with statsd envelopes.
+ *
+ * Eventually, all the tests should be migrated to use this 'proper' envelope parser!
+ */
+export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  const [, items] = parseEnvelope(envelope, new TextEncoder(), new TextDecoder());
+
+  return items;
+};
+
+export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
+  return properEnvelopeParser(request)[0][envelopeIndex] as T;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
