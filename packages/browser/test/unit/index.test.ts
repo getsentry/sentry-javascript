@@ -1,4 +1,4 @@
-import { InboundFilters, SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
+import { InboundFilters, SDK_VERSION, getGlobalScope, getIsolationScope, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
@@ -39,7 +39,11 @@ describe('SentryBrowser', () => {
   const beforeSend = jest.fn(event => event);
 
   beforeEach(() => {
-    WINDOW.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+
     init({
       beforeSend,
       dsn,

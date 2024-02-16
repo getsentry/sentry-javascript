@@ -2,10 +2,10 @@ import type { BrowserClient } from '@sentry/browser';
 import { getActiveSpan } from '@sentry/browser';
 import { browserTracingIntegration } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
+import { SDK_VERSION, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
-import { getIsolationScope } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { init } from '../../../astro/src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
@@ -14,7 +14,11 @@ describe('Sentry client SDK', () => {
   describe('init', () => {
     afterEach(() => {
       vi.clearAllMocks();
-      WINDOW.__SENTRY__.hub = undefined;
+
+      getCurrentScope().clear();
+      getCurrentScope().setClient(undefined);
+      getIsolationScope().clear();
+      getGlobalScope().clear();
     });
 
     it('adds Astro metadata to the SDK options', () => {

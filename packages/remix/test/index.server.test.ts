@@ -1,5 +1,4 @@
 import * as SentryNode from '@sentry/node';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { Integrations, init } from '../src/index.server';
 
@@ -12,8 +11,7 @@ describe('Server init()', () => {
     SentryNode.getGlobalScope().clear();
     SentryNode.getIsolationScope().clear();
     SentryNode.getCurrentScope().clear();
-
-    GLOBAL_OBJ.__SENTRY__.hub = undefined;
+    SentryNode.getCurrentScope().setClient(undefined);
   });
 
   it('inits the Node SDK', () => {

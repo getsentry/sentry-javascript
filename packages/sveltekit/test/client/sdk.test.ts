@@ -23,6 +23,7 @@ describe('Sentry client SDK', () => {
       getGlobalScope().clear();
       getIsolationScope().clear();
       getCurrentScope().clear();
+      getCurrentScope().setClient(undefined);
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {

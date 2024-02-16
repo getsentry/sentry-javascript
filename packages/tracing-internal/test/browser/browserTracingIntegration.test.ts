@@ -36,6 +36,7 @@ afterAll(() => {
 describe('browserTracingIntegration', () => {
   afterEach(() => {
     getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   it('works with tracing enabled', () => {

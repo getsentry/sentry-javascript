@@ -457,7 +457,7 @@ describe('Integration | Scope', () => {
 
       // client is attached to current scope
       expect(currentScope.getClient()).toBeDefined();
-      // current scope remains intact
+
       expect(Sentry.getCurrentScope()).toBe(currentScope);
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });

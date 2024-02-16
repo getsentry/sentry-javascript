@@ -1,7 +1,6 @@
 import type {
   CaptureContext,
   CheckIn,
-  Client,
   CustomSamplingContext,
   Event,
   EventHint,
@@ -22,11 +21,10 @@ import type {
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope } from './currentScopes';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
-import { getCurrentHub, runWithAsyncContext } from './hub';
-import type { Scope } from './scope';
+import { getCurrentHub } from './hub';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -129,73 +127,6 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  */
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
   getIsolationScope().setUser(user);
-}
-
-/**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
- *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- */
-export function withScope<T>(callback: (scope: ScopeInterface) => T): T;
-/**
- * Set the given scope as the active scope in the callback.
- */
-export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T): T;
-/**
- * Either creates a new active scope, or sets the given scope as active scope in the given callback.
- */
-export function withScope<T>(
-  ...rest:
-    | [callback: (scope: ScopeInterface) => T]
-    | [scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T]
-): T {
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub() as Hub;
-
-  // If a scope is defined, we want to make this the active scope instead of the default one
-  if (rest.length === 2) {
-    const [scope, callback] = rest;
-    if (!scope) {
-      // eslint-disable-next-line deprecation/deprecation
-      return hub.withScope(callback);
-    }
-
-    // eslint-disable-next-line deprecation/deprecation
-    return hub.withScope(() => {
-      // eslint-disable-next-line deprecation/deprecation
-      hub.getStackTop().scope = scope as Scope;
-      return callback(scope as Scope);
-    });
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  return hub.withScope(rest[0]);
-}
-
-/**
- * Attempts to fork the current isolation scope and the current scope based on the current async context strategy. If no
- * async context strategy is set, the isolation scope and the current scope will not be forked (this is currently the
- * case, for example, in the browser).
- *
- * Usage of this function in environments without async context strategy is discouraged and may lead to unexpected behaviour.
- *
- * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
- * applications directly because it comes with pitfalls. Use at your own risk!
- *
- * @param callback The callback in which the passed isolation scope is active. (Note: In environments without async
- * context strategy, the currently active isolation scope may change within execution of the callback.)
- * @returns The same value that `callback` returns.
- */
-export function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T): T {
-  return runWithAsyncContext(() => {
-    return callback(getIsolationScope());
-  });
 }
 
 /**
@@ -339,13 +270,6 @@ export async function close(timeout?: number): Promise<boolean> {
   }
   DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
-}
-
-/**
- * Get the currently active client.
- */
-export function getClient<C extends Client>(): C | undefined {
-  return getCurrentScope().getClient<C>();
 }
 
 /**

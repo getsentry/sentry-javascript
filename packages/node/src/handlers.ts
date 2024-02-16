@@ -8,17 +8,17 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getIsolationScope,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   startTransaction,
+  withIsolationScope,
   withScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToTransaction,
-  dropUndefinedKeys,
   extractPathForTransaction,
   extractRequestData,
   isString,
@@ -29,8 +29,6 @@ import {
 
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-// TODO (v8 / XXX) Remove this import
-import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';
 
 /**
@@ -115,37 +113,9 @@ export function tracingHandler(): (
   };
 }
 
-export type RequestHandlerOptions =
-  // TODO (v8 / XXX) Remove ParseRequestOptions type and eslint override
-  // eslint-disable-next-line deprecation/deprecation
-  (ParseRequestOptions | AddRequestDataToEventOptions) & {
-    flushTimeout?: number;
-  };
-
-/**
- * Backwards compatibility shim which can be removed in v8. Forces the given options to follow the
- * `AddRequestDataToEventOptions` interface.
- *
- * TODO (v8): Get rid of this, and stop passing `requestDataOptionsFromExpressHandler` to `setSDKProcessingMetadata`.
- */
-function convertReqHandlerOptsToAddReqDataOpts(
-  reqHandlerOptions: RequestHandlerOptions = {},
-): AddRequestDataToEventOptions | undefined {
-  let addRequestDataOptions: AddRequestDataToEventOptions | undefined;
-
-  if ('include' in reqHandlerOptions) {
-    addRequestDataOptions = { include: reqHandlerOptions.include };
-  } else {
-    // eslint-disable-next-line deprecation/deprecation
-    const { ip, request, transaction, user } = reqHandlerOptions as ParseRequestOptions;
-
-    if (ip || request || transaction || user) {
-      addRequestDataOptions = { include: dropUndefinedKeys({ ip, request, transaction, user }) };
-    }
-  }
-
-  return addRequestDataOptions;
-}
+export type RequestHandlerOptions = AddRequestDataToEventOptions & {
+  flushTimeout?: number;
+};
 
 /**
  * Express compatible request handler.
@@ -154,9 +124,6 @@ function convertReqHandlerOptsToAddReqDataOpts(
 export function requestHandler(
   options?: RequestHandlerOptions,
 ): (req: http.IncomingMessage, res: http.ServerResponse, next: (error?: any) => void) => void {
-  // TODO (v8): Get rid of this
-  const requestDataOptions = convertReqHandlerOptsToAddReqDataOpts(options);
-
   const client = getClient<NodeClient>();
   // Initialise an instance of SessionFlusher on the client when `autoSessionTracking` is enabled and the
   // `requestHandler` middleware is used indicating that we are running in SessionAggregates mode
@@ -164,9 +131,9 @@ export function requestHandler(
     client.initSessionFlusher();
 
     // If Scope contains a Single mode Session, it is removed in favor of using Session Aggregates mode
-    const scope = getCurrentScope();
-    if (scope.getSession()) {
-      scope.setSession();
+    const isolationScope = getIsolationScope();
+    if (isolationScope.getSession()) {
+      isolationScope.setSession();
     }
   }
 
@@ -189,18 +156,15 @@ export function requestHandler(
           });
       };
     }
-    runWithAsyncContext(() => {
-      const scope = getCurrentScope();
-      scope.setSDKProcessingMetadata({
+    return withIsolationScope(isolationScope => {
+      isolationScope.setSDKProcessingMetadata({
         request: req,
-        // TODO (v8): Stop passing this
-        requestDataOptionsFromExpressHandler: requestDataOptions,
       });
 
       const client = getClient<NodeClient>();
       if (isAutoSessionTrackingEnabled(client)) {
         // Set `status` of `RequestSession` to Ok, at the beginning of the request
-        scope.setRequestSession({ status: 'ok' });
+        isolationScope.setRequestSession({ status: 'ok' });
       }
 
       res.once('finish', () => {
@@ -273,7 +237,7 @@ export function errorHandler(options?: {
         // The request should already have been stored in `scope.sdkProcessingMetadata` by `sentryRequestMiddleware`,
         // but on the off chance someone is using `sentryErrorMiddleware` without `sentryRequestMiddleware`, it doesn't
         // hurt to be sure
-        _scope.setSDKProcessingMetadata({ request: _req });
+        getIsolationScope().setSDKProcessingMetadata({ request: _req });
 
         // For some reason we need to set the transaction on the scope again
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -292,7 +256,7 @@ export function errorHandler(options?: {
           // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const isSessionAggregatesMode = (client as any)._sessionFlusher !== undefined;
           if (isSessionAggregatesMode) {
-            const requestSession = _scope.getRequestSession();
+            const requestSession = getIsolationScope().getRequestSession();
             // If an error bubbles to the `errorHandler`, then this is an unhandled error, and should be reported as a
             // Crashed session. The `_requestSession.status` is checked to ensure that this error is happening within
             // the bounds of a request, and if so the status is updated
@@ -372,7 +336,6 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     }
 
     if (isThenable(maybePromiseResult)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       Promise.resolve(maybePromiseResult).then(
         nextResult => {
           captureIfError(nextResult as any);
@@ -389,9 +352,3 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     return maybePromiseResult;
   };
 }
-
-// TODO (v8 / #5257): Remove this
-// eslint-disable-next-line deprecation/deprecation
-export type { ParseRequestOptions, ExpressRequest } from './requestDataDeprecated';
-// eslint-disable-next-line deprecation/deprecation
-export { parseRequest, extractRequestData } from './requestDataDeprecated';

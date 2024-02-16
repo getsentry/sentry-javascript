@@ -1,4 +1,11 @@
-import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
+import {
+  endSession,
+  getCurrentScope,
+  getIntegrationsToSetup,
+  getIsolationScope,
+  hasTracingEnabled,
+  startSession,
+} from '@sentry/core';
 import {
   defaultIntegrations as defaultNodeIntegrations,
   defaultStackParser,
@@ -22,10 +29,7 @@ import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { getClient, getCurrentScope, getIsolationScope } from './api';
 import { NodeExperimentalClient } from './client';
-import { getGlobalCarrier } from './globals';
-import { setLegacyHubOnCarrier } from './hub';
 import { initOtel } from './initOtel';
 
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
@@ -66,6 +70,8 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
     }
   }
 
+  setOpenTelemetryContextAsyncContextStrategy();
+
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
@@ -84,8 +90,6 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   updateScopeFromEnvVariables();
 
   if (options.spotlight) {
-    const client = getClient();
-
     // force integrations to be setup even if no DSN was set
     // If they have already been added before, they will be ignored anyhow
     const integrations = client.getOptions().integrations;
@@ -101,13 +105,9 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
 
   // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration
   initOtel();
-  setOpenTelemetryContextAsyncContextStrategy();
 }
 
 function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalClientOptions {
-  const carrier = getGlobalCarrier();
-  setLegacyHubOnCarrier(carrier);
-
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }

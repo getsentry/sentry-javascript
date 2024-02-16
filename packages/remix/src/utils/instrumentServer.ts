@@ -8,10 +8,10 @@ import {
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
+  withIsolationScope,
 } from '@sentry/core';
 import { captureException, getCurrentHub } from '@sentry/node';
 import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
@@ -456,11 +456,10 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    return runWithAsyncContext(async () => {
+    return withIsolationScope(async isolationScope => {
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -473,7 +472,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url, pkg);
 
-      scope.setSDKProcessingMetadata({
+      isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
           route: {

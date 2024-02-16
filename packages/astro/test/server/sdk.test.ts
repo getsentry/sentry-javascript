@@ -14,6 +14,7 @@ describe('Sentry server SDK', () => {
       SentryNode.getGlobalScope().clear();
       SentryNode.getIsolationScope().clear();
       SentryNode.getCurrentScope().clear();
+      SentryNode.getCurrentScope().setClient(undefined);
     });
 
     it('adds Astro metadata to the SDK options', () => {

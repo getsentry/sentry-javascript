@@ -1,15 +1,7 @@
 import { Integrations as NodeIntegrations } from '@sentry/node';
 
-const {
-  Console,
-  OnUncaughtException,
-  OnUnhandledRejection,
-  Modules,
-  ContextLines,
-  Context,
-  RequestData,
-  // eslint-disable-next-line deprecation/deprecation
-} = NodeIntegrations;
+const { Console, OnUncaughtException, OnUnhandledRejection, Modules, ContextLines, Context, RequestData } =
+  NodeIntegrations;
 
 export { Console, OnUncaughtException, OnUnhandledRejection, Modules, ContextLines, Context, RequestData };
 

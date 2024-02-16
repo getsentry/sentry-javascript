@@ -190,8 +190,6 @@ export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
-    // TODO(v8): Remove this paramater
-    deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
   const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
@@ -259,7 +257,6 @@ export function extractRequestData(
         // query string:
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         requestData.query_string = extractQueryParams(req);
         break;
       }
@@ -310,8 +307,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options && options.deps })
-      : extractRequestData(req, { deps: options && options.deps });
+      ? extractRequestData(req, { include: include.request })
+      : extractRequestData(req);
 
     event.request = {
       ...event.request,

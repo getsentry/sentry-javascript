@@ -1,6 +1,6 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { GLOBAL_OBJ } from '@sentry/utils';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 
 import { init } from '../../src/sdk/init';
 import type { NodeExperimentalClientOptions } from '../../src/types';
@@ -8,12 +8,10 @@ import type { NodeExperimentalClientOptions } from '../../src/types';
 const PUBLIC_DSN = 'https://username@domain/123';
 
 export function resetGlobals(): void {
-  GLOBAL_OBJ.__SENTRY__ = {
-    extensions: {},
-    hub: undefined,
-    globalEventProcessors: [],
-    logger: undefined,
-  };
+  getCurrentScope().clear();
+  getCurrentScope().setClient(undefined);
+  getIsolationScope().clear();
+  getGlobalScope().clear();
 }
 
 export function mockSdkInit(options?: Partial<NodeExperimentalClientOptions>) {

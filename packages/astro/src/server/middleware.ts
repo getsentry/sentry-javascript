@@ -5,8 +5,8 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  runWithAsyncContext,
   startSpan,
+  withIsolationScope,
 } from '@sentry/node';
 import type { Client, Scope, Span } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
@@ -74,7 +74,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
-    return runWithAsyncContext(() => {
+    return withIsolationScope(() => {
       return instrumentRequest(ctx, next, handlerOptions);
     });
   };

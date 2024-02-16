@@ -1,13 +1,14 @@
 import {
   LinkedErrors,
   SDK_VERSION,
+  getGlobalScope,
+  getIsolationScope,
   getMainCarrier,
   initAndBind,
-  runWithAsyncContext,
   setCurrentClient,
+  withIsolationScope,
 } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { Event } from '../src';
 import { contextLinesIntegration } from '../src';
@@ -43,12 +44,13 @@ declare var global: any;
 
 describe('SentryNode', () => {
   beforeEach(() => {
-    GLOBAL_OBJ.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
-    init({ dsn });
-  });
-
-  beforeEach(() => {
     jest.clearAllMocks();
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+
+    init({ dsn });
   });
 
   describe('getContext() / setContext()', () => {
@@ -304,7 +306,7 @@ describe('SentryNode', () => {
       setNodeAsyncContextStrategy();
       const client = new NodeClient(options);
 
-      runWithAsyncContext(() => {
+      withIsolationScope(() => {
         // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         setCurrentClient(client);
@@ -372,6 +374,11 @@ class MockIntegration implements Integration {
 describe('SentryNode initialization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
@@ -501,8 +508,6 @@ describe('SentryNode initialization', () => {
     beforeEach(() => {
       process.env.SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-0';
       process.env.SENTRY_BAGGAGE = 'sentry-release=1.0.0,sentry-environment=production';
-
-      getCurrentScope().clear();
     });
 
     afterEach(() => {

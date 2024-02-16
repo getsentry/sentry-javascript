@@ -6,8 +6,9 @@ import {
   getDynamicSamplingContextFromSpan,
   setHttpStatus,
   spanToTraceHeader,
+  withIsolationScope,
 } from '@sentry/core';
-import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
+import { getActiveTransaction, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/types';
@@ -154,7 +155,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     if (getActiveSpan()) {
       return instrumentHandle(input, options);
     }
-    return runWithAsyncContext(() => {
+    return withIsolationScope(() => {
       return instrumentHandle(input, options);
     });
   };
