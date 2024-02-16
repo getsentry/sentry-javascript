@@ -11,7 +11,7 @@ import {
   withScope,
 } from '../../../src';
 import {
-  Span,
+  SentrySpan,
   continueTrace,
   getActiveSpan,
   startInactiveSpan,
@@ -279,11 +279,11 @@ describe('startSpan', () => {
   });
 
   it('creates & finishes span', async () => {
-    let _span: Span | undefined;
+    let _span: SentrySpan | undefined;
     startSpan({ name: 'GET users/[id]' }, span => {
       expect(span).toBeDefined();
       expect(spanToJSON(span!).timestamp).toBeUndefined();
-      _span = span as Span;
+      _span = span as SentrySpan;
     });
 
     expect(_span).toBeDefined();
@@ -314,7 +314,7 @@ describe('startSpan', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 
@@ -475,7 +475,7 @@ describe('startSpanManual', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 
@@ -580,7 +580,7 @@ describe('startInactiveSpan', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new Span({ spanId: 'parent-span-id' });
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
     // eslint-disable-next-line deprecation/deprecation
     manualScope.setSpan(parentSpan);
 

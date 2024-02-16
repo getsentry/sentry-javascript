@@ -19,11 +19,11 @@ import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-import { Span as SpanClass, SpanRecorder } from './span';
+import { SentrySpan, SpanRecorder } from './sentrySpan';
 import { getCapturedScopesOnSpan } from './trace';
 
 /** JSDoc */
-export class Transaction extends SpanClass implements TransactionInterface {
+export class Transaction extends SentrySpan implements TransactionInterface {
   /**
    * The reference to the current hub.
    */

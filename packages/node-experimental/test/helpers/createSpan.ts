@@ -1,13 +1,13 @@
 import type { Context, SpanContext } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { Tracer } from '@opentelemetry/sdk-trace-base';
-import { Span } from '@opentelemetry/sdk-trace-base';
+import { SentrySpan } from '@opentelemetry/sdk-trace-base';
 import { uuid4 } from '@sentry/utils';
 
 export function createSpan(
   name?: string,
   { spanId, parentSpanId }: { spanId?: string; parentSpanId?: string } = {},
-): Span {
+): SentrySpan {
   const spanProcessor = {
     onStart: () => {},
     onEnd: () => {},
@@ -26,5 +26,5 @@ export function createSpan(
   };
 
   // eslint-disable-next-line deprecation/deprecation
-  return new Span(tracer, {} as Context, name || 'test', spanContext, SpanKind.INTERNAL, parentSpanId);
+  return new SentrySpan(tracer, {} as Context, name || 'test', spanContext, SpanKind.INTERNAL, parentSpanId);
 }

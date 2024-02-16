@@ -3,6 +3,7 @@ import { BrowserClient } from '@sentry/browser';
 import {
   Hub,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
   getClient,
   getCurrentHub,
   getCurrentScope,
@@ -13,10 +14,10 @@ import {
 } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
 
-import { Span, TRACEPARENT_REGEXP, Transaction } from '../src';
+import { TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
-describe('Span', () => {
+describe('SentrySpan', () => {
   beforeEach(() => {
     getGlobalScope().clear();
     getIsolationScope().clear();
@@ -32,9 +33,9 @@ describe('Span', () => {
     jest.clearAllMocks();
   });
 
-  describe('new Span', () => {
+  describe('new SentrySpan', () => {
     test('simple', () => {
-      const span = new Span({ sampled: true });
+      const span = new SentrySpan({ sampled: true });
       const span2 = span.startChild();
       expect((span2 as any).parentSpanId).toBe((span as any).spanId);
       expect((span2 as any).traceId).toBe((span as any).traceId);
@@ -42,13 +43,13 @@ describe('Span', () => {
     });
 
     test('sets instrumenter to `sentry` if not specified in constructor', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
 
       expect(span.instrumenter).toBe('sentry');
     });
 
     test('allows to set instrumenter in constructor', () => {
-      const span = new Span({ instrumenter: 'otel' });
+      const span = new SentrySpan({ instrumenter: 'otel' });
 
       expect(span.instrumenter).toBe('otel');
     });
@@ -73,14 +74,14 @@ describe('Span', () => {
       const span2 = transaction.startChild();
       const span3 = span2.startChild();
       span3.end();
-      expect(transaction.spanRecorder).toBe((span2 as Span).spanRecorder);
-      expect(transaction.spanRecorder).toBe((span3 as Span).spanRecorder);
+      expect(transaction.spanRecorder).toBe((span2 as SentrySpan).spanRecorder);
+      expect(transaction.spanRecorder).toBe((span3 as SentrySpan).spanRecorder);
     });
   });
 
   describe('setters', () => {
     test('setTag', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(span.tags.foo).toBeUndefined();
       span.setTag('foo', 'bar');
       expect(span.tags.foo).toBe('bar');
@@ -89,7 +90,7 @@ describe('Span', () => {
     });
 
     test('setData', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(span.data.foo).toBeUndefined();
       span.setData('foo', null);
       expect(span.data.foo).toBe(null);
@@ -100,7 +101,7 @@ describe('Span', () => {
     });
 
     test('setName', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(span.description).toBeUndefined();
       span.updateName('foo');
       expect(span.description).toBe('foo');
@@ -109,14 +110,14 @@ describe('Span', () => {
 
   describe('status', () => {
     test('setStatus', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       span.setStatus('permission_denied');
       expect((span.getTraceContext() as any).status).toBe('permission_denied');
     });
 
     // TODO (v8): Remove
     test('setHttpStatus', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       span.setHttpStatus(404);
       expect((span.getTraceContext() as any).status).toBe('not_found');
       expect(span.tags['http.status_code']).toBe('404');
@@ -125,7 +126,7 @@ describe('Span', () => {
 
     // TODO (v8): Remove
     test('isSuccess', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(span.isSuccess()).toBe(false);
       expect(spanToJSON(span).status).not.toBe('ok');
       span.setHttpStatus(200);
@@ -151,25 +152,25 @@ describe('Span', () => {
 
   describe('toTraceparent', () => {
     test('simple', () => {
-      expect(new Span().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+      expect(new SentrySpan().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
     });
     test('with sample', () => {
-      expect(new Span({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
+      expect(new SentrySpan({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
     });
   });
 
   describe('toJSON', () => {
     test('simple', () => {
       const span = JSON.parse(
-        JSON.stringify(new Span({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
+        JSON.stringify(new SentrySpan({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
       );
       expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
       expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
     });
 
     test('with parent', () => {
-      const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
-      const spanB = new Span({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new SentrySpan({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
       const serialized = JSON.parse(JSON.stringify(spanB));
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
@@ -177,8 +178,8 @@ describe('Span', () => {
     });
 
     test('should drop all `undefined` values', () => {
-      const spanA = new Span({ traceId: 'a', spanId: 'b' }) as any;
-      const spanB = new Span({
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new SentrySpan({
         parentSpanId: spanA.spanId,
         spanId: 'd',
         traceId: 'c',
@@ -199,7 +200,7 @@ describe('Span', () => {
 
   describe('finish', () => {
     test('simple', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
       expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
@@ -332,14 +333,14 @@ describe('Span', () => {
 
   describe('end', () => {
     test('simple', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
       expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
     });
 
     test('with endTime in seconds', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now() / 1000;
       span.end(endTime);
@@ -347,7 +348,7 @@ describe('Span', () => {
     });
 
     test('with endTime in milliseconds', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       expect(spanToJSON(span).timestamp).toBeUndefined();
       const endTime = Date.now();
       span.end(endTime);
@@ -481,27 +482,27 @@ describe('Span', () => {
 
   describe('getTraceContext', () => {
     test('should have status attribute undefined if no status tag is available', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       const context = span.getTraceContext();
       expect((context as any).status).toBeUndefined();
     });
 
     test('should have success status extracted from tags', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       span.setStatus('ok');
       const context = span.getTraceContext();
       expect((context as any).status).toBe('ok');
     });
 
     test('should have failure status extracted from tags', () => {
-      const span = new Span({});
+      const span = new SentrySpan({});
       span.setStatus('resource_exhausted');
       const context = span.getTraceContext();
       expect((context as any).status).toBe('resource_exhausted');
     });
 
     test('should drop all `undefined` values', () => {
-      const spanB = new Span({ spanId: 'd', traceId: 'c' });
+      const spanB = new SentrySpan({ spanId: 'd', traceId: 'c' });
       const context = spanB.getTraceContext();
       expect(context).toStrictEqual({
         span_id: 'd',
@@ -523,7 +524,7 @@ describe('Span', () => {
         description: 'test',
         op: 'op',
       };
-      const span = new Span(originalContext);
+      const span = new SentrySpan(originalContext);
 
       const newContext = span.toContext();
 
@@ -551,7 +552,7 @@ describe('Span', () => {
           tag0: 'hello',
         },
       };
-      const span = new Span(originalContext);
+      const span = new SentrySpan(originalContext);
 
       span.updateWithContext({
         traceId: 'c',
@@ -577,7 +578,7 @@ describe('Span', () => {
         tags: { tag0: 'hello' },
         data: { data0: 'foo' },
       };
-      const span = new Span(originalContext);
+      const span = new SentrySpan(originalContext);
 
       const newContext = {
         ...span.toContext(),

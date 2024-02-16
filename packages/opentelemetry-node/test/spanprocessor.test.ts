@@ -6,7 +6,7 @@ import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
 import { captureException, getCurrentScope, setCurrentClient } from '@sentry/core';
-import { Span as SentrySpan, Transaction, addTracingExtensions, createTransport, spanToJSON } from '@sentry/core';
+import { SentrySpan, Transaction, addTracingExtensions, createTransport, spanToJSON } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
