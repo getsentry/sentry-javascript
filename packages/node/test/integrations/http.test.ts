@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Span } from '@sentry/core';
+import type { SentrySpan } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
@@ -80,7 +80,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/');
 
@@ -98,7 +98,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 
@@ -289,7 +289,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
 
@@ -314,7 +314,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
 
@@ -344,7 +344,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get(`http://${auth}@dogs.are.great/`);
 
@@ -406,7 +406,7 @@ describe('tracing', () => {
 
         const transaction = createTransactionAndPutOnScope();
         // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 
@@ -516,7 +516,7 @@ describe('tracing', () => {
 
         const transaction = createTransactionAndPutOnScope();
         // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 

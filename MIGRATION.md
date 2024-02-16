@@ -55,6 +55,11 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `IS_BUILD`
 - `isBuild`
 
+## Removal of `Span` class export from SDK packages
+
+In v8, we are no longer exporting the `Span` class from SDK packages (e.g. `@sentry/browser` or `@sentry/node`).
+Internally, this class is now called `SentrySpan`, and it is no longer meant to be used by users directly.
+
 ## Removal of Severity Enum
 
 In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`

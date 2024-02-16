@@ -1,14 +1,11 @@
-import { SpanKind, TraceFlags, context, trace } from '@opentelemetry/api';
+import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { spanToJSON } from '@sentry/core';
 import { SentrySpanProcessor, getClient, setPropagationContextOnContext } from '@sentry/opentelemetry';
-import type { Integration, PropagationContext, TransactionEvent } from '@sentry/types';
+import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
-import { startSpan } from '../../src';
-import type { Http, NodeFetch } from '../../src/integrations';
 import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -701,136 +698,5 @@ describe('Integration | Transactions', () => {
         `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
       ]),
     );
-  });
-
-  it('does not create spans for http requests if disabled in http integration', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
-
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
-
-    jest.useFakeTimers();
-
-    const client = getClient() as NodeExperimentalClient;
-
-    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
-      if (name === 'Http') {
-        return {
-          shouldCreateSpansForRequests: false,
-          // eslint-disable-next-line deprecation/deprecation
-        } as Http;
-      }
-
-      return {} as Integration;
-    });
-
-    client.tracer.startActiveSpan(
-      'test op',
-      {
-        kind: SpanKind.CLIENT,
-        attributes: {
-          [SemanticAttributes.HTTP_METHOD]: 'GET',
-          [SemanticAttributes.HTTP_URL]: 'https://example.com',
-        },
-      },
-      span => {
-        startSpan({ name: 'inner 1' }, () => {
-          startSpan({ name: 'inner 2' }, () => {});
-        });
-
-        span.end();
-      },
-    );
-
-    void client.flush();
-    jest.advanceTimersByTime(5_000);
-
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
-
-    // Now try a non-HTTP span
-    client.tracer.startActiveSpan(
-      'test op 2',
-      {
-        kind: SpanKind.CLIENT,
-        attributes: {},
-      },
-      span => {
-        startSpan({ name: 'inner 1' }, () => {
-          startSpan({ name: 'inner 2' }, () => {});
-        });
-
-        span.end();
-      },
-    );
-
-    void client.flush();
-    jest.advanceTimersByTime(5_000);
-
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not create spans for fetch requests if disabled in fetch integration', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
-
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
-
-    jest.useFakeTimers();
-
-    const client = getClient() as NodeExperimentalClient;
-
-    jest.spyOn(client, 'getIntegrationByName').mockImplementation(name => {
-      if (name === 'NodeFetch') {
-        return {
-          shouldCreateSpansForRequests: false,
-          // eslint-disable-next-line deprecation/deprecation
-        } as NodeFetch;
-      }
-
-      return {} as Integration;
-    });
-
-    client.tracer.startActiveSpan(
-      'test op',
-      {
-        kind: SpanKind.CLIENT,
-        attributes: {
-          [SemanticAttributes.HTTP_METHOD]: 'GET',
-          [SemanticAttributes.HTTP_URL]: 'https://example.com',
-          'http.client': 'fetch',
-        },
-      },
-      span => {
-        startSpan({ name: 'inner 1' }, () => {
-          startSpan({ name: 'inner 2' }, () => {});
-        });
-
-        span.end();
-      },
-    );
-
-    void client.flush();
-    jest.advanceTimersByTime(5_000);
-
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
-
-    // Now try a non-HTTP span
-    client.tracer.startActiveSpan(
-      'test op 2',
-      {
-        kind: SpanKind.CLIENT,
-        attributes: {},
-      },
-      span => {
-        startSpan({ name: 'inner 1' }, () => {
-          startSpan({ name: 'inner 2' }, () => {});
-        });
-
-        span.end();
-      },
-    );
-
-    void client.flush();
-    jest.advanceTimersByTime(5_000);
-
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
   });
 });

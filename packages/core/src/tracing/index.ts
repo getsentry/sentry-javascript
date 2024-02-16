@@ -1,7 +1,7 @@
 export { startIdleTransaction, addTracingExtensions } from './hubextensions';
 export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
 export type { BeforeFinishCallback } from './idletransaction';
-export { Span } from './span';
+export { SentrySpan } from './sentrySpan';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
 export { getActiveTransaction } from './utils';

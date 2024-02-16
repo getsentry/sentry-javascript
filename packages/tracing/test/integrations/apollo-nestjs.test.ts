@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope, Span as SpanClass } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -80,7 +80,7 @@ describe('setupOnce', () => {
 
   beforeEach(() => {
     scope = new Scope();
-    parentSpan = new SpanClass();
+    parentSpan = new SentrySpan();
     childSpan = parentSpan.startChild();
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(scope, 'setSpan');
