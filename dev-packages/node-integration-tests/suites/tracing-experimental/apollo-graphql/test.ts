@@ -11,7 +11,6 @@ describe('GraphQL/Apollo Tests', () => {
             'graphql.source': '{hello}',
             'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.graphql.otel.graphql',
-            'sentry.source': 'custom',
           },
           description: 'query',
           status: 'ok',
