@@ -35,6 +35,8 @@ export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
 export declare const Transaction: typeof edgeSdk.Transaction;
 
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+
 export { withSentryConfig } from './config';
 
 /**
