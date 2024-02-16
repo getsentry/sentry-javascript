@@ -192,7 +192,6 @@ describe('Span', () => {
         origin: 'manual',
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
       });
     });
@@ -509,7 +508,6 @@ describe('Span', () => {
         trace_id: 'c',
         data: {
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
         origin: 'manual',
       });
@@ -538,7 +536,6 @@ describe('Span', () => {
         data: {
           'sentry.op': 'op',
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
       });
     });
@@ -612,7 +609,6 @@ describe('Span', () => {
         data1: 'bar',
         'sentry.op': 'op',
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
     });
   });
