@@ -1,5 +1,3 @@
-import { TextEncoder } from 'util';
-
 import { NETWORK_BODY_MAX_SIZE } from '../../../../src/constants';
 import {
   buildNetworkRequestOrResponse,
@@ -25,18 +23,16 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
   });
 
   describe('getBodySize()', () => {
-    const textEncoder = new TextEncoder();
-
     it('works with empty body', () => {
-      expect(getBodySize(undefined, textEncoder)).toBe(undefined);
-      expect(getBodySize(null, textEncoder)).toBe(undefined);
-      expect(getBodySize('', textEncoder)).toBe(undefined);
+      expect(getBodySize(undefined)).toBe(undefined);
+      expect(getBodySize(null)).toBe(undefined);
+      expect(getBodySize('')).toBe(undefined);
     });
 
     it('works with string body', () => {
-      expect(getBodySize('abcd', textEncoder)).toBe(4);
+      expect(getBodySize('abcd')).toBe(4);
       // Emojis are correctly counted as mutliple characters
-      expect(getBodySize('With emoji: 😈', textEncoder)).toBe(16);
+      expect(getBodySize('With emoji: 😈')).toBe(16);
     });
 
     it('works with URLSearchParams', () => {
@@ -45,7 +41,7 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
       params.append('age', '42');
       params.append('emoji', '😈');
 
-      expect(getBodySize(params, textEncoder)).toBe(35);
+      expect(getBodySize(params)).toBe(35);
     });
 
     it('works with FormData', () => {
@@ -54,19 +50,19 @@ describe('Unit | coreHandlers | util | networkUtils', () => {
       formData.append('age', '42');
       formData.append('emoji', '😈');
 
-      expect(getBodySize(formData, textEncoder)).toBe(35);
+      expect(getBodySize(formData)).toBe(35);
     });
 
     it('works with Blob', () => {
       const blob = new Blob(['<html>Hello world: 😈</html>'], { type: 'text/html' });
 
-      expect(getBodySize(blob, textEncoder)).toBe(30);
+      expect(getBodySize(blob)).toBe(30);
     });
 
     it('works with ArrayBuffer', () => {
       const arrayBuffer = new ArrayBuffer(8);
 
-      expect(getBodySize(arrayBuffer, textEncoder)).toBe(8);
+      expect(getBodySize(arrayBuffer)).toBe(8);
     });
   });
 

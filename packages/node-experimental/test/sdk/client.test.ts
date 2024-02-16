@@ -25,7 +25,6 @@ describe('NodeExperimentalClient', () => {
           version: SDK_VERSION,
         },
       },
-      transportOptions: { textEncoder: expect.any(Object) },
       platform: 'node',
       runtime: { name: 'node', version: expect.any(String) },
       serverName: expect.any(String),

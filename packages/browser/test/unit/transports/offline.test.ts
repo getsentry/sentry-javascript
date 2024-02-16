@@ -1,6 +1,5 @@
 import 'fake-indexeddb/auto';
 
-import { TextDecoder, TextEncoder } from 'util';
 import { createTransport } from '@sentry/core';
 import type {
   EventEnvelope,
@@ -27,8 +26,6 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
-  textDecoder: new TextDecoder(),
 };
 
 type MockResult<T> = T | Error;

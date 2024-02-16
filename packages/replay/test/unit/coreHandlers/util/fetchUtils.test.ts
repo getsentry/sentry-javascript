@@ -1,5 +1,3 @@
-import { TextEncoder } from 'util';
-
 import { _getResponseInfo } from '../../../../src/coreHandlers/util/fetchUtils';
 
 describe('Unit | coreHandlers | util | fetchUtils', () => {
@@ -9,7 +7,6 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
         false,
         {
           networkCaptureBodies: true,
-          textEncoder: new TextEncoder(),
           networkResponseHeaders: [],
         },
         undefined,
@@ -24,7 +21,6 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
         false,
         {
           networkCaptureBodies: true,
-          textEncoder: new TextEncoder(),
           networkResponseHeaders: [],
         },
         undefined,
@@ -58,7 +54,6 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
         true,
         {
           networkCaptureBodies: true,
-          textEncoder: new TextEncoder(),
           networkResponseHeaders: [],
         },
         response,
@@ -90,7 +85,6 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
         true,
         {
           networkCaptureBodies: true,
-          textEncoder: new TextEncoder(),
           networkResponseHeaders: [],
         },
         response,
@@ -122,7 +116,6 @@ describe('Unit | coreHandlers | util | fetchUtils', () => {
         true,
         {
           networkCaptureBodies: true,
-          textEncoder: new TextEncoder(),
           networkResponseHeaders: [],
         },
         response,

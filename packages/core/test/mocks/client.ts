@@ -19,12 +19,10 @@ export function getDefaultTestClientOptions(options: Partial<TestClientOptions> 
   return {
     integrations: [],
     sendClientReports: true,
-    transportOptions: { textEncoder: new TextEncoder() },
     transport: () =>
       createTransport(
         {
           recordDroppedEvent: () => undefined,
-          textEncoder: new TextEncoder(),
         }, // noop
         _ => resolvedSyncPromise({}),
       ),

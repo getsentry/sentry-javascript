@@ -1,5 +1,4 @@
 import type { AddressInfo } from 'net';
-import { TextDecoder, TextEncoder } from 'util';
 import type { Envelope } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 import express from 'express';
@@ -15,7 +14,7 @@ export function createBasicSentryServer(onEnvelope: (env: Envelope) => void): Pr
   app.use(express.raw({ type: () => true, inflate: true, limit: '100mb' }));
   app.post('/api/:id/envelope/', (req, res) => {
     try {
-      const env = parseEnvelope(req.body as Buffer, new TextEncoder(), new TextDecoder());
+      const env = parseEnvelope(req.body as Buffer);
       onEnvelope(env);
     } catch (e) {
       // eslint-disable-next-line no-console

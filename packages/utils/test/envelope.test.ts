@@ -1,8 +1,4 @@
-import { TextDecoder, TextEncoder } from 'util';
 import type { Event, EventEnvelope } from '@sentry/types';
-
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
 
 import {
   addItemToEnvelope,
@@ -29,10 +25,10 @@ describe('envelope', () => {
   describe('serializeEnvelope and parseEnvelope', () => {
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      const serializedEnvelope = serializeEnvelope(env, encoder);
+      const serializedEnvelope = serializeEnvelope(env);
       expect(typeof serializedEnvelope).toBe('string');
 
-      const [headers] = parseEnvelope(serializedEnvelope, encoder, decoder);
+      const [headers] = parseEnvelope(serializedEnvelope);
       expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
     });
 
@@ -50,10 +46,10 @@ describe('envelope', () => {
 
       expect.assertions(6);
 
-      const serializedEnvelope = serializeEnvelope(env, encoder);
+      const serializedEnvelope = serializeEnvelope(env);
       expect(serializedEnvelope).toBeInstanceOf(Uint8Array);
 
-      const [parsedHeaders, parsedItems] = parseEnvelope(serializedEnvelope, encoder, decoder);
+      const [parsedHeaders, parsedItems] = parseEnvelope(serializedEnvelope);
       expect(parsedHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
       expect(parsedItems).toHaveLength(3);
       expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
@@ -76,7 +72,7 @@ describe('envelope', () => {
         [{ type: 'event' }, egg],
       ]);
 
-      const serializedEnvelope = serializeEnvelope(env, encoder);
+      const serializedEnvelope = serializeEnvelope(env);
       const [, , serializedBody] = serializedEnvelope.toString().split('\n');
 
       expect(serializedBody).toBe('{"chicken":{"egg":"[Circular ~]"}}');
@@ -86,7 +82,7 @@ describe('envelope', () => {
   describe('addItemToEnvelope()', () => {
     it('adds an item to an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
-      let [envHeaders, items] = parseEnvelope(serializeEnvelope(env, encoder), encoder, decoder);
+      let [envHeaders, items] = parseEnvelope(serializeEnvelope(env));
       expect(items).toHaveLength(0);
       expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
 
@@ -95,7 +91,7 @@ describe('envelope', () => {
         { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' },
       ]);
 
-      [envHeaders, items] = parseEnvelope(serializeEnvelope(newEnv, encoder), encoder, decoder);
+      [envHeaders, items] = parseEnvelope(serializeEnvelope(newEnv));
       expect(envHeaders).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
       expect(items).toHaveLength(1);
       expect(items[0]).toEqual([{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }]);
