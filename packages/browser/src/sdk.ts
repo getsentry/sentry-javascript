@@ -9,7 +9,12 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import { addHistoryInstrumentationHandler, logger, stackParserFromStackParserOptions } from '@sentry/utils';
+import {
+  addHistoryInstrumentationHandler,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -111,6 +116,13 @@ export function init(options: BrowserOptions = {}): void {
     options.sendClientReports = true;
   }
 
+  if (DEBUG_BUILD) {
+    if (!supportsFetch()) {
+      logger.warn(
+        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+      );
+    }
+  }
   const clientOptions: BrowserClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),

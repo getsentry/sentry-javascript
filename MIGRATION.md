@@ -90,6 +90,10 @@ to access and mutate the current scope.
 
 `@sentry/hub` has been removed. All exports from `@sentry.hub` should be available in `@sentry/core`.
 
+## Removal of `makeXHRTransport` transport (#10703)
+
+The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the Sentry SDK requires the fetch API to be available in the environment.
+
 ## General API Changes
 
 - The minumum supported Node version for all the SDK packages is Node 14 (#10527)
