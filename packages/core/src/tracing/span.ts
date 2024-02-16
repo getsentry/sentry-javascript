@@ -17,11 +17,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
