@@ -1367,7 +1367,7 @@ only be set later during the span lifecycle (and thus not be available during sa
 
 ## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
 
-This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from`@sentry/remix`.
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`.
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
