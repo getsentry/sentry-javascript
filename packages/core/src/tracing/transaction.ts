@@ -69,6 +69,11 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
     this._trimEnd = transactionContext.trimEnd;
 
+    this._attributes = {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      ...this._attributes,
+    };
+
     // this is because transactions are also spans, and spans have a transaction pointer
     // TODO (v8): Replace this with another way to set the root span
     // eslint-disable-next-line deprecation/deprecation

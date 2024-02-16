@@ -144,7 +144,6 @@ export class Span implements SpanInterface {
     this.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanContext.origin || 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       ...spanContext.attributes,
     });
 
