@@ -337,7 +337,7 @@ describe('SentrySpanProcessor', () => {
         const sentrySpan = getSpanForOtelSpan(child);
 
         // origin is set by default to 'manual'
-        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual', 'sentry.source': 'custom' });
+        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual' });
 
         child.end();
 
