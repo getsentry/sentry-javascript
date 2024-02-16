@@ -125,15 +125,6 @@ describe('SentrySpan', () => {
     });
   });
 
-  describe('toTraceparent', () => {
-    test('simple', () => {
-      expect(new SentrySpan().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
-    });
-    test('with sample', () => {
-      expect(new SentrySpan({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
-    });
-  });
-
   describe('toJSON', () => {
     test('simple', () => {
       const span = JSON.parse(

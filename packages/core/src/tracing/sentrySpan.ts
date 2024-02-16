@@ -477,15 +477,6 @@ export class SentrySpan implements SpanInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  public toTraceparent(): string {
-    return spanToTraceHeader(this);
-  }
-
-  /**
-   * @inheritDoc
-   *
    * @deprecated Use `spanToJSON()` or access the fields directly instead.
    */
   public toContext(): SpanContext {
