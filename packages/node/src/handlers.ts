@@ -145,7 +145,11 @@ export function requestHandler(
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
-      res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
+      res.end = function (
+        chunk?: any | (() => void),
+        encoding?: string | (() => void),
+        cb?: () => void,
+      ): http.ServerResponse {
         void flush(options.flushTimeout)
           .then(() => {
             _end.call(this, chunk, encoding, cb);
@@ -154,6 +158,8 @@ export function requestHandler(
             DEBUG_BUILD && logger.error(e);
             _end.call(this, chunk, encoding, cb);
           });
+
+        return res;
       };
     }
     return withIsolationScope(isolationScope => {
