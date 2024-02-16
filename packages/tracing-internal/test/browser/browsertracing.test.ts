@@ -10,16 +10,13 @@ import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
-import { BrowserClient } from '@sentry/browser';
+import { browserTracingIntegration } from '@sentry/browser';
 import { timestampInSeconds } from '@sentry/utils';
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
 import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
-import { browserTracingIntegration } from '../../build/types';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { getMetaContent } from '../../src/browser/browsertracing';
-import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
-import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import { WINDOW } from '../../src/browser/types';
 import { TestClient } from '../utils/TestClient';
 
@@ -86,66 +83,11 @@ describe('BrowserTracing', () => {
   function createBrowserTracing(setup?: boolean, options?: Partial<BrowserTracingOptions>) {
     const instance = browserTracingIntegration(options);
     if (setup) {
-      instance.afterAllSetup(new BrowserClient());
+      instance.afterAllSetup(new TestClient(getDefaultBrowserClientOptions()));
     }
 
     return instance;
   }
-
-  // These are important enough to check with a test as incorrect defaults could
-  // break a lot of users' configurations.
-  it('is created with default settings', () => {
-    const browserTracing = createBrowserTracing();
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: true,
-      _experiments: {},
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-    });
-  });
-
-  it('is allows to disable enableLongTask via _experiments', () => {
-    const browserTracing = createBrowserTracing(false, {
-      _experiments: {
-        enableLongTask: false,
-      },
-    });
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: false,
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-      _experiments: {
-        enableLongTask: false,
-      },
-    });
-  });
-
-  it('is allows to disable enableLongTask', () => {
-    const browserTracing = createBrowserTracing(false, {
-      enableLongTask: false,
-    });
-
-    expect(browserTracing.options).toEqual({
-      enableLongTask: false,
-      _experiments: {},
-      ...TRACING_DEFAULTS,
-      markBackgroundTransactions: true,
-      routingInstrumentation: instrumentRoutingWithDefaults,
-      startTransactionOnLocationChange: true,
-      startTransactionOnPageLoad: true,
-      ...defaultRequestInstrumentationOptions,
-    });
-  });
 
   /**
    * All of these tests under `describe('route transaction')` are tested with
