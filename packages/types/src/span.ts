@@ -366,13 +366,6 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
 
   /**
-   * Determines whether span was successful (HTTP200)
-   *
-   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
-   */
-  isSuccess(): boolean;
-
-  /**
    * Return a traceparent compatible header string.
    * @deprecated Use `spanToTraceHeader()` instead.
    */

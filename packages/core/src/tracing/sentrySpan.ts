@@ -500,15 +500,6 @@ export class SentrySpan implements SpanInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
-   */
-  public isSuccess(): boolean {
-    return this._status === 'ok';
-  }
-
-  /**
-   * @inheritDoc
-   *
    * @deprecated Use `.end()` instead.
    */
   public finish(endTimestamp?: number): void {
