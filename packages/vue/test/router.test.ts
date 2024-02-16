@@ -134,7 +134,7 @@ describe('instrumentVueRouter()', () => {
         setAttributes: jest.fn(),
       };
 
-      const spy = jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn().mockImplementation(_ => {
         return mockRootSpan;
