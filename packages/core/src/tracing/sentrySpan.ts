@@ -144,8 +144,7 @@ export class SentrySpan implements SpanInterface {
       ...spanContext.attributes,
     });
 
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
 
     if (spanContext.parentSpanId) {
       this._parentSpanId = spanContext.parentSpanId;
@@ -179,22 +178,6 @@ export class SentrySpan implements SpanInterface {
    */
   public set name(name: string) {
     this.updateName(name);
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get description(): string | undefined {
-    return this._name;
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set description(description: string | undefined) {
-    this._name = description;
   }
 
   /**
@@ -574,8 +557,7 @@ export class SentrySpan implements SpanInterface {
   public updateWithContext(spanContext: SpanContext): this {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
     this._endTime = spanContext.endTimestamp;
     // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;

@@ -100,13 +100,6 @@ export interface SpanContextData {
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
-   * Description of the Span.
-   *
-   * @deprecated Use `name` instead.
-   */
-  description?: string | undefined;
-
-  /**
    * Human-readable identifier for the span. Alias for span.description.
    */
   name?: string | undefined;

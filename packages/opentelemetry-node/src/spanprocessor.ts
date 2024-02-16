@@ -66,7 +66,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (sentryParentSpan) {
       // eslint-disable-next-line deprecation/deprecation
       const sentryChildSpan = sentryParentSpan.startChild({
-        description: otelSpan.name,
+        name: otelSpan.name,
         instrumenter: 'otel',
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,

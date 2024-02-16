@@ -194,7 +194,7 @@ function wrapResolver(
       const parentSpan = scope.getSpan();
       // eslint-disable-next-line deprecation/deprecation
       const span = parentSpan?.startChild({
-        description: `${resolverGroupName}.${resolverName}`,
+        name: `${resolverGroupName}.${resolverName}`,
         op: 'graphql.resolve',
         origin: 'auto.graphql.apollo',
       });

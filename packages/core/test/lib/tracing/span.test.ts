@@ -8,53 +8,34 @@ describe('span', () => {
     it('works with name', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(span.name).toEqual('span name');
-      expect(span.description).toEqual('span name');
-    });
-
-    it('works with description', () => {
-      const span = new SentrySpan({ description: 'span name' });
-      expect(span.name).toEqual('span name');
-      expect(span.description).toEqual('span name');
-    });
-
-    it('works without name', () => {
-      const span = new SentrySpan({});
-      expect(span.name).toEqual('');
-      expect(span.description).toEqual(undefined);
     });
 
     it('allows to update the name via setter', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(span.name).toEqual('span name');
-      expect(span.description).toEqual('span name');
 
       span.name = 'new name';
 
       expect(span.name).toEqual('new name');
-      expect(span.description).toEqual('new name');
     });
 
     it('allows to update the name via setName', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(span.name).toEqual('span name');
-      expect(span.description).toEqual('span name');
 
       // eslint-disable-next-line deprecation/deprecation
       span.setName('new name');
 
       expect(span.name).toEqual('new name');
-      expect(span.description).toEqual('new name');
     });
 
     it('allows to update the name via updateName', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(span.name).toEqual('span name');
-      expect(span.description).toEqual('span name');
 
       span.updateName('new name');
 
       expect(span.name).toEqual('new name');
-      expect(span.description).toEqual('new name');
     });
   });
   /* eslint-enable deprecation/deprecation */

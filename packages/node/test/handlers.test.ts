@@ -466,7 +466,7 @@ describe('tracingHandler', () => {
     transaction.initSpanRecorder();
     // eslint-disable-next-line deprecation/deprecation
     const span = transaction.startChild({
-      description: 'reallyCoolHandler',
+      name: 'reallyCoolHandler',
       op: 'middleware',
     });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);

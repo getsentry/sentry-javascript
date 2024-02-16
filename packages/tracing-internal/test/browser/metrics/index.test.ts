@@ -50,7 +50,7 @@ describe('_addMeasureSpans', () => {
     expect(transaction.startChild).toHaveBeenCalledTimes(1);
     // eslint-disable-next-line @typescript-eslint/unbound-method, deprecation/deprecation
     expect(transaction.startChild).toHaveBeenLastCalledWith({
-      description: 'measure-1',
+      name: 'measure-1',
       startTimestamp: timeOrigin + startTime,
       endTimestamp: timeOrigin + startTime + duration,
       op: 'measure',
@@ -133,7 +133,7 @@ describe('_addResourceSpans', () => {
         ['server.address']: 'example.com',
         ['url.same_origin']: true,
       },
-      description: '/assets/to/css',
+      name: '/assets/to/css',
       endTimestamp: timeOrigin + startTime + duration,
       op: 'resource.css',
       origin: 'auto.resource.browser.metrics',
@@ -225,7 +225,7 @@ describe('_addResourceSpans', () => {
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
-        description: '/assets/to/css',
+        name: '/assets/to/css',
         endTimestamp: 468,
         op: 'resource.css',
         origin: 'auto.resource.browser.metrics',
@@ -252,7 +252,7 @@ describe('_addResourceSpans', () => {
     expect(transaction.startChild).toHaveBeenLastCalledWith(
       expect.objectContaining({
         data: { 'server.address': 'example.com', 'url.same_origin': true, 'url.scheme': 'https' },
-        description: '/assets/to/css',
+        name: '/assets/to/css',
         endTimestamp: 468,
         op: 'resource.css',
         origin: 'auto.resource.browser.metrics',
