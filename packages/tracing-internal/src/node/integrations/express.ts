@@ -376,7 +376,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
       const transaction = res.__sentry_transaction;
       const attributes = (transaction && spanToJSON(transaction).data) || {};
-      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         // If the request URL is '/' or empty, the reconstructed route will be empty.
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';

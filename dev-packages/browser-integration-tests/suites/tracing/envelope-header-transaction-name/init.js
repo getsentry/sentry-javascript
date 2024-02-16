@@ -1,10 +1,11 @@
 import * as Sentry from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  integrations: [new Sentry.BrowserTracing()],
+  integrations: [Sentry.browserTracingIntegration()],
   environment: 'production',
   tracesSampleRate: 1,
   debug: true,
@@ -17,6 +18,4 @@ Sentry.addEventProcessor(event => {
   return event;
 });
 
-const scope = Sentry.getCurrentScope();
-scope.getTransaction().setMetadata({ source: 'custom' });
-scope.getTransaction().setAttributes({ [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
+Sentry.getActiveSpan().setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');

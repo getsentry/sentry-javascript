@@ -1,5 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
@@ -179,12 +180,12 @@ async function instrumentHandle(
         op: 'http.server',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
         },
         name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
         status: 'ok',
         ...traceparentData,
         metadata: {
-          source: event.route?.id ? 'route' : 'url',
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       },

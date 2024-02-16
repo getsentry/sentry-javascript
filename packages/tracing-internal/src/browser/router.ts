@@ -28,7 +28,6 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
       origin: 'auto.pageload.browser',
-      metadata: { source: 'url' },
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
@@ -62,7 +61,9 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
           name: 'wtf6',
           op: 'navigation',
           origin: 'auto.navigation.browser',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         });
       }
     });

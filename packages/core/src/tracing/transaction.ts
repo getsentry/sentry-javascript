@@ -10,6 +10,7 @@ import type {
   TransactionContext,
   TransactionEvent,
   TransactionMetadata,
+  TransactionSource,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
@@ -68,6 +69,11 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     this._trimEnd = transactionContext.trimEnd;
 
+    this._attributes = {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      ...this._attributes,
+    };
+
     // this is because transactions are also spans, and spans have a transaction pointer
     // TODO (v8): Replace this with another way to set the root span
     // eslint-disable-next-line deprecation/deprecation
@@ -110,17 +116,12 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     // We merge attributes in for backwards compatibility
     return {
       // Defaults
-      // eslint-disable-next-line deprecation/deprecation
-      source: 'custom',
       spanMetadata: {},
 
       // Legacy metadata
       ...this._metadata,
 
       // From attributes
-      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] && {
-        source: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionMetadata['source'],
-      }),
       ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
         sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
       }),
@@ -142,7 +143,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
    *
    * @deprecated Use `.updateName()` and `.setAttribute()` instead.
    */
-  public setName(name: string, source: TransactionMetadata['source'] = 'custom'): void {
+  public setName(name: string, source: TransactionSource = 'custom'): void {
     this._name = name;
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
@@ -309,8 +310,8 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     // eslint-disable-next-line deprecation/deprecation
     const { metadata } = this;
-    // eslint-disable-next-line deprecation/deprecation
-    const { source } = metadata;
+
+    const source = this._attributes['sentry.source'] as TransactionSource | undefined;
 
     const transaction: TransactionEvent = {
       contexts: {

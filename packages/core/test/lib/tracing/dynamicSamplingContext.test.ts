@@ -75,7 +75,9 @@ describe('getDynamicSamplingContextFromSpan', () => {
       name: 'tx',
       metadata: {
         sampleRate: 0.56,
-        source: 'route',
+      },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       },
       sampled: true,
     });
@@ -98,8 +100,10 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const transaction = new Transaction({
         name: 'tx',
         metadata: {
-          source: 'url',
           sampleRate: 0.56,
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       });
 
@@ -110,11 +114,11 @@ describe('getDynamicSamplingContextFromSpan', () => {
     test.each([
       ['is included if transaction source is parameterized route/url', 'route'],
       ['is included if transaction source is a custom name', 'custom'],
-    ])('%s', (_: string, source) => {
+    ] as const)('%s', (_: string, source: TransactionSource) => {
       const transaction = startInactiveSpan({
         name: 'tx',
-        metadata: {
-          ...(source && { source: source as TransactionSource }),
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
       });
 

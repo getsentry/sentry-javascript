@@ -330,16 +330,15 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     // If `beforeNavigate` set a custom name, record that fact
-    // eslint-disable-next-line deprecation/deprecation
-    finalContext.metadata =
+    finalContext.attributes =
       finalContext.name !== expandedContext.name
-        ? // eslint-disable-next-line deprecation/deprecation
-          { ...finalContext.metadata, source: 'custom' }
-        : // eslint-disable-next-line deprecation/deprecation
-          finalContext.metadata;
+        ? { ...finalContext.attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' }
+        : finalContext.attributes;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = getSource(finalContext);
+    if (finalContext.attributes) {
+      this._latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    }
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -451,14 +450,4 @@ export function getMetaContent(metaName: string): string | undefined {
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;
-}
-
-function getSource(context: TransactionContext): TransactionSource | undefined {
-  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromMetadata = context.metadata && context.metadata.source;
-
-  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

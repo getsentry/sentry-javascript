@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
 import type { SentrySpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
@@ -162,7 +163,7 @@ describe('tracing', () => {
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'route' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -176,7 +177,7 @@ describe('tracing', () => {
   it('does not add the transaction name to the the baggage header if url transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'url' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
