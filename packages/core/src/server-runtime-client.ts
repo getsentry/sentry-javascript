@@ -15,7 +15,7 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
-import { getClient, getIsolationScope } from './currentScopes';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
@@ -56,7 +56,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(getClient(), this._options.stackParser, exception, hint));
+    return resolvedSyncPromise(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
   }
 
   /**
