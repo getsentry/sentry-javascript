@@ -5,6 +5,7 @@ import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { captureException, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { Span as SentrySpan, Transaction, addTracingExtensions, createTransport, spanToJSON } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
@@ -336,7 +337,7 @@ describe('SentrySpanProcessor', () => {
         const sentrySpan = getSpanForOtelSpan(child);
 
         // origin is set by default to 'manual'
-        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual' });
+        expect(spanToJSON(sentrySpan!).data).toEqual({ 'sentry.origin': 'manual', 'sentry.source': 'custom' });
 
         child.end();
 
@@ -347,6 +348,7 @@ describe('SentrySpanProcessor', () => {
           'test-attribute-3': 0,
           'test-attribute-4': false,
           'sentry.origin': 'manual',
+          'sentry.source': 'custom',
         });
       });
 
@@ -586,6 +588,7 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
+            'sentry.source': 'custom',
           });
 
           parentOtelSpan.end();
@@ -617,6 +620,7 @@ describe('SentrySpanProcessor', () => {
             url: 'http://example.com/my/route/123',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
+            'sentry.source': 'custom',
           });
           expect(op).toBe('http');
 
@@ -651,6 +655,7 @@ describe('SentrySpanProcessor', () => {
             'http.fragment': '#myHash',
             'sentry.op': 'http',
             'sentry.origin': 'manual',
+            'sentry.source': 'custom',
           });
           expect(op).toBe('http');
 
@@ -671,7 +676,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('url');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
       });
     });
 
@@ -687,7 +692,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
       });
     });
 
@@ -703,7 +708,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
       });
     });
 
