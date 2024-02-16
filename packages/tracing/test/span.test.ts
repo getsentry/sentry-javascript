@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions } from '@sentry/types';
 
-import { TRACEPARENT_REGEXP, Transaction } from '../src';
+import { Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('SentrySpan', () => {

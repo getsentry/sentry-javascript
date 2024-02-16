@@ -25,7 +25,6 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
-  spanToTraceHeader,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
 import { setHttpStatus } from './spanstatus';
