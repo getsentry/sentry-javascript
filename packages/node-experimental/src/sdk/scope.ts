@@ -1,6 +1,6 @@
 import { context } from '@opentelemetry/api';
+import { getScopesFromContext } from '@sentry/opentelemetry';
 import type { Scope } from '@sentry/types';
-import { getScopesFromContext } from '../utils/contextData';
 
 /**
  * Update the active isolation scope.

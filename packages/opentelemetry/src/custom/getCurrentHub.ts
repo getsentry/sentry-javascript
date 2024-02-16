@@ -14,6 +14,7 @@ import {
   addBreadcrumb,
   captureEvent,
   endSession,
+  getClient,
   getCurrentScope,
   getIsolationScope,
   setContext,
@@ -25,8 +26,6 @@ import {
   startSession,
   withScope,
 } from '@sentry/core';
-import { getClient } from './api';
-import { callExtensionMethod } from './globals';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -79,11 +78,12 @@ export function getCurrentHub(): Hub {
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
       // eslint-disable-next-line deprecation/deprecation
-      return getClient().getIntegration(integration);
+      return getClient()?.getIntegration(integration) || null;
     },
 
     traceHeaders(): { [key: string]: string } {
-      return callExtensionMethod<{ [key: string]: string }>(this, 'traceHeaders');
+      // TODO: Do we need this??
+      return {};
     },
 
     startTransaction(
@@ -92,7 +92,7 @@ export function getCurrentHub(): Hub {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): any {
       // eslint-disable-next-line no-console
-      console.warn('startTransaction is a noop in @sentry/node-experimental. Use `startSpan` instead.');
+      console.warn('startTransaction is a noop in @sentry/opentelemetry. Use `startSpan` instead.');
       // We return an object here as hub.ts checks for the result of this
       // and renders a different warning if this is empty
       return {};
@@ -115,8 +115,7 @@ export function getCurrentHub(): Hub {
 
     shouldSendDefaultPii(): boolean {
       const client = getClient();
-      const options = client.getOptions();
-      return Boolean(options.sendDefaultPii);
+      return Boolean(client ? client.getOptions().sendDefaultPii : false);
     },
   };
 }
@@ -129,7 +128,7 @@ function _sendSessionUpdate(): void {
   const client = getClient();
 
   const session = scope.getSession();
-  if (session) {
+  if (client && session) {
     client.captureSession(session);
   }
 }

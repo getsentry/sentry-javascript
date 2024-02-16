@@ -13,6 +13,7 @@ import {
   makeNodeTransport,
   spotlightIntegration,
 } from '@sentry/node';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
@@ -26,7 +27,6 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
 import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
 import { NodeExperimentalClient } from './client';
 import { initOtel } from './initOtel';

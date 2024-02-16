@@ -1,4 +1,4 @@
-import { BaseClient, createTransport, initAndBind } from '@sentry/core';
+import { BaseClient, createTransport, getCurrentScope } from '@sentry/core';
 import type { Client, ClientOptions, Event, Options, SeverityLevel } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
@@ -15,10 +15,8 @@ class BaseTestClient extends BaseClient<ClientOptions> {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },
@@ -35,7 +33,11 @@ export const TestClient = wrapClientClass(BaseTestClient);
 export type TestClientInterface = Client & OpenTelemetryClient;
 
 export function init(options: Partial<Options> = {}): void {
-  initAndBind(TestClient, getDefaultTestClientOptions(options));
+  const client = new TestClient(getDefaultTestClientOptions(options));
+
+  // The client is on the current scope, from where it generally is inherited
+  getCurrentScope().setClient(client);
+  client.init();
 }
 
 export function getDefaultTestClientOptions(options: Partial<Options> = {}): ClientOptions {

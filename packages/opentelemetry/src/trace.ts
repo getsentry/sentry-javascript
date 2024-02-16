@@ -2,8 +2,8 @@ import type { Span, Tracer } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { SDK_VERSION, getClient, handleCallbackErrors } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import { SDK_VERSION, getClient, getCurrentScope, handleCallbackErrors } from '@sentry/core';
+import type { Client, Scope } from '@sentry/types';
 
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
@@ -99,6 +99,18 @@ export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
   _applySentryAttributesToSpan(span, spanContext);
 
   return span;
+}
+
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
+  const newContextWithActiveSpan = trace.setSpan(context.active(), span);
+  return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
 }
 
 function getTracer(): Tracer {
