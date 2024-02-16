@@ -292,6 +292,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
         status: 'ok',
+        metadata: {},
         data: {
           'http.method': 'GET',
         },

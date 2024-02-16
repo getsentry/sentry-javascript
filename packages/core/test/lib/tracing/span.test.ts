@@ -86,7 +86,6 @@ describe('span', () => {
         arrayWithUndefined: [1, undefined, 2],
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
     });
 
@@ -95,12 +94,12 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      // length 3 because `sentry.origin` and `sentry.source` are always set by default
-      expect(Object.keys(span['_attributes']).length).toEqual(3);
+      // length 2 because `sentry.origin` is always set by default
+      expect(Object.keys(span['_attributes']).length).toEqual(2);
 
       span.setAttribute('str', undefined);
 
-      expect(Object.keys(span['_attributes']).length).toEqual(2);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
     });
 
     it('disallows invalid attribute types', () => {
@@ -126,7 +125,6 @@ describe('span', () => {
       expect(initialAttributes).toEqual({
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
 
       const newAttributes = {
@@ -154,7 +152,6 @@ describe('span', () => {
         boolArray: [true, false],
         arrayWithUndefined: [1, undefined, 2],
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
 
       expect(span['_attributes']).not.toBe(newAttributes);
@@ -175,7 +172,6 @@ describe('span', () => {
         boolArray: [true, false],
         arrayWithUndefined: [1, undefined, 2],
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
     });
 
@@ -184,12 +180,12 @@ describe('span', () => {
 
       span.setAttribute('str', 'bar');
 
-      // length 3 because `sentry.origin` and `sentry.source` are always set by default
-      expect(Object.keys(span['_attributes']).length).toEqual(3);
+      // length 2 because `sentry.origin` is always set by default
+      expect(Object.keys(span['_attributes']).length).toEqual(2);
 
       span.setAttributes({ str: undefined });
 
-      expect(Object.keys(span['_attributes']).length).toEqual(2);
+      expect(Object.keys(span['_attributes']).length).toEqual(1);
     });
   });
 
@@ -291,7 +287,6 @@ describe('span', () => {
       expect(span['_getData']()).toEqual({
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
     });
 
@@ -304,13 +299,11 @@ describe('span', () => {
         foo: 'bar',
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
       expect(span['_getData']()).toStrictEqual({
         // eslint-disable-next-line deprecation/deprecation
         ...span.data,
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
     });
 
@@ -322,7 +315,6 @@ describe('span', () => {
         foo: 'bar',
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
       // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).toBe(span.attributes);
@@ -343,7 +335,6 @@ describe('span', () => {
         baz: 'baz',
         // origin is set by default to 'manual' in the Span constructor
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       });
       // eslint-disable-next-line deprecation/deprecation
       expect(span['_getData']()).not.toBe(span.attributes);

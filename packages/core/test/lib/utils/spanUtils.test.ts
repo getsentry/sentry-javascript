@@ -57,7 +57,6 @@ describe('spanToJSON', () => {
       start_timestamp: span['_startTime'],
       data: {
         'sentry.origin': 'manual',
-        'sentry.source': 'custom',
       },
     });
   });
@@ -94,7 +93,6 @@ describe('spanToJSON', () => {
       data: {
         'sentry.op': 'test op',
         'sentry.origin': 'auto',
-        'sentry.source': 'custom',
       },
     });
   });
