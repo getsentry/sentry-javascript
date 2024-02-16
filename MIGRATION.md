@@ -1,5 +1,13 @@
 # Upgrading from 7.x to 8.x
 
+## Updated Logic for Browser Pageload Transactions
+
+The v8 release includes a behavioural change for pageload transactions. Transactions that track browser pageloads will
+now at least wait for the
+[`complete` document ready state](https://developer.mozilla.org/en-US/docs/Web/API/Document/readyState) before being
+finished. Note that this change may affect span duration in Sentry - keep this in mind if you have alerts set up for
+this metric.
+
 ## Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
 
 We updated the behaviour of the SDKs when no `tracePropagationTargets` option was defined. As a reminder, you can

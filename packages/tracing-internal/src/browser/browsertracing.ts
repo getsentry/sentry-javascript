@@ -363,12 +363,12 @@ export class BrowserTracing implements Integration {
 
     if (isPageloadTransaction) {
       WINDOW.document.addEventListener('readystatechange', () => {
-        if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+        if (WINDOW.document.readyState === 'complete') {
           idleTransaction.sendAutoFinishSignal();
         }
       });
 
-      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+      if (WINDOW.document.readyState === 'complete') {
         idleTransaction.sendAutoFinishSignal();
       }
     }
