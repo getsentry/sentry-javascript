@@ -3,7 +3,6 @@ import type { FormComponentProps } from './Form';
 import { Form } from './Form';
 import { Logo } from './Logo';
 import { createElement } from './util/createElement';
-import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
 
 export interface DialogProps
   extends FormComponentProps,
@@ -96,13 +95,10 @@ export function Dialog({
     return (el && el.open === true) || false;
   }
 
-  const screenshot = createElement('div', { className: 'dialog-content' });
-
   const {
     el: formEl,
     showError,
     hideError,
-    screenshotButton,
   } = Form({
     showEmail,
     showName,
@@ -116,13 +112,6 @@ export function Dialog({
     ...textLabels,
   });
 
-  // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
-    croppingRef: screenshot,
-    buttonRef: screenshotButton,
-    props: null,
-  });
-
   el = createElement(
     'dialog',
     {
@@ -130,7 +119,6 @@ export function Dialog({
       open: true,
       onClick: handleDialogClick,
     },
-    screenshot,
     createElement(
       'div',
       {

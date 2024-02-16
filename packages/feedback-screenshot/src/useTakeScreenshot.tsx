@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'preact/hooks';
 import { h } from 'preact';
 
-const takeScreenshot = async (): Promise<string> => {
+const takeScreenshot = async (): Promise<HTMLCanvasElement> => {
   const stream = await navigator.mediaDevices.getDisplayMedia({
     video: {
       width: window.innerWidth * window.devicePixelRatio,
@@ -31,15 +31,15 @@ const takeScreenshot = async (): Promise<string> => {
     video.play();
   });
 
-  return canvas.toDataURL();
+  return canvas;
 };
 
 export const useTakeScreenshot = () => {
   const [isInProgress, setIsInProgress] = useState(false);
 
-  const takeScreenshotCallback = useCallback(async (): Promise<string> => {
+  const takeScreenshotCallback = useCallback(async (): Promise<HTMLCanvasElement> => {
     setIsInProgress(true);
-    let image: string | null = null;
+    let image: HTMLCanvasElement | null = null;
     try {
       image = await takeScreenshot();
     } catch (error) {

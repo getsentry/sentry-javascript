@@ -1,5 +1,6 @@
 import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
+import * as Sentry from '@sentry/browser';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
@@ -119,6 +120,15 @@ export function createWidget({
     // Success
     removeDialog();
     showSuccessMessage();
+    Sentry.withScope(scope => {
+      if (feedback.screenshot) {
+        scope.addAttachment({
+          filename: 'screenshot.png',
+          data: feedback.screenshot,
+          contentType: 'image/png',
+        });
+      }
+    });
 
     if (options.onSubmitSuccess) {
       options.onSubmitSuccess();

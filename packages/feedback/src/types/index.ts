@@ -30,6 +30,7 @@ export interface FeedbackFormData {
   message: string;
   email?: string;
   name?: string;
+  screenshot?: Uint8Array;
 }
 
 /**
