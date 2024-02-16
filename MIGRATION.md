@@ -1228,8 +1228,6 @@ export class HeaderComponent {
 }
 ```
 
----
-
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
@@ -1367,7 +1365,16 @@ only be set later during the span lifecycle (and thus not be available during sa
 
 ## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
 
-This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`.
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+````typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
@@ -1465,7 +1472,7 @@ typescript:
 
 ```ts
 const replay = getClient().getIntegrationByName<Replay>('Replay');
-```
+````
 
 ## Deprecate `Hub`
 
