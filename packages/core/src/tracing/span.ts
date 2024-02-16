@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type {
   Instrumenter,
+  Measurements,
   Primitive,
   Span as SpanInterface,
   SpanAttributeValue,
@@ -17,7 +18,11 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_MEASUREMENTS,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+} from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -115,6 +120,7 @@ export class Span implements SpanInterface {
   protected _endTime?: number;
   /** Internal keeper of the status */
   protected _status?: SpanStatusType | string;
+  protected _exclusiveTime?: number;
 
   private _logMessage?: string;
 
@@ -158,6 +164,9 @@ export class Span implements SpanInterface {
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
+    }
+    if (spanContext.exclusiveTime) {
+      this._exclusiveTime = spanContext.exclusiveTime;
     }
   }
 
@@ -626,6 +635,8 @@ export class Span implements SpanInterface {
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
+      exclusive_time: this._exclusiveTime,
+      measurements: this._attributes[SEMANTIC_ATTRIBUTE_MEASUREMENTS] as Measurements | undefined,
     });
   }
 

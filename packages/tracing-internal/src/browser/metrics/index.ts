@@ -1,6 +1,12 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { Span, getActiveTransaction, getClient, setMeasurement } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_MEASUREMENTS,
+  SentrySpan,
+  getActiveTransaction,
+  getClient,
+  setMeasurement,
+} from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
@@ -208,18 +214,19 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     const duration = msToSec(metric.value);
     const routeName =
       entry.interactionId !== undefined ? interactionIdtoRouteNameMapping[entry.interactionId].routeName : undefined;
-    const span = new Span({
+    const span = new SentrySpan({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
       op: 'ui.interaction.click',
       name: routeName,
       attributes: {
-        measurements: {
+        [SEMANTIC_ATTRIBUTE_MEASUREMENTS]: {
           inp: { value: metric.value, unit: 'millisecond' },
         },
         release,
         environment,
       },
+      exclusiveTime: metric.value,
     });
     const envelope = span ? createSpanEnvelope(span) : undefined;
     const transport = client && client.getTransport();

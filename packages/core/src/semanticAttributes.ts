@@ -19,3 +19,8 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
  * Use this attribute to represent the origin of a span.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
+
+/**
+ * Use this attribute to represent measurements of a span.
+ */
+export const SEMANTIC_ATTRIBUTE_MEASUREMENTS = 'measurements';

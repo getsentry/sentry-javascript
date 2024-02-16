@@ -198,8 +198,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingInteractions();
   }
 
-  let latestRouteName: string | undefined;
-  let latestRouteSource: TransactionSource | undefined;
+  const latestRouteData: { latestRouteName: string | undefined; latestRouteSource: TransactionSource | undefined } = {
+    latestRouteName: undefined,
+    latestRouteSource: undefined,
+  };
 
   /** Create routing idle transaction. */
   function _createRouteTransaction(context: TransactionContext): Transaction | undefined {
@@ -245,8 +247,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         : // eslint-disable-next-line deprecation/deprecation
           finalContext.metadata;
 
-    latestRouteName = finalContext.name;
-    latestRouteSource = getSource(finalContext);
+    latestRouteData.latestRouteName = finalContext.name;
+    latestRouteData.latestRouteSource = getSource(finalContext);
 
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
@@ -394,7 +396,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (_experiments.enableInteractions) {
-        registerInteractionListener(options, latestRouteName, latestRouteSource);
+        registerInteractionListener(options, latestRouteData);
       }
 
       if (_experiments.enableInp) {
@@ -460,8 +462,7 @@ export function getMetaContent(metaName: string): string | undefined {
 /** Start listener for interaction transactions */
 function registerInteractionListener(
   options: BrowserTracingOptions,
-  latestRouteName: string | undefined,
-  latestRouteSource: TransactionSource | undefined,
+  latestRouteData: { latestRouteName: string | undefined; latestRouteSource: TransactionSource | undefined },
 ): void {
   let inflightInteractionTransaction: IdleTransaction | undefined;
   const registerInteractionTransaction = (): void => {
@@ -484,7 +485,7 @@ function registerInteractionListener(
       inflightInteractionTransaction = undefined;
     }
 
-    if (!latestRouteName) {
+    if (!latestRouteData.latestRouteName) {
       DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
       return undefined;
     }
@@ -492,11 +493,11 @@ function registerInteractionListener(
     const { location } = WINDOW;
 
     const context: TransactionContext = {
-      name: latestRouteName,
+      name: latestRouteData.latestRouteName,
       op,
       trimEnd: true,
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteData.latestRouteSource || 'url',
       },
     };
 
