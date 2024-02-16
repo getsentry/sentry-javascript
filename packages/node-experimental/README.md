@@ -59,10 +59,10 @@ You can manual instrument using the following APIs:
 ```js
 const Sentry = require('@sentry/node-experimental');
 
-Sentry.startActiveSpan({ description: 'outer' }, function (span) {
+Sentry.startSpan({ description: 'outer' }, function (span) {
   span.setData(customData);
   doSomethingSlow();
-  Sentry.startActiveSpan({ description: 'inner' }, function() {
+  Sentry.startSpan({ description: 'inner' }, function() {
     // inner span is a child of outer span
     doSomethingVerySlow();
     // inner span is auto-ended when this callback ends
@@ -72,13 +72,13 @@ Sentry.startActiveSpan({ description: 'outer' }, function (span) {
 ```
 
 You can also create spans without marking them as the active span.
-Note that for most scenarios, we recommend the `startActiveSpan` syntax.
+Note that for most scenarios, we recommend the `startSpan` syntax.
 
 ```js
 const Sentry = require('@sentry/node-experimental');
 
 // This will _not_ be put on the scope/set as active, so no other spans will be attached to it
-const span = Sentry.startSpan({ description: 'non-active span' });
+const span = Sentry.startInactiveSpan({ description: 'non-active span' });
 
 doSomethingSlow();
 

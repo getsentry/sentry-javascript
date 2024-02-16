@@ -1,42 +1,33 @@
-import { getModuleFromFilename } from '../src/module';
+import { createGetModuleFromFilename } from '../src/module';
 
-function withFilename(fn: () => void, filename: string) {
-  const prevFilename = require.main?.filename;
-  if (require.main?.filename) {
-    require.main.filename = filename;
-  }
+const getModuleFromFilenameWindows = createGetModuleFromFilename('C:\\Users\\Tim', true);
+const getModuleFromFilenamePosix = createGetModuleFromFilename('/Users/Tim');
 
-  try {
-    fn();
-  } finally {
-    if (require.main && prevFilename) {
-      require.main.filename = prevFilename;
-    }
-  }
-}
-
-describe('getModuleFromFilename', () => {
+describe('createGetModuleFromFilename', () => {
   test('Windows', () => {
-    withFilename(() => {
-      expect(getModuleFromFilename('C:\\Users\\users\\Tim\\Desktop\\node_modules\\module.js', true)).toEqual('module');
-    }, 'C:\\Users\\Tim\\app.js');
+    expect(getModuleFromFilenameWindows('C:\\Users\\Tim\\node_modules\\some-dep\\module.js')).toEqual(
+      'some-dep:module',
+    );
+    expect(getModuleFromFilenameWindows('C:\\Users\\Tim\\some\\more\\feature.js')).toEqual('some.more:feature');
   });
 
   test('POSIX', () => {
-    withFilename(() => {
-      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.js')).toEqual('module');
-    }, '/Users/Tim/app.js');
+    expect(getModuleFromFilenamePosix('/Users/Tim/node_modules/some-dep/module.js')).toEqual('some-dep:module');
+    expect(getModuleFromFilenamePosix('/Users/Tim/some/more/feature.js')).toEqual('some.more:feature');
+    expect(getModuleFromFilenamePosix('/Users/Tim/main.js')).toEqual('main');
   });
 
-  test('POSIX .mjs', () => {
-    withFilename(() => {
-      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.mjs')).toEqual('module');
-    }, '/Users/Tim/app.js');
+  test('.mjs', () => {
+    expect(getModuleFromFilenamePosix('/Users/Tim/node_modules/some-dep/module.mjs')).toEqual('some-dep:module');
   });
 
-  test('POSIX .cjs', () => {
-    withFilename(() => {
-      expect(getModuleFromFilename('/Users/users/Tim/Desktop/node_modules/module.cjs')).toEqual('module');
-    }, '/Users/Tim/app.js');
+  test('.cjs', () => {
+    expect(getModuleFromFilenamePosix('/Users/Tim/node_modules/some-dep/module.cjs')).toEqual('some-dep:module');
+  });
+
+  test('node internal', () => {
+    expect(getModuleFromFilenamePosix('node.js')).toEqual('node');
+    expect(getModuleFromFilenamePosix('node:internal/process/task_queues')).toEqual('task_queues');
+    expect(getModuleFromFilenamePosix('node:internal/timers')).toEqual('timers');
   });
 });

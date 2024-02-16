@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import type { ErrorHandler as AngularErrorHandler } from '@angular/core';
 import { Inject, Injectable } from '@angular/core';
 import * as Sentry from '@sentry/browser';
+import type { ReportDialogOptions } from '@sentry/browser';
 import type { Event } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
@@ -13,7 +14,7 @@ import { runOutsideAngular } from './zone';
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
   showDialog?: boolean;
-  dialogOptions?: Sentry.ReportDialogOptions;
+  dialogOptions?: Omit<ReportDialogOptions, 'eventId'>;
   /**
    * Custom implementation of error extraction from the raw value captured by the Angular.
    * @param error Value captured by Angular's ErrorHandler provider
@@ -117,16 +118,16 @@ class SentryErrorHandler implements AngularErrorHandler {
     if (this._options.showDialog) {
       const client = Sentry.getClient();
 
-      if (client && client.on && !this._registeredAfterSendEventHandler) {
+      if (client && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {
-          if (!event.type) {
+          if (!event.type && event.event_id) {
             Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
           }
         });
 
         // We only want to register this hook once in the lifetime of the error handler
         this._registeredAfterSendEventHandler = true;
-      } else if (!client || !client.on) {
+      } else if (!client) {
         Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
       }
     }

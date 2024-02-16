@@ -5,8 +5,8 @@ import type {
   EventHint,
   Integration,
   Outcome,
+  ParameterizedString,
   Session,
-  Severity,
   SeverityLevel,
 } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
@@ -75,11 +75,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     return resolvedSyncPromise(event);
   }
 
-  public eventFromMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
-  ): PromiseLike<Event> {
+  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 

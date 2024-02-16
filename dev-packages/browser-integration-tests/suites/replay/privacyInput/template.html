@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <input id="input" />
+    <input id="input-masked" data-sentry-mask />
+    <input id="input-ignore" data-sentry-ignore />
+
+    <textarea id="textarea"></textarea>
+    <textarea id="textarea-masked" data-sentry-mask></textarea>
+    <textarea id="textarea-ignore" data-sentry-ignore></textarea>
+    <input data-sentry-unmask autocomplete="cc-number" id="should-still-be-masked" />
+
+    <input type="submit" value="Submit form" />
+    <input data-sentry-unmask type="submit" value="Unmasked button" />
+  </body>
+</html>

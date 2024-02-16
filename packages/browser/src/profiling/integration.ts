@@ -1,4 +1,5 @@
-import type { EventEnvelope, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration, getCurrentScope } from '@sentry/core';
+import type { Client, EventEnvelope, Integration, IntegrationClass, IntegrationFn, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
@@ -15,45 +16,25 @@ import {
   takeProfileFromGlobalCache,
 } from './utils';
 
-/**
- * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
- * This exists because we do not want to await async profiler.stop calls as transaction.finish is called
- * in a synchronous context. Instead, we handle sending the profile async from the promise callback and
- * rely on being able to pull the event from the cache when we need to construct the envelope. This makes the
- * integration less reliable as we might be dropping profiles when the cache is full.
- *
- * @experimental
- */
-export class BrowserProfilingIntegration implements Integration {
-  public static id: string = 'BrowserProfilingIntegration';
+const INTEGRATION_NAME = 'BrowserProfiling';
 
-  public readonly name: string;
+const _browserProfilingIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    setup(client) {
+      const scope = getCurrentScope();
 
-  public getCurrentHub?: () => Hub;
+      // eslint-disable-next-line deprecation/deprecation
+      const transaction = scope.getTransaction();
 
-  public constructor() {
-    this.name = BrowserProfilingIntegration.id;
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this.getCurrentHub = getCurrentHub;
-
-    const hub = this.getCurrentHub();
-    const client = hub.getClient();
-    const scope = hub.getScope();
-
-    const transaction = scope.getTransaction();
-
-    if (transaction && isAutomatedPageLoadTransaction(transaction)) {
-      if (shouldProfileTransaction(transaction)) {
-        startProfileForTransaction(transaction);
+      if (transaction && isAutomatedPageLoadTransaction(transaction)) {
+        if (shouldProfileTransaction(transaction)) {
+          startProfileForTransaction(transaction);
+        }
       }
-    }
 
-    if (client && typeof client.on === 'function') {
       client.on('startTransaction', (transaction: Transaction) => {
         if (shouldProfileTransaction(transaction)) {
           startProfileForTransaction(transaction);
@@ -112,8 +93,27 @@ export class BrowserProfilingIntegration implements Integration {
 
         addProfilesToEnvelope(envelope as EventEnvelope, profilesToAddToEnvelope);
       });
-    } else {
-      logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');
-    }
-  }
-}
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const browserProfilingIntegration = defineIntegration(_browserProfilingIntegration);
+
+/**
+ * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
+ * This exists because we do not want to await async profiler.stop calls as transaction.finish is called
+ * in a synchronous context. Instead, we handle sending the profile async from the promise callback and
+ * rely on being able to pull the event from the cache when we need to construct the envelope. This makes the
+ * integration less reliable as we might be dropping profiles when the cache is full.
+ *
+ * @experimental
+ * @deprecated Use `browserProfilingIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const BrowserProfilingIntegration = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  browserProfilingIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type BrowserProfilingIntegration = typeof BrowserProfilingIntegration;

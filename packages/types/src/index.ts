@@ -47,7 +47,7 @@ export type {
   ProfileItem,
 } from './envelope';
 export type { ExtendedError } from './error';
-export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
+export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent, SerializedEvent } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
@@ -72,7 +72,7 @@ export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './re
 export type { FeedbackEvent } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
-export type { CaptureContext, Scope, ScopeContext } from './scope';
+export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
 export type { SdkInfo } from './sdkinfo';
 export type { SdkMetadata } from './sdkmetadata';
 export type {
@@ -87,13 +87,24 @@ export type {
   SerializedSession,
 } from './session';
 
-// eslint-disable-next-line deprecation/deprecation
-export type { Severity, SeverityLevel } from './severity';
-export type { Span, SpanContext, SpanOrigin } from './span';
+export type { SeverityLevel } from './severity';
+export type {
+  Span,
+  SpanContext,
+  SpanOrigin,
+  SpanAttributeValue,
+  SpanAttributes,
+  SpanTimeInput,
+  SpanJSON,
+  SpanContextData,
+  TraceFlag,
+  MetricSummary,
+} from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { TextEncoderInternal } from './textencoder';
 export type { PropagationContext, TracePropagationTargets } from './tracing';
+export type { StartSpanOptions } from './startSpanOptions';
 export type {
   CustomSamplingContext,
   SamplingContext,
@@ -139,4 +150,9 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type { MetricsAggregator, MetricBucketItem, MetricInstance } from './metrics';
+export type {
+  MetricsAggregator,
+  MetricBucketItem,
+  MetricInstance,
+} from './metrics';
+export type { ParameterizedString } from './parameterize';

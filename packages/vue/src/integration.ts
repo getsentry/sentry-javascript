@@ -1,5 +1,5 @@
-import { hasTracingEnabled } from '@sentry/core';
-import type { Hub, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration, hasTracingEnabled } from '@sentry/core';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { GLOBAL_OBJ, arrayify, consoleSandbox } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
@@ -18,55 +18,51 @@ const DEFAULT_CONFIG: VueOptions = {
   trackComponents: false,
 };
 
+const INTEGRATION_NAME = 'Vue';
+
+const _vueIntegration = ((integrationOptions: Partial<VueOptions> = {}) => {
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    setup(client) {
+      _setupIntegration(client, integrationOptions);
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const vueIntegration = defineIntegration(_vueIntegration);
+
 /**
  * Initialize Vue error & performance tracking.
+ *
+ * @deprecated Use `vueIntegration()` instead.
  */
-export class VueIntegration implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Vue';
+// eslint-disable-next-line deprecation/deprecation
+export const VueIntegration = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  vueIntegration,
+) as IntegrationClass<Integration>;
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  private readonly _options: Partial<VueOptions>;
-
-  public constructor(options: Partial<VueOptions> = {}) {
-    this.name = VueIntegration.id;
-    this._options = options;
-  }
-
-  /** @inheritDoc */
-  public setupOnce(_addGlobalEventProcessor: unknown, getCurrentHub: () => Hub): void {
-    this._setupIntegration(getCurrentHub());
-  }
-
-  /** Just here for easier testing */
-  protected _setupIntegration(hub: Hub): void {
-    const client = hub.getClient();
-    const options: Options = { ...DEFAULT_CONFIG, ...(client && client.getOptions()), ...this._options };
-
-    if (!options.Vue && !options.app) {
-      consoleSandbox(() => {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
+function _setupIntegration(client: Client, integrationOptions: Partial<VueOptions>): void {
+  const options: Options = { ...DEFAULT_CONFIG, ...client.getOptions(), ...integrationOptions };
+  if (!options.Vue && !options.app) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/vue]: Misconfigured SDK. Vue specific errors will not be captured.
 Update your \`Sentry.init\` call with an appropriate config option:
 \`app\` (Application Instance - Vue 3) or \`Vue\` (Vue Constructor - Vue 2).`,
-        );
-      });
-      return;
-    }
+      );
+    });
+    return;
+  }
 
-    if (options.app) {
-      const apps = arrayify(options.app);
-      apps.forEach(app => vueInit(app, options));
-    } else if (options.Vue) {
-      vueInit(options.Vue, options);
-    }
+  if (options.app) {
+    const apps = arrayify(options.app);
+    apps.forEach(app => vueInit(app, options));
+  } else if (options.Vue) {
+    vueInit(options.Vue, options);
   }
 }
 

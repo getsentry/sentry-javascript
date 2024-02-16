@@ -1,42 +1,47 @@
 import * as util from 'util';
-import { addBreadcrumb, getCurrentHub } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import { addBreadcrumb, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
-/** Console module integration */
-export class Console implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Console';
+const INTEGRATION_NAME = 'Console';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = Console.id;
+const _consoleIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    setup(client) {
+      addConsoleInstrumentationHandler(({ args, level }) => {
+        if (getClient() !== client) {
+          return;
+        }
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    addConsoleInstrumentationHandler(({ args, level }) => {
-      const hub = getCurrentHub();
+        addBreadcrumb(
+          {
+            category: 'console',
+            level: severityLevelFromString(level),
+            message: util.format.apply(undefined, args),
+          },
+          {
+            input: [...args],
+            level,
+          },
+        );
+      });
+    },
+  };
+}) satisfies IntegrationFn;
 
-      if (!hub.getIntegration(Console)) {
-        return;
-      }
+export const consoleIntegration = defineIntegration(_consoleIntegration);
 
-      addBreadcrumb(
-        {
-          category: 'console',
-          level: severityLevelFromString(level),
-          message: util.format.apply(undefined, args),
-        },
-        {
-          input: [...args],
-          level,
-        },
-      );
-    });
-  }
-}
+/**
+ * Console module integration.
+ * @deprecated Use `consoleIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration) as IntegrationClass<
+  Integration & { setup: (client: Client) => void }
+>;
+
+// eslint-disable-next-line deprecation/deprecation
+export type Console = typeof Console;

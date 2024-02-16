@@ -1,6 +1,6 @@
-import type { Scope } from '@sentry/core';
-import { getClient, getCurrentHub } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import { captureException, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { getClient } from '@sentry/core';
+import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import type { NodeClient } from '../client';
@@ -38,61 +38,66 @@ interface OnUncaughtExceptionOptions {
   onFatalError?(this: void, firstError: Error, secondError?: Error): void;
 }
 
-/** Global Exception handler */
-export class OnUncaughtException implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'OnUncaughtException';
+const INTEGRATION_NAME = 'OnUncaughtException';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = OnUncaughtException.id;
+const _onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
+  const _options = {
+    exitEvenIfOtherHandlersAreRegistered: true,
+    ...options,
+  };
 
-  /**
-   * @inheritDoc
-   */
-  public readonly handler: (error: Error) => void = this._makeErrorHandler();
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    setup(client: NodeClient) {
+      global.process.on('uncaughtException', makeErrorHandler(client, _options));
+    },
+  };
+}) satisfies IntegrationFn;
 
-  // CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
-  private readonly _options: OnUncaughtExceptionOptions;
+export const onUncaughtExceptionIntegration = defineIntegration(_onUncaughtExceptionIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: Partial<OnUncaughtExceptionOptions> = {}) {
-    this._options = {
-      exitEvenIfOtherHandlersAreRegistered: true,
-      ...options,
-    };
-  }
+/**
+ * Global Exception handler.
+ * @deprecated Use `onUncaughtExceptionIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const OnUncaughtException = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  onUncaughtExceptionIntegration,
+) as IntegrationClass<Integration & { setup: (client: NodeClient) => void }> & {
+  new (
+    options?: Partial<{
+      exitEvenIfOtherHandlersAreRegistered: boolean;
+      onFatalError?(this: void, firstError: Error, secondError?: Error): void;
+    }>,
+  ): Integration;
+};
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(): void {
-    global.process.on('uncaughtException', this.handler);
-  }
+// eslint-disable-next-line deprecation/deprecation
+export type OnUncaughtException = typeof OnUncaughtException;
 
-  /**
-   * @hidden
-   */
-  private _makeErrorHandler(): (error: Error) => void {
-    const timeout = 2000;
-    let caughtFirstError: boolean = false;
-    let caughtSecondError: boolean = false;
-    let calledFatalError: boolean = false;
-    let firstError: Error;
+type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 
-    return (error: Error): void => {
+/** Exported only for tests */
+export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptionOptions): ErrorHandler {
+  const timeout = 2000;
+  let caughtFirstError: boolean = false;
+  let caughtSecondError: boolean = false;
+  let calledFatalError: boolean = false;
+  let firstError: Error;
+
+  const clientOptions = client.getOptions();
+
+  return Object.assign(
+    (error: Error): void => {
       let onFatalError: OnFatalErrorHandler = logAndExitProcess;
-      const client = getClient<NodeClient>();
 
-      if (this._options.onFatalError) {
-        onFatalError = this._options.onFatalError;
-      } else if (client && client.getOptions().onFatalError) {
-        onFatalError = client.getOptions().onFatalError as OnFatalErrorHandler;
+      if (options.onFatalError) {
+        onFatalError = options.onFatalError;
+      } else if (clientOptions.onFatalError) {
+        onFatalError = clientOptions.onFatalError as OnFatalErrorHandler;
       }
 
       // Attaching a listener to `uncaughtException` will prevent the node process from exiting. We generally do not
@@ -107,7 +112,7 @@ export class OnUncaughtException implements Integration {
           // There are 3 listeners we ignore:
           listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
           (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
-          listener === this.handler // the handler we register in this integration
+          (listener as ErrorHandler)._errorHandler // the handler we register in this integration
         ) {
           return acc;
         } else {
@@ -116,34 +121,31 @@ export class OnUncaughtException implements Integration {
       }, 0);
 
       const processWouldExit = userProvidedListenersCount === 0;
-      const shouldApplyFatalHandlingLogic = this._options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;
+      const shouldApplyFatalHandlingLogic = options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;
 
       if (!caughtFirstError) {
-        const hub = getCurrentHub();
-
         // this is the first uncaught error and the ultimate reason for shutting down
         // we want to do absolutely everything possible to ensure it gets captured
         // also we want to make sure we don't go recursion crazy if more errors happen after this one
         firstError = error;
         caughtFirstError = true;
 
-        if (hub.getIntegration(OnUncaughtException)) {
-          hub.withScope((scope: Scope) => {
-            scope.setLevel('fatal');
-            hub.captureException(error, {
-              originalException: error,
-              data: { mechanism: { handled: false, type: 'onuncaughtexception' } },
-            });
-            if (!calledFatalError && shouldApplyFatalHandlingLogic) {
-              calledFatalError = true;
-              onFatalError(error);
-            }
+        if (getClient() === client) {
+          captureException(error, {
+            originalException: error,
+            captureContext: {
+              level: 'fatal',
+            },
+            mechanism: {
+              handled: false,
+              type: 'onuncaughtexception',
+            },
           });
-        } else {
-          if (!calledFatalError && shouldApplyFatalHandlingLogic) {
-            calledFatalError = true;
-            onFatalError(error);
-          }
+        }
+
+        if (!calledFatalError && shouldApplyFatalHandlingLogic) {
+          calledFatalError = true;
+          onFatalError(error);
         }
       } else {
         if (shouldApplyFatalHandlingLogic) {
@@ -182,6 +184,7 @@ export class OnUncaughtException implements Integration {
           }
         }
       }
-    };
-  }
+    },
+    { _errorHandler: true },
+  );
 }

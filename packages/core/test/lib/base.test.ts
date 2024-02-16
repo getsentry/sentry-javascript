@@ -1,7 +1,15 @@
 import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, Scope, makeSession } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  getIsolationScope,
+  makeSession,
+  setCurrentClient,
+  setGlobalScope,
+} from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -54,6 +62,10 @@ describe('BaseClient', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
+    setGlobalScope(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
   });
 
   afterEach(() => {
@@ -113,117 +125,108 @@ describe('BaseClient', () => {
 
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
     test('adds a breadcrumb', () => {
-      expect.assertions(1);
-
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
       const scope = new Scope();
-      const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      hub.addBreadcrumb({ message: 'world' });
+      addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs[1].message).toEqual('world');
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: expect.any(Number) }]);
     });
 
-    test('adds a timestamp to new breadcrumbs', () => {
-      expect.assertions(1);
-
+    test('accepts a timestamp for new breadcrumbs', () => {
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
       const scope = new Scope();
-      const hub = new Hub(client, scope);
 
-      scope.addBreadcrumb({ message: 'hello' }, 100);
-      hub.addBreadcrumb({ message: 'world' });
+      scope.addBreadcrumb({ message: 'hello', timestamp: 1234 }, 100);
+      addBreadcrumb({ message: 'world', timestamp: 12345 });
 
-      expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: 1234 }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: 12345 }]);
     });
 
     test('discards breadcrumbs beyond `maxBreadcrumbs`', () => {
-      expect.assertions(2);
-
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
       const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      scope.addBreadcrumb({ message: 'hello' }, 100);
-      hub.addBreadcrumb({ message: 'world' });
+      addBreadcrumb({ message: 'hello1' });
+      addBreadcrumb({ message: 'hello2' });
+      addBreadcrumb({ message: 'hello3' });
 
-      expect((scope as any)._breadcrumbs.length).toEqual(1);
-      expect((scope as any)._breadcrumbs[0].message).toEqual('world');
-    });
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
 
-    test('allows concurrent updates', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
-
-      hub.addBreadcrumb({ message: 'hello' });
-      hub.addBreadcrumb({ message: 'world' });
-
-      expect((scope as any)._breadcrumbs).toHaveLength(2);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello3', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and uses the new one', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'changed', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs.length).toEqual(0);
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([]);
     });
 
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
-      expect.assertions(2);
-
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
+      addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
-      expect((scope as any)._breadcrumbs[0].data).toEqual('someRandomThing');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([
+        { message: 'hello', data: 'someRandomThing', timestamp: expect.any(Number) },
+      ]);
     });
   });
 
@@ -610,10 +613,12 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
       const scope = new Scope();
-      const hub = new Hub(client, scope);
-      hub.addBreadcrumb({ message: '1' });
-      hub.addBreadcrumb({ message: '2' });
+
+      addBreadcrumb({ message: '1' });
+      addBreadcrumb({ message: '2' });
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
@@ -670,7 +675,7 @@ describe('BaseClient', () => {
     test('adds installed integrations to sdk info', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
-      client.setupIntegrations();
+      client.init();
 
       client.captureEvent({ message: 'message' });
 
@@ -684,7 +689,7 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
-      client.setupIntegrations();
+      client.init();
       client.addIntegration(new AdHocIntegration());
 
       client.captureException(new Error('test exception'));
@@ -705,7 +710,7 @@ describe('BaseClient', () => {
         integrations: [new TestIntegration(), null, undefined],
       });
       const client = new TestClient(options);
-      client.setupIntegrations();
+      client.init();
 
       client.captureEvent({ message: 'message' });
 
@@ -756,7 +761,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
-          contexts: normalizedObject,
+          // also has trace context from global scope
+          contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
           event_id: '42',
           extra: normalizedObject,
@@ -805,7 +811,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
-          contexts: normalizedObject,
+          // also has trace context from global scope
+          contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
           event_id: '42',
           extra: normalizedObject,
@@ -859,7 +866,8 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!).toEqual(
         expect.objectContaining({
           breadcrumbs: [normalizedBreadcrumb, normalizedBreadcrumb, normalizedBreadcrumb],
-          contexts: normalizedObject,
+          // also has trace context from global scope
+          contexts: { ...normalizedObject, trace: expect.anything() },
           environment: 'production',
           event_id: '42',
           extra: normalizedObject,
@@ -1478,24 +1486,48 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
       const client = new TestClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
     });
 
-    test('skips installation if DSN is not provided', () => {
+    test('sets up each integration on `init` call', () => {
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
+      const client = new TestClient(options);
+      client.init();
+
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
+    });
+
+    test('skips installation for `setupIntegrations()` if DSN is not provided', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ integrations: [new TestIntegration()] });
       const client = new TestClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
-    test('skips installation if `enabled` is set to `false`', () => {
+    test('skips installation for `init()` if DSN is not provided', () => {
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({ integrations: [new TestIntegration()] });
+      const client = new TestClient(options);
+      client.init();
+
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
+    });
+
+    test('skips installation for `setupIntegrations()` if `enabled` is set to `false`', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({
@@ -1504,10 +1536,26 @@ describe('BaseClient', () => {
         integrations: [new TestIntegration()],
       });
       const client = new TestClient(options);
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegration(TestIntegration)).toBeFalsy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
+    });
+
+    test('skips installation for `init()` if `enabled` is set to `false`', () => {
+      expect.assertions(2);
+
+      const options = getDefaultTestClientOptions({
+        dsn: PUBLIC_DSN,
+        enabled: false,
+        integrations: [new TestIntegration()],
+      });
+      const client = new TestClient(options);
+      client.init();
+
+      expect(Object.keys((client as any)._integrations).length).toEqual(0);
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
     });
 
     test('skips installation if integrations are already installed', () => {
@@ -1519,16 +1567,40 @@ describe('BaseClient', () => {
       const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
 
       // it should install the first time, because integrations aren't yet installed...
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegration(TestIntegration)).toBeTruthy();
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
 
       // ...but it shouldn't try to install a second time
+      // eslint-disable-next-line deprecation/deprecation
       client.setupIntegrations();
 
       expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
+    });
+
+    test('does not add integrations twice when calling `init` multiple times', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
+      const client = new TestClient(options);
+      // note: not the `Client` method `setupIntegrations`, but the free-standing function which that method calls
+      const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
+
+      // it should install the first time, because integrations aren't yet installed...
+      client.init();
+
+      expect(Object.keys((client as any)._integrations).length).toEqual(1);
+      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
+      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
+
+      client.init();
+
+      // is called again...
+      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(2);
+
+      // but integrations are only added once anyhow!
+      expect(client['_integrations']).toEqual({ TestIntegration: expect.any(TestIntegration) });
     });
   });
 
@@ -1870,11 +1942,11 @@ describe('BaseClient', () => {
           traceId: '86f39e84263a4de99c326acab3bfe3bd',
         } as Transaction;
 
-        client.on?.('startTransaction', transaction => {
+        client.on('startTransaction', transaction => {
           expect(transaction).toEqual(mockTransaction);
         });
 
-        client.emit?.('startTransaction', mockTransaction);
+        client.emit('startTransaction', mockTransaction);
       });
 
       it('should call a beforeEnvelope hook', () => {
@@ -1887,11 +1959,11 @@ describe('BaseClient', () => {
           {},
         ] as Envelope;
 
-        client.on?.('beforeEnvelope', envelope => {
+        client.on('beforeEnvelope', envelope => {
           expect(envelope).toEqual(mockEnvelope);
         });
 
-        client.emit?.('beforeEnvelope', mockEnvelope);
+        client.emit('beforeEnvelope', mockEnvelope);
       });
     });
   });

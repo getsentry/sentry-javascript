@@ -1,4 +1,4 @@
-import { getActiveTransaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveTransaction } from '@sentry/core';
 import { WINDOW } from '@sentry/svelte';
 import type { Span, Transaction, TransactionContext } from '@sentry/types';
 
@@ -17,6 +17,9 @@ const DEFAULT_TAGS = {
  * @param startTransactionFn the function used to start (idle) transactions
  * @param startTransactionOnPageLoad controls if pageload transactions should be created (defaults to `true`)
  * @param startTransactionOnLocationChange controls if navigation transactions should be created (defauls to `true`)
+ *
+ * @deprecated use `browserTracingIntegration()` instead which includes SvelteKit-specific routing instrumentation out of the box.
+ * Therefore, this function will be removed in v8.
  */
 export function svelteKitRoutingInstrumentation<T extends Transaction>(
   startTransactionFn: (context: TransactionContext) => T | undefined,
@@ -43,8 +46,8 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     tags: {
       ...DEFAULT_TAGS,
     },
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
 
@@ -56,7 +59,8 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     const routeId = page.route && page.route.id;
 
     if (pageloadTransaction && routeId) {
-      pageloadTransaction.setName(routeId, 'route');
+      pageloadTransaction.updateName(routeId);
+      pageloadTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
   });
 }
@@ -74,7 +78,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       // So in this case, we can finish the routing span. If the transaction was an IdleTransaction,
       // it will finish automatically and if it was user-created users also need to finish it.
       if (routingSpan) {
-        routingSpan.finish();
+        routingSpan.end();
         routingSpan = undefined;
       }
       return;
@@ -97,6 +101,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
     const parameterizedRouteOrigin = from && from.route.id;
     const parameterizedRouteDestination = to && to.route.id;
 
+    // eslint-disable-next-line deprecation/deprecation
     activeTransaction = getActiveTransaction();
 
     if (!activeTransaction) {
@@ -104,7 +109,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
         name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
         op: 'navigation',
         origin: 'auto.navigation.sveltekit',
-        metadata: { source: parameterizedRouteDestination ? 'route' : 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url' },
         tags: {
           ...DEFAULT_TAGS,
         },
@@ -114,13 +119,15 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
     if (activeTransaction) {
       if (routingSpan) {
         // If a routing span is still open from a previous navigation, we finish it.
-        routingSpan.finish();
+        routingSpan.end();
       }
+      // eslint-disable-next-line deprecation/deprecation
       routingSpan = activeTransaction.startChild({
         op: 'ui.sveltekit.routing',
         description: 'SvelteKit Route Change',
         origin: 'auto.ui.sveltekit',
       });
+      // eslint-disable-next-line deprecation/deprecation
       activeTransaction.setTag('from', parameterizedRouteOrigin);
     }
   });

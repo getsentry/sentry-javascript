@@ -1,11 +1,13 @@
 import type { Attachment } from './attachment';
 import type { Breadcrumb } from './breadcrumb';
+import type { Client } from './client';
 import type { Context, Contexts } from './context';
+import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
@@ -17,8 +19,7 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 /** JSDocs */
 export interface ScopeContext {
   user: User;
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel;
+  level: SeverityLevel;
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
@@ -27,12 +28,44 @@ export interface ScopeContext {
   propagationContext: PropagationContext;
 }
 
+export interface ScopeData {
+  eventProcessors: EventProcessor[];
+  breadcrumbs: Breadcrumb[];
+  user: User;
+  tags: { [key: string]: Primitive };
+  extra: Extras;
+  contexts: Contexts;
+  attachments: Attachment[];
+  propagationContext: PropagationContext;
+  sdkProcessingMetadata: { [key: string]: unknown };
+  fingerprint: string[];
+  level?: SeverityLevel;
+  /** @deprecated This will be removed in v8. */
+  transactionName?: string;
+  span?: Span;
+}
+
 /**
  * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
  */
 export interface Scope {
+  /**
+   * Update the client on the scope.
+   */
+  setClient(client: Client | undefined): void;
+
+  /**
+   * Get the client assigned to this scope.
+   *
+   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   */
+  getClient<C extends Client>(): C | undefined;
+
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
+
+  /** Get the data of this scope, which is applied to an event during processing. */
+  getScopeData(): ScopeData;
 
   /**
    * Updates user context information for future events.
@@ -85,13 +118,11 @@ export interface Scope {
    * Sets the level on the scope for future events.
    * @param level string {@link SeverityLevel}
    */
-  setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this;
+  setLevel(level: SeverityLevel): this;
 
   /**
    * Sets the transaction name on the scope for future events.
+   * @deprecated Use extra or tags instead.
    */
   setTransactionName(name?: string): this;
 
@@ -105,16 +136,19 @@ export interface Scope {
   /**
    * Sets the Span on the scope.
    * @param span Span
+   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
    */
   setSpan(span?: Span): this;
 
   /**
-   * Returns the `Span` if there is one
+   * Returns the `Span` if there is one.
+   * @deprecated Use `getActiveSpan()` instead.
    */
   getSpan(): Span | undefined;
 
   /**
-   * Returns the `Transaction` attached to the scope (if there is one)
+   * Returns the `Transaction` attached to the scope (if there is one).
+   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
   getTransaction(): Transaction | undefined;
 
@@ -197,4 +231,37 @@ export interface Scope {
    * Get propagation context from the scope, used for distributed tracing
    */
   getPropagationContext(): PropagationContext;
+
+  /**
+   * Capture an exception for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param hint Optinal additional data to attach to the Sentry event.
+   * @returns the id of the captured Sentry event.
+   */
+  captureException(exception: unknown, hint?: EventHint): string;
+
+  /**
+   * Capture a message for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param level An optional severity level to report the message with.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured message.
+   */
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
+
+  /**
+   * Capture a Sentry event for this scope.
+   *
+   * @param exception The event to capture.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured event.
+   */
+  captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Clone all data from this scope into a new scope.
+   */
+  clone(): Scope;
 }

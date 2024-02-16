@@ -1,9 +1,10 @@
+/* eslint-disable max-lines */
 import { execFile } from 'child_process';
 import { readFile, readdir } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
-/* eslint-disable max-lines */
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type {
   AppContext,
   CloudResourceContext,
@@ -12,12 +13,16 @@ import type {
   DeviceContext,
   Event,
   Integration,
+  IntegrationClass,
+  IntegrationFn,
   OsContext,
 } from '@sentry/types';
 
 // TODO: Required until we drop support for Node v8
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
+
+const INTEGRATION_NAME = 'Context';
 
 interface DeviceContextOptions {
   cpu?: boolean;
@@ -32,52 +37,25 @@ interface ContextOptions {
   cloudResource?: boolean;
 }
 
-/** Add node modules / packages to the event */
-export class Context implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Context';
+const _nodeContextIntegration = ((options: ContextOptions = {}) => {
+  let cachedContext: Promise<Contexts> | undefined;
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = Context.id;
+  const _options = {
+    app: true,
+    os: true,
+    device: true,
+    culture: true,
+    cloudResource: true,
+    ...options,
+  };
 
-  /**
-   * Caches context so it's only evaluated once
-   */
-  private _cachedContext: Promise<Contexts> | undefined;
-
-  public constructor(
-    private readonly _options: ContextOptions = {
-      app: true,
-      os: true,
-      device: true,
-      culture: true,
-      cloudResource: true,
-    },
-  ) {}
-
-  /** @inheritDoc */
-  public setupOnce(_addGlobaleventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return this.addContext(event);
-  }
-
-  /**
-   * Processes an event and adds context.
-   */
-  public async addContext(event: Event): Promise<Event> {
-    if (this._cachedContext === undefined) {
-      this._cachedContext = this._getContexts();
+  /** Add contexts to the event. Caches the context so we only look it up once. */
+  async function addContext(event: Event): Promise<Event> {
+    if (cachedContext === undefined) {
+      cachedContext = _getContexts();
     }
 
-    const updatedContext = _updateContext(await this._cachedContext);
+    const updatedContext = _updateContext(await cachedContext);
 
     event.contexts = {
       ...event.contexts,
@@ -91,25 +69,23 @@ export class Context implements Integration {
     return event;
   }
 
-  /**
-   * Gets the contexts for the current environment
-   */
-  private async _getContexts(): Promise<Contexts> {
+  /** Get the contexts from node. */
+  async function _getContexts(): Promise<Contexts> {
     const contexts: Contexts = {};
 
-    if (this._options.os) {
+    if (_options.os) {
       contexts.os = await getOsContext();
     }
 
-    if (this._options.app) {
+    if (_options.app) {
       contexts.app = getAppContext();
     }
 
-    if (this._options.device) {
-      contexts.device = getDeviceContext(this._options.device);
+    if (_options.device) {
+      contexts.device = getDeviceContext(_options.device);
     }
 
-    if (this._options.culture) {
+    if (_options.culture) {
       const culture = getCultureContext();
 
       if (culture) {
@@ -117,13 +93,44 @@ export class Context implements Integration {
       }
     }
 
-    if (this._options.cloudResource) {
+    if (_options.cloudResource) {
       contexts.cloud_resource = getCloudResourceContext();
     }
 
     return contexts;
   }
-}
+
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    processEvent(event) {
+      return addContext(event);
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const nodeContextIntegration = defineIntegration(_nodeContextIntegration);
+
+/**
+ * Add node modules / packages to the event.
+ * @deprecated Use `nodeContextIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, nodeContextIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+> & {
+  new (options?: {
+    app?: boolean;
+    os?: boolean;
+    device?: { cpu?: boolean; memory?: boolean } | boolean;
+    culture?: boolean;
+    cloudResource?: boolean;
+  }): Integration;
+};
+
+// eslint-disable-next-line deprecation/deprecation
+export type Context = typeof Context;
 
 /**
  * Updates the context with dynamic values that can change

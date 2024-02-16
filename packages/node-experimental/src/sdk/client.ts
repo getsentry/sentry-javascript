@@ -1,22 +1,46 @@
 import { NodeClient, SDK_VERSION } from '@sentry/node';
-import { wrapClientClass } from '@sentry/opentelemetry';
 
-class NodeExperimentalBaseClient extends NodeClient {
+import type { Tracer } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
+import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { applySdkMetadata } from '@sentry/core';
+
+/** A client for using Sentry with Node & OpenTelemetry. */
+export class NodeExperimentalClient extends NodeClient {
+  public traceProvider: BasicTracerProvider | undefined;
+  private _tracer: Tracer | undefined;
+
   public constructor(options: ConstructorParameters<typeof NodeClient>[0]) {
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.node-experimental',
-      packages: [
-        {
-          name: 'npm:@sentry/node-experimental',
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    applySdkMetadata(options, 'node-experimental');
 
     super(options);
   }
-}
 
-export const NodeExperimentalClient = wrapClientClass(NodeExperimentalBaseClient);
+  /** Get the OTEL tracer. */
+  public get tracer(): Tracer {
+    if (this._tracer) {
+      return this._tracer;
+    }
+
+    const name = '@sentry/node-experimental';
+    const version = SDK_VERSION;
+    const tracer = trace.getTracer(name, version);
+    this._tracer = tracer;
+
+    return tracer;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async flush(timeout?: number): Promise<boolean> {
+    const provider = this.traceProvider;
+    const spanProcessor = provider?.activeSpanProcessor;
+
+    if (spanProcessor) {
+      await spanProcessor.forceFlush();
+    }
+
+    return super.flush(timeout);
+  }
+}

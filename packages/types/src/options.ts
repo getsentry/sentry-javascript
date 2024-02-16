@@ -223,22 +223,31 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   denyUrls?: Array<string | RegExp>;
 
   /**
-   * List of strings/regex controlling to which outgoing requests
-   * the SDK will attach tracing headers.
+   * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * headers attached.
    *
-   * By default the SDK will attach those headers to all requests to localhost
-   * and same origin. If this option is provided, the SDK will match the
-   * request URL of outgoing requests against the items in this
-   * array, and only attach tracing headers if a match was found.
+   * **Default:** If this option is not provided, tracing headers will be attached to all outgoing requests.
+   * If you are using a browser SDK, by default, tracing headers will only be attached to outgoing requests to the same origin.
    *
-   * @example
-   * ```js
-   * Sentry.init({
-   *   tracePropagationTargets: ['api.site.com'],
-   * });
-   * ```
+   * **Disclaimer:** Carelessly setting this option in browser environments may result into CORS errors!
+   * Only attach tracing headers to requests to the same origin, or to requests to services you can control CORS headers of.
+   * Cross-origin requests, meaning requests to a different domain, for example a request to `https://api.example.com/` while you're on `https://example.com/`, take special care.
+   * If you are attaching headers to cross-origin requests, make sure the backend handling the request returns a `"Access-Control-Allow-Headers: sentry-trace, baggage"` header to ensure your requests aren't blocked.
    *
-   * Default: ['localhost', /^\//] {@see DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * If you provide a `tracePropagationTargets` array, the entries you provide will be matched against the entire URL of the outgoing request.
+   * If you are using a browser SDK, the entries will also be matched against the pathname of the outgoing requests.
+   * This is so you can have matchers for relative requests, for example, `/^\/api/` if you want to trace requests to your `/api` routes on the same domain.
+   *
+   * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
+   * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   *
+   * Examples:
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
+   *   - Tracing headers will be attached because the request is sent to the same origin and the regex matches the pathname "/api/posts".
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://different-origin.com/api/posts`:
+   *   - Tracing headers will not be attached because the pathname will only be compared when the request target lives on the same origin.
+   * - `tracePropagationTargets: [/^\/api/, 'https://external-api.com']` and request to `https://external-api.com/v1/data`:
+   *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
   tracePropagationTargets?: TracePropagationTargets;
 

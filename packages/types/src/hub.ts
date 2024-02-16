@@ -6,7 +6,7 @@ import type { Integration, IntegrationClass } from './integration';
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import type { User } from './user';
 
@@ -21,13 +21,15 @@ export interface Hub {
    * @param version A version number to compare to.
    * @return True if the given version is newer; otherwise false.
    *
-   * @hidden
+   * @deprecated This will be removed in v8.
    */
   isOlderThan(version: number): boolean;
 
   /**
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
+   *
+   * @deprecated Use `initAndBind()` directly.
    */
   bindClient(client?: Client): void;
 
@@ -68,14 +70,30 @@ export interface Hub {
    *     popScope();
    *
    * @param callback that will be enclosed into push/popScope.
+   *
+   * @deprecated Use `Sentry.withScope()` instead.
    */
   withScope<T>(callback: (scope: Scope) => T): T;
 
-  /** Returns the client of the top stack. */
-  getClient(): Client | undefined;
+  /**
+   * Returns the client of the top stack.
+   * @deprecated Use `Sentry.getClient()` instead.
+   */
+  getClient<C extends Client>(): C | undefined;
 
-  /** Returns the scope of the top stack */
+  /**
+   * Returns the scope of the top stack.
+   * @deprecated Use `Sentry.getCurrentScope()` instead.
+   */
   getScope(): Scope;
+
+  /**
+   * Get the currently active isolation scope.
+   * The isolation scope is used to isolate data between different hubs.
+   *
+   * @deprecated Use `Sentry.getIsolationScope()` instead.
+   */
+  getIsolationScope(): Scope;
 
   /**
    * Captures an exception event and sends it to Sentry.
@@ -83,6 +101,8 @@ export interface Hub {
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
+   *
+   * @deprecated Use `Sentry.captureException()` instead.
    */
   captureException(exception: any, hint?: EventHint): string;
 
@@ -93,28 +113,20 @@ export interface Hub {
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
    * @returns The generated eventId.
+   *
+   * @deprecated Use `Sentry.captureMessage()` instead.
    */
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): string;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
+   *
+   * @deprecated Use `Sentry.captureEvent()` instead.
    */
   captureEvent(event: Event, hint?: EventHint): string;
-
-  /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
-   */
-  lastEventId(): string | undefined;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -124,6 +136,8 @@ export interface Hub {
    *
    * @param breadcrumb The breadcrumb to record.
    * @param hint May contain additional information about the original breadcrumb.
+   *
+   * @deprecated Use `Sentry.addBreadcrumb()` instead.
    */
   addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
@@ -131,6 +145,8 @@ export interface Hub {
    * Updates user context information for future events.
    *
    * @param user User context object to be set in the current context. Pass `null` to unset the user.
+   *
+   * @deprecated Use `Sentry.setUser()` instead.
    */
   setUser(user: User | null): void;
 
@@ -138,6 +154,8 @@ export interface Hub {
    * Set an object that will be merged sent as tags data with the event.
    *
    * @param tags Tags context object to merge into current context.
+   *
+   * @deprecated Use `Sentry.setTags()` instead.
    */
   setTags(tags: { [key: string]: Primitive }): void;
 
@@ -148,6 +166,8 @@ export interface Hub {
    *
    * @param key String key of tag
    * @param value Value of tag
+   *
+   * @deprecated Use `Sentry.setTag()` instead.
    */
   setTag(key: string, value: Primitive): void;
 
@@ -155,12 +175,16 @@ export interface Hub {
    * Set key:value that will be sent as extra data with the event.
    * @param key String of extra
    * @param extra Any kind of data. This data will be normalized.
+   *
+   * @deprecated Use `Sentry.setExtra()` instead.
    */
   setExtra(key: string, extra: Extra): void;
 
   /**
    * Set an object that will be merged sent as extra data with the event.
    * @param extras Extras object to merge into current context.
+   *
+   * @deprecated Use `Sentry.setExtras()` instead.
    */
   setExtras(extras: Extras): void;
 
@@ -168,28 +192,32 @@ export interface Hub {
    * Sets context data with the given name.
    * @param name of the context
    * @param context Any kind of data. This data will be normalized.
+   *
+   * @deprecated Use `Sentry.setContext()` instead.
    */
   setContext(name: string, context: { [key: string]: any } | null): void;
-
-  /**
-   * Callback to set context information onto the scope.
-   *
-   * @param callback Callback function that receives Scope.
-   * @deprecated Use `getScope()` directly.
-   */
-  configureScope(callback: (scope: Scope) => void): void;
 
   /**
    * For the duration of the callback, this hub will be set as the global current Hub.
    * This function is useful if you want to run your own client and hook into an already initialized one
    * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
+   *
+   * TODO v8: This will be merged with `withScope()`
    */
   run(callback: (hub: Hub) => void): void;
 
-  /** Returns the integration if installed on the current client. */
+  /**
+   * Returns the integration if installed on the current client.
+   *
+   * @deprecated Use `Sentry.getClient().getIntegration()` instead.
+   */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
-  /** Returns all trace headers that are currently on the top scope. */
+  /**
+   * Returns all trace headers that are currently on the top scope.
+   *
+   * @deprecated Use `spanToTraceHeader()` instead.
+   */
   traceHeaders(): { [key: string]: string };
 
   /**
@@ -200,7 +228,7 @@ export interface Hub {
    *
    * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
    *
-   * The transaction must be finished with a call to its `.finish()` method, at which point the transaction with all its
+   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
    * finished child spans will be sent to Sentry.
    *
    * @param context Properties of the new `Transaction`.
@@ -208,6 +236,8 @@ export interface Hub {
    * default values). See {@link Options.tracesSampler}.
    *
    * @returns The transaction which was just started
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 
@@ -222,23 +252,33 @@ export interface Hub {
    * @param context Optional properties of the new `Session`.
    *
    * @returns The session which was just started
+   *
+   * @deprecated Use top-level `startSession` instead.
    */
   startSession(context?: Session): Session;
 
   /**
    * Ends the session that lives on the current scope and sends it to Sentry
+   *
+   * @deprecated Use top-level `endSession` instead.
    */
   endSession(): void;
 
   /**
    * Sends the current session on the scope to Sentry
+   *
    * @param endSession If set the session will be marked as exited and removed from the scope
+   *
+   * @deprecated Use top-level `captureSession` instead.
    */
   captureSession(endSession?: boolean): void;
 
   /**
-   * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
+   * Returns if default PII should be sent to Sentry and propagated in outgoing requests
    * when Tracing is used.
+   *
+   * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function
+   * only unnecessarily increased API surface but only wrapped accessing the option.
    */
   shouldSendDefaultPii(): boolean;
 }

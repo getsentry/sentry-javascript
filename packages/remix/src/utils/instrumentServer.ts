@@ -1,8 +1,19 @@
 /* eslint-disable max-lines */
-import { getActiveTransaction, getClient, getCurrentScope, hasTracingEnabled, runWithAsyncContext } from '@sentry/core';
-import type { Hub } from '@sentry/node';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
+  getActiveTransaction,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  hasTracingEnabled,
+  setHttpStatus,
+  spanToJSON,
+  spanToTraceHeader,
+  withIsolationScope,
+} from '@sentry/core';
 import { captureException, getCurrentHub } from '@sentry/node';
-import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -28,6 +39,7 @@ import {
 } from './vendor/response';
 import type {
   AppData,
+  AppLoadContext,
   CreateRequestHandlerFunction,
   DataFunction,
   DataFunctionArgs,
@@ -46,9 +58,6 @@ import { normalizeRemixRequest } from './web-fetch';
 let FUTURE_FLAGS: FutureConfig | undefined;
 let IS_REMIX_V2: boolean | undefined;
 
-// Flag to track if the core request handler is instrumented.
-export let isRequestHandlerWrapped = false;
-
 const redirectStatusCodes = new Set([301, 302, 303, 307, 308]);
 function isRedirectResponse(response: Response): boolean {
   return redirectStatusCodes.has(response.status);
@@ -61,12 +70,12 @@ function isCatchResponse(response: Response): boolean {
 async function extractResponseError(response: Response): Promise<unknown> {
   const responseData = await extractData(response);
 
-  if (typeof responseData === 'string') {
-    return responseData;
+  if (typeof responseData === 'string' && responseData.length > 0) {
+    return new Error(responseData);
   }
 
   if (response.statusText) {
-    return response.statusText;
+    return new Error(response.statusText);
   }
 
   return responseData;
@@ -84,14 +93,16 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
   // We are skipping thrown responses here as they are handled by
   // `captureRemixServerException` at loader / action level
   // We don't want to capture them twice.
-  // This function if only for capturing unhandled server-side exceptions.
+  // This function is only for capturing unhandled server-side exceptions.
   // https://remix.run/docs/en/main/file-conventions/entry.server#thrown-responses
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
   if (isResponse(err) || isRouteErrorResponse(err)) {
     return;
   }
 
-  void captureRemixServerException(err, 'remix.server.handleError', request);
+  captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
+    DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
+  });
 }
 
 /**
@@ -106,14 +117,13 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
   // Skip capturing if the thrown error is not a 5xx response
   // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2) {
-    if (isRouteErrorResponse(err) && err.status < 500) {
-      return;
-    }
-  } else if (isResponse(err) && err.status < 500) {
+  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
     return;
   }
 
+  if (isResponse(err) && err.status < 500) {
+    return;
+  }
   // Skip capturing if the request is aborted as Remix docs suggest
   // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
   if (request.signal.aborted) {
@@ -134,7 +144,9 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    const activeTransactionName = getActiveTransaction()?.name;
+    // eslint-disable-next-line deprecation/deprecation
+    const transaction = getActiveTransaction();
+    const activeTransactionName = transaction ? spanToJSON(transaction).description : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
@@ -175,13 +187,15 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
       let res: Response;
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
 
       try {
+        // eslint-disable-next-line deprecation/deprecation
         const span = activeTransaction?.startChild({
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
-          description: activeTransaction.name,
+          description: spanToJSON(activeTransaction).description,
           tags: {
             method: request.method,
             url: request.url,
@@ -197,7 +211,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
           loadContext,
         );
 
-        span?.finish();
+        span?.end();
       } catch (err) {
         const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
 
@@ -221,13 +235,20 @@ function makeWrappedDataFunction(
   id: string,
   name: 'action' | 'loader',
   remixVersion: number,
+  manuallyInstrumented: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
+    if (args.context.__sentry_express_wrapped__ && !manuallyInstrumented) {
+      return origFn.call(this, args);
+    }
+
     let res: Response | AppData;
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentScope();
 
     try {
+      // eslint-disable-next-line deprecation/deprecation
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
@@ -239,13 +260,15 @@ function makeWrappedDataFunction(
 
       if (span) {
         // Assign data function to hub to be able to see `db` transactions (if any) as children.
+        // eslint-disable-next-line deprecation/deprecation
         currentScope.setSpan(span);
       }
 
       res = await origFn.call(this, args);
 
+      // eslint-disable-next-line deprecation/deprecation
       currentScope.setSpan(activeTransaction);
-      span?.finish();
+      span?.end();
     } catch (err) {
       const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
@@ -264,32 +287,32 @@ function makeWrappedDataFunction(
 }
 
 const makeWrappedAction =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
   (origAction: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origAction, id, 'action', remixVersion);
+    return makeWrappedDataFunction(origAction, id, 'action', remixVersion, manuallyInstrumented);
   };
 
 const makeWrappedLoader =
-  (id: string, remixVersion: number) =>
+  (id: string, remixVersion: number, manuallyInstrumented: boolean) =>
   (origLoader: DataFunction): DataFunction => {
-    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion);
+    return makeWrappedDataFunction(origLoader, id, 'loader', remixVersion, manuallyInstrumented);
   };
 
 function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = getActiveTransaction();
-  const currentScope = getCurrentScope();
 
   if (isNodeEnv() && hasTracingEnabled()) {
-    const span = currentScope.getSpan();
+    const span = getActiveSpan();
 
     if (span && transaction) {
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext();
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
 
       return {
-        sentryTrace: span.toTraceparent(),
+        sentryTrace: spanToTraceHeader(span),
         sentryBaggage: dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext),
       };
     }
@@ -377,16 +400,22 @@ export function startRequestHandlerTransaction(
     method: string;
   },
 ): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     request.headers['sentry-trace'],
     request.headers.baggage,
   );
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setPropagationContext(propagationContext);
 
+  // TODO: Refactor this to `startSpan()`
+  // eslint-disable-next-line deprecation/deprecation
   const transaction = hub.startTransaction({
     name,
     op: 'http.server',
-    origin: 'auto.http.remix',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+    },
     tags: {
       method: request.method,
     },
@@ -397,6 +426,7 @@ export function startRequestHandlerTransaction(
     },
   });
 
+  // eslint-disable-next-line deprecation/deprecation
   hub.getScope().setSpan(transaction);
   return transaction;
 }
@@ -418,11 +448,17 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const routes = createRoutes(build.routes);
   const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
-  return async function (this: unknown, request: RemixRequest, loadContext?: unknown): Promise<Response> {
-    return runWithAsyncContext(async () => {
+  return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
+    // This means that the request handler of the adapter (ex: express) is already wrapped.
+    // So we don't want to double wrap it.
+    if (loadContext?.__sentry_express_wrapped__) {
+      return origRequestHandler.call(this, request, loadContext);
+    }
+
+    return withIsolationScope(async isolationScope => {
+      // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -435,7 +471,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url, pkg);
 
-      scope.setSDKProcessingMetadata({
+      isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
           route: {
@@ -459,10 +495,10 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
       if (isResponse(res)) {
-        transaction.setHttpStatus(res.status);
+        setHttpStatus(transaction, res.status);
       }
 
-      transaction.finish();
+      transaction.end();
 
       return res;
     });
@@ -472,7 +508,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
 /**
  * Instruments `remix` ServerBuild for performance tracing and error tracking.
  */
-export function instrumentBuild(build: ServerBuild): ServerBuild {
+export function instrumentBuild(build: ServerBuild, manuallyInstrumented: boolean = false): ServerBuild {
   const routes: ServerRouteManifest = {};
 
   const remixVersion = getRemixVersionFromBuild(build);
@@ -494,12 +530,12 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 
     const routeAction = wrappedRoute.module.action as undefined | WrappedFunction;
     if (routeAction && !routeAction.__sentry_original__) {
-      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion));
+      fill(wrappedRoute.module, 'action', makeWrappedAction(id, remixVersion, manuallyInstrumented));
     }
 
     const routeLoader = wrappedRoute.module.loader as undefined | WrappedFunction;
     if (routeLoader && !routeLoader.__sentry_original__) {
-      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion));
+      fill(wrappedRoute.module, 'loader', makeWrappedLoader(id, remixVersion, manuallyInstrumented));
     }
 
     // Entry module should have a loader function to provide `sentry-trace` and `baggage`
@@ -522,13 +558,9 @@ export function instrumentBuild(build: ServerBuild): ServerBuild {
 function makeWrappedCreateRequestHandler(
   origCreateRequestHandler: CreateRequestHandlerFunction,
 ): CreateRequestHandlerFunction {
-  // To track if this wrapper has been applied, before other wrappers.
-  // Can't track `__sentry_original__` because it's not the same function as the potentially manually wrapped one.
-  isRequestHandlerWrapped = true;
-
   return function (this: unknown, build: ServerBuild, ...args: unknown[]): RequestHandler {
     FUTURE_FLAGS = getFutureFlagsServer(build);
-    const newBuild = instrumentBuild(build);
+    const newBuild = instrumentBuild(build, false);
     const requestHandler = origCreateRequestHandler.call(this, newBuild, ...args);
 
     return wrapRequestHandler(requestHandler, newBuild);

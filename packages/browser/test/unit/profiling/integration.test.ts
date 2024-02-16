@@ -1,7 +1,6 @@
 import type { BrowserClient } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 
-import { BrowserProfilingIntegration } from '../../../src/profiling/integration';
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
 
 describe('BrowserProfilingIntegration', () => {
@@ -36,7 +35,6 @@ describe('BrowserProfilingIntegration', () => {
     Sentry.init({
       tracesSampleRate: 1,
       profilesSampleRate: 1,
-      debug: true,
       environment: 'test-environment',
       dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
       transport: _opts => {
@@ -45,14 +43,15 @@ describe('BrowserProfilingIntegration', () => {
           send,
         };
       },
-      integrations: [new Sentry.BrowserTracing(), new BrowserProfilingIntegration()],
+      integrations: [Sentry.browserTracingIntegration(), Sentry.browserProfilingIntegration()],
     });
 
     const client = Sentry.getClient<BrowserClient>();
 
-    const currentTransaction = Sentry.getCurrentHub().getScope().getTransaction();
+    // eslint-disable-next-line deprecation/deprecation
+    const currentTransaction = Sentry.getCurrentScope().getTransaction();
     expect(currentTransaction?.op).toBe('pageload');
-    currentTransaction?.finish();
+    currentTransaction?.end();
     await client?.flush(1000);
 
     expect(send).toHaveBeenCalledTimes(1);

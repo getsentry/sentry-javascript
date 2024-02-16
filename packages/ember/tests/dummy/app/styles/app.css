@@ -17,7 +17,11 @@ body {
   background-repeat: repeat;
   height: 100%;
   margin: 0;
-  font-family: Rubik, Avenir Next, Helvetica Neue, sans-serif;
+  font-family:
+    Rubik,
+    Avenir Next,
+    Helvetica Neue,
+    sans-serif;
   font-size: 16px;
   line-height: 24px;
   color: var(--foreground-color);
@@ -43,7 +47,9 @@ body {
 .box {
   background-color: #fff;
   border: 0;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 1px 4px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.08),
+    0 1px 4px rgba(0, 0, 0, 0.1);
   border-radius: 4px;
   display: flex;
   width: 100%;

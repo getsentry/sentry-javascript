@@ -1,7 +1,6 @@
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { makeMain } from '@sentry/core';
+import { captureException, setCurrentClient } from '@sentry/core';
 
-import { OpenTelemetryHub } from '../../src/custom/hub';
 import { setupEventContextTrace } from '../../src/setupEventContextTrace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
@@ -13,7 +12,6 @@ const PUBLIC_DSN = 'https://username@domain/123';
 describe('setupEventContextTrace', () => {
   const beforeSend = jest.fn(() => null);
   let client: TestClientInterface;
-  let hub: OpenTelemetryHub;
   let provider: BasicTracerProvider | undefined;
 
   beforeEach(() => {
@@ -27,8 +25,8 @@ describe('setupEventContextTrace', () => {
       }),
     );
 
-    hub = new OpenTelemetryHub(client);
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     setupEventContextTrace(client);
     provider = setupOtel(client);
@@ -45,7 +43,7 @@ describe('setupEventContextTrace', () => {
 
   it('works with no active span', async () => {
     const error = new Error('test');
-    hub.captureException(error);
+    captureException(error);
     await client.flush();
 
     expect(beforeSend).toHaveBeenCalledTimes(1);
@@ -79,7 +77,7 @@ describe('setupEventContextTrace', () => {
 
       client.tracer.startActiveSpan('inner', innerSpan => {
         innerId = innerSpan?.spanContext().spanId;
-        hub.captureException(error);
+        captureException(error);
       });
     });
 

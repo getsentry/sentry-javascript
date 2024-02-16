@@ -18,7 +18,7 @@
 ## Usage
 
 To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options.
+hook into the environment. Note that you can turn off almost all side effects using the respective options. Minimum supported Node version is Node 14.
 
 ```javascript
 // CJS syntax
@@ -37,12 +37,9 @@ functions will not perform any action before you have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras
-Sentry.configureScope(scope => {
-  scope.setExtra('battery', 0.7);
-  scope.setTag('user_mode', 'admin');
-  scope.setUser({ id: '4711' });
-  // scope.clear();
-});
+Sentry.setExtra('battery', 0.7);
+Sentry.setTag('user_mode', 'admin');
+Sentry.setUser({ id: '4711' });
 
 // Add a breadcrumb for future events
 Sentry.addBreadcrumb({

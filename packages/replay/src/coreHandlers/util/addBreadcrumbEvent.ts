@@ -19,7 +19,9 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
   }
 
   replay.addUpdate(() => {
-    void replay.throttledAddEvent({
+    // This should never reject
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    replay.throttledAddEvent({
       type: EventType.Custom,
       // TODO: We were converting from ms to seconds for breadcrumbs, spans,
       // but maybe we should just keep them as milliseconds

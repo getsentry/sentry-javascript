@@ -1,4 +1,5 @@
 /* eslint-disable complexity */
+import { spanToJSON } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -56,7 +57,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
   }
 
   if (DEBUG_BUILD) {
-    logger.log(`[Profiling] started profiling transaction: ${transaction.name || transaction.description}`);
+    logger.log(`[Profiling] started profiling transaction: ${spanToJSON(transaction).description}`);
   }
 
   // We create "unique" transaction names to avoid concurrent transactions with same names
@@ -87,11 +88,7 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     }
     if (processedProfile) {
       if (DEBUG_BUILD) {
-        logger.log(
-          '[Profiling] profile for:',
-          transaction.name || transaction.description,
-          'already exists, returning early',
-        );
+        logger.log('[Profiling] profile for:', spanToJSON(transaction).description, 'already exists, returning early');
       }
       return null;
     }
@@ -105,14 +102,14 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
         }
 
         if (DEBUG_BUILD) {
-          logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name || transaction.description}`);
+          logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(transaction).description}`);
         }
 
         // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
         if (!profile) {
           if (DEBUG_BUILD) {
             logger.log(
-              `[Profiling] profiler returned null profile for: ${transaction.name || transaction.description}`,
+              `[Profiling] profiler returned null profile for: ${spanToJSON(transaction).description}`,
               'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
             );
           }
@@ -135,41 +132,44 @@ export function startProfileForTransaction(transaction: Transaction): Transactio
     if (DEBUG_BUILD) {
       logger.log(
         '[Profiling] max profile duration elapsed, stopping profiling for:',
-        transaction.name || transaction.description,
+        spanToJSON(transaction).description,
       );
     }
     // If the timeout exceeds, we want to stop profiling, but not finish the transaction
-    void onProfileHandler();
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    onProfileHandler();
   }, MAX_PROFILE_DURATION_MS);
 
-  // We need to reference the original finish call to avoid creating an infinite loop
-  const originalFinish = transaction.finish.bind(transaction);
+  // We need to reference the original end call to avoid creating an infinite loop
+  const originalEnd = transaction.end.bind(transaction);
 
   /**
    * Wraps startTransaction and stopTransaction with profiling related logic.
    * startProfiling is called after the call to startTransaction in order to avoid our own code from
    * being profiled. Because of that same reason, stopProfiling is called before the call to stopTransaction.
    */
-  function profilingWrappedTransactionFinish(): Transaction {
+  function profilingWrappedTransactionEnd(): Transaction {
     if (!transaction) {
-      return originalFinish();
+      return originalEnd();
     }
     // onProfileHandler should always return the same profile even if this is called multiple times.
     // Always call onProfileHandler to ensure stopProfiling is called and the timeout is cleared.
     void onProfileHandler().then(
       () => {
+        // TODO: Can we rewrite this to use attributes?
+        // eslint-disable-next-line deprecation/deprecation
         transaction.setContext('profile', { profile_id: profileId, start_timestamp: startTimestamp });
-        originalFinish();
+        originalEnd();
       },
       () => {
         // If onProfileHandler fails, we still want to call the original finish method.
-        originalFinish();
+        originalEnd();
       },
     );
 
     return transaction;
   }
 
-  transaction.finish = profilingWrappedTransactionFinish;
+  transaction.end = profilingWrappedTransactionEnd;
   return transaction;
 }

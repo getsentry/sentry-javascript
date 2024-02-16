@@ -19,12 +19,12 @@ import type {
   MetricBucketItem,
   MetricsAggregator,
   Outcome,
-  PropagationContext,
+  ParameterizedString,
   SdkMetadata,
   Session,
   SessionAggregates,
-  Severity,
   SeverityLevel,
+  StartSpanOptions,
   Transaction,
   TransactionEvent,
   Transport,
@@ -36,6 +36,7 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  isParameterizedString,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -46,10 +47,11 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
 import type { IntegrationIndex } from './integration';
+import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
 import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
@@ -115,13 +117,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Number of calls being processed */
   protected _numProcessing: number;
 
+  protected _eventProcessors: EventProcessor[];
+
   /** Holds flushable  */
   private _outcomes: { [key: string]: number };
 
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
-
-  private _eventProcessors: EventProcessor[];
 
   /**
    * Initializes this client instance.
@@ -181,16 +183,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
+    message: ParameterizedString,
+    level?: SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
+    const eventMessage = isParameterizedString(message) ? message : String(message);
+
     const promisedEvent = isPrimitive(message)
-      ? this.eventFromMessage(String(message), level, hint)
+      ? this.eventFromMessage(eventMessage, level, hint)
       : this.eventFromException(message, hint);
 
     this._process(
@@ -216,8 +219,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     let eventId: string | undefined = hint && hint.event_id;
 
+    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
+    const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
+
     this._process(
-      this._captureEvent(event, hint, scope).then(result => {
+      this._captureEvent(event, hint, capturedSpanScope || scope).then(result => {
         eventId = result;
       }),
     );
@@ -309,12 +315,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Sets up the integrations
+   * This is an internal function to setup all integrations that should run on the client.
+   * @deprecated Use `client.init()` instead.
    */
   public setupIntegrations(forceInitialize?: boolean): void {
     if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._integrations = setupIntegrations(this, this._options.integrations);
-      this._integrationsInitialized = true;
+      this._setupIntegrations();
+    }
+  }
+
+  /** @inheritdoc */
+  public init(): void {
+    if (this._isEnabled()) {
+      this._setupIntegrations();
     }
   }
 
@@ -322,13 +335,24 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * Gets an installed integration by its `id`.
    *
    * @returns The installed integration or `undefined` if no integration with that `id` was installed.
+   * @deprecated Use `getIntegrationByName()` instead.
    */
   public getIntegrationById(integrationId: string): Integration | undefined {
-    return this._integrations[integrationId];
+    return this.getIntegrationByName(integrationId);
   }
 
   /**
-   * @inheritDoc
+   * Gets an installed integration by its name.
+   *
+   * @returns The installed integration or `undefined` if no integration with that `name` was installed.
+   */
+  public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
+    return this._integrations[integrationName] as T | undefined;
+  }
+
+  /**
+   * Returns the client's instance of the given integration class, it any.
+   * @deprecated Use `getIntegrationByName()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
     try {
@@ -343,7 +367,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public addIntegration(integration: Integration): void {
+    const isAlreadyInstalled = this._integrations[integration.name];
+
+    // This hook takes care of only installing if not already installed
     setupIntegration(this, integration, this._integrations);
+    // Here we need to check manually to make sure to not run this multiple times
+    if (!isAlreadyInstalled) {
+      afterSetupIntegrations(this, [integration]);
+    }
   }
 
   /**
@@ -375,7 +406,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
-    void this._sendEnvelope(env);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(env);
   }
 
   /**
@@ -403,13 +437,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
+    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
     const metricsEnvelope = createMetricEnvelope(
       metricBucketItems,
       this._dsn,
       this._options._metadata,
       this._options.tunnel,
     );
-    void this._sendEnvelope(metricsEnvelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
@@ -452,6 +490,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
+  public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
       this._hooks[hook] = [];
@@ -492,6 +536,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
+  public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
       this._hooks[hook].forEach(callback => callback(...rest));
@@ -499,6 +549,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
+
+  /** Setup integrations for this client. */
+  protected _setupIntegrations(): void {
+    const { integrations } = this._options;
+    this._integrations = setupIntegrations(this, integrations);
+    afterSetupIntegrations(this, integrations);
+
+    // TODO v8: We don't need this flag anymore
+    this._integrationsInitialized = true;
+  }
 
   /** Updates existing session based on the provided event */
   protected _updateSessionFromEvent(session: Session, event: Event): void {
@@ -582,7 +642,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope A scope containing event metadata.
    * @returns A new event with more information.
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    scope?: Scope,
+    isolationScope = getIsolationScope(),
+  ): PromiseLike<Event | null> {
     const options = this.getOptions();
     const integrations = Object.keys(this._integrations);
     if (!hint.integrations && integrations.length > 0) {
@@ -591,18 +656,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope, this).then(evt => {
+    return prepareEvent(options, event, hint, scope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
       }
 
-      // If a trace context is not set on the event, we use the propagationContext set on the event to
-      // generate a trace context. If the propagationContext does not have a dynamic sampling context, we
-      // also generate one for it.
-      const { propagationContext } = evt.sdkProcessingMetadata || {};
+      const propagationContext = {
+        ...isolationScope.getPropagationContext(),
+        ...(scope ? scope.getPropagationContext() : undefined),
+      };
+
       const trace = evt.contexts && evt.contexts.trace;
       if (!trace && propagationContext) {
-        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext as PropagationContext;
+        const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
           trace: {
             trace_id,
@@ -612,7 +678,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           ...evt.contexts,
         };
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
 
         evt.sdkProcessingMetadata = {
           dynamicSamplingContext,
@@ -687,7 +753,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     const dataCategory: DataCategory = eventType === 'replay_event' ? 'replay' : eventType;
 
-    return this._prepareEvent(event, hint, scope)
+    const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
+    const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
+
+    return this._prepareEvent(event, hint, scope, capturedSpanIsolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory, event);
@@ -803,9 +872,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public abstract eventFromMessage(
-    _message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    _level?: Severity | SeverityLevel,
+    _message: ParameterizedString,
+    _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
@@ -863,18 +931,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

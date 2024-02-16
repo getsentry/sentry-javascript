@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/core';
+import type { Hub } from '@sentry/core';
 
 import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
@@ -20,10 +21,11 @@ describe('Unit | session | createSession', () => {
 
   beforeAll(() => {
     WINDOW.sessionStorage.clear();
-    jest.spyOn(Sentry, 'getCurrentHub');
-    (Sentry.getCurrentHub as jest.Mock).mockImplementation(() => ({
-      captureEvent: captureEventMock,
-    }));
+    jest.spyOn(Sentry, 'getCurrentHub').mockImplementation(() => {
+      return {
+        captureEvent: captureEventMock,
+      } as unknown as Hub;
+    });
   });
 
   afterEach(() => {

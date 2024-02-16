@@ -1,45 +1,58 @@
-import type { ErrorBoundaryProps } from '@sentry/react';
-import { WINDOW, withErrorBoundary } from '@sentry/react';
-import type { Transaction, TransactionContext } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getRootSpan } from '@sentry/core';
+import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
+import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
+import {
+  WINDOW,
+  getClient,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  withErrorBoundary,
+} from '@sentry/react';
+import type { Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
 import { DEBUG_BUILD } from '../utils/debug-build';
 import { getFutureFlagsBrowser, readRemixVersionFromLoader } from '../utils/futureFlags';
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'remix-router',
-} as const;
-
-type Params<Key extends string = string> = {
+export type Params<Key extends string = string> = {
   readonly [key in Key]: string | undefined;
 };
 
-interface RouteMatch<ParamKey extends string = string> {
+export interface RouteMatch<ParamKey extends string = string> {
   params: Params<ParamKey>;
   pathname: string;
   id: string;
   handle: unknown;
 }
+export type UseEffect = (cb: () => void, deps: unknown[]) => void;
 
-type UseEffect = (cb: () => void, deps: unknown[]) => void;
-type UseLocation = () => {
+export type UseLocation = () => {
   pathname: string;
   search?: string;
   hash?: string;
   state?: unknown;
   key?: unknown;
 };
-type UseMatches = () => RouteMatch[] | null;
 
-let activeTransaction: Transaction | undefined;
+export type UseMatches = () => RouteMatch[] | null;
 
-let _useEffect: UseEffect;
-let _useLocation: UseLocation;
-let _useMatches: UseMatches;
+export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof originalBrowserTracingIntegration>[0]> & {
+  useEffect?: UseEffect;
+  useLocation?: UseLocation;
+  useMatches?: UseMatches;
+};
 
-let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
-let _startTransactionOnLocationChange: boolean;
+const DEFAULT_TAGS = {
+  'routing.instrumentation': 'remix-router',
+} as const;
+
+let _useEffect: UseEffect | undefined;
+let _useLocation: UseLocation | undefined;
+let _useMatches: UseMatches | undefined;
+
+let _customStartTransaction: ((context: TransactionContext) => Span | undefined) | undefined;
+let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
   if (WINDOW && WINDOW.location) {
@@ -53,7 +66,65 @@ function isRemixV2(remixVersion: number | undefined): boolean {
   return remixVersion === 2 || getFutureFlagsBrowser()?.v2_errorBoundary || false;
 }
 
+export function startPageloadSpan(): void {
+  const initPathName = getInitPathName();
+
+  if (!initPathName) {
+    return;
+  }
+
+  const spanContext: StartSpanOptions = {
+    name: initPathName,
+    op: 'pageload',
+    origin: 'auto.pageload.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'url',
+    },
+  };
+
+  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
+  if (!_customStartTransaction) {
+    const client = getClient<BrowserClient>();
+
+    if (!client) {
+      return;
+    }
+
+    startBrowserTracingPageLoadSpan(client, spanContext);
+  } else {
+    _customStartTransaction(spanContext);
+  }
+}
+
+function startNavigationSpan(matches: RouteMatch<string>[]): void {
+  const spanContext: StartSpanOptions = {
+    name: matches[matches.length - 1].id,
+    op: 'navigation',
+    origin: 'auto.navigation.remix',
+    tags: DEFAULT_TAGS,
+    metadata: {
+      source: 'route',
+    },
+  };
+
+  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
+  if (!_customStartTransaction) {
+    const client = getClient<BrowserClient>();
+
+    if (!client) {
+      return;
+    }
+
+    startBrowserTracingNavigationSpan(client, spanContext);
+  } else {
+    _customStartTransaction(spanContext);
+  }
+}
+
 /**
+ * @deprecated Use `browserTracingIntegration` instead.
+ *
  * Creates a react-router v6 instrumention for Remix applications.
  *
  * This implementation is slightly different (and simpler) from the react-router instrumentation
@@ -65,25 +136,17 @@ export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: Us
     startTransactionOnPageLoad = true,
     startTransactionOnLocationChange = true,
   ): void => {
-    const initPathName = getInitPathName();
-    if (startTransactionOnPageLoad && initPathName) {
-      activeTransaction = customStartTransaction({
-        name: initPathName,
-        op: 'pageload',
-        origin: 'auto.pageload.remix',
-        tags: DEFAULT_TAGS,
-        metadata: {
-          source: 'url',
-        },
-      });
+    setGlobals({
+      useEffect,
+      useLocation,
+      useMatches,
+      instrumentNavigation: startTransactionOnLocationChange,
+      customStartTransaction,
+    });
+
+    if (startTransactionOnPageLoad) {
+      startPageloadSpan();
     }
-
-    _useEffect = useEffect;
-    _useLocation = useLocation;
-    _useMatches = useMatches;
-
-    _customStartTransaction = customStartTransaction;
-    _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
 }
 
@@ -108,7 +171,7 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
 ): R {
   const SentryRoot: React.FC<P> = (props: P) => {
     // Early return when any of the required functions is not available.
-    if (!_useEffect || !_useLocation || !_useMatches || !_customStartTransaction) {
+    if (!_useEffect || !_useLocation || !_useMatches) {
       DEBUG_BUILD &&
         !isNodeEnv() &&
         logger.warn('Remix SDK was unable to wrap your root because of one or more missing parameters.');
@@ -124,36 +187,37 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      if (activeTransaction && matches && matches.length) {
-        activeTransaction.setName(matches[matches.length - 1].id, 'route');
+      const activeRootSpan = getActiveSpan();
+
+      if (activeRootSpan && matches && matches.length) {
+        const transaction = getRootSpan(activeRootSpan);
+
+        if (transaction) {
+          transaction.updateName(matches[matches.length - 1].id);
+          transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        }
       }
 
       isBaseLocation = true;
     }, []);
 
     _useEffect(() => {
+      const activeRootSpan = getActiveSpan();
+
       if (isBaseLocation) {
-        if (activeTransaction) {
-          activeTransaction.finish();
+        if (activeRootSpan) {
+          activeRootSpan.end();
         }
 
         return;
       }
 
-      if (_startTransactionOnLocationChange && matches && matches.length) {
-        if (activeTransaction) {
-          activeTransaction.finish();
+      if (_instrumentNavigation && matches && matches.length) {
+        if (activeRootSpan) {
+          activeRootSpan.end();
         }
 
-        activeTransaction = _customStartTransaction({
-          name: matches[matches.length - 1].id,
-          op: 'navigation',
-          origin: 'auto.navigation.remix',
-          tags: DEFAULT_TAGS,
-          metadata: {
-            source: 'route',
-          },
-        });
+        startNavigationSpan(matches);
       }
     }, [location]);
 
@@ -172,4 +236,24 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params
   return SentryRoot;
+}
+
+export function setGlobals({
+  useEffect,
+  useLocation,
+  useMatches,
+  instrumentNavigation,
+  customStartTransaction,
+}: {
+  useEffect?: UseEffect;
+  useLocation?: UseLocation;
+  useMatches?: UseMatches;
+  instrumentNavigation?: boolean;
+  customStartTransaction?: (context: TransactionContext) => Span | undefined;
+}): void {
+  _useEffect = useEffect;
+  _useLocation = useLocation;
+  _useMatches = useMatches;
+  _instrumentNavigation = instrumentNavigation;
+  _customStartTransaction = customStartTransaction;
 }

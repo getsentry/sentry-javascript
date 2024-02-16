@@ -1,101 +1,76 @@
 import type {
-  Breadcrumb,
-  BreadcrumbHint,
   CaptureContext,
   CheckIn,
-  Client,
   CustomSamplingContext,
   Event,
   EventHint,
+  EventProcessor,
   Extra,
   Extras,
   FinishedCheckIn,
   MonitorConfig,
   Primitive,
-  Severity,
+  Scope as ScopeInterface,
+  Session,
+  SessionContext,
   SeverityLevel,
+  Span,
   TransactionContext,
   User,
 } from '@sentry/types';
-import { isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
+import { DEFAULT_ENVIRONMENT } from './constants';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
-import type { Scope } from './scope';
+import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
 
-// Note: All functions in this file are typed with a return value of `ReturnType<Hub[HUB_FUNCTION]>`,
-// where HUB_FUNCTION is some method on the Hub class.
-//
-// This is done to make sure the top level SDK methods stay in sync with the hub methods.
-// Although every method here has an explicit return type, some of them (that map to void returns) do not
-// contain `return` keywords. This is done to save on bundle size, as `return` is not minifiable.
-
 /**
  * Captures an exception event and sends it to Sentry.
- * This accepts an event hint as optional second parameter.
- * Alternatively, you can also pass a CaptureContext directly as second parameter.
+ *
+ * @param exception The exception to capture.
+ * @param hint Optional additional data to attach to the Sentry event.
+ * @returns the id of the captured Sentry event.
  */
 export function captureException(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   exception: any,
   hint?: ExclusiveEventHintOrCaptureContext,
-): ReturnType<Hub['captureException']> {
+): string {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param message The message to send to Sentry.
- * @param Severity Define the level of the message.
- * @returns The generated eventId.
+ * @param exception The exception to capture.
+ * @param captureContext Define the level of the message or pass in additional data to attach to the message.
+ * @returns the id of the captured message.
  */
-export function captureMessage(
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  captureContext?: CaptureContext | Severity | SeverityLevel,
-): ReturnType<Hub['captureMessage']> {
+export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().captureMessage(message, level, context);
 }
 
 /**
  * Captures a manually created event and sends it to Sentry.
  *
- * @param event The event to send to Sentry.
- * @returns The generated eventId.
+ * @param exception The event to send to Sentry.
+ * @param hint Optional additional data to attach to the Sentry event.
+ * @returns the id of the captured event.
  */
-export function captureEvent(event: Event, hint?: EventHint): ReturnType<Hub['captureEvent']> {
-  return getCurrentHub().captureEvent(event, hint);
-}
-
-/**
- * Callback to set context information onto the scope.
- * @param callback Callback function that receives Scope.
- *
- * @deprecated Use getCurrentScope() directly.
- */
-export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
+export function captureEvent(event: Event, hint?: EventHint): string {
   // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().configureScope(callback);
-}
-
-/**
- * Records a new breadcrumb which will be attached to future events.
- *
- * Breadcrumbs will be added to subsequent events to provide more context on
- * user's actions prior to an error or crash.
- *
- * @param breadcrumb The breadcrumb to record.
- */
-export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
-  getCurrentHub().addBreadcrumb(breadcrumb, hint);
+  return getCurrentHub().captureEvent(event, hint);
 }
 
 /**
@@ -105,7 +80,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Re
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  getCurrentHub().setContext(name, context);
+  getIsolationScope().setContext(name, context);
 }
 
 /**
@@ -113,7 +88,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * @param extras Extras object to merge into current context.
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
-  getCurrentHub().setExtras(extras);
+  getIsolationScope().setExtras(extras);
 }
 
 /**
@@ -122,7 +97,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param extra Any kind of data. This data will be normalized.
  */
 export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
-  getCurrentHub().setExtra(key, extra);
+  getIsolationScope().setExtra(key, extra);
 }
 
 /**
@@ -130,7 +105,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * @param tags Tags context object to merge into current context.
  */
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
-  getCurrentHub().setTags(tags);
+  getIsolationScope().setTags(tags);
 }
 
 /**
@@ -142,7 +117,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param value Value of tag
  */
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
-  getCurrentHub().setTag(key, value);
+  getIsolationScope().setTag(key, value);
 }
 
 /**
@@ -151,24 +126,22 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
-  getCurrentHub().setUser(user);
+  getIsolationScope().setUser(user);
 }
 
 /**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback.
  *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- *
- * @param callback that will be enclosed into push/popScope.
+ * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
  */
-export function withScope<T>(callback: (scope: Scope) => T): T {
-  return getCurrentHub().withScope(callback);
+export function withActiveSpan<T>(span: Span, callback: (scope: ScopeInterface) => T): T {
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span);
+    return callback(scope);
+  });
 }
 
 /**
@@ -179,7 +152,7 @@ export function withScope<T>(callback: (scope: Scope) => T): T {
  *
  * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
  *
- * The transaction must be finished with a call to its `.finish()` method, at which point the transaction with all its
+ * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
  * finished child spans will be sent to Sentry.
  *
  * NOTE: This function should only be used for *manual* instrumentation. Auto-instrumentation should call
@@ -190,11 +163,14 @@ export function withScope<T>(callback: (scope: Scope) => T): T {
  * default values). See {@link Options.tracesSampler}.
  *
  * @returns The transaction which was just started
+ *
+ * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
  */
 export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): ReturnType<Hub['startTransaction']> {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().startTransaction({ ...context }, customSamplingContext);
 }
 
@@ -297,24 +273,113 @@ export async function close(timeout?: number): Promise<boolean> {
 }
 
 /**
- * This is the getter for lastEventId.
+ * Returns true if Sentry has been properly initialized.
+ */
+export function isInitialized(): boolean {
+  return !!getClient();
+}
+
+/**
+ * Add an event processor.
+ * This will be added to the current isolation scope, ensuring any event that is processed in the current execution
+ * context will have the processor applied.
+ */
+export function addEventProcessor(callback: EventProcessor): void {
+  getIsolationScope().addEventProcessor(callback);
+}
+
+/**
+ * Start a session on the current isolation scope.
  *
- * @returns The last event id of a captured event.
+ * @param context (optional) additional properties to be applied to the returned session object
+ *
+ * @returns the new active session
  */
-export function lastEventId(): string | undefined {
-  return getCurrentHub().lastEventId();
+export function startSession(context?: SessionContext): Session {
+  const client = getClient();
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+
+  const { release, environment = DEFAULT_ENVIRONMENT } = (client && client.getOptions()) || {};
+
+  // Will fetch userAgent if called from browser sdk
+  const { userAgent } = GLOBAL_OBJ.navigator || {};
+
+  const session = makeSession({
+    release,
+    environment,
+    user: currentScope.getUser() || isolationScope.getUser(),
+    ...(userAgent && { userAgent }),
+    ...context,
+  });
+
+  // End existing session if there's one
+  const currentSession = isolationScope.getSession();
+  if (currentSession && currentSession.status === 'ok') {
+    updateSession(currentSession, { status: 'exited' });
+  }
+
+  endSession();
+
+  // Afterwards we set the new session on the scope
+  isolationScope.setSession(session);
+
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession(session);
+
+  return session;
 }
 
 /**
- * Get the currently active client.
+ * End the session on the current isolation scope.
  */
-export function getClient<C extends Client>(): C | undefined {
-  return getCurrentHub().getClient<C>();
+export function endSession(): void {
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+
+  const session = currentScope.getSession() || isolationScope.getSession();
+  if (session) {
+    closeSession(session);
+  }
+  _sendSessionUpdate();
+
+  // the session is over; take it off of the scope
+  isolationScope.setSession();
+
+  // TODO (v8): Remove this and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  currentScope.setSession();
 }
 
 /**
- * Get the currently active scope.
+ * Sends the current Session on the scope
  */
-export function getCurrentScope(): Scope {
-  return getCurrentHub().getScope();
+function _sendSessionUpdate(): void {
+  const isolationScope = getIsolationScope();
+  const currentScope = getCurrentScope();
+  const client = getClient();
+  // TODO (v8): Remove currentScope and only use the isolation scope(?).
+  // For v7 though, we can't "soft-break" people using getCurrentHub().getScope().setSession()
+  const session = currentScope.getSession() || isolationScope.getSession();
+  if (session && client) {
+    client.captureSession(session);
+  }
+}
+
+/**
+ * Sends the current session on the scope to Sentry
+ *
+ * @param end If set the session will be marked as exited and removed from the scope.
+ *            Defaults to `false`.
+ */
+export function captureSession(end: boolean = false): void {
+  // both send the update and pull the session from the scope
+  if (end) {
+    endSession();
+    return;
+  }
+
+  // only send the update
+  _sendSessionUpdate();
 }

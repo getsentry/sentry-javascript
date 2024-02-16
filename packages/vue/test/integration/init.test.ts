@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 
-import { VueIntegration } from '../../src/integration';
 import type { Options } from '../../src/types';
 import * as Sentry from './../../src';
 
@@ -104,9 +103,7 @@ Update your \`Sentry.init\` call with an appropriate config option:
 });
 
 function runInit(options: Partial<Options>): void {
-  const hasRunBefore = Sentry.getCurrentHub().getIntegration(VueIntegration);
-
-  const integration = new VueIntegration();
+  const integration = Sentry.vueIntegration();
 
   Sentry.init({
     dsn: PUBLIC_DSN,
@@ -114,11 +111,4 @@ function runInit(options: Partial<Options>): void {
     integrations: [integration],
     ...options,
   });
-
-  // Because our integrations API is terrible to test, we need to make sure to check
-  // If we've already had this integration registered before
-  // if that's the case, `setup()` will not be run, so we need to manually run it :(
-  if (hasRunBefore) {
-    integration['_setupIntegration'](Sentry.getCurrentHub());
-  }
 }

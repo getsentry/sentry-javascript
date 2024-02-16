@@ -6,8 +6,8 @@ import type {
   Event,
   EventHint,
   MonitorConfig,
+  ParameterizedString,
   SerializedCheckIn,
-  Severity,
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
@@ -15,11 +15,18 @@ import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, u
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
+import { getClient, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { getClient } from './exports';
+import { MetricsAggregator } from './metrics/aggregator';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
-import { addTracingExtensions, getDynamicSamplingContextFromClient } from './tracing';
+import {
+  addTracingExtensions,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+} from './tracing';
+import { getRootSpan } from './utils/getRootSpan';
+import { spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;
@@ -44,6 +51,10 @@ export class ServerRuntimeClient<
     addTracingExtensions();
 
     super(options);
+
+    if (options._experiments && options._experiments['metricsAggregator']) {
+      this.metricsAggregator = new MetricsAggregator(this);
+    }
   }
 
   /**
@@ -57,9 +68,8 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   public eventFromMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    message: ParameterizedString,
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return resolvedSyncPromise(
@@ -70,13 +80,13 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
-      const requestSession = scope.getRequestSession();
+    if (this._options.autoSessionTracking && this._sessionFlusher) {
+      const requestSession = getIsolationScope().getRequestSession();
 
       // Necessary checks to ensure this is code block is executed only within a request
       // Should override the status only if `requestSession.status` is `Ok`, which is its initial stage
@@ -95,14 +105,14 @@ export class ServerRuntimeClient<
     // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
-    if (this._options.autoSessionTracking && this._sessionFlusher && scope) {
+    if (this._options.autoSessionTracking && this._sessionFlusher) {
       const eventType = event.type || 'exception';
       const isException =
         eventType === 'exception' && event.exception && event.exception.values && event.exception.values.length > 0;
 
       // If the event is of type Exception, then a request session should be captured
       if (isException) {
-        const requestSession = scope.getRequestSession();
+        const requestSession = getIsolationScope().getRequestSession();
 
         // Ensure that this is happening within the bounds of a request, and make sure not to override
         // Session Status if Errored / Crashed
@@ -193,7 +203,11 @@ export class ServerRuntimeClient<
     );
 
     DEBUG_BUILD && logger.info('Sending checkin:', checkIn.monitorSlug, checkIn.status);
-    void this._sendEnvelope(envelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(envelope);
+
     return id;
   }
 
@@ -212,7 +226,12 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(
+    event: Event,
+    hint: EventHint,
+    scope?: Scope,
+    isolationScope?: Scope,
+  ): PromiseLike<Event | null> {
     if (this._options.platform) {
       event.platform = event.platform || this._options.platform;
     }
@@ -228,7 +247,7 @@ export class ServerRuntimeClient<
       event.server_name = event.server_name || this._options.serverName;
     }
 
-    return super._prepareEvent(event, hint, scope);
+    return super._prepareEvent(event, hint, scope, isolationScope);
   }
 
   /** Extract trace information from scope */
@@ -239,10 +258,11 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const span = scope.getSpan();
     if (span) {
-      const samplingContext = span.transaction ? span.transaction.getDynamicSamplingContext() : undefined;
-      return [samplingContext, span.getTraceContext()];
+      const samplingContext = getRootSpan(span) ? getDynamicSamplingContextFromSpan(span) : undefined;
+      return [samplingContext, spanToTraceContext(span)];
     }
 
     const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
@@ -255,6 +275,6 @@ export class ServerRuntimeClient<
       return [dsc, traceContext];
     }
 
-    return [getDynamicSamplingContextFromClient(traceId, this, scope), traceContext];
+    return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
   }
 }

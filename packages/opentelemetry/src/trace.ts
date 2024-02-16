@@ -1,10 +1,10 @@
 import type { Span, Tracer } from '@opentelemetry/api';
+import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { SDK_VERSION } from '@sentry/core';
+import { suppressTracing } from '@opentelemetry/core';
+import { SDK_VERSION, getClient, handleCallbackErrors } from '@sentry/core';
 import type { Client } from '@sentry/types';
-import { isThenable } from '@sentry/utils';
 
-import { getClient } from './custom/hub';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { setSpanMetadata } from './utils/spanData';
@@ -23,37 +23,50 @@ export function startSpan<T>(spanContext: OpenTelemetrySpanContext, callback: (s
 
   const { name } = spanContext;
 
-  return tracer.startActiveSpan(name, span => {
-    function finishSpan(): void {
-      span.end();
-    }
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
+  return tracer.startActiveSpan(name, spanContext, ctx, span => {
     _applySentryAttributesToSpan(span, spanContext);
 
-    let maybePromiseResult: T;
-    try {
-      maybePromiseResult = callback(span);
-    } catch (e) {
-      span.setStatus({ code: SpanStatusCode.ERROR });
-      finishSpan();
-      throw e;
-    }
+    return handleCallbackErrors(
+      () => callback(span),
+      () => {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+      },
+      () => span.end(),
+    );
+  });
+}
 
-    if (isThenable(maybePromiseResult)) {
-      Promise.resolve(maybePromiseResult).then(
-        () => {
-          finishSpan();
-        },
-        () => {
-          span.setStatus({ code: SpanStatusCode.ERROR });
-          finishSpan();
-        },
-      );
-    } else {
-      finishSpan();
-    }
+/**
+ * Similar to `Sentry.startSpan`. Wraps a function with a span, but does not finish the span
+ * after the function is done automatically. You'll have to call `span.end()` manually.
+ *
+ * The created span is the active span and will be used as parent by other spans created inside the function
+ * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
+ *
+ * Note that you'll always get a span passed to the callback, it may just be a NonRecordingSpan if the span is not sampled.
+ */
+export function startSpanManual<T>(spanContext: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
+  const tracer = getTracer();
 
-    return maybePromiseResult;
+  const { name } = spanContext;
+
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  return tracer.startActiveSpan(name, spanContext, ctx, span => {
+    _applySentryAttributesToSpan(span, spanContext);
+
+    return handleCallbackErrors(
+      () => callback(span),
+      () => {
+        span.setStatus({ code: SpanStatusCode.ERROR });
+      },
+    );
   });
 }
 
@@ -77,7 +90,11 @@ export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
 
   const { name } = spanContext;
 
-  const span = tracer.startSpan(name);
+  const activeCtx = context.active();
+  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  const span = tracer.startSpan(name, spanContext, ctx);
 
   _applySentryAttributesToSpan(span, spanContext);
 

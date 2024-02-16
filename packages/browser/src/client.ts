@@ -1,5 +1,6 @@
 import type { Scope } from '@sentry/core';
-import { BaseClient, SDK_VERSION } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
+import { BaseClient } from '@sentry/core';
 import type {
   BrowserClientProfilingOptions,
   BrowserClientReplayOptions,
@@ -7,7 +8,7 @@ import type {
   Event,
   EventHint,
   Options,
-  Severity,
+  ParameterizedString,
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
@@ -49,18 +50,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   public constructor(options: BrowserClientOptions) {
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
-
-    options._metadata = options._metadata || {};
-    options._metadata.sdk = options._metadata.sdk || {
-      name: 'sentry.javascript.browser',
-      packages: [
-        {
-          name: `${sdkSource}:@sentry/browser`,
-          version: SDK_VERSION,
-        },
-      ],
-      version: SDK_VERSION,
-    };
+    applySdkMetadata(options, 'browser', ['browser'], sdkSource);
 
     super(options);
 
@@ -84,9 +74,8 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @inheritDoc
    */
   public eventFromMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    message: ParameterizedString,
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
@@ -106,7 +95,10 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       dsn: this.getDsn(),
       tunnel: this.getOptions().tunnel,
     });
-    void this._sendEnvelope(envelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(envelope);
   }
 
   /**
@@ -137,6 +129,9 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     DEBUG_BUILD && logger.log('Sending outcomes:', outcomes);
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
-    void this._sendEnvelope(envelope);
+
+    // _sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this._sendEnvelope(envelope);
   }
 }

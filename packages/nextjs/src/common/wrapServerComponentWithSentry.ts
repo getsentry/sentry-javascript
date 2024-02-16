@@ -1,13 +1,15 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
   captureException,
-  continueTrace,
   getCurrentScope,
-  runWithAsyncContext,
-  trace,
+  handleCallbackErrors,
+  startSpanManual,
+  withIsolationScope,
 } from '@sentry/core';
-import { winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
@@ -29,70 +31,65 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(() => {
+      // TODO: If we ever allow withIsolationScope to take a scope, we should pass a scope here that is shared between all of the server components, similar to what `commonObjectToPropagationContext` does.
+      return withIsolationScope(isolationScope => {
         const completeHeadersDict: Record<string, string> = context.headers
           ? winterCGHeadersToDict(context.headers)
           : {};
 
-        const transactionContext = continueTrace({
-          // eslint-disable-next-line deprecation/deprecation
-          sentryTrace: context.sentryTraceHeader ?? completeHeadersDict['sentry-trace'],
-          // eslint-disable-next-line deprecation/deprecation
-          baggage: context.baggageHeader ?? completeHeadersDict['baggage'],
+        isolationScope.setSDKProcessingMetadata({
+          request: {
+            headers: completeHeadersDict,
+          },
         });
 
-        // If there is no incoming trace, we are setting the transaction context to one that is shared between all other
-        // transactions for this request. We do this based on the `headers` object, which is the same for all components.
-        const propagationContext = getCurrentScope().getPropagationContext();
-        if (!transactionContext.traceId && !transactionContext.parentSpanId) {
-          const { traceId: commonTraceId, spanId: commonSpanId } = commonObjectToPropagationContext(
-            context.headers,
-            propagationContext,
-          );
-          transactionContext.traceId = commonTraceId;
-          transactionContext.parentSpanId = commonSpanId;
-        }
-
-        const res = trace(
-          {
-            ...transactionContext,
-            op: 'function.nextjs',
-            name: `${componentType} Server Component (${componentRoute})`,
-            status: 'ok',
-            origin: 'auto.function.nextjs',
-            metadata: {
-              ...transactionContext.metadata,
-              request: {
-                headers: completeHeadersDict,
-              },
-              source: 'component',
-            },
-          },
-          () => originalFunction.apply(thisArg, args),
-          (e, span) => {
-            if (isNotFoundNavigationError(e)) {
-              // We don't want to report "not-found"s
-              span?.setStatus('not_found');
-            } else if (isRedirectNavigationError(e)) {
-              // We don't want to report redirects
-              // Since `trace` will automatically set the span status to "internal_error" we need to set it back to "ok"
-              span?.setStatus('ok');
-            } else {
-              span?.setStatus('internal_error');
-
-              captureException(e, {
-                mechanism: {
-                  handled: false,
-                },
-              });
-            }
-          },
-          () => {
-            void flushQueue();
-          },
+        const incomingPropagationContext = propagationContextFromHeaders(
+          completeHeadersDict['sentry-trace'],
+          completeHeadersDict['baggage'],
         );
 
-        return res;
+        const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
+        isolationScope.setPropagationContext(propagationContext);
+        getCurrentScope().setPropagationContext(propagationContext);
+
+        return startSpanManual(
+          {
+            op: 'function.nextjs',
+            name: `${componentType} Server Component (${componentRoute})`,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+            },
+          },
+          span => {
+            return handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                if (isNotFoundNavigationError(error)) {
+                  // We don't want to report "not-found"s
+                  span?.setStatus('not_found');
+                } else if (isRedirectNavigationError(error)) {
+                  // We don't want to report redirects
+                  span?.setStatus('ok');
+                } else {
+                  span?.setStatus('internal_error');
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              },
+              () => {
+                span?.end();
+
+                // flushQueue should not throw
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                flushQueue();
+              },
+            );
+          },
+        );
       });
     },
   });

@@ -1,0 +1,67 @@
+{
+  "name": "@sentry-internal/node-integration-tests",
+  "version": "7.100.0",
+  "license": "MIT",
+  "engines": {
+    "node": ">=10"
+  },
+  "private": true,
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/src/index.d.ts",
+  "scripts": {
+    "build": "run-s build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rimraf -g **/node_modules && run-p clean:docker",
+    "clean:docker": "node scripts/clean.js",
+    "prisma:init": "(cd suites/tracing/prisma-orm && ts-node ./setup.ts)",
+    "prisma:init:new": "(cd suites/tracing-new/prisma-orm && ts-node ./setup.ts)",
+    "lint": "eslint . --format stylish",
+    "fix": "eslint . --format stylish --fix",
+    "type-check": "tsc",
+    "pretest": "run-s --silent prisma:init prisma:init:new",
+    "test": "ts-node ./utils/run-tests.ts",
+    "jest": "jest --config ./jest.config.js",
+    "test:watch": "yarn test --watch"
+  },
+  "dependencies": {
+    "@hapi/hapi": "^20.3.0",
+    "@prisma/client": "3.15.2",
+    "@sentry/node": "7.100.0",
+    "@sentry/tracing": "7.100.0",
+    "@sentry/types": "7.100.0",
+    "@types/mongodb": "^3.6.20",
+    "@types/mysql": "^2.15.21",
+    "@types/pg": "^8.6.5",
+    "apollo-server": "^3.11.1",
+    "axios": "^0.27.2",
+    "cors": "^2.8.5",
+    "cron": "^3.1.6",
+    "express": "^4.17.3",
+    "graphql": "^16.3.0",
+    "http-terminator": "^3.2.0",
+    "mongodb": "^3.7.3",
+    "mongodb-memory-server-global": "^7.6.3",
+    "mongoose": "^5.13.22",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.7.1",
+    "nock": "^13.1.0",
+    "pg": "^8.7.3",
+    "proxy": "^2.1.1",
+    "yargs": "^16.2.0"
+  },
+  "devDependencies": {
+    "globby": "11"
+  },
+  "config": {
+    "mongodbMemoryServer": {
+      "preferGlobalPath": true,
+      "runtimeDownload": false
+    }
+  },
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

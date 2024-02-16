@@ -1,4 +1,9 @@
-import { getDynamicSamplingContextFromClient } from '@sentry/core';
+import {
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getRootSpan,
+  spanToTraceHeader,
+} from '@sentry/core';
 import type { Client, Scope, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
@@ -28,16 +33,16 @@ export function getTracingMetaTags(
   client: Client | undefined,
 ): { sentryTrace: string; baggage?: string } {
   const { dsc, sampled, traceId } = scope.getPropagationContext();
-  const transaction = span?.transaction;
+  const rootSpan = span && getRootSpan(span);
 
-  const sentryTrace = span ? span.toTraceparent() : generateSentryTraceHeader(traceId, undefined, sampled);
+  const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);
 
-  const dynamicSamplingContext = transaction
-    ? transaction.getDynamicSamplingContext()
+  const dynamicSamplingContext = rootSpan
+    ? getDynamicSamplingContextFromSpan(rootSpan)
     : dsc
       ? dsc
       : client
-        ? getDynamicSamplingContextFromClient(traceId, client, scope)
+        ? getDynamicSamplingContextFromClient(traceId, client)
         : undefined;
 
   const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
@@ -73,6 +78,7 @@ export function isValidBaggageString(baggage?: string): boolean {
   const keyRegex = "[-!#$%&'*+.^_`|~A-Za-z0-9]+";
   const valueRegex = '[!#-+-./0-9:<=>?@A-Z\\[\\]a-z{-}]+';
   const spaces = '\\s*';
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp for readability, no user input
   const baggageRegex = new RegExp(
     `^${keyRegex}${spaces}=${spaces}${valueRegex}(${spaces},${spaces}${keyRegex}${spaces}=${spaces}${valueRegex})*$`,
   );

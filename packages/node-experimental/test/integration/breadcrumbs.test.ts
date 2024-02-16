@@ -1,5 +1,6 @@
-import { withScope } from '@sentry/core';
-import { getCurrentHub, startSpan } from '@sentry/opentelemetry';
+import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
+import { startSpan } from '@sentry/opentelemetry';
+import { getClient } from '../../src/sdk/api';
 
 import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -18,15 +19,14 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
-      const hub = getCurrentHub();
-      const client = hub.getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeExperimentalClient;
 
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
-      hub.addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
-      hub.addBreadcrumb({ timestamp: 123455, message: 'test3' });
+      addBreadcrumb({ timestamp: 123456, message: 'test1' });
+      addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
+      addBreadcrumb({ timestamp: 123455, message: 'test3' });
 
       const error = new Error('test');
-      hub.captureException(error);
+      captureException(error);
 
       await client.flush();
 
@@ -55,24 +55,23 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
-      const hub = getCurrentHub();
-      const client = hub.getClient() as NodeExperimentalClient;
+      const client = getClient();
 
       const error = new Error('test');
 
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test0' });
+      addBreadcrumb({ timestamp: 123456, message: 'test0' });
 
-      withScope(() => {
-        hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
+      withIsolationScope(() => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1' });
       });
 
-      withScope(() => {
-        hub.addBreadcrumb({ timestamp: 123456, message: 'test2' });
-        hub.captureException(error);
+      withIsolationScope(() => {
+        addBreadcrumb({ timestamp: 123456, message: 'test2' });
+        captureException(error);
       });
 
-      withScope(() => {
-        hub.addBreadcrumb({ timestamp: 123456, message: 'test3' });
+      withIsolationScope(() => {
+        addBreadcrumb({ timestamp: 123456, message: 'test3' });
       });
 
       await client.flush();
@@ -102,23 +101,22 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     const error = new Error('test');
 
     startSpan({ name: 'test' }, () => {
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
+      addBreadcrumb({ timestamp: 123456, message: 'test1' });
 
       startSpan({ name: 'inner1' }, () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
+        addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
       });
 
       startSpan({ name: 'inner2' }, () => {
-        hub.addBreadcrumb({ timestamp: 123455, message: 'test3' });
+        addBreadcrumb({ timestamp: 123455, message: 'test3' });
       });
 
-      hub.captureException(error);
+      captureException(error);
     });
 
     await client.flush();
@@ -142,33 +140,36 @@ describe('Integration | breadcrumbs', () => {
     );
   });
 
-  it('correctly adds & retrieves breadcrumbs for the current root span only', async () => {
+  it('correctly adds & retrieves breadcrumbs for the current isolation span only', async () => {
     const beforeSend = jest.fn(() => null);
     const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     const error = new Error('test');
 
-    startSpan({ name: 'test1' }, () => {
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test1-a' });
+    withIsolationScope(() => {
+      startSpan({ name: 'test1' }, () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1-a' });
 
-      startSpan({ name: 'inner1' }, () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test1-b' });
+        startSpan({ name: 'inner1' }, () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test1-b' });
+        });
       });
     });
 
-    startSpan({ name: 'test2' }, () => {
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test2-a' });
+    withIsolationScope(() => {
+      startSpan({ name: 'test2' }, () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test2-a' });
 
-      startSpan({ name: 'inner2' }, () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        startSpan({ name: 'inner2' }, () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        });
+
+        captureException(error);
       });
-
-      hub.captureException(error);
     });
 
     await client.flush();
@@ -197,20 +198,19 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     const error = new Error('test');
 
     startSpan({ name: 'test1' }, () => {
       withScope(() => {
-        hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
+        addBreadcrumb({ timestamp: 123456, message: 'test1' });
       });
       startSpan({ name: 'inner1' }, () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        addBreadcrumb({ timestamp: 123457, message: 'test2' });
       });
 
-      hub.captureException(error);
+      captureException(error);
     });
 
     await client.flush();
@@ -239,36 +239,35 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     const error = new Error('test');
 
     startSpan({ name: 'test1' }, () => {
       withScope(() => {
-        hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
+        addBreadcrumb({ timestamp: 123456, message: 'test1' });
       });
       startSpan({ name: 'inner1' }, () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        addBreadcrumb({ timestamp: 123457, message: 'test2' });
 
         startSpan({ name: 'inner2' }, () => {
-          hub.addBreadcrumb({ timestamp: 123457, message: 'test3' });
+          addBreadcrumb({ timestamp: 123457, message: 'test3' });
 
           startSpan({ name: 'inner3' }, () => {
-            hub.addBreadcrumb({ timestamp: 123457, message: 'test4' });
+            addBreadcrumb({ timestamp: 123457, message: 'test4' });
 
-            hub.captureException(error);
+            captureException(error);
 
             startSpan({ name: 'inner4' }, () => {
-              hub.addBreadcrumb({ timestamp: 123457, message: 'test5' });
+              addBreadcrumb({ timestamp: 123457, message: 'test5' });
             });
 
-            hub.addBreadcrumb({ timestamp: 123457, message: 'test6' });
+            addBreadcrumb({ timestamp: 123457, message: 'test6' });
           });
         });
       });
 
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test99' });
+      addBreadcrumb({ timestamp: 123456, message: 'test99' });
     });
 
     await client.flush();
@@ -298,36 +297,39 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeExperimentalClient;
 
     const error = new Error('test');
 
-    const promise1 = startSpan({ name: 'test' }, async () => {
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test1' });
+    const promise1 = withIsolationScope(async () => {
+      await startSpan({ name: 'test' }, async () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1' });
 
-      await startSpan({ name: 'inner1' }, async () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        await startSpan({ name: 'inner1' }, async () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2' });
+        });
+
+        await startSpan({ name: 'inner2' }, async () => {
+          addBreadcrumb({ timestamp: 123455, message: 'test3' });
+        });
+
+        await new Promise(resolve => setTimeout(resolve, 10));
+
+        captureException(error);
       });
-
-      await startSpan({ name: 'inner2' }, async () => {
-        hub.addBreadcrumb({ timestamp: 123455, message: 'test3' });
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      hub.captureException(error);
     });
 
-    const promise2 = startSpan({ name: 'test-b' }, async () => {
-      hub.addBreadcrumb({ timestamp: 123456, message: 'test1-b' });
+    const promise2 = withIsolationScope(async () => {
+      await startSpan({ name: 'test-b' }, async () => {
+        addBreadcrumb({ timestamp: 123456, message: 'test1-b' });
 
-      await startSpan({ name: 'inner1b' }, async () => {
-        hub.addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
-      });
+        await startSpan({ name: 'inner1b' }, async () => {
+          addBreadcrumb({ timestamp: 123457, message: 'test2-b' });
+        });
 
-      await startSpan({ name: 'inner2b' }, async () => {
-        hub.addBreadcrumb({ timestamp: 123455, message: 'test3-b' });
+        await startSpan({ name: 'inner2b' }, async () => {
+          addBreadcrumb({ timestamp: 123455, message: 'test3-b' });
+        });
       });
     });
 

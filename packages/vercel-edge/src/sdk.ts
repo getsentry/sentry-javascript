@@ -1,10 +1,17 @@
-import { Integrations as CoreIntegrations, RequestData, getIntegrationsToSetup, initAndBind } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import {
+  functionToStringIntegration,
+  getIntegrationsToSetup,
+  inboundFiltersIntegration,
+  initAndBind,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+} from '@sentry/core';
+import type { Integration, Options } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { setAsyncLocalStorageAsyncContextStrategy } from './async';
 import { VercelEdgeClient } from './client';
-import { WinterCGFetch } from './integrations/wintercg-fetch';
+import { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 import { makeEdgeTransport } from './transports';
 import type { VercelEdgeClientOptions, VercelEdgeOptions } from './types';
 import { getVercelEnv } from './utils/vercel';
@@ -15,27 +22,29 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
-  new WinterCGFetch(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  winterCGFetchIntegration(),
 ];
+
+/** Get the default integrations for the browser SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+    ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
+  ];
+}
 
 /** Inits the Sentry NextJS SDK on the Edge Runtime. */
 export function init(options: VercelEdgeOptions = {}): void {
   setAsyncLocalStorageAsyncContextStrategy();
 
-  const sdkDefaultIntegrations: Integration[] = [...defaultIntegrations];
-
-  // TODO(v8): Add the request data integration by default.
-  // We don't want to add this functionality OOTB without a breaking change because it might contain PII
-  if (options.sendDefaultPii) {
-    sdkDefaultIntegrations.push(new RequestData());
-  }
-
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = sdkDefaultIntegrations;
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {

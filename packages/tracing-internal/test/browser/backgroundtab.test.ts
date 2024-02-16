@@ -1,22 +1,23 @@
-import { Hub, makeMain } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { addExtensionMethods } from '../../../tracing/src';
-import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
 import { TestClient } from '../utils/TestClient';
 
-conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
+describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
-  let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new TestClient(options));
-    makeMain(hub);
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
 
     // If we do not add extension methods, invoking hub.startTransaction returns undefined
     // eslint-disable-next-line deprecation/deprecation
@@ -30,7 +31,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    hub.getScope().setSpan(undefined);
+    getCurrentScope().clear();
   });
 
   it('does not create an event listener if global document is undefined', () => {
@@ -47,16 +48,20 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   it('finishes a transaction on visibility change', () => {
     registerBackgroundTabDetection();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
+    startSpan({ name: 'test' }, span => {
+      // Simulate document visibility hidden event
+      // @ts-expect-error need to override global document
+      global.document.hidden = true;
+      events.visibilitychange();
 
-    // Simulate document visibility hidden event
-    // @ts-expect-error need to override global document
-    global.document.hidden = true;
-    events.visibilitychange();
+      const { status, timestamp } = spanToJSON(span!);
 
-    expect(transaction.status).toBe('cancelled');
-    expect(transaction.tags.visibilitychange).toBe('document.hidden');
-    expect(transaction.endTimestamp).toBeDefined();
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span?.status).toBe('cancelled');
+      expect(status).toBeDefined();
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span?.tags.visibilitychange).toBe('document.hidden');
+      expect(timestamp).toBeDefined();
+    });
   });
 });

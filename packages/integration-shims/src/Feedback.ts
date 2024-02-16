@@ -1,9 +1,12 @@
 import type { Integration } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 /**
  * This is a shim for the Feedback integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove feedback
  * from it, without changing their config. This is necessary for the loader mechanism.
+ *
+ * @deprecated Use `feedbackIntegration()` instead.
  */
 class FeedbackShim implements Integration {
   /**
@@ -18,10 +21,13 @@ class FeedbackShim implements Integration {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public constructor(_options: any) {
+    // eslint-disable-next-line deprecation/deprecation
     this.name = FeedbackShim.id;
 
-    // eslint-disable-next-line no-console
-    console.error('You are using new Feedback() even though this bundle does not include Feedback.');
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn('You are using new Feedback() even though this bundle does not include Feedback.');
+    });
   }
 
   /** jsdoc */
@@ -64,4 +70,15 @@ class FeedbackShim implements Integration {
   }
 }
 
+/**
+ * This is a shim for the Feedback integration.
+ * It is needed in order for the CDN bundles to continue working when users add/remove feedback
+ * from it, without changing their config. This is necessary for the loader mechanism.
+ */
+export function feedbackIntegration(_options: unknown): Integration {
+  // eslint-disable-next-line deprecation/deprecation
+  return new FeedbackShim({});
+}
+
+// eslint-disable-next-line deprecation/deprecation
 export { FeedbackShim as Feedback };

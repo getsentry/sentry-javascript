@@ -100,6 +100,9 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
         // a previous session ID. In this case, we want to buffer events
         // for a set amount of time before flushing. This can help avoid
         // capturing replays of users that immediately close the window.
+
+        // This should never reject
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
         void replay.flush();
       }
 
@@ -119,6 +122,7 @@ export function createOptionsEvent(replay: ReplayContainer): ReplayOptionFrameEv
     data: {
       tag: 'options',
       payload: {
+        shouldRecordCanvas: replay.isRecordingCanvas(),
         sessionSampleRate: options.sessionSampleRate,
         errorSampleRate: options.errorSampleRate,
         useCompressionOption: options.useCompression,

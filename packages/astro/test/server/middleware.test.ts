@@ -1,6 +1,7 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import type { Client } from '@sentry/types';
-import { SpyInstance, vi } from 'vitest';
+import type { Client, Span } from '@sentry/types';
+import { vi } from 'vitest';
 
 import { handleRequest, interpolateRouteFromUrlAndParams } from '../../src/server/middleware';
 
@@ -14,7 +15,9 @@ vi.mock('../../src/server/meta', () => ({
 describe('sentryMiddleware', () => {
   const startSpanSpy = vi.spyOn(SentryNode, 'startSpan');
 
-  const getSpanMock = vi.fn(() => {});
+  const getSpanMock = vi.fn(() => {
+    return {} as Span | undefined;
+  });
   const setUserMock = vi.fn();
 
   beforeEach(() => {
@@ -25,6 +28,7 @@ describe('sentryMiddleware', () => {
         getSpan: getSpanMock,
       } as any;
     });
+    vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);
     vi.spyOn(SentryNode, 'getClient').mockImplementation(() => ({}) as Client);
   });
 
@@ -54,16 +58,16 @@ describe('sentryMiddleware', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        attributes: {
+          'sentry.origin': 'auto.http.astro',
+        },
         data: {
           method: 'GET',
           url: 'https://mydomain.io/users/123/details',
-        },
-        metadata: {
-          source: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         name: 'GET /users/[id]/details',
         op: 'http.server',
-        origin: 'auto.http.astro',
         status: 'ok',
       },
       expect.any(Function), // the `next` function
@@ -91,16 +95,16 @@ describe('sentryMiddleware', () => {
 
     expect(startSpanSpy).toHaveBeenCalledWith(
       {
+        attributes: {
+          'sentry.origin': 'auto.http.astro',
+        },
         data: {
           method: 'GET',
           url: 'http://localhost:1234/a%xx',
-        },
-        metadata: {
-          source: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         name: 'GET a%xx',
         op: 'http.server',
-        origin: 'auto.http.astro',
         status: 'ok',
       },
       expect.any(Function), // the `next` function
@@ -136,41 +140,6 @@ describe('sentryMiddleware', () => {
     expect(captureExceptionSpy).toHaveBeenCalledWith(error, {
       mechanism: { handled: false, type: 'astro', data: { function: 'astroMiddleware' } },
     });
-  });
-
-  it('attaches tracing headers', async () => {
-    const middleware = handleRequest();
-    const ctx = {
-      request: {
-        method: 'GET',
-        url: '/users',
-        headers: new Headers({
-          'sentry-trace': '12345678901234567890123456789012-1234567890123456-1',
-          baggage: 'sentry-release=1.0.0',
-        }),
-      },
-      params: {},
-      url: new URL('https://myDomain.io/users/'),
-    };
-    const next = vi.fn(() => nextResult);
-
-    // @ts-expect-error, a partial ctx object is fine here
-    await middleware(ctx, next);
-
-    expect(startSpanSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        metadata: {
-          source: 'route',
-          dynamicSamplingContext: {
-            release: '1.0.0',
-          },
-        },
-        parentSampled: true,
-        parentSpanId: '1234567890123456',
-        traceId: '12345678901234567890123456789012',
-      }),
-      expect.any(Function), // the `next` function
-    );
   });
 
   it('attaches client IP and request headers if options are set', async () => {
@@ -291,10 +260,10 @@ describe('sentryMiddleware', () => {
   });
 
   describe('async context isolation', () => {
-    const runWithAsyncContextSpy = vi.spyOn(SentryNode, 'runWithAsyncContext');
+    const withIsolationScopeSpy = vi.spyOn(SentryNode, 'withIsolationScope');
     afterEach(() => {
       vi.clearAllMocks();
-      runWithAsyncContextSpy.mockRestore();
+      withIsolationScopeSpy.mockRestore();
     });
 
     it('starts a new async context if no span is active', async () => {
@@ -310,7 +279,7 @@ describe('sentryMiddleware', () => {
         // this is fine, it's not required to pass in this test
       }
 
-      expect(runWithAsyncContextSpy).toHaveBeenCalledTimes(1);
+      expect(withIsolationScopeSpy).toHaveBeenCalledTimes(1);
     });
 
     it("doesn't start a new async context if a span is active", async () => {
@@ -328,7 +297,7 @@ describe('sentryMiddleware', () => {
         // this is fine, it's not required to pass in this test
       }
 
-      expect(runWithAsyncContextSpy).not.toHaveBeenCalled();
+      expect(withIsolationScopeSpy).not.toHaveBeenCalled();
     });
   });
 });

@@ -139,6 +139,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
 
     transform: async (code, id) => {
       let modifiedCode = code;
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input + escaped anyway
       const isServerHooksFile = new RegExp(`/${escapeStringForRegex(serverHooksFile)}(.(js|ts|mjs|mts))?`).test(id);
 
       if (isServerHooksFile) {
@@ -165,7 +166,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
 
-      jsFiles.forEach(async file => {
+      for (const file of jsFiles) {
         try {
           await (sorcery as Sorcery).load(file).then(async chain => {
             if (!chain) {
@@ -195,12 +196,13 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
         if (fs.existsSync(mapFile)) {
           const mapContent = (await fs.promises.readFile(mapFile, 'utf-8')).toString();
           const cleanedMapContent = mapContent.replace(
+            // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- no user input + escaped anyway
             new RegExp(escapeStringForRegex(WRAPPED_MODULE_SUFFIX), 'gm'),
             '',
           );
           await fs.promises.writeFile(mapFile, cleanedMapContent);
         }
-      });
+      }
 
       try {
         // @ts-expect-error - this hook exists on the plugin!

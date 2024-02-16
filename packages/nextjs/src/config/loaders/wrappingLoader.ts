@@ -115,6 +115,7 @@ export default function wrappingLoader(
       // Add a slash at the beginning
       .replace(/(.*)/, '/$1')
       // Pull off the file extension
+      // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- not end user input
       .replace(new RegExp(`\\.(${pageExtensionRegex})`), '')
       // Any page file named `index` corresponds to root of the directory its in, URL-wise, so turn `/xyz/index` into
       // just `/xyz`

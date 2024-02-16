@@ -1,4 +1,7 @@
-import type { Event, EventProcessor, Integration } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+
+const INTEGRATION_NAME = 'DenoContext';
 
 function getOSName(): string {
   switch (Deno.build.os) {
@@ -19,7 +22,7 @@ function getOSRelease(): string | undefined {
     : undefined;
 }
 
-async function denoRuntime(event: Event): Promise<Event> {
+async function addDenoRuntimeContext(event: Event): Promise<Event> {
   event.contexts = {
     ...{
       app: {
@@ -49,21 +52,27 @@ async function denoRuntime(event: Event): Promise<Event> {
   return event;
 }
 
-/** Adds Electron context to events. */
-export class DenoContext implements Integration {
-  /** @inheritDoc */
-  public static id = 'DenoContext';
+const _denoContextIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    processEvent(event) {
+      return addDenoRuntimeContext(event);
+    },
+  };
+}) satisfies IntegrationFn;
 
-  /** @inheritDoc */
-  public name: string = DenoContext.id;
+export const denoContextIntegration = defineIntegration(_denoContextIntegration);
 
-  /** @inheritDoc */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
-    // noop
-  }
+/**
+ * Adds Deno context to events.
+ * @deprecated Use `denoContextintegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+>;
 
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return denoRuntime(event);
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export type DenoContext = typeof DenoContext;

@@ -13,12 +13,8 @@ export interface IntegrationClass<T> {
   new (...args: any[]): T;
 }
 
-/**
- * An integration in function form.
- * This is expected to return an integration result,
- */
-export type IntegrationFn = (...rest: any[]) => IntegrationFnResult;
-
+/** Integration interface.
+ * This is more or less the same as `Integration`, but with a slimmer `setupOnce` siganture. */
 export interface IntegrationFnResult {
   /**
    * The name of the integration.
@@ -28,8 +24,10 @@ export interface IntegrationFnResult {
   /**
    * This hook is only called once, even if multiple clients are created.
    * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.
+   *
+   * NOTE: In v8, this will become optional.
    */
-  setupOnce?(): void;
+  setupOnce(): void;
 
   /**
    * Set up an integration for the given client.
@@ -40,6 +38,12 @@ export interface IntegrationFnResult {
    * should be done in `setupOnce`.
    */
   setup?(client: Client): void;
+
+  /**
+   * This hook is triggered after `setupOnce()` and `setup()` have been called for all integrations.
+   * You can use it if it is important that all other integrations have been run before.
+   */
+  afterAllSetup?(client: Client): void;
 
   /**
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.
@@ -54,16 +58,24 @@ export interface IntegrationFnResult {
   processEvent?(event: Event, hint: EventHint, client: Client): Event | null | PromiseLike<Event | null>;
 }
 
+/**
+ * An integration in function form.
+ * This is expected to return an integration.
+ */
+export type IntegrationFn = (...rest: any[]) => IntegrationFnResult;
+
 /** Integration interface */
 export interface Integration {
   /**
-   * Returns {@link IntegrationClass.id}
+   * The name of the integration.
    */
   name: string;
 
   /**
-   * Sets the integration up only once.
-   * This takes no options on purpose, options should be passed in the constructor
+   * This hook is only called once, even if multiple clients are created.
+   * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.
+   *
+   * NOTE: In v8, this will become optional, and not receive any arguments anymore.
    */
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 
@@ -76,6 +88,12 @@ export interface Integration {
    * should be done in `setupOnce`.
    */
   setup?(client: Client): void;
+
+  /**
+   * This hook is triggered after `setupOnce()` and `setup()` have been called for all integrations.
+   * You can use it if it is important that all other integrations have been run before.
+   */
+  afterAllSetup?(client: Client): void;
 
   /**
    * An optional hook that allows to preprocess an event _before_ it is passed to all other event processors.

@@ -1,8 +1,14 @@
 /* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
-import { TRACING_DEFAULTS, addTracingExtensions, getActiveTransaction, startIdleTransaction } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  TRACING_DEFAULTS,
+  addTracingExtensions,
+  getActiveTransaction,
+  startIdleTransaction,
+} from '@sentry/core';
 import type { EventProcessor, Integration, Transaction, TransactionContext, TransactionSource } from '@sentry/types';
-import { getDomElement, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getDomElement, logger, propagationContextFromHeaders } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -12,7 +18,6 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from './metrics';
-import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { instrumentRoutingWithDefaults } from './router';
 import { WINDOW } from './types';
@@ -20,7 +25,7 @@ import { WINDOW } from './types';
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
 /** Options for Browser Tracing integration */
-export interface BrowserTracingOptions extends RequestInstrumentationOptions {
+export interface BrowserTracingOptions {
   /**
    * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
    * by a moment where there are no in-progress spans.
@@ -82,6 +87,27 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * Flag to disable patching all together for fetch requests.
+   *
+   * Default: true
+   */
+  traceFetch: boolean;
+
+  /**
+   * Flag to disable patching all together for xhr requests.
+   *
+   * Default: true
+   */
+  traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -131,6 +157,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
     startTransactionOnPageLoad?: boolean,
     startTransactionOnLocationChange?: boolean,
   ): void;
+
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * Default: (url: string) => true
+   */
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -150,6 +184,8 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  *
  * The integration can be configured with a variety of options, and can be extended to use
  * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead.
  */
 export class BrowserTracing implements Integration {
   // This class currently doesn't have a static `id` field like the other integration classes, because it prevented
@@ -172,21 +208,10 @@ export class BrowserTracing implements Integration {
 
   private _collectWebVitals: () => void;
 
-  private _hasSetTracePropagationTargets: boolean;
-
   public constructor(_options?: Partial<BrowserTracingOptions>) {
     this.name = BROWSER_TRACING_INTEGRATION_ID;
-    this._hasSetTracePropagationTargets = false;
 
     addTracingExtensions();
-
-    if (DEBUG_BUILD) {
-      this._hasSetTracePropagationTargets = !!(
-        _options &&
-        // eslint-disable-next-line deprecation/deprecation
-        (_options.tracePropagationTargets || _options.tracingOrigins)
-      );
-    }
 
     this.options = {
       ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -197,15 +222,6 @@ export class BrowserTracing implements Integration {
     // TODO (v8): Remove this in v8
     if (this.options._experiments.enableLongTask !== undefined) {
       this.options.enableLongTask = this.options._experiments.enableLongTask;
-    }
-
-    // TODO (v8): remove this block after tracingOrigins is removed
-    // Set tracePropagationTargets to tracingOrigins if specified by the user
-    // In case both are specified, tracePropagationTargets takes precedence
-    // eslint-disable-next-line deprecation/deprecation
-    if (_options && !_options.tracePropagationTargets && _options.tracingOrigins) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.options.tracePropagationTargets = _options.tracingOrigins;
     }
 
     this._collectWebVitals = startTrackingWebVitals();
@@ -223,6 +239,7 @@ export class BrowserTracing implements Integration {
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
     const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
     const client = hub.getClient();
     const clientOptions = client && client.getOptions();
 
@@ -237,25 +254,6 @@ export class BrowserTracing implements Integration {
       enableHTTPTimings,
       _experiments,
     } = this.options;
-
-    const clientOptionsTracePropagationTargets = clientOptions && clientOptions.tracePropagationTargets;
-    // There are three ways to configure tracePropagationTargets:
-    // 1. via top level client option `tracePropagationTargets`
-    // 2. via BrowserTracing option `tracePropagationTargets`
-    // 3. via BrowserTracing option `tracingOrigins` (deprecated)
-    //
-    // To avoid confusion, favour top level client option `tracePropagationTargets`, and fallback to
-    // BrowserTracing option `tracePropagationTargets` and then `tracingOrigins` (deprecated).
-    // This is done as it minimizes bundle size (we don't have to have undefined checks).
-    //
-    // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
-    // eslint-disable-next-line deprecation/deprecation
-    const tracePropagationTargets = clientOptionsTracePropagationTargets || this.options.tracePropagationTargets;
-    if (DEBUG_BUILD && this._hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
-      logger.warn(
-        '[Tracing] The `tracePropagationTargets` option was set in the BrowserTracing integration and top level `Sentry.init`. The top level `Sentry.init` value is being used.',
-      );
-    }
 
     instrumentRouting(
       (context: TransactionContext) => {
@@ -281,7 +279,7 @@ export class BrowserTracing implements Integration {
     instrumentOutgoingRequests({
       traceFetch,
       traceXHR,
-      tracePropagationTargets,
+      tracePropagationTargets: clientOptions && clientOptions.tracePropagationTargets,
       shouldCreateSpanForRequest,
       enableHTTPTimings,
     });
@@ -301,22 +299,29 @@ export class BrowserTracing implements Integration {
 
     const isPageloadTransaction = context.op === 'pageload';
 
-    const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
-    const baggage = isPageloadTransaction ? getMetaContent('baggage') : '';
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTrace,
-      baggage,
-    );
-
-    const expandedContext: TransactionContext = {
-      ...context,
-      ...traceparentData,
-      metadata: {
-        ...context.metadata,
-        dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      },
-      trimEnd: true,
-    };
+    let expandedContext: TransactionContext;
+    if (isPageloadTransaction) {
+      const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
+      const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
+      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
+      expandedContext = {
+        traceId,
+        parentSpanId,
+        parentSampled: sampled,
+        ...context,
+        metadata: {
+          // eslint-disable-next-line deprecation/deprecation
+          ...context.metadata,
+          dynamicSamplingContext: dsc,
+        },
+        trimEnd: true,
+      };
+    } else {
+      expandedContext = {
+        trimEnd: true,
+        ...context,
+      };
+    }
 
     const modifiedContext = typeof beforeNavigate === 'function' ? beforeNavigate(expandedContext) : expandedContext;
 
@@ -325,14 +330,18 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     // If `beforeNavigate` set a custom name, record that fact
+    // eslint-disable-next-line deprecation/deprecation
     finalContext.metadata =
       finalContext.name !== expandedContext.name
-        ? { ...finalContext.metadata, source: 'custom' }
-        : finalContext.metadata;
+        ? // eslint-disable-next-line deprecation/deprecation
+          { ...finalContext.metadata, source: 'custom' }
+        : // eslint-disable-next-line deprecation/deprecation
+          finalContext.metadata;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = finalContext.metadata && finalContext.metadata.source;
+    this._latestRouteSource = getSource(finalContext);
 
+    // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }
@@ -349,23 +358,19 @@ export class BrowserTracing implements Integration {
       true,
       { location }, // for use in the tracesSampler
       heartbeatInterval,
+      isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
     );
 
-    const scope = hub.getScope();
-
-    // If it's a pageload and there is a meta tag set
-    // use the traceparentData as the propagation context
-    if (isPageloadTransaction && traceparentData) {
-      scope.setPropagationContext(propagationContext);
-    } else {
-      // Navigation transactions should set a new propagation context based on the
-      // created idle transaction.
-      scope.setPropagationContext({
-        traceId: idleTransaction.traceId,
-        spanId: idleTransaction.spanId,
-        parentSpanId: idleTransaction.parentSpanId,
-        sampled: idleTransaction.sampled,
+    if (isPageloadTransaction) {
+      WINDOW.document.addEventListener('readystatechange', () => {
+        if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+          idleTransaction.sendAutoFinishSignal();
+        }
       });
+
+      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+        idleTransaction.sendAutoFinishSignal();
+      }
     }
 
     idleTransaction.registerBeforeFinishCallback(transaction => {
@@ -383,6 +388,7 @@ export class BrowserTracing implements Integration {
       const { idleTimeout, finalTimeout, heartbeatInterval } = this.options;
       const op = 'ui.action.click';
 
+      // eslint-disable-next-line deprecation/deprecation
       const currentTransaction = getActiveTransaction();
       if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
         DEBUG_BUILD &&
@@ -394,7 +400,7 @@ export class BrowserTracing implements Integration {
 
       if (inflightInteractionTransaction) {
         inflightInteractionTransaction.setFinishReason('interactionInterrupted');
-        inflightInteractionTransaction.finish();
+        inflightInteractionTransaction.end();
         inflightInteractionTransaction = undefined;
       }
 
@@ -415,8 +421,8 @@ export class BrowserTracing implements Integration {
         name: this._latestRouteName,
         op,
         trimEnd: true,
-        metadata: {
-          source: this._latestRouteSource || 'url',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: this._latestRouteSource || 'url',
         },
       };
 
@@ -445,4 +451,14 @@ export function getMetaContent(metaName: string): string | undefined {
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;
+}
+
+function getSource(context: TransactionContext): TransactionSource | undefined {
+  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+  // eslint-disable-next-line deprecation/deprecation
+  const sourceFromMetadata = context.metadata && context.metadata.source;
+
+  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

@@ -1,59 +1,48 @@
-import type { Client, Event, EventHint, Integration } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
+import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+
+interface LinkedErrorsOptions {
+  key?: string;
+  limit?: number;
+}
 
 const DEFAULT_KEY = 'cause';
 const DEFAULT_LIMIT = 5;
 
-/** Adds SDK info to an event. */
-export class LinkedErrors implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'LinkedErrors';
+const INTEGRATION_NAME = 'LinkedErrors';
 
-  /**
-   * @inheritDoc
-   */
-  public readonly name: string;
+const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
+  const limit = options.limit || DEFAULT_LIMIT;
+  const key = options.key || DEFAULT_KEY;
 
-  /**
-   * @inheritDoc
-   */
-  private readonly _key: string;
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    preprocessEvent(event, hint, client) {
+      const options = client.getOptions();
 
-  /**
-   * @inheritDoc
-   */
-  private readonly _limit: number;
+      applyAggregateErrorsToEvent(
+        exceptionFromError,
+        options.stackParser,
+        options.maxValueLength,
+        key,
+        limit,
+        event,
+        hint,
+      );
+    },
+  };
+}) satisfies IntegrationFn;
 
-  /**
-   * @inheritDoc
-   */
-  public constructor(options: { key?: string; limit?: number } = {}) {
-    this._key = options.key || DEFAULT_KEY;
-    this._limit = options.limit || DEFAULT_LIMIT;
-    this.name = LinkedErrors.id;
-  }
+export const linkedErrorsIntegration = defineIntegration(_linkedErrorsIntegration);
 
-  /** @inheritdoc */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public preprocessEvent(event: Event, hint: EventHint | undefined, client: Client): void {
-    const options = client.getOptions();
-
-    applyAggregateErrorsToEvent(
-      exceptionFromError,
-      options.stackParser,
-      options.maxValueLength,
-      this._key,
-      this._limit,
-      event,
-      hint,
-    );
-  }
-}
+/**
+ * Adds SDK info to an event.
+ * @deprecated Use `linkedErrorsIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration) as IntegrationClass<
+  Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }
+> & { new (options?: { key?: string; limit?: number }): Integration };

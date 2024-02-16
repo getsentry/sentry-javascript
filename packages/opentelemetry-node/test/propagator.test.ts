@@ -7,8 +7,8 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { Hub, Transaction, addTracingExtensions, makeMain } from '@sentry/core';
-import type { TransactionContext } from '@sentry/types';
+import { Transaction, addTracingExtensions, getCurrentHub, setCurrentClient } from '@sentry/core';
+import type { Client, TransactionContext } from '@sentry/types';
 
 import {
   SENTRY_BAGGAGE_HEADER,
@@ -45,10 +45,10 @@ describe('SentryPropagator', () => {
         getDsn: () => ({
           publicKey: 'abc',
         }),
-      };
-      // @ts-expect-error Use mock client for unit tests
-      const hub: Hub = new Hub(client);
-      makeMain(hub);
+        emit: () => {},
+      } as unknown as Client;
+
+      setCurrentClient(client);
 
       afterEach(() => {
         SPAN_MAP.clear();
@@ -60,13 +60,15 @@ describe('SentryPropagator', () => {
       }
 
       function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
-        const transaction = new Transaction(transactionContext, hub);
-        setSentrySpan(transaction.spanId, transaction);
+        // eslint-disable-next-line deprecation/deprecation
+        const transaction = new Transaction(transactionContext, getCurrentHub());
+        setSentrySpan(transaction.spanContext().spanId, transaction);
         if (type === PerfType.Span) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { spanId, ...ctx } = transactionContext;
-          const span = transaction.startChild({ ...ctx, description: transaction.name });
-          setSentrySpan(span.spanId, span);
+          // eslint-disable-next-line deprecation/deprecation
+          const span = transaction.startChild({ ...ctx, name: transactionContext.name });
+          setSentrySpan(span.spanContext().spanId, span);
         }
       }
 

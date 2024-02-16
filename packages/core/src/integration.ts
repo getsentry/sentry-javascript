@@ -1,9 +1,18 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
+import type {
+  Client,
+  Event,
+  EventHint,
+  Integration,
+  IntegrationClass,
+  IntegrationFn,
+  IntegrationFnResult,
+  Options,
+} from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
+import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
 import { addGlobalEventProcessor } from './eventProcessors';
-import { getClient } from './exports';
 import { getCurrentHub } from './hub';
 
 declare module '@sentry/types' {
@@ -46,7 +55,7 @@ function filterDuplicates(integrations: Integration[]): Integration[] {
 }
 
 /** Gets integrations to install */
-export function getIntegrationsToSetup(options: Options): Integration[] {
+export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegrations' | 'integrations'>): Integration[] {
   const defaultIntegrations = options.defaultIntegrations || [];
   const userIntegrations = options.integrations;
 
@@ -99,8 +108,24 @@ export function setupIntegrations(client: Client, integrations: Integration[]): 
   return integrationIndex;
 }
 
+/**
+ * Execute the `afterAllSetup` hooks of the given integrations.
+ */
+export function afterSetupIntegrations(client: Client, integrations: Integration[]): void {
+  for (const integration of integrations) {
+    // guard against empty provided integrations
+    if (integration && integration.afterAllSetup) {
+      integration.afterAllSetup(client);
+    }
+  }
+}
+
 /** Setup a single integration.  */
 export function setupIntegration(client: Client, integration: Integration, integrationIndex: IntegrationIndex): void {
+  if (integrationIndex[integration.name]) {
+    DEBUG_BUILD && logger.log(`Integration skipped because it was already installed: ${integration.name}`);
+    return;
+  }
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
@@ -115,12 +140,12 @@ export function setupIntegration(client: Client, integration: Integration, integ
     integration.setup(client);
   }
 
-  if (client.on && typeof integration.preprocessEvent === 'function') {
+  if (typeof integration.preprocessEvent === 'function') {
     const callback = integration.preprocessEvent.bind(integration) as typeof integration.preprocessEvent;
     client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
   }
 
-  if (client.addEventProcessor && typeof integration.processEvent === 'function') {
+  if (typeof integration.processEvent === 'function') {
     const callback = integration.processEvent.bind(integration) as typeof integration.processEvent;
 
     const processor = Object.assign((event: Event, hint: EventHint) => callback(event, hint, client), {
@@ -137,7 +162,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
 export function addIntegration(integration: Integration): void {
   const client = getClient();
 
-  if (!client || !client.addIntegration) {
+  if (!client) {
     DEBUG_BUILD && logger.warn(`Cannot add integration "${integration.name}" because no SDK Client is available.`);
     return;
   }
@@ -167,14 +192,17 @@ export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
   fn: Fn,
 ): IntegrationClass<Integration> {
   return Object.assign(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    function ConvertedIntegration(...rest: any[]) {
-      return {
-        // eslint-disable-next-line @typescript-eslint/no-empty-function
-        setupOnce: () => {},
-        ...fn(...rest),
-      };
+    function ConvertedIntegration(...args: Parameters<Fn>): Integration {
+      return fn(...args);
     },
     { id: name },
   ) as unknown as IntegrationClass<Integration>;
+}
+
+/**
+ * Define an integration function that can be used to create an integration instance.
+ * Note that this by design hides the implementation details of the integration, as they are considered internal.
+ */
+export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => IntegrationFnResult {
+  return fn;
 }

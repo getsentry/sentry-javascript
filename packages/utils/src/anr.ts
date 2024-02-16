@@ -1,7 +1,7 @@
 import type { StackFrame } from '@sentry/types';
 
 import { dropUndefinedKeys } from './object';
-import { filenameIsInApp, stripSentryFramesAndReverse } from './stacktrace';
+import { filenameIsInApp } from './stacktrace';
 
 type WatchdogReturn = {
   /** Resets the watchdog timer */
@@ -67,20 +67,10 @@ interface CallFrame {
   url: string;
 }
 
-interface ScriptParsedEventDataType {
-  scriptId: string;
-  url: string;
-}
-
-interface PausedEventDataType {
-  callFrames: CallFrame[];
-  reason: string;
-}
-
 /**
  * Converts Debugger.CallFrame to Sentry StackFrame
  */
-function callFrameToStackFrame(
+export function callFrameToStackFrame(
   frame: CallFrame,
   url: string | undefined,
   getModuleFromFilename: (filename: string | undefined) => string | undefined,
@@ -99,41 +89,4 @@ function callFrameToStackFrame(
     lineno,
     in_app: filename ? filenameIsInApp(filename) : undefined,
   });
-}
-
-// The only messages we care about
-type DebugMessage =
-  | { method: 'Debugger.scriptParsed'; params: ScriptParsedEventDataType }
-  | { method: 'Debugger.paused'; params: PausedEventDataType };
-
-/**
- * Creates a message handler from the v8 debugger protocol and passed stack frames to the callback when paused.
- */
-export function createDebugPauseMessageHandler(
-  sendCommand: (message: string) => void,
-  getModuleFromFilename: (filename?: string) => string | undefined,
-  pausedStackFrames: (frames: StackFrame[]) => void,
-): (message: DebugMessage) => void {
-  // Collect scriptId -> url map so we can look up the filenames later
-  const scripts = new Map<string, string>();
-
-  return message => {
-    if (message.method === 'Debugger.scriptParsed') {
-      scripts.set(message.params.scriptId, message.params.url);
-    } else if (message.method === 'Debugger.paused') {
-      // copy the frames
-      const callFrames = [...message.params.callFrames];
-      // and resume immediately
-      sendCommand('Debugger.resume');
-      sendCommand('Debugger.disable');
-
-      const stackFrames = stripSentryFramesAndReverse(
-        callFrames.map(frame =>
-          callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleFromFilename),
-        ),
-      );
-
-      pausedStackFrames(stackFrames);
-    }
-  };
 }

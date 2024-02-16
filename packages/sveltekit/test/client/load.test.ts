@@ -3,19 +3,20 @@ import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
 
-const mockTrace = vi.fn();
+const mockStartSpan = vi.fn();
 
 vi.mock('@sentry/core', async () => {
   const original = (await vi.importActual('@sentry/core')) as any;
   return {
     ...original,
-    trace: (...args: unknown[]) => {
-      mockTrace(...args);
-      return original.trace(...args);
+    startSpan: (...args: unknown[]) => {
+      mockStartSpan(...args);
+      return original.startSpan(...args);
     },
   };
 });
@@ -39,7 +40,7 @@ beforeAll(() => {
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();
-    mockTrace.mockClear();
+    mockStartSpan.mockClear();
   });
 
   it('calls captureException', async () => {
@@ -68,6 +69,30 @@ describe('wrapLoadWithSentry', () => {
     expect(mockCaptureException).not.toHaveBeenCalled();
   });
 
+  it.each([400, 404, 499])("doesn't call captureException for thrown `HttpError`s with status %s", async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).not.toHaveBeenCalled();
+  });
+
+  it.each([500, 501, 599])('calls captureException for thrown `HttpError`s with status %s', async status => {
+    async function load(_: Parameters<Load>[0]): Promise<ReturnType<Load>> {
+      throw { status, body: 'error' };
+    }
+
+    const wrappedLoad = wrapLoadWithSentry(load);
+    const res = wrappedLoad(MOCK_LOAD_ARGS);
+    await expect(res).rejects.toThrow();
+
+    expect(mockCaptureException).toHaveBeenCalledTimes(1);
+  });
+
   describe('calls trace function', async () => {
     it('creates a load span', async () => {
       async function load({ params }: Parameters<Load>[0]): Promise<ReturnType<Load>> {
@@ -79,18 +104,19 @@ describe('wrapLoadWithSentry', () => {
       const wrappedLoad = wrapLoadWithSentry(load);
       await wrappedLoad(MOCK_LOAD_ARGS);
 
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
         {
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          },
           op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
           name: '/users/[id]',
           status: 'ok',
           metadata: {
             source: 'route',
           },
         },
-        expect.any(Function),
         expect.any(Function),
       );
     });
@@ -108,18 +134,19 @@ describe('wrapLoadWithSentry', () => {
 
       await wrappedLoad(MOCK_LOAD_ARGS);
 
-      expect(mockTrace).toHaveBeenCalledTimes(1);
-      expect(mockTrace).toHaveBeenCalledWith(
+      expect(mockStartSpan).toHaveBeenCalledTimes(1);
+      expect(mockStartSpan).toHaveBeenCalledWith(
         {
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          },
           op: 'function.sveltekit.load',
-          origin: 'auto.function.sveltekit',
           name: '/users/123',
           status: 'ok',
           metadata: {
             source: 'url',
           },
         },
-        expect.any(Function),
         expect.any(Function),
       );
     });
@@ -152,6 +179,6 @@ describe('wrapLoadWithSentry', () => {
     const wrappedLoad = wrapLoadWithSentry(wrapLoadWithSentry(load));
     await wrappedLoad(MOCK_LOAD_ARGS);
 
-    expect(mockTrace).toHaveBeenCalledTimes(1);
+    expect(mockStartSpan).toHaveBeenCalledTimes(1);
   });
 });

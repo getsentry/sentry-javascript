@@ -45,18 +45,6 @@ for NEXTJS_VERSION in 10 11 12 13; do
     export NODE_MAJOR=$NODE_MAJOR
     export USE_APPDIR=$USE_APPDIR
 
-    # Next 10 requires at least Node v10
-    if [ "$NODE_MAJOR" -lt "10" ]; then
-      echo "[nextjs] Next.js is not compatible with versions of Node older than v10. Current version $NODE_VERSION"
-      exit 0
-    fi
-
-    # Next.js v11 requires at least Node v12
-    if [ "$NODE_MAJOR" -lt "12" ] && [ "$NEXTJS_VERSION" -ge "11" ]; then
-      echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
-      exit 0
-    fi
-
     # Next.js v13 requires at least Node v16
     if [ "$NODE_MAJOR" -lt "16" ] && [ "$NEXTJS_VERSION" -ge "13" ]; then
       echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"

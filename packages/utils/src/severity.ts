@@ -1,5 +1,4 @@
-/* eslint-disable deprecation/deprecation */
-import type { Severity, SeverityLevel } from '@sentry/types';
+import type { SeverityLevel } from '@sentry/types';
 
 // Note: Ideally the `SeverityLevel` type would be derived from `validSeverityLevels`, but that would mean either
 //
@@ -12,18 +11,6 @@ import type { Severity, SeverityLevel } from '@sentry/types';
 // type, reminding anyone who changes it to change this list also, will have to do.
 
 export const validSeverityLevels = ['fatal', 'error', 'warning', 'log', 'info', 'debug'];
-
-/**
- * Converts a string-based level into a member of the deprecated {@link Severity} enum.
- *
- * @deprecated `severityFromString` is deprecated. Please use `severityLevelFromString` instead.
- *
- * @param level String representation of Severity
- * @returns Severity
- */
-export function severityFromString(level: Severity | SeverityLevel | string): Severity {
-  return severityLevelFromString(level) as Severity;
-}
 
 /**
  * Converts a string-based level into a `SeverityLevel`, normalizing it along the way.

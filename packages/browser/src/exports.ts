@@ -6,8 +6,6 @@ export type {
   Event,
   EventHint,
   Exception,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   StackFrame,
   Stacktrace,
@@ -18,7 +16,8 @@ export type {
 } from '@sentry/types';
 
 export type { BrowserOptions } from './client';
-export type { ReportDialogOptions } from './helpers';
+
+export type { ReportDialogOptions } from './sdk';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -30,18 +29,22 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   flush,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
   Hub,
-  lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
   Scope,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   getActiveSpan,
   startSpan,
@@ -56,9 +59,22 @@ export {
   setTags,
   setUser,
   withScope,
+  withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
+  // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
   metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  parameterize,
+} from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
 export { WINDOW } from './helpers';
@@ -76,7 +92,9 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   defaultIntegrations,
+  getDefaultIntegrations,
   forceLoad,
   init,
   onLoad,
@@ -85,4 +103,13 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   wrap,
 } from './sdk';
-export { GlobalHandlers, TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';
+export { dedupeIntegration } from './integrations/dedupe';
+export { globalHandlersIntegration } from './integrations/globalhandlers';
+export { httpContextIntegration } from './integrations/httpcontext';
+export { linkedErrorsIntegration } from './integrations/linkederrors';
+export { browserApiErrorsIntegration } from './integrations/trycatch';
+
+// eslint-disable-next-line deprecation/deprecation
+export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';

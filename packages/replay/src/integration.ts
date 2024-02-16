@@ -1,5 +1,5 @@
 import { getClient } from '@sentry/core';
-import type { BrowserClientReplayOptions, Integration } from '@sentry/types';
+import type { BrowserClientReplayOptions, Integration, IntegrationFn } from '@sentry/types';
 import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
 import {
@@ -10,7 +10,13 @@ import {
   MIN_REPLAY_DURATION_LIMIT,
 } from './constants';
 import { ReplayContainer } from './replay';
-import type { RecordingOptions, ReplayConfiguration, ReplayPluginOptions, SendBufferedReplayOptions } from './types';
+import type {
+  RecordingOptions,
+  ReplayCanvasIntegrationOptions,
+  ReplayConfiguration,
+  ReplayPluginOptions,
+  SendBufferedReplayOptions,
+} from './types';
 import { getPrivacyOptions } from './util/getPrivacyOptions';
 import { maskAttribute } from './util/maskAttribute';
 
@@ -24,8 +30,14 @@ let _initialized = false;
 type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
   Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
 
+export const replayIntegration = ((options?: ReplayConfiguration) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Replay(options);
+}) satisfies IntegrationFn;
+
 /**
  * The main replay integration class, to be passed to `init({  integrations: [] })`.
+ * @deprecated Use `replayIntegration()` instead.
  */
 export class Replay implements Integration {
   /**
@@ -105,6 +117,7 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
+    // eslint-disable-next-line deprecation/deprecation
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({
@@ -318,6 +331,7 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
 
     return this._replay.getSessionId();
   }
+
   /**
    * Initializes replay.
    */
@@ -325,6 +339,12 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
     if (!this._replay) {
       return;
     }
+
+    // We have to run this in _initialize, because this runs in setTimeout
+    // So when this runs all integrations have been added
+    // Before this, we cannot access integrations on the client,
+    // so we need to mutate the options here
+    this._maybeLoadFromReplayCanvasIntegration();
 
     this._replay.initializeSampling();
   }
@@ -338,6 +358,27 @@ Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
       options: finalOptions,
       recordingOptions: this._recordingOptions,
     });
+  }
+
+  /** Get canvas options from ReplayCanvas integration, if it is also added. */
+  private _maybeLoadFromReplayCanvasIntegration(): void {
+    // To save bundle size, we skip checking for stuff here
+    // and instead just try-catch everything - as generally this should all be defined
+    /* eslint-disable @typescript-eslint/no-non-null-assertion */
+    try {
+      const client = getClient()!;
+      const canvasIntegration = client.getIntegrationByName('ReplayCanvas') as Integration & {
+        getOptions(): ReplayCanvasIntegrationOptions;
+      };
+      if (!canvasIntegration) {
+        return;
+      }
+
+      this._replay!['_canvas'] = canvasIntegration.getOptions();
+    } catch {
+      // ignore errors here
+    }
+    /* eslint-enable @typescript-eslint/no-non-null-assertion */
   }
 }
 

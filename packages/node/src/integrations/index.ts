@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 export { Console } from './console';
 export { Http } from './http';
 export { OnUncaughtException } from './onuncaughtexception';
@@ -6,7 +7,6 @@ export { Modules } from './modules';
 export { ContextLines } from './contextlines';
 export { Context } from './context';
 export { RequestData } from '@sentry/core';
-export { LocalVariables } from './localvariables';
 export { Undici } from './undici';
 export { Spotlight } from './spotlight';
 export { Hapi } from './hapi';

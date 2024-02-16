@@ -1,15 +1,20 @@
 import {
   addBreadcrumb,
+  defineIntegration,
+  getActiveSpan,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  hasTracingEnabled,
   isSentryRequestUrl,
+  setHttpStatus,
+  spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, Span } from '@sentry/types';
+import type { EventProcessor, Integration, IntegrationFn, IntegrationFnResult, Span } from '@sentry/types';
 import {
   LRUMap,
-  dynamicRequire,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   getSanitizedUrlString,
@@ -40,6 +45,13 @@ export interface UndiciOptions {
    * Defaults to true
    */
   breadcrumbs: boolean;
+
+  /**
+   * Whether tracing spans should be created for requests
+   * If not set, this will be enabled/disabled based on if tracing is enabled.
+   */
+  tracing?: boolean;
+
   /**
    * Function determining whether or not to create spans to track outgoing requests to the given URL.
    * By default, spans will be created for all outgoing requests.
@@ -60,6 +72,13 @@ export interface UndiciOptions {
 //   writeFileSync('log.out', `${format(...args)}\n`, { flag: 'a' });
 // }
 
+const _nativeNodeFetchintegration = ((options?: Partial<UndiciOptions>) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Undici(options) as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;
+
+export const nativeNodeFetchintegration = defineIntegration(_nativeNodeFetchintegration);
+
 /**
  * Instruments outgoing HTTP requests made with the `undici` package via
  * Node's `diagnostics_channel` API.
@@ -67,6 +86,8 @@ export interface UndiciOptions {
  * Supports Undici 4.7.0 or higher.
  *
  * Requires Node 16.17.0 or higher.
+ *
+ * @deprecated Use `nativeNodeFetchintegration()` instead.
  */
 export class Undici implements Integration {
   /**
@@ -77,6 +98,7 @@ export class Undici implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public name: string = Undici.id;
 
   private readonly _options: UndiciOptions;
@@ -87,6 +109,7 @@ export class Undici implements Integration {
   public constructor(_options: Partial<UndiciOptions> = {}) {
     this._options = {
       breadcrumbs: _options.breadcrumbs === undefined ? true : _options.breadcrumbs,
+      tracing: _options.tracing,
       shouldCreateSpanForRequest: _options.shouldCreateSpanForRequest,
     };
   }
@@ -96,14 +119,14 @@ export class Undici implements Integration {
    */
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
     // Requires Node 16+ to use the diagnostics_channel API.
-    if (NODE_VERSION.major && NODE_VERSION.major < 16) {
+    if (NODE_VERSION.major < 16) {
       return;
     }
 
     let ds: DiagnosticsChannel | undefined;
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      ds = dynamicRequire(module, 'diagnostics_channel') as DiagnosticsChannel;
+      ds = require('diagnostics_channel') as DiagnosticsChannel;
     } catch (e) {
       // no-op
     }
@@ -120,6 +143,10 @@ export class Undici implements Integration {
 
   /** Helper that wraps shouldCreateSpanForRequest option */
   private _shouldCreateSpan(url: string): boolean {
+    if (this._options.tracing === false || (this._options.tracing === undefined && !hasTracingEnabled())) {
+      return false;
+    }
+
     if (this._options.shouldCreateSpanForRequest === undefined) {
       return true;
     }
@@ -135,8 +162,8 @@ export class Undici implements Integration {
   }
 
   private _onRequestCreate = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 
@@ -155,8 +182,8 @@ export class Undici implements Integration {
 
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
-
-    const parentSpan = scope.getSpan();
+    const isolationScope = getIsolationScope();
+    const parentSpan = getActiveSpan();
 
     const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
     if (span) {
@@ -179,24 +206,24 @@ export class Undici implements Integration {
     };
 
     if (shouldAttachTraceData(stringUrl)) {
-      if (span) {
-        const dynamicSamplingContext = span?.transaction?.getDynamicSamplingContext();
-        const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+      const { traceId, spanId, sampled, dsc } = {
+        ...isolationScope.getPropagationContext(),
+        ...scope.getPropagationContext(),
+      };
 
-        setHeadersOnRequest(request, span.toTraceparent(), sentryBaggageHeader);
-      } else {
-        const { traceId, sampled, dsc } = scope.getPropagationContext();
-        const sentryTrace = generateSentryTraceHeader(traceId, undefined, sampled);
-        const dynamicSamplingContext = dsc || getDynamicSamplingContextFromClient(traceId, client, scope);
-        const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-        setHeadersOnRequest(request, sentryTrace, sentryBaggageHeader);
-      }
+      const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+
+      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+        dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+      );
+
+      setHeadersOnRequest(request, sentryTraceHeader, sentryBaggageHeader);
     }
   };
 
   private _onRequestEnd = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 
@@ -210,8 +237,8 @@ export class Undici implements Integration {
 
     const span = request.__sentry_span__;
     if (span) {
-      span.setHttpStatus(response.statusCode);
-      span.finish();
+      setHttpStatus(span, response.statusCode);
+      span.end();
     }
 
     if (this._options.breadcrumbs) {
@@ -235,8 +262,8 @@ export class Undici implements Integration {
   };
 
   private _onRequestError = (message: unknown): void => {
-    const hub = getCurrentHub();
-    if (!hub.getIntegration(Undici)) {
+    // eslint-disable-next-line deprecation/deprecation
+    if (!getClient()?.getIntegration(Undici)) {
       return;
     }
 
@@ -251,7 +278,7 @@ export class Undici implements Integration {
     const span = request.__sentry_span__;
     if (span) {
       span.setStatus('internal_error');
-      span.finish();
+      span.end();
     }
 
     if (this._options.breadcrumbs) {
@@ -309,6 +336,7 @@ function createRequestSpan(
   if (url.hash) {
     data['http.fragment'] = url.hash;
   }
+  // eslint-disable-next-line deprecation/deprecation
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',

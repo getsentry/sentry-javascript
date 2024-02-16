@@ -9,19 +9,14 @@ import type {
   StackFrame,
   StackParser,
 } from '@sentry/types';
-import {
-  GLOBAL_OBJ,
-  addExceptionMechanism,
-  dateTimestampInSeconds,
-  normalize,
-  resolvedSyncPromise,
-  truncate,
-  uuid4,
-} from '@sentry/utils';
+import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
+import { getGlobalScope } from '../currentScopes';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
+import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
+import { spanToJSON } from './spanUtils';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.
@@ -53,8 +48,9 @@ export function prepareEvent(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  scope?: Scope,
+  scope?: ScopeInterface,
   client?: Client,
+  isolationScope?: ScopeInterface,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -80,43 +76,40 @@ export function prepareEvent(
     addExceptionMechanism(prepared, hint.mechanism);
   }
 
-  // We prepare the result here with a resolved Event.
-  let result = resolvedSyncPromise<Event | null>(prepared);
-
-  const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+  const clientEventProcessors = client ? client.getEventProcessors() : [];
 
   // This should be the last thing called, since we want that
   // {@link Hub.addEventProcessor} gets the finished prepared event.
-  //
-  // We need to check for the existence of `finalScope.getAttachments`
-  // because `getAttachments` can be undefined if users are using an older version
-  // of `@sentry/core` that does not have the `getAttachments` method.
-  // See: https://github.com/getsentry/sentry-javascript/issues/5229
-  if (finalScope) {
-    // Collect attachments from the hint and scope
-    if (finalScope.getAttachments) {
-      const attachments = [...(hint.attachments || []), ...finalScope.getAttachments()];
+  // Merge scope data together
+  const data = getGlobalScope().getScopeData();
 
-      if (attachments.length) {
-        hint.attachments = attachments;
-      }
-    }
-
-    // In case we have a hub we reassign it.
-    result = finalScope.applyToEvent(prepared, hint, clientEventProcessors);
-  } else {
-    // Apply client & global event processors even if there is no scope
-    // TODO (v8): Update the order to be Global > Client
-    result = notifyEventProcessors(
-      [
-        ...clientEventProcessors,
-        // eslint-disable-next-line deprecation/deprecation
-        ...getGlobalEventProcessors(),
-      ],
-      prepared,
-      hint,
-    );
+  if (isolationScope) {
+    const isolationData = isolationScope.getScopeData();
+    mergeScopeData(data, isolationData);
   }
+
+  if (finalScope) {
+    const finalScopeData = finalScope.getScopeData();
+    mergeScopeData(data, finalScopeData);
+  }
+
+  const attachments = [...(hint.attachments || []), ...data.attachments];
+  if (attachments.length) {
+    hint.attachments = attachments;
+  }
+
+  applyScopeDataToEvent(prepared, data);
+
+  // TODO (v8): Update this order to be: Global > Client > Scope
+  const eventProcessors = [
+    ...clientEventProcessors,
+    // eslint-disable-next-line deprecation/deprecation
+    ...getGlobalEventProcessors(),
+    // Run scope event processors _after_ all other processors
+    ...data.eventProcessors,
+  ];
+
+  const result = notifyEventProcessors(eventProcessors, prepared, hint);
 
   return result.then(evt => {
     if (evt) {
@@ -335,10 +328,14 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // event.spans[].data may contain circular/dangerous data so we need to normalize it
   if (event.spans) {
     normalized.spans = event.spans.map(span => {
-      // We cannot use the spread operator here because `toJSON` on `span` is non-enumerable
-      if (span.data) {
-        span.data = normalize(span.data, depth, maxBreadth);
+      const data = spanToJSON(span).data;
+
+      if (data) {
+        // This is a bit weird, as we generally have `Span` instances here, but to be safe we do not assume so
+        // eslint-disable-next-line deprecation/deprecation
+        span.data = normalize(data, depth, maxBreadth);
       }
+
       return span;
     });
   }
@@ -346,7 +343,10 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   return normalized;
 }
 
-function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+function getFinalScope(
+  scope: ScopeInterface | undefined,
+  captureContext: CaptureContext | undefined,
+): ScopeInterface | undefined {
   if (!captureContext) {
     return scope;
   }

@@ -1,10 +1,10 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, setTag } from '@sentry/core';
+import { addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { getCurrentHub } from '../../src/custom/hub';
+import { spanToJSON } from '@sentry/core';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
@@ -22,8 +22,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     setTag('outer.tag', 'test value');
@@ -83,7 +82,11 @@ describe('Integration | Transactions', () => {
             },
           },
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -102,11 +105,6 @@ describe('Integration | Transactions', () => {
             trace_id: expect.any(String),
             transaction: 'test name',
           }),
-          propagationContext: {
-            sampled: undefined,
-            spanId: expect.any(String),
-            traceId: expect.any(String),
-          },
           sampleRate: 1,
           source: 'task',
           spanMetadata: expect.any(Object),
@@ -125,6 +123,7 @@ describe('Integration | Transactions', () => {
         start_timestamp: expect.any(Number),
         tags: {
           'outer.tag': 'test value',
+          'test.tag': 'test value',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -142,9 +141,12 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 1',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -155,7 +157,11 @@ describe('Integration | Transactions', () => {
         trace_id: expect.any(String),
       },
       {
-        data: { 'otel.kind': 'INTERNAL', 'test.inner': 'test value' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'test.inner': 'test value',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 2',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -173,49 +179,52 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
-    startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value',
-      });
+        span.setAttributes({
+          'test.outer': 'test value',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value');
+        setTag('test.tag', 'test value');
 
-      startSpan({ name: 'inner span 2' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+        startSpan({ name: 'inner span 2' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value',
+          innerSpan.setAttributes({
+            'test.inner': 'test value',
+          });
         });
       });
     });
 
-    startSpan({ op: 'test op b', name: 'test name b' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op b', name: 'test name b' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value b',
-      });
+        span.setAttributes({
+          'test.outer': 'test value b',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1b' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1b' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value b');
+        setTag('test.tag', 'test value b');
 
-      startSpan({ name: 'inner span 2b' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
+        startSpan({ name: 'inner span 2b' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value b',
+          innerSpan.setAttributes({
+            'test.inner': 'test value b',
+          });
         });
       });
     });
@@ -237,7 +246,11 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             status: 'ok',
@@ -254,7 +267,7 @@ describe('Integration | Transactions', () => {
           }),
         ],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -279,7 +292,11 @@ describe('Integration | Transactions', () => {
             },
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op b',
+              'sentry.origin': 'manual',
+            },
             op: 'test op b',
             span_id: expect.any(String),
             status: 'ok',
@@ -296,7 +313,7 @@ describe('Integration | Transactions', () => {
           }),
         ],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -331,8 +348,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -357,7 +373,11 @@ describe('Integration | Transactions', () => {
             attributes: {},
           }),
           trace: {
-            data: { 'otel.kind': 'INTERNAL' },
+            data: {
+              'otel.kind': 'INTERNAL',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+            },
             op: 'test op',
             span_id: expect.any(String),
             parent_span_id: parentSpanId,
@@ -393,9 +413,12 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => span.toJSON())).toEqual([
+    expect(spans.map(span => spanToJSON(span))).toEqual([
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 1',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -406,7 +429,10 @@ describe('Integration | Transactions', () => {
         trace_id: traceId,
       },
       {
-        data: { 'otel.kind': 'INTERNAL' },
+        data: {
+          'otel.kind': 'INTERNAL',
+          'sentry.origin': 'manual',
+        },
         description: 'inner span 2',
         origin: 'manual',
         parent_span_id: expect.any(String),
@@ -431,8 +457,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const hub = getCurrentHub();
-    const client = hub.getClient() as TestClientInterface;
+    const client = getClient() as TestClientInterface;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })

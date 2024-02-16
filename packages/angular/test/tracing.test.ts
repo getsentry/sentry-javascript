@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import type { Hub } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -11,7 +11,15 @@ let transaction: any;
 const defaultStartTransaction = (ctx: any) => {
   transaction = {
     ...ctx,
-    setName: jest.fn(name => (transaction.name = name)),
+    updateName: jest.fn(name => (transaction.name = name)),
+    setAttribute: jest.fn(),
+    toJSON: () => ({
+      data: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+        ...ctx.data,
+        ...ctx.attributes,
+      },
+    }),
   };
 
   return transaction;
@@ -36,6 +44,7 @@ describe('Angular Tracing', () => {
     transaction = undefined;
   });
 
+  /* eslint-disable deprecation/deprecation */
   describe('instrumentAngularRouting', () => {
     it('should attach the transaction source on the pageload transaction', () => {
       const startTransaction = jest.fn();
@@ -45,10 +54,11 @@ describe('Angular Tracing', () => {
         name: '/',
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        metadata: { source: 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
     });
   });
+  /* eslint-enable deprecation/deprecation */
 
   describe('getParameterizedRouteFromSnapshot', () => {
     it.each([
@@ -107,11 +117,15 @@ describe('Angular Tracing', () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
-          metadata: {
-            ...ctx.metadata,
-            source: 'custom',
-          },
-          setName: jest.fn(name => (transaction.name = name)),
+          toJSON: () => ({
+            data: {
+              ...ctx.data,
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+            },
+          }),
+          metadata: ctx.metadata,
+          updateName: jest.fn(name => (transaction.name = name)),
+          setAttribute: jest.fn(),
         };
 
         return transaction;
@@ -135,12 +149,12 @@ describe('Angular Tracing', () => {
         name: url,
         op: 'pageload',
         origin: 'auto.pageload.angular',
-        metadata: { source: 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
 
-      expect(transaction.setName).toHaveBeenCalledTimes(0);
+      expect(transaction.updateName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
-      expect(transaction.metadata.source).toBe('custom');
+      expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
     });
@@ -154,7 +168,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/');
@@ -173,7 +187,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/');
@@ -199,7 +213,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/somewhere');
@@ -233,7 +247,7 @@ describe('Angular Tracing', () => {
 
       const finishMock = jest.fn();
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       await env.navigateInAngular('/cancel');
@@ -326,9 +340,10 @@ describe('Angular Tracing', () => {
           name: url,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          metadata: { source: 'url' },
+          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
         });
-        expect(transaction.setName).toHaveBeenCalledWith(result, 'route');
+        expect(transaction.updateName).toHaveBeenCalledWith(result);
+        expect(transaction.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
         env.destroy();
       });
@@ -376,7 +391,7 @@ describe('Angular Tracing', () => {
       });
 
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       directive.componentName = 'test-component';
@@ -403,7 +418,7 @@ describe('Angular Tracing', () => {
       });
 
       transaction.startChild = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       directive.ngOnInit();
@@ -437,7 +452,7 @@ describe('Angular Tracing', () => {
     it('Instruments `ngOnInit` and `ngAfterViewInit` methods of the decorated class', async () => {
       const finishMock = jest.fn();
       const startChildMock = jest.fn(() => ({
-        finish: finishMock,
+        end: finishMock,
       }));
 
       const customStartTransaction = jest.fn((ctx: any) => {

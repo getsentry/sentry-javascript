@@ -1,13 +1,14 @@
-import type { Hub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
+import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
-  Integrations as CoreIntegrations,
+  captureSession,
   getClient,
-  getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
+  startSession,
 } from '@sentry/core';
-import type { UserFeedback } from '@sentry/types';
+import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
   logger,
@@ -18,22 +19,36 @@ import {
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
-import { Breadcrumbs, Dedupe, GlobalHandlers, HttpContext, LinkedErrors, TryCatch } from './integrations';
+import { breadcrumbsIntegration } from './integrations/breadcrumbs';
+import { dedupeIntegration } from './integrations/dedupe';
+import { globalHandlersIntegration } from './integrations/globalhandlers';
+import { httpContextIntegration } from './integrations/httpcontext';
+import { linkedErrorsIntegration } from './integrations/linkederrors';
+import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport, makeXHRTransport } from './transports';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new TryCatch(),
-  new Breadcrumbs(),
-  new GlobalHandlers(),
-  new LinkedErrors(),
-  new Dedupe(),
-  new HttpContext(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  browserApiErrorsIntegration(),
+  breadcrumbsIntegration(),
+  globalHandlersIntegration(),
+  linkedErrorsIntegration(),
+  dedupeIntegration(),
+  httpContextIntegration(),
 ];
+
+/** Get the default integrations for the browser SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 /**
  * A magic string that build tooling can leverage in order to inject a release value into the SDK.
@@ -56,17 +71,6 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * import { configureScope } from '@sentry/browser';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -99,7 +103,7 @@ declare const __SENTRY_RELEASE__: string | undefined;
  */
 export function init(options: BrowserOptions = {}): void {
   if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = defaultIntegrations;
+    options.defaultIntegrations = getDefaultIntegrations(options);
   }
   if (options.release === undefined) {
     // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
@@ -134,19 +138,51 @@ export function init(options: BrowserOptions = {}): void {
 }
 
 /**
+ * All properties the report dialog supports
+ */
+export interface ReportDialogOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+  eventId: string;
+  dsn?: DsnLike;
+  user?: {
+    email?: string;
+    name?: string;
+  };
+  lang?: string;
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorGeneric?: string;
+  errorFormEntry?: string;
+  successMessage?: string;
+  /** Callback after reportDialog showed up */
+  onLoad?(this: void): void;
+  /** Callback after reportDialog closed */
+  onClose?(this: void): void;
+}
+
+/**
  * Present the user with a report dialog.
  *
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
-export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = getCurrentHub()): void {
+export function showReportDialog(options: ReportDialogOptions): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
-  const { client, scope } = hub.getStackTop();
-  const dsn = options.dsn || (client && client.getDsn());
+  const scope = getCurrentScope();
+  const client = scope.getClient();
+  const dsn = client && client.getDsn();
+
   if (!dsn) {
     DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
     return;
@@ -157,10 +193,6 @@ export function showReportDialog(options: ReportDialogOptions = {}, hub: Hub = g
       ...scope.getUser(),
       ...options.user,
     };
-  }
-
-  if (!options.eventId) {
-    options.eventId = hub.lastEventId();
   }
 
   const script = WINDOW.document.createElement('script');
@@ -227,11 +259,6 @@ export function wrap(fn: (...args: any) => any): any {
   return internalWrap(fn)();
 }
 
-function startSessionOnHub(hub: Hub): void {
-  hub.startSession({ ignoreDuration: true });
-  hub.captureSession();
-}
-
 /**
  * Enable automatic Session Tracking for the initial page load.
  */
@@ -241,29 +268,19 @@ function startSessionTracking(): void {
     return;
   }
 
-  const hub = getCurrentHub();
-
-  // The only way for this to be false is for there to be a version mismatch between @sentry/browser (>= 6.0.0) and
-  // @sentry/hub (< 5.27.0). In the simple case, there won't ever be such a mismatch, because the two packages are
-  // pinned at the same version in package.json, but there are edge cases where it's possible. See
-  // https://github.com/getsentry/sentry-javascript/issues/3207 and
-  // https://github.com/getsentry/sentry-javascript/issues/3234 and
-  // https://github.com/getsentry/sentry-javascript/issues/3278.
-  if (!hub.captureSession) {
-    return;
-  }
-
   // The session duration for browser sessions does not track a meaningful
   // concept that can be used as a metric.
   // Automatically captured sessions are akin to page views, and thus we
   // discard their duration.
-  startSessionOnHub(hub);
+  startSession({ ignoreDuration: true });
+  captureSession();
 
   // We want to create a session for every navigation as well
   addHistoryInstrumentationHandler(({ from, to }) => {
     // Don't create an additional session for the initial route or if the location did not change
     if (from !== undefined && from !== to) {
-      startSessionOnHub(getCurrentHub());
+      startSession({ ignoreDuration: true });
+      captureSession();
     }
   });
 }

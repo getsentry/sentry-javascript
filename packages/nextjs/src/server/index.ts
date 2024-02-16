@@ -1,21 +1,30 @@
-import * as path from 'path';
-import { addTracingExtensions, getClient } from '@sentry/core';
-import { RewriteFrames } from '@sentry/integrations';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { Integrations, getCurrentScope, init as nodeInit } from '@sentry/node';
+import { Integrations as OriginalIntegrations, getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
-import type { IntegrationWithExclusionOption } from '@sentry/utils';
-import { addOrUpdateIntegration, escapeStringForRegex, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { buildMetadata } from '../common/metadata';
 import { isBuild } from '../common/utils/isBuild';
+import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
+import { Http } from './httpIntegration';
+import { OnUncaughtException } from './onUncaughtExceptionIntegration';
 
 export { createReduxEnhancer } from '@sentry/react';
 export * from '@sentry/node';
 export { captureUnderscoreErrorException } from '../common/_error';
+
+export const Integrations = {
+  ...OriginalIntegrations,
+  Http,
+  OnUncaughtException,
+};
+
+const globalWithInjectedValues = global as typeof global & {
+  __rewriteFramesDistDir__?: string;
+};
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -52,16 +61,6 @@ export function showReportDialog(): void {
   return;
 }
 
-const globalWithInjectedValues = global as typeof global & {
-  __rewriteFramesDistDir__?: string;
-};
-
-// TODO (v8): Remove this
-/**
- * @deprecated This constant will be removed in the next major update.
- */
-export const IS_BUILD = isBuild();
-
 const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -72,8 +71,24 @@ export function init(options: NodeOptions): void {
     return;
   }
 
+  const customDefaultIntegrations = [
+    ...getDefaultIntegrations(options).filter(
+      integration => !['Http', 'OnUncaughtException'].includes(integration.name),
+    ),
+    new Http(),
+    new OnUncaughtException(),
+  ];
+
+  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // is set there, we set it here as well, just in case something has gone wrong with the injection.
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
+  }
+
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
+    defaultIntegrations: customDefaultIntegrations,
     ...options,
     // Right now we only capture frontend sessions for Next.js
     autoSessionTracking: false,
@@ -90,9 +105,7 @@ export function init(options: NodeOptions): void {
     return;
   }
 
-  buildMetadata(opts, ['nextjs', 'node']);
-
-  addServerIntegrations(opts);
+  applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   nodeInit(opts);
 
@@ -102,16 +115,15 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'node');
+  setTag('runtime', 'node');
   if (IS_VERCEL) {
-    scope.setTag('vercel', true);
+    setTag('vercel', true);
   }
 
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
@@ -121,57 +133,6 @@ function sdkAlreadyInitialized(): boolean {
   return !!getClient();
 }
 
-function addServerIntegrations(options: NodeOptions): void {
-  let integrations = options.integrations || [];
-
-  // This value is injected at build time, based on the output directory specified in the build config. Though a default
-  // is set there, we set it here as well, just in case something has gone wrong with the injection.
-  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
-  if (distDirName) {
-    // nextjs always puts the build directory at the project root level, which is also where you run `next start` from, so
-    // we can read in the project directory from the currently running process
-    const distDirAbsPath = path.resolve(distDirName).replace(/(\/|\\)$/, ''); // We strip trailing slashes because "app:///_next" also doesn't have one
-    const SOURCEMAP_FILENAME_REGEX = new RegExp(escapeStringForRegex(distDirAbsPath));
-
-    const defaultRewriteFramesIntegration = new RewriteFrames({
-      iteratee: frame => {
-        frame.filename = frame.filename?.replace(SOURCEMAP_FILENAME_REGEX, 'app:///_next');
-        return frame;
-      },
-    });
-    integrations = addOrUpdateIntegration(defaultRewriteFramesIntegration, integrations);
-  }
-
-  const defaultOnUncaughtExceptionIntegration: IntegrationWithExclusionOption = new Integrations.OnUncaughtException({
-    exitEvenIfOtherHandlersAreRegistered: false,
-  });
-  defaultOnUncaughtExceptionIntegration.allowExclusionByUser = true;
-  integrations = addOrUpdateIntegration(defaultOnUncaughtExceptionIntegration, integrations, {
-    _options: { exitEvenIfOtherHandlersAreRegistered: false },
-  });
-
-  const defaultHttpTracingIntegration = new Integrations.Http({ tracing: true });
-  integrations = addOrUpdateIntegration(defaultHttpTracingIntegration, integrations, {
-    _tracing: {},
-  });
-
-  options.integrations = integrations;
-}
-
-// TODO (v8): Remove this
-/**
- * @deprecated This constant will be removed in the next major update.
- */
-const deprecatedIsBuild = (): boolean => isBuild();
-// eslint-disable-next-line deprecation/deprecation
-export { deprecatedIsBuild as isBuild };
-
 export * from '../common';
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentry,
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryAPI,
-  wrapApiHandlerWithSentry,
-} from '../common/wrapApiHandlerWithSentry';
+export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';

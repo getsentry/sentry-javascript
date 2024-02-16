@@ -2,17 +2,28 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-/* eslint-disable max-lines */
-import type { Scope } from '@sentry/node';
-import * as Sentry from '@sentry/node';
-import { captureException, captureMessage, flush, getCurrentHub, withScope } from '@sentry/node';
-import type { Integration, SdkMetadata } from '@sentry/types';
-import { isString, logger, tracingContextFromHeaders } from '@sentry/utils';
-// NOTE: I have no idea how to fix this right now, and don't want to waste more time, as it builds just fine — Kamil
+import type { NodeOptions } from '@sentry/node';
+import { SDK_VERSION } from '@sentry/node';
+import {
+  captureException,
+  captureMessage,
+  continueTrace,
+  defaultIntegrations as nodeDefaultIntegrations,
+  flush,
+  getCurrentScope,
+  getDefaultIntegrations as getNodeDefaultIntegrations,
+  init as initNode,
+  startSpanManual,
+  withScope,
+} from '@sentry/node';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
+import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
-import { AWSServices } from './awsservices';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { awsServicesIntegration } from './awsservices';
+
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
@@ -55,9 +66,19 @@ export interface WrapperOptions {
   startTrace: boolean;
 }
 
-export const defaultIntegrations: Integration[] = [...Sentry.defaultIntegrations, new AWSServices({ optional: true })];
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
+export const defaultIntegrations: Integration[] = [
+  // eslint-disable-next-line deprecation/deprecation
+  ...nodeDefaultIntegrations,
+  awsServicesIntegration({ optional: true }),
+];
 
-interface AWSLambdaOptions extends Sentry.NodeOptions {
+/** Get the default integrations for the AWSLambda SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [...getNodeDefaultIntegrations(options), awsServicesIntegration({ optional: true })];
+}
+
+interface AWSLambdaOptions extends NodeOptions {
   /**
    * Internal field that is set to `true` when init() is called by the Sentry AWS Lambda layer.
    *
@@ -66,12 +87,14 @@ interface AWSLambdaOptions extends Sentry.NodeOptions {
 }
 
 /**
- * @see {@link Sentry.init}
+ * Initializes the Sentry AWS Lambda SDK.
+ *
+ * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
 export function init(options: AWSLambdaOptions = {}): void {
   const opts = {
     _metadata: {} as SdkMetadata,
-    defaultIntegrations,
+    defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   };
 
@@ -81,13 +104,13 @@ export function init(options: AWSLambdaOptions = {}): void {
     packages: [
       {
         name: 'npm:@sentry/serverless',
-        version: Sentry.SDK_VERSION,
+        version: SDK_VERSION,
       },
     ],
-    version: Sentry.SDK_VERSION,
+    version: SDK_VERSION,
   };
 
-  Sentry.init(opts);
+  initNode(opts);
 }
 
 /** */
@@ -211,7 +234,10 @@ function enhanceScopeWithEnvironmentData(scope: Scope, context: Context, startTi
  * @param context AWS Lambda context that will be used to extract some part of the data
  */
 function enhanceScopeWithTransactionData(scope: Scope, context: Context): void {
-  scope.setTransactionName(context.functionName);
+  scope.addEventProcessor(event => {
+    event.transaction = context.functionName;
+    return event;
+  });
   scope.setTag('server_name', process.env._AWS_XRAY_DAEMON_ADDRESS || process.env.SENTRY_NAME || hostname());
   scope.setTag('url', `awslambda:///${context.functionName}`);
 }
@@ -290,44 +316,13 @@ export function wrapHandler<TEvent, TResult>(
       }, timeoutWarningDelay) as unknown as NodeJS.Timeout;
     }
 
-    const hub = getCurrentHub();
+    async function processResult(span?: Span): Promise<TResult> {
+      const scope = getCurrentScope();
 
-    let transaction: Sentry.Transaction | undefined;
-    if (options.startTrace) {
-      const eventWithHeaders = event as { headers?: { [key: string]: string } };
-
-      const sentryTrace =
-        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
-          ? eventWithHeaders.headers['sentry-trace']
-          : undefined;
-      const baggage = eventWithHeaders.headers?.baggage;
-      const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-        sentryTrace,
-        baggage,
-      );
-      Sentry.getCurrentScope().setPropagationContext(propagationContext);
-
-      transaction = hub.startTransaction({
-        name: context.functionName,
-        op: 'function.aws.lambda',
-        origin: 'auto.function.serverless',
-        ...traceparentData,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-          source: 'component',
-        },
-      });
-    }
-
-    return withScope(async scope => {
       let rv: TResult;
       try {
         enhanceScopeWithEnvironmentData(scope, context, START_TIME);
-        if (options.startTrace) {
-          enhanceScopeWithTransactionData(scope, context);
-          // We put the transaction on the scope so users can attach children to it
-          scope.setSpan(transaction);
-        }
+
         rv = await asyncHandler(event, context);
 
         // We manage lambdas that use Promise.allSettled by capturing the errors of failed promises
@@ -342,12 +337,44 @@ export function wrapHandler<TEvent, TResult>(
         throw e;
       } finally {
         clearTimeout(timeoutWarningTimer);
-        transaction?.finish();
+        span?.end();
         await flush(options.flushTimeout).catch(e => {
           DEBUG_BUILD && logger.error(e);
         });
       }
       return rv;
+    }
+
+    if (options.startTrace) {
+      const eventWithHeaders = event as { headers?: { [key: string]: string } };
+
+      const sentryTrace =
+        eventWithHeaders.headers && isString(eventWithHeaders.headers['sentry-trace'])
+          ? eventWithHeaders.headers['sentry-trace']
+          : undefined;
+      const baggage = eventWithHeaders.headers?.baggage;
+
+      return continueTrace({ sentryTrace, baggage }, () => {
+        return startSpanManual(
+          {
+            name: context.functionName,
+            op: 'function.aws.lambda',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless',
+            },
+          },
+          span => {
+            enhanceScopeWithTransactionData(getCurrentScope(), context);
+
+            return processResult(span);
+          },
+        );
+      });
+    }
+
+    return withScope(async () => {
+      return processResult(undefined);
     });
   };
 }

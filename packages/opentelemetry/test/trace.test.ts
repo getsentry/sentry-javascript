@@ -1,14 +1,17 @@
 import type { Span } from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getClient } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 
-import { getCurrentHub } from '../src/custom/hub';
 import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
-import { startInactiveSpan, startSpan } from '../src/trace';
+import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { setPropagationContextOnContext } from '../src/utils/contextData';
 import { getActiveSpan, getRootSpan } from '../src/utils/getActiveSpan';
+import { getSpanKind } from '../src/utils/getSpanKind';
 import { getSpanMetadata } from '../src/utils/spanData';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -203,7 +206,7 @@ describe('trace', () => {
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
 
           expect(getSpanMetadata(span)).toEqual(undefined);
@@ -224,12 +227,61 @@ describe('trace', () => {
             [InternalSentrySemanticAttributes.SOURCE]: 'task',
             [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
             [InternalSentrySemanticAttributes.OP]: 'my-op',
-            [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
 
           expect(getSpanMetadata(span)).toEqual({ requestPath: 'test-path' });
         },
       );
+    });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      startSpan(
+        {
+          name: 'outer',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            test1: 'test 1',
+            test2: 2,
+          },
+
+          startTime: date,
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanAttributes(span)).toEqual({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+            test1: 'test 1',
+            test2: 2,
+          });
+          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+        },
+      );
+    });
+
+    describe('onlyIfParent', () => {
+      it('does not create a span if there is no parent', () => {
+        const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        expect(span).not.toBeInstanceOf(SpanClass);
+      });
+
+      it('creates a span if there is a parent', () => {
+        const span = startSpan({ name: 'parent span' }, () => {
+          const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
+            return span;
+          });
+
+          return span;
+        });
+
+        expect(span).toBeInstanceOf(SpanClass);
+      });
     });
   });
 
@@ -274,7 +326,7 @@ describe('trace', () => {
 
       expect(span).toBeDefined();
       expect(getSpanAttributes(span)).toEqual({
-        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       });
 
       expect(getSpanMetadata(span)).toEqual(undefined);
@@ -289,13 +341,145 @@ describe('trace', () => {
 
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
-        [InternalSentrySemanticAttributes.SAMPLE_RATE]: 1,
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         [InternalSentrySemanticAttributes.SOURCE]: 'task',
         [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
         [InternalSentrySemanticAttributes.OP]: 'my-op',
       });
 
       expect(getSpanMetadata(span2)).toEqual({ requestPath: 'test-path' });
+    });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      const span = startInactiveSpan({
+        name: 'outer',
+        kind: SpanKind.CLIENT,
+        attributes: {
+          test1: 'test 1',
+          test2: 2,
+        },
+        startTime: date,
+      });
+
+      expect(span).toBeDefined();
+      expect(getSpanName(span)).toEqual('outer');
+      expect(getSpanAttributes(span)).toEqual({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+        test1: 'test 1',
+        test2: 2,
+      });
+      expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+    });
+
+    describe('onlyIfParent', () => {
+      it('does not create a span if there is no parent', () => {
+        const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+        expect(span).not.toBeInstanceOf(SpanClass);
+      });
+
+      it('creates a span if there is a parent', () => {
+        const span = startSpan({ name: 'parent span' }, () => {
+          const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
+
+          return span;
+        });
+
+        expect(span).toBeInstanceOf(SpanClass);
+      });
+    });
+  });
+
+  describe('startSpanManual', () => {
+    it('does not automatically finish the span', () => {
+      expect(getActiveSpan()).toEqual(undefined);
+
+      let _outerSpan: Span | undefined;
+      let _innerSpan: Span | undefined;
+
+      const res = startSpanManual({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        _outerSpan = outerSpan;
+
+        expect(getSpanName(outerSpan)).toEqual('outer');
+        expect(getActiveSpan()).toEqual(outerSpan);
+
+        startSpanManual({ name: 'inner' }, innerSpan => {
+          expect(innerSpan).toBeDefined();
+          _innerSpan = innerSpan;
+
+          expect(getSpanName(innerSpan)).toEqual('inner');
+          expect(getActiveSpan()).toEqual(innerSpan);
+        });
+
+        expect(getSpanEndTime(_innerSpan!)).toEqual([0, 0]);
+
+        _innerSpan!.end();
+
+        expect(getSpanEndTime(_innerSpan!)).not.toEqual([0, 0]);
+
+        return 'test value';
+      });
+
+      expect(getSpanEndTime(_outerSpan!)).toEqual([0, 0]);
+
+      _outerSpan!.end();
+
+      expect(getSpanEndTime(_outerSpan!)).not.toEqual([0, 0]);
+
+      expect(res).toEqual('test value');
+
+      expect(getActiveSpan()).toEqual(undefined);
+    });
+
+    it('allows to pass base SpanOptions', () => {
+      const date = Date.now() - 1000;
+
+      startSpanManual(
+        {
+          name: 'outer',
+          kind: SpanKind.CLIENT,
+          attributes: {
+            test1: 'test 1',
+            test2: 2,
+          },
+          startTime: date,
+        },
+        span => {
+          expect(span).toBeDefined();
+          expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanAttributes(span)).toEqual({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+            test1: 'test 1',
+            test2: 2,
+          });
+          expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+        },
+      );
+    });
+  });
+
+  describe('onlyIfParent', () => {
+    it('does not create a span if there is no parent', () => {
+      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+        return span;
+      });
+
+      expect(span).not.toBeInstanceOf(SpanClass);
+    });
+
+    it('creates a span if there is a parent', () => {
+      const span = startSpan({ name: 'parent span' }, () => {
+        const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+          return span;
+        });
+
+        return span;
+      });
+
+      expect(span).toBeInstanceOf(SpanClass);
     });
   });
 });
@@ -382,7 +566,7 @@ describe('trace (sampling)', () => {
 
       // Now let's mutate the tracesSampleRate so that the next entry _should_ not be sampled
       // but it will because of parent sampling
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client!.getOptions().tracesSampleRate = 0.5;
 
       startSpan({ name: 'inner' }, innerSpan => {
@@ -405,7 +589,7 @@ describe('trace (sampling)', () => {
 
       // Now let's mutate the tracesSampleRate so that the next entry _should_ be sampled
       // but it will remain unsampled because of parent sampling
-      const client = getCurrentHub().getClient();
+      const client = getClient();
       client!.getOptions().tracesSampleRate = 1;
 
       startSpan({ name: 'inner' }, innerSpan => {
@@ -504,6 +688,10 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      },
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
@@ -521,6 +709,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: false,
+      name: 'inner2',
+      attributes: {},
       transactionContext: { name: 'inner2', parentSampled: false },
     });
   });
@@ -543,6 +733,10 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
+      },
       transactionContext: { name: 'outer', parentSampled: undefined },
     });
 
@@ -560,6 +754,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(3);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: false,
+      name: 'inner2',
+      attributes: {},
       transactionContext: { name: 'inner2', parentSampled: false },
     });
 
@@ -573,6 +769,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toHaveBeenCalledTimes(4);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: undefined,
+      name: 'outer3',
+      attributes: {},
       transactionContext: { name: 'outer3', parentSampled: undefined },
     });
   });
@@ -615,6 +813,8 @@ describe('trace (sampling)', () => {
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
       parentSampled: true,
+      name: 'outer',
+      attributes: {},
       transactionContext: {
         name: 'outer',
         parentSampled: true,

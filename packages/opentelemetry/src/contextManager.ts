@@ -1,14 +1,36 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import type { Carrier, Hub } from '@sentry/core';
-import { ensureHubOnCarrier } from '@sentry/core';
+import { Hub } from '@sentry/core';
+import { getCurrentHub } from '@sentry/core';
+import type { Hub as HubInterface, Scope } from '@sentry/types';
+import {
+  SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
+} from './constants';
 
-import { getCurrentHub, getHubFromCarrier } from './custom/hub';
 import { setHubOnContext } from './utils/contextData';
 
-function createNewHub(parent: Hub | undefined): Hub {
-  const carrier: Carrier = {};
-  ensureHubOnCarrier(carrier, parent);
-  return getHubFromCarrier(carrier);
+function createNewHub(
+  parent: HubInterface | undefined,
+  scope: Scope | undefined,
+  isolationScope: Scope | undefined,
+  shouldForkIsolationScope: boolean,
+): Hub {
+  if (parent) {
+    // eslint-disable-next-line deprecation/deprecation
+    const client = parent.getClient();
+    // eslint-disable-next-line deprecation/deprecation
+    const currentScope = scope || parent.getScope().clone();
+    const currentIsolationScope =
+      // eslint-disable-next-line deprecation/deprecation
+      isolationScope || (shouldForkIsolationScope ? parent.getIsolationScope().clone() : parent.getIsolationScope());
+
+    // eslint-disable-next-line deprecation/deprecation
+    return new Hub(client, currentScope, currentIsolationScope);
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return new Hub();
 }
 
 // Typescript complains if we do not use `...args: any[]` for the mixin, with:
@@ -46,10 +68,26 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
-      const existingHub = getCurrentHub();
-      const newHub = createNewHub(existingHub);
+      const shouldForkIsolationScope = context.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
+      const scope = context.getValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY) as Scope | undefined;
+      const isolationScope = context.getValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY) as Scope | undefined;
 
-      return super.with(setHubOnContext(context, newHub), fn, thisArg, ...args);
+      // eslint-disable-next-line deprecation/deprecation
+      const existingHub = getCurrentHub();
+      const newHub = createNewHub(existingHub, scope, isolationScope, shouldForkIsolationScope);
+
+      return super.with(
+        setHubOnContext(
+          context
+            .deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY)
+            .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
+            .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY),
+          newHub,
+        ),
+        fn,
+        thisArg,
+        ...args,
+      );
     }
   }
 

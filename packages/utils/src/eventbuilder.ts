@@ -6,13 +6,13 @@ import type {
   Extras,
   Hub,
   Mechanism,
-  Severity,
+  ParameterizedString,
   SeverityLevel,
   StackFrame,
   StackParser,
 } from '@sentry/types';
 
-import { isError, isPlainObject } from './is';
+import { isError, isParameterizedString, isPlainObject } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
 import { normalizeToSize } from './normalize';
 import { extractExceptionKeysForMessage } from './object';
@@ -73,7 +73,11 @@ export function eventFromUnknownInput(
   exception: unknown,
   hint?: EventHint,
 ): Event {
-  const client = typeof getHubOrClient === 'function' ? getHubOrClient().getClient() : getHubOrClient;
+  const client =
+    typeof getHubOrClient === 'function'
+      ? // eslint-disable-next-line deprecation/deprecation
+        getHubOrClient().getClient()
+      : getHubOrClient;
 
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
@@ -127,16 +131,14 @@ export function eventFromUnknownInput(
  */
 export function eventFromMessage(
   stackParser: StackParser,
-  message: string,
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel = 'info',
+  message: ParameterizedString,
+  level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): Event {
   const event: Event = {
     event_id: hint && hint.event_id,
     level,
-    message,
   };
 
   if (attachStacktrace && hint && hint.syntheticException) {
@@ -153,5 +155,16 @@ export function eventFromMessage(
     }
   }
 
+  if (isParameterizedString(message)) {
+    const { __sentry_template_string__, __sentry_template_values__ } = message;
+
+    event.logentry = {
+      message: __sentry_template_string__,
+      params: __sentry_template_values__,
+    };
+    return event;
+  }
+
+  event.message = message;
   return event;
 }

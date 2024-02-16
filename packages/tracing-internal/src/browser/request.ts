@@ -1,5 +1,16 @@
-/* eslint-disable max-lines */
-import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  hasTracingEnabled,
+  setHttpStatus,
+  spanToJSON,
+  spanToTraceHeader,
+  startInactiveSpan,
+} from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -14,28 +25,38 @@ import {
 
 import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
-
-export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
+import { WINDOW } from './types';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
   /**
-   * @deprecated Will be removed in v8.
-   * Use `shouldCreateSpanForRequest` to control span creation and `tracePropagationTargets` to control
-   * trace header attachment.
-   */
-  tracingOrigins: Array<string | RegExp>;
-
-  /**
-   * List of strings and/or regexes used to determine which outgoing requests will have `sentry-trace` and `baggage`
+   * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
-   * @deprecated Use the top-level `tracePropagationTargets` option in `Sentry.init` instead.
-   * This option will be removed in v8.
+   * **Default:** If this option is not provided, tracing headers will be attached to all outgoing requests.
+   * If you are using a browser SDK, by default, tracing headers will only be attached to outgoing requests to the same origin.
    *
-   * Default: ['localhost', /^\//] @see {DEFAULT_TRACE_PROPAGATION_TARGETS}
+   * **Disclaimer:** Carelessly setting this option in browser environments may result into CORS errors!
+   * Only attach tracing headers to requests to the same origin, or to requests to services you can control CORS headers of.
+   * Cross-origin requests, meaning requests to a different domain, for example a request to `https://api.example.com/` while you're on `https://example.com/`, take special care.
+   * If you are attaching headers to cross-origin requests, make sure the backend handling the request returns a `"Access-Control-Allow-Headers: sentry-trace, baggage"` header to ensure your requests aren't blocked.
+   *
+   * If you provide a `tracePropagationTargets` array, the entries you provide will be matched against the entire URL of the outgoing request.
+   * If you are using a browser SDK, the entries will also be matched against the pathname of the outgoing requests.
+   * This is so you can have matchers for relative requests, for example, `/^\/api/` if you want to trace requests to your `/api` routes on the same domain.
+   *
+   * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
+   * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   *
+   * Examples:
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
+   *   - Tracing headers will be attached because the request is sent to the same origin and the regex matches the pathname "/api/posts".
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://different-origin.com/api/posts`:
+   *   - Tracing headers will not be attached because the pathname will only be compared when the request target lives on the same origin.
+   * - `tracePropagationTargets: [/^\/api/, 'https://external-api.com']` and request to `https://external-api.com/v1/data`:
+   *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
-  tracePropagationTargets: Array<string | RegExp>;
+  tracePropagationTargets?: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -71,23 +92,11 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  // TODO (v8): Remove this property
-  tracingOrigins: DEFAULT_TRACE_PROPAGATION_TARGETS,
-  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
 export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumentationOptions>): void {
-  const {
-    traceFetch,
-    traceXHR,
-    // eslint-disable-next-line deprecation/deprecation
-    tracePropagationTargets,
-    // eslint-disable-next-line deprecation/deprecation
-    tracingOrigins,
-    shouldCreateSpanForRequest,
-    enableHTTPTimings,
-  } = {
+  const { traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, tracePropagationTargets } = {
     traceFetch: defaultRequestInstrumentationOptions.traceFetch,
     traceXHR: defaultRequestInstrumentationOptions.traceXHR,
     ..._options,
@@ -96,11 +105,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   const shouldCreateSpan =
     typeof shouldCreateSpanForRequest === 'function' ? shouldCreateSpanForRequest : (_: string) => true;
 
-  // TODO(v8) Remove tracingOrigins here
-  // The only reason we're passing it in here is because this instrumentOutgoingRequests function is publicly exported
-  // and we don't want to break the API. We can remove it in v8.
-  const shouldAttachHeadersWithTargets = (url: string): boolean =>
-    shouldAttachHeaders(url, tracePropagationTargets || tracingOrigins);
+  const shouldAttachHeadersWithTargets = (url: string): boolean => shouldAttachHeaders(url, tracePropagationTargets);
 
   const spans: Record<string, Span> = {};
 
@@ -139,9 +144,9 @@ function isPerformanceResourceTiming(entry: PerformanceEntry): entry is Performa
  * @param span A span that has yet to be finished, must contain `url` on data.
  */
 function addHTTPTimings(span: Span): void {
-  const url = span.data.url;
+  const { url } = spanToJSON(span).data || {};
 
-  if (!url) {
+  if (!url || typeof url !== 'string') {
     return;
   }
 
@@ -149,7 +154,7 @@ function addHTTPTimings(span: Span): void {
     entries.forEach(entry => {
       if (isPerformanceResourceTiming(entry) && entry.name.endsWith(url)) {
         const spanData = resourceTimingEntryToSpanData(entry);
-        spanData.forEach(data => span.setData(...data));
+        spanData.forEach(data => span.setAttribute(...data));
         // In the next tick, clean this handler up
         // We have to wait here because otherwise this cleans itself up before it is fully done
         setTimeout(cleanup);
@@ -220,11 +225,48 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
 /**
  * A function that determines whether to attach tracing headers to a request.
- * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
- * We only export this fuction for testing purposes.
+ * We only export this function for testing purposes.
  */
-export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
-  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
+export function shouldAttachHeaders(
+  targetUrl: string,
+  tracePropagationTargets: (string | RegExp)[] | undefined,
+): boolean {
+  // window.location.href not being defined is an edge case in the browser but we need to handle it.
+  // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
+  const href: string | undefined = WINDOW.location && WINDOW.location.href;
+
+  if (!href) {
+    // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
+    // BIG DISCLAIMER: Users can call URLs with a double slash (fetch("//example.com/api")), this is a shorthand for "send to the same protocol",
+    // so we need a to exclude those requests, because they might be cross origin.
+    const isRelativeSameOriginRequest = !!targetUrl.match(/^\/(?!\/)/);
+    if (!tracePropagationTargets) {
+      return isRelativeSameOriginRequest;
+    } else {
+      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+    }
+  } else {
+    let resolvedUrl;
+    let currentOrigin;
+
+    // URL parsing may fail, we default to not attaching trace headers in that case.
+    try {
+      resolvedUrl = new URL(targetUrl, href);
+      currentOrigin = new URL(href).origin;
+    } catch (e) {
+      return false;
+    }
+
+    const isSameOriginRequest = resolvedUrl.origin === currentOrigin;
+    if (!tracePropagationTargets) {
+      return isSameOriginRequest;
+    } else {
+      return (
+        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+      );
+    }
+  }
 }
 
 /**
@@ -232,7 +274,6 @@ export function shouldAttachHeaders(url: string, tracePropagationTargets: (strin
  *
  * @returns Span if a span was created, otherwise void.
  */
-// eslint-disable-next-line complexity
 export function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,
@@ -255,8 +296,8 @@ export function xhrCallback(
 
     const span = spans[spanId];
     if (span && sentryXhrData.status_code !== undefined) {
-      span.setHttpStatus(sentryXhrData.status_code);
-      span.finish();
+      setHttpStatus(span, sentryXhrData.status_code);
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -265,42 +306,42 @@ export function xhrCallback(
   }
 
   const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  const isolationScope = getIsolationScope();
 
-  const span =
-    shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
-          data: {
-            type: 'xhr',
-            'http.method': sentryXhrData.method,
-            url: sentryXhrData.url,
-          },
-          description: `${sentryXhrData.method} ${sentryXhrData.url}`,
-          op: 'http.client',
-          origin: 'auto.http.browser',
-        })
-      : undefined;
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+        onlyIfParent: true,
+        attributes: {
+          type: 'xhr',
+          'http.method': sentryXhrData.method,
+          url: sentryXhrData.url,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+        },
+        op: 'http.client',
+      })
+    : undefined;
 
   if (span) {
-    xhr.__sentry_xhr_span_id__ = span.spanId;
+    xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
     spans[xhr.__sentry_xhr_span_id__] = span;
   }
 
-  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url)) {
-    if (span) {
-      const transaction = span && span.transaction;
-      const dynamicSamplingContext = transaction && transaction.getDynamicSamplingContext();
-      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-      setHeaderOnXhr(xhr, span.toTraceparent(), sentryBaggageHeader);
-    } else {
-      const client = getClient();
-      const { traceId, sampled, dsc } = scope.getPropagationContext();
-      const sentryTraceHeader = generateSentryTraceHeader(traceId, undefined, sampled);
-      const dynamicSamplingContext =
-        dsc || (client ? getDynamicSamplingContextFromClient(traceId, client, scope) : undefined);
-      const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
-      setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
-    }
+  const client = getClient();
+
+  if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
+    const { traceId, spanId, sampled, dsc } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+
+    const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+      dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+    );
+
+    setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
   }
 
   return span;

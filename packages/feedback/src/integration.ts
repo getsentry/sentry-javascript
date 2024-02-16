@@ -1,4 +1,4 @@
-import type { Integration } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 
 import {
@@ -25,10 +25,17 @@ import { createWidget } from './widget/createWidget';
 
 const doc = WINDOW.document;
 
+export const feedbackIntegration = ((options?: OptionalFeedbackConfiguration) => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new Feedback(options);
+}) satisfies IntegrationFn;
+
 /**
  * Feedback integration. When added as an integration to the SDK, it will
  * inject a button in the bottom-right corner of the window that opens a
  * feedback modal when clicked.
+ *
+ * @deprecated Use `feedbackIntegration()` instead.
  */
 export class Feedback implements Integration {
   /**
@@ -105,7 +112,7 @@ export class Feedback implements Integration {
     onSubmitError,
     onSubmitSuccess,
   }: OptionalFeedbackConfiguration = {}) {
-    // Initializations
+    // eslint-disable-next-line deprecation/deprecation
     this.name = Feedback.id;
 
     // tsc fails if these are not initialized explicitly constructor, e.g. can't call `_initialize()`

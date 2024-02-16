@@ -1,13 +1,10 @@
 export {
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   getActiveTransaction,
   hasTracingEnabled,
   IdleTransaction,
-  Span,
   // eslint-disable-next-line deprecation/deprecation
   SpanStatus,
-  spanStatusfromHttpCode,
   startIdleTransaction,
   Transaction,
 } from '@sentry/core';

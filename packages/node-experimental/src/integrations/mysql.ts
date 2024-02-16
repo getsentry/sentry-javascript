@@ -1,13 +1,30 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
+import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql';
-import type { Integration } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Integration, IntegrationFn } from '@sentry/types';
 
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
+
+const _mysqlIntegration = (() => {
+  return {
+    name: 'Mysql',
+    setupOnce() {
+      registerInstrumentations({
+        instrumentations: [new MySQLInstrumentation({})],
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const mysqlIntegration = defineIntegration(_mysqlIntegration);
 
 /**
  * MySQL integration
  *
  * Capture tracing data for mysql.
+ *
+ * @deprecated Use `mysqlIntegration()` instead.
  */
 export class Mysql extends NodePerformanceIntegration<void> implements Integration {
   /**
@@ -22,6 +39,7 @@ export class Mysql extends NodePerformanceIntegration<void> implements Integrati
 
   public constructor() {
     super();
+    // eslint-disable-next-line deprecation/deprecation
     this.name = Mysql.id;
   }
 

@@ -6,6 +6,10 @@ const WINDOW = getGlobalObject<Window>();
 
 const DEFAULT_MAX_STRING_LENGTH = 80;
 
+type SimpleNode = {
+  parentNode: SimpleNode;
+} | null;
+
 /**
  * Given a child DOM element, returns a query-selector statement describing that
  * and its ancestors
@@ -16,10 +20,6 @@ export function htmlTreeAsString(
   elem: unknown,
   options: string[] | { keyAttrs?: string[]; maxStringLength?: number } = {},
 ): string {
-  type SimpleNode = {
-    parentNode: SimpleNode;
-  } | null;
-
   if (!elem) {
     return '<unknown>';
   }
@@ -84,6 +84,14 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
 
   if (!elem || !elem.tagName) {
     return '';
+  }
+
+  // @ts-expect-error WINDOW has HTMLElement
+  if (WINDOW.HTMLElement) {
+    // If using the component name annotation plugin, this value may be available on the DOM node
+    if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
+      return elem.dataset['sentryComponent'];
+    }
   }
 
   out.push(elem.tagName.toLowerCase());
@@ -155,5 +163,35 @@ export function getDomElement<E = any>(selector: string): E | null {
   if (WINDOW.document && WINDOW.document.querySelector) {
     return WINDOW.document.querySelector(selector) as unknown as E;
   }
+  return null;
+}
+
+/**
+ * Given a DOM element, traverses up the tree until it finds the first ancestor node
+ * that has the `data-sentry-component` attribute. This attribute is added at build-time
+ * by projects that have the component name annotation plugin installed.
+ *
+ * @returns a string representation of the component for the provided DOM element, or `null` if not found
+ */
+export function getComponentName(elem: unknown): string | null {
+  // @ts-expect-error WINDOW has HTMLElement
+  if (!WINDOW.HTMLElement) {
+    return null;
+  }
+
+  let currentElem = elem as SimpleNode;
+  const MAX_TRAVERSE_HEIGHT = 5;
+  for (let i = 0; i < MAX_TRAVERSE_HEIGHT; i++) {
+    if (!currentElem) {
+      return null;
+    }
+
+    if (currentElem instanceof HTMLElement && currentElem.dataset['sentryComponent']) {
+      return currentElem.dataset['sentryComponent'];
+    }
+
+    currentElem = currentElem.parentNode;
+  }
+
   return null;
 }

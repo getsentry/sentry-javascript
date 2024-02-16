@@ -84,7 +84,7 @@ module.exports = {
         '@typescript-eslint/no-unused-expressions': ['error', { allowShortCircuit: true }],
 
         // Make sure Promises are handled appropriately
-        '@typescript-eslint/no-floating-promises': 'error',
+        '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: false }],
 
         // Disallow delete operator. We should make this operation opt in (by disabling this rule).
         '@typescript-eslint/no-dynamic-delete': 'error',
@@ -135,6 +135,11 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'error',
         '@sentry-internal/sdk/no-nullish-coalescing': 'error',
 
+        // We want to avoid using the RegExp constructor as it can lead to invalid or dangerous regular expressions
+        // if end user input is used in the constructor. It's fine to ignore this rule if it is safe to use the RegExp.
+        // However, we want to flag each use case so that we're aware of the potential danger.
+        '@sentry-internal/sdk/no-regexp-constructor': 'error',
+
         // JSDOC comments are required for classes and methods. As we have a public facing codebase, documentation,
         // even if it may seems excessive at times, is important to emphasize. Turned off in tests.
         'jsdoc/require-jsdoc': [
@@ -158,7 +163,17 @@ module.exports = {
       env: {
         jest: true,
       },
-      files: ['test.ts', '*.test.ts', '*.test.tsx', '*.test.js', '*.test.jsx', 'test/**/*.ts', 'test/**/*.js'],
+      files: [
+        'test.ts',
+        '*.test.ts',
+        '*.test.tsx',
+        '*.test.js',
+        '*.test.jsx',
+        'test/**/*.ts',
+        'test/**/*.js',
+        'tests/**/*.ts',
+        'tests/**/*.js',
+      ],
       rules: {
         'max-lines': 'off',
         '@typescript-eslint/explicit-function-return-type': 'off',
@@ -171,6 +186,7 @@ module.exports = {
         '@typescript-eslint/no-empty-function': 'off',
         '@sentry-internal/sdk/no-optional-chaining': 'off',
         '@sentry-internal/sdk/no-nullish-coalescing': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
       },
     },
     {
@@ -193,7 +209,7 @@ module.exports = {
     },
     {
       // Configuration for config files like webpack/rollup
-      files: ['*.config.js'],
+      files: ['*.config.js', '*.config.mjs'],
       parserOptions: {
         sourceType: 'module',
         ecmaVersion: 2018,

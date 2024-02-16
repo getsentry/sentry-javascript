@@ -1,9 +1,4 @@
-import { RewriteFrames } from '@sentry/integrations';
-import type { StackFrame } from '@sentry/types';
-import { basename } from '@sentry/utils';
-
-import type { GlobalWithSentryValues } from '../../src/server/utils';
-import { getTracePropagationData, rewriteFramesIteratee } from '../../src/server/utils';
+import { getTracePropagationData } from '../../src/server/utils';
 
 const MOCK_REQUEST_EVENT: any = {
   request: {
@@ -16,7 +11,7 @@ const MOCK_REQUEST_EVENT: any = {
         if (key === 'baggage') {
           return (
             'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-            'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+            'sentry-public_key=dogsarebadatkeepingsecrets,' +
             'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
           );
         }
@@ -46,7 +41,6 @@ describe('getTracePropagationData', () => {
       sample_rate: '1',
       trace_id: '1234567890abcdef1234567890abcdef',
       transaction: 'dogpark',
-      user_segment: 'segmentA',
     });
   });
 
@@ -57,75 +51,4 @@ describe('getTracePropagationData', () => {
     expect(traceparentData).toBeUndefined();
     expect(dynamicSamplingContext).toBeUndefined();
   });
-});
-
-describe('rewriteFramesIteratee', () => {
-  it('removes the module property from the frame', () => {
-    const frame: StackFrame = {
-      filename: '/some/path/to/server/chunks/3-ab34d22f.js',
-      module: '3-ab34d22f.js',
-    };
-
-    const result = rewriteFramesIteratee(frame);
-
-    expect(result).not.toHaveProperty('module');
-  });
-
-  it('does the same filename modification as the default RewriteFrames iteratee if no output dir is available', () => {
-    const frame: StackFrame = {
-      filename: '/some/path/to/server/chunks/3-ab34d22f.js',
-      lineno: 1,
-      colno: 1,
-      module: '3-ab34d22f.js',
-    };
-
-    const originalRewriteFrames = new RewriteFrames();
-    // @ts-expect-error this property exists
-    const defaultIteratee = originalRewriteFrames._iteratee;
-
-    const defaultResult = defaultIteratee({ ...frame });
-    delete defaultResult.module;
-
-    const result = rewriteFramesIteratee({ ...frame });
-
-    expect(result).toEqual({
-      filename: 'app:///3-ab34d22f.js',
-      lineno: 1,
-      colno: 1,
-    });
-
-    expect(result).toStrictEqual(defaultResult);
-  });
-
-  it.each([
-    ['adapter-node', 'build', '/absolute/path/to/build/server/chunks/3-ab34d22f.js', 'app:///chunks/3-ab34d22f.js'],
-    [
-      'adapter-auto',
-      '.svelte-kit/output',
-      '/absolute/path/to/.svelte-kit/output/server/entries/pages/page.ts.js',
-      'app:///entries/pages/page.ts.js',
-    ],
-  ])(
-    'removes the absolut path to the server output dir, if the output dir is available (%s)',
-    (_, outputDir, frameFilename, modifiedFilename) => {
-      (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir = outputDir;
-
-      const frame: StackFrame = {
-        filename: frameFilename,
-        lineno: 1,
-        colno: 1,
-        module: basename(frameFilename),
-      };
-
-      const result = rewriteFramesIteratee({ ...frame });
-
-      expect(result).toStrictEqual({
-        filename: modifiedFilename,
-        lineno: 1,
-        colno: 1,
-      });
-
-      delete (globalThis as GlobalWithSentryValues).__sentry_sveltekit_output_dir;
-    },
-  );
 });

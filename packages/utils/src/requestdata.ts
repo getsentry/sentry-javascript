@@ -69,18 +69,26 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
   req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
+  // TODO(v8): Remove this parameter in v8
+  _deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
+  // eslint-disable-next-line deprecation/deprecation
   if (!transaction.metadata.source || transaction.metadata.source === 'url') {
     // Attempt to grab a parameterized route off of the request
-    transaction.setName(...extractPathForTransaction(req, { path: true, method: true }));
+    const [name, source] = extractPathForTransaction(req, { path: true, method: true });
+    transaction.updateName(name);
+    // TODO: SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
+    // eslint-disable-next-line deprecation/deprecation
+    transaction.setMetadata({ source });
   }
-  transaction.setData('url', req.originalUrl || req.url);
+  transaction.setAttribute('url', req.originalUrl || req.url);
   if (req.baseUrl) {
-    transaction.setData('baseUrl', req.baseUrl);
+    transaction.setAttribute('baseUrl', req.baseUrl);
   }
-  transaction.setData('query', extractQueryParams(req, deps));
+  // TODO: We need to rewrite this to a flat format?
+  // eslint-disable-next-line deprecation/deprecation
+  transaction.setData('query', extractQueryParams(req));
 }
 
 /**
@@ -181,10 +189,10 @@ export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
-    deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
+  const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestData: { [key: string]: any } = {};
 
   // headers:
@@ -200,7 +208,10 @@ export function extractRequestData(
   //   express: req.hostname in > 4 and req.host in < 4
   //   koa: req.host
   //   node, nextjs: req.headers.host
-  const host = req.hostname || req.host || headers.host || '<no host>';
+  // Express 4 mistakenly strips off port number from req.host / req.hostname so we can't rely on them
+  // See: https://github.com/expressjs/express/issues/3047#issuecomment-236653223
+  // Also: https://github.com/getsentry/sentry-javascript/issues/1917
+  const host = headers.host || req.hostname || req.host || '<no host>';
   // protocol:
   //   node, nextjs: <n/a>
   //   express, koa: req.protocol
@@ -245,8 +256,7 @@ export function extractRequestData(
         // query string:
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = extractQueryParams(req, deps);
+        requestData.query_string = extractQueryParams(req);
         break;
       }
       case 'data': {
@@ -296,8 +306,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options && options.deps })
-      : extractRequestData(req, { deps: options && options.deps });
+      ? extractRequestData(req, { include: include.request })
+      : extractRequestData(req);
 
     event.request = {
       ...event.request,
@@ -338,10 +348,7 @@ export function addRequestDataToEvent(
   return event;
 }
 
-function extractQueryParams(
-  req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
-): string | Record<string, unknown> | undefined {
+function extractQueryParams(req: PolymorphicRequest): string | Record<string, unknown> | undefined {
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
@@ -358,13 +365,8 @@ function extractQueryParams(
   }
 
   try {
-    return (
-      req.query ||
-      (typeof URL !== undefined && new URL(originalUrl).search.slice(1)) ||
-      // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-      (deps && deps.url && deps.url.parse(originalUrl).query) ||
-      undefined
-    );
+    const queryParams = req.query || new URL(originalUrl).search.slice(1);
+    return queryParams.length ? queryParams : undefined;
   } catch {
     return undefined;
   }
@@ -374,6 +376,7 @@ function extractQueryParams(
  * Transforms a `Headers` object that implements the `Web Fetch API` (https://developer.mozilla.org/en-US/docs/Web/API/Headers) into a simple key-value dict.
  * The header keys will be lower case: e.g. A "Content-Type" header will be stored as "content-type".
  */
+// TODO(v8): Make this function return undefined when the extraction fails.
 export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<string, string> {
   const headers: Record<string, string> = {};
   try {

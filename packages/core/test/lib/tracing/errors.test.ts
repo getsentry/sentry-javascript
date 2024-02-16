@@ -1,5 +1,5 @@
 import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
+import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
@@ -30,17 +30,13 @@ beforeAll(() => {
 });
 
 describe('registerErrorHandlers()', () => {
-  let hub: Hub;
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultBrowserClientOptions();
-    hub = new Hub(new BrowserClient(options));
-    makeMain(hub);
-  });
-
-  afterEach(() => {
-    hub.getScope().setSpan(undefined);
+    const options = getDefaultBrowserClientOptions({ enableTracing: true });
+    const client = new BrowserClient(options);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('registers error instrumentation', () => {
@@ -53,35 +49,44 @@ describe('registerErrorHandlers()', () => {
 
   it('does not set status if transaction is not on scope', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
+
+    const transaction = startInactiveSpan({ name: 'test' })!;
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockErrorCallback({} as HandlerDataError);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
+    expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockUnhandledRejectionCallback({});
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.status).toBe(undefined);
-    transaction.finish();
+    expect(spanToJSON(transaction).status).toBe(undefined);
+
+    transaction.end();
   });
 
   it('sets status for transaction on scope on error', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockErrorCallback({} as HandlerDataError);
-    expect(transaction.status).toBe('internal_error');
-
-    transaction.finish();
+    startSpan({ name: 'test' }, span => {
+      mockErrorCallback({} as HandlerDataError);
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span!.status).toBe('internal_error');
+      expect(spanToJSON(span!).status).toBe('internal_error');
+    });
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
     registerErrorInstrumentation();
-    const transaction = hub.startTransaction({ name: 'test' });
-    hub.getScope().setSpan(transaction);
 
-    mockUnhandledRejectionCallback({});
-    expect(transaction.status).toBe('internal_error');
-    transaction.finish();
+    startSpan({ name: 'test' }, span => {
+      mockUnhandledRejectionCallback({});
+      // eslint-disable-next-line deprecation/deprecation
+      expect(span!.status).toBe('internal_error');
+      expect(spanToJSON(span!).status).toBe('internal_error');
+    });
   });
 });

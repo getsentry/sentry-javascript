@@ -15,6 +15,7 @@ updates:
     allow:
       - dependency-name: "@sentry/cli"
       - dependency-name: "@sentry/vite-plugin"
+    versioning-strategy: increase
     commit-message:
       prefix: feat
       prefix-development: feat

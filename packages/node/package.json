@@ -1,21 +1,27 @@
 {
   "name": "@sentry/node",
-  "version": "7.88.0",
+  "version": "7.100.0",
   "description": "Official Sentry SDK for Node.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14"
   },
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8"
+  ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
       ]
     }
   },
@@ -23,11 +29,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "7.88.0",
-    "@sentry/core": "7.88.0",
-    "@sentry/types": "7.88.0",
-    "@sentry/utils": "7.88.0",
-    "https-proxy-agent": "^5.0.0"
+    "@sentry-internal/tracing": "7.100.0",
+    "@sentry/core": "7.100.0",
+    "@sentry/types": "7.100.0",
+    "@sentry/utils": "7.100.0"
   },
   "devDependencies": {
     "@types/cookie": "0.5.2",
@@ -39,15 +44,15 @@
     "undici": "^5.21.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types",
+    "build": "run-s build:transpile build:types",
     "build:dev": "yarn build",
-    "build:transpile": "rollup -c rollup.npm.config.js",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
     "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "rollup -c rollup.npm.config.js --watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
@@ -58,7 +63,7 @@
     "test:express": "node test/manual/express-scope-separation/start.js",
     "test:jest": "jest",
     "test:release-health": "node test/manual/release-health/runner.js",
-    "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent && node npm-build.js",
+    "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent --ignore-engines && node npm-build.js",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },

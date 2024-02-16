@@ -462,7 +462,7 @@ function isMatchingRule(rule: WebpackModuleRule, projectDir: string): boolean {
   //
   // The next 11 option is ugly, but thankfully 'next', 'babel', and 'loader' do appear in it in the same order as in
   // 'next-babel-loader', so we can use the same regex to test for both.
-  if (!useEntries.some(entry => entry?.loader && new RegExp('next.*(babel|swc).*loader').test(entry.loader))) {
+  if (!useEntries.some(entry => entry?.loader && /next.*(babel|swc).*loader/.test(entry.loader))) {
     return false;
   }
 
@@ -764,7 +764,7 @@ export function getWebpackPluginOptions(
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
-    stripPrefix: ['webpack://_N_E/'],
+    stripPrefix: ['webpack://_N_E/', 'webpack://'],
     urlPrefix,
     entries: [], // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
     release: getSentryRelease(buildId),

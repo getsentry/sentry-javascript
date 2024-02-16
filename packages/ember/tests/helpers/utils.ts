@@ -1,3 +1,4 @@
+import { spanToJSON } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 const defaultAssertOptions = {
@@ -57,21 +58,26 @@ export function assertSentryTransactions(
   const sentryTestEvents = getTestSentryTransactions();
   const event = sentryTestEvents[callNumber];
 
-  assert.ok(event);
-  assert.ok(event.spans);
+  assert.ok(event, 'event exists');
+  assert.ok(event.spans, 'event has spans');
 
   const spans = event.spans || [];
 
   // instead of checking the specific order of runloop spans (which is brittle),
   // we check (below) that _any_ runloop spans are added
+  // Also we ignore ui.long-task spans, as they are brittle and may or may not appear
   const filteredSpans = spans
-    .filter(span => !span.op?.startsWith('ui.ember.runloop.'))
+    .filter(span => {
+      const op = spanToJSON(span).op;
+      return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
+    })
     .map(s => {
-      return `${s.op} | ${s.description}`;
+      const spanJson = spanToJSON(s);
+      return `${spanJson.op} | ${spanJson.description}`;
     });
 
   assert.true(
-    spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
+    spans.some(span => spanToJSON(span).op?.startsWith('ui.ember.runloop.')),
     'it captures runloop spans',
   );
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');

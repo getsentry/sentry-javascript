@@ -1,5 +1,18 @@
-import { WINDOW } from '@sentry/browser';
-import type { Transaction, TransactionSource } from '@sentry/types';
+import {
+  WINDOW,
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getRootSpan,
+  spanToJSON,
+} from '@sentry/core';
+import type { Integration, Span, StartSpanOptions, Transaction, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -22,29 +35,97 @@ export type RouteConfig = {
   routes?: RouteConfig[];
 };
 
-type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+export type MatchPath = (pathname: string, props: string | string[] | any, parent?: Match | null) => Match | null; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+interface ReactRouterOptions {
+  history: RouterHistory;
+  routes?: RouteConfig[];
+  matchPath?: MatchPath;
+}
 
 let activeTransaction: Transaction | undefined;
 
-export function reactRouterV4Instrumentation(
-  history: RouterHistory,
-  routes?: RouteConfig[],
-  matchPath?: MatchPath,
-): ReactRouterInstrumentation {
-  return createReactRouterInstrumentation(history, 'react-router-v4', routes, matchPath);
+/**
+ * A browser tracing integration that uses React Router v4 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export function reactRouterV4BrowserTracingIntegration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
+
+  const { history, routes, matchPath, instrumentPageLoad = true, instrumentNavigation = true } = options;
+
+  return {
+    ...integration,
+    afterAllSetup(client) {
+      integration.afterAllSetup(client);
+
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v4', routes, matchPath);
+
+      // Now instrument page load & navigation with correct settings
+      instrumentation(startPageloadCallback, instrumentPageLoad, false);
+      instrumentation(startNavigationCallback, false, instrumentNavigation);
+    },
+  };
 }
 
-export function reactRouterV5Instrumentation(
-  history: RouterHistory,
-  routes?: RouteConfig[],
-  matchPath?: MatchPath,
-): ReactRouterInstrumentation {
-  return createReactRouterInstrumentation(history, 'react-router-v5', routes, matchPath);
+/**
+ * A browser tracing integration that uses React Router v5 to instrument navigations.
+ * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ */
+export function reactRouterV5BrowserTracingIntegration(
+  options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
+): Integration {
+  const integration = browserTracingIntegration({
+    ...options,
+    instrumentPageLoad: false,
+    instrumentNavigation: false,
+  });
+
+  const { history, routes, matchPath } = options;
+
+  return {
+    ...integration,
+    afterAllSetup(client) {
+      integration.afterAllSetup(client);
+
+      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
+        startBrowserTracingNavigationSpan(client, startSpanOptions);
+        return undefined;
+      };
+
+      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath);
+
+      // Now instrument page load & navigation with correct settings
+      instrumentation(startPageloadCallback, options.instrumentPageLoad, false);
+      instrumentation(startNavigationCallback, false, options.instrumentNavigation);
+    },
+  };
 }
 
 function createReactRouterInstrumentation(
   history: RouterHistory,
-  name: string,
+  instrumentationName: string,
   allRoutes: RouteConfig[] = [],
   matchPath?: MatchPath,
 ): ReactRouterInstrumentation {
@@ -82,21 +163,17 @@ function createReactRouterInstrumentation(
     return [pathname, 'url'];
   }
 
-  const tags = {
-    'routing.instrumentation': name,
-  };
-
   return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
     const initPathName = getInitPathName();
+
     if (startTransactionOnPageLoad && initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
       activeTransaction = customStartTransaction({
         name,
-        op: 'pageload',
-        origin: 'auto.pageload.react.reactrouter',
-        tags,
-        metadata: {
-          source,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.pageload.react.${instrumentationName}`,
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
       });
     }
@@ -105,17 +182,16 @@ function createReactRouterInstrumentation(
       history.listen((location, action) => {
         if (action && (action === 'PUSH' || action === 'POP')) {
           if (activeTransaction) {
-            activeTransaction.finish();
+            activeTransaction.end();
           }
 
           const [name, source] = normalizeTransactionName(location.pathname);
           activeTransaction = customStartTransaction({
             name,
-            op: 'navigation',
-            origin: 'auto.navigation.react.reactrouter',
-            tags,
-            metadata: {
-              source,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
             },
           });
         }
@@ -163,9 +239,12 @@ function computeRootMatch(pathname: string): Match {
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = (Route as any).displayName || (Route as any).name;
 
+  const activeRootSpan = getActiveRootSpan();
+
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (activeTransaction && props && props.computedMatch && props.computedMatch.isExact) {
-      activeTransaction.setName(props.computedMatch.path, 'route');
+    if (activeRootSpan && props && props.computedMatch && props.computedMatch.isExact) {
+      activeRootSpan.updateName(props.computedMatch.path);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
@@ -182,3 +261,22 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   return WrappedRoute;
 }
 /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
+
+function getActiveRootSpan(): Span | undefined {
+  // Legacy behavior for "old" react router instrumentation
+  if (activeTransaction) {
+    return activeTransaction;
+  }
+
+  const span = getActiveSpan();
+  const rootSpan = span ? getRootSpan(span) : undefined;
+
+  if (!rootSpan) {
+    return undefined;
+  }
+
+  const op = spanToJSON(rootSpan).op;
+
+  // Only use this root span if it is a pageload or navigation span
+  return op === 'navigation' || op === 'pageload' ? rootSpan : undefined;
+}

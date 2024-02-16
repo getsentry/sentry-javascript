@@ -31,7 +31,7 @@ jobs:
         with:
           node-version-file: 'package.json'
       - name: Check canary cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/packages/*/*.tgz
@@ -100,7 +100,7 @@ jobs:
           node-version-file: 'package.json'
 
       - name: Restore canary cache
-        uses: actions/cache/restore@v3
+        uses: actions/cache/restore@v4
         with:
           path: |
             ${{ github.workspace }}/packages/*/*.tgz
@@ -115,21 +115,21 @@ jobs:
 
       - name: Validate Verdaccio
         run: yarn test:validate
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
 
       - name: Prepare Verdaccio
         run: yarn test:prepare
-        working-directory: packages/e2e-tests
+        working-directory: dev-packages/e2e-tests
         env:
           E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
 
       - name: Build E2E app
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn ${{ matrix.build-command }}
 
       - name: Run E2E test
-        working-directory: packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
         timeout-minutes: 5
         run: yarn test:assert
 

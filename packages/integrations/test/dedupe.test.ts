@@ -1,6 +1,6 @@
 import type { Event as SentryEvent, Exception, StackFrame, Stacktrace } from '@sentry/types';
 
-import { Dedupe, _shouldDropEvent } from '../src/dedupe';
+import { _shouldDropEvent, dedupeIntegration } from '../src/dedupe';
 
 type EventWithException = SentryEvent & {
   exception: {
@@ -10,7 +10,6 @@ type EventWithException = SentryEvent & {
 type ExceptionWithStacktrace = Exception & { stacktrace: StacktraceWithFrames };
 type StacktraceWithFrames = Stacktrace & { frames: StackFrame[] };
 
-/** JSDoc */
 function clone<T>(data: T): T {
   return JSON.parse(JSON.stringify(data));
 }
@@ -178,27 +177,31 @@ describe('Dedupe', () => {
 
   describe('processEvent', () => {
     it('ignores consecutive errors', () => {
-      const integration = new Dedupe();
+      const integration = dedupeIntegration();
 
-      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).not.toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
     });
 
     it('ignores transactions between errors', () => {
-      const integration = new Dedupe();
+      const integration = dedupeIntegration();
 
-      expect(integration.processEvent(clone(exceptionEvent))).not.toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).not.toBeNull();
       expect(
-        integration.processEvent({
-          event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
-          message: 'someMessage',
-          transaction: 'wat',
-          type: 'transaction',
-        }),
+        integration.processEvent?.(
+          {
+            event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2',
+            message: 'someMessage',
+            transaction: 'wat',
+            type: 'transaction',
+          },
+          {},
+          {} as any,
+        ),
       ).not.toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
-      expect(integration.processEvent(clone(exceptionEvent))).toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
+      expect(integration.processEvent?.(clone(exceptionEvent), {}, {} as any)).toBeNull();
     });
   });
 });

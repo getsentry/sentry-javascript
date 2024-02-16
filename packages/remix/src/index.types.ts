@@ -3,7 +3,7 @@
 export * from './index.client';
 export * from './index.server';
 
-import type { Integration, StackParser } from '@sentry/types';
+import type { Integration, Options, StackParser } from '@sentry/types';
 
 import * as clientSdk from './index.client';
 import * as serverSdk from './index.server';
@@ -13,9 +13,13 @@ import type { RemixOptions } from './utils/remixOptions';
 export declare function init(options: RemixOptions): void;
 
 // We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
+// eslint-disable-next-line deprecation/deprecation
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
+export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+
 export declare const defaultIntegrations: Integration[];
+export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 // This variable is not a runtime variable but just a type to tell typescript that the methods below can either come
@@ -25,4 +29,3 @@ declare const runtime: 'client' | 'server';
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
-export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;

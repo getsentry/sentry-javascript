@@ -7,8 +7,16 @@ import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import { NavigationCancel, NavigationError, Router } from '@angular/router';
 import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
-import { WINDOW, getCurrentScope } from '@sentry/browser';
-import type { Span, Transaction, TransactionContext } from '@sentry/types';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  WINDOW,
+  browserTracingIntegration as originalBrowserTracingIntegration,
+  getCurrentScope,
+  startBrowserTracingNavigationSpan,
+} from '@sentry/browser';
+import { getActiveSpan, getClient, getRootSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
+import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -22,8 +30,12 @@ let instrumentationInitialized: boolean;
 let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
 let stashedStartTransactionOnLocationChange: boolean;
 
+let hooksBasedInstrumentation = false;
+
 /**
  * Creates routing instrumentation for Angular Router.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
  */
 export function routingInstrumentation(
   customStartTransaction: (context: TransactionContext) => Transaction | undefined,
@@ -39,17 +51,49 @@ export function routingInstrumentation(
       name: WINDOW.location.pathname,
       op: 'pageload',
       origin: 'auto.pageload.angular',
-      metadata: { source: 'url' },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 }
 
+/**
+ * Creates routing instrumentation for Angular Router.
+ *
+ * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
+ */
+// eslint-disable-next-line deprecation/deprecation
 export const instrumentAngularRouting = routingInstrumentation;
 
 /**
- * Grabs active transaction off scope
+ * A custom BrowserTracing integration for Angular.
+ *
+ * Use this integration in combination with `TraceService`
+ */
+export function browserTracingIntegration(
+  options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
+): Integration {
+  // If the user opts out to set this up, we just don't initialize this.
+  // That way, the TraceService will not actually do anything, functionally disabling this.
+  if (options.instrumentNavigation !== false) {
+    instrumentationInitialized = true;
+    hooksBasedInstrumentation = true;
+  }
+
+  return originalBrowserTracingIntegration({
+    ...options,
+    instrumentNavigation: false,
+  });
+}
+
+/**
+ * Grabs active transaction off scope.
+ *
+ * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
  */
 export function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }
 
@@ -68,7 +112,51 @@ export class TraceService implements OnDestroy {
         return;
       }
 
+      if (this._routingSpan) {
+        this._routingSpan.end();
+        this._routingSpan = null;
+      }
+
+      const client = getClient();
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
+
+      if (client && hooksBasedInstrumentation) {
+        // see comment in `_isPageloadOngoing` for rationale
+        if (!this._isPageloadOngoing()) {
+          startBrowserTracingNavigationSpan(client, {
+            name: strippedUrl,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
+          });
+        } else {
+          // The first time we end up here, we set the pageload flag to false
+          // Subsequent navigations are going to get their own navigation root span
+          // even if the pageload root span is still ongoing.
+          this._pageloadOngoing = false;
+        }
+
+        this._routingSpan =
+          startInactiveSpan({
+            name: `${navigationEvent.url}`,
+            op: ANGULAR_ROUTING_OP,
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            },
+            tags: {
+              url: strippedUrl,
+              ...(navigationEvent.navigationTrigger && {
+                navigationTrigger: navigationEvent.navigationTrigger,
+              }),
+            },
+          }) || null;
+
+        return;
+      }
+
+      // eslint-disable-next-line deprecation/deprecation
       let activeTransaction = getActiveTransaction();
 
       if (!activeTransaction && stashedStartTransactionOnLocationChange) {
@@ -76,14 +164,14 @@ export class TraceService implements OnDestroy {
           name: strippedUrl,
           op: 'navigation',
           origin: 'auto.navigation.angular',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         });
       }
 
       if (activeTransaction) {
-        if (this._routingSpan) {
-          this._routingSpan.finish();
-        }
+        // eslint-disable-next-line deprecation/deprecation
         this._routingSpan = activeTransaction.startChild({
           description: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
@@ -115,10 +203,14 @@ export class TraceService implements OnDestroy {
         (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
-      if (transaction && transaction.metadata.source === 'url') {
-        transaction.setName(route, 'route');
+      const attributes = (transaction && spanToJSON(transaction).data) || {};
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+        transaction.updateName(route);
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(transaction).op}.angular`);
       }
     }),
   );
@@ -131,7 +223,7 @@ export class TraceService implements OnDestroy {
       if (this._routingSpan) {
         runOutsideAngular(() => {
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-          this._routingSpan!.finish();
+          this._routingSpan!.end();
         });
         this._routingSpan = null;
       }
@@ -142,8 +234,15 @@ export class TraceService implements OnDestroy {
 
   private _subscription: Subscription;
 
+  /**
+   * @see _isPageloadOngoing()
+   */
+  private _pageloadOngoing: boolean;
+
   public constructor(private readonly _router: Router) {
     this._routingSpan = null;
+    this._pageloadOngoing = true;
+
     this._subscription = new Subscription();
 
     this._subscription.add(this.navStart$.subscribe());
@@ -157,6 +256,49 @@ export class TraceService implements OnDestroy {
    */
   public ngOnDestroy(): void {
     this._subscription.unsubscribe();
+  }
+
+  /**
+   * We only _avoid_ creating a navigation root span in one case:
+   *
+   * There is an ongoing pageload span AND the router didn't yet emit the first navigation start event
+   *
+   * The first navigation start event will create the child routing span
+   * and update the pageload root span name on ResolveEnd.
+   *
+   * There's an edge case we need to avoid here: If the router fires the first navigation start event
+   * _after_ the pageload root span finished. This is why we check for the pageload root span.
+   * Possible real-world scenario: Angular application and/or router is bootstrapped after the pageload
+   * idle root span finished
+   *
+   * The overall rationale is:
+   * - if we already avoided creating a navigation root span once, we don't avoid it again
+   *   (i.e. set `_pageloadOngoing` to `false`)
+   * - if `_pageloadOngoing` is already `false`, create a navigation root span
+   * - if there's no active/pageload root span, create a navigation root span
+   * - only if there's an ongoing pageload root span AND `_pageloadOngoing` is still `true,
+   *   con't create a navigation root span
+   */
+  private _isPageloadOngoing(): boolean {
+    if (!this._pageloadOngoing) {
+      // pageload is already finished, no need to update
+      return false;
+    }
+
+    const activeSpan = getActiveSpan();
+    if (!activeSpan) {
+      this._pageloadOngoing = false;
+      return false;
+    }
+
+    const rootSpan = getRootSpan(activeSpan);
+    if (!rootSpan) {
+      this._pageloadOngoing = false;
+      return false;
+    }
+
+    this._pageloadOngoing = spanToJSON(rootSpan).op === 'pageload';
+    return this._pageloadOngoing;
   }
 }
 
@@ -180,8 +322,10 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this.componentName = UNKNOWN_COMPONENT;
     }
 
+    // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     if (activeTransaction) {
+      // eslint-disable-next-line deprecation/deprecation
       this._tracingSpan = activeTransaction.startChild({
         description: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
@@ -196,7 +340,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    */
   public ngAfterViewInit(): void {
     if (this._tracingSpan) {
-      this._tracingSpan.finish();
+      this._tracingSpan.end();
     }
   }
 }
@@ -222,8 +366,10 @@ export function TraceClassDecorator(): ClassDecorator {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         tracingSpan = activeTransaction.startChild({
           description: `<${target.name}>`,
           op: ANGULAR_INIT_OP,
@@ -239,7 +385,7 @@ export function TraceClassDecorator(): ClassDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
-        tracingSpan.finish();
+        tracingSpan.end();
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);
@@ -259,8 +405,10 @@ export function TraceMethodDecorator(): MethodDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
+      // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction();
       if (activeTransaction) {
+        // eslint-disable-next-line deprecation/deprecation
         activeTransaction.startChild({
           description: `<${target.constructor.name}>`,
           endTimestamp: now,

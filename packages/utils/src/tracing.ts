@@ -1,8 +1,9 @@
-import type { DynamicSamplingContext, PropagationContext, TraceparentData } from '@sentry/types';
+import type { PropagationContext, TraceparentData } from '@sentry/types';
 
 import { baggageHeaderToDynamicSamplingContext } from './baggage';
 import { uuid4 } from './misc';
 
+// eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- RegExp is used for readability here
 export const TRACEPARENT_REGEXP = new RegExp(
   '^[ \\t]*' + // whitespace
     '([0-9a-f]{32})?' + // trace_id
@@ -44,7 +45,10 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
 
 /**
  * Create tracing context from incoming headers.
+ *
+ * @deprecated Use `propagationContextFromHeaders` instead.
  */
+// TODO(v8): Remove this function
 export function tracingContextFromHeaders(
   sentryTrace: Parameters<typeof extractTraceparentData>[0],
   baggage: Parameters<typeof baggageHeaderToDynamicSamplingContext>[0],
@@ -58,25 +62,56 @@ export function tracingContextFromHeaders(
 
   const { traceId, parentSpanId, parentSampled } = traceparentData || {};
 
-  const propagationContext: PropagationContext = {
-    traceId: traceId || uuid4(),
-    spanId: uuid4().substring(16),
-    sampled: parentSampled,
-  };
-
-  if (parentSpanId) {
-    propagationContext.parentSpanId = parentSpanId;
+  if (!traceparentData) {
+    return {
+      traceparentData,
+      dynamicSamplingContext: undefined,
+      propagationContext: {
+        traceId: traceId || uuid4(),
+        spanId: uuid4().substring(16),
+      },
+    };
+  } else {
+    return {
+      traceparentData,
+      dynamicSamplingContext: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+      propagationContext: {
+        traceId: traceId || uuid4(),
+        parentSpanId: parentSpanId || uuid4().substring(16),
+        spanId: uuid4().substring(16),
+        sampled: parentSampled,
+        dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+      },
+    };
   }
+}
 
-  if (dynamicSamplingContext) {
-    propagationContext.dsc = dynamicSamplingContext as DynamicSamplingContext;
+/**
+ * Create a propagation context from incoming headers.
+ */
+export function propagationContextFromHeaders(
+  sentryTrace: string | undefined,
+  baggage: string | number | boolean | string[] | null | undefined,
+): PropagationContext {
+  const traceparentData = extractTraceparentData(sentryTrace);
+  const dynamicSamplingContext = baggageHeaderToDynamicSamplingContext(baggage);
+
+  const { traceId, parentSpanId, parentSampled } = traceparentData || {};
+
+  if (!traceparentData) {
+    return {
+      traceId: traceId || uuid4(),
+      spanId: uuid4().substring(16),
+    };
+  } else {
+    return {
+      traceId: traceId || uuid4(),
+      parentSpanId: parentSpanId || uuid4().substring(16),
+      spanId: uuid4().substring(16),
+      sampled: parentSampled,
+      dsc: dynamicSamplingContext || {}, // If we have traceparent data but no DSC it means we are not head of trace and we must freeze it
+    };
   }
-
-  return {
-    traceparentData,
-    dynamicSamplingContext,
-    propagationContext,
-  };
 }
 
 /**

@@ -1,11 +1,11 @@
-import { SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
+import { InboundFilters, SDK_VERSION, getGlobalScope, getIsolationScope, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
+import { setCurrentClient } from '../../src';
 import {
   BrowserClient,
-  Integrations,
   Scope,
   WINDOW,
   addBreadcrumb,
@@ -14,7 +14,6 @@ import {
   captureMessage,
   flush,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   init,
   showReportDialog,
@@ -40,7 +39,11 @@ describe('SentryBrowser', () => {
   const beforeSend = jest.fn(event => event);
 
   beforeEach(() => {
-    WINDOW.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+
     init({
       beforeSend,
       dsn,
@@ -86,9 +89,10 @@ describe('SentryBrowser', () => {
       const client = new BrowserClient(options);
       it('uses the user on the scope', () => {
         getCurrentScope().setUser(EX_USER);
-        getCurrentHub().bindClient(client);
+        setCurrentClient(client);
 
-        showReportDialog();
+        // eslint-disable-next-line deprecation/deprecation
+        showReportDialog({ eventId: 'foobar' });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -99,10 +103,11 @@ describe('SentryBrowser', () => {
 
       it('prioritizes options user over scope user', () => {
         getCurrentScope().setUser(EX_USER);
-        getCurrentHub().bindClient(client);
+        setCurrentClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
-        showReportDialog({ user: DIALOG_OPTION_USER });
+        // eslint-disable-next-line deprecation/deprecation
+        showReportDialog({ eventId: 'foobar', user: DIALOG_OPTION_USER });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -135,7 +140,8 @@ describe('SentryBrowser', () => {
 
       it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = jest.fn();
-        showReportDialog({ onClose });
+        // eslint-disable-next-line deprecation/deprecation
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -149,7 +155,8 @@ describe('SentryBrowser', () => {
         const onClose = jest.fn(() => {
           throw new Error();
         });
-        showReportDialog({ onClose });
+        // eslint-disable-next-line deprecation/deprecation
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -161,7 +168,8 @@ describe('SentryBrowser', () => {
 
       it('should not call `onClose` for other MessageEvents', async () => {
         const onClose = jest.fn();
-        showReportDialog({ onClose });
+        // eslint-disable-next-line deprecation/deprecation
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('some_message');
         expect(onClose).not.toHaveBeenCalled();
@@ -211,7 +219,7 @@ describe('SentryBrowser', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new BrowserClient(options));
+      setCurrentClient(new BrowserClient(options));
       captureMessage('test');
     });
 
@@ -225,7 +233,7 @@ describe('SentryBrowser', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new BrowserClient(options));
+      setCurrentClient(new BrowserClient(options));
       captureEvent({ message: 'event' });
     });
 
@@ -238,7 +246,7 @@ describe('SentryBrowser', () => {
         },
         dsn,
       });
-      getCurrentHub().bindClient(new BrowserClient(options));
+      setCurrentClient(new BrowserClient(options));
       captureEvent({ message: 'event' });
     });
 
@@ -249,7 +257,7 @@ describe('SentryBrowser', () => {
         dsn,
         integrations: [],
       });
-      getCurrentHub().bindClient(new BrowserClient(options));
+      setCurrentClient(new BrowserClient(options));
 
       captureMessage('event222');
       captureMessage('event222');
@@ -264,9 +272,14 @@ describe('SentryBrowser', () => {
       const options = getDefaultBrowserClientOptions({
         beforeSend: localBeforeSend,
         dsn,
-        integrations: [new Integrations.InboundFilters({ ignoreErrors: ['capture'] })],
+        integrations: [
+          // eslint-disable-next-line deprecation/deprecation
+          new InboundFilters({ ignoreErrors: ['capture'] }),
+        ],
       });
-      getCurrentHub().bindClient(new BrowserClient(options));
+      const client = new BrowserClient(options);
+      setCurrentClient(client);
+      client.init();
 
       captureMessage('capture');
 
@@ -400,7 +413,7 @@ describe('wrap()', () => {
       },
       dsn,
     });
-    getCurrentHub().bindClient(new BrowserClient(options));
+    setCurrentClient(new BrowserClient(options));
 
     try {
       // eslint-disable-next-line deprecation/deprecation

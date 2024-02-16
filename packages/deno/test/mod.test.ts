@@ -3,7 +3,7 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { DenoClient, Hub, Scope, defaultIntegrations } from '../build/index.mjs';
+import { DenoClient, Hub, Scope, getDefaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -14,7 +14,7 @@ function getTestClient(
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
-    integrations: [...defaultIntegrations, ...integrations],
+    integrations: [...getDefaultIntegrations({}), ...integrations],
     stackParser: sentryUtils.createStackParser(sentryUtils.nodeStackLineParser()),
     transport: makeTestTransport(envelope => {
       callback(getNormalizedEvent(envelope));
@@ -22,6 +22,7 @@ function getTestClient(
   });
 
   const scope = new Scope();
+  // eslint-disable-next-line deprecation/deprecation
   const hub = new Hub(client, scope);
 
   return [hub, client];
@@ -35,7 +36,7 @@ function delay(time: number): Promise<void> {
 
 Deno.test('captureException', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [hub] = getTestClient(event => {
+  const [, client] = getTestClient(event => {
     ev = event;
   });
 
@@ -43,7 +44,7 @@ Deno.test('captureException', async t => {
     return new Error('Some unhandled error');
   }
 
-  hub.captureException(something());
+  client.captureException(something());
 
   await delay(200);
   await assertSnapshot(t, ev);
@@ -51,11 +52,11 @@ Deno.test('captureException', async t => {
 
 Deno.test('captureMessage', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [hub] = getTestClient(event => {
+  const [, client] = getTestClient(event => {
     ev = event;
   });
 
-  hub.captureMessage('Some error message');
+  client.captureMessage('Some error message');
 
   await delay(200);
   await assertSnapshot(t, ev);

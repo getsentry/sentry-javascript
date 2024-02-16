@@ -1,6 +1,4 @@
-import { getCurrentHub } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { init } from '../src/index.client';
 
@@ -9,7 +7,11 @@ const reactInit = jest.spyOn(SentryReact, 'init');
 describe('Client init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    GLOBAL_OBJ.__SENTRY__.hub = undefined;
+
+    SentryReact.getGlobalScope().clear();
+    SentryReact.getIsolationScope().clear();
+    SentryReact.getCurrentScope().clear();
+    SentryReact.getCurrentScope().setClient(undefined);
   });
 
   it('inits the React SDK', () => {
@@ -39,14 +41,10 @@ describe('Client init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentHub().getScope();
+    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({});
 
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'browser' });
+    expect(SentryReact.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
   });
 });

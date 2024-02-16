@@ -1,33 +1,56 @@
 /* eslint-disable max-lines */
-import { Integrations as CoreIntegrations } from '@sentry/core';
-import { Integrations as NodeIntegrations, init as initNode } from '@sentry/node';
+import {
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+} from '@sentry/core';
+import {
+  consoleIntegration,
+  contextLinesIntegration,
+  httpIntegration,
+  init as initNode,
+  modulesIntegration,
+  nativeNodeFetchintegration,
+  nodeContextIntegration,
+} from '@sentry/node';
+import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
-import { BunServer } from './integrations';
+import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  requestDataIntegration(),
   // Native Wrappers
-  new NodeIntegrations.Console(),
-  new NodeIntegrations.Http(),
-  new NodeIntegrations.Undici(),
+  consoleIntegration(),
+  httpIntegration(),
+  nativeNodeFetchintegration(),
   // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
   // new NodeIntegrations.OnUncaughtException(),
   // new NodeIntegrations.OnUnhandledRejection(),
   // Event Info
-  new NodeIntegrations.ContextLines(),
-  // new NodeIntegrations.LocalVariables(), # does't work with Bun
-  new NodeIntegrations.Context(),
-  new NodeIntegrations.Modules(),
-  new NodeIntegrations.RequestData(),
+  contextLinesIntegration(),
+  nodeContextIntegration(),
+  modulesIntegration(),
   // Bun Specific
-  new BunServer(),
+  bunServerIntegration(),
 ];
+
+/** Get the default integrations for the Bun SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  // We return a copy of the defaultIntegrations here to avoid mutating this
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+  ];
+}
 
 /**
  * The Sentry Bun SDK Client.
@@ -44,17 +67,6 @@ export const defaultIntegrations = [
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -88,9 +100,9 @@ export function init(options: BunOptions = {}): void {
   options.clientClass = BunClient;
   options.transport = options.transport || makeFetchTransport;
 
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations)];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
+
   initNode(options);
 }

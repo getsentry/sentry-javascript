@@ -1,9 +1,11 @@
 import { readFile } from 'fs';
-import type { Event, EventProcessor, Hub, Integration, StackFrame } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
+const INTEGRATION_NAME = 'ContextLines';
 
 // TODO: Replace with promisify when minimum supported node >= v8
 function readTextFileAsync(path: string): Promise<string> {
@@ -33,107 +35,97 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-/** Add node modules / packages to the event */
-export class ContextLines implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'ContextLines';
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+  const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
-  /**
-   * @inheritDoc
-   */
-  public name: string = ContextLines.id;
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    processEvent(event) {
+      return addSourceContext(event, contextLines);
+    },
+  };
+}) satisfies IntegrationFn;
 
-  public constructor(private readonly _options: ContextLinesOptions = {}) {}
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
 
-  /** Get's the number of context lines to add */
-  private get _contextLines(): number {
-    return this._options.frameContextLines !== undefined ? this._options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
-  }
+/**
+ * Add node modules / packages to the event.
+ * @deprecated Use `contextLinesIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
+  Integration & { processEvent: (event: Event) => Promise<Event> }
+> & { new (options?: { frameContextLines?: number }): Integration };
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    // noop
-  }
+async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
+  // keep a lookup map of which files we've already enqueued to read,
+  // so we don't enqueue the same file multiple times which would cause multiple i/o reads
+  const enqueuedReadSourceFileTasks: Record<string, number> = {};
+  const readSourceFileTasks: Promise<string[] | null>[] = [];
 
-  /** @inheritDoc */
-  public processEvent(event: Event): Promise<Event> {
-    return this.addSourceContext(event);
-  }
+  if (contextLines > 0 && event.exception?.values) {
+    for (const exception of event.exception.values) {
+      if (!exception.stacktrace?.frames) {
+        continue;
+      }
 
-  /** Processes an event and adds context lines */
-  public async addSourceContext(event: Event): Promise<Event> {
-    // keep a lookup map of which files we've already enqueued to read,
-    // so we don't enqueue the same file multiple times which would cause multiple i/o reads
-    const enqueuedReadSourceFileTasks: Record<string, number> = {};
-    const readSourceFileTasks: Promise<string[] | null>[] = [];
-
-    if (this._contextLines > 0 && event.exception?.values) {
-      for (const exception of event.exception.values) {
-        if (!exception.stacktrace?.frames) {
-          continue;
-        }
-
-        // We want to iterate in reverse order as calling cache.get will bump the file in our LRU cache.
-        // This ends up prioritizes source context for frames at the top of the stack instead of the bottom.
-        for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
-          const frame = exception.stacktrace.frames[i];
-          // Call cache.get to bump the file to the top of the cache and ensure we have not already
-          // enqueued a read operation for this filename
-          if (
-            frame.filename &&
-            !enqueuedReadSourceFileTasks[frame.filename] &&
-            !FILE_CONTENT_CACHE.get(frame.filename)
-          ) {
-            readSourceFileTasks.push(_readSourceFile(frame.filename));
-            enqueuedReadSourceFileTasks[frame.filename] = 1;
-          }
+      // We want to iterate in reverse order as calling cache.get will bump the file in our LRU cache.
+      // This ends up prioritizes source context for frames at the top of the stack instead of the bottom.
+      for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
+        const frame = exception.stacktrace.frames[i];
+        // Call cache.get to bump the file to the top of the cache and ensure we have not already
+        // enqueued a read operation for this filename
+        if (frame.filename && !enqueuedReadSourceFileTasks[frame.filename] && !FILE_CONTENT_CACHE.get(frame.filename)) {
+          readSourceFileTasks.push(_readSourceFile(frame.filename));
+          enqueuedReadSourceFileTasks[frame.filename] = 1;
         }
       }
     }
-
-    // check if files to read > 0, if so, await all of them to be read before adding source contexts.
-    // Normally, Promise.all here could be short circuited if one of the promises rejects, but we
-    // are guarding from that by wrapping the i/o read operation in a try/catch.
-    if (readSourceFileTasks.length > 0) {
-      await Promise.all(readSourceFileTasks);
-    }
-
-    // Perform the same loop as above, but this time we can assume all files are in the cache
-    // and attempt to add source context to frames.
-    if (this._contextLines > 0 && event.exception?.values) {
-      for (const exception of event.exception.values) {
-        if (exception.stacktrace && exception.stacktrace.frames) {
-          await this.addSourceContextToFrames(exception.stacktrace.frames);
-        }
-      }
-    }
-
-    return event;
   }
 
-  /** Adds context lines to frames */
-  public addSourceContextToFrames(frames: StackFrame[]): void {
-    for (const frame of frames) {
-      // Only add context if we have a filename and it hasn't already been added
-      if (frame.filename && frame.context_line === undefined) {
-        const sourceFileLines = FILE_CONTENT_CACHE.get(frame.filename);
+  // check if files to read > 0, if so, await all of them to be read before adding source contexts.
+  // Normally, Promise.all here could be short circuited if one of the promises rejects, but we
+  // are guarding from that by wrapping the i/o read operation in a try/catch.
+  if (readSourceFileTasks.length > 0) {
+    await Promise.all(readSourceFileTasks);
+  }
 
-        if (sourceFileLines) {
-          try {
-            addContextToFrame(sourceFileLines, frame, this._contextLines);
-          } catch (e) {
-            // anomaly, being defensive in case
-            // unlikely to ever happen in practice but can definitely happen in theory
-          }
+  // Perform the same loop as above, but this time we can assume all files are in the cache
+  // and attempt to add source context to frames.
+  if (contextLines > 0 && event.exception?.values) {
+    for (const exception of event.exception.values) {
+      if (exception.stacktrace && exception.stacktrace.frames) {
+        await addSourceContextToFrames(exception.stacktrace.frames, contextLines);
+      }
+    }
+  }
+
+  return event;
+}
+
+/** Adds context lines to frames */
+function addSourceContextToFrames(frames: StackFrame[], contextLines: number): void {
+  for (const frame of frames) {
+    // Only add context if we have a filename and it hasn't already been added
+    if (frame.filename && frame.context_line === undefined) {
+      const sourceFileLines = FILE_CONTENT_CACHE.get(frame.filename);
+
+      if (sourceFileLines) {
+        try {
+          addContextToFrame(sourceFileLines, frame, contextLines);
+        } catch (e) {
+          // anomaly, being defensive in case
+          // unlikely to ever happen in practice but can definitely happen in theory
         }
       }
     }
   }
 }
+
+// eslint-disable-next-line deprecation/deprecation
+export type ContextLines = typeof ContextLines;
 
 /**
  * Reads file contents and caches them in a global LRU cache.

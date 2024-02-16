@@ -1,62 +1,91 @@
-import { Integrations as CoreIntegrations } from '@sentry/core';
+export { expressIntegration } from './integrations/express';
+export { fastifyIntegration } from './integrations/fastify';
+export { graphqlIntegration } from './integrations/graphql';
+export { httpIntegration } from './integrations/http';
+export { mongoIntegration } from './integrations/mongo';
+export { mongooseIntegration } from './integrations/mongoose';
+export { mysqlIntegration } from './integrations/mysql';
+export { mysql2Integration } from './integrations/mysql2';
+export { nestIntegration } from './integrations/nest';
+export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+export { postgresIntegration } from './integrations/postgres';
+export { prismaIntegration } from './integrations/prisma';
 
-import * as NodeExperimentalIntegrations from './integrations';
-
-const INTEGRATIONS = {
-  ...CoreIntegrations,
-  ...NodeExperimentalIntegrations,
-};
-
-export { init } from './sdk/init';
-export { INTEGRATIONS as Integrations };
+export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
-export { startSpan, startInactiveSpan, getCurrentHub, getClient, getActiveSpan } from '@sentry/opentelemetry';
-
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
 export {
-  makeNodeTransport,
-  defaultStackParser,
-  getSentryRelease,
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
-  deepReadDirSync,
-  getModuleFromFilename,
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
-  addEventProcessor,
-  addBreadcrumb,
+  getClient,
   captureException,
   captureEvent,
   captureMessage,
+  withActiveSpan,
+} from './sdk/api';
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHub } from './sdk/hub';
+
+export {
+  addBreadcrumb,
+  isInitialized,
+  makeNodeTransport,
+  defaultStackParser,
+  getSentryRelease,
+  getGlobalScope,
+  addRequestDataToEvent,
+  DEFAULT_USER_INCLUDES,
+  extractRequestData,
+  // eslint-disable-next-line deprecation/deprecation
+  getModuleFromFilename,
+  createGetModuleFromFilename,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
-  getActiveTransaction,
   Hub,
-  lastEventId,
-  makeMain,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
-  Scope,
   SDK_VERSION,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
+  captureCheckIn,
+  withMonitor,
+  hapiErrorPlugin,
+  consoleIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
+  modulesIntegration,
+  contextLinesIntegration,
+  nodeContextIntegration,
+  localVariablesIntegration,
+  requestDataIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  addEventProcessor,
   setContext,
   setExtra,
   setExtras,
   setTag,
   setTags,
   setUser,
-  spanStatusfromHttpCode,
-  trace,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  Scope,
+  setMeasurement,
+  continueTrace,
+  cron,
+  parameterize,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
+  getCurrentScope,
+  getIsolationScope,
   withScope,
-  captureCheckIn,
-  withMonitor,
-  hapiErrorPlugin,
+  withIsolationScope,
 } from '@sentry/node';
 
 export type {
@@ -77,4 +106,5 @@ export type {
   Stacktrace,
   Thread,
   User,
+  NodeOptions,
 } from '@sentry/node';

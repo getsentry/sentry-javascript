@@ -1,4 +1,15 @@
-import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, hasTracingEnabled } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getClient,
+  getCurrentScope,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
+  hasTracingEnabled,
+  setHttpStatus,
+  spanToTraceHeader,
+  startInactiveSpan,
+} from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -43,7 +54,7 @@ export function instrumentFetchRequest(
     const span = spans[spanId];
     if (span) {
       if (handlerData.response) {
-        span.setHttpStatus(handlerData.response.status);
+        setHttpStatus(span, handlerData.response.status);
 
         const contentLength =
           handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
@@ -51,13 +62,13 @@ export function instrumentFetchRequest(
         if (contentLength) {
           const contentLengthNum = parseInt(contentLength);
           if (contentLengthNum > 0) {
-            span.setData('http.response_content_length', contentLengthNum);
+            span.setAttribute('http.response_content_length', contentLengthNum);
           }
         }
       } else if (handlerData.error) {
         span.setStatus('internal_error');
       }
-      span.finish();
+      span.end();
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -67,27 +78,26 @@ export function instrumentFetchRequest(
 
   const scope = getCurrentScope();
   const client = getClient();
-  const parentSpan = scope.getSpan();
 
   const { method, url } = handlerData.fetchData;
 
-  const span =
-    shouldCreateSpanResult && parentSpan
-      ? parentSpan.startChild({
-          data: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-          },
-          description: `${method} ${url}`,
-          op: 'http.client',
-          origin: spanOrigin,
-        })
-      : undefined;
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        name: `${method} ${url}`,
+        onlyIfParent: true,
+        attributes: {
+          url,
+          type: 'fetch',
+          'http.method': method,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+        },
+        op: 'http.client',
+      })
+    : undefined;
 
   if (span) {
-    handlerData.fetchData.__span = span.spanId;
-    spans[span.spanId] = span;
+    handlerData.fetchData.__span = span.spanContext().spanId;
+    spans[span.spanContext().spanId] = span;
   }
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
@@ -122,23 +132,25 @@ export function addTracingHeadersToFetchRequest(
   },
   requestSpan?: Span,
 ): PolymorphicRequestHeaders | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   const span = requestSpan || scope.getSpan();
 
-  const transaction = span && span.transaction;
+  const isolationScope = getIsolationScope();
 
-  const { traceId, sampled, dsc } = scope.getPropagationContext();
+  const { traceId, spanId, sampled, dsc } = {
+    ...isolationScope.getPropagationContext(),
+    ...scope.getPropagationContext(),
+  };
 
-  const sentryTraceHeader = span ? span.toTraceparent() : generateSentryTraceHeader(traceId, undefined, sampled);
-  const dynamicSamplingContext = transaction
-    ? transaction.getDynamicSamplingContext()
-    : dsc
-      ? dsc
-      : getDynamicSamplingContextFromClient(traceId, client, scope);
+  const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
-  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+  );
 
   const headers =
-    typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : options.headers;
+    options.headers ||
+    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
     return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };

@@ -8,8 +8,6 @@ export type {
   EventHint,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
@@ -32,22 +30,26 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getHubFromCarrier,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
+  isInitialized,
   getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
   Hub,
-  lastEventId,
+  // eslint-disable-next-line deprecation/deprecation
   makeMain,
+  setCurrentClient,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   Scope,
+  // eslint-disable-next-line deprecation/deprecation
   startTransaction,
   SDK_VERSION,
   setContext,
@@ -56,9 +58,10 @@ export {
   setTag,
   setTags,
   setUser,
-  spanStatusfromHttpCode,
-  trace,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
   withScope,
+  withIsolationScope,
   captureCheckIn,
   withMonitor,
   setMeasurement,
@@ -67,20 +70,35 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  metrics,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
-export { defaultIntegrations, init } from './sdk';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  defaultIntegrations,
+  getDefaultIntegrations,
+  init,
+} from './sdk';
 
 import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
+export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 
-const INTEGRATIONS = {
+/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
+export const Integrations = {
+  // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
   WinterCGFetch,
   RequestData,
 };
-
-export { INTEGRATIONS as Integrations };

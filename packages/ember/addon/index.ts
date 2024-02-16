@@ -2,11 +2,11 @@ import { assert, warn } from '@ember/debug';
 import type Route from '@ember/routing/route';
 import { next } from '@ember/runloop';
 import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros';
+import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SDK_VERSION } from '@sentry/browser';
-import type { Transaction } from '@sentry/types';
-import { GLOBAL_OBJ, timestampInSeconds } from '@sentry/utils';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
+import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
@@ -17,7 +17,10 @@ function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
   return _global.__sentryEmberConfig;
 }
 
-export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
+/**
+ * Initialize the Sentry SDK for Ember.
+ */
+export function init(_runtimeConfig?: BrowserOptions): void {
   const environmentConfig = getOwnConfig<OwnConfig>().sentryConfig;
 
   assert('Missing configuration.', environmentConfig);
@@ -32,17 +35,7 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   Object.assign(environmentConfig.sentry, _runtimeConfig || {});
   const initConfig = Object.assign({}, environmentConfig.sentry);
 
-  initConfig._metadata = initConfig._metadata || {};
-  initConfig._metadata.sdk = {
-    name: 'sentry.javascript.ember',
-    packages: [
-      {
-        name: 'npm:@sentry/ember',
-        version: SDK_VERSION,
-      },
-    ],
-    version: SDK_VERSION,
-  };
+  applySdkMetadata(initConfig, 'ember');
 
   // Persist Sentry init options so they are identical when performance initializers call init again.
   const sentryInitConfig = _getSentryInitConfig();
@@ -66,10 +59,6 @@ export function InitSentryForEmber(_runtimeConfig?: BrowserOptions): void {
   }
 }
 
-export const getActiveTransaction = (): Transaction | undefined => {
-  return Sentry.getCurrentHub().getScope().getTransaction();
-};
-
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
 
 export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
@@ -80,22 +69,18 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
     fn: X,
     args: Parameters<X>,
   ): Promise<ReturnType<X>> => {
-    const startTimestamp = timestampInSeconds();
-    const result = await fn(...args);
-
-    const currentTransaction = getActiveTransaction();
-    if (!currentTransaction) {
-      return result;
-    }
-    currentTransaction
-      .startChild({
+    return startSpan(
+      {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'ember',
+        },
         op,
-        description,
-        origin: 'auto.ui.ember',
-        startTimestamp,
-      })
-      .finish();
-    return result;
+        name: description,
+      },
+      () => {
+        return fn(...args);
+      },
+    );
   };
 
   const routeName = BaseRoute.name;
@@ -134,5 +119,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
 
 export * from '@sentry/browser';
 
-// init is now the preferred way to call initialization for this addon.
-export const init = InitSentryForEmber;
+/**
+ * @deprecated Use `Sentry.init()` instead.
+ */
+export const InitSentryForEmber = init;

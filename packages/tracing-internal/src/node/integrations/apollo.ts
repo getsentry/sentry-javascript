@@ -188,8 +188,11 @@ function wrapResolver(
 ): void {
   fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {
     return function (this: unknown, ...args: unknown[]) {
+      // eslint-disable-next-line deprecation/deprecation
       const scope = getCurrentHub().getScope();
+      // eslint-disable-next-line deprecation/deprecation
       const parentSpan = scope.getSpan();
+      // eslint-disable-next-line deprecation/deprecation
       const span = parentSpan?.startChild({
         description: `${resolverGroupName}.${resolverName}`,
         op: 'graphql.resolve',
@@ -200,12 +203,12 @@ function wrapResolver(
 
       if (isThenable(rv)) {
         return rv.then((res: unknown) => {
-          span?.finish();
+          span?.end();
           return res;
         });
       }
 
-      span?.finish();
+      span?.end();
 
       return rv;
     };

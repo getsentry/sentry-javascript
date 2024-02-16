@@ -5,7 +5,7 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { SpanStatusType } from './span';
+import type { SpanStatusType } from './spanstatus';
 import { getActiveTransaction } from './utils';
 
 let errorsInstrumented = false;
@@ -27,6 +27,7 @@ export function registerErrorInstrumentation(): void {
  * If an error or unhandled promise occurs, we mark the active transaction as failed
  */
 function errorCallback(): void {
+  // eslint-disable-next-line deprecation/deprecation
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
     const status: SpanStatusType = 'internal_error';

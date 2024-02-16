@@ -1,51 +1,33 @@
-import type { Event, Integration } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 
-/** This function adds duration since Sentry was initialized till the time event was sent */
-export class SessionTiming implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'SessionTiming';
+const INTEGRATION_NAME = 'SessionTiming';
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+const _sessionTimingIntegration = (() => {
+  const startTime = Date.now();
 
-  /** Exact time Client was initialized expressed in milliseconds since Unix Epoch. */
-  protected readonly _startTime: number;
+  return {
+    name: INTEGRATION_NAME,
+    // TODO v8: Remove this
+    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
+    processEvent(event) {
+      const now = Date.now();
 
-  public constructor() {
-    this.name = SessionTiming.id;
-    this._startTime = Date.now();
-  }
+      return {
+        ...event,
+        extra: {
+          ...event.extra,
+          ['session:start']: startTime,
+          ['session:duration']: now - startTime,
+          ['session:end']: now,
+        },
+      };
+    },
+  };
+}) satisfies IntegrationFn;
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(_addGlobalEventProcessor: unknown, _getCurrentHub: unknown): void {
-    // noop
-  }
-
-  /** @inheritDoc */
-  public processEvent(event: Event): Event {
-    return this.process(event);
-  }
-
-  /**
-   * TODO (v8): make this private/internal
-   */
-  public process(event: Event): Event {
-    const now = Date.now();
-
-    return {
-      ...event,
-      extra: {
-        ...event.extra,
-        ['session:start']: this._startTime,
-        ['session:duration']: now - this._startTime,
-        ['session:end']: now,
-      },
-    };
-  }
-}
+/**
+ * This function adds duration since the sessionTimingIntegration was initialized
+ * till the time event was sent.
+ */
+export const sessionTimingIntegration = defineIntegration(_sessionTimingIntegration);

@@ -1,10 +1,13 @@
-import { hasTracingEnabled } from '@sentry/core';
-import type { BrowserOptions } from '@sentry/svelte';
-import { BrowserTracing, WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
-import { addOrUpdateIntegration } from '@sentry/utils';
+import { applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
+import type { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
+import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
+import { WINDOW, init as initSvelteSdk } from '@sentry/svelte';
+import type { Integration } from '@sentry/types';
 
-import { applySdkMetadata } from '../common/metadata';
-import { svelteKitRoutingInstrumentation } from './router';
+import {
+  BrowserTracing,
+  browserTracingIntegration as svelteKitBrowserTracingIntegration,
+} from './browserTracingIntegration';
 
 type WindowWithSentryFetchProxy = typeof WINDOW & {
   _sentryFetchProxy?: typeof fetch;
@@ -19,42 +22,94 @@ declare const __SENTRY_TRACING__: boolean;
  * @param options Configuration options for the SDK.
  */
 export function init(options: BrowserOptions): void {
-  applySdkMetadata(options, ['sveltekit', 'svelte']);
+  const opts = {
+    defaultIntegrations: getDefaultIntegrations(options),
+    ...options,
+  };
 
-  addClientIntegrations(options);
+  applySdkMetadata(opts, 'sveltekit', ['sveltekit', 'svelte']);
+
+  fixBrowserTracingIntegration(opts);
 
   // 1. Switch window.fetch to our fetch proxy we injected earlier
   const actualFetch = switchToFetchProxy();
 
   // 2. Initialize the SDK which will instrument our proxy
-  initSvelteSdk(options);
+  initSvelteSdk(opts);
 
   // 3. Restore the original fetch now that our proxy is instrumented
   if (actualFetch) {
     restoreFetch(actualFetch);
   }
 
-  getCurrentScope().setTag('runtime', 'browser');
+  setTag('runtime', 'browser');
 }
 
-function addClientIntegrations(options: BrowserOptions): void {
-  let integrations = options.integrations || [];
+// TODO v8: Remove this again
+// We need to handle BrowserTracing passed to `integrations` that comes from `@sentry/tracing`, not `@sentry/sveltekit` :(
+function fixBrowserTracingIntegration(options: BrowserOptions): void {
+  const { integrations } = options;
+  if (!integrations) {
+    return;
+  }
 
-  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false",
-  // in which case everything inside will get treeshaken away
+  if (Array.isArray(integrations)) {
+    options.integrations = maybeUpdateBrowserTracingIntegration(integrations);
+  } else {
+    options.integrations = defaultIntegrations => {
+      const userFinalIntegrations = integrations(defaultIntegrations);
+
+      return maybeUpdateBrowserTracingIntegration(userFinalIntegrations);
+    };
+  }
+}
+
+function isNewBrowserTracingIntegration(
+  integration: Integration,
+): integration is Integration & { options?: Parameters<typeof browserTracingIntegration>[0] } {
+  // eslint-disable-next-line deprecation/deprecation
+  return !!integration.afterAllSetup && !!(integration as BrowserTracing).options;
+}
+
+function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Integration[] {
+  const browserTracing = integrations.find(integration => integration.name === 'BrowserTracing');
+
+  if (!browserTracing) {
+    return integrations;
+  }
+
+  // If `browserTracingIntegration()` was added, we need to force-convert it to our custom one
+  if (isNewBrowserTracingIntegration(browserTracing)) {
+    const { options } = browserTracing;
+    // eslint-disable-next-line deprecation/deprecation
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+  }
+
+  // If BrowserTracing was added, but it is not our forked version,
+  // replace it with our forked version with the same options
+  // eslint-disable-next-line deprecation/deprecation
+  if (!(browserTracing instanceof BrowserTracing)) {
+    // eslint-disable-next-line deprecation/deprecation
+    const options: ConstructorParameters<typeof BrowserTracing>[0] = (browserTracing as BrowserTracing).options;
+    // This option is overwritten by the custom integration
+    delete options.routingInstrumentation;
+    // eslint-disable-next-line deprecation/deprecation
+    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+  }
+
+  return integrations;
+}
+
+function getDefaultIntegrations(options: BrowserOptions): Integration[] | undefined {
+  // This evaluates to true unless __SENTRY_TRACING__ is text-replaced with "false", in which case everything inside
+  // will get treeshaken away
   if (typeof __SENTRY_TRACING__ === 'undefined' || __SENTRY_TRACING__) {
     if (hasTracingEnabled(options)) {
-      const defaultBrowserTracingIntegration = new BrowserTracing({
-        routingInstrumentation: svelteKitRoutingInstrumentation,
-      });
-
-      integrations = addOrUpdateIntegration(defaultBrowserTracingIntegration, integrations, {
-        'options.routingInstrumentation': svelteKitRoutingInstrumentation,
-      });
+      return [...getDefaultSvelteIntegrations(options), svelteKitBrowserTracingIntegration()];
     }
   }
 
-  options.integrations = integrations;
+  return undefined;
 }
 
 /**

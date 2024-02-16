@@ -1,4 +1,5 @@
 /* eslint-disable max-lines */
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
@@ -157,13 +158,14 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
       return function (this: NodeJS.Global, req: unknown, res: ExpressResponse & SentryTracingResponse): void {
         const transaction = res.__sentry_transaction;
         if (transaction) {
+          // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({
             description: fn.name,
             op: `middleware.express.${method}`,
             origin: 'auto.middleware.express',
           });
           res.once('finish', () => {
-            span.finish();
+            span.end();
           });
         }
         return fn.call(this, req, res);
@@ -177,13 +179,14 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });
         fn.call(this, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
-          span?.finish();
+          span?.end();
           next.call(this, ...args);
         });
       };
@@ -197,13 +200,14 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         next: () => void,
       ): void {
         const transaction = res.__sentry_transaction;
+        // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
           description: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });
         fn.call(this, err, req, res, function (this: NodeJS.Global, ...args: unknown[]): void {
-          span?.finish();
+          span?.end();
           next.call(this, ...args);
         });
       };
@@ -371,12 +375,15 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
       }
 
       const transaction = res.__sentry_transaction;
-      if (transaction && transaction.metadata.source !== 'custom') {
+      const attributes = (transaction && spanToJSON(transaction).data) || {};
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
         // If the request URL is '/' or empty, the reconstructed route will be empty.
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';
 
-        transaction.setName(...extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute }));
+        const [name, source] = extractPathForTransaction(req, { path: true, method: true, customRoute: finalRoute });
+        transaction.updateName(name);
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
       }
     }
 
@@ -412,6 +419,7 @@ export const extractOriginalRoute = (
   const orderedKeys = keys.sort((a, b) => a.offset - b.offset);
 
   // add d flag for getting indices from regexp result
+  // eslint-disable-next-line @sentry-internal/sdk/no-regexp-constructor -- regexp comes from express.js
   const pathRegex = new RegExp(regexp, `${regexp.flags}d`);
   /**
    * use custom type cause of TS error with missing indices in RegExpExecArray

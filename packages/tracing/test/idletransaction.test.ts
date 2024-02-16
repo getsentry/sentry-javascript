@@ -1,15 +1,37 @@
+/* eslint-disable deprecation/deprecation */
 import { BrowserClient } from '@sentry/browser';
-import { TRACING_DEFAULTS, Transaction } from '@sentry/core';
+import {
+  TRACING_DEFAULTS,
+  Transaction,
+  getCurrentHub,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  setCurrentClient,
+  spanToJSON,
+  startInactiveSpan,
+  startSpan,
+  startSpanManual,
+} from '@sentry/core';
 
-import { Hub, IdleTransaction, Span } from '../../core/src';
+import { IdleTransaction, SentrySpan, getClient } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 const dsn = 'https://123@sentry.io/42';
-let hub: Hub;
 beforeEach(() => {
+  getCurrentScope().clear();
+  getIsolationScope().clear();
+  getGlobalScope().clear();
+
   const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1 });
-  hub = new Hub(new BrowserClient(options));
+  const client = new BrowserClient(options);
+  setCurrentClient(client);
+  client.init();
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
 });
 
 describe('IdleTransaction', () => {
@@ -17,7 +39,7 @@ describe('IdleTransaction', () => {
     it('sets the transaction on the scope on creation if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -25,22 +47,24 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(transaction);
     });
 
     it('does not set the transaction on the scope on creation if onScope is falsey', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub);
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
       transaction.initSpanRecorder(10);
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('removes sampled transaction from scope on finish if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -48,34 +72,36 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      transaction.finish();
+      transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('removes unsampled transaction from scope on finish if onScope is true', () => {
       const transaction = new IdleTransaction(
         { name: 'foo', sampled: false },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
         true,
       );
 
-      transaction.finish();
+      transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(undefined);
     });
 
     it('does not remove transaction from scope on finish if another transaction was set there', () => {
       const transaction = new IdleTransaction(
         { name: 'foo' },
-        hub,
+        getCurrentHub(),
         TRACING_DEFAULTS.idleTimeout,
         TRACING_DEFAULTS.finalTimeout,
         TRACING_DEFAULTS.heartbeatInterval,
@@ -83,14 +109,15 @@ describe('IdleTransaction', () => {
       );
       transaction.initSpanRecorder(10);
 
-      // @ts-expect-error need to pass in hub
-      const otherTransaction = new Transaction({ name: 'bar' }, hub);
-      hub.getScope().setSpan(otherTransaction);
+      const otherTransaction = new Transaction({ name: 'bar' }, getCurrentHub());
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(otherTransaction);
 
-      transaction.finish();
+      transaction.end();
       jest.runAllTimers();
 
-      const scope = hub.getScope();
+      const scope = getCurrentScope();
+      // eslint-disable-next-line deprecation/deprecation
       expect(scope.getTransaction()).toBe(otherTransaction);
     });
   });
@@ -100,17 +127,19 @@ describe('IdleTransaction', () => {
   });
 
   it('push and pops activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
-    const mockFinish = jest.spyOn(transaction, 'finish');
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
+    const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
-    const span = transaction.startChild();
-    expect(transaction.activities).toMatchObject({ [span.spanId]: true });
+    const span = startInactiveSpan({ name: 'inner' })!;
+    expect(transaction.activities).toMatchObject({ [span.spanContext().spanId]: true });
 
     expect(mockFinish).toHaveBeenCalledTimes(0);
 
-    span.finish();
+    span.end();
     expect(transaction.activities).toMatchObject({});
 
     jest.runOnlyPendingTimers();
@@ -118,44 +147,52 @@ describe('IdleTransaction', () => {
   });
 
   it('does not push activities if a span already has an end timestamp', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
-    transaction.startChild({ startTimestamp: 1234, endTimestamp: 5678 });
+    startInactiveSpan({ name: 'inner', startTimestamp: 1234, endTimestamp: 5678 });
     expect(transaction.activities).toMatchObject({});
   });
 
   it('does not finish if there are still active activities', () => {
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
-    const mockFinish = jest.spyOn(transaction, 'finish');
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
+    const mockFinish = jest.spyOn(transaction, 'end');
     transaction.initSpanRecorder(10);
     expect(transaction.activities).toMatchObject({});
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
-    const span = transaction.startChild();
-    const childSpan = span.startChild();
+    startSpanManual({ name: 'inner1' }, span => {
+      const childSpan = startInactiveSpan({ name: 'inner2' })!;
+      expect(transaction.activities).toMatchObject({
+        [span!.spanContext().spanId]: true,
+        [childSpan.spanContext().spanId]: true,
+      });
+      span?.end();
+      jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
-    expect(transaction.activities).toMatchObject({ [span.spanId]: true, [childSpan.spanId]: true });
-    span.finish();
-    jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
-
-    expect(mockFinish).toHaveBeenCalledTimes(0);
-    expect(transaction.activities).toMatchObject({ [childSpan.spanId]: true });
+      expect(mockFinish).toHaveBeenCalledTimes(0);
+      expect(transaction.activities).toMatchObject({ [childSpan.spanContext().spanId]: true });
+    });
   });
 
   it('calls beforeFinish callback before finishing', () => {
     const mockCallback1 = jest.fn();
     const mockCallback2 = jest.fn();
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
     transaction.initSpanRecorder(10);
     transaction.registerBeforeFinishCallback(mockCallback1);
     transaction.registerBeforeFinishCallback(mockCallback2);
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
     expect(mockCallback1).toHaveBeenCalledTimes(0);
     expect(mockCallback2).toHaveBeenCalledTimes(0);
 
-    const span = transaction.startChild();
-    span.finish();
+    startSpan({ name: 'inner' }, () => {});
 
     jest.runOnlyPendingTimers();
     expect(mockCallback1).toHaveBeenCalledTimes(1);
@@ -165,197 +202,219 @@ describe('IdleTransaction', () => {
   });
 
   it('filters spans on finish', () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
     transaction.initSpanRecorder(10);
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
     // regular child - should be kept
-    const regularSpan = transaction.startChild({ startTimestamp: transaction.startTimestamp + 2 });
+    const regularSpan = startInactiveSpan({
+      name: 'span1',
+      startTimestamp: spanToJSON(transaction).start_timestamp! + 2,
+    })!;
 
     // discardedSpan - startTimestamp is too large
-    transaction.startChild({ startTimestamp: 645345234 });
+    startInactiveSpan({ name: 'span2', startTimestamp: 645345234 });
 
     // Should be cancelled - will not finish
-    const cancelledSpan = transaction.startChild({ startTimestamp: transaction.startTimestamp + 4 });
+    const cancelledSpan = startInactiveSpan({
+      name: 'span3',
+      startTimestamp: spanToJSON(transaction).start_timestamp! + 4,
+    })!;
 
-    regularSpan.finish(regularSpan.startTimestamp + 4);
-    transaction.finish(transaction.startTimestamp + 10);
+    regularSpan.end(spanToJSON(regularSpan).start_timestamp! + 4);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 10);
 
     expect(transaction.spanRecorder).toBeDefined();
     if (transaction.spanRecorder) {
       const spans = transaction.spanRecorder.spans;
       expect(spans).toHaveLength(3);
-      expect(spans[0].spanId).toBe(transaction.spanId);
+      expect(spans[0].spanContext().spanId).toBe(transaction.spanContext().spanId);
 
-      // Regular Span - should not modified
-      expect(spans[1].spanId).toBe(regularSpan.spanId);
-      expect(spans[1].endTimestamp).not.toBe(transaction.endTimestamp);
+      // Regular SentrySpan - should not modified
+      expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
+      expect(spans[1]['_endTime']).not.toBe(spanToJSON(transaction).timestamp);
 
-      // Cancelled Span - has endtimestamp of transaction
-      expect(spans[2].spanId).toBe(cancelledSpan.spanId);
+      // Cancelled SentrySpan - has endtimestamp of transaction
+      expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
       expect(spans[2].status).toBe('cancelled');
-      expect(spans[2].endTimestamp).toBe(transaction.endTimestamp);
+      expect(spans[2]['_endTime']).toBe(spanToJSON(transaction).timestamp);
     }
   });
 
   it('filters out spans that exceed final timeout', () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, 1000, 3000);
+    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), 1000, 3000);
     transaction.initSpanRecorder(10);
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
-    const span = transaction.startChild({ startTimestamp: transaction.startTimestamp + 2 });
-    span.finish(span.startTimestamp + 10 + 30 + 1);
+    const span = startInactiveSpan({ name: 'span', startTimestamp: spanToJSON(transaction).start_timestamp! + 2 })!;
+    span.end(spanToJSON(span).start_timestamp! + 10 + 30 + 1);
 
-    transaction.finish(transaction.startTimestamp + 50);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 50);
 
     expect(transaction.spanRecorder).toBeDefined();
     expect(transaction.spanRecorder!.spans).toHaveLength(1);
   });
 
   it('should record dropped transactions', async () => {
-    const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234, sampled: false }, hub, 1000);
+    const transaction = new IdleTransaction(
+      { name: 'foo', startTimestamp: 1234, sampled: false },
+      getCurrentHub(),
+      1000,
+    );
 
-    const client = hub.getClient()!;
+    const client = getClient()!;
 
     const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
     transaction.initSpanRecorder(10);
-    transaction.finish(transaction.startTimestamp + 10);
+    transaction.end(spanToJSON(transaction).start_timestamp! + 10);
 
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
 
   describe('_idleTimeout', () => {
     it('finishes if no activities are added to the transaction', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
       transaction.initSpanRecorder(10);
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('does not finish if a activity is started', () => {
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub());
       transaction.initSpanRecorder(10);
-      transaction.startChild({});
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
+
+      startInactiveSpan({ name: 'span' });
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
     });
 
     it('does not finish when idleTimeout is not exceed after last activity finished', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const span = transaction.startChild({});
-      span.finish();
+      startSpan({ name: 'span1' }, () => {});
 
       jest.advanceTimersByTime(2);
 
-      const span2 = transaction.startChild({});
-      span2.finish();
+      startSpan({ name: 'span2' }, () => {});
 
       jest.advanceTimersByTime(8);
 
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
     });
 
     it('finish when idleTimeout is exceeded after last activity finished', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const span = transaction.startChild({});
-      span.finish();
+      startSpan({ name: 'span1' }, () => {});
 
       jest.advanceTimersByTime(2);
 
-      const span2 = transaction.startChild({});
-      span2.finish();
+      startSpan({ name: 'span2' }, () => {});
 
       jest.advanceTimersByTime(10);
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
   });
 
   describe('cancelIdleTimeout', () => {
     it('permanent idle timeout cancel is not restarted by child span start', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const firstSpan = transaction.startChild({});
+      const firstSpan = startInactiveSpan({ name: 'span1' })!;
       transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
-      const secondSpan = transaction.startChild({});
-      firstSpan.finish();
-      secondSpan.finish();
+      const secondSpan = startInactiveSpan({ name: 'span2' })!;
+      firstSpan.end();
+      secondSpan.end();
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('permanent idle timeout cancel finished the transaction with the last child', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const firstSpan = transaction.startChild({});
+      const firstSpan = startInactiveSpan({ name: 'span1' })!;
       transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
-      const secondSpan = transaction.startChild({});
-      const thirdSpan = transaction.startChild({});
+      const secondSpan = startInactiveSpan({ name: 'span2' })!;
+      const thirdSpan = startInactiveSpan({ name: 'span3' })!;
 
-      firstSpan.finish();
-      expect(transaction.endTimestamp).toBeUndefined();
+      firstSpan.end();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
-      secondSpan.finish();
-      expect(transaction.endTimestamp).toBeUndefined();
+      secondSpan.end();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
-      thirdSpan.finish();
-      expect(transaction.endTimestamp).toBeDefined();
+      thirdSpan.end();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('permanent idle timeout cancel finishes transaction if there are no activities', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const span = transaction.startChild({});
-      span.finish();
+      startSpan({ name: 'span' }, () => {});
 
       jest.advanceTimersByTime(2);
 
       transaction.cancelIdleTimeout(undefined, { restartOnChildSpanChange: false });
 
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
 
     it('default idle cancel timeout is restarted by child span change', () => {
       const idleTimeout = 10;
-      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, hub, idleTimeout);
+      const transaction = new IdleTransaction({ name: 'foo', startTimestamp: 1234 }, getCurrentHub(), idleTimeout);
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
-      const span = transaction.startChild({});
-      span.finish();
+      startSpan({ name: 'span' }, () => {});
 
       jest.advanceTimersByTime(2);
 
       transaction.cancelIdleTimeout();
 
-      const span2 = transaction.startChild({});
-      span2.finish();
+      startSpan({ name: 'span' }, () => {});
 
       jest.advanceTimersByTime(8);
-      expect(transaction.endTimestamp).toBeUndefined();
+      expect(spanToJSON(transaction).timestamp).toBeUndefined();
 
       jest.advanceTimersByTime(2);
-      expect(transaction.endTimestamp).toBeDefined();
+      expect(spanToJSON(transaction).timestamp).toBeDefined();
     });
   });
 
   describe('heartbeat', () => {
     it('does not mark transaction as `DeadlineExceeded` if idle timeout has not been reached', () => {
       // 20s to exceed 3 heartbeats
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, 20000);
-      const mockFinish = jest.spyOn(transaction, 'finish');
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), 20000);
+      const mockFinish = jest.spyOn(transaction, 'end');
 
       expect(transaction.status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
@@ -377,12 +436,14 @@ describe('IdleTransaction', () => {
     });
 
     it('finishes a transaction after 3 beats', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout);
-      const mockFinish = jest.spyOn(transaction, 'finish');
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), TRACING_DEFAULTS.idleTimeout);
+      const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
-      transaction.startChild({});
+      startInactiveSpan({ name: 'span' });
 
       // Beat 1
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
@@ -398,29 +459,20 @@ describe('IdleTransaction', () => {
     });
 
     it('resets after new activities are added', () => {
-      const transaction = new IdleTransaction({ name: 'foo' }, hub, TRACING_DEFAULTS.idleTimeout, 50000);
-      const mockFinish = jest.spyOn(transaction, 'finish');
+      const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), TRACING_DEFAULTS.idleTimeout, 50000);
+      const mockFinish = jest.spyOn(transaction, 'end');
       transaction.initSpanRecorder(10);
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);
-      transaction.startChild({});
+      startInactiveSpan({ name: 'span' });
 
       // Beat 1
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
-      const span = transaction.startChild(); // push activity
-
-      // Beat 1
-      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      // Beat 2
-      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
-      expect(mockFinish).toHaveBeenCalledTimes(0);
-
-      transaction.startChild(); // push activity
-      transaction.startChild(); // push activity
+      const span = startInactiveSpan({ name: 'span' })!; // push activity
 
       // Beat 1
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
@@ -430,7 +482,18 @@ describe('IdleTransaction', () => {
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
-      span.finish(); // pop activity
+      startInactiveSpan({ name: 'span' }); // push activity
+      startInactiveSpan({ name: 'span' }); // push activity
+
+      // Beat 1
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
+      expect(mockFinish).toHaveBeenCalledTimes(0);
+
+      // Beat 2
+      jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
+      expect(mockFinish).toHaveBeenCalledTimes(0);
+
+      span.end(); // pop activity
 
       // Beat 1
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
@@ -459,20 +522,20 @@ describe('IdleTransactionSpanRecorder', () => {
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
-    const span = new Span({ sampled: true });
+    const span = new SentrySpan({ sampled: true });
 
     expect(spanRecorder.spans).toHaveLength(0);
     spanRecorder.add(span);
     expect(spanRecorder.spans).toHaveLength(1);
 
     expect(mockPushActivity).toHaveBeenCalledTimes(1);
-    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanId);
+    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanContext().spanId);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
-    span.finish();
+    span.end();
     expect(mockPushActivity).toHaveBeenCalledTimes(1);
     expect(mockPopActivity).toHaveBeenCalledTimes(1);
-    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanId);
+    expect(mockPushActivity).toHaveBeenLastCalledWith(span.spanContext().spanId);
   });
 
   it('does not push activities if a span has a timestamp', () => {
@@ -480,7 +543,7 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPopActivity = jest.fn();
     const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, '', 10);
 
-    const span = new Span({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
+    const span = new SentrySpan({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
     spanRecorder.add(span);
 
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
@@ -490,8 +553,13 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPushActivity = jest.fn();
     const mockPopActivity = jest.fn();
 
-    const transaction = new IdleTransaction({ name: 'foo' }, hub);
-    const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, transaction.spanId, 10);
+    const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub());
+    const spanRecorder = new IdleTransactionSpanRecorder(
+      mockPushActivity,
+      mockPopActivity,
+      transaction.spanContext().spanId,
+      10,
+    );
 
     spanRecorder.add(transaction);
     expect(mockPushActivity).toHaveBeenCalledTimes(0);

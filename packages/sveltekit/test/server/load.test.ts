@@ -1,4 +1,4 @@
-import { addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
@@ -56,7 +56,7 @@ function getServerOnlyArgs() {
           if (key === 'baggage') {
             return (
               'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-              'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+              'sentry-public_key=dogsarebadatkeepingsecrets,' +
               'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
             );
           }
@@ -197,8 +197,10 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         metadata: {
@@ -216,8 +218,10 @@ describe('wrapLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/123',
         status: 'ok',
         metadata: {
@@ -250,8 +254,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -268,7 +274,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             sample_rate: '1',
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
-            user_segment: 'segmentA',
           },
           source: 'route',
         },
@@ -284,8 +289,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         status: 'ok',
         data: {
@@ -306,8 +313,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -335,8 +344,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     expect(mockStartSpan).toHaveBeenCalledTimes(1);
     expect(mockStartSpan).toHaveBeenCalledWith(
       {
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+        },
         op: 'function.sveltekit.server.load',
-        origin: 'auto.function.sveltekit',
         name: '/users/123',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
@@ -353,7 +364,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             sample_rate: '1',
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
-            user_segment: 'segmentA',
           },
           source: 'url',
         },

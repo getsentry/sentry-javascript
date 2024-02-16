@@ -1,30 +1,14 @@
 /* eslint-disable deprecation/deprecation */
-import * as sentryCore from '@sentry/core';
-import type { HandlerDataFetch, HandlerDataXhr, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import * as utils from '@sentry/utils';
-import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
-import type { Transaction } from '../../../tracing/src';
-import { Span, addExtensionMethods, spanStatusfromHttpCode } from '../../../tracing/src';
-import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
-import {
-  extractNetworkProtocol,
-  instrumentOutgoingRequests,
-  shouldAttachHeaders,
-  xhrCallback,
-} from '../../src/browser/request';
-import { instrumentFetchRequest } from '../../src/common/fetch';
-import { TestClient } from '../utils/TestClient';
+import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/browser/request';
+import { WINDOW } from '../../src/browser/types';
 
 beforeAll(() => {
-  addExtensionMethods();
   // @ts-expect-error need to override global Request because it's not in the jest environment (even with an
   // `@jest-environment jsdom` directive, for some reason)
   global.Request = {};
 });
-
-const hasTracingEnabled = jest.spyOn(sentryCore, 'hasTracingEnabled');
-const setRequestHeader = jest.fn();
 
 describe('instrumentOutgoingRequests', () => {
   beforeEach(() => {
@@ -55,360 +39,6 @@ describe('instrumentOutgoingRequests', () => {
     instrumentOutgoingRequests({ traceXHR: false });
 
     expect(addXhrSpy).not.toHaveBeenCalled();
-  });
-});
-
-describe('callbacks', () => {
-  let hub: sentryCore.Hub;
-  let transaction: Transaction;
-  const alwaysCreateSpan = () => true;
-  const alwaysAttachHeaders = () => true;
-  const startTimestamp = 1356996072000;
-  const endTimestamp = 1356996072000;
-
-  beforeAll(() => {
-    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new sentryCore.Hub(new TestClient(options));
-    sentryCore.makeMain(hub);
-  });
-
-  beforeEach(() => {
-    transaction = hub.startTransaction({ name: 'organizations/users/:userid', op: 'pageload' }) as Transaction;
-    hub.getScope().setSpan(transaction);
-  });
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  describe('fetchCallback()', () => {
-    let fetchHandlerData: HandlerDataFetch;
-
-    const fetchSpan = {
-      data: {
-        'http.method': 'GET',
-        url: 'http://dogs.are.great/',
-        type: 'fetch',
-      },
-      description: 'GET http://dogs.are.great/',
-      op: 'http.client',
-      parentSpanId: expect.any(String),
-      spanId: expect.any(String),
-      startTimestamp: expect.any(Number),
-      traceId: expect.any(String),
-    };
-
-    beforeEach(() => {
-      fetchHandlerData = {
-        args: ['http://dogs.are.great/', {}],
-        fetchData: { url: 'http://dogs.are.great/', method: 'GET' },
-        startTimestamp,
-      };
-    });
-
-    it.each([
-      // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
-      [true, true, expect.objectContaining(fetchSpan), ['sentry-trace', 'baggage']],
-      [true, false, expect.objectContaining(fetchSpan), []],
-      [false, true, undefined, ['sentry-trace', 'baggage']],
-      [false, false, undefined, []],
-    ])(
-      'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
-      (shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys) => {
-        instrumentFetchRequest(
-          fetchHandlerData,
-          () => shouldCreateSpanReturnValue,
-          () => shouldAttachHeadersReturnValue,
-          {},
-        );
-
-        // spans[0] is the transaction itself
-        const newSpan = transaction.spanRecorder?.spans[1] as Span;
-        expect(newSpan).toEqual(expectedSpan);
-
-        const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
-        expect(Object.keys(headers)).toEqual(expectedHeaderKeys);
-      },
-    );
-
-    it('adds neither fetch request spans nor fetch request headers if tracing is disabled', () => {
-      hasTracingEnabled.mockReturnValueOnce(false);
-      const spans = {};
-
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(spans).toEqual({});
-
-      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
-      expect(Object.keys(headers)).toEqual([]);
-    });
-
-    it('creates and finishes fetch span on active transaction', () => {
-      const spans = {};
-
-      // triggered by request being sent
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const newSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(newSpan).toBeDefined();
-      expect(newSpan).toBeInstanceOf(Span);
-      expect(newSpan.data).toEqual({
-        'http.method': 'GET',
-        type: 'fetch',
-        url: 'http://dogs.are.great/',
-      });
-      expect(newSpan.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan.op).toBe('http.client');
-      const spanId = fetchHandlerData.fetchData?.__span;
-      expect(spanId).toBeDefined();
-
-      const postRequestFetchHandlerData = {
-        ...fetchHandlerData,
-        endTimestamp,
-      };
-
-      // triggered by response coming back
-      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(newSpan.endTimestamp).toBeDefined();
-    });
-
-    it('sets response status on finish', () => {
-      const spans: Record<string, Span> = {};
-
-      // triggered by request being sent
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const newSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(newSpan).toBeDefined();
-
-      const postRequestFetchHandlerData = {
-        ...fetchHandlerData,
-        endTimestamp,
-        response: { status: 404 } as Response,
-      };
-
-      // triggered by response coming back
-      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
-    });
-
-    it('ignores response with no associated span', () => {
-      // the request might be missed somehow. E.g. if it was sent before tracing gets enabled.
-
-      const postRequestFetchHandlerData = {
-        ...fetchHandlerData,
-        endTimestamp,
-        response: { status: 404 } as Response,
-      };
-
-      // in that case, the response coming back will be ignored
-      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
-
-      const newSpan = transaction.spanRecorder?.spans[1];
-
-      expect(newSpan).toBeUndefined();
-    });
-
-    it('uses active span to generate sentry-trace header', () => {
-      const spans: Record<string, Span> = {};
-      // triggered by request being sent
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const activeSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      const postRequestFetchHandlerData = {
-        ...fetchHandlerData,
-        endTimestamp,
-        response: { status: 200 } as Response,
-      };
-
-      // triggered by response coming back
-      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const headers = (fetchHandlerData.args[1].headers as Record<string, string>) || {};
-      expect(headers['sentry-trace']).toEqual(`${activeSpan.traceId}-${activeSpan.spanId}-1`);
-    });
-
-    it('adds content-length to span data on finish', () => {
-      const spans: Record<string, Span> = {};
-
-      // triggered by request being sent
-      instrumentFetchRequest(fetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const newSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(newSpan).toBeDefined();
-
-      const postRequestFetchHandlerData = {
-        ...fetchHandlerData,
-        endTimestamp,
-        response: { status: 404, headers: { get: () => 123 } },
-      } as unknown as HandlerDataFetch;
-
-      // triggered by response coming back
-      instrumentFetchRequest(postRequestFetchHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const finishedSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(finishedSpan).toBeDefined();
-      expect(finishedSpan).toBeInstanceOf(Span);
-      expect(finishedSpan.data).toEqual({
-        'http.response_content_length': 123,
-        'http.method': 'GET',
-        'http.response.status_code': 404,
-        type: 'fetch',
-        url: 'http://dogs.are.great/',
-      });
-    });
-  });
-
-  describe('xhrCallback()', () => {
-    let xhrHandlerData: HandlerDataXhr;
-
-    const xhrSpan = {
-      data: {
-        'http.method': 'GET',
-        url: 'http://dogs.are.great/',
-        type: 'xhr',
-      },
-      description: 'GET http://dogs.are.great/',
-      op: 'http.client',
-      parentSpanId: expect.any(String),
-      spanId: expect.any(String),
-      startTimestamp: expect.any(Number),
-      traceId: expect.any(String),
-    };
-
-    beforeEach(() => {
-      xhrHandlerData = {
-        args: ['GET', 'http://dogs.are.great/'],
-        xhr: {
-          [SENTRY_XHR_DATA_KEY]: {
-            method: 'GET',
-            url: 'http://dogs.are.great/',
-            status_code: 200,
-            request_headers: {},
-          },
-          __sentry_xhr_span_id__: '1231201211212012',
-          setRequestHeader,
-        } as SentryWrappedXMLHttpRequest,
-        startTimestamp,
-      };
-    });
-
-    it.each([
-      // each case is [shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys]
-      [true, true, expect.objectContaining(xhrSpan), ['sentry-trace', 'baggage']],
-      [true, false, expect.objectContaining(xhrSpan), []],
-      [false, true, undefined, ['sentry-trace', 'baggage']],
-      [false, false, undefined, []],
-    ])(
-      'span creation/header attachment interaction - shouldCreateSpan: %s, shouldAttachHeaders: %s',
-      (shouldCreateSpanReturnValue, shouldAttachHeadersReturnValue, expectedSpan, expectedHeaderKeys) => {
-        xhrCallback(
-          xhrHandlerData,
-          () => shouldCreateSpanReturnValue,
-          () => shouldAttachHeadersReturnValue,
-          {},
-        );
-
-        // spans[0] is the transaction itself
-        const newSpan = transaction.spanRecorder?.spans[1] as Span;
-        expect(newSpan).toEqual(expectedSpan);
-
-        const headerKeys = setRequestHeader.mock.calls.map(header => header[0]);
-        expect(headerKeys).toEqual(expectedHeaderKeys);
-      },
-    );
-
-    it('adds neither xhr request spans nor xhr request headers if tracing is disabled', () => {
-      hasTracingEnabled.mockReturnValueOnce(false);
-      const spans = {};
-
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(spans).toEqual({});
-      expect(setRequestHeader).not.toHaveBeenCalled();
-    });
-
-    it('creates and finishes XHR span on active transaction', () => {
-      const spans = {};
-
-      // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const newSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(newSpan).toBeInstanceOf(Span);
-      expect(newSpan.data).toEqual({
-        'http.method': 'GET',
-        type: 'xhr',
-        url: 'http://dogs.are.great/',
-      });
-      expect(newSpan.description).toBe('GET http://dogs.are.great/');
-      expect(newSpan.op).toBe('http.client');
-      const spanId = xhrHandlerData.xhr?.__sentry_xhr_span_id__;
-      expect(spanId).toBeDefined();
-      expect(spanId).toEqual(newSpan?.spanId);
-
-      const postRequestXHRHandlerData = {
-        ...xhrHandlerData,
-        endTimestamp,
-      };
-
-      // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(newSpan.endTimestamp).toBeDefined();
-    });
-
-    it('sets response status on finish', () => {
-      const spans = {};
-
-      // triggered by request being sent
-      xhrCallback(xhrHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      const newSpan = transaction.spanRecorder?.spans[1] as Span;
-
-      expect(newSpan).toBeDefined();
-
-      const postRequestXHRHandlerData = {
-        ...xhrHandlerData,
-        endTimestamp,
-      };
-      postRequestXHRHandlerData.xhr![SENTRY_XHR_DATA_KEY]!.status_code = 404;
-
-      // triggered by response coming back
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, spans);
-
-      expect(newSpan.status).toBe(spanStatusfromHttpCode(404));
-    });
-
-    it('ignores response with no associated span', () => {
-      // the request might be missed somehow. E.g. if it was sent before tracing gets enabled.
-
-      const postRequestXHRHandlerData: HandlerDataXhr = {
-        ...{
-          xhr: {
-            [SENTRY_XHR_DATA_KEY]: xhrHandlerData.xhr?.[SENTRY_XHR_DATA_KEY],
-          },
-        },
-        args: ['GET', 'http://dogs.are.great/'],
-        startTimestamp,
-        endTimestamp,
-      };
-
-      // in that case, the response coming back will be ignored
-      xhrCallback(postRequestXHRHandlerData, alwaysCreateSpan, alwaysAttachHeaders, {});
-
-      const newSpan = transaction.spanRecorder?.spans[1];
-
-      expect(newSpan).toBeUndefined();
-    });
   });
 });
 
@@ -478,23 +108,262 @@ describe('shouldAttachHeaders', () => {
     });
   });
 
-  describe('should fall back to defaults if no options are specified', () => {
+  describe('with no defined `tracePropagationTargets`', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
+      WINDOW.location = new URL('https://my-origin.com');
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
     it.each([
-      '/api/test',
-      'http://localhost:3000/test',
-      'http://somewhere.com/test/localhost/123',
-      'http://somewhere.com/test?url=localhost:3000&test=123',
-      '//localhost:3000/test',
+      'https://my-origin.com',
+      'https://my-origin.com/test',
       '/',
-    ])('return `true` for urls matching defaults (%s)', url => {
+      '/api/test',
+      '//my-origin.com/',
+      '//my-origin.com/test',
+      'foobar', // this is a relative request
+      'not-my-origin.com', // this is a relative request
+      'not-my-origin.com/api/test', // this is a relative request
+    ])('should return `true` for same-origin URLs (%s)', url => {
       expect(shouldAttachHeaders(url, undefined)).toBe(true);
     });
 
-    it.each(['notmydoman/api/test', 'example.com', '//example.com'])(
-      'return `false` for urls not matching defaults (%s)',
-      url => {
-        expect(shouldAttachHeaders(url, undefined)).toBe(false);
+    it.each([
+      'http://my-origin.com', // wrong protocol
+      'http://my-origin.com/api', // wrong protocol
+      'http://localhost:3000',
+      '//not-my-origin.com/test',
+      'https://somewhere.com/test/localhost/123',
+      'https://somewhere.com/test?url=https://my-origin.com',
+      '//example.com',
+    ])('should return `false` for cross-origin URLs (%s)', url => {
+      expect(shouldAttachHeaders(url, undefined)).toBe(false);
+    });
+  });
+
+  describe('with `tracePropagationTargets`', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
+      WINDOW.location = new URL('https://my-origin.com/api/my-route');
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
+    it.each([
+      ['https://my-origin.com', /^\//, true], // pathname defaults to "/"
+      ['https://my-origin.com/', /^\//, true],
+      ['https://not-my-origin.com', /^\//, false], // pathname does not match in isolation for cross origin
+      ['https://not-my-origin.com/', /^\//, false], // pathname does not match in isolation for cross origin
+
+      ['http://my-origin.com/', /^\//, false], // different protocol than origin
+
+      ['//my-origin.com', /^\//, true], // pathname defaults to "/"
+      ['//my-origin.com/', /^\//, true], // matches pathname
+      ['//not-my-origin.com', /^\//, false],
+      ['//not-my-origin.com/', /^\//, false], // different origin should not match pathname
+
+      ['//my-origin.com', /^https:/, true],
+      ['//not-my-origin.com', /^https:/, true],
+      ['//my-origin.com', /^http:/, false],
+      ['//not-my-origin.com', /^http:/, false],
+
+      ['https://my-origin.com/api', /^\/api/, true],
+      ['https://not-my-origin.com/api', /^\/api/, false], // different origin should not match pathname in isolation
+
+      ['https://my-origin.com/api', /api/, true],
+      ['https://not-my-origin.com/api', /api/, true],
+
+      ['/api', /^\/api/, true], // matches pathname
+      ['/api', /\/\/my-origin\.com\/api/, true], // matches full url
+      ['foobar', /\/foobar/, true], // matches full url
+      ['foobar', /^\/api\/foobar/, true], // full url match
+      ['some-url.com', /\/some-url\.com/, true],
+      ['some-url.com', /^\/some-url\.com/, false], // does not match pathname or full url
+      ['some-url.com', /^\/api\/some-url\.com/, true], // matches pathname
+
+      ['/api', /^http:/, false],
+      ['foobar', /^http:/, false],
+      ['some-url.com', /^http:/, false],
+      ['/api', /^https:/, true],
+      ['foobar', /^https:/, true],
+      ['some-url.com', /^https:/, true],
+
+      ['https://my-origin.com', 'my-origin', true],
+      ['https://not-my-origin.com', 'my-origin', true],
+      ['https://my-origin.com', 'not-my-origin', false],
+      ['https://not-my-origin.com', 'not-my-origin', true],
+
+      ['https://my-origin.com', 'https', true],
+      ['https://my-origin.com', 'http', true], // partially matches https
+      ['//my-origin.com', 'https', true],
+      ['//my-origin.com', 'http', true], // partially matches https
+
+      ['/api', '/api', true],
+      ['api', '/api', true], // full url match
+      ['https://not-my-origin.com/api', 'api', true],
+      ['https://my-origin.com?my-query', 'my-query', true],
+      ['https://not-my-origin.com?my-query', 'my-query', true],
+    ])(
+      'for url %p and tracePropagationTarget %p on page "https://my-origin.com/api/my-route" should return %p',
+      (url, matcher, result) => {
+        expect(shouldAttachHeaders(url, [matcher])).toBe(result);
       },
     );
+  });
+
+  it.each([
+    'https://my-origin.com',
+    'https://my-origin.com/',
+    'https://not-my-origin.com',
+    'https://not-my-origin.com/',
+    'http://my-origin.com/',
+    '//my-origin.com',
+    '//my-origin.com/',
+    '//not-my-origin.com',
+    '//not-my-origin.com/',
+    '//my-origin.com',
+    '//not-my-origin.com',
+    '//my-origin.com',
+    '//not-my-origin.com',
+    'https://my-origin.com/api',
+    'https://not-my-origin.com/api',
+    'https://my-origin.com/api',
+    'https://not-my-origin.com/api',
+    '/api',
+    '/api',
+    'foobar',
+    'foobar',
+    'some-url.com',
+    'some-url.com',
+    'some-url.com',
+    '/api',
+    'foobar',
+    'some-url.com',
+    '/api',
+    'foobar',
+    'some-url.com',
+    'https://my-origin.com',
+    'https://not-my-origin.com',
+    'https://my-origin.com',
+    'https://not-my-origin.com',
+    'https://my-origin.com',
+    'https://my-origin.com',
+    '//my-origin.com',
+    '//my-origin.com',
+    '/api',
+    'api',
+    'https://not-my-origin.com/api',
+    'https://my-origin.com?my-query',
+    'https://not-my-origin.com?my-query',
+  ])('should return false for everything if tracePropagationTargets are empty (%p)', url => {
+    expect(shouldAttachHeaders(url, [])).toBe(false);
+  });
+
+  describe('when window.location.href is not available', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We need to simulate an edge-case
+      WINDOW.location = undefined;
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
+    describe('with no defined `tracePropagationTargets`', () => {
+      it.each([
+        ['https://my-origin.com', false],
+        ['https://my-origin.com/test', false],
+        ['/', true],
+        ['/api/test', true],
+        ['//my-origin.com/', false],
+        ['//my-origin.com/test', false],
+        ['//not-my-origin.com/test', false],
+        ['foobar', false],
+        ['not-my-origin.com', false],
+        ['not-my-origin.com/api/test', false],
+        ['http://my-origin.com', false],
+        ['http://my-origin.com/api', false],
+        ['http://localhost:3000', false],
+        ['https://somewhere.com/test/localhost/123', false],
+        ['https://somewhere.com/test?url=https://my-origin.com', false],
+      ])('for URL %p should return %p', (url, expectedResult) => {
+        expect(shouldAttachHeaders(url, undefined)).toBe(expectedResult);
+      });
+    });
+
+    // Here we should only quite literally match the provided urls
+    it.each([
+      ['https://my-origin.com', /^\//, false],
+      ['https://my-origin.com/', /^\//, false],
+      ['https://not-my-origin.com', /^\//, false],
+      ['https://not-my-origin.com/', /^\//, false],
+
+      ['http://my-origin.com/', /^\//, false],
+
+      // It is arguably bad that these match, at the same time, these targets are very unusual in environments without location.
+      ['//my-origin.com', /^\//, true],
+      ['//my-origin.com/', /^\//, true],
+      ['//not-my-origin.com', /^\//, true],
+      ['//not-my-origin.com/', /^\//, true],
+
+      ['//my-origin.com', /^https:/, false],
+      ['//not-my-origin.com', /^https:/, false],
+      ['//my-origin.com', /^http:/, false],
+      ['//not-my-origin.com', /^http:/, false],
+
+      ['https://my-origin.com/api', /^\/api/, false],
+      ['https://not-my-origin.com/api', /^\/api/, false],
+
+      ['https://my-origin.com/api', /api/, true],
+      ['https://not-my-origin.com/api', /api/, true],
+
+      ['/api', /^\/api/, true],
+      ['/api', /\/\/my-origin\.com\/api/, false],
+      ['foobar', /\/foobar/, false],
+      ['foobar', /^\/api\/foobar/, false],
+      ['some-url.com', /\/some-url\.com/, false],
+      ['some-url.com', /^\/some-url\.com/, false],
+      ['some-url.com', /^\/api\/some-url\.com/, false],
+
+      ['/api', /^http:/, false],
+      ['foobar', /^http:/, false],
+      ['some-url.com', /^http:/, false],
+      ['/api', /^https:/, false],
+      ['foobar', /^https:/, false],
+      ['some-url.com', /^https:/, false],
+
+      ['https://my-origin.com', 'my-origin', true],
+      ['https://not-my-origin.com', 'my-origin', true],
+      ['https://my-origin.com', 'not-my-origin', false],
+      ['https://not-my-origin.com', 'not-my-origin', true],
+
+      ['https://my-origin.com', 'https', true],
+      ['https://my-origin.com', 'http', true],
+      ['//my-origin.com', 'https', false],
+      ['//my-origin.com', 'http', false],
+
+      ['/api', '/api', true],
+      ['api', '/api', false],
+      ['https://not-my-origin.com/api', 'api', true],
+      ['https://my-origin.com?my-query', 'my-query', true],
+      ['https://not-my-origin.com?my-query', 'my-query', true],
+    ])('for url %p and tracePropagationTarget %p should return %p', (url, matcher, result) => {
+      expect(shouldAttachHeaders(url, [matcher])).toBe(result);
+    });
   });
 });

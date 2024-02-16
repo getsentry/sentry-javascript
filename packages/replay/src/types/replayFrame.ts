@@ -122,12 +122,13 @@ interface ReplayOptionFrame {
   networkRequestHasHeaders: boolean;
   networkResponseHasHeaders: boolean;
   sessionSampleRate: number;
+  shouldRecordCanvas: boolean;
   useCompression: boolean;
   useCompressionOption: boolean;
 }
 
 interface ReplayFeedbackFrameData {
-  feedback_id: string;
+  feedbackId: string;
 }
 
 interface ReplayFeedbackFrame extends ReplayBaseBreadcrumbFrame {

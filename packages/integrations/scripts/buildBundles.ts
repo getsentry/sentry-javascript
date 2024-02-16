@@ -16,7 +16,8 @@ function getIntegrations(): string[] {
 /** Builds a bundle for a specific integration and JavaScript ES version */
 async function buildBundle(integration: string, jsVersion: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn('yarn', ['--silent', 'rollup', '--config', 'rollup.bundle.config.js'], {
+    const child = spawn('yarn', ['--silent', 'rollup', '--config', 'rollup.bundle.config.mjs'], {
+      shell: true, // required to run on Windows
       env: { ...process.env, INTEGRATION_FILE: integration, JS_VERSION: jsVersion },
     });
 
@@ -33,7 +34,10 @@ async function buildBundle(integration: string, jsVersion: string): Promise<void
 if (runParallel) {
   // We're building a bundle for each integration and each JavaScript version.
   const tasks = getIntegrations().reduce(
-    (tasks, integration) => [...tasks, buildBundle(integration, 'es5'), buildBundle(integration, 'es6')],
+    (tasks, integration) => {
+      tasks.push(buildBundle(integration, 'es5'), buildBundle(integration, 'es6'));
+      return tasks;
+    },
     [] as Promise<void>[],
   );
 
@@ -47,7 +51,8 @@ if (runParallel) {
       process.exit(1);
     });
 } else {
-  void (async () => {
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  (async () => {
     for (const integration of getIntegrations()) {
       await buildBundle(integration, 'es5');
       await buildBundle(integration, 'es6');

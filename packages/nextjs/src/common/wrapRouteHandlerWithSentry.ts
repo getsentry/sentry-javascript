@@ -1,5 +1,15 @@
-import { addTracingExtensions, captureException, getCurrentScope, runWithAsyncContext, trace } from '@sentry/core';
-import { tracingContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addTracingExtensions,
+  captureException,
+  continueTrace,
+  handleCallbackErrors,
+  setHttpStatus,
+  startSpan,
+  withIsolationScope,
+} from '@sentry/core';
+import { winterCGHeadersToDict } from '@sentry/utils';
 
 import { isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
@@ -15,64 +25,65 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
-  // eslint-disable-next-line deprecation/deprecation
-  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
+  const { method, parameterizedRoute, headers } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return runWithAsyncContext(async () => {
-        const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-          sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
-          baggageHeader ?? headers?.get('baggage'),
-        );
-        getCurrentScope().setPropagationContext(propagationContext);
-
-        let res;
-        try {
-          res = await trace(
-            {
-              op: 'http.server',
-              name: `${method} ${parameterizedRoute}`,
-              status: 'ok',
-              ...traceparentData,
-              metadata: {
-                request: {
-                  headers: headers ? winterCGHeadersToDict(headers) : undefined,
-                },
-                source: 'route',
-                dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-              },
-            },
-            async span => {
-              const response: Response = await originalFunction.apply(thisArg, args);
-
-              try {
-                span?.setHttpStatus(response.status);
-              } catch {
-                // best effort
-              }
-
-              return response;
-            },
-            error => {
-              // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-              if (!isRedirectNavigationError(error)) {
-                captureException(error, {
-                  mechanism: {
-                    handled: false,
+      return withIsolationScope(async isolationScope => {
+        isolationScope.setSDKProcessingMetadata({
+          request: {
+            headers: headers ? winterCGHeadersToDict(headers) : undefined,
+          },
+        });
+        return continueTrace(
+          {
+            // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
+            sentryTrace: headers?.get('sentry-trace') ?? undefined,
+            baggage: headers?.get('baggage'),
+          },
+          async () => {
+            try {
+              return await startSpan(
+                {
+                  op: 'http.server',
+                  name: `${method} ${parameterizedRoute}`,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                   },
-                });
-              }
-            },
-          );
-        } finally {
-          if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-            // 1. Edge tranpsort requires manual flushing
-            // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-            await flushQueue();
-          }
-        }
+                },
+                async span => {
+                  const response: Response = await handleCallbackErrors(
+                    () => originalFunction.apply(thisArg, args),
+                    error => {
+                      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                      if (!isRedirectNavigationError(error)) {
+                        captureException(error, {
+                          mechanism: {
+                            handled: false,
+                          },
+                        });
+                      }
+                    },
+                  );
 
-        return res;
+                  try {
+                    span && setHttpStatus(span, response.status);
+                  } catch {
+                    // best effort - response may be undefined?
+                  }
+
+                  return response;
+                },
+              );
+            } finally {
+              if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
+                // 1. Edge transport requires manual flushing
+                // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
+                await flushQueue();
+              }
+            }
+          },
+        );
       });
     },
   });

@@ -2,14 +2,14 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { getCurrentHub } from './custom/hub';
 import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getHubFromContext } from './utils/contextData';
-import { getSpanHub, setSpanHub, setSpanParent, setSpanScope } from './utils/spanData';
+import { getSpanHub, setSpanHub, setSpanParent, setSpanScopes } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
@@ -25,18 +25,24 @@ function onSpanStart(span: Span, parentContext: Context): void {
   // We do this instead of just falling back to `getCurrentHub` to avoid attaching the wrong hub
   let actualHub = hub;
   if (parentContext === ROOT_CONTEXT) {
+    // eslint-disable-next-line deprecation/deprecation
     actualHub = getCurrentHub();
   }
 
   // We need the scope at time of span creation in order to apply it to the event when the span is finished
   if (actualHub) {
-    setSpanScope(span, actualHub.getScope());
+    // eslint-disable-next-line deprecation/deprecation
+    const scope = actualHub.getScope();
+    // eslint-disable-next-line deprecation/deprecation
+    const isolationScope = actualHub.getIsolationScope();
     setSpanHub(span, actualHub);
+    setSpanScopes(span, { scope, isolationScope });
   }
 }
 
 function onSpanEnd(span: Span): void {
   // Capture exceptions as events
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
   span.events.forEach(event => {
     maybeCaptureExceptionForTimedEvent(hub, event, span);

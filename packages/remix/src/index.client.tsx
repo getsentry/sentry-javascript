@@ -1,16 +1,26 @@
-import { getCurrentScope, init as reactInit } from '@sentry/react';
-
-import { buildMetadata } from './utils/metadata';
+import { applySdkMetadata, setTag } from '@sentry/core';
+import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from './utils/remixOptions';
-export { remixRouterInstrumentation, withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
+export {
+  // eslint-disable-next-line deprecation/deprecation
+  remixRouterInstrumentation,
+  withSentry,
+} from './client/performance';
+
+export { browserTracingIntegration } from './client/browserTracingIntegration';
+
 export * from '@sentry/react';
 
 export function init(options: RemixOptions): void {
-  buildMetadata(options, ['remix', 'react']);
-  options.environment = options.environment || process.env.NODE_ENV;
+  const opts = {
+    ...options,
+    environment: options.environment || process.env.NODE_ENV,
+  };
 
-  reactInit(options);
+  applySdkMetadata(opts, 'remix', ['remix', 'react']);
 
-  getCurrentScope().setTag('runtime', 'browser');
+  reactInit(opts);
+
+  setTag('runtime', 'browser');
 }

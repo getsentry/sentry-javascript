@@ -1,4 +1,5 @@
-import type { Integration, WrappedFunction } from '@sentry/types';
+import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
 import { WINDOW, wrap } from '../helpers';
@@ -37,9 +38,10 @@ const DEFAULT_EVENT_TARGET = [
   'XMLHttpRequestUpload',
 ];
 
+const INTEGRATION_NAME = 'TryCatch';
+
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
 
-/** JSDoc */
 interface TryCatchOptions {
   setTimeout: boolean;
   setInterval: boolean;
@@ -48,66 +50,66 @@ interface TryCatchOptions {
   eventTarget: boolean | string[];
 }
 
-/** Wrap timer functions and event targets to catch errors and provide better meta data */
-export class TryCatch implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'TryCatch';
+const _browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) => {
+  const _options = {
+    XMLHttpRequest: true,
+    eventTarget: true,
+    requestAnimationFrame: true,
+    setInterval: true,
+    setTimeout: true,
+    ...options,
+  };
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+  return {
+    name: INTEGRATION_NAME,
+    // TODO: This currently only works for the first client this is setup
+    // We may want to adjust this to check for client etc.
+    setupOnce() {
+      if (_options.setTimeout) {
+        fill(WINDOW, 'setTimeout', _wrapTimeFunction);
+      }
 
-  /** JSDoc */
-  private readonly _options: TryCatchOptions;
+      if (_options.setInterval) {
+        fill(WINDOW, 'setInterval', _wrapTimeFunction);
+      }
 
-  /**
-   * @inheritDoc
-   */
-  public constructor(options?: Partial<TryCatchOptions>) {
-    this.name = TryCatch.id;
-    this._options = {
-      XMLHttpRequest: true,
-      eventTarget: true,
-      requestAnimationFrame: true,
-      setInterval: true,
-      setTimeout: true,
-      ...options,
-    };
-  }
+      if (_options.requestAnimationFrame) {
+        fill(WINDOW, 'requestAnimationFrame', _wrapRAF);
+      }
 
-  /**
-   * Wrap timer functions and event targets to catch errors
-   * and provide better metadata.
-   */
-  public setupOnce(): void {
-    if (this._options.setTimeout) {
-      fill(WINDOW, 'setTimeout', _wrapTimeFunction);
-    }
+      if (_options.XMLHttpRequest && 'XMLHttpRequest' in WINDOW) {
+        fill(XMLHttpRequest.prototype, 'send', _wrapXHR);
+      }
 
-    if (this._options.setInterval) {
-      fill(WINDOW, 'setInterval', _wrapTimeFunction);
-    }
+      const eventTargetOption = _options.eventTarget;
+      if (eventTargetOption) {
+        const eventTarget = Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET;
+        eventTarget.forEach(_wrapEventTarget);
+      }
+    },
+  };
+}) satisfies IntegrationFn;
 
-    if (this._options.requestAnimationFrame) {
-      fill(WINDOW, 'requestAnimationFrame', _wrapRAF);
-    }
+export const browserApiErrorsIntegration = defineIntegration(_browserApiErrorsIntegration);
 
-    if (this._options.XMLHttpRequest && 'XMLHttpRequest' in WINDOW) {
-      fill(XMLHttpRequest.prototype, 'send', _wrapXHR);
-    }
+/**
+ * Wrap timer functions and event targets to catch errors and provide better meta data.
+ * @deprecated Use `browserApiErrorsIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const TryCatch = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  browserApiErrorsIntegration,
+) as IntegrationClass<Integration> & {
+  new (options?: {
+    setTimeout: boolean;
+    setInterval: boolean;
+    requestAnimationFrame: boolean;
+    XMLHttpRequest: boolean;
+    eventTarget: boolean | string[];
+  }): Integration;
+};
 
-    const eventTargetOption = this._options.eventTarget;
-    if (eventTargetOption) {
-      const eventTarget = Array.isArray(eventTargetOption) ? eventTargetOption : DEFAULT_EVENT_TARGET;
-      eventTarget.forEach(_wrapEventTarget);
-    }
-  }
-}
-
-/** JSDoc */
 function _wrapTimeFunction(original: () => void): () => number {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: any, ...args: any[]): number {
@@ -123,7 +125,6 @@ function _wrapTimeFunction(original: () => void): () => number {
   };
 }
 
-/** JSDoc */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function _wrapRAF(original: any): (callback: () => void) => any {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -144,7 +145,6 @@ function _wrapRAF(original: any): (callback: () => void) => any {
   };
 }
 
-/** JSDoc */
 function _wrapXHR(originalSend: () => void): () => void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: XMLHttpRequest, ...args: any[]): void {
@@ -183,7 +183,6 @@ function _wrapXHR(originalSend: () => void): () => void {
   };
 }
 
-/** JSDoc */
 function _wrapEventTarget(target: string): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalObject = WINDOW as { [key: string]: any };

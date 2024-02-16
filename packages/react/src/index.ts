@@ -5,10 +5,14 @@ export { Profiler, withProfiler, useProfiler } from './profiler';
 export type { ErrorBoundaryProps, FallbackRender } from './errorboundary';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
 export { createReduxEnhancer } from './redux';
-export { reactRouterV3Instrumentation } from './reactrouterv3';
-export { reactRouterV4Instrumentation, reactRouterV5Instrumentation, withSentryRouting } from './reactrouter';
+export { reactRouterV3BrowserTracingIntegration } from './reactrouterv3';
 export {
-  reactRouterV6Instrumentation,
+  withSentryRouting,
+  reactRouterV4BrowserTracingIntegration,
+  reactRouterV5BrowserTracingIntegration,
+} from './reactrouter';
+export {
+  reactRouterV6BrowserTracingIntegration,
   withSentryReactRouterV6Routing,
   wrapUseRoutes,
   wrapCreateBrowserRouter,

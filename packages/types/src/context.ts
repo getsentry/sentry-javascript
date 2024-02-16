@@ -95,7 +95,6 @@ export interface ResponseContext extends Record<string, unknown> {
 
 export interface TraceContext extends Record<string, unknown> {
   data?: { [key: string]: any };
-  description?: string;
   op?: string;
   parent_span_id?: string;
   span_id: string;

@@ -6,12 +6,10 @@ import type {
   TextEncoderInternal,
   XhrBreadcrumbData,
 } from '@sentry/types';
-import { addFetchInstrumentationHandler, addXhrInstrumentationHandler, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
-import { handleFetchSpanListener } from './handleFetch';
-import { handleXhrSpanListener } from './handleXhr';
 import { captureFetchBreadcrumbToReplay, enrichFetchBreadcrumb } from './util/fetchUtils';
 import { captureXhrBreadcrumbToReplay, enrichXhrBreadcrumb } from './util/xhrUtils';
 
@@ -50,12 +48,8 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       networkResponseHeaders,
     };
 
-    if (client && client.on) {
+    if (client) {
       client.on('beforeAddBreadcrumb', (breadcrumb, hint) => beforeAddNetworkBreadcrumb(options, breadcrumb, hint));
-    } else {
-      // Fallback behavior
-      addFetchInstrumentationHandler(handleFetchSpanListener(replay));
-      addXhrInstrumentationHandler(handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing
@@ -79,7 +73,9 @@ export function beforeAddNetworkBreadcrumb(
       // So any async mutations to it will not be reflected in the final breadcrumb
       enrichXhrBreadcrumb(breadcrumb, hint, options);
 
-      void captureXhrBreadcrumbToReplay(breadcrumb, hint, options);
+      // This call should not reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      captureXhrBreadcrumbToReplay(breadcrumb, hint, options);
     }
 
     if (_isFetchBreadcrumb(breadcrumb) && _isFetchHint(hint)) {
@@ -88,7 +84,9 @@ export function beforeAddNetworkBreadcrumb(
       // So any async mutations to it will not be reflected in the final breadcrumb
       enrichFetchBreadcrumb(breadcrumb, hint, options);
 
-      void captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
+      // This call should not reject
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      captureFetchBreadcrumbToReplay(breadcrumb, hint, options);
     }
   } catch (e) {
     DEBUG_BUILD && logger.warn('Error when enriching network breadcrumb');

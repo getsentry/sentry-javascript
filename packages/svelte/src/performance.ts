@@ -3,6 +3,7 @@ import type { Span, Transaction } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
+import { getRootSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import type { TrackComponentOptions } from './types';
 
@@ -47,6 +48,7 @@ export function trackComponent(options?: TrackComponentOptions): void {
 }
 
 function recordInitSpan(transaction: Transaction, componentName: string): Span {
+  // eslint-disable-next-line deprecation/deprecation
   const initSpan = transaction.startChild({
     op: UI_SVELTE_INIT,
     description: componentName,
@@ -54,7 +56,7 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   });
 
   onMount(() => {
-    initSpan.finish();
+    initSpan.end();
   });
 
   return initSpan;
@@ -73,8 +75,9 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     // If we are initializing the component when the update span is started, we start it as child
     // of the init span. Else, we start it as a child of the transaction.
     const parentSpan =
-      initSpan && !initSpan.endTimestamp && initSpan.transaction === transaction ? initSpan : transaction;
+      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === transaction ? initSpan : transaction;
 
+    // eslint-disable-next-line deprecation/deprecation
     updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,
       description: componentName,
@@ -86,11 +89,12 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     if (!updateSpan) {
       return;
     }
-    updateSpan.finish();
+    updateSpan.end();
     updateSpan = undefined;
   });
 }
 
 function getActiveTransaction(): Transaction | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getTransaction();
 }

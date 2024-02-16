@@ -18,9 +18,9 @@ async function buildLambdaLayer(): Promise<void> {
   // Create the main SDK bundle
   // TODO: Check if we can get rid of this, after the lerna 6/nx update??
   await ensureBundleBuildPrereqs({
-    dependencies: ['@sentry/utils', '@sentry/hub', '@sentry/core', '@sentry/node'],
+    dependencies: ['@sentry/utils', '@sentry/core', '@sentry/node'],
   });
-  run('yarn rollup --config rollup.aws.config.js');
+  run('yarn rollup --config rollup.aws.config.mjs');
 
   // We build a minified bundle, but it's standing in for the regular `index.js` file listed in `package.json`'s `main`
   // property, so we have to rename it so it's findable.
@@ -54,7 +54,8 @@ async function buildLambdaLayer(): Promise<void> {
   run(`zip -r -y ${zipFilename} .`, { cwd: 'build/aws/dist-serverless' });
 }
 
-void buildLambdaLayer();
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
+buildLambdaLayer();
 
 /**
  * Make a directory synchronously, overwriting the old directory if necessary.

@@ -1,11 +1,11 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
 import { BrowserClient } from '@sentry/browser';
-import { Hub, makeMain } from '@sentry/core';
+import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, makeMain } from '@sentry/core';
 import * as utilsModule from '@sentry/utils'; // for mocking
-import { logger } from '@sentry/utils';
+import { extractTraceparentData, logger } from '@sentry/utils';
 
-import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods, extractTraceparentData } from '../src';
+import { BrowserTracing, TRACEPARENT_REGEXP, Transaction, addExtensionMethods } from '../src';
 import {
   addDOMPropertiesToGlobal,
   getDefaultBrowserClientOptions,
@@ -16,7 +16,7 @@ import {
 addExtensionMethods();
 
 const mathRandom = jest.spyOn(Math, 'random');
-jest.spyOn(Transaction.prototype, 'setMetadata');
+jest.spyOn(Transaction.prototype, 'setAttribute');
 jest.spyOn(logger, 'warn');
 jest.spyOn(logger, 'log');
 jest.spyOn(logger, 'error');
@@ -286,9 +286,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', sampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 1.0,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 1);
       });
 
       it('should record sampling method and rate when sampling decision comes from tracesSampler', () => {
@@ -298,9 +296,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.1121);
       });
 
       it('should record sampling method when sampling decision is inherited', () => {
@@ -309,7 +305,8 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark', parentSampled: true });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledTimes(0);
+        // length 2 because origin and op are set as attributes on span initialization
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledTimes(2);
       });
 
       it('should record sampling method and rate when sampling decision comes from traceSampleRate', () => {
@@ -318,9 +315,7 @@ describe('Hub', () => {
         makeMain(hub);
         hub.startTransaction({ name: 'dogpark' });
 
-        expect(Transaction.prototype.setMetadata).toHaveBeenCalledWith({
-          sampleRate: 0.1121,
-        });
+        expect(Transaction.prototype.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, 0.1121);
       });
     });
 
@@ -415,11 +410,11 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
-      jest.spyOn(transaction, 'finish');
-      transaction.finish();
+      jest.spyOn(transaction, 'end');
+      transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
     });
 
@@ -432,11 +427,11 @@ describe('Hub', () => {
       makeMain(hub);
       const transaction = hub.startTransaction({ name: 'dogpark' });
 
-      jest.spyOn(transaction, 'finish');
-      transaction.finish();
+      jest.spyOn(transaction, 'end');
+      transaction.end();
 
       expect(transaction.sampled).toBe(false);
-      expect(transaction.finish).toReturnWith(undefined);
+      expect(transaction.end).toReturnWith(undefined);
       expect(client.captureEvent).not.toBeCalled();
       expect(logger.error).toHaveBeenCalledWith(
         `A transaction was started with instrumenter=\`sentry\`, but the SDK is configured with the \`otel\` instrumenter.
@@ -633,7 +628,7 @@ The transaction will not be sampled. Please use the otel instrumentation to star
 
       transaction.startChild({ op: 'test', startTimestamp: 1200, endTimestamp: 1500 });
 
-      transaction.finish(2000);
+      transaction.end(2000);
 
       expect(captureEventSpy).toHaveBeenCalledTimes(1);
       expect(captureEventSpy.mock.calls[0][0].timestamp).toEqual(1500);

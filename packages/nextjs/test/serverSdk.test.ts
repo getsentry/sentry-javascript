@@ -1,12 +1,9 @@
-import { runWithAsyncContext } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
-import { NodeClient, getCurrentHub } from '@sentry/node';
+import { getClient, getCurrentScope } from '@sentry/node';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
-import { init } from '../src/server';
-
-const { Integrations } = SentryNode;
+import { Integrations, init } from '../src/server';
 
 // normally this is set as part of the build process, so mock it here
 (GLOBAL_OBJ as typeof GLOBAL_OBJ & { __rewriteFramesDistDir__: string }).__rewriteFramesDistDir__ = '.next';
@@ -21,8 +18,12 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error for testing
-    delete GLOBAL_OBJ.__SENTRY__;
+
+    SentryNode.getGlobalScope().clear();
+    SentryNode.getIsolationScope().clear();
+    SentryNode.getCurrentScope().clear();
+    SentryNode.getCurrentScope().setClient(undefined);
+
     delete process.env.VERCEL;
   });
 
@@ -57,7 +58,7 @@ describe('Server init()', () => {
         // TODO: If we upgrde to Jest 28+, we can follow Jest's example matcher and create an
         // `expect.ArrayContainingInAnyOrder`. See
         // https://github.com/facebook/jest/blob/main/examples/expect-extend/toBeWithinRange.ts.
-        integrations: expect.any(Array),
+        defaultIntegrations: expect.any(Array),
       }),
     );
   });
@@ -71,15 +72,11 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentHub().getScope();
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
 
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'node' });
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
   });
 
   // TODO: test `vercel` tag when running on Vercel
@@ -87,7 +84,7 @@ describe('Server init()', () => {
   // is resolved when importing.
 
   it('does not apply `vercel` tag when not running on vercel', () => {
-    const currentScope = getCurrentHub().getScope();
+    const currentScope = getCurrentScope();
 
     expect(process.env.VERCEL).toBeUndefined();
 
@@ -102,58 +99,37 @@ describe('Server init()', () => {
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
     });
-    const hub = getCurrentHub();
-    const transportSend = jest.spyOn(hub.getClient()!.getTransport()!, 'send');
+    const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
-    const transaction = hub.startTransaction({ name: '/404' });
-    transaction.finish();
+    SentryNode.startSpan({ name: '/404' }, () => {
+      // noop
+    });
 
-    // We need to flush because the event processor pipeline is async whereas transaction.finish() is sync.
+    // We need to flush because the event processor pipeline is async whereas transaction.end() is sync.
     await SentryNode.flush();
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
-  it("initializes both global hub and domain hub when there's an active domain", () => {
-    const globalHub = getCurrentHub();
-
-    runWithAsyncContext(() => {
-      const globalHub2 = getCurrentHub();
-      // If we call runWithAsyncContext before init, it executes the callback in the same context as there is no
-      // strategy yet
-      expect(globalHub2).toBe(globalHub);
-      expect(globalHub.getClient()).toBeUndefined();
-      expect(globalHub2.getClient()).toBeUndefined();
-
-      init({});
-
-      runWithAsyncContext(() => {
-        const domainHub = getCurrentHub();
-        // this tag should end up only in the domain hub
-        domainHub.setTag('dogs', 'areGreat');
-
-        expect(globalHub.getClient()).toEqual(expect.any(NodeClient));
-        expect(domainHub.getClient()).toBe(globalHub.getClient());
-        // @ts-expect-error need access to protected _tags attribute
-        expect(globalHub.getScope()._tags).toEqual({ runtime: 'node' });
-        // @ts-expect-error need access to protected _tags attribute
-        expect(domainHub.getScope()._tags).toEqual({ runtime: 'node', dogs: 'areGreat' });
-      });
-    });
-  });
-
   describe('integrations', () => {
     // Options passed by `@sentry/nextjs`'s `init` to `@sentry/node`'s `init` after modifying them
-    type ModifiedInitOptions = { integrations: Integration[] };
+    type ModifiedInitOptions = { integrations: Integration[]; defaultIntegrations: Integration[] };
 
     it('adds default integrations', () => {
       init({});
 
       const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-      const rewriteFramesIntegration = findIntegrationByName(nodeInitOptions.integrations, 'RewriteFrames');
+      const integrationNames = nodeInitOptions.defaultIntegrations.map(integration => integration.name);
+      const httpIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'Http');
+      const onUncaughtExceptionIntegration = findIntegrationByName(
+        nodeInitOptions.defaultIntegrations,
+        'OnUncaughtException',
+      );
 
-      expect(rewriteFramesIntegration).toBeDefined();
+      expect(integrationNames).toContain('DistDirRewriteFrames');
+      expect(httpIntegration).toBeDefined();
+      expect(onUncaughtExceptionIntegration).toBeDefined();
     });
 
     it('supports passing unrelated integrations through options', () => {
@@ -166,42 +142,18 @@ describe('Server init()', () => {
     });
 
     describe('`Http` integration', () => {
-      it('adds `Http` integration with tracing enabled if `tracesSampleRate` is set', () => {
+      it('adds `Http` integration with tracing enabled by default', () => {
         init({ tracesSampleRate: 1.0 });
 
         const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
+        const httpIntegration = findIntegrationByName(nodeInitOptions.defaultIntegrations, 'Http');
 
         expect(httpIntegration).toBeDefined();
         expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
 
-      it('adds `Http` integration with tracing enabled if `tracesSampler` is set', () => {
-        init({ tracesSampler: () => true });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
-
-      it('forces `_tracing = true` if `tracesSampleRate` is set', () => {
+      it('forces `_tracing = true` even if set to false', () => {
         init({
-          tracesSampleRate: 1.0,
-          integrations: [new Integrations.Http({ tracing: false })],
-        });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
-
-      it('forces `_tracing = true` if `tracesSampler` is set', () => {
-        init({
-          tracesSampler: () => true,
           integrations: [new Integrations.Http({ tracing: false })],
         });
 

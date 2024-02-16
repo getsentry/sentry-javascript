@@ -1,7 +1,6 @@
-import type { Scope } from '@sentry/core';
-import { prepareEvent } from '@sentry/core';
-import type { IntegrationIndex } from '@sentry/core/build/types/integration';
-import type { Client, EventHint, ReplayEvent } from '@sentry/types';
+import type { IntegrationIndex } from '@sentry/core';
+import { getIsolationScope, prepareEvent } from '@sentry/core';
+import type { Client, EventHint, ReplayEvent, Scope } from '@sentry/types';
 
 /**
  * Prepare a replay event & enrich it with the SDK metadata.
@@ -24,9 +23,7 @@ export async function prepareReplayEvent({
 
   const eventHint: EventHint = { event_id, integrations };
 
-  if (client.emit) {
-    client.emit('preprocessEvent', event, eventHint);
-  }
+  client.emit('preprocessEvent', event, eventHint);
 
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
@@ -34,6 +31,7 @@ export async function prepareReplayEvent({
     eventHint,
     scope,
     client,
+    getIsolationScope(),
   )) as ReplayEvent | null;
 
   // If e.g. a global event processor returned null
@@ -47,7 +45,7 @@ export async function prepareReplayEvent({
   preparedEvent.platform = preparedEvent.platform || 'javascript';
 
   // extract the SDK name because `client._prepareEvent` doesn't add it to the event
-  const metadata = client.getSdkMetadata && client.getSdkMetadata();
+  const metadata = client.getSdkMetadata();
   const { name, version } = (metadata && metadata.sdk) || {};
 
   preparedEvent.sdk = {

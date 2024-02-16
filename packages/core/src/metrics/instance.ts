@@ -8,6 +8,11 @@ import { simpleHash } from './utils';
 export class CounterMetric implements MetricInstance {
   public constructor(private _value: number) {}
 
+  /** @inheritDoc */
+  public get weight(): number {
+    return 1;
+  }
+
   /** @inheritdoc */
   public add(value: number): void {
     this._value += value;
@@ -35,6 +40,11 @@ export class GaugeMetric implements MetricInstance {
     this._max = value;
     this._sum = value;
     this._count = 1;
+  }
+
+  /** @inheritDoc */
+  public get weight(): number {
+    return 5;
   }
 
   /** @inheritdoc */
@@ -66,6 +76,11 @@ export class DistributionMetric implements MetricInstance {
     this._value = [first];
   }
 
+  /** @inheritDoc */
+  public get weight(): number {
+    return this._value.length;
+  }
+
   /** @inheritdoc */
   public add(value: number): void {
     this._value.push(value);
@@ -87,6 +102,11 @@ export class SetMetric implements MetricInstance {
     this._value = new Set([first]);
   }
 
+  /** @inheritDoc */
+  public get weight(): number {
+    return this._value.size;
+  }
+
   /** @inheritdoc */
   public add(value: number | string): void {
     this._value.add(value);
@@ -94,13 +114,11 @@ export class SetMetric implements MetricInstance {
 
   /** @inheritdoc */
   public toString(): string {
-    return `${Array.from(this._value)
+    return Array.from(this._value)
       .map(val => (typeof val === 'string' ? simpleHash(val) : val))
-      .join(':')}`;
+      .join(':');
   }
 }
-
-export type Metric = CounterMetric | GaugeMetric | DistributionMetric | SetMetric;
 
 export const METRIC_MAP = {
   [COUNTER_METRIC_TYPE]: CounterMetric,

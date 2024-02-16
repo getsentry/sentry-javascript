@@ -50,6 +50,7 @@ export class TestEnv {
     useTraceService?: boolean;
     additionalProviders?: Provider[];
   }): Promise<TestEnv> {
+    // eslint-disable-next-line deprecation/deprecation
     instrumentAngularRouting(
       conf.customStartTransaction || jest.fn(),
       conf.startTransactionOnPageLoad !== undefined ? conf.startTransactionOnPageLoad : true,

@@ -1,25 +1,28 @@
 import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
+import { vi } from 'vitest';
 // linter doesn't like Svelte component imports
 import DummyComponent from './components/Dummy.svelte';
 
 let returnUndefinedTransaction = false;
 
-const testTransaction: { spans: any[]; startChild: jest.Mock; finish: jest.Mock } = {
+const testTransaction: { spans: any[]; startChild: jest.Mock; end: jest.Mock; isRecording: () => boolean } = {
   spans: [],
-  startChild: jest.fn(),
-  finish: jest.fn(),
+  startChild: vi.fn(),
+  end: vi.fn(),
+  isRecording: () => true,
 };
-const testUpdateSpan = { finish: jest.fn() };
+const testUpdateSpan = { end: vi.fn() };
 const testInitSpan: any = {
   transaction: testTransaction,
-  finish: jest.fn(),
-  startChild: jest.fn(),
+  end: vi.fn(),
+  startChild: vi.fn(),
+  isRecording: () => true,
 };
 
-jest.mock('@sentry/core', () => {
-  const original = jest.requireActual('@sentry/core');
+vi.mock('@sentry/core', async () => {
+  const original = await vi.importActual('@sentry/core');
   return {
     ...original,
     getCurrentScope(): Scope {
@@ -34,7 +37,7 @@ jest.mock('@sentry/core', () => {
 
 describe('Sentry.trackComponent()', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     testTransaction.spans = [];
 
     testTransaction.startChild.mockImplementation(spanCtx => {
@@ -47,8 +50,8 @@ describe('Sentry.trackComponent()', () => {
       return testUpdateSpan;
     });
 
-    testInitSpan.finish = jest.fn();
-    testInitSpan.endTimestamp = undefined;
+    testInitSpan.end = vi.fn();
+    testInitSpan.isRecording = () => true;
     returnUndefinedTransaction = false;
   });
 
@@ -56,26 +59,26 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: {} } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
 
-    expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
-    expect(testUpdateSpan.finish).toHaveBeenCalledTimes(1);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
+    expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
     expect(testTransaction.spans.length).toEqual(2);
   });
 
   it('creates an update span, when the component is updated', async () => {
-    // Make the finish() function actually end the initSpan
-    testInitSpan.finish.mockImplementation(() => {
-      testInitSpan.endTimestamp = Date.now();
+    // Make the end() function actually end the initSpan
+    testInitSpan.end.mockImplementation(() => {
+      testInitSpan.isRecording = () => false;
     });
 
     // first we create the component
@@ -89,7 +92,7 @@ describe('Sentry.trackComponent()', () => {
     // once for init (unimportant here), once for starting the update span
     expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -100,14 +103,14 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackUpdates: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
 
-    expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testTransaction.spans.length).toEqual(1);
   });
 
@@ -115,14 +118,14 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackInit: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).not.toHaveBeenCalled();
 
-    expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
     expect(testTransaction.spans.length).toEqual(1);
   });
 
@@ -151,8 +154,8 @@ describe('Sentry.trackComponent()', () => {
       origin: 'auto.ui.svelte',
     });
 
-    expect(testInitSpan.finish).toHaveBeenCalledTimes(1);
-    expect(testUpdateSpan.finish).toHaveBeenCalledTimes(1);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(1);
+    expect(testUpdateSpan.end).toHaveBeenCalledTimes(1);
     expect(testTransaction.spans.length).toEqual(2);
   });
 
@@ -163,15 +166,15 @@ describe('Sentry.trackComponent()', () => {
       props: { options: { componentName: 'CustomComponentName' } },
     });
 
-    expect(testInitSpan.finish).toHaveBeenCalledTimes(0);
-    expect(testUpdateSpan.finish).toHaveBeenCalledTimes(0);
+    expect(testInitSpan.end).toHaveBeenCalledTimes(0);
+    expect(testUpdateSpan.end).toHaveBeenCalledTimes(0);
     expect(testTransaction.spans.length).toEqual(0);
   });
 
   it("doesn't record update spans, if there's no ongoing transaction at that time", async () => {
-    // Make the finish() function actually end the initSpan
-    testInitSpan.finish.mockImplementation(() => {
-      testInitSpan.endTimestamp = Date.now();
+    // Make the end() function actually end the initSpan
+    testInitSpan.end.mockImplementation(() => {
+      testInitSpan.isRecording = () => false;
     });
 
     // first we create the component
@@ -185,7 +188,7 @@ describe('Sentry.trackComponent()', () => {
     // but not the second update
     expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });

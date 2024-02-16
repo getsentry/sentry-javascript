@@ -3,6 +3,7 @@ import type {
   Attachment,
   Breadcrumb,
   CaptureContext,
+  Client,
   Context,
   Contexts,
   Event,
@@ -15,17 +16,18 @@ import type {
   RequestSession,
   Scope as ScopeInterface,
   ScopeContext,
+  ScopeData,
   Session,
-  Severity,
   SeverityLevel,
   Span,
   Transaction,
   User,
 } from '@sentry/types';
-import { arrayify, dateTimestampInSeconds, isPlainObject, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
+import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -77,10 +79,11 @@ export class Scope implements ScopeInterface {
   protected _fingerprint?: string[];
 
   /** Severity */
-  // eslint-disable-next-line deprecation/deprecation
-  protected _level?: Severity | SeverityLevel;
+  protected _level?: SeverityLevel;
 
-  /** Transaction Name */
+  /**
+   * Transaction Name
+   */
   protected _transactionName?: string;
 
   /** Span */
@@ -91,6 +94,9 @@ export class Scope implements ScopeInterface {
 
   /** Request Mode Session Status */
   protected _requestSession?: RequestSession;
+
+  /** The client on this scope */
+  protected _client?: Client;
 
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
@@ -136,8 +142,23 @@ export class Scope implements ScopeInterface {
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
+    newScope._client = this._client;
 
     return newScope;
+  }
+
+  /** Update the client on the scope. */
+  public setClient(client: Client | undefined): void {
+    this._client = client;
+  }
+
+  /**
+   * Get the client assigned to this scope.
+   *
+   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   */
+  public getClient<C extends Client>(): C | undefined {
+    return this._client as C | undefined;
   }
 
   /**
@@ -160,10 +181,19 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public setUser(user: User | null): this {
-    this._user = user || {};
+    // If null is passed we want to unset everything, but still define keys,
+    // so that later down in the pipeline any existing values are cleared.
+    this._user = user || {
+      email: undefined,
+      id: undefined,
+      ip_address: undefined,
+      username: undefined,
+    };
+
     if (this._session) {
       updateSession(this._session, { user });
     }
+
     this._notifyScopeListeners();
     return this;
   }
@@ -244,17 +274,15 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this {
+  public setLevel(level: SeverityLevel): this {
     this._level = level;
     this._notifyScopeListeners();
     return this;
   }
 
   /**
-   * @inheritDoc
+   * Sets the transaction name on the scope for future events.
+   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -278,7 +306,9 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Sets the Span on the scope.
+   * @param span Span
+   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
    */
   public setSpan(span?: Span): this {
     this._span = span;
@@ -287,19 +317,24 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Span` if there is one.
+   * @deprecated Use `getActiveSpan()` instead.
    */
   public getSpan(): Span | undefined {
     return this._span;
   }
 
   /**
-   * @inheritDoc
+   * Returns the `Transaction` attached to the scope (if there is one).
+   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
   public getTransaction(): Transaction | undefined {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
-    const span = this.getSpan();
+    const span = this._span;
+    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
+    // Also, this method will be removed anyway.
+    // eslint-disable-next-line deprecation/deprecation
     return span && span.transaction;
   }
 
@@ -385,6 +420,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public clear(): this {
+    // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
     this._extra = {};
@@ -453,9 +489,12 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
+   * @deprecated Use `getScopeData()` instead.
    */
   public getAttachments(): Attachment[] {
-    return this._attachments;
+    const data = this.getScopeData();
+
+    return data.attachments;
   }
 
   /**
@@ -466,78 +505,65 @@ export class Scope implements ScopeInterface {
     return this;
   }
 
+  /** @inheritDoc */
+  public getScopeData(): ScopeData {
+    const {
+      _breadcrumbs,
+      _attachments,
+      _contexts,
+      _tags,
+      _extra,
+      _user,
+      _level,
+      _fingerprint,
+      _eventProcessors,
+      _propagationContext,
+      _sdkProcessingMetadata,
+      _transactionName,
+      _span,
+    } = this;
+
+    return {
+      breadcrumbs: _breadcrumbs,
+      attachments: _attachments,
+      contexts: _contexts,
+      tags: _tags,
+      extra: _extra,
+      user: _user,
+      level: _level,
+      fingerprint: _fingerprint || [],
+      eventProcessors: _eventProcessors,
+      propagationContext: _propagationContext,
+      sdkProcessingMetadata: _sdkProcessingMetadata,
+      transactionName: _transactionName,
+      span: _span,
+    };
+  }
+
   /**
    * Applies data from the scope to the event and runs all event processors on it.
    *
    * @param event Event
    * @param hint Object containing additional information about the original exception, for use by the event processors.
    * @hidden
+   * @deprecated Use `applyScopeDataToEvent()` directly
    */
   public applyToEvent(
     event: Event,
     hint: EventHint = {},
-    additionalEventProcessors?: EventProcessor[],
+    additionalEventProcessors: EventProcessor[] = [],
   ): PromiseLike<Event | null> {
-    if (this._extra && Object.keys(this._extra).length) {
-      event.extra = { ...this._extra, ...event.extra };
-    }
-    if (this._tags && Object.keys(this._tags).length) {
-      event.tags = { ...this._tags, ...event.tags };
-    }
-    if (this._user && Object.keys(this._user).length) {
-      event.user = { ...this._user, ...event.user };
-    }
-    if (this._contexts && Object.keys(this._contexts).length) {
-      event.contexts = { ...this._contexts, ...event.contexts };
-    }
-    if (this._level) {
-      event.level = this._level;
-    }
-    if (this._transactionName) {
-      event.transaction = this._transactionName;
-    }
-
-    // We want to set the trace context for normal events only if there isn't already
-    // a trace context on the event. There is a product feature in place where we link
-    // errors with transaction and it relies on that.
-    if (this._span) {
-      event.contexts = { trace: this._span.getTraceContext(), ...event.contexts };
-      const transaction = this._span.transaction;
-      if (transaction) {
-        event.sdkProcessingMetadata = {
-          dynamicSamplingContext: transaction.getDynamicSamplingContext(),
-          ...event.sdkProcessingMetadata,
-        };
-        const transactionName = transaction.name;
-        if (transactionName) {
-          event.tags = { transaction: transactionName, ...event.tags };
-        }
-      }
-    }
-
-    this._applyFingerprint(event);
-
-    const scopeBreadcrumbs = this._getBreadcrumbs();
-    const breadcrumbs = [...(event.breadcrumbs || []), ...scopeBreadcrumbs];
-    event.breadcrumbs = breadcrumbs.length > 0 ? breadcrumbs : undefined;
-
-    event.sdkProcessingMetadata = {
-      ...event.sdkProcessingMetadata,
-      ...this._sdkProcessingMetadata,
-      propagationContext: this._propagationContext,
-    };
+    applyScopeDataToEvent(event, this.getScopeData());
 
     // TODO (v8): Update this order to be: Global > Client > Scope
-    return notifyEventProcessors(
-      [
-        ...(additionalEventProcessors || []),
-        // eslint-disable-next-line deprecation/deprecation
-        ...getGlobalEventProcessors(),
-        ...this._eventProcessors,
-      ],
-      event,
-      hint,
-    );
+    const eventProcessors: EventProcessor[] = [
+      ...additionalEventProcessors,
+      // eslint-disable-next-line deprecation/deprecation
+      ...getGlobalEventProcessors(),
+      ...this._eventProcessors,
+    ];
+
+    return notifyEventProcessors(eventProcessors, event, hint);
   }
 
   /**
@@ -565,10 +591,87 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Get the breadcrumbs for this scope.
+   * Capture an exception for this scope.
+   *
+   * @param exception The exception to capture.
+   * @param hint Optinal additional data to attach to the Sentry event.
+   * @returns the id of the captured Sentry event.
    */
-  protected _getBreadcrumbs(): Breadcrumb[] {
-    return this._breadcrumbs;
+  public captureException(exception: unknown, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture exception!');
+      return eventId;
+    }
+
+    const syntheticException = new Error('Sentry syntheticException');
+
+    this._client.captureException(
+      exception,
+      {
+        originalException: exception,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Capture a message for this scope.
+   *
+   * @param message The message to capture.
+   * @param level An optional severity level to report the message with.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured message.
+   */
+  public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture message!');
+      return eventId;
+    }
+
+    const syntheticException = new Error(message);
+
+    this._client.captureMessage(
+      message,
+      level,
+      {
+        originalException: message,
+        syntheticException,
+        ...hint,
+        event_id: eventId,
+      },
+      this,
+    );
+
+    return eventId;
+  }
+
+  /**
+   * Captures a manually created event for this scope and sends it to Sentry.
+   *
+   * @param exception The event to capture.
+   * @param hint Optional additional data to attach to the Sentry event.
+   * @returns the id of the captured event.
+   */
+  public captureEvent(event: Event, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture event!');
+      return eventId;
+    }
+
+    this._client.captureEvent(event, { ...hint, event_id: eventId }, this);
+
+    return eventId;
   }
 
   /**
@@ -584,25 +687,6 @@ export class Scope implements ScopeInterface {
         callback(this);
       });
       this._notifyingListeners = false;
-    }
-  }
-
-  /**
-   * Applies fingerprint from the scope to the event if there's one,
-   * uses message if there's one instead or get rid of empty fingerprint
-   */
-  private _applyFingerprint(event: Event): void {
-    // Make sure it's an array first and we actually have something in place
-    event.fingerprint = event.fingerprint ? arrayify(event.fingerprint) : [];
-
-    // If we have something on the scope, then merge it with event
-    if (this._fingerprint) {
-      event.fingerprint = event.fingerprint.concat(this._fingerprint);
-    }
-
-    // If we have no data at all, remove empty array default
-    if (event.fingerprint && !event.fingerprint.length) {
-      delete event.fingerprint;
     }
   }
 }

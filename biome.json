@@ -20,9 +20,31 @@
       "suspicious": {
         "all": false,
         "noControlCharactersInRegex": "error"
+      },
+      "nursery": {
+        "noUnusedImports": "error",
+        "useRegexLiterals": "error"
+      },
+      "performance": {
+        "all": true,
+        "noAccumulatingSpread": "error",
+        "noDelete": "off"
       }
     },
-    "ignore": [".vscode/*", "**/*.json"]
+    "ignore": [
+      ".vscode/*",
+      "**/*.json",
+      ".next/**/*",
+      ".svelte-kit/**/*",
+      "**/fixtures/*/*.json",
+      "**/*.min.js",
+      ".next/**",
+      ".svelte-kit/**",
+      ".angular/**",
+      "angular.json",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts"
+    ]
   },
   "files": {
     "ignoreUnknown": true
@@ -34,13 +56,20 @@
     "indentWidth": 2,
     "lineWidth": 120,
     "ignore": [
-      "packages/browser-integration-tests/fixtures/loader.js",
-      "packages/browser-integration-tests/suites/**/*.json",
-      "packages/browser-integration-tests/loader-suites/**/*.js",
-      "packages/browser-integration-tests/suites/stacktraces/**/*.js",
+      "dev-packages/browser-integration-tests/fixtures/loader.js",
+      "dev-packages/browser-integration-tests/suites/**/*.json",
+      "dev-packages/browser-integration-tests/loader-suites/**/*.js",
+      "dev-packages/browser-integration-tests/suites/stacktraces/**/*.js",
+      ".next/**/*",
       "**/fixtures/*/*.json",
-      "packages/browser/examples/bundle.js",
-      "**/*.min.js"
+      "**/*.min.js",
+      ".next/**",
+      ".svelte-kit/**",
+      ".angular/**",
+      "angular.json",
+      "**/profiling-node/lib/**",
+      "ember/instance-initializers/**",
+      "ember/types.d.ts"
     ]
   },
   "javascript": {

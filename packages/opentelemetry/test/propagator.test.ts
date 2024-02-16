@@ -7,8 +7,8 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
-import type { PropagationContext } from '@sentry/types';
+import { addTracingExtensions, setCurrentClient } from '@sentry/core';
+import type { Client, PropagationContext } from '@sentry/types';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
@@ -39,10 +39,10 @@ describe('SentryPropagator', () => {
       getDsn: () => ({
         publicKey: 'abc',
       }),
-    };
-    // @ts-expect-error Use mock client for unit tests
-    const hub: Hub = new Hub(client);
-    makeMain(hub);
+      emit: () => {},
+    } as unknown as Client;
+
+    setCurrentClient(client);
 
     describe('with active span', () => {
       it.each([
@@ -309,6 +309,7 @@ describe('SentryPropagator', () => {
         parentSpanId: '6e0c63257de34c92',
         spanId: expect.any(String),
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        dsc: {}, // Frozen DSC
       });
 
       // Ensure spanId !== parentSpanId - it should be a new random ID
@@ -320,19 +321,21 @@ describe('SentryPropagator', () => {
       carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(getPropagationContextFromContext(context)).toEqual({
-        sampled: undefined,
         spanId: expect.any(String),
         traceId: expect.any(String),
       });
     });
 
     it('sets defined dynamic sampling context on context', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1';
       const baggage =
         'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=abc,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-transaction=dsc-transaction';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
       carrier[SENTRY_BAGGAGE_HEADER] = baggage;
       const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
       expect(getPropagationContextFromContext(context)).toEqual({
-        sampled: undefined,
+        sampled: true,
+        parentSpanId: expect.any(String),
         spanId: expect.any(String),
         traceId: expect.any(String), // Note: This is not automatically taken from the DSC (in reality, this should be aligned)
         dsc: {

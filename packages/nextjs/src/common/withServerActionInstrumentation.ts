@@ -1,14 +1,17 @@
+import { getIsolationScope } from '@sentry/core';
 import {
   addTracingExtensions,
   captureException,
+  continueTrace,
   getClient,
-  getCurrentScope,
-  runWithAsyncContext,
-  trace,
+  handleCallbackErrors,
+  startSpan,
+  withIsolationScope,
 } from '@sentry/core';
-import { logger, tracingContextFromHeaders } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
 
@@ -55,7 +58,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
-  return runWithAsyncContext(async () => {
+  return withIsolationScope(isolationScope => {
     const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;
@@ -74,65 +77,73 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
         );
     }
 
-    const currentScope = getCurrentScope();
-    const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-      sentryTraceHeader,
-      baggageHeader,
-    );
-    currentScope.setPropagationContext(propagationContext);
+    isolationScope.setSDKProcessingMetadata({
+      request: {
+        headers: fullHeadersObject,
+      },
+    });
 
-    let res;
-    try {
-      res = await trace(
-        {
-          op: 'function.server_action',
-          name: `serverAction/${serverActionName}`,
-          status: 'ok',
-          ...traceparentData,
-          metadata: {
-            source: 'route',
-            dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-            request: {
-              headers: fullHeadersObject,
+    return continueTrace(
+      {
+        sentryTrace: sentryTraceHeader,
+        baggage: baggageHeader,
+      },
+      async () => {
+        try {
+          return await startSpan(
+            {
+              op: 'function.server_action',
+              name: `serverAction/${serverActionName}`,
+              metadata: {
+                source: 'route',
+              },
             },
-          },
-        },
-        async span => {
-          const result = await callback();
+            async span => {
+              const result = await handleCallbackErrors(callback, error => {
+                if (isNotFoundNavigationError(error)) {
+                  // We don't want to report "not-found"s
+                  span?.setStatus('not_found');
+                } else if (isRedirectNavigationError(error)) {
+                  // Don't do anything for redirects
+                } else {
+                  span?.setStatus('internal_error');
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
+              });
 
-          if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
-            span?.setData('server_action_result', result);
-          }
-
-          if (options.formData) {
-            const formDataObject: Record<string, unknown> = {};
-            options.formData.forEach((value, key) => {
-              if (typeof value === 'string') {
-                formDataObject[key] = value;
-              } else {
-                formDataObject[key] = '[non-string value]';
+              if (options.recordResponse !== undefined ? options.recordResponse : sendDefaultPii) {
+                getIsolationScope().setExtra('server_action_result', result);
               }
-            });
-            span?.setData('server_action_form_data', formDataObject);
+
+              if (options.formData) {
+                options.formData.forEach((value, key) => {
+                  getIsolationScope().setExtra(
+                    `server_action_form_data.${key}`,
+                    typeof value === 'string' ? value : '[non-string value]',
+                  );
+                });
+              }
+
+              return result;
+            },
+          );
+        } finally {
+          if (!platformSupportsStreaming()) {
+            // Lambdas require manual flushing to prevent execution freeze before the event is sent
+            await flushQueue();
           }
 
-          return result;
-        },
-        error => {
-          captureException(error, { mechanism: { handled: false } });
-        },
-      );
-    } finally {
-      if (!platformSupportsStreaming()) {
-        // Lambdas require manual flushing to prevent execution freeze before the event is sent
-        await flushQueue();
-      }
-
-      if (process.env.NEXT_RUNTIME === 'edge') {
-        void flushQueue();
-      }
-    }
-
-    return res;
+          if (process.env.NEXT_RUNTIME === 'edge') {
+            // flushQueue should not throw
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            flushQueue();
+          }
+        }
+      },
+    );
   });
 }

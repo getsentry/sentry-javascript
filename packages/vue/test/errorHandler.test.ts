@@ -1,4 +1,4 @@
-import { getCurrentHub } from '@sentry/browser';
+import { setCurrentClient } from '@sentry/browser';
 
 import { attachErrorHandler } from '../src/errorhandler';
 import type { Operation, Options, ViewModel, Vue } from '../src/types';
@@ -333,7 +333,7 @@ const testHarness = ({
   const client: any = {
     captureException: jest.fn(async () => Promise.resolve()),
   };
-  getCurrentHub().bindClient(client);
+  setCurrentClient(client);
 
   const app: Vue = {
     config: {

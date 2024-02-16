@@ -1,16 +1,22 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Span, Transaction } from '@sentry/core';
-import * as sentryCore from '@sentry/core';
+import type { SentrySpan } from '@sentry/core';
+import { Transaction } from '@sentry/core';
+import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { Hub, addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
-import * as HttpsProxyAgent from 'https-proxy-agent';
 import * as nock from 'nock';
+import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
 import { NodeClient } from '../../src/client';
-import { Http as HttpIntegration } from '../../src/integrations/http';
+import {
+  Http as HttpIntegration,
+  _getShouldCreateSpanForRequest,
+  _shouldCreateSpans,
+  httpIntegration,
+} from '../../src/integrations/http';
 import { NODE_VERSION } from '../../src/nodeVersion';
 import type { NodeClientOptions } from '../../src/types';
 import { getDefaultNodeClientOptions } from '../helper/node-client-options';
@@ -20,86 +26,84 @@ const originalHttpRequest = http.request;
 
 describe('tracing', () => {
   afterEach(() => {
-    sentryCore.getCurrentHub().getScope().setSpan(undefined);
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(undefined);
   });
 
   function createTransactionOnScope(
     customOptions: Partial<NodeClientOptions> = {},
     customContext?: Partial<TransactionContext>,
   ) {
-    const options = getDefaultNodeClientOptions({
-      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      tracesSampleRate: 1.0,
-      integrations: [new HttpIntegration({ tracing: true })],
-      release: '1.0.0',
-      environment: 'production',
-      ...customOptions,
-    });
-    const hub = new Hub(new NodeClient(options));
+    setupMockHub(customOptions);
     addTracingExtensions();
 
-    hub.getScope().setUser({
+    setUser({
       id: 'uid123',
-      segment: 'segmentA',
     });
 
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
-
-    const transaction = hub.startTransaction({
+    const transaction = startInactiveSpan({
       name: 'dogpark',
       traceId: '12312012123120121231201212312012',
       ...customContext,
     });
 
-    hub.getScope().setSpan(transaction);
+    expect(transaction).toBeInstanceOf(Transaction);
+
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(transaction);
 
     return transaction;
   }
 
-  function getHub(customOptions: Partial<NodeClientOptions> = {}) {
+  function setupMockHub(customOptions: Partial<NodeClientOptions> = {}) {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
       ...customOptions,
     });
-    const hub = new Hub(new NodeClient(options));
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-    jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
-    return hub;
+    const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+    // eslint-disable-next-line deprecation/deprecation
+    hub.bindClient(client);
   }
 
   it("creates a span for each outgoing non-sentry request when there's a transaction on the scope", () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    // eslint-disable-next-line deprecation/deprecation
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/');
 
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/');
+    expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
   it("doesn't create a span for outgoing sentry requests", () => {
     nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    // eslint-disable-next-line deprecation/deprecation
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 
     // only the transaction itself should be there
     expect(spans.length).toEqual(1);
-    expect((spans[0] as Transaction).name).toEqual('dogpark');
+    expect(spanToJSON(spans[0]).description).toEqual('dogpark');
   });
 
   it('attaches the sentry-trace header to outgoing non-sentry requests', async () => {
@@ -135,7 +139,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual(
       'sentry-environment=production,sentry-release=1.0.0,' +
-        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,' +
         'sentry-transaction=dogpark,sentry-sampled=true',
     );
@@ -151,7 +155,7 @@ describe('tracing', () => {
 
     expect(baggageHeader[0]).toEqual('dog=great');
     expect(baggageHeader[1]).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     );
   });
 
@@ -165,7 +169,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     ]);
   });
 
@@ -179,7 +183,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     ]);
   });
 
@@ -202,7 +206,7 @@ describe('tracing', () => {
   it('generates and uses propagation context to attach baggage and sentry-trace header', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    const { traceId } = sentryCore.getCurrentHub().getScope().getPropagationContext();
+    const { traceId } = getCurrentScope().getPropagationContext();
 
     const request = http.get('http://dogs.are.great/');
     const sentryTraceHeader = request.getHeader('sentry-trace') as string;
@@ -216,15 +220,15 @@ describe('tracing', () => {
     expect(parts[1]).toEqual(expect.any(String));
 
     expect(baggageHeader).toEqual(
-      `sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
+      `sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
     );
   });
 
   it('uses incoming propagation context to attach baggage and sentry-trace', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    const hub = getHub();
-    hub.getScope().setPropagationContext({
+    setupMockHub();
+    getCurrentScope().setPropagationContext({
       traceId: '86f39e84263a4de99c326acab3bfe3bd',
       spanId: '86f39e84263a4de9',
       sampled: true,
@@ -260,13 +264,16 @@ describe('tracing', () => {
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
       tracesSampleRate: 1.0,
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ tracing: true })],
       release: '1.0.0',
       environment: 'production',
       instrumenter: 'otel',
     });
+    // eslint-disable-next-line deprecation/deprecation
     const hub = new Hub(new NodeClient(options));
 
+    // eslint-disable-next-line deprecation/deprecation
     const integration = new HttpIntegration();
     integration.setupOnce(
       () => {},
@@ -280,38 +287,49 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    // eslint-disable-next-line deprecation/deprecation
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
 
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
+
+    const spanAttributes = spanToJSON(spans[1]).data || {};
+
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it('fills in span data from http.RequestOptions object', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    // eslint-disable-next-line deprecation/deprecation
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
 
     expect(spans.length).toEqual(2);
 
+    const spanAttributes = spanToJSON(spans[1]).data || {};
+
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual('GET http://dogs.are.great/spaniel');
+    expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
+    // eslint-disable-next-line deprecation/deprecation
     expect(spans[1].op).toEqual('http.client');
-    expect(spans[1].data['http.method']).toEqual('GET');
-    expect(spans[1].data.url).toEqual('http://dogs.are.great/spaniel');
-    expect(spans[1].data['http.query']).toEqual('tail=wag&cute=true');
-    expect(spans[1].data['http.fragment']).toEqual('learn-more');
+    expect(spanToJSON(spans[1]).op).toEqual('http.client');
+    expect(spanAttributes['http.method']).toEqual('GET');
+    expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
+    expect(spanAttributes['http.query']).toEqual('tail=wag&cute=true');
+    expect(spanAttributes['http.fragment']).toEqual('learn-more');
   });
 
   it.each([
@@ -324,14 +342,15 @@ describe('tracing', () => {
     nock(`http://${auth}@dogs.are.great`).get('/').reply(200);
 
     const transaction = createTransactionOnScope();
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    // eslint-disable-next-line deprecation/deprecation
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get(`http://${auth}@dogs.are.great/`);
 
     expect(spans.length).toEqual(2);
 
     // our span is at index 1 because the transaction itself is at index 0
-    expect(spans[1].description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
+    expect(spanToJSON(spans[1]).description).toEqual(`GET http://${redactedAuth}dogs.are.great/`);
   });
 
   describe('Tracing options', () => {
@@ -352,23 +371,20 @@ describe('tracing', () => {
         ...customOptions,
       });
 
-      const hub = new Hub();
-
-      jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-      jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-      jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
-
       const client = new NodeClient(options);
-      jest.spyOn(hub, 'getClient').mockImplementation(() => client);
-      hub.bindClient(client);
+      // eslint-disable-next-line deprecation/deprecation
+      const hub = new Hub(client);
+      // eslint-disable-next-line deprecation/deprecation
+      makeMain(hub);
 
       return hub;
     }
 
-    function createTransactionAndPutOnScope(hub: Hub) {
+    function createTransactionAndPutOnScope() {
       addTracingExtensions();
-      const transaction = hub.startTransaction({ name: 'dogpark' });
-      hub.getScope().setSpan(transaction);
+      const transaction = startInactiveSpan({ name: 'dogpark' });
+      // eslint-disable-next-line deprecation/deprecation
+      getCurrentScope().setSpan(transaction);
       return transaction;
     }
 
@@ -377,25 +393,24 @@ describe('tracing', () => {
         const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
+        // eslint-disable-next-line deprecation/deprecation
         const httpIntegration = new HttpIntegration({ tracing: true });
 
         const hub = createHub({ shouldCreateSpanForRequest: () => false });
-
-        jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-        jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
 
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        const transaction = createTransactionAndPutOnScope(hub);
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const transaction = createTransactionAndPutOnScope();
+        // eslint-disable-next-line deprecation/deprecation
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
@@ -403,7 +418,7 @@ describe('tracing', () => {
         expect(request.getHeader('sentry-trace')).toBeDefined();
         expect(request.getHeader('baggage')).toBeDefined();
 
-        const propagationContext = hub.getScope().getPropagationContext();
+        const propagationContext = getCurrentScope().getPropagationContext();
 
         expect((request.getHeader('sentry-trace') as string).includes(propagationContext.traceId)).toBe(true);
         expect(request.getHeader('baggage')).toEqual(
@@ -426,6 +441,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: true });
 
           const hub = createHub({ tracePropagationTargets });
@@ -435,7 +451,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -458,6 +474,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: true });
 
           const hub = createHub({ tracePropagationTargets });
@@ -467,7 +484,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -482,6 +499,7 @@ describe('tracing', () => {
         const url = 'http://dogs.are.great/api/v1/index/';
         nock(url).get(/.*/).reply(200);
 
+        // eslint-disable-next-line deprecation/deprecation
         const httpIntegration = new HttpIntegration({
           tracing: {
             shouldCreateSpanForRequest: () => false,
@@ -490,21 +508,19 @@ describe('tracing', () => {
 
         const hub = createHub();
 
-        jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-        jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-        jest.spyOn(sentryCore, 'getClient').mockReturnValue(hub.getClient());
-
         httpIntegration.setupOnce(
           () => undefined,
           () => hub,
         );
 
-        const transaction = createTransactionAndPutOnScope(hub);
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const transaction = createTransactionAndPutOnScope();
+        // eslint-disable-next-line deprecation/deprecation
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 
         // There should be no http spans
+        // eslint-disable-next-line deprecation/deprecation
         const httpSpans = spans.filter(span => span.op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
@@ -512,7 +528,7 @@ describe('tracing', () => {
         expect(request.getHeader('sentry-trace')).toBeDefined();
         expect(request.getHeader('baggage')).toBeDefined();
 
-        const propagationContext = hub.getScope().getPropagationContext();
+        const propagationContext = getCurrentScope().getPropagationContext();
 
         expect((request.getHeader('sentry-trace') as string).includes(propagationContext.traceId)).toBe(true);
         expect(request.getHeader('baggage')).toEqual(
@@ -535,6 +551,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
 
           const hub = createHub();
@@ -544,7 +561,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -567,6 +584,7 @@ describe('tracing', () => {
         (url, tracePropagationTargets) => {
           nock(url).get(/.*/).reply(200);
 
+          // eslint-disable-next-line deprecation/deprecation
           const httpIntegration = new HttpIntegration({ tracing: { tracePropagationTargets } });
 
           const hub = createHub();
@@ -576,7 +594,7 @@ describe('tracing', () => {
             () => hub,
           );
 
-          createTransactionAndPutOnScope(hub);
+          createTransactionAndPutOnScope();
 
           const request = http.get(url);
 
@@ -590,16 +608,13 @@ describe('tracing', () => {
 
 describe('default protocols', () => {
   function captureBreadcrumb(key: string): Promise<Breadcrumb> {
-    const hub = new Hub();
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    jest.spyOn(sentryCore, 'addBreadcrumb').mockImplementation((...rest) => hub.addBreadcrumb(...rest));
-
     let resolve: (value: Breadcrumb | PromiseLike<Breadcrumb>) => void;
     const p = new Promise<Breadcrumb>(r => {
       resolve = r;
     });
     const options = getDefaultNodeClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      // eslint-disable-next-line deprecation/deprecation
       integrations: [new HttpIntegration({ breadcrumbs: true })],
       beforeBreadcrumb: (b: Breadcrumb) => {
         if ((b.data?.url as string).includes(key)) {
@@ -608,7 +623,11 @@ describe('default protocols', () => {
         return b;
       },
     });
-    hub.bindClient(new NodeClient(options));
+    const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
 
     return p;
   }
@@ -648,7 +667,7 @@ describe('default protocols', () => {
     // intercepting a https:// request with http:// mock. It's a safe bet
     // because the latest versions of nock no longer support Node v8 and lower,
     // so won't bother dealing with this old Node edge case.
-    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
+    if (NODE_VERSION.major < 9) {
       nockProtocol = 'http';
     }
     nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
@@ -666,16 +685,11 @@ describe('default protocols', () => {
   it('makes https request over http proxy', async () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
-    let nockProtocol = 'https';
 
-    const proxy = 'http://<PROXY_URL>:3128';
-    const agent = HttpsProxyAgent(proxy);
+    const proxy = 'http://some.url:3128';
+    const agent = new HttpsProxyAgent(proxy);
 
-    if (NODE_VERSION.major && NODE_VERSION.major < 9) {
-      nockProtocol = 'http';
-    }
-
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
+    nock(`https://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,
@@ -687,4 +701,136 @@ describe('default protocols', () => {
     const b = await p;
     expect(b.data?.url).toEqual(expect.stringContaining('https://'));
   });
+});
+
+describe('httpIntegration', () => {
+  beforeEach(function () {
+    const options = getDefaultNodeClientOptions({
+      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
+      tracesSampleRate: 1.0,
+      release: '1.0.0',
+      environment: 'production',
+    });
+    const client = new NodeClient(options);
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub(client);
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it('converts default options', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({}) as unknown as HttpIntegration;
+
+    expect(integration['_breadcrumbs']).toBe(true);
+    expect(integration['_tracing']).toEqual({ enableIfHasTracingEnabled: true });
+  });
+
+  it('respects `tracing=false`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ tracing: false }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual(undefined);
+  });
+
+  it('respects `breadcrumbs=false`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ breadcrumbs: false }) as unknown as HttpIntegration;
+
+    expect(integration['_breadcrumbs']).toBe(false);
+  });
+
+  it('respects `tracing=true`', () => {
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ tracing: true }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({});
+  });
+
+  it('respects `shouldCreateSpanForRequest`', () => {
+    const shouldCreateSpanForRequest = jest.fn();
+
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ shouldCreateSpanForRequest }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({
+      shouldCreateSpanForRequest,
+      enableIfHasTracingEnabled: true,
+    });
+  });
+
+  it('respects `shouldCreateSpanForRequest` & `tracing=true`', () => {
+    const shouldCreateSpanForRequest = jest.fn();
+
+    // eslint-disable-next-line deprecation/deprecation
+    const integration = httpIntegration({ shouldCreateSpanForRequest, tracing: true }) as unknown as HttpIntegration;
+
+    expect(integration['_tracing']).toEqual({
+      shouldCreateSpanForRequest,
+    });
+  });
+});
+
+describe('_shouldCreateSpans', () => {
+  beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it.each([
+    [undefined, undefined, false],
+    [{}, undefined, true],
+    [{ enableIfHasTracingEnabled: true }, undefined, false],
+    [{ enableIfHasTracingEnabled: false }, undefined, true],
+    [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 1 }, true],
+    [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 0 }, true],
+    [{}, {}, true],
+  ])('works with tracing=%p and clientOptions=%p', (tracing, clientOptions, expected) => {
+    const actual = _shouldCreateSpans(tracing, clientOptions);
+    expect(actual).toEqual(expected);
+  });
+});
+
+describe('_getShouldCreateSpanForRequest', () => {
+  beforeEach(function () {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = new Hub();
+    // eslint-disable-next-line deprecation/deprecation
+    makeMain(hub);
+  });
+
+  it.each([
+    [false, undefined, undefined, { a: false, b: false }],
+    [true, undefined, undefined, undefined],
+    // with tracing callback only
+    [true, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, undefined, { a: true, b: false }],
+    // with client callback only
+    [true, undefined, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, { a: true, b: false }],
+    // with both callbacks, tracing takes precedence
+    [
+      true,
+      { shouldCreateSpanForRequest: (url: string) => url === 'a' },
+      { shouldCreateSpanForRequest: (url: string) => url === 'b' },
+      { a: true, b: false },
+    ],
+    // If `shouldCreateSpans===false`, the callback is ignored
+    [false, { shouldCreateSpanForRequest: (url: string) => url === 'a' }, undefined, { a: false, b: false }],
+  ])(
+    'works with shouldCreateSpans=%p, tracing=%p and clientOptions=%p',
+    (shouldCreateSpans, tracing, clientOptions, expected) => {
+      const actual = _getShouldCreateSpanForRequest(shouldCreateSpans, tracing, clientOptions);
+
+      if (typeof expected === 'object') {
+        expect(typeof actual).toBe('function');
+
+        for (const [url, shouldBe] of Object.entries(expected)) {
+          expect(actual!(url)).toEqual(shouldBe);
+        }
+      } else {
+        expect(actual).toEqual(expected);
+      }
+    },
+  );
 });

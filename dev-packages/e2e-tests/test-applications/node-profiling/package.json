@@ -1,0 +1,21 @@
+{
+  "name": "node-profiling",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node index.js",
+    "test": "node index.js && node build.mjs",
+    "clean": "npx rimraf node_modules",
+    "test:build": "npm run build",
+    "test:assert": "npm run test"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *",
+    "@sentry/profiling-node": "latest || *"
+  },
+  "devDependencies": {},
+  "volta": {
+    "extends": "../../package.json"
+  }
+}

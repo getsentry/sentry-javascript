@@ -8,18 +8,6 @@ import * as routeModule from '__SENTRY_WRAPPING_TARGET_FILE__';
 
 import type { RequestAsyncStorage } from './requestAsyncStorageShim';
 
-declare const requestAsyncStorage: RequestAsyncStorage;
-
-declare const routeModule: {
-  GET?: (...args: unknown[]) => unknown;
-  POST?: (...args: unknown[]) => unknown;
-  PUT?: (...args: unknown[]) => unknown;
-  PATCH?: (...args: unknown[]) => unknown;
-  DELETE?: (...args: unknown[]) => unknown;
-  HEAD?: (...args: unknown[]) => unknown;
-  OPTIONS?: (...args: unknown[]) => unknown;
-};
-
 function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS'): T {
   // Running the instrumentation code during the build phase will mark any function as "dynamic" because we're accessing
   // the Request object. We do not want to turn handlers dynamic so we skip instrumentation in the build phase.
@@ -39,7 +27,8 @@ function wrapHandler<T>(handler: T, method: 'GET' | 'POST' | 'PUT' | 'PATCH' | '
 
       // We try-catch here just in case the API around `requestAsyncStorage` changes unexpectedly since it is not public API
       try {
-        const requestAsyncStore = requestAsyncStorage.getStore();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const requestAsyncStore = requestAsyncStorage.getStore() as ReturnType<RequestAsyncStorage['getStore']>;
         sentryTraceHeader = requestAsyncStore?.headers.get('sentry-trace') ?? undefined;
         baggageHeader = requestAsyncStore?.headers.get('baggage') ?? undefined;
         headers = requestAsyncStore?.headers;
@@ -65,10 +54,21 @@ export * from '__SENTRY_WRAPPING_TARGET_FILE__';
 // @ts-expect-error This is the file we're wrapping
 export { default } from '__SENTRY_WRAPPING_TARGET_FILE__';
 
-export const GET = wrapHandler(routeModule.GET, 'GET');
-export const POST = wrapHandler(routeModule.POST, 'POST');
-export const PUT = wrapHandler(routeModule.PUT, 'PUT');
-export const PATCH = wrapHandler(routeModule.PATCH, 'PATCH');
-export const DELETE = wrapHandler(routeModule.DELETE, 'DELETE');
-export const HEAD = wrapHandler(routeModule.HEAD, 'HEAD');
-export const OPTIONS = wrapHandler(routeModule.OPTIONS, 'OPTIONS');
+declare const requestAsyncStorage: RequestAsyncStorage;
+
+type RouteHandler = (...args: unknown[]) => unknown;
+
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const GET = wrapHandler(routeModule.GET as RouteHandler, 'GET');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const POST = wrapHandler(routeModule.POST as RouteHandler, 'POST');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const PUT = wrapHandler(routeModule.PUT as RouteHandler, 'PUT');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const PATCH = wrapHandler(routeModule.PATCH as RouteHandler, 'PATCH');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const DELETE = wrapHandler(routeModule.DELETE as RouteHandler, 'DELETE');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const HEAD = wrapHandler(routeModule.HEAD as RouteHandler, 'HEAD');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+export const OPTIONS = wrapHandler(routeModule.OPTIONS as RouteHandler, 'OPTIONS');

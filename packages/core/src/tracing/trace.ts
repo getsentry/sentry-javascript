@@ -1,79 +1,13 @@
-import type { TransactionContext } from '@sentry/types';
-import { dropUndefinedKeys, isThenable, logger, tracingContextFromHeaders } from '@sentry/utils';
+import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+
+import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentScope } from '../exports';
-import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import type { Span } from './span';
-
-/**
- * Wraps a function with a transaction/span and finishes the span after the function is done.
- *
- * Note that if you have not enabled tracing extensions via `addTracingExtensions`
- * or you didn't set `tracesSampleRate`, this function will not generate spans
- * and the `span` returned from the callback will be undefined.
- *
- * This function is meant to be used internally and may break at any time. Use at your own risk.
- *
- * @internal
- * @private
- */
-export function trace<T>(
-  context: TransactionContext,
-  callback: (span?: Span) => T,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onError: (error: unknown, span?: Span) => void = () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  afterFinish: () => void = () => {},
-): T {
-  const ctx = normalizeContext(context);
-
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
-
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-
-  scope.setSpan(activeSpan);
-
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
-    scope.setSpan(parentSpan);
-  }
-
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
-    onError(e, activeSpan);
-    finishAndSetSpan();
-    afterFinish();
-    throw e;
-  }
-
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
-        finishAndSetSpan();
-        afterFinish();
-      },
-      e => {
-        activeSpan && activeSpan.setStatus('internal_error');
-        onError(e, activeSpan);
-        finishAndSetSpan();
-        afterFinish();
-      },
-    );
-  } else {
-    finishAndSetSpan();
-    afterFinish();
-  }
-
-  return maybePromiseResult;
-}
+import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -86,55 +20,40 @@ export function trace<T>(
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan<T>(context: TransactionContext, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const parentSpan = scope.getSpan();
 
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-  scope.setSpan(activeSpan);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
-    scope.setSpan(parentSpan);
-  }
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
-    finishAndSetSpan();
-    throw e;
-  }
-
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
+    return handleCallbackErrors(
+      () => callback(activeSpan),
       () => {
-        finishAndSetSpan();
+        // Only update the span status if it hasn't been changed yet
+        if (activeSpan) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
+        }
       },
-      () => {
-        activeSpan && activeSpan.setStatus('internal_error');
-        finishAndSetSpan();
-      },
+      () => activeSpan && activeSpan.end(),
     );
-  } else {
-    finishAndSetSpan();
-  }
-
-  return maybePromiseResult;
+  });
 }
 
 /**
- * @deprecated Use {@link startSpan} instead.
- */
-export const startActiveSpan = startSpan;
-
-/**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
- * after the function is done automatically.
+ * after the function is done automatically. You'll have to call `span.end()` manually.
  *
  * The created span is the active span and will be used as parent by other spans created inside the function
  * and can be accessed via `Sentry.getActiveSpan()`, as long as the function is executed while the scope is active.
@@ -144,38 +63,40 @@ export const startActiveSpan = startSpan;
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpanManual<T>(
-  context: TransactionContext,
+  context: StartSpanOptions,
   callback: (span: Span | undefined, finish: () => void) => T,
 ): T {
   const ctx = normalizeContext(context);
 
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  const parentSpan = scope.getSpan();
+  return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const parentSpan = scope.getSpan();
 
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-  scope.setSpan(activeSpan);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-  function finishAndSetSpan(): void {
-    activeSpan && activeSpan.finish();
-    scope.setSpan(parentSpan);
-  }
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback(activeSpan, finishAndSetSpan);
-  } catch (e) {
-    activeSpan && activeSpan.setStatus('internal_error');
-    throw e;
-  }
+    function finishAndSetSpan(): void {
+      activeSpan && activeSpan.end();
+    }
 
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(undefined, () => {
-      activeSpan && activeSpan.setStatus('internal_error');
-    });
-  }
-
-  return maybePromiseResult;
+    return handleCallbackErrors(
+      () => callback(activeSpan, finishAndSetSpan),
+      () => {
+        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+        if (activeSpan && activeSpan.isRecording()) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
+          }
+        }
+      },
+    );
+  });
 }
 
 /**
@@ -188,65 +109,141 @@ export function startSpanManual<T>(
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startInactiveSpan(context: TransactionContext): Span | undefined {
+export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   if (!hasTracingEnabled()) {
     return undefined;
   }
 
-  const ctx = { ...context };
-  // If a name is set and a description is not, set the description to the name.
-  if (ctx.name !== undefined && ctx.description === undefined) {
-    ctx.description = ctx.name;
+  const ctx = normalizeContext(context);
+  // eslint-disable-next-line deprecation/deprecation
+  const hub = getCurrentHub();
+  const parentSpan = context.scope
+    ? // eslint-disable-next-line deprecation/deprecation
+      context.scope.getSpan()
+    : getActiveSpan();
+
+  const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+
+  if (shouldSkipSpan) {
+    return undefined;
   }
 
-  const hub = getCurrentHub();
-  const parentSpan = getActiveSpan();
-  return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
+
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    span = parentSpan.startChild(ctx);
+  } else {
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    span = hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
+  }
+
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
 }
 
 /**
  * Returns the currently active span.
  */
 export function getActiveSpan(): Span | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().getSpan();
 }
 
-export function continueTrace({
-  sentryTrace,
-  baggage,
-}: {
-  sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
-  baggage: Parameters<typeof tracingContextFromHeaders>[1];
-}): Partial<TransactionContext>;
-export function continueTrace<V>(
-  {
+interface ContinueTrace {
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers,
+   * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
+   *
+   * @deprecated Use the version of this function taking a callback as second parameter instead:
+   *
+   * ```
+   * Sentry.continueTrace(sentryTrace: '...', baggage: '...' }, () => {
+   *    // ...
+   * })
+   * ```
+   *
+   */
+  ({
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
-  },
-  callback: (transactionContext: Partial<TransactionContext>) => V,
-): V;
-/**
- * Continue a trace from `sentry-trace` and `baggage` values.
- * These values can be obtained from incoming request headers,
- * or in the browser from `<meta name="sentry-trace">` and `<meta name="baggage">` HTML tags.
- *
- * The callback receives a transactionContext that may be used for `startTransaction` or `startSpan`.
- */
-export function continueTrace<V>(
+  }): Partial<TransactionContext>;
+
+  /**
+   * Continue a trace from `sentry-trace` and `baggage` values.
+   * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+   * and `<meta name="baggage">` HTML tags.
+   *
+   * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
+   * be attached to the incoming trace.
+   *
+   * Deprecation notice: In the next major version of the SDK the provided callback will not receive a transaction
+   * context argument.
+   */
+  <V>(
+    {
+      sentryTrace,
+      baggage,
+    }: {
+      // eslint-disable-next-line deprecation/deprecation
+      sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+      // eslint-disable-next-line deprecation/deprecation
+      baggage: Parameters<typeof tracingContextFromHeaders>[1];
+    },
+    // TODO(v8): Remove parameter from this callback.
+    callback: (transactionContext: Partial<TransactionContext>) => V,
+  ): V;
+}
+
+export const continueTrace: ContinueTrace = <V>(
   {
     sentryTrace,
     baggage,
   }: {
+    // eslint-disable-next-line deprecation/deprecation
     sentryTrace: Parameters<typeof tracingContextFromHeaders>[0];
+    // eslint-disable-next-line deprecation/deprecation
     baggage: Parameters<typeof tracingContextFromHeaders>[1];
   },
   callback?: (transactionContext: Partial<TransactionContext>) => V,
-): V | Partial<TransactionContext> {
+): V | Partial<TransactionContext> => {
+  // TODO(v8): Change this function so it doesn't do anything besides setting the propagation context on the current scope:
+  /*
+    return withScope((scope) => {
+      const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+      scope.setPropagationContext(propagationContext);
+      return callback();
+    })
+  */
+
   const currentScope = getCurrentScope();
 
+  // eslint-disable-next-line deprecation/deprecation
   const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
     sentryTrace,
     baggage,
@@ -261,7 +258,7 @@ export function continueTrace<V>(
   const transactionContext: Partial<TransactionContext> = {
     ...traceparentData,
     metadata: dropUndefinedKeys({
-      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
+      dynamicSamplingContext,
     }),
   };
 
@@ -269,8 +266,10 @@ export function continueTrace<V>(
     return transactionContext;
   }
 
-  return callback(transactionContext);
-}
+  return withScope(() => {
+    return callback(transactionContext);
+  });
+};
 
 function createChildSpanOrTransaction(
   hub: Hub,
@@ -280,15 +279,79 @@ function createChildSpanOrTransaction(
   if (!hasTracingEnabled()) {
     return undefined;
   }
-  return parentSpan ? parentSpan.startChild(ctx) : hub.startTransaction(ctx);
-}
 
-function normalizeContext(context: TransactionContext): TransactionContext {
-  const ctx = { ...context };
-  // If a name is set and a description is not, set the description to the name.
-  if (ctx.name !== undefined && ctx.description === undefined) {
-    ctx.description = ctx.name;
+  const isolationScope = getIsolationScope();
+  const scope = getCurrentScope();
+
+  let span: Span | undefined;
+  if (parentSpan) {
+    // eslint-disable-next-line deprecation/deprecation
+    span = parentSpan.startChild(ctx);
+  } else {
+    const { traceId, dsc, parentSpanId, sampled } = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    };
+
+    // eslint-disable-next-line deprecation/deprecation
+    span = hub.startTransaction({
+      traceId,
+      parentSpanId,
+      parentSampled: sampled,
+      ...ctx,
+      metadata: {
+        dynamicSamplingContext: dsc,
+        // eslint-disable-next-line deprecation/deprecation
+        ...ctx.metadata,
+      },
+    });
   }
 
-  return ctx;
+  setCapturedScopesOnSpan(span, scope, isolationScope);
+
+  return span;
+}
+
+/**
+ * This converts StartSpanOptions to TransactionContext.
+ * For the most part (for now) we accept the same options,
+ * but some of them need to be transformed.
+ *
+ * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
+ */
+function normalizeContext(context: StartSpanOptions): TransactionContext {
+  if (context.startTime) {
+    const ctx: TransactionContext & { startTime?: SpanTimeInput } = { ...context };
+    ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
+    delete ctx.startTime;
+    return ctx;
+  }
+
+  return context;
+}
+
+const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
+const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
+
+type SpanWithScopes = Span & {
+  [SCOPE_ON_START_SPAN_FIELD]?: Scope;
+  [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
+};
+
+/** Store the scope & isolation scope for a span, which can the be used when it is finished. */
+function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
+  if (span) {
+    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+  }
+}
+
+/**
+ * Grabs the scope and isolation scope off a span that were active when the span was started.
+ */
+export function getCapturedScopesOnSpan(span: Span): { scope?: Scope; isolationScope?: Scope } {
+  return {
+    scope: (span as SpanWithScopes)[SCOPE_ON_START_SPAN_FIELD],
+    isolationScope: (span as SpanWithScopes)[ISOLATION_SCOPE_ON_START_SPAN_FIELD],
+  };
 }

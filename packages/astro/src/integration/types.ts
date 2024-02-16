@@ -106,6 +106,26 @@ type InstrumentationOptions = {
   };
 };
 
+type SdkEnabledOptions = {
+  /**
+   * Controls if the Sentry SDK is enabled or not.
+   *
+   * You can either set a boolean value to enable/disable the SDK for both client and server,
+   * or pass an object with `client` and `server` properties to enable/disable the SDK.
+   *
+   * If the SDK is disabled, no data will be caught or sent to Sentry. In this case, also no
+   * Sentry code will be added to your bundle.
+   *
+   * @default true - the SDK is enabled by default for both, client and server.
+   */
+  enabled?:
+    | boolean
+    | {
+        client?: boolean;
+        server?: boolean;
+      };
+};
+
 /**
  * A subset of Sentry SDK options that can be set via the `sentryAstro` integration.
  * Some options (e.g. integrations) are set by default and cannot be changed here.
@@ -119,4 +139,5 @@ export type SentryOptions = SdkInitPaths &
   Pick<Options, 'dsn' | 'release' | 'environment' | 'sampleRate' | 'tracesSampleRate' | 'debug'> &
   Pick<BrowserOptions, 'replaysSessionSampleRate' | 'replaysOnErrorSampleRate'> &
   SourceMapsOptions &
-  InstrumentationOptions;
+  InstrumentationOptions &
+  SdkEnabledOptions;

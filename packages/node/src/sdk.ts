@@ -1,61 +1,75 @@
-/* eslint-disable max-lines */
 import {
-  Integrations as CoreIntegrations,
+  endSession,
+  functionToStringIntegration,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getIntegrationsToSetup,
+  getIsolationScope,
   getMainCarrier,
+  inboundFiltersIntegration,
   initAndBind,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  startSession,
 } from '@sentry/core';
-import type { SessionStatus, StackParser } from '@sentry/types';
+import type { Integration, Options, SessionStatus, StackParser } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   createStackParser,
   nodeStackLineParser,
+  propagationContextFromHeaders,
   stackParserFromStackParserOptions,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 
-import { isAnrChildProcess } from './anr';
 import { setNodeAsyncContextStrategy } from './async';
 import { NodeClient } from './client';
-import {
-  Console,
-  Context,
-  ContextLines,
-  Http,
-  LocalVariables,
-  Modules,
-  OnUncaughtException,
-  OnUnhandledRejection,
-  RequestData,
-  Spotlight,
-  Undici,
-} from './integrations';
-import { getModuleFromFilename } from './module';
+import { consoleIntegration } from './integrations/console';
+import { nodeContextIntegration } from './integrations/context';
+import { contextLinesIntegration } from './integrations/contextlines';
+import { httpIntegration } from './integrations/http';
+import { localVariablesIntegration } from './integrations/local-variables';
+import { modulesIntegration } from './integrations/modules';
+import { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+import { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+import { spotlightIntegration } from './integrations/spotlight';
+import { nativeNodeFetchintegration } from './integrations/undici';
+import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
+/** @deprecated Use `getDefaultIntegrations(options)` instead. */
 export const defaultIntegrations = [
   // Common
-  new CoreIntegrations.InboundFilters(),
-  new CoreIntegrations.FunctionToString(),
-  new CoreIntegrations.LinkedErrors(),
+  inboundFiltersIntegration(),
+  functionToStringIntegration(),
+  linkedErrorsIntegration(),
+  requestDataIntegration(),
   // Native Wrappers
-  new Console(),
-  new Http(),
-  new Undici(),
+  consoleIntegration(),
+  httpIntegration(),
+  nativeNodeFetchintegration(),
   // Global Handlers
-  new OnUncaughtException(),
-  new OnUnhandledRejection(),
+  onUncaughtExceptionIntegration(),
+  onUnhandledRejectionIntegration(),
   // Event Info
-  new ContextLines(),
-  new LocalVariables(),
-  new Context(),
-  new Modules(),
-  new RequestData(),
+  contextLinesIntegration(),
+  localVariablesIntegration(),
+  nodeContextIntegration(),
+  modulesIntegration(),
 ];
+
+/** Get the default integrations for the Node SDK. */
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  const carrier = getMainCarrier();
+
+  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
+
+  return [
+    // eslint-disable-next-line deprecation/deprecation
+    ...defaultIntegrations,
+    ...autoloadedIntegrations,
+  ];
+}
 
 /**
  * The Sentry Node SDK Client.
@@ -72,17 +86,6 @@ export const defaultIntegrations = [
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -114,24 +117,11 @@ export const defaultIntegrations = [
  */
 // eslint-disable-next-line complexity
 export function init(options: NodeOptions = {}): void {
-  if (isAnrChildProcess()) {
-    options.autoSessionTracking = false;
-    options.tracesSampleRate = 0;
-  }
-
-  const carrier = getMainCarrier();
-
   setNodeAsyncContextStrategy();
 
-  const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
-
-  options.defaultIntegrations =
-    options.defaultIntegrations === false
-      ? []
-      : [
-          ...(Array.isArray(options.defaultIntegrations) ? options.defaultIntegrations : defaultIntegrations),
-          ...autoloadedIntegrations,
-        ];
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations(options);
+  }
 
   if (options.dsn === undefined && process.env.SENTRY_DSN) {
     options.dsn = process.env.SENTRY_DSN;
@@ -185,11 +175,15 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.spotlight) {
     const client = getClient();
-    if (client && client.addIntegration) {
+    if (client) {
       // force integrations to be setup even if no DSN was set
-      client.setupIntegrations(true);
+      // If they have already been added before, they will be ignored anyhow
+      const integrations = client.getOptions().integrations;
+      for (const integration of integrations) {
+        client.addIntegration(integration);
+      }
       client.addIntegration(
-        new Spotlight({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
+        spotlightIntegration({ sidecarUrl: typeof options.spotlight === 'string' ? options.spotlight : undefined }),
       );
     }
   }
@@ -244,26 +238,27 @@ export function getSentryRelease(fallback?: string): string | undefined {
 }
 
 /** Node.js stack parser */
-export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(getModuleFromFilename));
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
 
 /**
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
-  const hub = getCurrentHub();
-  hub.startSession();
+  startSession();
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
   // The 'beforeExit' event is not emitted for conditions causing explicit termination,
   // such as calling process.exit() or uncaught exceptions.
   // Ref: https://nodejs.org/api/process.html#process_event_beforeexit
   process.on('beforeExit', () => {
-    const session = hub.getScope().getSession();
+    const session = getIsolationScope().getSession();
     const terminalStates: SessionStatus[] = ['exited', 'crashed'];
     // Only call endSession, if the Session exists on Scope and SessionStatus is not a
     // Terminal Status i.e. Exited or Crashed because
     // "When a session is moved away from ok it must not be updated anymore."
     // Ref: https://develop.sentry.dev/sdk/sessions/
-    if (session && !terminalStates.includes(session.status)) hub.endSession();
+    if (session && !terminalStates.includes(session.status)) {
+      endSession();
+    }
   });
 }
 
@@ -278,7 +273,7 @@ function updateScopeFromEnvVariables(): void {
   if (!['false', 'n', 'no', 'off', '0'].includes(sentryUseEnvironment)) {
     const sentryTraceEnv = process.env.SENTRY_TRACE;
     const baggageEnv = process.env.SENTRY_BAGGAGE;
-    const { propagationContext } = tracingContextFromHeaders(sentryTraceEnv, baggageEnv);
+    const propagationContext = propagationContextFromHeaders(sentryTraceEnv, baggageEnv);
     getCurrentScope().setPropagationContext(propagationContext);
   }
 }

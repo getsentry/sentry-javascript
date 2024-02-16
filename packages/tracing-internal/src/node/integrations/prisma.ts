@@ -1,4 +1,4 @@
-import { getCurrentHub, trace } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getCurrentHub, startSpan } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
@@ -92,6 +92,7 @@ export class Prisma implements Integration {
       }
 
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
+        // eslint-disable-next-line deprecation/deprecation
         if (shouldDisableAutoInstrumentation(getCurrentHub)) {
           return next(params);
         }
@@ -99,11 +100,14 @@ export class Prisma implements Integration {
         const action = params.action;
         const model = params.model;
 
-        return trace(
+        return startSpan(
           {
             name: model ? `${model} ${action}` : action,
+            onlyIfParent: true,
             op: 'db.prisma',
-            origin: 'auto.db.prisma',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.prisma',
+            },
             data: { ...clientData, 'db.operation': action },
           },
           () => next(params),

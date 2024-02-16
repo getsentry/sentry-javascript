@@ -2,11 +2,16 @@ import {
   SDK_VERSION,
   captureException,
   continueTrace,
+  convertIntegrationFnToClass,
+  defineIntegration,
   getActiveTransaction,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  setHttpStatus,
+  spanToTraceHeader,
   startTransaction,
 } from '@sentry/core';
-import type { Integration } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
@@ -38,10 +43,12 @@ function sendErrorToSentry(errorData: object): void {
 export const hapiErrorPlugin = {
   name: 'SentryHapiErrorPlugin',
   version: SDK_VERSION,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
       if (request.response && isBoomObject(request.response)) {
@@ -52,7 +59,7 @@ export const hapiErrorPlugin = {
 
       if (transaction) {
         transaction.setStatus('internal_error');
-        transaction.finish();
+        transaction.end();
       }
     });
   },
@@ -61,6 +68,7 @@ export const hapiErrorPlugin = {
 export const hapiTracingPlugin = {
   name: 'SentryHapiTracingPlugin',
   version: SDK_VERSION,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   register: async function (serverArg: Record<any, any>) {
     const server = serverArg as unknown as Server;
 
@@ -71,6 +79,7 @@ export const hapiTracingPlugin = {
           baggage: request.headers['baggage'] || undefined,
         },
         transactionContext => {
+          // eslint-disable-next-line deprecation/deprecation
           return startTransaction({
             ...transactionContext,
             op: 'hapi.request',
@@ -80,20 +89,22 @@ export const hapiTracingPlugin = {
         },
       );
 
+      // eslint-disable-next-line deprecation/deprecation
       getCurrentScope().setSpan(transaction);
 
       return h.continue;
     });
 
     server.ext('onPreResponse', (request, h) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
       if (request.response && isResponseObject(request.response) && transaction) {
         const response = request.response as ResponseObject;
-        response.header('sentry-trace', transaction.toTraceparent());
+        response.header('sentry-trace', spanToTraceHeader(transaction));
 
         const dynamicSamplingContext = dynamicSamplingContextToSentryBaggageHeader(
-          transaction.getDynamicSamplingContext(),
+          getDynamicSamplingContextFromSpan(transaction),
         );
 
         if (dynamicSamplingContext) {
@@ -105,14 +116,15 @@ export const hapiTracingPlugin = {
     });
 
     server.ext('onPostHandler', (request, h) => {
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
-      if (request.response && isResponseObject(request.response) && transaction) {
-        transaction.setHttpStatus(request.response.statusCode);
-      }
-
       if (transaction) {
-        transaction.finish();
+        if (request.response && isResponseObject(request.response)) {
+          setHttpStatus(transaction, request.response.statusCode);
+        }
+
+        transaction.end();
       }
 
       return h.continue;
@@ -122,48 +134,42 @@ export const hapiTracingPlugin = {
 
 export type HapiOptions = {
   /** Hapi server instance */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   server?: Record<any, any>;
 };
 
+const INTEGRATION_NAME = 'Hapi';
+
+const _hapiIntegration = ((options: HapiOptions = {}) => {
+  const server = options.server as undefined | Server;
+
+  return {
+    name: INTEGRATION_NAME,
+    setupOnce() {
+      if (!server) {
+        return;
+      }
+
+      fill(server, 'start', (originalStart: () => void) => {
+        return async function (this: Server) {
+          await this.register(hapiTracingPlugin);
+          await this.register(hapiErrorPlugin);
+          const result = originalStart.apply(this);
+          return result;
+        };
+      });
+    },
+  };
+}) satisfies IntegrationFn;
+
+export const hapiIntegration = defineIntegration(_hapiIntegration);
+
 /**
- * Hapi Framework Integration
+ * Hapi Framework Integration.
+ * @deprecated Use `hapiIntegration()` instead.
  */
-export class Hapi implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Hapi';
+// eslint-disable-next-line deprecation/deprecation
+export const Hapi = convertIntegrationFnToClass(INTEGRATION_NAME, hapiIntegration);
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  public _hapiServer: Server | undefined;
-
-  public constructor(options?: HapiOptions) {
-    if (options?.server) {
-      const server = options.server as unknown as Server;
-
-      this._hapiServer = server;
-    }
-
-    this.name = Hapi.id;
-  }
-
-  /** @inheritDoc */
-  public setupOnce(): void {
-    if (!this._hapiServer) {
-      return;
-    }
-
-    fill(this._hapiServer, 'start', (originalStart: () => void) => {
-      return async function (this: Server) {
-        await this.register(hapiTracingPlugin);
-        await this.register(hapiErrorPlugin);
-        const result = originalStart.apply(this);
-        return result;
-      };
-    });
-  }
-}
+// eslint-disable-next-line deprecation/deprecation
+export type Hapi = typeof Hapi;

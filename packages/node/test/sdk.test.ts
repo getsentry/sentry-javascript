@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/types';
 
+import * as SentryCore from '@sentry/core';
 import { init } from '../src/sdk';
-import * as sdk from '../src/sdk';
 
 // eslint-disable-next-line no-var
 declare var global: any;
@@ -16,31 +16,22 @@ class MockIntegration implements Integration {
   }
 }
 
-const defaultIntegrationsBackup = sdk.defaultIntegrations;
-
 describe('init()', () => {
+  const initAndBindSpy = jest.spyOn(SentryCore, 'initAndBind');
+
   beforeEach(() => {
     global.__SENTRY__ = {};
   });
 
-  afterEach(() => {
-    // @ts-expect-error - Reset the default integrations of node sdk to original
-    sdk.defaultIntegrations = defaultIntegrationsBackup;
-  });
-
   it("doesn't install default integrations if told not to", () => {
-    const mockDefaultIntegrations = [
-      new MockIntegration('Mock integration 1.1'),
-      new MockIntegration('Mock integration 1.2'),
-    ];
-
-    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
-    sdk.defaultIntegrations = mockDefaultIntegrations;
-
     init({ dsn: PUBLIC_DSN, defaultIntegrations: false });
 
-    expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
-    expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
+    expect(initAndBindSpy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        integrations: [],
+      }),
+    );
   });
 
   it('installs merged default integrations, with overrides provided through options', () => {
@@ -49,15 +40,12 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 2.2'),
     ];
 
-    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
-    sdk.defaultIntegrations = mockDefaultIntegrations;
-
     const mockIntegrations = [
       new MockIntegration('Some mock integration 2.1'),
       new MockIntegration('Some mock integration 2.3'),
     ];
 
-    init({ dsn: PUBLIC_DSN, integrations: mockIntegrations });
+    init({ dsn: PUBLIC_DSN, integrations: mockIntegrations, defaultIntegrations: mockDefaultIntegrations });
 
     expect(mockDefaultIntegrations[0].setupOnce as jest.Mock).toHaveBeenCalledTimes(0);
     expect(mockDefaultIntegrations[1].setupOnce as jest.Mock).toHaveBeenCalledTimes(1);
@@ -71,13 +59,11 @@ describe('init()', () => {
       new MockIntegration('Some mock integration 3.2'),
     ];
 
-    // @ts-expect-error - Replace default integrations with mock integrations, needs ts-ignore because imports are readonly
-    sdk.defaultIntegrations = mockDefaultIntegrations;
-
     const newIntegration = new MockIntegration('Some mock integration 3.3');
 
     init({
       dsn: PUBLIC_DSN,
+      defaultIntegrations: mockDefaultIntegrations,
       integrations: integrations => {
         const newIntegrations = [...integrations];
         newIntegrations[1] = newIntegration;

@@ -1,9 +1,9 @@
-import type { ClientOptions, CustomSamplingContext, TransactionContext } from '@sentry/types';
+import type { ClientOptions, CustomSamplingContext, Hub, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { getMainCarrier } from '../asyncContext';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
-import { getMainCarrier } from '../hub';
+import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
@@ -11,12 +11,14 @@ import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
 function traceHeaders(this: Hub): { [key: string]: string } {
+  // eslint-disable-next-line deprecation/deprecation
   const scope = this.getScope();
+  // eslint-disable-next-line deprecation/deprecation
   const span = scope.getSpan();
 
   return span
     ? {
-        'sentry-trace': span.toTraceparent(),
+        'sentry-trace': spanToTraceHeader(span),
       }
     : {};
 }
@@ -41,6 +43,7 @@ function _startTransaction(
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
 ): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
@@ -54,19 +57,27 @@ function _startTransaction(
 The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
       );
 
+    // eslint-disable-next-line deprecation/deprecation
     transactionContext.sampled = false;
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
   transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
     ...customSamplingContext,
   });
-  if (transaction.sampled) {
+  if (transaction.isRecording()) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
-  if (client && client.emit) {
+  if (client) {
     client.emit('startTransaction', transaction);
   }
   return transaction;
@@ -83,20 +94,37 @@ export function startIdleTransaction(
   onScope?: boolean,
   customSamplingContext?: CustomSamplingContext,
   heartbeatInterval?: number,
+  delayAutoFinishUntilSignal: boolean = false,
 ): IdleTransaction {
+  // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  let transaction = new IdleTransaction(transactionContext, hub, idleTimeout, finalTimeout, heartbeatInterval, onScope);
+  // eslint-disable-next-line deprecation/deprecation
+  let transaction = new IdleTransaction(
+    transactionContext,
+    hub,
+    idleTimeout,
+    finalTimeout,
+    heartbeatInterval,
+    onScope,
+    delayAutoFinishUntilSignal,
+  );
   transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
     ...customSamplingContext,
   });
-  if (transaction.sampled) {
+  if (transaction.isRecording()) {
     transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
   }
-  if (client && client.emit) {
+  if (client) {
     client.emit('startTransaction', transaction);
   }
   return transaction;
