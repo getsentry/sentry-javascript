@@ -1,3 +1,4 @@
+import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 jest.setTimeout(20000);
@@ -5,7 +6,7 @@ jest.setTimeout(20000);
 // This is required to run the test with ts-node and decorators
 process.env.TS_NODE_PROJECT = `${__dirname}/tsconfig.json`;
 
-describe('nestjs auto instrumentation', () => {
+conditionalTest({ min: 16 })('nestjs auto instrumentation', () => {
   afterAll(async () => {
     cleanupChildProcesses();
   });
