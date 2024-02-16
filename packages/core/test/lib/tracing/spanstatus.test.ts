@@ -1,4 +1,4 @@
-import { Span, setHttpStatus, spanToJSON } from '../../../src/index';
+import { SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
 
 describe('setHttpStatus', () => {
   it.each([
@@ -16,7 +16,7 @@ describe('setHttpStatus', () => {
     [504, 'deadline_exceeded'],
     [520, 'internal_error'],
   ])('applies the correct span status and http status code to the span (%s - $%s)', (code, status) => {
-    const span = new Span({ name: 'test' });
+    const span = new SentrySpan({ name: 'test' });
 
     setHttpStatus(span!, code);
 
@@ -28,7 +28,7 @@ describe('setHttpStatus', () => {
   });
 
   it("doesn't set the status for an unknown http status code", () => {
-    const span = new Span({ name: 'test' });
+    const span = new SentrySpan({ name: 'test' });
 
     setHttpStatus(span!, 600);
 

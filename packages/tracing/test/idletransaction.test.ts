@@ -14,7 +14,7 @@ import {
   startSpanManual,
 } from '@sentry/core';
 
-import { IdleTransaction, Span, getClient } from '../../core/src';
+import { IdleTransaction, SentrySpan, getClient } from '../../core/src';
 import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
 import { getDefaultBrowserClientOptions } from './testutils';
 
@@ -231,11 +231,11 @@ describe('IdleTransaction', () => {
       expect(spans).toHaveLength(3);
       expect(spans[0].spanContext().spanId).toBe(transaction.spanContext().spanId);
 
-      // Regular Span - should not modified
+      // Regular SentrySpan - should not modified
       expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
       expect(spans[1]['_endTime']).not.toBe(spanToJSON(transaction).timestamp);
 
-      // Cancelled Span - has endtimestamp of transaction
+      // Cancelled SentrySpan - has endtimestamp of transaction
       expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
       expect(spans[2].status).toBe('cancelled');
       expect(spans[2]['_endTime']).toBe(spanToJSON(transaction).timestamp);
@@ -522,7 +522,7 @@ describe('IdleTransactionSpanRecorder', () => {
     expect(mockPushActivity).toHaveBeenCalledTimes(0);
     expect(mockPopActivity).toHaveBeenCalledTimes(0);
 
-    const span = new Span({ sampled: true });
+    const span = new SentrySpan({ sampled: true });
 
     expect(spanRecorder.spans).toHaveLength(0);
     spanRecorder.add(span);
@@ -543,7 +543,7 @@ describe('IdleTransactionSpanRecorder', () => {
     const mockPopActivity = jest.fn();
     const spanRecorder = new IdleTransactionSpanRecorder(mockPushActivity, mockPopActivity, '', 10);
 
-    const span = new Span({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
+    const span = new SentrySpan({ sampled: true, startTimestamp: 765, endTimestamp: 345 });
     spanRecorder.add(span);
 
     expect(mockPushActivity).toHaveBeenCalledTimes(0);

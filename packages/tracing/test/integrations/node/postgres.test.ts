@@ -1,6 +1,6 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope, Span as SpanClass } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { loadModule, logger } from '@sentry/utils';
 import pg from 'pg';
@@ -64,7 +64,7 @@ describe('setupOnce', () => {
 
     beforeEach(() => {
       scope = new Scope();
-      parentSpan = new SpanClass();
+      parentSpan = new SentrySpan();
       childSpan = parentSpan.startChild();
       jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
       jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
@@ -135,7 +135,7 @@ describe('setupOnce', () => {
 
   it('does not attempt resolution when module is passed directly', async () => {
     const scope = new Scope();
-    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(new SpanClass());
+    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(new SentrySpan());
 
     new Integrations.Postgres({ module: mockModule }).setupOnce(
       () => undefined,
