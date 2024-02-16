@@ -43,13 +43,7 @@ export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 'name'> {
-  /**
-   * Human-readable identifier for the transaction.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  name: string;
-
+export interface Transaction extends Omit<TransactionContext, 'name'>, Span {
   /**
    * The ID of the transaction.
    * @deprecated Use `spanContext().spanId` instead.

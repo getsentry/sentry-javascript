@@ -100,7 +100,7 @@ export interface SpanContextData {
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
-   * Human-readable identifier for the span. Alias for span.description.
+   * Human-readable identifier for the span.
    */
   name?: string | undefined;
 
@@ -174,7 +174,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
+export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin'> {
   /**
    * Operation of the Span.
    *
