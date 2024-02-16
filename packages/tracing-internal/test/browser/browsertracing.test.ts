@@ -175,7 +175,7 @@ describe('BrowserTracing', () => {
 
       const transaction = getActiveTransaction() as IdleTransaction;
       expect(transaction).toBeDefined();
-      expect(transaction.name).toBe('a/path');
+      expect(spanToJSON(transaction).description).toBe('a/path');
       expect(transaction.op).toBe('pageload');
     });
 
@@ -246,8 +246,8 @@ describe('BrowserTracing', () => {
         });
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
-        expect(transaction.name).toBe('newName');
-        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+        expect(spanToJSON(transaction).description).toBe('newName');
+        expect(transaction.metadata.source).toBe('custom');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -268,8 +268,8 @@ describe('BrowserTracing', () => {
         });
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
-        expect(transaction.name).toBe('a/path');
-        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
+        expect(spanToJSON(transaction).description).toBe('a/path');
+        expect(transaction.metadata.source).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });

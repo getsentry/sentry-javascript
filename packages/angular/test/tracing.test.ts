@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -153,7 +153,7 @@ describe('Angular Tracing', () => {
       });
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
-      expect(transaction.name).toEqual(url);
+      expect(spanToJSON(transaction).description).toEqual(url);
       expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
