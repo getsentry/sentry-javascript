@@ -29,11 +29,13 @@ import type { SentryCarrier } from './types';
 /** Ensure the global hub is our proxied hub. */
 export function setupGlobalHub(): void {
   const carrier = getGlobalCarrier();
+  // eslint-disable-next-line deprecation/deprecation
   carrier.hub = getCurrentHub();
 }
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
+ * @deprecated Use the methods directly.
  */
 export function getCurrentHub(): Hub {
   return {
@@ -125,17 +127,6 @@ export function getCurrentHub(): Hub {
 }
 
 /**
- * Replaces the current main hub with the passed one on the global object
- *
- * @returns The old replaced hub
- */
-export function makeMain(hub: Hub): Hub {
-  // eslint-disable-next-line no-console
-  console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');
-  return hub;
-}
-
-/**
  * Sends the current Session on the scope
  */
 function _sendSessionUpdate(): void {
@@ -152,6 +143,7 @@ function _sendSessionUpdate(): void {
  * Set a mocked hub on the current carrier.
  */
 export function setLegacyHubOnCarrier(carrier: SentryCarrier): boolean {
+  // eslint-disable-next-line deprecation/deprecation
   carrier.hub = getCurrentHub();
   return true;
 }
