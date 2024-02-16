@@ -38,7 +38,6 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
           'http.response.status_code': 200,
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.browser',
-          'sentry.source': 'custom',
         },
         description: 'GET http://example.com',
         op: 'http.client',

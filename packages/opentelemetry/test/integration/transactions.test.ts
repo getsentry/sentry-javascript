@@ -148,7 +148,6 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -164,7 +163,6 @@ describe('Integration | Transactions', () => {
           'otel.kind': 'INTERNAL',
           'test.inner': 'test value',
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
         description: 'inner span 2',
         origin: 'manual',
@@ -425,7 +423,6 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
         description: 'inner span 1',
         origin: 'manual',
@@ -440,7 +437,6 @@ describe('Integration | Transactions', () => {
         data: {
           'otel.kind': 'INTERNAL',
           'sentry.origin': 'manual',
-          'sentry.source': 'custom',
         },
         description: 'inner span 2',
         origin: 'manual',
