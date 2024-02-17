@@ -64,7 +64,6 @@ export {
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
@@ -76,6 +75,8 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
+
+export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';

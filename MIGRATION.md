@@ -1,5 +1,9 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of the `MetricsAggregator` integration class and `metricsAggregatorIntegration`
+
+The SDKs now support metrics features without any additional configuration.
+
 ## Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
 
 We updated the behaviour of the SDKs when no `tracePropagationTargets` option was defined. As a reminder, you can

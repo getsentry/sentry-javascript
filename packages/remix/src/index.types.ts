@@ -29,3 +29,5 @@ declare const runtime: 'client' | 'server';
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
+
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

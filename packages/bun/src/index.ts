@@ -71,7 +71,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
-  metrics,
+  metricsDefault as metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,

@@ -71,11 +71,11 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  metricsDefault as metrics,
 } from '@sentry/core';
 
 export {
