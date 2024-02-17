@@ -27,4 +27,6 @@ export type DataCategory =
   // Feedback type event (v2)
   | 'feedback'
   // Unknown data category
-  | 'unknown';
+  | 'unknown'
+  // Span
+  | 'span';
