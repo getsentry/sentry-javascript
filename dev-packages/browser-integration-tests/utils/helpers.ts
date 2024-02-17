@@ -34,7 +34,7 @@ export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] =>
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';
 
-  const [, items] = parseEnvelope(envelope, new TextEncoder(), new TextDecoder());
+  const [, items] = parseEnvelope(envelope);
 
   return items;
 };
