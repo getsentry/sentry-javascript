@@ -1,6 +1,6 @@
+import { WINDOW } from '../constants';
 import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
-import { Icon } from './Icon';
-import { createElement } from './util/createElement';
+import { Icon } from './components/Icon';
 
 export interface ActorProps extends Pick<FeedbackInternalOptions, 'buttonLabel'> {
   onClick?: (e: MouseEvent) => void;
@@ -21,31 +21,22 @@ export interface ActorComponent extends FeedbackComponent<HTMLButtonElement> {
  *
  */
 export function Actor({ buttonLabel, onClick }: ActorProps): ActorComponent {
-  function _handleClick(e: MouseEvent): void {
+  const doc = WINDOW.document;
+  const el = doc.createElement('button');
+  el.type = 'button';
+  el.className = 'widget__actor';
+  el.ariaHidden = 'false';
+  el.ariaLabel = buttonLabel;
+  el.addEventListener('click', (e: MouseEvent): void => {
     onClick && onClick(e);
+  });
+  el.appendChild(Icon());
+  if (buttonLabel) {
+    const label = doc.createElement('span');
+    label.className = 'widget__actor__text';
+    label.appendChild(doc.createTextNode(buttonLabel));
+    el.appendChild(label);
   }
-
-  const el = createElement(
-    'button',
-    {
-      type: 'button',
-      className: 'widget__actor',
-      ['aria-label']: buttonLabel,
-      ['aria-hidden']: 'false',
-    },
-    Icon().el,
-    buttonLabel
-      ? createElement(
-          'span',
-          {
-            className: 'widget__actor__text',
-          },
-          buttonLabel,
-        )
-      : null,
-  );
-
-  el.addEventListener('click', _handleClick);
 
   return {
     get el() {
