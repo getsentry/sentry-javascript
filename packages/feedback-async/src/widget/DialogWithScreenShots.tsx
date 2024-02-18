@@ -6,13 +6,19 @@ import { DialogBase } from './DialogBase';
 import type { Props as BaseProps } from './DialogBase';
 import { DialogContent } from './components/DialogContent';
 import type { Props as DialogContentProps } from './components/DialogContent';
+import { ScreenShotArea } from './components/ScreenShotArea';
 
 function renderDialog(parent: HTMLElement, props: DialogContentProps): void {
-  render(<DialogContent {...props} />, parent);
+  render(
+    <DialogContent {...props}>
+      <ScreenShotArea />
+    </DialogContent>,
+    parent,
+  );
 }
 
 /**
- * Feedback dialog component that has the form
+ * Feedback dialog component that has the form and screen shot editor
  */
 export function Dialog(props: Omit<BaseProps, 'renderDialog'>): DialogComponent {
   return DialogBase({ ...props, renderDialog });

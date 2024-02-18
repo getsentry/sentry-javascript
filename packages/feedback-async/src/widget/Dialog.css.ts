@@ -73,11 +73,12 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 
 .form {
-  display: grid;
+  display: flex;
   overflow: auto;
   flex-direction: column;
   gap: 16px;
   padding: 0 24px 24px;
+  flex: 1 0 auto;
 }
 
 .form__error-container {

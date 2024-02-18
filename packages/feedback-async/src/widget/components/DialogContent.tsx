@@ -1,6 +1,6 @@
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { VNode } from 'preact';
+import type { ComponentChildren, VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
 
 import { Form } from './Form';
@@ -9,11 +9,12 @@ import type { Props as LogoProps } from './Logo';
 import { Logo } from './Logo';
 
 export interface Props extends FormProps, LogoProps {
+  children?: ComponentChildren;
   formTitle: string;
   showBranding: boolean;
 }
 
-export function DialogContent({ colorScheme, formTitle, showBranding, ...props }: Props): VNode {
+export function DialogContent({ children, colorScheme, formTitle, showBranding, ...props }: Props): VNode {
   const logoHtml = useMemo(() => {
     const logo = Logo({ colorScheme });
     return { __html: logo.outerHTML };
@@ -40,7 +41,10 @@ export function DialogContent({ colorScheme, formTitle, showBranding, ...props }
           />
         ) : null}
       </h2>
-      <Form {...props} />
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+        {children}
+        <Form {...props} />
+      </div>
     </div>
   );
 }

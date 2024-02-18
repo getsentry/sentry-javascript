@@ -75,7 +75,7 @@ export function createWidget({
     } catch (err) {
       // TODO: error handling
       logger.error(err);
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
     }
   }
 
@@ -163,7 +163,7 @@ export function createWidget({
       const scope = getCurrentScope();
       const user = scope && scope.getUser();
 
-      loadDialog()
+      loadDialog({ screenshots: false })
         .then(Dialog => {
           dialog = Dialog({
             colorScheme: options.colorScheme,
@@ -214,12 +214,12 @@ export function createWidget({
         .catch(err => {
           // TODO: Error handling?
           logger.error(err);
-          console.log(err);
+          console.log(err); // eslint-disable-line no-console
         });
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
     }
   }
 

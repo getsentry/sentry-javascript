@@ -1,6 +1,7 @@
 import type { Primitive } from '@sentry/types';
 
 import type { ActorComponent } from '../widget/Actor';
+import type { Props as DialogContentProps } from '../widget/components/DialogContent';
 
 export type SentryTags = { [key: string]: Primitive } | undefined;
 
@@ -322,6 +323,8 @@ export interface FeedbackThemes {
 export interface FeedbackComponent<T extends HTMLElement> {
   el: T | null;
 }
+
+export type RenderDialogFn = (parent: HTMLElement, props: DialogContentProps) => void;
 
 export interface DialogComponent extends FeedbackComponent<HTMLDialogElement> {
   /**
