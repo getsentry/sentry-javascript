@@ -1,81 +1,56 @@
 // import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
-import { h, render } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: reason
+import { h, render } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { WINDOW } from '../constants';
 import type { DialogComponent } from '../types';
 import { DialogContent } from './components/DialogContent';
 import type { Props as DialogContentProps } from './components/DialogContent';
 
-interface Props extends Omit<DialogContentProps, 'errorMessage' | 'errorClass'> {
-  onClosed?: () => void;
+interface Props extends Omit<DialogContentProps, 'errorMessage'> {
+  onClosed: () => void;
 }
 
 /**
  * Feedback dialog component that has the form
  */
 export function Dialog({ onClosed, onCancel, onSubmit, ...dialogContentProps }: Props): DialogComponent {
-  let dialog: HTMLDialogElement | null = null;
+  const doc = WINDOW.document;
   let errorMessage: string | undefined = undefined;
 
   /**
-   * Handles when the dialog is clicked. In our case, the dialog is the
-   * semi-transparent bg behind the form. We want clicks outside of the form to
-   * hide the form.
+   * The <dialog> is the full width & height semi-transparent bg behind the <form>.
+   * Clicks on the <dialog>, outside the <form>, will hide the <dialog> and it's content.
    */
-  function handleDialogClose(): void {
-    close();
-
-    // Only this should trigger `onClose`, we don't want the `close()` method to
-    // trigger it, otherwise it can cause cycles.
-    onClosed && onClosed();
-  }
+  const dialog = doc.createElement('dialog');
+  dialog.className = 'dialog';
+  dialog.addEventListener('click', onClosed);
 
   /**
    * Close the dialog
    */
   function close(): void {
-    if (dialog) {
-      dialog.open = false;
-    }
+    dialog.open = false;
   }
 
   /**
-   * Opens the dialog
+   * Open the dialog
    */
   function open(): void {
-    if (dialog) {
-      dialog.open = true;
-    }
+    dialog.open = true;
   }
 
   /**
    * Check if dialog is currently opened
    */
   function checkIsOpen(): boolean {
-    return (dialog && dialog.open === true) || false;
+    return dialog.open === true;
   }
 
   function renderDialogContent(): void {
-    if (!dialog) {
-      const doc = WINDOW.document;
-      dialog = doc.createElement('dialog');
-      dialog.addEventListener('click', handleDialogClose);
-      dialog.className = 'dialog';
-      dialog.open = true;
-    }
+    dialog.open = true;
 
     render(
-      <DialogContent
-        onSubmit={(data): void => {
-          close();
-          onSubmit && onSubmit(data);
-        }}
-        onCancel={(e): void => {
-          close();
-          onCancel && onCancel(e);
-        }}
-        errorMessage={errorMessage}
-        {...dialogContentProps}
-      />,
+      <DialogContent onSubmit={onSubmit} onCancel={onCancel} errorMessage={errorMessage} {...dialogContentProps} />,
       dialog,
     );
   }
@@ -88,9 +63,11 @@ export function Dialog({ onClosed, onCancel, onSubmit, ...dialogContentProps }: 
     },
     showError: (message: string) => {
       errorMessage = message;
+      renderDialogContent();
     },
     hideError: () => {
       errorMessage = undefined;
+      renderDialogContent();
     },
     open,
     close,

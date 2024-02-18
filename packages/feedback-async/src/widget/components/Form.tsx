@@ -1,4 +1,5 @@
-import { h } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: reason
+import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
 import type { FeedbackFormData } from 'src/types';
 
