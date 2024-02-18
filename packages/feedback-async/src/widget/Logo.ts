@@ -8,7 +8,7 @@ interface IconReturn {
   el: SVGElement;
 }
 
-type Props = Pick<FeedbackInternalOptions, 'colorScheme'>;
+export type Props = Pick<FeedbackInternalOptions, 'colorScheme'>;
 
 /**
  * Sentry Logo

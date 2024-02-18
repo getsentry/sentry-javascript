@@ -1,7 +1,7 @@
+import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
 import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
-import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
 
 export interface FormComponentProps
   extends Pick<
