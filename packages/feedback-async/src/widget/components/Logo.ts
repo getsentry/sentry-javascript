@@ -1,19 +1,15 @@
-import { WINDOW } from '../constants';
-import type { FeedbackInternalOptions } from '../types';
-import { setAttributesNS } from '../util/setAttributesNS';
+import { WINDOW } from '../../constants';
+import type { FeedbackInternalOptions } from '../../types';
+import { setAttributesNS } from '../../util/setAttributesNS';
 
 const XMLNS = 'http://www.w3.org/2000/svg';
-
-interface IconReturn {
-  el: SVGElement;
-}
 
 export type Props = Pick<FeedbackInternalOptions, 'colorScheme'>;
 
 /**
  * Sentry Logo
  */
-export function Logo({ colorScheme }: Props): IconReturn {
+export function Logo({ colorScheme }: Props): SVGElement {
   const createElementNS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
     WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(createElementNS('svg'), {
@@ -51,9 +47,5 @@ export function Logo({ colorScheme }: Props): IconReturn {
   defs.append(style);
   svg.append(defs);
 
-  return {
-    get el() {
-      return svg;
-    },
-  };
+  return svg;
 }

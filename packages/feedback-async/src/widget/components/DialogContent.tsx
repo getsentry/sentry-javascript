@@ -2,10 +2,10 @@ import { h } from 'preact';
 import type { VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
 
-import type { Props as LogoProps } from '../Logo';
-import { Logo } from '../Logo';
 import { Form } from './Form';
 import type { Props as FormProps } from './Form';
+import type { Props as LogoProps } from './Logo';
+import { Logo } from './Logo';
 
 export interface Props extends FormProps, LogoProps {
   formTitle: string;
@@ -15,7 +15,7 @@ export interface Props extends FormProps, LogoProps {
 export function DialogContent({ colorScheme, formTitle, showBranding, ...props }: Props): VNode {
   const logoHtml = useMemo(() => {
     const logo = Logo({ colorScheme });
-    return { __html: logo.el.outerHTML };
+    return { __html: logo.outerHTML };
   }, [colorScheme]);
 
   return (

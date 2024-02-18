@@ -1,5 +1,5 @@
 import type { FeedbackComponent } from '../types';
-import { SuccessIcon } from './SuccessIcon';
+import { SuccessIcon } from './components/SuccessIcon';
 import { createElement } from './util/createElement';
 
 export interface SuccessMessageProps {
@@ -33,7 +33,7 @@ export function SuccessMessage({ message, onRemove }: SuccessMessageProps): Succ
       className: 'success-message',
       onClick: remove,
     },
-    SuccessIcon().el,
+    SuccessIcon(),
     message,
   );
 

@@ -1,18 +1,14 @@
-import { WINDOW } from '../constants';
-import { setAttributesNS } from '../util/setAttributesNS';
+import { WINDOW } from '../../constants';
+import { setAttributesNS } from '../../util/setAttributesNS';
 
 const WIDTH = 16;
 const HEIGHT = 17;
 const XMLNS = 'http://www.w3.org/2000/svg';
 
-interface IconReturn {
-  el: SVGElement;
-}
-
 /**
  * Success Icon (checkmark)
  */
-export function SuccessIcon(): IconReturn {
+export function SuccessIcon(): SVGElement {
   const createElementNS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
     WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(createElementNS('svg'), {
@@ -55,9 +51,5 @@ export function SuccessIcon(): IconReturn {
 
   svg.appendChild(speakerDefs).appendChild(speakerClipPathDef).appendChild(speakerRect);
 
-  return {
-    get el() {
-      return svg;
-    },
-  };
+  return svg;
 }
