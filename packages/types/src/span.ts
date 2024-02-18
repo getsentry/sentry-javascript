@@ -1,5 +1,6 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
+import type { Measurements } from './measurement';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
@@ -21,7 +22,8 @@ export type SpanAttributeValue =
   | boolean
   | Array<null | undefined | string>
   | Array<null | undefined | number>
-  | Array<null | undefined | boolean>;
+  | Array<null | undefined | boolean>
+  | Measurements;
 
 export type SpanAttributes = Partial<{
   'sentry.origin': string;
@@ -178,6 +180,11 @@ export interface SpanContext {
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin;
+
+  /**
+   * Exclusive time in milliseconds.
+   */
+  exclusiveTime?: number;
 }
 
 /** Span holding trace_id, span_id */
