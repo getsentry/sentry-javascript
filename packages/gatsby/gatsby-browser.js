@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { init } from '@sentry/gatsby';
+import { getClient, init } from '@sentry/gatsby';
 
 export function onClientEntry(_, pluginParams) {
   const isIntialized = isSentryInitialized();
@@ -32,10 +32,7 @@ export function onClientEntry(_, pluginParams) {
 }
 
 function isSentryInitialized() {
-  // Although `window` should exist because we're in the browser (where this script
-  // is run), and `__SENTRY__.hub` is created when importing the Gatsby SDK, double
-  // check that in case something weird happens.
-  return !!(window && window.__SENTRY__ && window.__SENTRY__.hub && window.__SENTRY__.hub.getClient());
+  return !!getClient();
 }
 
 function areSentryOptionsDefined(params) {
