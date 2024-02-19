@@ -8,8 +8,6 @@ const _sessionTimingIntegration = (() => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       const now = Date.now();
 
