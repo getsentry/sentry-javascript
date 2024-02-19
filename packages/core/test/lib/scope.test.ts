@@ -582,4 +582,13 @@ describe('withActiveSpan()', () => {
       });
     });
   });
+
+  it('when `null` is passed, no span should be active within the callback', () => {
+    expect.assertions(1);
+    startSpan({ name: 'parent-span' }, () => {
+      withActiveSpan(null, () => {
+        expect(getActiveSpan()).toBeUndefined();
+      });
+    });
+  });
 });
