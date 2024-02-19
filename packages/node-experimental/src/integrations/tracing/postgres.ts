@@ -1,21 +1,22 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
+import { PgInstrumentation } from '@opentelemetry/instrumentation-pg';
 import { defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 
-import { addOriginToSpan } from '../utils/addOriginToSpan';
+import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
-const _expressIntegration = (() => {
+const _postgresIntegration = (() => {
   return {
-    name: 'Express',
+    name: 'Postgres',
     setupOnce() {
       registerInstrumentations({
         instrumentations: [
-          new ExpressInstrumentation({
+          new PgInstrumentation({
+            requireParentSpan: true,
             requestHook(span) {
-              addOriginToSpan(span, 'auto.http.otel.express');
+              addOriginToSpan(span, 'auto.db.otel.postgres');
             },
           }),
         ],
@@ -24,19 +25,20 @@ const _expressIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const expressIntegration = defineIntegration(_expressIntegration);
+export const postgresIntegration = defineIntegration(_postgresIntegration);
 
 /**
- * Express integration
+ * Postgres integration
  *
- * Capture tracing data for express.
- * @deprecated Use `expressIntegration()` instead.
+ * Capture tracing data for pg.
+ *
+ * @deprecated Use `postgresIntegration()` instead.
  */
-export class Express extends NodePerformanceIntegration<void> implements Integration {
+export class Postgres extends NodePerformanceIntegration<void> implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Express';
+  public static id: string = 'Postgres';
 
   /**
    * @inheritDoc
@@ -46,15 +48,16 @@ export class Express extends NodePerformanceIntegration<void> implements Integra
   public constructor() {
     super();
     // eslint-disable-next-line deprecation/deprecation
-    this.name = Express.id;
+    this.name = Postgres.id;
   }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
     return [
-      new ExpressInstrumentation({
+      new PgInstrumentation({
+        requireParentSpan: true,
         requestHook(span) {
-          addOriginToSpan(span, 'auto.http.otel.express');
+          addOriginToSpan(span, 'auto.db.otel.postgres');
         },
       }),
     ];

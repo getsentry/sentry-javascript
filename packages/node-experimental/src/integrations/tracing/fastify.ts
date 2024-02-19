@@ -4,7 +4,7 @@ import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
 import { defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 
-import { addOriginToSpan } from '../utils/addOriginToSpan';
+import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
 const _fastifyIntegration = (() => {

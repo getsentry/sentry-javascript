@@ -23,9 +23,9 @@ import {
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
-import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
+import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { NodeClient } from './client';

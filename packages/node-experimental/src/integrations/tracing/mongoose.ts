@@ -1,22 +1,21 @@
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
+import { MongooseInstrumentation } from '@opentelemetry/instrumentation-mongoose';
 import { defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 
-import { addOriginToSpan } from '../utils/addOriginToSpan';
+import { addOriginToSpan } from '../../utils/addOriginToSpan';
 import { NodePerformanceIntegration } from './NodePerformanceIntegration';
 
-const _graphqlIntegration = (() => {
+const _mongooseIntegration = (() => {
   return {
-    name: 'Graphql',
+    name: 'Mongoose',
     setupOnce() {
       registerInstrumentations({
         instrumentations: [
-          new GraphQLInstrumentation({
-            ignoreTrivialResolveSpans: true,
+          new MongooseInstrumentation({
             responseHook(span) {
-              addOriginToSpan(span, 'auto.graphql.otel.graphql');
+              addOriginToSpan(span, 'auto.db.otel.mongoose');
             },
           }),
         ],
@@ -25,20 +24,20 @@ const _graphqlIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const graphqlIntegration = defineIntegration(_graphqlIntegration);
+export const mongooseIntegration = defineIntegration(_mongooseIntegration);
 
 /**
- * GraphQL integration
+ * Mongoose integration
  *
- * Capture tracing data for GraphQL.
+ * Capture tracing data for Mongoose.
  *
- * @deprecated Use `graphqlIntegration()` instead.
+ * @deprecated Use `mongooseIntegration()` instead.
  */
-export class GraphQL extends NodePerformanceIntegration<void> implements Integration {
+export class Mongoose extends NodePerformanceIntegration<void> implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'GraphQL';
+  public static id: string = 'Mongoose';
 
   /**
    * @inheritDoc
@@ -48,16 +47,15 @@ export class GraphQL extends NodePerformanceIntegration<void> implements Integra
   public constructor() {
     super();
     // eslint-disable-next-line deprecation/deprecation
-    this.name = GraphQL.id;
+    this.name = Mongoose.id;
   }
 
   /** @inheritDoc */
   public setupInstrumentation(): void | Instrumentation[] {
     return [
-      new GraphQLInstrumentation({
-        ignoreTrivialResolveSpans: true,
+      new MongooseInstrumentation({
         responseHook(span) {
-          addOriginToSpan(span, 'auto.graphql.otel.graphql');
+          addOriginToSpan(span, 'auto.db.otel.mongoose');
         },
       }),
     ];
