@@ -8,8 +8,6 @@ import { GLOBAL_OBJ } from '@sentry/utils';
  * Strategy used to track async context.
  */
 export interface AsyncContextStrategy {
-  name?: string;
-
   /**
    * Gets the currently active hub.
    */
