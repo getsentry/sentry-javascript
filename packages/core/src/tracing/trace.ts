@@ -369,13 +369,24 @@ export function getChildSpanReferencesOnSpan(span: SpanWithPotentialChildren): S
 /**
  * TODO
  */
-export function getAllDescendantsOnSpan(span: SpanWithPotentialChildren): Span[] {
-  const result: Span[] = [];
-  const childSpans = getChildSpanReferencesOnSpan(span);
-  for (const childSpan of childSpans) {
-    result.push(...getAllDescendantsOnSpan(childSpan));
+export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
+  const resultSet = new Set<Span>();
+
+  function recurse(span: SpanWithPotentialChildren): void {
+    if (resultSet.has(span)) {
+      return;
+    } else {
+      resultSet.add(span);
+      const childSpans = getChildSpanReferencesOnSpan(span);
+      for (const childSpan of childSpans) {
+        recurse(childSpan);
+      }
+    }
   }
-  return result;
+
+  recurse(span);
+
+  return Array.from(resultSet);
 }
 
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
