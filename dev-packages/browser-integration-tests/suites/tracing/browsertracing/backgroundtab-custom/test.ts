@@ -9,7 +9,7 @@ async function getPropertyValue(handle: JSHandle, prop: string) {
   return (await handle.getProperty(prop))?.jsonValue();
 }
 
-sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestPath, page }) => {
+sentryTest('should finish a custom root-span when the page goes background', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -19,7 +19,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
   expect(pageloadTransaction).toBeDefined();
 
-  await page.locator('#start-transaction').click();
+  await page.locator('#start-root-span').click();
   const transactionHandle = await page.evaluateHandle('window.transaction');
 
   const id_before = await getPropertyValue(transactionHandle, 'span_id');
@@ -27,7 +27,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   const status_before = await getPropertyValue(transactionHandle, 'status');
   const tags_before = await getPropertyValue(transactionHandle, 'tags');
 
-  expect(name_before).toBe('test-transaction');
+  expect(name_before).toBe('root-span');
   expect(status_before).toBeUndefined();
   expect(tags_before).toStrictEqual({});
 

@@ -59,6 +59,7 @@ export {
   setUser,
   withScope,
   withIsolationScope,
+  withActiveSpan,
   // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation

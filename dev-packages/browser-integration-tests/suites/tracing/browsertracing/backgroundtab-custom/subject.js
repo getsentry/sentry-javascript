@@ -6,6 +6,9 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('start-transaction').addEventListener('click', () => {
-  window.transaction = Sentry.startTransaction({ name: 'test-transaction' });
-  Sentry.getCurrentScope().setSpan(window.transaction);
+  Sentry.withActiveSpan(null, () => {
+    Sentry.startSpan({ name: 'test-transaction' }, span => {
+      window.transaction = span;
+    });
+  });
 });
