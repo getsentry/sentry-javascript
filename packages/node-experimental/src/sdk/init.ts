@@ -6,12 +6,7 @@ import {
   hasTracingEnabled,
   startSession,
 } from '@sentry/core';
-import {
-  defaultStackParser,
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  getSentryRelease,
-  spotlightIntegration,
-} from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, spotlightIntegration } from '@sentry/node';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
@@ -28,6 +23,7 @@ import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
+import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOtel } from './initOtel';
 
