@@ -70,6 +70,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
 } from '@sentry/core';
 
 export {

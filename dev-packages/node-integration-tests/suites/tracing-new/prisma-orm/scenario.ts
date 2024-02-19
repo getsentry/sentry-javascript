@@ -19,7 +19,7 @@ Sentry.startSpanManual(
       await client.user.create({
         data: {
           name: 'Dog',
-          email: `dog@sentry.io`,
+          email: 'dog@sentry.io',
         },
       });
 

@@ -5,7 +5,14 @@ document.getElementById('go-background').addEventListener('click', () => {
   document.dispatchEvent(ev);
 });
 
-document.getElementById('start-transaction').addEventListener('click', () => {
-  window.transaction = Sentry.startTransaction({ name: 'test-transaction' });
-  Sentry.getCurrentScope().setSpan(window.transaction);
+document.getElementById('start-span').addEventListener('click', () => {
+  Sentry.withActiveSpan(null, () => {
+    Sentry.startSpanManual({ name: 'test-span' }, span => {
+      window.span = span;
+    });
+  });
 });
+
+window.getSpanJson = () => {
+  return Sentry.spanToJSON(window.span);
+};

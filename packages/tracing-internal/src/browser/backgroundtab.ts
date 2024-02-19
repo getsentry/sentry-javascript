@@ -1,5 +1,6 @@
-import type { IdleTransaction, SpanStatusType } from '@sentry/core';
-import { getActiveTransaction, spanToJSON } from '@sentry/core';
+import type { SpanStatusType } from '@sentry/core';
+import { getActiveSpan, getRootSpan } from '@sentry/core';
+import { spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
@@ -12,24 +13,33 @@ import { WINDOW } from './types';
 export function registerBackgroundTabDetection(): void {
   if (WINDOW && WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
-      // eslint-disable-next-line deprecation/deprecation
-      const activeTransaction = getActiveTransaction() as IdleTransaction;
-      if (WINDOW.document.hidden && activeTransaction) {
+      const activeSpan = getActiveSpan();
+      if (!activeSpan) {
+        return;
+      }
+
+      const rootSpan = getRootSpan(activeSpan);
+      if (!rootSpan) {
+        return;
+      }
+
+      if (WINDOW.document.hidden && activeSpan) {
         const statusType: SpanStatusType = 'cancelled';
 
-        const { op, status } = spanToJSON(activeTransaction);
+        const { op, status } = spanToJSON(activeSpan);
 
-        DEBUG_BUILD &&
+        if (DEBUG_BUILD) {
           logger.log(`[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${op}`);
+        }
+
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
         if (!status) {
-          activeTransaction.setStatus(statusType);
+          activeSpan.setStatus(statusType);
         }
-        // TODO: Can we rewrite this to an attribute?
-        // eslint-disable-next-line deprecation/deprecation
-        activeTransaction.setTag('visibilitychange', 'document.hidden');
-        activeTransaction.end();
+
+        activeSpan.setAttribute('sentry.cancellation_reason', 'document.hidden');
+        activeSpan.end();
       }
     });
   } else {
