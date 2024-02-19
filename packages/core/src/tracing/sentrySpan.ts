@@ -29,7 +29,7 @@ import {
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
 import { setHttpStatus } from './spanstatus';
-import { addChildSpanReferenceToSpan } from './trace';
+import { addChildSpanToSpan } from './trace';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -402,7 +402,7 @@ export class SentrySpan implements SpanInterface {
       childSpan.spanRecorder.add(childSpan);
     }
 
-    addChildSpanReferenceToSpan(childSpan, this);
+    addChildSpanToSpan(this, childSpan);
 
     const rootSpan = getRootSpan(this);
     // TODO: still set span.transaction here until we have a more permanent solution

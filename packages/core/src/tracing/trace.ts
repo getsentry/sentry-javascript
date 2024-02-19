@@ -157,7 +157,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   }
 
   if (parentSpan) {
-    addChildSpanReferenceToSpan(span, parentSpan);
+    addChildSpanToSpan(parentSpan, span);
   }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
@@ -312,7 +312,7 @@ function createChildSpanOrTransaction(
   }
 
   if (parentSpan) {
-    addChildSpanReferenceToSpan(span, parentSpan);
+    addChildSpanToSpan(parentSpan, span);
   }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
@@ -347,7 +347,7 @@ type SpanWithPotentialChildren = Span & {
 /**
  * Adds an opaque child span reference to a span.
  */
-export function addChildSpanReferenceToSpan(childSpan: Span, span: SpanWithPotentialChildren): void {
+export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
   if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
     span[CHILD_SPANS_FIELD].add(childSpan);
   } else {
@@ -356,18 +356,7 @@ export function addChildSpanReferenceToSpan(childSpan: Span, span: SpanWithPoten
 }
 
 /**
- * TODO
- */
-export function getChildSpanReferencesOnSpan(span: SpanWithPotentialChildren): Span[] {
-  if (span[CHILD_SPANS_FIELD]) {
-    return Array.from(span[CHILD_SPANS_FIELD]);
-  } else {
-    return [];
-  }
-}
-
-/**
- * TODO
+ * Obtains the entire span tree, meaning a span + all of its descendants for a particular span.
  */
 export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
   const resultSet = new Set<Span>();
@@ -377,7 +366,7 @@ export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
       return;
     } else {
       resultSet.add(span);
-      const childSpans = getChildSpanReferencesOnSpan(span);
+      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
       for (const childSpan of childSpans) {
         recurse(childSpan);
       }
