@@ -26,6 +26,5 @@ const _expressIntegration = (() => {
  * Express integration
  *
  * Capture tracing data for express.
- * @deprecated Use `expressIntegration()` instead.
  */
 export const expressIntegration = defineIntegration(_expressIntegration);
