@@ -18,12 +18,12 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
     return;
   }
 
-  let startingUrl: string | undefined = 'wtf4';
+  let startingUrl: string | undefined = WINDOW.location.href;
 
   let activeTransaction: T | undefined;
   if (startTransactionOnPageLoad) {
     activeTransaction = customStartTransaction({
-      name: WINDOW.location.pathname, // wtf5
+      name: WINDOW.location.pathname,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
@@ -58,7 +58,7 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
           activeTransaction.end();
         }
         activeTransaction = customStartTransaction({
-          name: 'wtf6',
+          name: WINDOW.location.pathname,
           op: 'navigation',
           origin: 'auto.navigation.browser',
           attributes: {

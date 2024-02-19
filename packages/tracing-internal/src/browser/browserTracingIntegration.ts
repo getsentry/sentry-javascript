@@ -322,7 +322,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
       if (options.instrumentPageLoad && WINDOW.location) {
         const context: StartSpanOptions = {
-          name: 'wtf2',
+          name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
           startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
           origin: 'auto.pageload.browser',
@@ -352,7 +352,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           if (from !== to) {
             startingUrl = undefined;
             const context: StartSpanOptions = {
-              name: 'wtf3',
+              name: WINDOW.location.pathname,
               origin: 'auto.navigation.browser',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
