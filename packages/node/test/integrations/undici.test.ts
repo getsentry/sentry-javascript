@@ -4,12 +4,13 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getIsolationScope,
+  getMainCarrier,
   setCurrentClient,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
-import { Hub, makeMain } from '@sentry/core';
 import { fetch } from 'undici';
 
 import { NodeClient } from '../../src/client';
@@ -20,13 +21,10 @@ import { conditionalTest } from '../utils';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
-let hub: Hub;
-
 beforeAll(async () => {
   try {
     await setupTestServer();
   } catch (e) {
-    // eslint-disable-next-line no-console
     const error = new Error('Undici integration tests are skipped because test server could not be set up.');
     // This needs lib es2022 and newer so marking as any
     (error as any).cause = e;
@@ -38,14 +36,21 @@ const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
   dsn: SENTRY_DSN,
   tracesSampler: () => true,
   integrations: [nativeNodeFetchintegration()],
+  debug: true,
 });
 
 beforeEach(() => {
+  // Ensure we reset a potentially set acs to use the default
+  const sentry = getMainCarrier().__SENTRY__;
+  if (sentry) {
+    sentry.acs = undefined;
+  }
+
+  getCurrentScope().clear();
+  getIsolationScope().clear();
   const client = new NodeClient(DEFAULT_OPTIONS);
-  // eslint-disable-next-line deprecation/deprecation
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 });
 
 afterEach(() => {
@@ -148,7 +153,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     });
   });
 
-  it('creates a span for invalid looking urls', async () => {
+  it('creates a span for invalid looking urls xxx', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       try {
         // Intentionally add // to the url
@@ -395,10 +400,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         environment: 'production',
       });
       const client = new NodeClient(options);
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client);
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
+      setCurrentClient(client);
     });
 
     it.each([

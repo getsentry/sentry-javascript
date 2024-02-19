@@ -12,7 +12,7 @@ import {
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import type { BaseTransportOptions, ClientOptions, TransactionSource } from '@sentry/types';
+import type { BaseTransportOptions, ClientOptions } from '@sentry/types';
 
 import { TRACEPARENT_REGEXP, Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
@@ -667,8 +667,8 @@ describe('SentrySpan', () => {
         const transaction = new Transaction(
           {
             name: 'tx',
-            metadata: {
-              source: 'url',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             },
           },
           getCurrentHub(),
@@ -681,12 +681,12 @@ describe('SentrySpan', () => {
       test.each([
         ['is included if transaction source is paremeterized route/url', 'route'],
         ['is included if transaction source is a custom name', 'custom'],
-      ])('%s', (_: string, source) => {
+      ] as const)('%s', (_, source) => {
         const transaction = new Transaction(
           {
             name: 'tx',
-            metadata: {
-              ...(source && { source: source as TransactionSource }),
+            attributes: {
+              ...(source && { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source }),
             },
           },
           getCurrentHub(),

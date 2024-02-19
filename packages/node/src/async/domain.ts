@@ -1,9 +1,12 @@
 import * as domain from 'domain';
-import type { Carrier } from '@sentry/core';
 import { getGlobalHub } from '@sentry/core';
 import { Hub as HubClass } from '@sentry/core';
-import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy, setHubOnCarrier } from '@sentry/core';
+import { setAsyncContextStrategy } from '@sentry/core';
 import type { Client, Hub, Scope } from '@sentry/types';
+
+type DomainWithHub = domain.Domain & {
+  hub?: Hub;
+};
 
 function getActiveDomain<T>(): T | undefined {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
@@ -11,16 +14,19 @@ function getActiveDomain<T>(): T | undefined {
 }
 
 function getCurrentDomainHub(): Hub | undefined {
-  const activeDomain = getActiveDomain<Carrier>();
+  const activeDomain = getActiveDomain<DomainWithHub>();
 
   // If there's no active domain, just return undefined and the global hub will be used
   if (!activeDomain) {
     return undefined;
   }
 
-  ensureHubOnCarrier(activeDomain);
+  if (activeDomain.hub) {
+    return activeDomain.hub;
+  }
 
-  return getHubFromCarrier(activeDomain);
+  activeDomain.hub = getCurrentHub();
+  return activeDomain.hub;
 }
 
 function getCurrentHub(): Hub {
@@ -33,11 +39,11 @@ function withExecutionContext<T>(
   isolationScope: Scope,
   callback: () => T,
 ): T {
-  const local = domain.create() as domain.Domain & Carrier;
+  const local = domain.create() as DomainWithHub;
 
   // eslint-disable-next-line deprecation/deprecation
   const newHub = new HubClass(client, scope, isolationScope);
-  setHubOnCarrier(local, newHub);
+  local.hub = newHub;
 
   return local.bind(() => {
     return callback();

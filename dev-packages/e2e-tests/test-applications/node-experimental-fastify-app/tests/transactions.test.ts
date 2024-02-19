@@ -30,6 +30,7 @@ test('Sends an API route transaction', async ({ baseURL }) => {
             'http.response.status_code': 200,
             'sentry.op': 'http.server',
             'sentry.origin': 'auto.http.otel.http',
+            'sentry.source': 'route',
           },
           op: 'http.server',
           span_id: expect.any(String),

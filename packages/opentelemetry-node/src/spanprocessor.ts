@@ -179,7 +179,9 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
     metadata: {
       // only set dynamic sampling context if sentry-trace header was set
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      source: 'custom',
+    },
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     },
   };
 

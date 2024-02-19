@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getActiveTransaction,
   getClient,
@@ -415,13 +416,13 @@ export function startRequestHandlerTransaction(
     op: 'http.server',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
     tags: {
       method: request.method,
     },
     ...traceparentData,
     metadata: {
-      source,
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     },
   });

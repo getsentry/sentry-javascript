@@ -31,7 +31,6 @@ export {
   close,
   createTransport,
   flush,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -67,6 +66,9 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {

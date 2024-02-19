@@ -423,20 +423,6 @@ export class Hub implements HubInterface {
 
   /**
    * @inheritDoc
-   */
-  public run(callback: (hub: Hub) => void): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const oldHub = makeMain(this);
-    try {
-      callback(this);
-    } finally {
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(oldHub);
-    }
-  }
-
-  /**
-   * @inheritDoc
    * @deprecated Use `Sentry.getClient().getIntegrationByName()` instead.
    */
   public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
@@ -618,23 +604,8 @@ Sentry.init({...});
  * @deprecated Use `setCurrentClient()` instead.
  */
 export function makeMain(hub: HubInterface): HubInterface {
-  const registry = getMainCarrier();
-  const oldHub = getHubFromCarrier(registry);
-  setHubOnCarrier(registry, hub);
-  return oldHub;
-}
-
-/**
- * This will set passed {@link Hub} on the passed object's __SENTRY__.hub attribute
- * @param carrier object
- * @param hub Hub
- * @returns A boolean indicating success or failure
- */
-export function setHubOnCarrier(carrier: Carrier, hub: HubInterface): boolean {
-  if (!carrier) return false;
-  const sentry = getSentryCarrier(carrier);
-  sentry.hub = hub;
-  return true;
+  // noop!
+  return hub;
 }
 
 /**
@@ -681,67 +652,16 @@ export function getDefaultIsolationScope(): Scope {
  */
 export function getGlobalHub(): HubInterface {
   const registry = getMainCarrier();
+  const sentry = getSentryCarrier(registry) as { hub?: HubInterface };
 
   // If there's no hub, or its an old API, assign a new one
-
-  if (
-    !hasHubOnCarrier(registry) ||
-    // eslint-disable-next-line deprecation/deprecation
-    getHubFromCarrier(registry).isOlderThan(API_VERSION)
-  ) {
-    // eslint-disable-next-line deprecation/deprecation
-    setHubOnCarrier(registry, new Hub(undefined, getDefaultCurrentScope(), getDefaultIsolationScope()));
+  if (sentry.hub) {
+    return sentry.hub;
   }
 
-  // Return hub that lives on a global object
-  return getHubFromCarrier(registry);
-}
-
-/**
- * This will tell whether a carrier has a hub on it or not
- * @param carrier object
- */
-function hasHubOnCarrier(carrier: Carrier): boolean {
-  return !!getSentryCarrier(carrier).hub;
-}
-
-/**
- * This will create a new {@link Hub} and add to the passed object on
- * __SENTRY__.hub.
- * @param carrier object
- * @hidden
- */
-export function getHubFromCarrier(carrier: Carrier): HubInterface {
-  const sentry = getSentryCarrier(carrier);
-  if (!sentry.hub) {
-    // eslint-disable-next-line deprecation/deprecation
-    sentry.hub = new Hub();
-  }
-
+  // eslint-disable-next-line deprecation/deprecation
+  sentry.hub = new Hub(undefined, getDefaultCurrentScope(), getDefaultIsolationScope());
   return sentry.hub;
-}
-
-/**
- * @private Private API with no semver guarantees!
- *
- * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
- */
-export function ensureHubOnCarrier(carrier: Carrier, parent: HubInterface = getGlobalHub()): void {
-  // If there's no hub on current domain, or it's an old API, assign a new one
-  if (
-    !hasHubOnCarrier(carrier) ||
-    // eslint-disable-next-line deprecation/deprecation
-    getHubFromCarrier(carrier).isOlderThan(API_VERSION)
-  ) {
-    // eslint-disable-next-line deprecation/deprecation
-    const client = parent.getClient();
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = parent.getScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const isolationScope = parent.getIsolationScope();
-    // eslint-disable-next-line deprecation/deprecation
-    setHubOnCarrier(carrier, new Hub(client, scope.clone() as Scope, isolationScope.clone() as Scope));
-  }
 }
 
 /**

@@ -102,14 +102,16 @@ export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
 }
 
 /**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be
+ * passed `null` to start an entirely new span tree.
  *
- * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
+ * spans started within the callback will not be attached to a parent span.
  * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
  * @returns the value returned from the provided callback function.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
-  const newContextWithActiveSpan = trace.setSpan(context.active(), span);
+export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
+  const newContextWithActiveSpan = span ? trace.setSpan(context.active(), span) : trace.deleteSpan(context.active());
   return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
 }
 

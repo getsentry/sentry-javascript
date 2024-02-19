@@ -127,16 +127,18 @@ export function setUser(user: User | null): ReturnType<Hub['setUser']> {
 }
 
 /**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be
+ * passed `null` to start an entirely new span tree.
  *
- * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
+ * spans started within the callback will not be attached to a parent span.
  * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
  * @returns the value returned from the provided callback function.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: ScopeInterface) => T): T {
+export function withActiveSpan<T>(span: Span | null, callback: (scope: ScopeInterface) => T): T {
   return withScope(scope => {
     // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(span);
+    scope.setSpan(span || undefined);
     return callback(scope);
   });
 }

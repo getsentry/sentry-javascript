@@ -98,6 +98,7 @@ describe('Integration | Scope', () => {
                 data: {
                   'otel.kind': 'INTERNAL',
                   'sentry.origin': 'manual',
+                  'sentry.source': 'custom',
                 },
                 span_id: spanId,
                 status: 'ok',

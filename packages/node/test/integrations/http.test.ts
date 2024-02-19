@@ -1,9 +1,11 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { SentrySpan } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
-import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
-import { Hub, addTracingExtensions } from '@sentry/core';
+import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
 import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
 import * as nock from 'nock';
@@ -25,6 +27,11 @@ const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
 
 describe('tracing', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+  });
+
   afterEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(undefined);
@@ -66,12 +73,8 @@ describe('tracing', () => {
       ...customOptions,
     });
     const client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
-    // eslint-disable-next-line deprecation/deprecation
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
   }
 
   it("creates a span for each outgoing non-sentry request when there's a transaction on the scope", () => {
@@ -162,7 +165,7 @@ describe('tracing', () => {
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'route' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -176,7 +179,7 @@ describe('tracing', () => {
   it('does not add the transaction name to the the baggage header if url transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'url' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
@@ -270,14 +273,16 @@ describe('tracing', () => {
       environment: 'production',
       instrumenter: 'otel',
     });
+    const client = new NodeClient(options);
+    setCurrentClient(client);
     // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new NodeClient(options));
+    const hub = getCurrentHub();
 
     // eslint-disable-next-line deprecation/deprecation
     const integration = new HttpIntegration();
     integration.setupOnce(
       () => {},
-      () => hub,
+      () => hub as Hub,
     );
 
     expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
@@ -372,12 +377,10 @@ describe('tracing', () => {
       });
 
       const client = new NodeClient(options);
+      setCurrentClient(client);
+      client.init();
       // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client);
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
-
-      return hub;
+      return getCurrentHub();
     }
 
     function createTransactionAndPutOnScope() {
@@ -400,7 +403,7 @@ describe('tracing', () => {
 
         httpIntegration.setupOnce(
           () => undefined,
-          () => hub,
+          () => hub as Hub,
         );
 
         const transaction = createTransactionAndPutOnScope();
@@ -448,7 +451,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -481,7 +484,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -510,7 +513,7 @@ describe('tracing', () => {
 
         httpIntegration.setupOnce(
           () => undefined,
-          () => hub,
+          () => hub as Hub,
         );
 
         const transaction = createTransactionAndPutOnScope();
@@ -558,7 +561,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -591,7 +594,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -624,10 +627,8 @@ describe('default protocols', () => {
       },
     });
     const client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     return p;
   }
@@ -712,10 +713,8 @@ describe('httpIntegration', () => {
       environment: 'production',
     });
     const client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('converts default options', () => {
@@ -773,10 +772,8 @@ describe('httpIntegration', () => {
 
 describe('_shouldCreateSpans', () => {
   beforeEach(function () {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   it.each([
@@ -788,6 +785,8 @@ describe('_shouldCreateSpans', () => {
     [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 0 }, true],
     [{}, {}, true],
   ])('works with tracing=%p and clientOptions=%p', (tracing, clientOptions, expected) => {
+    const client = new NodeClient(getDefaultNodeClientOptions(clientOptions));
+    setCurrentClient(client);
     const actual = _shouldCreateSpans(tracing, clientOptions);
     expect(actual).toEqual(expected);
   });
@@ -795,10 +794,8 @@ describe('_shouldCreateSpans', () => {
 
 describe('_getShouldCreateSpanForRequest', () => {
   beforeEach(function () {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   it.each([
