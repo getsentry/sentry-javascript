@@ -198,15 +198,6 @@ export interface Hub {
   setContext(name: string, context: { [key: string]: any } | null): void;
 
   /**
-   * For the duration of the callback, this hub will be set as the global current Hub.
-   * This function is useful if you want to run your own client and hook into an already initialized one
-   * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
-   *
-   * TODO v8: This will be merged with `withScope()`
-   */
-  run(callback: (hub: Hub) => void): void;
-
-  /**
    * Returns the integration if installed on the current client.
    *
    * @deprecated Use `Sentry.getClient().getIntegration()` instead.

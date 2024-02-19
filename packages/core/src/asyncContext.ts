@@ -53,7 +53,6 @@ export interface Carrier {
 }
 
 interface SentryCarrier {
-  hub?: Hub;
   acs?: AsyncContextStrategy;
   /**
    * Extra Hub properties injected by various SDKs
@@ -96,7 +95,6 @@ export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   if (!carrier.__SENTRY__) {
     carrier.__SENTRY__ = {
       extensions: {},
-      hub: undefined,
     };
   }
   return carrier.__SENTRY__;

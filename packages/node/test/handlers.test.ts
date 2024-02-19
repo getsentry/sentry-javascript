@@ -28,7 +28,6 @@ describe('requestHandler', () => {
     const sentry = getMainCarrier().__SENTRY__;
     if (sentry) {
       sentry.acs = undefined;
-      sentry.hub = undefined;
     }
   });
 
@@ -205,7 +204,6 @@ describe('tracingHandler', () => {
     const sentry = getMainCarrier().__SENTRY__;
     if (sentry) {
       sentry.acs = undefined;
-      sentry.hub = undefined;
     }
   });
 
@@ -524,7 +522,6 @@ describe('errorHandler()', () => {
     const sentry = getMainCarrier().__SENTRY__;
     if (sentry) {
       sentry.acs = undefined;
-      sentry.hub = undefined;
     }
   });
 

@@ -35,7 +35,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  getHubFromCarrier,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
