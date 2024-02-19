@@ -1,8 +1,8 @@
 import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
 import { startSpan } from '@sentry/opentelemetry';
 import { getClient } from '../../src/sdk/api';
+import type { NodeClient } from '../../src/sdk/client';
 
-import type { NodeExperimentalClient } from '../../src/types';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | breadcrumbs', () => {
@@ -19,7 +19,7 @@ describe('Integration | breadcrumbs', () => {
 
       mockSdkInit({ beforeSend, beforeBreadcrumb });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
 
       addBreadcrumb({ timestamp: 123456, message: 'test1' });
       addBreadcrumb({ timestamp: 123457, message: 'test2', data: { nested: 'yes' } });
@@ -101,7 +101,7 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     const error = new Error('test');
 
@@ -146,7 +146,7 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     const error = new Error('test');
 
@@ -198,7 +198,7 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     const error = new Error('test');
 
@@ -239,7 +239,7 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     const error = new Error('test');
 
@@ -297,7 +297,7 @@ describe('Integration | breadcrumbs', () => {
 
     mockSdkInit({ beforeSend, beforeBreadcrumb, beforeSendTransaction, enableTracing: true });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     const error = new Error('test');
 
