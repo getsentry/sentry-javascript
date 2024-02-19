@@ -1,19 +1,20 @@
+export { errorHandler } from './sdk/handlers/errorHandler';
+
+export { httpIntegration } from './integrations/http';
+export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { expressIntegration } from './integrations/tracing/express';
 export { fastifyIntegration } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
-export { httpIntegration } from './integrations/http';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
 export { nestIntegration } from './integrations/tracing/nest';
-export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
 export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
