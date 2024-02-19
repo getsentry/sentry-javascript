@@ -173,7 +173,7 @@ if (options.captureStackTrace) {
         {
           // Grab the trace context from the current scope
           expression:
-            'const ctx = __SENTRY__.hub.getScope().getPropagationContext(); ctx.traceId + "-" + ctx.spanId + "-" + ctx.parentSpanId',
+            'const ctx = __SENTRY__.acs?.getCurrentScope().getPropagationContext() || {}; ctx.traceId + "-" + ctx.spanId + "-" + ctx.parentSpanId',
           // Don't re-trigger the debugger if this causes an error
           silent: true,
         },
