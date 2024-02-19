@@ -72,7 +72,7 @@ export function tracingHandler(): (
           op: 'http.server',
           origin: 'auto.http.node.tracingHandler',
           ...ctx,
-          data: {
+          attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
           },
           metadata: {

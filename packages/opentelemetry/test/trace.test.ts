@@ -218,8 +218,10 @@ describe('trace', () => {
           name: 'outer',
           op: 'my-op',
           origin: 'auto.test.origin',
-          source: 'task',
           metadata: { requestPath: 'test-path' },
+          attributes: {
+            [InternalSentrySemanticAttributes.SOURCE]: 'task',
+          },
         },
         span => {
           expect(span).toBeDefined();
@@ -335,7 +337,9 @@ describe('trace', () => {
         name: 'outer',
         op: 'my-op',
         origin: 'auto.test.origin',
-        source: 'task',
+        attributes: {
+          [InternalSentrySemanticAttributes.SOURCE]: 'task',
+        },
         metadata: { requestPath: 'test-path' },
       });
 

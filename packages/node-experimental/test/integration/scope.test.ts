@@ -88,7 +88,7 @@ describe('Integration | Scope', () => {
           expect.objectContaining({
             contexts: expect.objectContaining({
               trace: {
-                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual' },
+                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual', 'sentry.source': 'custom' },
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,

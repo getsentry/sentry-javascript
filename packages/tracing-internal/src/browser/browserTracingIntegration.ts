@@ -236,16 +236,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     const finalContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
 
     // If `beforeStartSpan` set a custom name, record that fact
-    // eslint-disable-next-line deprecation/deprecation
-    finalContext.metadata =
+    finalContext.attributes =
       finalContext.name !== expandedContext.name
-        ? // eslint-disable-next-line deprecation/deprecation
-          { ...finalContext.metadata, source: 'custom' }
-        : // eslint-disable-next-line deprecation/deprecation
-          finalContext.metadata;
+        ? { ...finalContext.attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' }
+        : finalContext.attributes;
 
     latestRouteName = finalContext.name;
-    latestRouteSource = getSource(finalContext);
+    if (finalContext.attributes) {
+      latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    }
 
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
@@ -479,14 +478,4 @@ function registerInteractionListener(
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
   });
-}
-
-function getSource(context: TransactionContext): TransactionSource | undefined {
-  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromMetadata = context.metadata && context.metadata.source;
-
-  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }
