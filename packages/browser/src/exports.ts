@@ -67,6 +67,9 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {

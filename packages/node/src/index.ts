@@ -76,6 +76,9 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {
