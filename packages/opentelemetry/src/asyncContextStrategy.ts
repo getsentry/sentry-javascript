@@ -105,6 +105,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   }
 
   setAsyncContextStrategy({
+    name: 'OTEL',
     getCurrentHub,
     withScope,
     withSetScope,

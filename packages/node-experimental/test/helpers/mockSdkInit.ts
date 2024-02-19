@@ -3,7 +3,7 @@ import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 
 import { init } from '../../src/sdk/init';
-import type { NodeExperimentalClientOptions } from '../../src/types';
+import type { NodeClientOptions } from '../../src/types';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 
@@ -14,7 +14,7 @@ export function resetGlobals(): void {
   getGlobalScope().clear();
 }
 
-export function mockSdkInit(options?: Partial<NodeExperimentalClientOptions>) {
+export function mockSdkInit(options?: Partial<NodeClientOptions>) {
   resetGlobals();
   init({ dsn: PUBLIC_DSN, defaultIntegrations: false, ...options });
 }

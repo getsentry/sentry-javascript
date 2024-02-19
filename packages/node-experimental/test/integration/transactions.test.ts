@@ -6,7 +6,7 @@ import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
-import type { NodeExperimentalClient } from '../../src/types';
+import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
@@ -20,7 +20,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient<NodeExperimentalClient>();
+    const client = Sentry.getClient<NodeClient>();
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     Sentry.setTag('outer.tag', 'test value');
@@ -343,7 +343,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient<NodeExperimentalClient>();
+    const client = Sentry.getClient<NodeClient>();
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
@@ -516,7 +516,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -634,7 +634,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = getClient() as NodeExperimentalClient;
+    const client = getClient() as NodeClient;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
