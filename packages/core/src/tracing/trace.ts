@@ -156,6 +156,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     });
   }
 
+  if (parentSpan) {
+    addChildSpanReferenceToSpan(span, parentSpan);
+  }
+
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
@@ -307,6 +311,10 @@ function createChildSpanOrTransaction(
     });
   }
 
+  if (parentSpan) {
+    addChildSpanReferenceToSpan(span, parentSpan);
+  }
+
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
@@ -328,6 +336,46 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+const CHILD_SPANS_FIELD = '_sentryChildSpans';
+
+type SpanWithPotentialChildren = Span & {
+  [CHILD_SPANS_FIELD]?: Set<Span>;
+};
+
+/**
+ * Adds an opaque child span reference to a span.
+ */
+export function addChildSpanReferenceToSpan(childSpan: Span, span: SpanWithPotentialChildren): void {
+  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+    span[CHILD_SPANS_FIELD].add(childSpan);
+  } else {
+    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+  }
+}
+
+/**
+ * TODO
+ */
+export function getChildSpanReferencesOnSpan(span: SpanWithPotentialChildren): Span[] {
+  if (span[CHILD_SPANS_FIELD]) {
+    return Array.from(span[CHILD_SPANS_FIELD]);
+  } else {
+    return [];
+  }
+}
+
+/**
+ * TODO
+ */
+export function getAllDescendantsOnSpan(span: SpanWithPotentialChildren): Span[] {
+  const result: Span[] = [];
+  const childSpans = getChildSpanReferencesOnSpan(span);
+  for (const childSpan of childSpans) {
+    result.push(...getAllDescendantsOnSpan(childSpan));
+  }
+  return result;
 }
 
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
