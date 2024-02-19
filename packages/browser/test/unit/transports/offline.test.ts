@@ -1,5 +1,6 @@
 import 'fake-indexeddb/auto';
 
+import { TextDecoder, TextEncoder } from 'util';
 import { createTransport } from '@sentry/core';
 import type {
   EventEnvelope,
@@ -58,6 +59,8 @@ function delay(ms: number): Promise<void> {
 describe('makeOfflineTransport', () => {
   beforeAll(async () => {
     await deleteDatabase('sentry');
+    (global as any).TextEncoder = TextEncoder;
+    (global as any).TextDecoder = TextDecoder;
   });
 
   it('indexedDb wrappers insert and pop', async () => {
