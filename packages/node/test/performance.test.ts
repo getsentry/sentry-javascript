@@ -58,7 +58,7 @@ describe('startSpan()', () => {
     expect(transactionEvent.spans).toStrictEqual([]);
   });
 
-  it.only('should correctly nest spans when called within one another', async () => {
+  it('should correctly nest spans when called within one another', async () => {
     const transactionEventPromise = new Promise<TransactionEvent>(resolve => {
       setCurrentClient(
         new NodeClient(
@@ -75,9 +75,8 @@ describe('startSpan()', () => {
       );
     });
 
-    startSpan({ name: 'first' }, firstSpand => {
+    startSpan({ name: 'first' }, () => {
       startSpan({ name: 'second' }, () => undefined);
-      console.log(firstSpand);
     });
 
     const transactionEvent = await transactionEventPromise;
