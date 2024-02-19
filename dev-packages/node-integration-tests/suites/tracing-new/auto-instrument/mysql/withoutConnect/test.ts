@@ -7,7 +7,7 @@ test('should auto-instrument `mysql` package without connection.connect()', asyn
   expect(envelope).toHaveLength(3);
 
   assertSentryTransaction(envelope[2], {
-    transaction: 'Test Transaction',
+    transaction: 'Test Span',
     spans: [
       {
         description: 'SELECT 1 + 1 AS solution',

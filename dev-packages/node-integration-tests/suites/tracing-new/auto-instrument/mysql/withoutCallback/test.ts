@@ -15,7 +15,7 @@ test('should auto-instrument `mysql` package when using query without callback',
         },
       },
     },
-    transaction: 'Test Transaction',
+    transaction: 'Test Span',
     spans: [
       {
         description: 'SELECT 1 + 1 AS solution',

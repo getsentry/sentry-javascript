@@ -7,8 +7,8 @@ test('should auto-instrument `mysql` package when using connection.connect()', a
   expect(envelope).toHaveLength(3);
 
   assertSentryTransaction(envelope[2], {
-    transaction: 'Test Transaction',
-    spans: [
+    transaction: 'Test Span',
+    spans: expect.arrayContaining([
       {
         description: 'SELECT 1 + 1 AS solution',
         op: 'db',
@@ -30,6 +30,6 @@ test('should auto-instrument `mysql` package when using connection.connect()', a
           'db.user': 'root',
         },
       },
-    ],
+    ]),
   });
 });

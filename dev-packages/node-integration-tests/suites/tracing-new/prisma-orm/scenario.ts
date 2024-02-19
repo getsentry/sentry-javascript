@@ -1,5 +1,3 @@
-import { randomBytes } from 'crypto';
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
 
@@ -12,37 +10,30 @@ Sentry.init({
   integrations: [new Sentry.Integrations.Prisma({ client })],
 });
 
-async function run(): Promise<void> {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = Sentry.startTransaction({
-    name: 'Test Transaction',
-    op: 'transaction',
-  });
-
-  // eslint-disable-next-line deprecation/deprecation
-  Sentry.getCurrentScope().setSpan(transaction);
-
-  try {
-    await client.user.create({
-      data: {
-        name: 'Tilda',
-        email: `tilda_${randomBytes(4).toString('hex')}@sentry.io`,
-      },
-    });
-
-    await client.user.findMany();
-
-    await client.user.deleteMany({
-      where: {
-        email: {
-          contains: 'sentry.io',
+Sentry.startSpanManual(
+  {
+    name: 'Test Span',
+  },
+  async span => {
+    try {
+      await client.user.create({
+        data: {
+          name: 'Dog',
+          email: `dog@sentry.io`,
         },
-      },
-    });
-  } finally {
-    if (transaction) transaction.end();
-  }
-}
+      });
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
-run();
+      await client.user.findMany();
+
+      await client.user.deleteMany({
+        where: {
+          email: {
+            contains: 'sentry.io',
+          },
+        },
+      });
+    } finally {
+      if (span) span.end();
+    }
+  },
+);

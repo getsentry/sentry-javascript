@@ -19,27 +19,25 @@ connection.connect(function (err: unknown) {
   }
 });
 
-// eslint-disable-next-line deprecation/deprecation
-const transaction = Sentry.startTransaction({
-  op: 'transaction',
-  name: 'Test Transaction',
-});
+Sentry.startSpanManual(
+  {
+    name: 'Test Span',
+  },
+  span => {
+    const query = connection.query('SELECT 1 + 1 AS solution');
+    const query2 = connection.query('SELECT NOW()', ['1', '2']);
 
-// eslint-disable-next-line deprecation/deprecation
-Sentry.getCurrentScope().setSpan(transaction);
+    query.on('end', () => {
+      span?.setAttribute('result_done', 'yes');
 
-const query = connection.query('SELECT 1 + 1 AS solution');
-const query2 = connection.query('SELECT NOW()', ['1', '2']);
+      query2.on('end', () => {
+        span?.setAttribute('result_done2', 'yes');
 
-query.on('end', () => {
-  transaction.setAttribute('result_done', 'yes');
-
-  query2.on('end', () => {
-    transaction.setAttribute('result_done2', 'yes');
-
-    // Wait a bit to ensure the queries completed
-    setTimeout(() => {
-      transaction.end();
-    }, 500);
-  });
-});
+        // Wait a bit to ensure the queries completed
+        setTimeout(() => {
+          span?.end();
+        }, 500);
+      });
+    });
+  },
+);

@@ -15,7 +15,7 @@ describe('GraphQL/Apollo Tests', () => {
     expect(graphqlSpanId).toBeDefined();
 
     assertSentryTransaction(transaction, {
-      transaction: 'test_transaction',
+      transaction: 'root_span',
       spans: [
         {
           description: 'execute',

@@ -8,18 +8,16 @@ Sentry.init({
   integrations: [...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations()],
 });
 
-// eslint-disable-next-line deprecation/deprecation
-const transaction = Sentry.startTransaction({
-  op: 'transaction',
-  name: 'Test Transaction',
-});
-
-// eslint-disable-next-line deprecation/deprecation
-Sentry.getCurrentScope().setSpan(transaction);
-
-const client = new pg.Client();
-client.query('SELECT * FROM foo where bar ilike "baz%"', ['a', 'b'], () =>
-  client.query('SELECT * FROM bazz', () => {
-    client.query('SELECT NOW()', () => transaction.end());
-  }),
+Sentry.startSpanManual(
+  {
+    name: 'Test Span',
+  },
+  span => {
+    const client = new pg.Client();
+    client.query('SELECT * FROM foo where bar ilike "baz%"', ['a', 'b'], () =>
+      client.query('SELECT * FROM bazz', () => {
+        client.query('SELECT NOW()', () => span?.end());
+      }),
+    );
+  },
 );

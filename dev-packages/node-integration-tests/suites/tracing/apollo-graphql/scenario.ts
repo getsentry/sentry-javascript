@@ -29,18 +29,10 @@ const server = new ApolloServer({
   resolvers,
 });
 
-// eslint-disable-next-line deprecation/deprecation
-const transaction = Sentry.startTransaction({ name: 'test_transaction', op: 'transaction' });
-
-// eslint-disable-next-line deprecation/deprecation
-Sentry.getCurrentScope().setSpan(transaction);
-
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
-(async () => {
+Sentry.startSpan({ name: 'root_span' }, async () => {
   // Ref: https://www.apollographql.com/docs/apollo-server/testing/testing/#testing-using-executeoperation
   await server.executeOperation({
     query: '{hello}',
   });
-
-  transaction.end();
-})();
+});
