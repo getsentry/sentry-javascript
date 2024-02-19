@@ -31,7 +31,6 @@ export {
   close,
   createTransport,
   flush,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,

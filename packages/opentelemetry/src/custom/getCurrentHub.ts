@@ -71,11 +71,6 @@ export function getCurrentHub(): Hub {
     setExtras,
     setContext,
 
-    run(callback: (hub: Hub) => void): void {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return withScope(() => callback(this as any));
-    },
-
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
       // eslint-disable-next-line deprecation/deprecation
       return getClient()?.getIntegration(integration) || null;

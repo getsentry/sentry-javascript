@@ -35,12 +35,9 @@ export {
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  getHubFromCarrier,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
-  setHubOnCarrier,
-  ensureHubOnCarrier,
   getGlobalHub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,

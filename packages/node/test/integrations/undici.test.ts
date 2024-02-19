@@ -44,7 +44,6 @@ beforeEach(() => {
   const sentry = getMainCarrier().__SENTRY__;
   if (sentry) {
     sentry.acs = undefined;
-    sentry.hub = undefined;
   }
 
   getCurrentScope().clear();
