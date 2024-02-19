@@ -151,7 +151,7 @@ describe('requestHandler', () => {
 
     setImmediate(() => {
       expect(flush).toHaveBeenCalledWith(1337);
-      expect(res.finished).toBe(true);
+      expect(res.writableEnded).toBe(true);
       done();
     });
   });
@@ -164,7 +164,7 @@ describe('requestHandler', () => {
     res.end('ok');
 
     setImmediate(() => {
-      expect(res.finished).toBe(true);
+      expect(res.writableEnded).toBe(true);
       done();
     });
   });

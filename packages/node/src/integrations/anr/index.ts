@@ -122,6 +122,7 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
   });
 
   process.on('exit', () => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
     worker.terminate();
   });
 

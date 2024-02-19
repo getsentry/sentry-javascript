@@ -498,7 +498,7 @@ function setupTestServer() {
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    res.connection?.end();
+    res.socket?.end();
   });
 
   testServer?.listen(18100);

@@ -111,7 +111,7 @@ function _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void
   addOriginToSpan(span, 'auto.http.otel.http');
 
   if (getSpanKind(span) === SpanKind.SERVER) {
-    setSpanMetadata(span, { request });
+    setSpanMetadata(span, { request: request as IncomingMessage });
   }
 }
 
