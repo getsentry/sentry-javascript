@@ -12,11 +12,11 @@ sentryTest('should report a transaction in an envelope', async ({ getLocalTestPa
   const url = await getLocalTestPath({ testDir: __dirname });
   const transaction = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
 
-  expect(transaction.transaction).toBe('test_transaction_1');
+  expect(transaction.transaction).toBe('root_span');
   expect(transaction.spans).toBeDefined();
 });
 
-sentryTest('should report finished spans as children of the root transaction', async ({ getLocalTestPath, page }) => {
+sentryTest('should report finished spans as children of the root span', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
