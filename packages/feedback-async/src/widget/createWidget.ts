@@ -183,14 +183,6 @@ export function createWidget({
             namePlaceholder: options.namePlaceholder,
             defaultName: (userKey && user && user[userKey.name]) || '',
             defaultEmail: (userKey && user && user[userKey.email]) || '',
-            onClosed: () => {
-              showActor();
-              isDialogOpen = false;
-
-              if (options.onFormClose) {
-                options.onFormClose();
-              }
-            },
             onCancel: () => {
               closeDialog();
               showActor();

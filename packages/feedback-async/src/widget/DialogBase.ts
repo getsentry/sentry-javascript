@@ -6,19 +6,12 @@ type ComponentProps = Omit<DialogContentProps, 'errorMessage'>;
 
 export interface Props extends ComponentProps {
   renderDialog: (parent: HTMLElement, props: DialogContentProps) => void;
-  onClosed: () => void;
 }
 
 /**
  * Base Feedback dialog component that has the form
  */
-export function DialogBase({
-  renderDialog,
-  onClosed,
-  onCancel,
-  onSubmit,
-  ...dialogContentProps
-}: Props): DialogComponent {
+export function DialogBase({ renderDialog, onCancel, onSubmit, ...dialogContentProps }: Props): DialogComponent {
   const doc = WINDOW.document;
   let errorMessage: string | undefined = undefined;
 
@@ -28,7 +21,7 @@ export function DialogBase({
    */
   const dialog = doc.createElement('dialog');
   dialog.className = 'dialog';
-  dialog.addEventListener('click', onClosed);
+  dialog.addEventListener('click', onCancel);
 
   /**
    * Close the dialog
