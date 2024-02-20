@@ -30,6 +30,7 @@ export type SpanAttributes = Partial<{
   'sentry.op': string;
   'sentry.source': string;
   'sentry.sample_rate': number;
+  measurements: Measurements;
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
