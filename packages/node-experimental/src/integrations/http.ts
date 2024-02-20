@@ -8,6 +8,7 @@ import { addBreadcrumb, defineIntegration, getIsolationScope, isSentryRequestUrl
 import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
+import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
@@ -86,13 +87,24 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             if (getSpanKind(span) === SpanKind.SERVER) {
               const isolationScope = getIsolationScope().clone();
               isolationScope.setSDKProcessingMetadata({ request: req });
-              isolationScope.setRequestSession({ status: 'ok' });
+
+              const client = getClient<NodeClient>();
+              if (client && client.getOptions().autoSessionTracking) {
+                isolationScope.setRequestSession({ status: 'ok' });
+              }
               setIsolationScope(isolationScope);
             }
           },
           responseHook: (span, res) => {
             if (_breadcrumbs) {
               _addRequestBreadcrumb(span, res);
+            }
+
+            const client = getClient<NodeClient>();
+            if (client && client.getOptions().autoSessionTracking) {
+              setImmediate(() => {
+                client['_captureRequestSession']();
+              });
             }
           },
         }),

@@ -1,5 +1,6 @@
 import {
   endSession,
+  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
@@ -184,6 +185,11 @@ function updateScopeFromEnvVariables(): void {
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
+  const client = getClient<NodeClient>();
+  if (client && client.getOptions().autoSessionTracking) {
+    client.initSessionFlusher();
+  }
+
   startSession();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because
