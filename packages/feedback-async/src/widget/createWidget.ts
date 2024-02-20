@@ -40,7 +40,6 @@ export function createWidget({
 }: CreateWidgetParams): FeedbackWidget {
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
-  let isDialogOpen: boolean = false;
 
   /**
    * Show the success message for 5 seconds
@@ -152,7 +151,7 @@ export function createWidget({
     try {
       if (dialog) {
         dialog.open();
-        isDialogOpen = true;
+
         if (options.onFormOpen) {
           options.onFormOpen();
         }
@@ -221,7 +220,6 @@ export function createWidget({
   function closeDialog(): void {
     if (dialog) {
       dialog.close();
-      isDialogOpen = false;
 
       if (options.onFormClose) {
         options.onFormClose();
@@ -245,8 +243,7 @@ export function createWidget({
    *
    */
   function handleActorClick(): void {
-    // Open dialog
-    if (!isDialogOpen) {
+    if (dialog && !dialog.checkIsOpen()) {
       openDialog();
     }
 
