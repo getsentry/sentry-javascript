@@ -10,6 +10,7 @@ import {
   getEs5Polyfills,
   makeBrowserBuildPlugin,
   makeCleanupPlugin,
+  makeCodeCovPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
   makeLicensePlugin,
@@ -152,7 +153,7 @@ export function makeBaseBundleConfig(options) {
  * @returns An array of versions of that config
  */
 export function makeBundleConfigVariants(baseConfig, options = {}) {
-  const { variants = BUNDLE_VARIANTS } = options;
+  const { variants = BUNDLE_VARIANTS, bundleAnalysis = true } = options;
 
   const includeDebuggingPlugin = makeIsDebugBuildPlugin(true);
   const stripDebuggingPlugin = makeIsDebugBuildPlugin(false);
@@ -183,7 +184,7 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
     },
   };
 
-  return variants.map(variant => {
+  const bundles = variants.map(variant => {
     if (!BUNDLE_VARIANTS.includes(variant)) {
       throw new Error(`Unknown bundle variant requested: ${variant}`);
     }
@@ -193,4 +194,16 @@ export function makeBundleConfigVariants(baseConfig, options = {}) {
       customMerge: key => (key === 'plugins' ? mergePlugins : undefined),
     });
   });
+
+  if (bundleAnalysis) {
+    bundles.forEach(bundle => {
+      try {
+        bundle.plugins.push(makeCodeCovPlugin(bundle.output.entryFileNames()));
+      } catch (_) {
+        // empty
+      }
+    });
+  }
+
+  return bundles;
 }

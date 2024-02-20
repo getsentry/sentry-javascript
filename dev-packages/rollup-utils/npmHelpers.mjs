@@ -29,7 +29,8 @@ export function makeBaseNPMConfig(options = {}) {
     hasBundles = false,
     packageSpecificConfig = {},
     addPolyfills = true,
-    bundleAnalysis,
+    bundleAnalysis = true,
+    bundleName,
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
@@ -113,8 +114,8 @@ export function makeBaseNPMConfig(options = {}) {
     defaultBaseConfig.plugins.push(extractPolyfillsPlugin);
   }
 
-  if (bundleAnalysis && bundleAnalysis.length) {
-    defaultBaseConfig.plugins.push(makeCodeCovPlugin(bundleAnalysis));
+  if (bundleAnalysis) {
+    defaultBaseConfig.plugins.push(makeCodeCovPlugin(bundleName));
   }
 
   return deepMerge(defaultBaseConfig, packageSpecificConfig, {

@@ -23,6 +23,7 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
+      bundleName: 'config',
       entrypoints: [
         'src/config/templates/apiWrapperTemplate.ts',
         'src/config/templates/middlewareWrapperTemplate.ts',
@@ -58,6 +59,7 @@ export default [
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
+      bundleName: 'loaders',
       entrypoints: ['src/config/loaders/index.ts'],
 
       packageSpecificConfig: {

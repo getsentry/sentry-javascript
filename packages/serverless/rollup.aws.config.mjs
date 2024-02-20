@@ -27,6 +27,7 @@ export default [
   // launches (via the `NODE_OPTIONS="-r @sentry/serverless/dist/awslambda-auto"` variable). Note the inclusion in this
   // path of the legacy `dist` folder; for backwards compatibility, in the build script we'll copy the file there.
   makeBaseNPMConfig({
+    bundleName: 'awslambda-auto',
     entrypoints: ['src/awslambda-auto.ts'],
     packageSpecificConfig: {
       // Normally `makeNPMConfigVariants` sets both of these values for us, but we don't actually want the ESM variant,

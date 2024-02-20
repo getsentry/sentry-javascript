@@ -23,7 +23,6 @@ concurrency:
 
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
-  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   # WARNING: this disables cross os caching as ~ and
   # github.workspace evaluate to differents paths
@@ -275,6 +274,9 @@ jobs:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
+        # Set the CODECOV_TOKEN for Bundle Analysis
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
         # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
         # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
