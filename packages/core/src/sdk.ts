@@ -1,4 +1,4 @@
-import type { Client, ClientOptions } from '@sentry/types';
+import type { Client, ClientOptions, Hub as HubInterface } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
@@ -43,10 +43,19 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
  * Make the given client the current client.
  */
 export function setCurrentClient(client: Client): void {
+  getCurrentScope().setClient(client);
+
+  // is there a hub too?
   // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub() as Hub;
+  const hub = getCurrentHub();
+  if (isHubClass(hub)) {
+    // eslint-disable-next-line deprecation/deprecation
+    const top = hub.getStackTop();
+    top.client = client;
+  }
+}
+
+function isHubClass(hub: HubInterface): hub is Hub {
   // eslint-disable-next-line deprecation/deprecation
-  const top = hub.getStackTop();
-  top.client = client;
-  top.scope.setClient(client);
+  return !!(hub as Hub).getStackTop;
 }

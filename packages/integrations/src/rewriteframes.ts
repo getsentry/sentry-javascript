@@ -71,8 +71,6 @@ const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(originalEvent) {
       let processedEvent = originalEvent;
 

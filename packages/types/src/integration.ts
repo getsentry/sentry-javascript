@@ -24,10 +24,8 @@ export interface IntegrationFnResult {
   /**
    * This hook is only called once, even if multiple clients are created.
    * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.
-   *
-   * NOTE: In v8, this will become optional.
    */
-  setupOnce(): void;
+  setupOnce?(): void;
 
   /**
    * Set up an integration for the given client.
@@ -74,10 +72,8 @@ export interface Integration {
   /**
    * This hook is only called once, even if multiple clients are created.
    * It does not receives any arguments, and should only use for e.g. global monkey patching and similar things.
-   *
-   * NOTE: In v8, this will become optional, and not receive any arguments anymore.
    */
-  setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
+  setupOnce?(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 
   /**
    * Set up an integration for the given client.
