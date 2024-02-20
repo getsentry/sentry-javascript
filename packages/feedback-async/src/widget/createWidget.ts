@@ -1,8 +1,11 @@
 import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
+import { getMissingFields } from 'src/util/validate';
+import { FEEDBACK_WIDGET_SOURCE } from '../constants';
+import { DEBUG_BUILD } from '../debug-build';
+import { sendFeedback } from '../sendFeedback';
 import type { DialogComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
-import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
 import { SuccessMessage } from './SuccessMessage';
@@ -87,30 +90,21 @@ export function createWidget({
       return;
     }
 
-    // Simple validation for now, just check for non-empty required fields
-    const emptyField = [];
-    if (options.isNameRequired && !feedback.name) {
-      emptyField.push(options.nameLabel);
-    }
-    if (options.isEmailRequired && !feedback.email) {
-      emptyField.push(options.emailLabel);
-    }
-    if (!feedback.message) {
-      emptyField.push(options.messageLabel);
-    }
-    if (emptyField.length > 0) {
-      dialog.showError(`Please enter in the following required fields: ${emptyField.join(', ')}`);
+    const missingFields = getMissingFields(feedback, options);
+    if (missingFields.length > 0) {
+      dialog.showError(`Please enter in the following required fields: ${missingFields.join(', ')}`);
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback);
-
-    // Error submitting feedback
-    if (!result) {
+    dialog.hideError();
+    try {
+      await sendFeedback({ ...feedback, source: FEEDBACK_WIDGET_SOURCE });
+    } catch (err) {
+      DEBUG_BUILD && logger.error(err);
+      dialog.showError('There was a problem submitting feedback, please wait and try again.');
       if (options.onSubmitError) {
         options.onSubmitError();
       }
-
       return;
     }
 
@@ -243,7 +237,7 @@ export function createWidget({
    *
    */
   function handleActorClick(): void {
-    if (dialog && !dialog.checkIsOpen()) {
+    if (!dialog || !dialog.checkIsOpen()) {
       openDialog();
     }
 

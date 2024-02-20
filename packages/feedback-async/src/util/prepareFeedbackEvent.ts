@@ -15,7 +15,7 @@ export async function prepareFeedbackEvent({
   client,
   scope,
   event,
-}: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
+}: PrepareFeedbackEventParams): Promise<FeedbackEvent> {
   const eventHint = {};
   if (client.emit) {
     client.emit('preprocessEvent', event, eventHint);
@@ -33,7 +33,7 @@ export async function prepareFeedbackEvent({
   if (preparedEvent === null) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'feedback', event);
-    return null;
+    throw new Error('Unable to prepare event');
   }
 
   // This normally happens in browser client "_prepareEvent"
