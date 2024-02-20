@@ -1,6 +1,6 @@
 import type { Integration } from '@sentry/types';
 
-import * as auto from '../../src/integrations/getAutoPerformanceIntegrations';
+import * as auto from '../../src/integrations/tracing';
 import { getClient } from '../../src/sdk/api';
 import { init } from '../../src/sdk/init';
 import { cleanupOtel } from '../helpers/mockSdkInit';

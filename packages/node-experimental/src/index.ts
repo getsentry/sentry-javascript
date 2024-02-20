@@ -1,18 +1,18 @@
-export { expressIntegration } from './integrations/express';
-export { fastifyIntegration } from './integrations/fastify';
-export { graphqlIntegration } from './integrations/graphql';
+export { expressIntegration } from './integrations/tracing/express';
+export { fastifyIntegration } from './integrations/tracing/fastify';
+export { graphqlIntegration } from './integrations/tracing/graphql';
 export { httpIntegration } from './integrations/http';
-export { mongoIntegration } from './integrations/mongo';
-export { mongooseIntegration } from './integrations/mongoose';
-export { mysqlIntegration } from './integrations/mysql';
-export { mysql2Integration } from './integrations/mysql2';
-export { nestIntegration } from './integrations/nest';
+export { mongoIntegration } from './integrations/tracing/mongo';
+export { mongooseIntegration } from './integrations/tracing/mongoose';
+export { mysqlIntegration } from './integrations/tracing/mysql';
+export { mysql2Integration } from './integrations/tracing/mysql2';
+export { nestIntegration } from './integrations/tracing/nest';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
-export { postgresIntegration } from './integrations/postgres';
-export { prismaIntegration } from './integrations/prisma';
+export { postgresIntegration } from './integrations/tracing/postgres';
+export { prismaIntegration } from './integrations/tracing/prisma';
 
 export { init, getDefaultIntegrations } from './sdk/init';
-export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
+export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
