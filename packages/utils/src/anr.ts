@@ -1,7 +1,7 @@
 import type { StackFrame } from '@sentry/types';
-
+import { filenameIsInApp } from './node-stack-trace';
 import { dropUndefinedKeys } from './object';
-import { UNKNOWN_FUNCTION, filenameIsInApp } from './stacktrace';
+import { UNKNOWN_FUNCTION } from './stacktrace';
 
 type WatchdogReturn = {
   /** Resets the watchdog timer */

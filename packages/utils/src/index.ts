@@ -18,6 +18,7 @@ export * from './promisebuffer';
 export * from './requestdata';
 export * from './severity';
 export * from './stacktrace';
+export * from './node-stack-trace';
 export * from './string';
 export * from './supports';
 export * from './syncpromise';
