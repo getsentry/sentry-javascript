@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -113,7 +113,7 @@ describe('Angular Tracing', () => {
   });
 
   describe('TraceService', () => {
-    it.only('does not change the transaction name if the source is something other than `url`', async () => {
+    it('does not change the transaction name if the source is something other than `url`', async () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
