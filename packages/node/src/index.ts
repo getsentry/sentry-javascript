@@ -94,8 +94,6 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
   defaultStackParser,
