@@ -382,9 +382,6 @@ export class FeedbackAsync implements Integration {
       needsAppendHost = true;
     }
 
-    // set data attribute on host for different themes
-    this._host.dataset.sentryFeedbackColorscheme = options.colorScheme;
-
     const result = cb({ shadow: this._shadow, host: this._host });
 
     if (needsAppendHost) {

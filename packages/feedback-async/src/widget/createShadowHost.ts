@@ -19,6 +19,8 @@ export function createShadowHost({ id, colorScheme, themeDark, themeLight }: Cre
     // Create the host
     const host = doc.createElement('div');
     host.id = id;
+    // set data attribute on host for different themes
+    host.dataset.sentryFeedbackColorscheme = colorScheme;
 
     // Create the shadow root
     const shadow = host.attachShadow({ mode: 'open' });
