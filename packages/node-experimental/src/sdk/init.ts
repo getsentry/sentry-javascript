@@ -1,13 +1,16 @@
 import {
   endSession,
+  functionToStringIntegration,
   getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
   hasTracingEnabled,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
   startSession,
 } from '@sentry/core';
-import { getDefaultIntegrations as getDefaultNodeIntegrations, spotlightIntegration } from '@sentry/node';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
@@ -18,9 +21,17 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { consoleIntegration } from '../integrations/console';
+import { nodeContextIntegration } from '../integrations/context';
+import { contextLinesIntegration } from '../integrations/contextlines';
 
 import { httpIntegration } from '../integrations/http';
+import { localVariablesIntegration } from '../integrations/local-variables';
+import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
+import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
+import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
+import { spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
@@ -28,12 +39,27 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOtel } from './initOtel';
 
-const ignoredDefaultIntegrations = ['Http', 'Undici'];
-
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
+  // TODO
   return [
-    ...getDefaultNodeIntegrations(options).filter(i => !ignoredDefaultIntegrations.includes(i.name)),
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    requestDataIntegration(),
+    // Native Wrappers
+    consoleIntegration(),
+    httpIntegration(),
+    nativeNodeFetchIntegration(),
+    // Global Handlers
+    onUncaughtExceptionIntegration(),
+    onUnhandledRejectionIntegration(),
+    // Event Info
+    contextLinesIntegration(),
+    localVariablesIntegration(),
+    nodeContextIntegration(),
+    modulesIntegration(),
     httpIntegration(),
     nativeNodeFetchIntegration(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
