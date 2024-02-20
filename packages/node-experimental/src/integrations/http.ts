@@ -1,4 +1,4 @@
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
+import type { ClientRequest, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
@@ -8,7 +8,9 @@ import { addBreadcrumb, defineIntegration, getIsolationScope, isSentryRequestUrl
 import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
+import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
+import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
 
@@ -83,12 +85,26 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             // Update the isolation scope, isolate this request
             if (getSpanKind(span) === SpanKind.SERVER) {
-              setIsolationScope(getIsolationScope().clone());
+              const isolationScope = getIsolationScope().clone();
+              isolationScope.setSDKProcessingMetadata({ request: req });
+
+              const client = getClient<NodeClient>();
+              if (client && client.getOptions().autoSessionTracking) {
+                isolationScope.setRequestSession({ status: 'ok' });
+              }
+              setIsolationScope(isolationScope);
             }
           },
           responseHook: (span, res) => {
             if (_breadcrumbs) {
               _addRequestBreadcrumb(span, res);
+            }
+
+            const client = getClient<NodeClient>();
+            if (client && client.getOptions().autoSessionTracking) {
+              setImmediate(() => {
+                client['_captureRequestSession']();
+              });
             }
           },
         }),
@@ -104,16 +120,16 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /** Update the span with data we need. */
-function _updateSpan(span: Span, request: ClientRequest | IncomingMessage): void {
+function _updateSpan(span: Span, request: ClientRequest | HTTPModuleRequestIncomingMessage): void {
   addOriginToSpan(span, 'auto.http.otel.http');
 
   if (getSpanKind(span) === SpanKind.SERVER) {
-    setSpanMetadata(span, { request });
+    setSpanMetadata(span, { request: request as HTTPModuleRequestIncomingMessage });
   }
 }
 
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(span: Span, response: IncomingMessage | ServerResponse): void {
+function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMessage | ServerResponse): void {
   if (getSpanKind(span) !== SpanKind.CLIENT) {
     return;
   }

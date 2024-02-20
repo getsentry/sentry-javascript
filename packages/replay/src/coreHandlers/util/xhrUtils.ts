@@ -1,4 +1,4 @@
-import type { Breadcrumb, TextEncoderInternal, XhrBreadcrumbData } from '@sentry/types';
+import type { Breadcrumb, XhrBreadcrumbData } from '@sentry/types';
 import { SENTRY_XHR_DATA_KEY, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../debug-build';
@@ -50,7 +50,6 @@ export async function captureXhrBreadcrumbToReplay(
 export function enrichXhrBreadcrumb(
   breadcrumb: Breadcrumb & { data: XhrBreadcrumbData },
   hint: Partial<XhrHint>,
-  options: { textEncoder: TextEncoderInternal },
 ): void {
   const { xhr, input } = hint;
 
@@ -58,10 +57,10 @@ export function enrichXhrBreadcrumb(
     return;
   }
 
-  const reqSize = getBodySize(input, options.textEncoder);
+  const reqSize = getBodySize(input);
   const resSize = xhr.getResponseHeader('content-length')
     ? parseContentLengthHeader(xhr.getResponseHeader('content-length'))
-    : _getBodySize(xhr.response, xhr.responseType, options.textEncoder);
+    : _getBodySize(xhr.response, xhr.responseType);
 
   if (reqSize !== undefined) {
     breadcrumb.data.request_body_size = reqSize;
@@ -208,11 +207,10 @@ export function _parseXhrResponse(
 function _getBodySize(
   body: XMLHttpRequest['response'],
   responseType: XMLHttpRequest['responseType'],
-  textEncoder: TextEncoder | TextEncoderInternal,
 ): number | undefined {
   try {
     const bodyStr = responseType === 'json' && body && typeof body === 'object' ? JSON.stringify(body) : body;
-    return getBodySize(bodyStr, textEncoder);
+    return getBodySize(bodyStr);
   } catch {
     return undefined;
   }

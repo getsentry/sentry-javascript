@@ -21,7 +21,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan } from './trace';
+import { getCapturedScopesOnSpan, getSpanTree } from './trace';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
@@ -293,11 +293,8 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       return undefined;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const finishedSpans = this.spanRecorder
-      ? // eslint-disable-next-line deprecation/deprecation
-        this.spanRecorder.spans.filter(span => span !== this && spanToJSON(span).timestamp)
-      : [];
+    // We only want to include finished spans in the event
+    const finishedSpans = getSpanTree(this).filter(span => span !== this && spanToJSON(span).timestamp);
 
     if (this._trimEnd && finishedSpans.length > 0) {
       const endTimes = finishedSpans.map(span => spanToJSON(span).timestamp).filter(Boolean) as number[];

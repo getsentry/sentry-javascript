@@ -1,4 +1,4 @@
-import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src/stacktrace';
+import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {
@@ -157,7 +157,7 @@ describe('node', () => {
     const expectedOutput = {
       filename: '/path/to/file.js',
       module: undefined,
-      function: '<anonymous>',
+      function: '?',
       lineno: 10,
       colno: 5,
       in_app: true,
@@ -257,7 +257,7 @@ describe('node', () => {
 
     expect(result).toEqual({
       filename: '/path/to/myFile.js',
-      function: 'Object.<anonymous>',
+      function: 'Object.?',
       lineno: 10,
       colno: 20,
       in_app: true,
@@ -269,7 +269,7 @@ describe('node', () => {
     const result = node(line);
     expect(result).toEqual({
       filename: '/path/to/myFile.js',
-      function: '<anonymous>',
+      function: '?',
       lineno: 10,
       colno: 20,
       in_app: true,
@@ -281,7 +281,7 @@ describe('node', () => {
     const result = node(line);
     expect(result).toEqual({
       filename: undefined,
-      function: 'Object.<anonymous>',
+      function: 'Object.?',
       lineno: undefined,
       colno: undefined,
       in_app: false,
@@ -294,7 +294,7 @@ describe('node', () => {
 
     expect(result).toEqual({
       filename: '/path/to/node_modules/myModule/index.js',
-      function: 'Object.<anonymous>',
+      function: 'Object.?',
       lineno: 10,
       colno: 20,
       in_app: false,
@@ -306,7 +306,7 @@ describe('node', () => {
     const result = node(line);
     expect(result).toEqual({
       filename: 'C:\\path\\to\\myFile.js',
-      function: 'Object.<anonymous>',
+      function: 'Object.?',
       lineno: 10,
       colno: 20,
       in_app: true,

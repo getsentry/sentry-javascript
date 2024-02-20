@@ -12,6 +12,7 @@ import type {
 
 import {
   addBreadcrumb,
+  captureEvent,
   endSession,
   getCurrentScope,
   getIsolationScope,
@@ -24,7 +25,7 @@ import {
   startSession,
   withScope,
 } from '@sentry/core';
-import { captureEvent, getClient } from './api';
+import { getClient } from './api';
 import { callExtensionMethod } from './globals';
 
 /**
@@ -70,11 +71,6 @@ export function getCurrentHub(): Hub {
     setExtra,
     setExtras,
     setContext,
-
-    run(callback: (hub: Hub) => void): void {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return withScope(() => callback(this as any));
-    },
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
       // eslint-disable-next-line deprecation/deprecation

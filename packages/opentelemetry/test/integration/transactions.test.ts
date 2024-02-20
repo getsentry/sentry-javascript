@@ -20,7 +20,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ enableTracing: true, beforeSendTransaction, debug: true });
 
     const client = getClient() as TestClientInterface;
 

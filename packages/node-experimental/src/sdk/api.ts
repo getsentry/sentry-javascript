@@ -1,12 +1,9 @@
 // PUBLIC APIS
 
-import type { Span } from '@opentelemetry/api';
-import { context, trace } from '@opentelemetry/api';
 import { getCurrentScope } from '@sentry/core';
-import type { CaptureContext, Client, Event, EventHint, Scope, SeverityLevel } from '@sentry/types';
-
-import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
-import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
+import type { Client, StackParser } from '@sentry/types';
+import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
+import { createGetModuleFromFilename } from '../utils/module';
 
 /** Get the currently active client. */
 export function getClient<C extends Client>(): C {
@@ -22,33 +19,38 @@ export function getClient<C extends Client>(): C {
 }
 
 /**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
- *
- * @param span Spans started in the context of the provided callback will be children of this span.
- * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
- * @returns the value returned from the provided callback function.
+ * Returns a release dynamically from environment variables.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
-  const newContextWithActiveSpan = trace.setSpan(context.active(), span);
-  return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
+export function getSentryRelease(fallback?: string): string | undefined {
+  // Always read first as Sentry takes this as precedence
+  if (process.env.SENTRY_RELEASE) {
+    return process.env.SENTRY_RELEASE;
+  }
+
+  // This supports the variable that sentry-webpack-plugin injects
+  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+    return GLOBAL_OBJ.SENTRY_RELEASE.id;
+  }
+
+  return (
+    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
+    process.env.GITHUB_SHA ||
+    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+    process.env.COMMIT_REF ||
+    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.VERCEL_GITHUB_COMMIT_SHA ||
+    process.env.VERCEL_GITLAB_COMMIT_SHA ||
+    process.env.VERCEL_BITBUCKET_COMMIT_SHA ||
+    // Zeit (now known as Vercel)
+    process.env.ZEIT_GITHUB_COMMIT_SHA ||
+    process.env.ZEIT_GITLAB_COMMIT_SHA ||
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    // Cloudflare Pages - https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
+    process.env.CF_PAGES_COMMIT_SHA ||
+    fallback
+  );
 }
 
-/** Record an exception and send it to Sentry. */
-export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
-  return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
-}
-
-/** Record a message and send it to Sentry. */
-export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
-  // This is necessary to provide explicit scopes upgrade, without changing the original
-  // arity of the `captureMessage(message, level)` method.
-  const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-
-  return getCurrentScope().captureMessage(message, level, context);
-}
-
-/** Capture a generic event and send it to Sentry. */
-export function captureEvent(event: Event, hint?: EventHint): string {
-  return getCurrentScope().captureEvent(event, hint);
-}
+/** Node.js stack parser */
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));

@@ -30,7 +30,7 @@ type PolymorphicRequestHeaders =
     };
 
 /**
- * Create and track fetch request spans for usage in combination with `addInstrumentationHandler`.
+ * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
  *
  * @returns Span if a span was created, otherwise void.
  */

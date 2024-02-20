@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -84,8 +83,6 @@ export type { SpanStatusType } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';

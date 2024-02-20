@@ -31,7 +31,6 @@ export {
   close,
   createTransport,
   flush,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -64,10 +63,12 @@ export {
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation
   InboundFilters,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {
@@ -76,6 +77,8 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
+
+export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
@@ -92,8 +95,6 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   forceLoad,
   init,

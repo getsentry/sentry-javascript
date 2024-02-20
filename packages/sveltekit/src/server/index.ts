@@ -17,7 +17,6 @@ export {
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -46,8 +45,6 @@ export {
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,

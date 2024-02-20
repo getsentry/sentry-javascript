@@ -27,8 +27,6 @@ const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {
   const { depth = 3, captureErrorCause = true } = options;
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, hint) {
       return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause);
     },

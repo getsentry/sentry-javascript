@@ -1,56 +1,34 @@
-export { expressIntegration } from './integrations/express';
-export { fastifyIntegration } from './integrations/fastify';
-export { graphqlIntegration } from './integrations/graphql';
+export { errorHandler } from './sdk/handlers/errorHandler';
+
 export { httpIntegration } from './integrations/http';
-export { mongoIntegration } from './integrations/mongo';
-export { mongooseIntegration } from './integrations/mongoose';
-export { mysqlIntegration } from './integrations/mysql';
-export { mysql2Integration } from './integrations/mysql2';
-export { nestIntegration } from './integrations/nest';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
-export { postgresIntegration } from './integrations/postgres';
-export { prismaIntegration } from './integrations/prisma';
+export { expressIntegration } from './integrations/tracing/express';
+export { fastifyIntegration } from './integrations/tracing/fastify';
+export { graphqlIntegration } from './integrations/tracing/graphql';
+export { mongoIntegration } from './integrations/tracing/mongo';
+export { mongooseIntegration } from './integrations/tracing/mongoose';
+export { mysqlIntegration } from './integrations/tracing/mysql';
+export { mysql2Integration } from './integrations/tracing/mysql2';
+export { nestIntegration } from './integrations/tracing/nest';
+export { postgresIntegration } from './integrations/tracing/postgres';
+export { prismaIntegration } from './integrations/tracing/prisma';
 
 export { init, getDefaultIntegrations } from './sdk/init';
-export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
-export * as Handlers from './sdk/handlers';
-export type { Span } from './types';
-
-export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
-export {
-  getClient,
-  captureException,
-  captureEvent,
-  captureMessage,
-  withActiveSpan,
-} from './sdk/api';
+export { getAutoPerformanceIntegrations } from './integrations/tracing';
+export { getClient, getSentryRelease, defaultStackParser } from './sdk/api';
+export { createGetModuleFromFilename } from './utils/module';
+export { makeNodeTransport } from './transports';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
+export { cron } from './cron';
+
+export type { Span, NodeOptions } from './types';
+
+export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
+
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
 export {
-  addBreadcrumb,
-  isInitialized,
-  makeNodeTransport,
-  defaultStackParser,
-  getSentryRelease,
-  getGlobalScope,
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
-  createGetModuleFromFilename,
-  close,
-  createTransport,
-  flush,
-  Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
-  SDK_VERSION,
-  getSpanStatusFromHttpCode,
-  setHttpStatus,
-  captureCheckIn,
-  withMonitor,
   hapiErrorPlugin,
   consoleIntegration,
   onUncaughtExceptionIntegration,
@@ -59,6 +37,21 @@ export {
   contextLinesIntegration,
   nodeContextIntegration,
   localVariablesIntegration,
+} from '@sentry/node';
+
+export {
+  addBreadcrumb,
+  isInitialized,
+  getGlobalScope,
+  close,
+  createTransport,
+  flush,
+  Hub,
+  SDK_VERSION,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
+  captureCheckIn,
+  withMonitor,
   requestDataIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
@@ -78,20 +71,17 @@ export {
   Scope,
   setMeasurement,
   continueTrace,
-  cron,
   parameterize,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   getCurrentScope,
   getIsolationScope,
   withScope,
   withIsolationScope,
-} from '@sentry/node';
+  captureException,
+  captureEvent,
+  captureMessage,
+} from '@sentry/core';
 
 export type {
-  SpanStatusType,
-  TransactionNamingScheme,
-  AddRequestDataToEventOptions,
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
@@ -105,6 +95,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
+  Transaction,
   User,
-  NodeOptions,
-} from '@sentry/node';
+} from '@sentry/types';

@@ -75,7 +75,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {
-    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+    transaction.initSpanRecorder();
   }
   if (client) {
     client.emit('startTransaction', transaction);
@@ -122,7 +122,7 @@ export function startIdleTransaction(
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {
-    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+    transaction.initSpanRecorder();
   }
   if (client) {
     client.emit('startTransaction', transaction);

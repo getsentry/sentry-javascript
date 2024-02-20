@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -71,11 +70,14 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {
@@ -92,8 +94,6 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
   defaultStackParser,

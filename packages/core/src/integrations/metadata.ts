@@ -9,8 +9,6 @@ const INTEGRATION_NAME = 'ModuleMetadata';
 const _moduleMetadataIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
       client.on('beforeEnvelope', envelope => {

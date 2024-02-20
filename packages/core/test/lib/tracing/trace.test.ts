@@ -436,6 +436,16 @@ describe('startSpan', () => {
       expect.anything(),
     );
   });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      startSpan({ name: 'inner' }, innerSpan => {
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        expect(childSpans).toContain(innerSpan);
+      });
+    });
+  });
 });
 
 describe('startSpanManual', () => {
@@ -543,6 +553,16 @@ describe('startSpanManual', () => {
       });
 
       expect(span).toBeDefined();
+    });
+  });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      startSpanManual({ name: 'inner' }, innerSpan => {
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        expect(childSpans).toContain(innerSpan);
+      });
     });
   });
 });
@@ -673,6 +693,15 @@ describe('startInactiveSpan', () => {
       }),
       expect.anything(),
     );
+  });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      const innerSpan = startInactiveSpan({ name: 'inner' });
+      const childSpans = Array.from(outerSpan._sentryChildSpans);
+      expect(childSpans).toContain(innerSpan);
+    });
   });
 });
 

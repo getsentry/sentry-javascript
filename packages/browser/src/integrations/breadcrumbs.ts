@@ -70,8 +70,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));

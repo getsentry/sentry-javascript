@@ -1,5 +1,5 @@
-import { Hub } from '@sentry/core';
-import type { NodeClient } from '../src/client';
+import * as SentryCore from '@sentry/core';
+import type { Client } from '@sentry/types';
 
 import { makeUnhandledPromiseHandler, onUnhandledRejectionIntegration } from '../src/integrations/onunhandledrejection';
 
@@ -7,25 +7,20 @@ import { makeUnhandledPromiseHandler, onUnhandledRejectionIntegration } from '..
 global.console.warn = () => null;
 global.console.error = () => null;
 
-const client = { getOptions: () => ({}) } as unknown as NodeClient;
-
-jest.mock('@sentry/core', () => {
-  // we just want to short-circuit it, so dont worry about types
-  const original = jest.requireActual('@sentry/core');
-  return {
-    ...original,
-    getClient: () => client,
-  };
-});
-
 describe('unhandled promises', () => {
   test('install global listener', () => {
+    const client = { getOptions: () => ({}) } as unknown as Client;
+    SentryCore.setCurrentClient(client);
+
     const integration = onUnhandledRejectionIntegration();
     integration.setup!(client);
     expect(process.listeners('unhandledRejection')).toHaveLength(1);
   });
 
   test('makeUnhandledPromiseHandler', () => {
+    const client = { getOptions: () => ({}) } as unknown as Client;
+    SentryCore.setCurrentClient(client);
+
     const promise = {
       domain: {
         sentryContext: {
@@ -36,7 +31,7 @@ describe('unhandled promises', () => {
       },
     };
 
-    const captureException = jest.spyOn(Hub.prototype, 'captureException');
+    const captureException = jest.spyOn(SentryCore, 'captureException').mockImplementation(() => 'test');
 
     const handler = makeUnhandledPromiseHandler(client, {
       mode: 'warn',
@@ -44,7 +39,7 @@ describe('unhandled promises', () => {
 
     handler('bla', promise);
 
-    expect(captureException.mock.calls[0][1]).toEqual({
+    expect(captureException).toHaveBeenCalledWith('bla', {
       originalException: {
         domain: {
           sentryContext: {

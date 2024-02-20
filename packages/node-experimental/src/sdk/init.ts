@@ -1,18 +1,14 @@
 import {
   endSession,
+  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
   hasTracingEnabled,
   startSession,
 } from '@sentry/core';
-import {
-  defaultStackParser,
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  getSentryRelease,
-  makeNodeTransport,
-  spotlightIntegration,
-} from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations, spotlightIntegration } from '@sentry/node';
+import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
@@ -23,12 +19,13 @@ import {
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
-import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
-import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { NodeExperimentalClient } from './client';
+import { getAutoPerformanceIntegrations } from '../integrations/tracing';
+import { makeNodeTransport } from '../transports';
+import type { NodeClientOptions, NodeOptions } from '../types';
+import { defaultStackParser, getSentryRelease } from './api';
+import { NodeClient } from './client';
 import { initOtel } from './initOtel';
 
 const ignoredDefaultIntegrations = ['Http', 'Undici'];
@@ -46,7 +43,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeExperimentalOptions | undefined = {}): void {
+export function init(options: NodeOptions | undefined = {}): void {
   const clientOptions = getClientOptions(options);
 
   if (clientOptions.debug === true) {
@@ -66,7 +63,7 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  const client = new NodeExperimentalClient(clientOptions);
+  const client = new NodeClient(clientOptions);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 
@@ -98,7 +95,7 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   initOtel();
 }
 
-function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalClientOptions {
+function getClientOptions(options: NodeOptions): NodeClientOptions {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
@@ -126,7 +123,7 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
     tracesSampleRate,
   });
 
-  const clientOptions: NodeExperimentalClientOptions = {
+  const clientOptions: NodeClientOptions = {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
@@ -141,7 +138,7 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
   return clientOptions;
 }
 
-function getRelease(release: NodeExperimentalOptions['release']): string | undefined {
+function getRelease(release: NodeOptions['release']): string | undefined {
   if (release !== undefined) {
     return release;
   }
@@ -154,7 +151,7 @@ function getRelease(release: NodeExperimentalOptions['release']): string | undef
   return undefined;
 }
 
-function getTracesSampleRate(tracesSampleRate: NodeExperimentalOptions['tracesSampleRate']): number | undefined {
+function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']): number | undefined {
   if (tracesSampleRate !== undefined) {
     return tracesSampleRate;
   }
@@ -188,6 +185,11 @@ function updateScopeFromEnvVariables(): void {
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
+  const client = getClient<NodeClient>();
+  if (client && client.getOptions().autoSessionTracking) {
+    client.initSessionFlusher();
+  }
+
   startSession();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because

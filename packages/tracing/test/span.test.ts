@@ -123,31 +123,6 @@ describe('SentrySpan', () => {
       expect(span.tags['http.status_code']).toBe('404');
       expect(span.data['http.response.status_code']).toBe(404);
     });
-
-    // TODO (v8): Remove
-    test('isSuccess', () => {
-      const span = new SentrySpan({});
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(200);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
-      span.setStatus('permission_denied');
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(0);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(-1);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(99);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(100);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
-    });
   });
 
   describe('toTraceparent', () => {
@@ -270,22 +245,6 @@ describe('SentrySpan', () => {
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(2);
         expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
-      });
-
-      test('maxSpans correctly limits number of spans', () => {
-        const options = getDefaultBrowserClientOptions({
-          _experiments: { maxSpans: 3 },
-          tracesSampleRate: 1,
-        });
-        const _hub = new Hub(new BrowserClient(options));
-        const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startTransaction({ name: 'test' });
-        for (let i = 0; i < 10; i++) {
-          const child = transaction.startChild();
-          child.end();
-        }
-        transaction.end();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(3);
       });
 
       test('no span recorder created if transaction.sampled is false', () => {
@@ -419,22 +378,6 @@ describe('SentrySpan', () => {
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(2);
         expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
-      });
-
-      test('maxSpans correctly limits number of spans', () => {
-        const options = getDefaultBrowserClientOptions({
-          _experiments: { maxSpans: 3 },
-          tracesSampleRate: 1,
-        });
-        const _hub = new Hub(new BrowserClient(options));
-        const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startTransaction({ name: 'test' });
-        for (let i = 0; i < 10; i++) {
-          const child = transaction.startChild();
-          child.end();
-        }
-        transaction.end();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(3);
       });
 
       test('no span recorder created if transaction.sampled is false', () => {
