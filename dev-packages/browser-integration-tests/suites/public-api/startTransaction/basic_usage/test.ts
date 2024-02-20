@@ -26,8 +26,6 @@ sentryTest('should report finished spans as children of the root span', async ({
 
   const rootSpanId = transaction?.contexts?.trace?.span_id;
 
-  expect(transaction).toBe(1);
-
   expect(transaction.spans).toHaveLength(3);
 
   const span_1 = transaction.spans?.[0];
