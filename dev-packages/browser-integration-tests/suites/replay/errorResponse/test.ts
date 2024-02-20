@@ -23,9 +23,8 @@ sentryTest('should stop recording after receiving an error response', async ({ g
   });
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  await page.goto(url);
+  await Promise.all([page.goto(url), waitForReplayRequest(page)]);
 
-  await waitForReplayRequest(page);
   await page.locator('button').click();
 
   expect(called).toBe(1);
