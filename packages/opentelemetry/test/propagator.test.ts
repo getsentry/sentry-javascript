@@ -7,8 +7,8 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
-import type { PropagationContext } from '@sentry/types';
+import { addTracingExtensions, setCurrentClient } from '@sentry/core';
+import type { Client, PropagationContext } from '@sentry/types';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
@@ -39,11 +39,10 @@ describe('SentryPropagator', () => {
       getDsn: () => ({
         publicKey: 'abc',
       }),
-    };
-    // @ts-expect-error Use mock client for unit tests
-    const hub: Hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+      emit: () => {},
+    } as unknown as Client;
+
+    setCurrentClient(client);
 
     describe('with active span', () => {
       it.each([

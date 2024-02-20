@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
 import * as SentryNode from '@sentry/node';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
@@ -56,7 +56,7 @@ function getServerOnlyArgs() {
           if (key === 'baggage') {
             return (
               'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-              'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+              'sentry-public_key=dogsarebadatkeepingsecrets,' +
               'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
             );
           }
@@ -199,13 +199,11 @@ describe('wrapLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.load',
         name: '/users/[id]',
         status: 'ok',
-        metadata: {
-          source: 'route',
-        },
       },
       expect.any(Function),
     );
@@ -220,13 +218,11 @@ describe('wrapLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         op: 'function.sveltekit.load',
         name: '/users/123',
         status: 'ok',
-        metadata: {
-          source: 'url',
-        },
       },
       expect.any(Function),
     );
@@ -256,6 +252,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
@@ -274,9 +271,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             sample_rate: '1',
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
-            user_segment: 'segmentA',
           },
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -292,15 +287,14 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
         status: 'ok',
+        metadata: {},
         data: {
           'http.method': 'GET',
-        },
-        metadata: {
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -316,6 +310,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
@@ -328,7 +323,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         },
         metadata: {
           dynamicSamplingContext: {},
-          source: 'route',
         },
       },
       expect.any(Function),
@@ -347,6 +341,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
         op: 'function.sveltekit.server.load',
         name: '/users/123',
@@ -365,9 +360,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
             sample_rate: '1',
             trace_id: '1234567890abcdef1234567890abcdef',
             transaction: 'dogpark',
-            user_segment: 'segmentA',
           },
-          source: 'url',
         },
       },
       expect.any(Function),

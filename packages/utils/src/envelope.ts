@@ -11,7 +11,6 @@ import type {
   EventEnvelopeHeaders,
   SdkInfo,
   SdkMetadata,
-  TextEncoderInternal,
 } from '@sentry/types';
 
 import { dsnToString } from './dsn';
@@ -69,17 +68,23 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
 }
 
 /**
- * Encode a string to UTF8.
+ * Encode a string to UTF8 array.
  */
-function encodeUTF8(input: string, textEncoder?: TextEncoderInternal): Uint8Array {
-  const utf8 = textEncoder || new TextEncoder();
-  return utf8.encode(input);
+function encodeUTF8(input: string): Uint8Array {
+  return new TextEncoder().encode(input);
+}
+
+/**
+ * Decode a UTF8 array to string.
+ */
+function decodeUTF8(input: Uint8Array): string {
+  return new TextDecoder().decode(input);
 }
 
 /**
  * Serializes an envelope.
  */
-export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderInternal): string | Uint8Array {
+export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
   const [envHeaders, items] = envelope;
 
   // Initially we construct our envelope as a string and only convert to binary chunks if we encounter binary data
@@ -87,9 +92,9 @@ export function serializeEnvelope(envelope: Envelope, textEncoder?: TextEncoderI
 
   function append(next: string | Uint8Array): void {
     if (typeof parts === 'string') {
-      parts = typeof next === 'string' ? parts + next : [encodeUTF8(parts, textEncoder), next];
+      parts = typeof next === 'string' ? parts + next : [encodeUTF8(parts), next];
     } else {
-      parts.push(typeof next === 'string' ? encodeUTF8(next, textEncoder) : next);
+      parts.push(typeof next === 'string' ? encodeUTF8(next) : next);
     }
   }
 
@@ -130,19 +135,11 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
   return merged;
 }
 
-export interface TextDecoderInternal {
-  decode(input?: Uint8Array): string;
-}
-
 /**
  * Parses an envelope
  */
-export function parseEnvelope(
-  env: string | Uint8Array,
-  textEncoder: TextEncoderInternal,
-  textDecoder: TextDecoderInternal,
-): Envelope {
-  let buffer = typeof env === 'string' ? textEncoder.encode(env) : env;
+export function parseEnvelope(env: string | Uint8Array): Envelope {
+  let buffer = typeof env === 'string' ? encodeUTF8(env) : env;
 
   function readBinary(length: number): Uint8Array {
     const bin = buffer.subarray(0, length);
@@ -158,7 +155,7 @@ export function parseEnvelope(
       i = buffer.length;
     }
 
-    return JSON.parse(textDecoder.decode(readBinary(i))) as T;
+    return JSON.parse(decodeUTF8(readBinary(i))) as T;
   }
 
   const envelopeHeader = readJson<BaseEnvelopeHeaders>();
@@ -178,11 +175,8 @@ export function parseEnvelope(
 /**
  * Creates attachment envelope items
  */
-export function createAttachmentEnvelopeItem(
-  attachment: Attachment,
-  textEncoder?: TextEncoderInternal,
-): AttachmentItem {
-  const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data, textEncoder) : attachment.data;
+export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
+  const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data) : attachment.data;
 
   return [
     dropUndefinedKeys({

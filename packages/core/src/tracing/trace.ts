@@ -1,65 +1,13 @@
-import type { Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { addNonEnumerableProperty, dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentScope, withScope } from '../exports';
-import type { Hub } from '../hub';
-import { runWithAsyncContext } from '../hub';
-import { getIsolationScope } from '../hub';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-
-/**
- * Wraps a function with a transaction/span and finishes the span after the function is done.
- *
- * Note that if you have not enabled tracing extensions via `addTracingExtensions`
- * or you didn't set `tracesSampleRate`, this function will not generate spans
- * and the `span` returned from the callback will be undefined.
- *
- * This function is meant to be used internally and may break at any time. Use at your own risk.
- *
- * @internal
- * @private
- *
- * @deprecated Use `startSpan` instead.
- */
-export function trace<T>(
-  context: TransactionContext,
-  callback: (span?: Span) => T,
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  onError: (error: unknown, span?: Span) => void = () => {},
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  afterFinish: () => void = () => {},
-): T {
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
-  const scope = getCurrentScope();
-  // eslint-disable-next-line deprecation/deprecation
-  const parentSpan = scope.getSpan();
-
-  const ctx = normalizeContext(context);
-  const activeSpan = createChildSpanOrTransaction(hub, parentSpan, ctx);
-
-  // eslint-disable-next-line deprecation/deprecation
-  scope.setSpan(activeSpan);
-
-  return handleCallbackErrors(
-    () => callback(activeSpan),
-    error => {
-      activeSpan && activeSpan.setStatus('internal_error');
-      onError(error, activeSpan);
-    },
-    () => {
-      activeSpan && activeSpan.end();
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(parentSpan);
-      afterFinish();
-    },
-  );
-}
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -75,40 +23,33 @@ export function trace<T>(
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
   const ctx = normalizeContext(context);
 
-  return runWithAsyncContext(() => {
-    return withScope(context.scope, scope => {
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
-      // eslint-disable-next-line deprecation/deprecation
-      const parentSpan = scope.getSpan();
+  return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const parentSpan = scope.getSpan();
 
-      const shouldSkipSpan = context.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(activeSpan);
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
-      return handleCallbackErrors(
-        () => callback(activeSpan),
-        () => {
-          // Only update the span status if it hasn't been changed yet
-          if (activeSpan) {
-            const { status } = spanToJSON(activeSpan);
-            if (!status || status === 'ok') {
-              activeSpan.setStatus('internal_error');
-            }
+    return handleCallbackErrors(
+      () => callback(activeSpan),
+      () => {
+        // Only update the span status if it hasn't been changed yet
+        if (activeSpan) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
           }
-        },
-        () => activeSpan && activeSpan.end(),
-      );
-    });
+        }
+      },
+      () => activeSpan && activeSpan.end(),
+    );
   });
 }
-
-/**
- * @deprecated Use {@link startSpan} instead.
- */
-export const startActiveSpan = startSpan;
 
 /**
  * Similar to `Sentry.startSpan`. Wraps a function with a transaction/span, but does not finish the span
@@ -127,36 +68,34 @@ export function startSpanManual<T>(
 ): T {
   const ctx = normalizeContext(context);
 
-  return runWithAsyncContext(() => {
-    return withScope(context.scope, scope => {
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
-      // eslint-disable-next-line deprecation/deprecation
-      const parentSpan = scope.getSpan();
+  return withScope(context.scope, scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    const hub = getCurrentHub();
+    // eslint-disable-next-line deprecation/deprecation
+    const parentSpan = scope.getSpan();
 
-      const shouldSkipSpan = context.onlyIfParent && !parentSpan;
-      const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
+    const shouldSkipSpan = context.onlyIfParent && !parentSpan;
+    const activeSpan = shouldSkipSpan ? undefined : createChildSpanOrTransaction(hub, parentSpan, ctx);
 
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(activeSpan);
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
-      function finishAndSetSpan(): void {
-        activeSpan && activeSpan.end();
-      }
+    function finishAndSetSpan(): void {
+      activeSpan && activeSpan.end();
+    }
 
-      return handleCallbackErrors(
-        () => callback(activeSpan, finishAndSetSpan),
-        () => {
-          // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-          if (activeSpan && activeSpan.isRecording()) {
-            const { status } = spanToJSON(activeSpan);
-            if (!status || status === 'ok') {
-              activeSpan.setStatus('internal_error');
-            }
+    return handleCallbackErrors(
+      () => callback(activeSpan, finishAndSetSpan),
+      () => {
+        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+        if (activeSpan && activeSpan.isRecording()) {
+          const { status } = spanToJSON(activeSpan);
+          if (!status || status === 'ok') {
+            activeSpan.setStatus('internal_error');
           }
-        },
-      );
-    });
+        }
+      },
+    );
   });
 }
 
@@ -215,6 +154,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
         ...ctx.metadata,
       },
     });
+  }
+
+  if (parentSpan) {
+    addChildSpanToSpan(parentSpan, span);
   }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
@@ -327,7 +270,7 @@ export const continueTrace: ContinueTrace = <V>(
     return transactionContext;
   }
 
-  return runWithAsyncContext(() => {
+  return withScope(() => {
     return callback(transactionContext);
   });
 };
@@ -368,6 +311,10 @@ function createChildSpanOrTransaction(
     });
   }
 
+  if (parentSpan) {
+    addChildSpanToSpan(parentSpan, span);
+  }
+
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
@@ -391,6 +338,47 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   return context;
 }
 
+const CHILD_SPANS_FIELD = '_sentryChildSpans';
+
+type SpanWithPotentialChildren = Span & {
+  [CHILD_SPANS_FIELD]?: Set<Span>;
+};
+
+/**
+ * Adds an opaque child span reference to a span.
+ */
+export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+    span[CHILD_SPANS_FIELD].add(childSpan);
+  } else {
+    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+  }
+}
+
+/**
+ * Obtains the entire span tree, meaning a span + all of its descendants for a particular span.
+ */
+export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
+  const resultSet = new Set<Span>();
+
+  function addSpanChildren(span: SpanWithPotentialChildren): void {
+    // This exit condition is required to not infinitely loop in case of a circular dependency.
+    if (resultSet.has(span)) {
+      return;
+    } else {
+      resultSet.add(span);
+      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
+      for (const childSpan of childSpans) {
+        addSpanChildren(childSpan);
+      }
+    }
+  }
+
+  addSpanChildren(span);
+
+  return Array.from(resultSet);
+}
+
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 
@@ -399,6 +387,7 @@ type SpanWithScopes = Span & {
   [ISOLATION_SCOPE_ON_START_SPAN_FIELD]?: Scope;
 };
 
+/** Store the scope & isolation scope for a span, which can the be used when it is finished. */
 function setCapturedScopesOnSpan(span: Span | undefined, scope: Scope, isolationScope: Scope): void {
   if (span) {
     addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);

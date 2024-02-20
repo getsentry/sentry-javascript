@@ -27,8 +27,6 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
-  textDecoder: new TextDecoder(),
 };
 
 type MockResult<T> = T | Error;
@@ -61,6 +59,8 @@ function delay(ms: number): Promise<void> {
 describe('makeOfflineTransport', () => {
   beforeAll(async () => {
     await deleteDatabase('sentry');
+    (global as any).TextEncoder = TextEncoder;
+    (global as any).TextDecoder = TextDecoder;
   });
 
   it('indexedDb wrappers insert and pop', async () => {

@@ -1,7 +1,7 @@
 import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { getCurrentScope } from '../../src/currentScopes';
 
-import { Hub, makeMain } from '../../src/hub';
 import {
   addIntegration,
   convertIntegrationFnToClass,
@@ -9,6 +9,7 @@ import {
   installedIntegrations,
   setupIntegration,
 } from '../../src/integration';
+import { setCurrentClient } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 function getTestClient(): TestClient {
@@ -617,9 +618,7 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
 
     const integration = new CustomIntegration();
     addIntegration(integration);
@@ -635,9 +634,7 @@ describe('addIntegration', () => {
       setupOnce = jest.fn();
     }
 
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().setClient(undefined);
 
     const integration = new CustomIntegration();
     addIntegration(integration);
@@ -660,9 +657,8 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     const integration = new CustomIntegration();
     addIntegration(integration);
@@ -683,9 +679,8 @@ describe('addIntegration', () => {
     }
 
     const client = getTestClient();
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     const integration1 = new CustomIntegration();
     const integration2 = new CustomIntegration();

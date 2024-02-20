@@ -1,5 +1,5 @@
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { NodeClient, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
@@ -81,7 +81,6 @@ function resolve(
   };
 }
 
-let hub: Hub;
 let client: NodeClient;
 
 beforeAll(() => {
@@ -91,9 +90,8 @@ beforeAll(() => {
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 
   mockCaptureException.mockClear();
 });
@@ -135,7 +133,7 @@ describe('handleSentry', () => {
       expect(ref.name).toEqual('GET /users/[id]');
       expect(ref.op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
       expect(ref.spanRecorder.spans).toHaveLength(1);
@@ -171,7 +169,7 @@ describe('handleSentry', () => {
       expect(ref.name).toEqual('GET /users/[id]');
       expect(ref.op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
 
@@ -228,7 +226,7 @@ describe('handleSentry', () => {
               if (key === 'baggage') {
                 return (
                   'sentry-environment=production,sentry-release=1.0.0,sentry-transaction=dogpark,' +
-                  'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+                  'sentry-public_key=dogsarebadatkeepingsecrets,' +
                   'sentry-trace_id=1234567890abcdef1234567890abcdef,sentry-sample_rate=1'
                 );
               }
@@ -258,7 +256,6 @@ describe('handleSentry', () => {
         sample_rate: '1',
         trace_id: '1234567890abcdef1234567890abcdef',
         transaction: 'dogpark',
-        user_segment: 'segmentA',
       });
     });
 

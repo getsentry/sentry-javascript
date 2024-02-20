@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'should not attach `sentry-trace` and `baggage` header to request not matching default tracePropagationTargets',
+  'should not attach `sentry-trace` and `baggage` header to cross-origin requests when no tracePropagationTargets are defined',
   async ({ getLocalTestPath, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();

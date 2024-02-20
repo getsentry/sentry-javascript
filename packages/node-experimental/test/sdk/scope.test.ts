@@ -1,7 +1,6 @@
-import { prepareEvent } from '@sentry/core';
+import { Scope, getGlobalScope, prepareEvent } from '@sentry/core';
 import type { Attachment, Breadcrumb, Client, ClientOptions, EventProcessor } from '@sentry/types';
-import { Scope, getIsolationScope } from '../../src';
-import { getGlobalScope } from '../../src/sdk/scope';
+import { getIsolationScope } from '../../src';
 import { mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Unit | Scope', () => {
@@ -164,7 +163,7 @@ describe('Unit | Scope', () => {
       scope.addAttachment(attachment1);
 
       const globalScope = getGlobalScope();
-      const isolationScope = getIsolationScope();
+      const isolationScope = getIsolationScope() as Scope;
 
       globalScope.addBreadcrumb(breadcrumb2);
       globalScope.addEventProcessor(eventProcessor2);

@@ -1,8 +1,17 @@
 import * as http from 'http';
-import { Transaction, getActiveSpan, getClient, getCurrentScope, setCurrentClient, startSpan } from '@sentry/core';
+import {
+  Transaction,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getIsolationScope,
+  getMainCarrier,
+  setCurrentClient,
+  startSpan,
+  withIsolationScope,
+} from '@sentry/core';
 import { spanToTraceHeader } from '@sentry/core';
-import { Hub, makeMain, runWithAsyncContext } from '@sentry/core';
-import type { fetch as FetchType } from 'undici';
+import { fetch } from 'undici';
 
 import { NodeClient } from '../../src/client';
 import type { Undici, UndiciOptions } from '../../src/integrations/undici';
@@ -12,18 +21,14 @@ import { conditionalTest } from '../utils';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
-let hub: Hub;
-let fetch: typeof FetchType;
-
 beforeAll(async () => {
   try {
     await setupTestServer();
-    // need to conditionally require `undici` because it's not available in Node 10
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    fetch = require('undici').fetch;
   } catch (e) {
-    // eslint-disable-next-line no-console
-    console.warn('Undici integration tests are skipped because undici is not installed.');
+    const error = new Error('Undici integration tests are skipped because test server could not be set up.');
+    // This needs lib es2022 and newer so marking as any
+    (error as any).cause = e;
+    throw e;
   }
 });
 
@@ -31,13 +36,21 @@ const DEFAULT_OPTIONS = getDefaultNodeClientOptions({
   dsn: SENTRY_DSN,
   tracesSampler: () => true,
   integrations: [nativeNodeFetchintegration()],
+  debug: true,
 });
 
 beforeEach(() => {
+  // Ensure we reset a potentially set acs to use the default
+  const sentry = getMainCarrier().__SENTRY__;
+  if (sentry) {
+    sentry.acs = undefined;
+  }
+
+  getCurrentScope().clear();
+  getIsolationScope().clear();
   const client = new NodeClient(DEFAULT_OPTIONS);
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 });
 
 afterEach(() => {
@@ -140,7 +153,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     });
   });
 
-  it('creates a span for invalid looking urls', async () => {
+  it('creates a span for invalid looking urls xxx', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       try {
         // Intentionally add // to the url
@@ -215,7 +228,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
   it.skip('attaches the sentry trace and baggage headers if there is an active span', async () => {
     expect.assertions(3);
 
-    await runWithAsyncContext(async () => {
+    await withIsolationScope(async () => {
       await startSpan({ name: 'outer-span' }, async outerSpan => {
         expect(outerSpan).toBeInstanceOf(Transaction);
         // eslint-disable-next-line deprecation/deprecation
@@ -387,9 +400,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         environment: 'production',
       });
       const client = new NodeClient(options);
-      const hub = new Hub(client);
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
+      setCurrentClient(client);
     });
 
     it.each([

@@ -1,6 +1,7 @@
 import type { Scope } from '@sentry/core';
 import { act, render } from '@testing-library/svelte';
 
+import { vi } from 'vitest';
 // linter doesn't like Svelte component imports
 import DummyComponent from './components/Dummy.svelte';
 
@@ -8,20 +9,20 @@ let returnUndefinedTransaction = false;
 
 const testTransaction: { spans: any[]; startChild: jest.Mock; end: jest.Mock; isRecording: () => boolean } = {
   spans: [],
-  startChild: jest.fn(),
-  end: jest.fn(),
+  startChild: vi.fn(),
+  end: vi.fn(),
   isRecording: () => true,
 };
-const testUpdateSpan = { end: jest.fn() };
+const testUpdateSpan = { end: vi.fn() };
 const testInitSpan: any = {
   transaction: testTransaction,
-  end: jest.fn(),
-  startChild: jest.fn(),
+  end: vi.fn(),
+  startChild: vi.fn(),
   isRecording: () => true,
 };
 
-jest.mock('@sentry/core', () => {
-  const original = jest.requireActual('@sentry/core');
+vi.mock('@sentry/core', async () => {
+  const original = await vi.importActual('@sentry/core');
   return {
     ...original,
     getCurrentScope(): Scope {
@@ -36,7 +37,7 @@ jest.mock('@sentry/core', () => {
 
 describe('Sentry.trackComponent()', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
     testTransaction.spans = [];
 
     testTransaction.startChild.mockImplementation(spanCtx => {
@@ -49,7 +50,7 @@ describe('Sentry.trackComponent()', () => {
       return testUpdateSpan;
     });
 
-    testInitSpan.end = jest.fn();
+    testInitSpan.end = vi.fn();
     testInitSpan.isRecording = () => true;
     returnUndefinedTransaction = false;
   });
@@ -58,13 +59,13 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: {} } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -91,7 +92,7 @@ describe('Sentry.trackComponent()', () => {
     // once for init (unimportant here), once for starting the update span
     expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -102,7 +103,7 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackUpdates: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
@@ -117,7 +118,7 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackInit: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -187,7 +188,7 @@ describe('Sentry.trackComponent()', () => {
     // but not the second update
     expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy>',
+      description: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });

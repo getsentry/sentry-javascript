@@ -1,1 +1,1 @@
-fetch('http://localhost:4200/0').then(fetch('http://localhost:4200/1').then(fetch('http://localhost:4200/2')));
+fetch(`/0`).then(fetch('/1').then(fetch('/2')));

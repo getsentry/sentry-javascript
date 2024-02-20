@@ -1,19 +1,14 @@
 import type { Context, ContextManager } from '@opentelemetry/api';
-import type { Carrier, Hub } from '@sentry/core';
-import { ensureHubOnCarrier } from '@sentry/core';
+import { getCurrentScope, getIsolationScope } from '@sentry/core';
+import type { Scope } from '@sentry/types';
 
-import { getCurrentHub, getHubFromCarrier } from './custom/hub';
-import { setHubOnContext } from './utils/contextData';
-
-function createNewHub(parent: Hub | undefined): Hub {
-  const carrier: Carrier = {};
-  ensureHubOnCarrier(carrier, parent);
-  return getHubFromCarrier(carrier);
-}
-
-// Typescript complains if we do not use `...args: any[]` for the mixin, with:
-// A mixin class must have a constructor with a single rest parameter of type 'any[]'.ts(2545)
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import {
+  SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
+  SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
+} from './constants';
+import { getCurrentHub } from './custom/getCurrentHub';
+import { getScopesFromContext, setHubOnContext, setScopesOnContext } from './utils/contextData';
 
 /**
  * Wrap an OpenTelemetry ContextManager in a way that ensures the context is kept in sync with the Sentry Hub.
@@ -24,7 +19,7 @@ function createNewHub(parent: Hub | undefined): Hub {
  * const contextManager = new SentryContextManager();
  */
 export function wrapContextManagerClass<ContextManagerInstance extends ContextManager>(
-  ContextManagerClass: new (...args: any[]) => ContextManagerInstance,
+  ContextManagerClass: new (...args: unknown[]) => ContextManagerInstance,
 ): typeof ContextManagerClass {
   /**
    * This is a custom ContextManager for OpenTelemetry, which extends the default AsyncLocalStorageContextManager.
@@ -46,13 +41,38 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
       thisArg?: ThisParameterType<F>,
       ...args: A
     ): ReturnType<F> {
-      const existingHub = getCurrentHub();
-      const newHub = createNewHub(existingHub);
+      const currentScopes = getScopesFromContext(context);
+      const currentScope = currentScopes?.scope || getCurrentScope();
+      const currentIsolationScope = currentScopes?.isolationScope || getIsolationScope();
 
-      return super.with(setHubOnContext(context, newHub), fn, thisArg, ...args);
+      const shouldForkIsolationScope = context.getValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY) === true;
+      const scope = context.getValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY) as Scope | undefined;
+      const isolationScope = context.getValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY) as Scope | undefined;
+
+      const newCurrentScope = scope || currentScope.clone();
+      const newIsolationScope =
+        isolationScope || (shouldForkIsolationScope ? currentIsolationScope.clone() : currentIsolationScope);
+      const scopes = { scope: newCurrentScope, isolationScope: newIsolationScope };
+
+      const mockHub = {
+        // eslint-disable-next-line deprecation/deprecation
+        ...getCurrentHub(),
+        getScope: () => newCurrentScope,
+        getIsolationScope: () => newIsolationScope,
+      };
+
+      const ctx1 = setHubOnContext(context, mockHub);
+      const ctx2 = setScopesOnContext(ctx1, scopes);
+
+      // Remove the unneeded values again
+      const ctx3 = ctx2
+        .deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY)
+        .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
+        .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY);
+
+      return super.with(ctx3, fn, thisArg, ...args);
     }
   }
 
   return SentryContextManager as unknown as typeof ContextManagerClass;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */

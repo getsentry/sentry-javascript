@@ -1,9 +1,10 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { Integrations, Span } from '../../../src';
+import { Integrations } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class Collection {
@@ -63,7 +64,7 @@ describe('patchOperation()', () => {
 
   beforeEach(() => {
     scope = new Scope();
-    parentSpan = new Span();
+    parentSpan = new SentrySpan();
     childSpan = parentSpan.startChild();
     testClient = getTestClient({});
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);

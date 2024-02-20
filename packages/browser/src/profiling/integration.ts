@@ -22,7 +22,6 @@ const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       const scope = getCurrentScope();
 
@@ -33,11 +32,6 @@ const _browserProfilingIntegration = (() => {
         if (shouldProfileTransaction(transaction)) {
           startProfileForTransaction(transaction);
         }
-      }
-
-      if (typeof client.on !== 'function') {
-        logger.warn('[Profiling] Client does not support hooks, profiling will be disabled');
-        return;
       }
 
       client.on('startTransaction', (transaction: Transaction) => {

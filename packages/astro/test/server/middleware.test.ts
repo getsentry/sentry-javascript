@@ -260,10 +260,10 @@ describe('sentryMiddleware', () => {
   });
 
   describe('async context isolation', () => {
-    const runWithAsyncContextSpy = vi.spyOn(SentryNode, 'runWithAsyncContext');
+    const withIsolationScopeSpy = vi.spyOn(SentryNode, 'withIsolationScope');
     afterEach(() => {
       vi.clearAllMocks();
-      runWithAsyncContextSpy.mockRestore();
+      withIsolationScopeSpy.mockRestore();
     });
 
     it('starts a new async context if no span is active', async () => {
@@ -279,7 +279,7 @@ describe('sentryMiddleware', () => {
         // this is fine, it's not required to pass in this test
       }
 
-      expect(runWithAsyncContextSpy).toHaveBeenCalledTimes(1);
+      expect(withIsolationScopeSpy).toHaveBeenCalledTimes(1);
     });
 
     it("doesn't start a new async context if a span is active", async () => {
@@ -297,7 +297,7 @@ describe('sentryMiddleware', () => {
         // this is fine, it's not required to pass in this test
       }
 
-      expect(runWithAsyncContextSpy).not.toHaveBeenCalled();
+      expect(withIsolationScopeSpy).not.toHaveBeenCalled();
     });
   });
 });

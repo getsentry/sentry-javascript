@@ -114,7 +114,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     const client = getClient();
 
     const mutableOptions = { drop: false };
-    client && client.emit && client?.emit('otelSpanEnd', otelSpan, mutableOptions);
+    client && client.emit('otelSpanEnd', otelSpan, mutableOptions);
 
     if (mutableOptions.drop) {
       clearSpan(otelSpanId);
@@ -179,7 +179,9 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
     metadata: {
       // only set dynamic sampling context if sentry-trace header was set
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      source: 'custom',
+    },
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     },
   };
 

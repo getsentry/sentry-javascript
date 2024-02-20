@@ -1,11 +1,9 @@
 /* eslint-disable no-console */
 const Sentry = require('../../build/npm/cjs/index.js');
-const Integrations = require('../../../integrations/build/npm/cjs/dedupe.js');
 
 // Init
 Sentry.init({
   dsn: 'https://completelyrandom@dsn.asdf/42',
-  integrations: [new Integrations.Dedupe()],
   beforeSend(_event) {
     console.log('Got an event');
     return null;
@@ -17,13 +15,12 @@ Sentry.init({
 });
 
 // Configure
-Sentry.configureScope(scope => {
-  scope.setExtra('foo', 'bar');
-  scope.setFingerprint('foo');
-  scope.setLevel('warning');
-  scope.setTag('foo', 'bar');
-  scope.setUser('foo', 'bar');
-});
+const scope = Sentry.getCurrentScope();
+scope.setExtra('foo', 'bar');
+scope.setFingerprint('foo');
+scope.setLevel('warning');
+scope.setTag('foo', 'bar');
+scope.setUser('foo', 'bar');
 
 // Breadcrumbs integration
 window.console.log('Console', 'Breadcrumb');

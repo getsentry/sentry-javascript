@@ -5,15 +5,9 @@ import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import type { SpanStatusType } from '@sentry/core';
-import {
-  Hub,
-  Span as SentrySpan,
-  Transaction,
-  addTracingExtensions,
-  createTransport,
-  makeMain,
-  spanToJSON,
-} from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { captureException, getCurrentScope, setCurrentClient } from '@sentry/core';
+import { SentrySpan, Transaction, addTracingExtensions, createTransport, spanToJSON } from '@sentry/core';
 import { NodeClient } from '@sentry/node';
 import { resolvedSyncPromise } from '@sentry/utils';
 
@@ -36,7 +30,6 @@ beforeAll(() => {
 });
 
 describe('SentrySpanProcessor', () => {
-  let hub: Hub;
   let client: NodeClient;
   let provider: NodeTracerProvider;
   let spanProcessor: SentrySpanProcessor;
@@ -46,9 +39,8 @@ describe('SentrySpanProcessor', () => {
     SPAN_MAP.clear();
 
     client = new NodeClient(DEFAULT_NODE_CLIENT_OPTIONS);
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     spanProcessor = new SentrySpanProcessor();
     provider = new NodeTracerProvider({
@@ -129,7 +121,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.parentSpanId).toEqual(sentrySpanTransaction?.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(hub.getScope().getSpan()).toBeUndefined();
+        expect(getCurrentScope().getSpan()).toBeUndefined();
 
         child.end(endTime);
 
@@ -173,7 +165,7 @@ describe('SentrySpanProcessor', () => {
         expect(sentrySpan?.parentSpanId).toEqual(parentOtelSpan.spanContext().spanId);
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(hub.getScope().getSpan()).toBeUndefined();
+        expect(getCurrentScope().getSpan()).toBeUndefined();
 
         child.end(endTime);
 
@@ -680,7 +672,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('url');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
       });
     });
 
@@ -696,7 +688,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
       });
     });
 
@@ -712,7 +704,7 @@ describe('SentrySpanProcessor', () => {
         otelSpan.end();
 
         // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.transaction?.metadata.source).toBe('route');
+        expect(sentrySpan?.transaction?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('route');
       });
     });
 
@@ -964,9 +956,8 @@ describe('SentrySpanProcessor', () => {
         return null;
       },
     });
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     // Need to register the spanprocessor again
     spanProcessor = new SentrySpanProcessor();
@@ -982,8 +973,7 @@ describe('SentrySpanProcessor', () => {
 
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
-        // eslint-disable-next-line deprecation/deprecation
-        hub.captureException(new Error('oh nooooo!'));
+        captureException(new Error('oh nooooo!'));
         otelSpan = child as OtelSpan;
         child.end();
       });
@@ -1011,10 +1001,8 @@ describe('SentrySpanProcessor', () => {
         return null;
       },
     });
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
-
+    setCurrentClient(client);
+    client.init();
     const tracer = provider.getTracer('default');
 
     tracer.startActiveSpan('GET /users', parentOtelSpan => {
@@ -1039,47 +1027,6 @@ describe('SentrySpanProcessor', () => {
       span_id: otelSpan.spanContext().spanId,
       trace_id: otelSpan.spanContext().traceId,
     });
-  });
-
-  // Regression test for https://github.com/getsentry/sentry-javascript/issues/7538
-  // Since otel context does not map to when Sentry hubs are cloned
-  // we can't rely on the original hub at transaction creation to contain all
-  // the scope information we want. Let's test to make sure that the information is
-  // grabbed from the new hub.
-  it('handles when a different hub creates the transaction', () => {
-    let sentryTransaction: any;
-
-    client = new NodeClient({
-      ...DEFAULT_NODE_CLIENT_OPTIONS,
-      tracesSampleRate: 1.0,
-    });
-
-    client.on('finishTransaction', transaction => {
-      sentryTransaction = transaction;
-    });
-
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const newHub = new Hub(client, hub.getScope().clone());
-    // eslint-disable-next-line deprecation/deprecation
-    newHub.getScope().setTag('foo', 'bar');
-
-    const tracer = provider.getTracer('default');
-
-    tracer.startActiveSpan('GET /users', parentOtelSpan => {
-      tracer.startActiveSpan('SELECT * FROM users;', child => {
-        // eslint-disable-next-line deprecation/deprecation
-        makeMain(newHub);
-        child.end();
-      });
-
-      parentOtelSpan.end();
-    });
-
-    expect(sentryTransaction._hub.getScope()._tags.foo).toEqual('bar');
   });
 });
 

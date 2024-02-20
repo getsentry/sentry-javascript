@@ -1,13 +1,14 @@
 import {
   LinkedErrors,
   SDK_VERSION,
+  getGlobalScope,
+  getIsolationScope,
   getMainCarrier,
   initAndBind,
-  runWithAsyncContext,
   setCurrentClient,
+  withIsolationScope,
 } from '@sentry/core';
 import type { EventHint, Integration } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 import type { Event } from '../src';
 import { contextLinesIntegration } from '../src';
@@ -43,32 +44,34 @@ declare var global: any;
 
 describe('SentryNode', () => {
   beforeEach(() => {
-    GLOBAL_OBJ.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
-    init({ dsn });
-  });
-
-  beforeEach(() => {
     jest.clearAllMocks();
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+
+    init({ dsn });
   });
 
   describe('getContext() / setContext()', () => {
     test('store/load extra', async () => {
       getCurrentScope().setExtra('abc', { def: [1] });
-      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
+
+      expect(getCurrentScope().getScopeData().extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     test('store/load tags', async () => {
       getCurrentScope().setTag('abc', 'def');
-      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
+      expect(getCurrentScope().getScopeData().tags).toEqual({
         abc: 'def',
       });
     });
 
     test('store/load user', async () => {
       getCurrentScope().setUser({ id: 'def' });
-      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
+      expect(getCurrentScope().getScopeData().user).toEqual({
         id: 'def',
       });
     });
@@ -304,7 +307,7 @@ describe('SentryNode', () => {
       setNodeAsyncContextStrategy();
       const client = new NodeClient(options);
 
-      runWithAsyncContext(() => {
+      withIsolationScope(() => {
         // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         setCurrentClient(client);
@@ -372,12 +375,17 @@ class MockIntegration implements Integration {
 describe('SentryNode initialization', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
   });
 
   test('global.SENTRY_RELEASE is used to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toEqual('foobar');
+    expect(getClient()?.getOptions().release).toEqual('foobar');
     // Unsure if this is needed under jest.
     global.SENTRY_RELEASE = undefined;
   });
@@ -501,8 +509,6 @@ describe('SentryNode initialization', () => {
     beforeEach(() => {
       process.env.SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-0';
       process.env.SENTRY_BAGGAGE = 'sentry-release=1.0.0,sentry-environment=production';
-
-      getCurrentScope().clear();
     });
 
     afterEach(() => {

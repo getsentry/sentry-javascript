@@ -42,47 +42,12 @@ snapshot[`captureException 1`] = `
         stacktrace: {
           frames: [
             {
-              colno: 20,
-              filename: "ext:cli/40_testing.js",
-              function: "outerWrapped",
-              in_app: false,
-              lineno: 472,
-            },
-            {
-              colno: 33,
-              filename: "ext:cli/40_testing.js",
-              function: "exitSanitizer",
-              in_app: false,
-              lineno: 458,
-            },
-            {
-              colno: 31,
-              filename: "ext:cli/40_testing.js",
-              function: "resourceSanitizer",
-              in_app: false,
-              lineno: 410,
-            },
-            {
-              colno: 33,
-              filename: "ext:cli/40_testing.js",
-              function: "asyncOpSanitizer",
-              in_app: false,
-              lineno: 177,
-            },
-            {
-              colno: 11,
-              filename: "ext:cli/40_testing.js",
-              function: "innerWrapped",
-              in_app: false,
-              lineno: 526,
-            },
-            {
               colno: 27,
               context_line: "  client.captureException(something());",
               filename: "app:///test/mod.test.ts",
-              function: "<anonymous>",
+              function: "?",
               in_app: true,
-              lineno: 46,
+              lineno: 47,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -108,7 +73,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 43,
+              lineno: 44,
               post_context: [
                 "  }",
                 "",

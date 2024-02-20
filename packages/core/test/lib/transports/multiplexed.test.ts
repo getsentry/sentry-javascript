@@ -1,4 +1,3 @@
-import { TextDecoder, TextEncoder } from 'util';
 import type {
   BaseTransportOptions,
   ClientReport,
@@ -59,7 +58,7 @@ const createTestTransport = (...assertions: Assertion[]): ((options: BaseTranspo
           throw new Error('No assertion left');
         }
 
-        const event = eventFromEnvelope(parseEnvelope(request.body, new TextEncoder(), new TextDecoder()), ['event']);
+        const event = eventFromEnvelope(parseEnvelope(request.body), ['event']);
 
         assertion(options.url, event?.release, request.body);
         resolve({ statusCode: 200 });
@@ -69,7 +68,6 @@ const createTestTransport = (...assertions: Assertion[]): ((options: BaseTranspo
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
 };
 
 describe('makeMultiplexedTransport', () => {

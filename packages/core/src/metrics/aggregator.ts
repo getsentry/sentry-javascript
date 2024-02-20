@@ -6,8 +6,9 @@ import type {
   Primitive,
 } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX } from './constants';
+import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { METRIC_MAP } from './instance';
+import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
 import { getBucketKey, sanitizeTags } from './utils';
 
@@ -62,7 +63,11 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     const tags = sanitizeTags(unsanitizedTags);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
+
     let bucketItem = this._buckets.get(bucketKey);
+    // If this is a set metric, we need to calculate the delta from the previous weight.
+    const previousWeight = bucketItem && metricType === SET_METRIC_TYPE ? bucketItem.metric.weight : 0;
+
     if (bucketItem) {
       bucketItem.metric.add(value);
       // TODO(abhi): Do we need this check?
@@ -81,6 +86,10 @@ export class MetricsAggregator implements MetricsAggregatorBase {
       };
       this._buckets.set(bucketKey, bucketItem);
     }
+
+    // If value is a string, it's a set metric so calculate the delta from the previous weight.
+    const val = typeof value === 'string' ? bucketItem.metric.weight - previousWeight : value;
+    updateMetricSummaryOnActiveSpan(metricType, name, val, unit, unsanitizedTags, bucketKey);
 
     // We need to keep track of the total weight of the buckets so that we can
     // flush them when we exceed the max weight.
@@ -153,7 +162,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
    * @param flushedBuckets
    */
   private _captureMetrics(flushedBuckets: MetricBucket): void {
-    if (flushedBuckets.size > 0 && this._client.captureAggregateMetrics) {
+    if (flushedBuckets.size > 0) {
       // TODO(@anonrig): Optimization opportunity.
       // This copy operation can be avoided if we store the key in the bucketItem.
       const buckets = Array.from(flushedBuckets).map(([, bucketItem]) => bucketItem);

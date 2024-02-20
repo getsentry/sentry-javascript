@@ -25,8 +25,6 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -37,9 +35,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  getHubFromCarrier,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
@@ -58,28 +53,20 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,
   getSentryRelease,
   init,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,
   extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  deepReadDirSync,
   Handlers,
   // eslint-disable-next-line deprecation/deprecation
   Integrations,
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
@@ -93,7 +80,6 @@ export {
   createGetModuleFromFilename,
   metrics,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   runWithAsyncContext,
   consoleIntegration,
   onUncaughtExceptionIntegration,
@@ -107,4 +93,11 @@ export {
   httpIntegration,
   nativeNodeFetchintegration,
   spotlightIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/node';

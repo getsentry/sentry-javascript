@@ -24,10 +24,7 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
-
-// global reference to slice
-const UNKNOWN_FUNCTION = '?';
+import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/utils';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;
@@ -38,7 +35,7 @@ const GECKO_PRIORITY = 50;
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
-    function: func,
+    function: func === '<anonymous>' ? UNKNOWN_FUNCTION : func,
     in_app: true, // All browser frames are considered in_app
   };
 

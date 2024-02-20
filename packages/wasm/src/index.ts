@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 
 import { patchWebAssembly } from './patchWebAssembly';
 import { getImage, getImages } from './registry';
@@ -34,25 +34,6 @@ const _wasmIntegration = (() => {
 }) satisfies IntegrationFn;
 
 export const wasmIntegration = defineIntegration(_wasmIntegration);
-
-/**
- * Process WASM stack traces to support server-side symbolication.
- *
- * This also hooks the WebAssembly loading browser API so that module
- * registrations are intercepted.
- *
- * @deprecated Use `wasmIntegration` export instead
- *
- * import { wasmIntegration } from '@sentry/wasm';
- *
- * ```
- * Sentry.init({ integrations: [wasmIntegration()] });
- * ```
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Wasm = convertIntegrationFnToClass(INTEGRATION_NAME, wasmIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Event }
->;
 
 /**
  * Patches a list of stackframes with wasm data needed for server-side symbolication

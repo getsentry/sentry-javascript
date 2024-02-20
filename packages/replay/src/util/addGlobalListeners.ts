@@ -1,16 +1,14 @@
-import type { BaseClient } from '@sentry/core';
-import { getCurrentScope } from '@sentry/core';
 import { addEventProcessor, getClient } from '@sentry/core';
-import type { Client, DynamicSamplingContext } from '@sentry/types';
+import type { DynamicSamplingContext } from '@sentry/types';
 import { addClickKeypressInstrumentationHandler, addHistoryInstrumentationHandler } from '@sentry/utils';
 
 import { handleAfterSendEvent } from '../coreHandlers/handleAfterSendEvent';
 import { handleBeforeSendEvent } from '../coreHandlers/handleBeforeSendEvent';
+import { handleBreadcrumbs } from '../coreHandlers/handleBreadcrumbs';
 import { handleDomListener } from '../coreHandlers/handleDom';
 import { handleGlobalEventListener } from '../coreHandlers/handleGlobalEvent';
 import { handleHistorySpanListener } from '../coreHandlers/handleHistory';
 import { handleNetworkBreadcrumbs } from '../coreHandlers/handleNetworkBreadcrumbs';
-import { handleScopeListener } from '../coreHandlers/handleScope';
 import type { ReplayContainer } from '../types';
 
 /**
@@ -18,25 +16,20 @@ import type { ReplayContainer } from '../types';
  */
 export function addGlobalListeners(replay: ReplayContainer): void {
   // Listeners from core SDK //
-  const scope = getCurrentScope();
   const client = getClient();
 
-  scope.addScopeListener(handleScopeListener(replay));
   addClickKeypressInstrumentationHandler(handleDomListener(replay));
   addHistoryInstrumentationHandler(handleHistorySpanListener(replay));
+  handleBreadcrumbs(replay);
   handleNetworkBreadcrumbs(replay);
 
   // Tag all (non replay) events that get sent to Sentry with the current
   // replay ID so that we can reference them later in the UI
-  const eventProcessor = handleGlobalEventListener(replay, !hasHooks(client));
-  if (client && client.addEventProcessor) {
-    client.addEventProcessor(eventProcessor);
-  } else {
-    addEventProcessor(eventProcessor);
-  }
+  const eventProcessor = handleGlobalEventListener(replay);
+  addEventProcessor(eventProcessor);
 
   // If a custom client has no hooks yet, we continue to use the "old" implementation
-  if (hasHooks(client)) {
+  if (client) {
     client.on('beforeSendEvent', handleBeforeSendEvent(replay));
     client.on('afterSendEvent', handleAfterSendEvent(replay));
     client.on('createDsc', (dsc: DynamicSamplingContext) => {
@@ -74,9 +67,4 @@ export function addGlobalListeners(replay: ReplayContainer): void {
       }
     });
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function hasHooks(client: Client | undefined): client is BaseClient<any> {
-  return !!(client && client.on);
 }

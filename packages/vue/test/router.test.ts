@@ -1,12 +1,19 @@
 import * as SentryBrowser from '@sentry/browser';
+import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { SpanAttributes, Transaction } from '@sentry/types';
+import type { Span, SpanAttributes } from '@sentry/types';
 
 import type { Route } from '../src/router';
-import { instrumentVueRouter, vueRouterInstrumentation } from '../src/router';
-import * as vueTracing from '../src/tracing';
+import { instrumentVueRouter } from '../src/router';
 
 const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+jest.mock('@sentry/core', () => {
+  const actual = jest.requireActual('@sentry/core');
+  return {
+    ...actual,
+    getActiveSpan: jest.fn().mockReturnValue({}),
+  };
+});
 
 const mockVueRouter = {
   onError: jest.fn<void, [(error: Error) => void]>(),
@@ -50,307 +57,6 @@ const testRoutes: Record<string, Route> = {
     query: {},
   },
 };
-
-/* eslint-disable deprecation/deprecation */
-describe('vueRouterInstrumentation()', () => {
-  const mockStartTransaction = jest.fn();
-
-  afterEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should return instrumentation that instruments VueRouter.onError', () => {
-    // create instrumentation
-    const instrument = vueRouterInstrumentation(mockVueRouter);
-
-    // instrument
-    instrument(mockStartTransaction);
-
-    // check
-    expect(mockVueRouter.onError).toHaveBeenCalledTimes(1);
-
-    const onErrorCallback = mockVueRouter.onError.mock.calls[0][0];
-
-    const testError = new Error();
-    onErrorCallback(testError);
-
-    expect(captureExceptionSpy).toHaveBeenCalledTimes(1);
-    expect(captureExceptionSpy).toHaveBeenCalledWith(testError, { mechanism: { handled: false } });
-  });
-
-  it.each([
-    ['normalRoute1', 'normalRoute2', '/accounts/:accountId', 'route'],
-    ['normalRoute2', 'namedRoute', 'login-screen', 'custom'],
-    ['normalRoute2', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
-  ])(
-    'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for navigations',
-    (fromKey, toKey, transactionName, transactionSource) => {
-      // create instrumentation
-      const instrument = vueRouterInstrumentation(mockVueRouter);
-
-      // instrument
-      instrument(mockStartTransaction, true, true);
-
-      // check
-      expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
-      beforeEachCallback(to, from, mockNext);
-
-      // first startTx call happens when the instrumentation is initialized (for pageloads)
-      expect(mockStartTransaction).toHaveBeenCalledTimes(2);
-      expect(mockStartTransaction).toHaveBeenCalledWith({
-        name: transactionName,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: transactionSource,
-          ...getAttributesForRoute(to),
-        },
-        op: 'navigation',
-      });
-
-      expect(mockNext).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it.each([
-    ['initialPageloadRoute', 'normalRoute1', '/books/:bookId/chapter/:chapterId', 'route'],
-    ['initialPageloadRoute', 'namedRoute', 'login-screen', 'custom'],
-    ['initialPageloadRoute', 'unmatchedRoute', '/e8733846-20ac-488c-9871-a5cbcb647294', 'url'],
-  ])(
-    'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
-    (fromKey, toKey, transactionName, transactionSource) => {
-      const mockedTxn = {
-        updateName: jest.fn(),
-        setData: jest.fn(),
-        setAttribute: jest.fn(),
-        setAttributes: jest.fn(),
-        metadata: {},
-      };
-      const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
-        return mockedTxn;
-      });
-      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
-
-      // create instrumentation
-      const instrument = vueRouterInstrumentation(mockVueRouter);
-
-      // instrument
-      instrument(customMockStartTxn, true, true);
-
-      // check for transaction start
-      expect(customMockStartTxn).toHaveBeenCalledTimes(1);
-      expect(customMockStartTxn).toHaveBeenCalledWith({
-        name: '/',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        },
-        op: 'pageload',
-      });
-
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-
-      const from = testRoutes[fromKey];
-      const to = testRoutes[toKey];
-
-      beforeEachCallback(to, from, mockNext);
-      expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-
-      expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockedTxn.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
-      expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
-        ...getAttributesForRoute(to),
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
-      });
-
-      expect(mockNext).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it('allows to configure routeLabel=path', () => {
-    // create instrumentation
-    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'path' });
-
-    // instrument
-    instrument(mockStartTransaction, true, true);
-
-    // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
-    beforeEachCallback(to, from, mockNext);
-
-    // first startTx call happens when the instrumentation is initialized (for pageloads)
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/login',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-        ...getAttributesForRoute(to),
-      },
-      op: 'navigation',
-    });
-  });
-
-  it('allows to configure routeLabel=name', () => {
-    // create instrumentation
-    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'name' });
-
-    // instrument
-    instrument(mockStartTransaction, true, true);
-
-    // check
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
-    beforeEachCallback(to, from, mockNext);
-
-    // first startTx call happens when the instrumentation is initialized (for pageloads)
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: 'login-screen',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-        ...getAttributesForRoute(to),
-      },
-      op: 'navigation',
-    });
-  });
-
-  it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
-    const mockedTxn = {
-      updateName: jest.fn(),
-      setData: jest.fn(),
-      setAttribute: jest.fn(),
-      setAttributes: jest.fn(),
-      name: '',
-      toJSON: () => ({
-        data: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        },
-      }),
-    };
-    const customMockStartTxn = { ...mockStartTransaction }.mockImplementation(_ => {
-      return mockedTxn;
-    });
-    jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
-
-    // create instrumentation
-    const instrument = vueRouterInstrumentation(mockVueRouter);
-
-    // instrument
-    instrument(customMockStartTxn, true, true);
-
-    // check for transaction start
-    expect(customMockStartTxn).toHaveBeenCalledTimes(1);
-    expect(customMockStartTxn).toHaveBeenCalledWith({
-      name: '/',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
-      },
-      op: 'pageload',
-    });
-
-    // now we give the transaction a custom name, thereby simulating what would
-    // happen when users use the `beforeNavigate` hook
-    mockedTxn.name = 'customTxnName';
-    mockedTxn.toJSON = () => ({
-      data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-      },
-    });
-
-    const to = testRoutes['normalRoute1'];
-    const from = testRoutes['initialPageloadRoute'];
-
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-    beforeEachCallback(to, from, mockNext);
-
-    expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-
-    expect(mockedTxn.updateName).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttribute).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
-      ...getAttributesForRoute(to),
-    });
-    expect(mockedTxn.name).toEqual('customTxnName');
-  });
-
-  test.each([
-    [undefined, 1],
-    [false, 0],
-    [true, 1],
-  ])(
-    'should return instrumentation that considers the startTransactionOnPageLoad option = %p',
-    (startTransactionOnPageLoad, expectedCallsAmount) => {
-      // create instrumentation
-      const instrument = vueRouterInstrumentation(mockVueRouter);
-
-      // instrument
-      instrument(mockStartTransaction, startTransactionOnPageLoad, true);
-
-      // check
-      expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
-
-      expect(mockStartTransaction).toHaveBeenCalledTimes(expectedCallsAmount);
-    },
-  );
-
-  test.each([
-    [undefined, 1],
-    [false, 0],
-    [true, 1],
-  ])(
-    'should return instrumentation that considers the startTransactionOnLocationChange option = %p',
-    (startTransactionOnLocationChange, expectedCallsAmount) => {
-      // create instrumentation
-      const instrument = vueRouterInstrumentation(mockVueRouter);
-
-      // instrument (this will call startTrransaction once for pageloads but we can ignore that)
-      instrument(mockStartTransaction, true, startTransactionOnLocationChange);
-
-      // check
-      expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
-
-      const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-      beforeEachCallback(testRoutes['normalRoute2'], testRoutes['normalRoute1'], mockNext);
-
-      expect(mockStartTransaction).toHaveBeenCalledTimes(expectedCallsAmount + 1);
-    },
-  );
-
-  it("doesn't throw when `next` is not available in the beforeEach callback (Vue Router 4)", () => {
-    const instrument = vueRouterInstrumentation(mockVueRouter, { routeLabel: 'path' });
-    instrument(mockStartTransaction, true, true);
-    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
-
-    const from = testRoutes.normalRoute1;
-    const to = testRoutes.namedRoute;
-    beforeEachCallback(to, from, undefined);
-
-    // first startTx call happens when the instrumentation is initialized (for pageloads)
-    expect(mockStartTransaction).toHaveBeenLastCalledWith({
-      name: '/login',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.vue',
-        ...getAttributesForRoute(to),
-      },
-      op: 'navigation',
-    });
-  });
-});
-/* eslint-enable deprecation/deprecation */
 
 describe('instrumentVueRouter()', () => {
   afterEach(() => {
@@ -421,18 +127,17 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
-      const mockedTxn = {
+      const mockRootSpan = {
+        getSpanJSON: jest.fn().mockReturnValue({ op: 'pageload' }),
         updateName: jest.fn(),
-        setData: jest.fn(),
         setAttribute: jest.fn(),
         setAttributes: jest.fn(),
-        metadata: {},
       };
 
-      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn().mockImplementation(_ => {
-        return mockedTxn;
+        return mockRootSpan;
       });
       instrumentVueRouter(
         mockVueRouter,
@@ -451,9 +156,9 @@ describe('instrumentVueRouter()', () => {
       beforeEachCallback(to, from, mockNext);
       expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-      expect(mockedTxn.updateName).toHaveBeenCalledWith(transactionName);
-      expect(mockedTxn.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
-      expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
+      expect(mockRootSpan.updateName).toHaveBeenCalledWith(transactionName);
+      expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
+      expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
         ...getAttributesForRoute(to),
       });
@@ -517,22 +222,22 @@ describe('instrumentVueRouter()', () => {
   });
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
-    const mockedTxn = {
+    const mockRootSpan = {
       updateName: jest.fn(),
-      setData: jest.fn(),
       setAttribute: jest.fn(),
       setAttributes: jest.fn(),
       name: '',
-      toJSON: () => ({
+      getSpanJSON: () => ({
+        op: 'pageload',
         data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       }),
     };
     const mockStartSpan = jest.fn().mockImplementation(_ => {
-      return mockedTxn;
+      return mockRootSpan;
     });
-    jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+    jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
     instrumentVueRouter(
       mockVueRouter,
@@ -545,8 +250,9 @@ describe('instrumentVueRouter()', () => {
 
     // now we give the transaction a custom name, thereby simulating what would
     // happen when users use the `beforeNavigate` hook
-    mockedTxn.name = 'customTxnName';
-    mockedTxn.toJSON = () => ({
+    mockRootSpan.name = 'customTxnName';
+    mockRootSpan.getSpanJSON = () => ({
+      op: 'pageload',
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       },
@@ -561,13 +267,13 @@ describe('instrumentVueRouter()', () => {
 
     expect(mockVueRouter.beforeEach).toHaveBeenCalledTimes(1);
 
-    expect(mockedTxn.updateName).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttribute).not.toHaveBeenCalled();
-    expect(mockedTxn.setAttributes).toHaveBeenCalledWith({
+    expect(mockRootSpan.updateName).not.toHaveBeenCalled();
+    expect(mockRootSpan.setAttribute).not.toHaveBeenCalled();
+    expect(mockRootSpan.setAttributes).toHaveBeenCalledWith({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.vue',
       ...getAttributesForRoute(to),
     });
-    expect(mockedTxn.name).toEqual('customTxnName');
+    expect(mockRootSpan.name).toEqual('customTxnName');
   });
 
   test.each([
@@ -576,19 +282,20 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that considers the instrumentPageLoad = %p',
     (instrumentPageLoad, expectedCallsAmount) => {
-      const mockedTxn = {
+      const mockRootSpan = {
         updateName: jest.fn(),
         setData: jest.fn(),
         setAttribute: jest.fn(),
         setAttributes: jest.fn(),
         name: '',
         toJSON: () => ({
+          op: 'pageload',
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
         }),
       };
-      jest.spyOn(vueTracing, 'getActiveTransaction').mockImplementation(() => mockedTxn as unknown as Transaction);
+      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
       const mockStartSpan = jest.fn();
       instrumentVueRouter(
@@ -603,7 +310,7 @@ describe('instrumentVueRouter()', () => {
       const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
       beforeEachCallback(testRoutes['normalRoute1'], testRoutes['initialPageloadRoute'], mockNext);
 
-      expect(mockedTxn.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
+      expect(mockRootSpan.updateName).toHaveBeenCalledTimes(expectedCallsAmount);
       expect(mockStartSpan).not.toHaveBeenCalled();
     },
   );

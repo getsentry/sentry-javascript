@@ -3,10 +3,9 @@ import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getClient } from '@sentry/core';
 import type { PropagationContext } from '@sentry/types';
 
-import { getClient } from '../src/custom/hub';
 import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
@@ -219,8 +218,10 @@ describe('trace', () => {
           name: 'outer',
           op: 'my-op',
           origin: 'auto.test.origin',
-          source: 'task',
           metadata: { requestPath: 'test-path' },
+          attributes: {
+            [InternalSentrySemanticAttributes.SOURCE]: 'task',
+          },
         },
         span => {
           expect(span).toBeDefined();
@@ -336,7 +337,9 @@ describe('trace', () => {
         name: 'outer',
         op: 'my-op',
         origin: 'auto.test.origin',
-        source: 'task',
+        attributes: {
+          [InternalSentrySemanticAttributes.SOURCE]: 'task',
+        },
         metadata: { requestPath: 'test-path' },
       });
 

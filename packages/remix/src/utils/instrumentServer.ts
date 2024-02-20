@@ -1,20 +1,20 @@
 /* eslint-disable max-lines */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getActiveTransaction,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
+  withIsolationScope,
 } from '@sentry/core';
-import type { Hub } from '@sentry/node';
 import { captureException, getCurrentHub } from '@sentry/node';
-import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -416,13 +416,13 @@ export function startRequestHandlerTransaction(
     op: 'http.server',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
     tags: {
       method: request.method,
     },
     ...traceparentData,
     metadata: {
-      source,
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     },
   });
@@ -456,11 +456,10 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    return runWithAsyncContext(async () => {
+    return withIsolationScope(async isolationScope => {
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -473,7 +472,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url, pkg);
 
-      scope.setSDKProcessingMetadata({
+      isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
           route: {

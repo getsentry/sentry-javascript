@@ -1,6 +1,6 @@
 import type { Client, Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { getOriginalFunction } from '@sentry/utils';
-import { getClient } from '../exports';
+import { getClient } from '../currentScopes';
 import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 
 let originalFunctionToString: () => void;

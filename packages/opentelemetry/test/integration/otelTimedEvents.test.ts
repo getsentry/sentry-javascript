@@ -1,6 +1,6 @@
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 
-import { getClient } from '../../src/custom/hub';
+import { getClient } from '@sentry/core';
 import { startSpan } from '../../src/trace';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -48,6 +48,7 @@ describe('Integration | OTEL TimedEvents', () => {
         event_id: expect.any(String),
         originalException: expect.any(Error),
         syntheticException: expect.any(Error),
+        captureContext: expect.any(Object),
       },
     );
   });

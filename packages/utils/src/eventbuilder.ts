@@ -4,10 +4,8 @@ import type {
   EventHint,
   Exception,
   Extras,
-  Hub,
   Mechanism,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   StackFrame,
   StackParser,
@@ -64,22 +62,14 @@ function getMessageForObject(exception: object): string {
 
 /**
  * Builds and Event from a Exception
- *
- * TODO(v8): Remove getHub fallback
  * @hidden
  */
 export function eventFromUnknownInput(
-  getHubOrClient: (() => Hub) | Client | undefined,
+  client: Client,
   stackParser: StackParser,
   exception: unknown,
   hint?: EventHint,
 ): Event {
-  const client =
-    typeof getHubOrClient === 'function'
-      ? // eslint-disable-next-line deprecation/deprecation
-        getHubOrClient().getClient()
-      : getHubOrClient;
-
   let ex: unknown = exception;
   const providedMechanism: Mechanism | undefined =
     hint && hint.data && (hint.data as { mechanism: Mechanism }).mechanism;
@@ -133,8 +123,7 @@ export function eventFromUnknownInput(
 export function eventFromMessage(
   stackParser: StackParser,
   message: ParameterizedString,
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel = 'info',
+  level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
 ): Event {

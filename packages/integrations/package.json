@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14"
   },
   "publishConfig": {
     "access": "public"
@@ -31,8 +31,7 @@
   "dependencies": {
     "@sentry/core": "7.100.0",
     "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0",
-    "localforage": "^1.8.1"
+    "@sentry/utils": "7.100.0"
   },
   "devDependencies": {
     "@sentry/browser": "7.100.0",

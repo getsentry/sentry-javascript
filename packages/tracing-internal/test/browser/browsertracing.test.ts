@@ -1,5 +1,12 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, TRACING_DEFAULTS, makeMain, setCurrentClient, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  TRACING_DEFAULTS,
+  getClient,
+  getCurrentHub,
+  setCurrentClient,
+  spanToJSON,
+} from '@sentry/core';
 import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
@@ -7,7 +14,7 @@ import { JSDOM } from 'jsdom';
 import { timestampInSeconds } from '@sentry/utils';
 import type { IdleTransaction } from '../../../tracing/src';
 import { getActiveTransaction } from '../../../tracing/src';
-import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
+import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
@@ -55,13 +62,13 @@ beforeAll(() => {
   WINDOW.location = dom.window.location;
 });
 
-conditionalTest({ min: 10 })('BrowserTracing', () => {
-  let hub: Hub;
+describe('BrowserTracing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new TestClient(options));
-    makeMain(hub);
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
     document.head.innerHTML = '';
 
     mockStartTrackingWebVitals.mockClear();
@@ -79,7 +86,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
     const instance = new BrowserTracing(_options);
     if (setup) {
       const processor = () => undefined;
-      instance.setupOnce(processor, () => hub);
+      instance.setupOnce(processor, () => getCurrentHub() as hubExtensions.Hub);
     }
 
     return instance;
@@ -166,7 +173,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         routingInstrumentation: customInstrumentRouting,
       });
 
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const transaction = getActiveTransaction() as IdleTransaction;
       expect(transaction).toBeDefined();
       expect(transaction.name).toBe('a/path');
       expect(transaction.op).toBe('pageload');
@@ -177,7 +184,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         routingInstrumentation: customInstrumentRouting,
       });
 
-      const transaction = getActiveTransaction(hub) as IdleTransaction;
+      const transaction = getActiveTransaction() as IdleTransaction;
       const span = transaction.startChild();
 
       const timestamp = timestampInSeconds();
@@ -187,129 +194,6 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
       expect(spanToJSON(transaction).timestamp).toBe(timestamp);
     });
 
-    // TODO (v8): remove these tests
-    describe('tracingOrigins', () => {
-      it('sets tracing origins if provided and does not warn', () => {
-        const sampleTracingOrigins = ['something'];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: sampleTracingOrigins,
-        });
-
-        // eslint-disable-next-line deprecation/deprecation
-        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
-      });
-
-      it('sets tracing origins to an empty array and does not warn', () => {
-        const sampleTracingOrigins: string[] = [];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracingOrigins: sampleTracingOrigins,
-        });
-
-        // eslint-disable-next-line deprecation/deprecation
-        expect(inst.options.tracingOrigins).toEqual(sampleTracingOrigins);
-      });
-    });
-
-    describe('tracePropagationTargets', () => {
-      it('sets tracePropagationTargets if provided', () => {
-        const sampleTracePropagationTargets = ['something'];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
-      });
-
-      it('sets tracePropagationTargets to an empty array and does not warn', () => {
-        const sampleTracePropagationTargets: string[] = [];
-        const inst = createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(inst.options.tracePropagationTargets).toEqual(sampleTracePropagationTargets);
-      });
-
-      it('correctly passes tracePropagationTargets to `instrumentOutgoingRequests` in `setupOnce`', () => {
-        jest.clearAllMocks();
-        const sampleTracePropagationTargets = ['something'];
-        createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
-          traceFetch: true,
-          traceXHR: true,
-          tracePropagationTargets: ['something'],
-          enableHTTPTimings: true,
-        });
-      });
-
-      it('uses `tracePropagationTargets` set by client over integration set targets', () => {
-        jest.clearAllMocks();
-        hub.getClient()!.getOptions().tracePropagationTargets = ['something-else'];
-        const sampleTracePropagationTargets = ['something'];
-        createBrowserTracing(true, {
-          routingInstrumentation: customInstrumentRouting,
-          tracePropagationTargets: sampleTracePropagationTargets,
-        });
-
-        expect(instrumentOutgoingRequestsMock).toHaveBeenCalledWith({
-          enableHTTPTimings: true,
-          traceFetch: true,
-          traceXHR: true,
-          tracePropagationTargets: ['something-else'],
-        });
-      });
-
-      it.each([
-        [true, 'tracePropagationTargets', 'defined', { tracePropagationTargets: ['something'] }],
-        [false, 'tracePropagationTargets', 'undefined', { tracePropagationTargets: undefined }],
-        [true, 'tracingOrigins', 'defined', { tracingOrigins: ['something'] }],
-        [false, 'tracingOrigins', 'undefined', { tracingOrigins: undefined }],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'defined',
-          { tracePropagationTargets: ['something'], tracingOrigins: ['something-else'] },
-        ],
-        [
-          false,
-          'tracePropagationTargets and tracingOrigins',
-          'undefined',
-          { tracePropagationTargets: undefined, tracingOrigins: undefined },
-        ],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'defined and undefined',
-          { tracePropagationTargets: ['something'], tracingOrigins: undefined },
-        ],
-        [
-          true,
-          'tracePropagationTargets and tracingOrigins',
-          'undefined and defined',
-          { tracePropagationTargets: undefined, tracingOrigins: ['something'] },
-        ],
-      ])(
-        'sets `_hasSetTracePropagationTargets` to %s if %s is %s',
-        (hasSet: boolean, _: string, __: string, options: Partial<BrowserTracingOptions>) => {
-          jest.clearAllMocks();
-          const inst = createBrowserTracing(true, {
-            routingInstrumentation: customInstrumentRouting,
-            ...options,
-          });
-
-          // @ts-expect-error accessing private property
-          expect(inst._hasSetTracePropagationTargets).toBe(hasSet);
-        },
-      );
-    });
-
     describe('beforeNavigate', () => {
       it('is called on transaction creation', () => {
         const mockBeforeNavigation = jest.fn().mockReturnValue({ name: 'here/is/my/path' });
@@ -317,7 +201,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customInstrumentRouting,
         });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
@@ -329,7 +213,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customInstrumentRouting,
         });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction.sampled).toBe(false);
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
@@ -344,7 +228,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customInstrumentRouting,
         });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.op).toBe('not-pageload');
 
@@ -360,10 +244,10 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: customInstrumentRouting,
         });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.name).toBe('newName');
-        expect(transaction.metadata.source).toBe('custom');
+        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -375,13 +259,17 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true, {
           beforeNavigate: mockBeforeNavigation,
           routingInstrumentation: (customStartTransaction: (obj: any) => void) => {
-            customStartTransaction({ name: 'a/path', op: 'pageload', metadata: { source: 'url' } });
+            customStartTransaction({
+              name: 'a/path',
+              op: 'pageload',
+              attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+            });
           },
         });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(transaction.name).toBe('a/path');
-        expect(transaction.metadata.source).toBe('url');
+        expect(transaction.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -419,7 +307,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
       it('is created by default', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
@@ -434,7 +322,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
       it('can be a custom value', () => {
         createBrowserTracing(true, { idleTimeout: 2000, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
@@ -448,7 +336,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       it('calls `_collectWebVitals` if enabled', () => {
         createBrowserTracing(true, { routingInstrumentation: customInstrumentRouting });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
 
         const span = transaction.startChild(); // activities = 1
         span.end(); // activities = 0
@@ -463,7 +351,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         const interval = 200;
         createBrowserTracing(true, { heartbeatInterval: interval, routingInstrumentation: customInstrumentRouting });
         const mockFinish = jest.fn();
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         transaction.sendAutoFinishSignal();
         transaction.end = mockFinish;
 
@@ -482,7 +370,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
     describe('pageload transaction', () => {
       it('is created on setup on scope', () => {
         createBrowserTracing(true);
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
 
         expect(transaction.op).toBe('pageload');
@@ -490,7 +378,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       it('is not created if the option is false', () => {
         createBrowserTracing(true, { startTransactionOnPageLoad: false });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).not.toBeDefined();
       });
     });
@@ -504,18 +392,18 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true);
         jest.runAllTimers();
 
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).not.toBeDefined();
       });
 
       it('is created on location change', () => {
         createBrowserTracing(true);
-        const transaction1 = getActiveTransaction(hub) as IdleTransaction;
+        const transaction1 = getActiveTransaction() as IdleTransaction;
         expect(transaction1.op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
-        const transaction2 = getActiveTransaction(hub) as IdleTransaction;
+        const transaction2 = getActiveTransaction() as IdleTransaction;
         expect(transaction2.op).toBe('navigation');
 
         expect(spanToJSON(transaction1).timestamp).toBeDefined();
@@ -523,12 +411,12 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
       it('is not created if startTransactionOnLocationChange is false', () => {
         createBrowserTracing(true, { startTransactionOnLocationChange: false });
-        const transaction1 = getActiveTransaction(hub) as IdleTransaction;
+        const transaction1 = getActiveTransaction() as IdleTransaction;
         expect(transaction1.op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
-        const transaction2 = getActiveTransaction(hub) as IdleTransaction;
+        const transaction2 = getActiveTransaction() as IdleTransaction;
         expect(transaction2.op).toBe('pageload');
       });
     });
@@ -566,14 +454,14 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     describe('using the <meta> tag data', () => {
       beforeEach(() => {
-        hub.getClient()!.getOptions = () => {
+        getClient()!.getOptions = () => {
           return {
             release: '1.0.0',
             environment: 'production',
           } as ClientOptions<BaseTransportOptions>;
         };
 
-        hub.getClient()!.getDsn = () => {
+        getClient()!.getDsn = () => {
           return {
             publicKey: 'pubKey',
           } as DsnComponents;
@@ -588,7 +476,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
@@ -608,7 +496,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
         // pageload transactions are created as part of the BrowserTracing integration's initialization
         createBrowserTracing(true);
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
@@ -628,7 +516,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
         createBrowserTracing(true);
 
         mockChangeHistory({ to: 'here', from: 'there' });
-        const transaction = getActiveTransaction(hub) as IdleTransaction;
+        const transaction = getActiveTransaction() as IdleTransaction;
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();

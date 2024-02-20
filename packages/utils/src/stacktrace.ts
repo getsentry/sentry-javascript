@@ -1,11 +1,7 @@
 import type { StackFrame, StackLineParser, StackParser } from '@sentry/types';
 
-import type { GetModuleFn } from './node-stack-trace';
-import { filenameIsInApp, node } from './node-stack-trace';
-
-export { filenameIsInApp };
-
 const STACKTRACE_FRAME_LIMIT = 50;
+export const UNKNOWN_FUNCTION = '?';
 // Used to sanitize webpack (error: *) wrapped stack errors
 const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 const STRIP_FRAME_REGEXP = /captureMessage|captureException/;
@@ -116,7 +112,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   return localStack.slice(0, STACKTRACE_FRAME_LIMIT).map(frame => ({
     ...frame,
     filename: frame.filename || localStack[localStack.length - 1].filename,
-    function: frame.function || '?',
+    function: frame.function || UNKNOWN_FUNCTION,
   }));
 }
 
@@ -136,14 +132,4 @@ export function getFunctionName(fn: unknown): string {
     // can cause a "Permission denied" exception (see raven-js#495).
     return defaultFunctionName;
   }
-}
-
-/**
- * Node.js stack line parser
- *
- * This is in @sentry/utils so it can be used from the Electron SDK in the browser for when `nodeIntegration == true`.
- * This allows it to be used without referencing or importing any node specific code which causes bundlers to complain
- */
-export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
-  return [90, node(getModule)];
 }

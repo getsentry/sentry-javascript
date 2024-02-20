@@ -1,8 +1,9 @@
-import type { Client, ClientOptions } from '@sentry/types';
+import type { Client, ClientOptions, Hub as HubInterface } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
+import { getCurrentScope } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
-import { getCurrentScope } from './exports';
+import type { Hub } from './hub';
 import { getCurrentHub } from './hub';
 
 /** A class object that can instantiate Client objects. */
@@ -35,32 +36,26 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
 
   const client = new clientClass(options);
   setCurrentClient(client);
-  initializeClient(client);
+  client.init();
 }
 
 /**
  * Make the given client the current client.
  */
 export function setCurrentClient(client: Client): void {
+  getCurrentScope().setClient(client);
+
+  // is there a hub too?
   // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
-  // eslint-disable-next-line deprecation/deprecation
-  const top = hub.getStackTop();
-  top.client = client;
-  top.scope.setClient(client);
+  if (isHubClass(hub)) {
+    // eslint-disable-next-line deprecation/deprecation
+    const top = hub.getStackTop();
+    top.client = client;
+  }
 }
 
-/**
- * Initialize the client for the current scope.
- * Make sure to call this after `setCurrentClient()`.
- */
-function initializeClient(client: Client): void {
-  if (client.init) {
-    client.init();
-    // TODO v8: Remove this fallback
-    // eslint-disable-next-line deprecation/deprecation
-  } else if (client.setupIntegrations) {
-    // eslint-disable-next-line deprecation/deprecation
-    client.setupIntegrations();
-  }
+function isHubClass(hub: HubInterface): hub is Hub {
+  // eslint-disable-next-line deprecation/deprecation
+  return !!(hub as Hub).getStackTop;
 }

@@ -5,17 +5,17 @@ export const config = {
 };
 
 export default async function handler() {
-  // Without `runWithAsyncContext` and a working async context strategy the two spans created by `Sentry.trace()` would be nested.
+  // Without a working async context strategy the two spans created by `Sentry.startSpan()` would be nested.
 
-  const outerSpanPromise = Sentry.runWithAsyncContext(() => {
-    return Sentry.trace({ name: 'outer-span' }, () => {
+  const outerSpanPromise = Sentry.withIsolationScope(() => {
+    return Sentry.startSpan({ name: 'outer-span' }, () => {
       return new Promise<void>(resolve => setTimeout(resolve, 300));
     });
   });
 
   setTimeout(() => {
-    Sentry.runWithAsyncContext(() => {
-      return Sentry.trace({ name: 'inner-span' }, () => {
+    Sentry.withIsolationScope(() => {
+      return Sentry.startSpan({ name: 'inner-span' }, () => {
         return new Promise<void>(resolve => setTimeout(resolve, 100));
       });
     });

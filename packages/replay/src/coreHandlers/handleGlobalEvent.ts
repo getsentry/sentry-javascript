@@ -5,19 +5,13 @@ import { DEBUG_BUILD } from '../debug-build';
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isFeedbackEvent, isReplayEvent, isTransactionEvent } from '../util/eventUtils';
 import { isRrwebError } from '../util/isRrwebError';
-import { handleAfterSendEvent } from './handleAfterSendEvent';
 import { addFeedbackBreadcrumb } from './util/addFeedbackBreadcrumb';
 import { shouldSampleForBufferEvent } from './util/shouldSampleForBufferEvent';
 
 /**
  * Returns a listener to be added to `addEventProcessor(listener)`.
  */
-export function handleGlobalEventListener(
-  replay: ReplayContainer,
-  includeAfterSendEventHandling = false,
-): (event: Event, hint: EventHint) => Event | null {
-  const afterSendHandler = includeAfterSendEventHandling ? handleAfterSendEvent(replay) : undefined;
-
+export function handleGlobalEventListener(replay: ReplayContainer): (event: Event, hint: EventHint) => Event | null {
   return Object.assign(
     (event: Event, hint: EventHint) => {
       // Do nothing if replay has been disabled
@@ -71,13 +65,6 @@ export function handleGlobalEventListener(
 
       if (shouldTagReplayId) {
         event.tags = { ...event.tags, replayId: replay.getSessionId() };
-      }
-
-      // In cases where a custom client is used that does not support the new hooks (yet),
-      // we manually call this hook method here
-      if (afterSendHandler) {
-        // Pretend the error had a 200 response so we always capture it
-        afterSendHandler(event, { statusCode: 200 });
       }
 
       return event;

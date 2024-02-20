@@ -53,4 +53,46 @@ describe('withActiveSpan()', () => {
       expect.anything(),
     );
   });
+
+  it('when `null` is passed, no span should be active within the callback', () => {
+    expect.assertions(1);
+    startSpan({ name: 'parent-span' }, () => {
+      withActiveSpan(null, () => {
+        expect(getActiveSpan()).toBeUndefined();
+      });
+    });
+  });
+
+  it('when `null` is passed, should start a new trace for new spans', async () => {
+    const beforeSendTransaction = jest.fn(() => null);
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    const client = getClient();
+
+    startSpan({ name: 'parent-span' }, () => {
+      withActiveSpan(null, () => {
+        startSpan({ name: 'child-span' }, () => {});
+      });
+    });
+
+    await client.flush();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
+
+    // The child span should be a child of the inactive span
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transaction: 'parent-span',
+        spans: expect.not.arrayContaining([expect.objectContaining({ description: 'child-span' })]),
+      }),
+      expect.anything(),
+    );
+
+    // The floating span should be a separate transaction
+    expect(beforeSendTransaction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        transaction: 'child-span',
+      }),
+      expect.anything(),
+    );
+  });
 });

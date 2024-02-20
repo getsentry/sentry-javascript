@@ -1,7 +1,6 @@
 import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
 import { makeOfflineTransport } from '@sentry/core';
 import type { Envelope, InternalBaseTransportOptions, Transport } from '@sentry/types';
-import type { TextDecoderInternal } from '@sentry/utils';
 import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
@@ -95,11 +94,6 @@ export interface BrowserOfflineTransportOptions extends OfflineTransportOptions 
    * Default: 30
    */
   maxQueueSize?: number;
-  /**
-   * Only required for testing on node.js
-   * @ignore
-   */
-  textDecoder?: TextDecoderInternal;
 }
 
 function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineStore {
@@ -117,7 +111,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
   return {
     insert: async (env: Envelope) => {
       try {
-        const serialized = await serializeEnvelope(env, options.textEncoder);
+        const serialized = await serializeEnvelope(env);
         await insert(getStore(), serialized, options.maxQueueSize || 30);
       } catch (_) {
         //
@@ -127,11 +121,7 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
       try {
         const deserialized = await pop(getStore());
         if (deserialized) {
-          return parseEnvelope(
-            deserialized,
-            options.textEncoder || new TextEncoder(),
-            options.textDecoder || new TextDecoder(),
-          );
+          return parseEnvelope(deserialized);
         }
       } catch (_) {
         //

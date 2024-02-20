@@ -1,11 +1,10 @@
 const Sentry = require('../../../build/cjs');
 const { colorize } = require('../colorize');
-const { TextEncoder } = require('util');
 
 let remaining = 2;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     --remaining;
 
     if (!remaining) {
@@ -43,15 +42,10 @@ Sentry.init({
   },
 });
 
-Sentry.configureScope(scope => {
-  scope.setTag('a', 'b');
-});
+Sentry.setTag('a', 'b');
 
-Sentry.runWithAsyncContext(() => {
-  Sentry.configureScope(scope => {
-    scope.setTag('a', 'x');
-    scope.setTag('b', 'c');
-  });
+Sentry.withIsolationScope(() => {
+  Sentry.setTag('a', 'x');
   Sentry.captureMessage('inside');
 });
 

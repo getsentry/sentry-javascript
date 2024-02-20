@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14"
   },
   "files": [
     "cjs",
@@ -39,9 +39,9 @@
     "svelte": "3.x || 4.x"
   },
   "devDependencies": {
-    "@testing-library/svelte": "^3.2.1",
     "svelte": "3.49.0",
-    "svelte-jester": "^2.3.2"
+    "@sveltejs/vite-plugin-svelte": "1.4.0",
+    "@testing-library/svelte": "^3.2.1"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",
@@ -59,8 +59,8 @@
     "clean": "rimraf build coverage sentry-svelte-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

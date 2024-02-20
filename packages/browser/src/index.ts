@@ -27,6 +27,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,
   replayIntegration,
+  getReplay,
 } from '@sentry/replay';
 export type {
   ReplayEventType,
@@ -67,15 +68,9 @@ export {
   addTracingExtensions,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,

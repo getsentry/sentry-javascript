@@ -29,8 +29,8 @@ const config: PlaywrightTestConfig = {
      */
     timeout: 10000,
   },
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
+  workers: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* `next dev` is incredibly buggy with the app dir */

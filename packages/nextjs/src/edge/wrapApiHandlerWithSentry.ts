@@ -29,8 +29,3 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
     },
   });
 }
-
-/**
- * @deprecated Use `wrapApiHandlerWithSentry` instead.
- */
-export const withSentryAPI = wrapApiHandlerWithSentry;

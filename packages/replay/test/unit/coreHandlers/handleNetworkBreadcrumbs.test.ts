@@ -1,10 +1,8 @@
-import { TextEncoder } from 'util';
 import type {
   Breadcrumb,
   BreadcrumbHint,
   FetchBreadcrumbHint,
   SentryWrappedXMLHttpRequest,
-  TextEncoderInternal,
   XhrBreadcrumbHint,
 } from '@sentry/types';
 import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
@@ -55,14 +53,12 @@ describe('Unit | coreHandlers | handleNetworkBreadcrumbs', () => {
   describe('beforeAddNetworkBreadcrumb()', () => {
     let options: ReplayNetworkOptions & {
       replay: ReplayContainer;
-      textEncoder: TextEncoderInternal;
     };
 
     beforeEach(() => {
       jest.setSystemTime(BASE_TIMESTAMP);
 
       options = {
-        textEncoder: new TextEncoder(),
         replay: setupReplayContainer(),
         networkDetailAllowUrls: ['https://example.com'],
         networkDetailDenyUrls: ['http://localhost:8080'],

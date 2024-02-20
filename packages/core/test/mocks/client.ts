@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type {
   ClientOptions,
   Event,
@@ -7,7 +6,6 @@ import type {
   Outcome,
   ParameterizedString,
   Session,
-  Severity,
   SeverityLevel,
 } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
@@ -20,12 +18,10 @@ export function getDefaultTestClientOptions(options: Partial<TestClientOptions> 
   return {
     integrations: [],
     sendClientReports: true,
-    transportOptions: { textEncoder: new TextEncoder() },
     transport: () =>
       createTransport(
         {
           recordDroppedEvent: () => undefined,
-          textEncoder: new TextEncoder(),
         }, // noop
         _ => resolvedSyncPromise({}),
       ),
@@ -76,11 +72,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     return resolvedSyncPromise(event);
   }
 
-  public eventFromMessage(
-    message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
-  ): PromiseLike<Event> {
+  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): PromiseLike<Event> {
     return resolvedSyncPromise({ message, level });
   }
 

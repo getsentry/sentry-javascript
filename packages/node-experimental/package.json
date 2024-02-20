@@ -53,7 +53,8 @@
     "@sentry/node": "7.100.0",
     "@sentry/opentelemetry": "7.100.0",
     "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry/utils": "7.100.0",
+    "@types/node": "14.18.63"
   },
   "optionalDependencies": {
     "opentelemetry-instrumentation-fetch-node": "1.1.0"

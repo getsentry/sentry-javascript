@@ -1,18 +1,5 @@
-import {
-  captureEvent,
-  convertIntegrationFnToClass,
-  defineIntegration,
-  getClient,
-  isSentryRequestUrl,
-} from '@sentry/core';
-import type {
-  Client,
-  Event as SentryEvent,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  SentryWrappedXMLHttpRequest,
-} from '@sentry/types';
+import { captureEvent, defineIntegration, getClient, isSentryRequestUrl } from '@sentry/core';
+import type { Client, Event as SentryEvent, IntegrationFn, SentryWrappedXMLHttpRequest } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   SENTRY_XHR_DATA_KEY,
@@ -60,8 +47,6 @@ const _httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client): void {
       _wrapFetch(client, _options);
       _wrapXHR(client, _options);
@@ -69,21 +54,10 @@ const _httpClientIntegration = ((options: Partial<HttpClientOptions> = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const httpClientIntegration = defineIntegration(_httpClientIntegration);
-
 /**
  * Create events for failed client side HTTP requests.
- * @deprecated Use `httpClientIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const HttpClient = convertIntegrationFnToClass(INTEGRATION_NAME, httpClientIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
-> & {
-  new (options?: {
-    failedRequestStatusCodes: HttpStatusCodeRange[];
-    failedRequestTargets: HttpRequestTarget[];
-  }): Integration;
-};
+export const httpClientIntegration = defineIntegration(_httpClientIntegration);
 
 /**
  * Interceptor function for fetch requests

@@ -43,7 +43,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -77,7 +77,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     // integration.setup!(client) is not called!
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -97,7 +97,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -121,7 +121,7 @@ describe('WinterCGFetch instrumentation', () => {
         return url === 'http://only-acceptable-url.com/';
       },
     });
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -145,7 +145,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -182,7 +182,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration({ breadcrumbs: false });
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
