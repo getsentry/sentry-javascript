@@ -1,8 +1,8 @@
 import { expect } from '@playwright/test';
-import type { Event, SpanJSON } from '@sentry/types';
+import type { SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest('should finish a custom transaction when the page goes background', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
@@ -10,29 +10,28 @@ sentryTest('should finish a custom transaction when the page goes background', a
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-
-  const pageloadTransaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  expect(pageloadTransaction).toBeDefined();
+  page.goto(url);
 
   await page.locator('#start-span').click();
-  const spanJson: SpanJSON = await page.evaluate('window.getSpanJson()');
+  const spanJsonBefore: SpanJSON = await page.evaluate('window.getSpanJson()');
 
-  const id_before = spanJson.span_id;
-  const description_before = spanJson.description;
-  const status_before = spanJson.status;
+  const id_before = spanJsonBefore.span_id;
+  const description_before = spanJsonBefore.description;
+  const status_before = spanJsonBefore.status;
 
   expect(description_before).toBe('test-span');
   expect(status_before).toBeUndefined();
 
   await page.locator('#go-background').click();
+  const spanJsonAfter: SpanJSON = await page.evaluate('window.getSpanJson()');
 
-  const id_after = spanJson.span_id;
-  const description_after = spanJson.description;
-  const status_after = spanJson.status;
-  const data_after = spanJson.data;
+  const id_after = spanJsonAfter.span_id;
+  const description_after = spanJsonAfter.description;
+  const status_after = spanJsonAfter.status;
+  const data_after = spanJsonAfter.data;
 
   expect(id_before).toBe(id_after);
   expect(description_after).toBe(description_before);
   expect(status_after).toBe('cancelled');
-  expect(data_after).toStrictEqual({ 'sentry.cancellation_reason': 'document.hidden' });
+  expect(data_after?.['sentry.cancellation_reason']).toBe('document.hidden');
 });

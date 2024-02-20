@@ -6,11 +6,9 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('start-span').addEventListener('click', () => {
-  Sentry.withActiveSpan(null, () => {
-    const span = Sentry.startInactiveSpan({ name: 'test-span' });
-    window.span = span;
-    Sentry.getCurrentScope().setSpan(span);
-  });
+  const span = Sentry.startInactiveSpan({ name: 'test-span' });
+  window.span = span;
+  Sentry.getCurrentScope().setSpan(span);
 });
 
 window.getSpanJson = () => {
