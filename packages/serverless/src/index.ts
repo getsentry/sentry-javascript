@@ -102,4 +102,5 @@ export {
   startSession,
   captureSession,
   endSession,
+  withActiveSpan,
 } from '@sentry/node';
