@@ -92,7 +92,8 @@ to access and mutate the current scope.
 
 ## Removal of `makeXHRTransport` transport (#10703)
 
-The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the Sentry SDK requires the fetch API to be available in the environment.
+The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the
+Sentry SDK requires the fetch API to be available in the environment.
 
 ## General API Changes
 
