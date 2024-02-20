@@ -1,6 +1,5 @@
 import { expect } from '@playwright/test';
-import { spanToJSON } from '@sentry/core';
-import type { Event } from '@sentry/types';
+import type { SerializedEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -17,14 +16,11 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
 
     expect(eventData.contexts?.trace?.op).toBe('pageload');
     expect(
-      eventData.spans?.find(
-        // eslint-disable-next-line deprecation/deprecation
-        span => spanToJSON(span).description === 'pageload-child-span' && span.status === 'cancelled',
-      ),
+      eventData.spans?.find(span => span.description === 'pageload-child-span' && span.status === 'cancelled'),
     ).toBeDefined();
   },
 );
