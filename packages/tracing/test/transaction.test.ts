@@ -23,14 +23,14 @@ describe('`Transaction` class', () => {
       });
 
       expect(spanToJSON(transaction).description).toEqual('dogpark');
-      expect(transaction.metadata.source).toEqual('route');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
     });
 
     it("sets source to be `'custom'` in constructor if not provided", () => {
       const transaction = new Transaction({ name: 'dogpark' });
 
       expect(spanToJSON(transaction).description).toEqual('dogpark');
-      expect(transaction.metadata.source).toBe('custom');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
     });
 
     it("sets source to `'custom'` when assigning to `name` property", () => {
@@ -38,7 +38,7 @@ describe('`Transaction` class', () => {
       transaction.updateName('ballpit');
 
       expect(spanToJSON(transaction).description).toEqual('ballpit');
-      expect(transaction.metadata.source).toEqual('custom');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
 
     it('sets instrumenter to be `sentry` in constructor if not provided', () => {
@@ -59,7 +59,7 @@ describe('`Transaction` class', () => {
         transaction.updateName('ballpit');
 
         expect(spanToJSON(transaction).description).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('custom');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
       });
 
       it('uses given `source` value', () => {
@@ -68,7 +68,7 @@ describe('`Transaction` class', () => {
         transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
         expect(spanToJSON(transaction).description).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('route');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
       });
     });
   });

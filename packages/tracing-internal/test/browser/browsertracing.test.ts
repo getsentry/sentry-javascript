@@ -247,7 +247,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(spanToJSON(transaction).description).toBe('newName');
-        expect(transaction.metadata.source).toBe('custom');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -269,7 +269,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
         expect(spanToJSON(transaction).description).toBe('a/path');
-        expect(transaction.metadata.source).toBe('url');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('url');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });

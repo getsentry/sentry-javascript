@@ -509,7 +509,7 @@ export class SentrySpan implements SpanInterface {
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this._name,
+      name: this._name,
       endTimestamp: this._endTime,
       // eslint-disable-next-line deprecation/deprecation
       op: this.op,
