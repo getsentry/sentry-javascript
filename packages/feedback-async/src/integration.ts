@@ -186,7 +186,7 @@ export class FeedbackAsync implements Integration {
       this._createWidget(this.options);
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
     }
   }
 
@@ -246,7 +246,7 @@ export class FeedbackAsync implements Integration {
       });
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
       return null;
     }
   }
@@ -261,7 +261,7 @@ export class FeedbackAsync implements Integration {
       return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
     } catch (err) {
       DEBUG_BUILD && logger.error(err);
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
       return null;
     }
   }
@@ -288,7 +288,7 @@ export class FeedbackAsync implements Integration {
         return true;
       }
     } catch (err) {
-      console.log(err);
+      console.log(err); // eslint-disable-line no-console
       DEBUG_BUILD && logger.error(err);
     }
 
