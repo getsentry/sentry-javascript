@@ -1,4 +1,5 @@
 import { expect } from '@playwright/test';
+import { spanToJSON } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
@@ -20,8 +21,10 @@ sentryTest(
 
     expect(eventData.contexts?.trace?.op).toBe('pageload');
     expect(
-      // eslint-disable-next-line deprecation/deprecation
-      eventData.spans?.find(span => span.description === 'pageload-child-span' && span.status === 'cancelled'),
+      eventData.spans?.find(
+        // eslint-disable-next-line deprecation/deprecation
+        span => spanToJSON(span).description === 'pageload-child-span' && span.status === 'cancelled',
+      ),
     ).toBeDefined();
   },
 );

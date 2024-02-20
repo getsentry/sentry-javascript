@@ -18,11 +18,12 @@ describe('transaction', () => {
       const transaction = new Transaction({ name: 'span name' });
       transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
       expect(spanToJSON(transaction).description).toEqual('span name');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       transaction.updateName('new name');
 
       expect(spanToJSON(transaction).description).toEqual('new name');
-      expect(transaction.metadata.source).toEqual('route');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
     /* eslint-enable deprecation/deprecation */
   });
