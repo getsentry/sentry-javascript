@@ -1,4 +1,3 @@
-import type { SpanStatusType } from '@sentry/core';
 import { getActiveSpan, getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
@@ -23,23 +22,23 @@ export function registerBackgroundTabDetection(): void {
         return;
       }
 
-      if (WINDOW.document.hidden && activeSpan) {
-        const statusType: SpanStatusType = 'cancelled';
+      if (WINDOW.document.hidden && rootSpan) {
+        const cancelledStatus = 'cancelled';
 
-        const { op, status } = spanToJSON(activeSpan);
+        const { op, status } = spanToJSON(rootSpan);
 
         if (DEBUG_BUILD) {
-          logger.log(`[Tracing] Transaction: ${statusType} -> since tab moved to the background, op: ${op}`);
+          logger.log(`[Tracing] Transaction: ${cancelledStatus} -> since tab moved to the background, op: ${op}`);
         }
 
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
         if (!status) {
-          activeSpan.setStatus(statusType);
+          rootSpan.setStatus(cancelledStatus);
         }
 
-        activeSpan.setAttribute('sentry.cancellation_reason', 'document.hidden');
-        activeSpan.end();
+        rootSpan.setAttribute('sentry.cancellation_reason', 'document.hidden');
+        rootSpan.end();
       }
     });
   } else {
