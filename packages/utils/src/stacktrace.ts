@@ -6,6 +6,7 @@ import { filenameIsInApp, node } from './node-stack-trace';
 export { filenameIsInApp };
 
 const STACKTRACE_FRAME_LIMIT = 50;
+export const UNKNOWN_FUNCTION = '?';
 // Used to sanitize webpack (error: *) wrapped stack errors
 const WEBPACK_ERROR_REGEXP = /\(error: (.*)\)/;
 const STRIP_FRAME_REGEXP = /captureMessage|captureException/;
@@ -116,7 +117,7 @@ export function stripSentryFramesAndReverse(stack: ReadonlyArray<StackFrame>): S
   return localStack.slice(0, STACKTRACE_FRAME_LIMIT).map(frame => ({
     ...frame,
     filename: frame.filename || localStack[localStack.length - 1].filename,
-    function: frame.function || '?',
+    function: frame.function || UNKNOWN_FUNCTION,
   }));
 }
 

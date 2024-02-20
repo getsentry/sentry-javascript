@@ -1,7 +1,7 @@
 import type { StackFrame } from '@sentry/types';
 
 import { dropUndefinedKeys } from './object';
-import { filenameIsInApp } from './stacktrace';
+import { UNKNOWN_FUNCTION, filenameIsInApp } from './stacktrace';
 
 type WatchdogReturn = {
   /** Resets the watchdog timer */
@@ -84,7 +84,7 @@ export function callFrameToStackFrame(
   return dropUndefinedKeys({
     filename,
     module: getModuleFromFilename(filename),
-    function: frame.functionName || '?',
+    function: frame.functionName || UNKNOWN_FUNCTION,
     colno,
     lineno,
     in_app: filename ? filenameIsInApp(filename) : undefined,
