@@ -392,7 +392,7 @@ export class Scope implements ScopeInterface {
       if (scopeData.level) {
         this._level = scopeData.level;
       }
-      if (scopeData.fingerprint) {
+      if (scopeData.fingerprint.length) {
         this._fingerprint = scopeData.fingerprint;
       }
       if (scopeToMerge.getRequestSession()) {
