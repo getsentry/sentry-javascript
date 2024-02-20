@@ -40,8 +40,6 @@ const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addSourceContext(event, contextLines);
     },

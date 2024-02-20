@@ -21,8 +21,6 @@ const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejection
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       global.process.on('unhandledRejection', makeUnhandledPromiseHandler(client, { mode }));
     },

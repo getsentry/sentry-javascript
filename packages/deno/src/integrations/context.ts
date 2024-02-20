@@ -55,8 +55,6 @@ async function addDenoRuntimeContext(event: Event): Promise<Event> {
 const _denoContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addDenoRuntimeContext(event);
     },
