@@ -13,6 +13,7 @@ Sentry.init({
   integrations: [new Tracing.Integrations.Prisma({ client })],
 });
 
+// eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpanManual(
   {
     name: 'Test Span',
