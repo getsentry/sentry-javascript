@@ -2,7 +2,6 @@ import { logger } from '@sentry/utils';
 
 import { WINDOW } from '../constants';
 import type { FeedbackInternalOptions } from '../types';
-import { createDialogStyles } from './Dialog.css';
 import { createMainStyles } from './Main.css';
 
 type CreateShadowHostParams = Pick<FeedbackInternalOptions, 'id' | 'colorScheme' | 'themeDark' | 'themeLight'>;
@@ -25,7 +24,6 @@ export function createShadowHost({ id, colorScheme, themeDark, themeLight }: Cre
     const shadow = host.attachShadow({ mode: 'open' });
 
     shadow.appendChild(createMainStyles(doc, colorScheme, { dark: themeDark, light: themeLight }));
-    shadow.appendChild(createDialogStyles(doc));
 
     return { shadow, host };
   } catch {

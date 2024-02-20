@@ -1,11 +1,11 @@
 import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
-
-import { getMissingFields } from 'src/util/validate';
+import { WINDOW } from '../constants';
 import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import { sendFeedback } from '../sendFeedback';
 import type { DialogComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
+import { getMissingFields } from '../util/validate';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
 import { loadDialog } from './loadDialog';
@@ -40,6 +40,8 @@ export function createWidget({
   options: { shouldCreateActor = true, ...options },
   attachTo,
 }: CreateWidgetParams): FeedbackWidget {
+  const doc = WINDOW.document;
+
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
 
@@ -83,7 +85,7 @@ export function createWidget({
       const user = scope && scope.getUser();
 
       loadDialog({ screenshots: false })
-        .then(({ Dialog, showSuccessMessage }) => {
+        .then(({ Dialog, showSuccessMessage, createDialogStyles }) => {
           dialog = Dialog({
             colorScheme: options.colorScheme,
             showBranding: options.showBranding,
@@ -142,6 +144,7 @@ export function createWidget({
           }
 
           shadow.appendChild(dialog.el);
+          shadow.appendChild(createDialogStyles(doc));
 
           // Hides the default actor whenever dialog is opened
           hideActor();

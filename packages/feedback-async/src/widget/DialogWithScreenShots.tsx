@@ -9,6 +9,7 @@ import type { Props as DialogContentProps } from './components/DialogContent';
 import { ScreenShotArea } from './components/ScreenShotArea';
 
 export { showSuccessMessage } from './Message';
+export { createDialogStyles } from './Dialog.css';
 
 function renderDialog(parent: HTMLElement, props: DialogContentProps): void {
   render(

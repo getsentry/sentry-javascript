@@ -8,6 +8,7 @@ import { DialogContent } from './components/DialogContent';
 import type { Props as DialogContentProps } from './components/DialogContent';
 
 export { showSuccessMessage } from './Message';
+export { createDialogStyles } from './Dialog.css';
 
 function renderDialog(parent: HTMLElement, props: DialogContentProps): void {
   render(<DialogContent {...props} />, parent);
