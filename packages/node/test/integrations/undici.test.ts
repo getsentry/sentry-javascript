@@ -7,6 +7,7 @@ import {
   getIsolationScope,
   getMainCarrier,
   setCurrentClient,
+  spanToJSON,
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
@@ -69,7 +70,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       'http://localhost:18100',
       undefined,
       {
-        name: 'GET http://localhost:18100/',
+        description: 'GET http://localhost:18100/',
         op: 'http.client',
         data: expect.objectContaining({
           'http.method': 'GET',
@@ -81,7 +82,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       'http://localhost:18100?foo=bar',
       undefined,
       {
-        name: 'GET http://localhost:18100/',
+        description: 'GET http://localhost:18100/',
         op: 'http.client',
         data: expect.objectContaining({
           'http.method': 'GET',
@@ -94,7 +95,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       'http://localhost:18100',
       { method: 'POST' },
       {
-        name: 'POST http://localhost:18100/',
+        description: 'POST http://localhost:18100/',
         data: expect.objectContaining({
           'http.method': 'POST',
         }),
@@ -105,7 +106,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       'http://localhost:18100',
       { method: 'POST' },
       {
-        name: 'POST http://localhost:18100/',
+        description: 'POST http://localhost:18100/',
         data: expect.objectContaining({
           'http.method': 'POST',
         }),
@@ -116,7 +117,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       'http://localhost:18100',
       { method: undefined },
       {
-        name: 'GET http://localhost:18100/',
+        description: 'GET http://localhost:18100/',
       },
     ],
   ])('creates a span with a %s', async (_: string, request, requestInit, expected) => {
@@ -129,7 +130,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
       expect(spans.length).toBe(2);
 
-      const span = spans[1];
+      const span = spanToJSON(spans[1]);
       expect(span).toEqual(expect.objectContaining(expected));
     });
   });
@@ -169,9 +170,9 @@ conditionalTest({ min: 16 })('Undici integration', () => {
 
       expect(spans.length).toBe(2);
 
-      const span = spans[1];
-      expect(span).toEqual(expect.objectContaining({ name: 'GET http://a-url-that-no-exists.com//' }));
-      expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+      const spanJson = spanToJSON(spans[1]);
+      expect(spanJson.description).toEqual('GET http://a-url-that-no-exists.com//');
+      expect(spanJson.status).toEqual('internal_error');
     });
   });
 
