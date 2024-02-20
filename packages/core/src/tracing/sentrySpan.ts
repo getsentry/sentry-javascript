@@ -402,6 +402,9 @@ export class SentrySpan implements SpanInterface {
       childSpan.spanRecorder.add(childSpan);
     }
 
+    // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
+    // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.
+    // To ensure interoperability with the `startSpan` API, `addChildSpanToSpan` is also called here.
     addChildSpanToSpan(this, childSpan);
 
     const rootSpan = getRootSpan(this);

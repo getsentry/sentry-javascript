@@ -361,19 +361,20 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
 export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
   const resultSet = new Set<Span>();
 
-  function recurse(span: SpanWithPotentialChildren): void {
+  function addSpanChildren(span: SpanWithPotentialChildren): void {
+    // This exit condition is required to not infinitely loop in case of a circular dependency.
     if (resultSet.has(span)) {
       return;
     } else {
       resultSet.add(span);
       const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
       for (const childSpan of childSpans) {
-        recurse(childSpan);
+        addSpanChildren(childSpan);
       }
     }
   }
 
-  recurse(span);
+  addSpanChildren(span);
 
   return Array.from(resultSet);
 }
