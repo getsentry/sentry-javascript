@@ -1,17 +1,9 @@
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
-import {
-  SDK_VERSION,
-  browserTracingIntegration,
-  getClient,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-} from '@sentry/svelte';
+import { SDK_VERSION, getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/svelte';
 import { vi } from 'vitest';
 
-import { BrowserTracing, init } from '../../src/client';
-import { svelteKitRoutingInstrumentation } from '../../src/client/router';
+import { init } from '../../src/client';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
 
