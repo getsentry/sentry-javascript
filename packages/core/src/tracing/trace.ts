@@ -156,6 +156,10 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
     });
   }
 
+  if (parentSpan) {
+    addChildSpanToSpan(parentSpan, span);
+  }
+
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
@@ -307,6 +311,10 @@ function createChildSpanOrTransaction(
     });
   }
 
+  if (parentSpan) {
+    addChildSpanToSpan(parentSpan, span);
+  }
+
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
   return span;
@@ -328,6 +336,47 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+const CHILD_SPANS_FIELD = '_sentryChildSpans';
+
+type SpanWithPotentialChildren = Span & {
+  [CHILD_SPANS_FIELD]?: Set<Span>;
+};
+
+/**
+ * Adds an opaque child span reference to a span.
+ */
+export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+    span[CHILD_SPANS_FIELD].add(childSpan);
+  } else {
+    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+  }
+}
+
+/**
+ * Obtains the entire span tree, meaning a span + all of its descendants for a particular span.
+ */
+export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
+  const resultSet = new Set<Span>();
+
+  function addSpanChildren(span: SpanWithPotentialChildren): void {
+    // This exit condition is required to not infinitely loop in case of a circular dependency.
+    if (resultSet.has(span)) {
+      return;
+    } else {
+      resultSet.add(span);
+      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
+      for (const childSpan of childSpans) {
+        addSpanChildren(childSpan);
+      }
+    }
+  }
+
+  addSpanChildren(span);
+
+  return Array.from(resultSet);
 }
 
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';

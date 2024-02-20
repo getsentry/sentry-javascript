@@ -29,6 +29,7 @@ import {
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
 import { setHttpStatus } from './spanstatus';
+import { addChildSpanToSpan } from './trace';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -400,6 +401,11 @@ export class SentrySpan implements SpanInterface {
       // eslint-disable-next-line deprecation/deprecation
       childSpan.spanRecorder.add(childSpan);
     }
+
+    // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
+    // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.
+    // To ensure interoperability with the `startSpan` API, `addChildSpanToSpan` is also called here.
+    addChildSpanToSpan(this, childSpan);
 
     const rootSpan = getRootSpan(this);
     // TODO: still set span.transaction here until we have a more permanent solution
