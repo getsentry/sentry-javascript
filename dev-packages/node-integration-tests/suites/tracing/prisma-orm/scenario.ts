@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
 import * as Tracing from '@sentry/tracing';
