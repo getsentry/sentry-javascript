@@ -1,4 +1,4 @@
-import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src/stacktrace';
+import { nodeStackLineParser, stripSentryFramesAndReverse } from '../src';
 
 describe('Stacktrace', () => {
   describe('stripSentryFramesAndReverse()', () => {
