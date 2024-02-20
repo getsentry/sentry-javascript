@@ -8,6 +8,8 @@ import { DialogContent } from './components/DialogContent';
 import type { Props as DialogContentProps } from './components/DialogContent';
 import { ScreenShotArea } from './components/ScreenShotArea';
 
+export { showSuccessMessage } from './Message';
+
 function renderDialog(parent: HTMLElement, props: DialogContentProps): void {
   render(
     <DialogContent {...props}>

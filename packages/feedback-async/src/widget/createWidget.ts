@@ -8,7 +8,6 @@ import { sendFeedback } from '../sendFeedback';
 import type { DialogComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
-import { SuccessMessage } from './SuccessMessage';
 import { loadDialog } from './loadDialog';
 
 interface CreateWidgetParams {
@@ -43,79 +42,6 @@ export function createWidget({
 }: CreateWidgetParams): FeedbackWidget {
   let actor: ActorComponent | undefined;
   let dialog: DialogComponent | undefined;
-
-  /**
-   * Show the success message for 5 seconds
-   */
-  function showSuccessMessage(): void {
-    if (!shadow) {
-      return;
-    }
-
-    try {
-      const success = SuccessMessage({
-        message: options.successMessageText,
-        onRemove: () => {
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          showActor();
-        },
-      });
-
-      if (!success.el) {
-        throw new Error('Unable to show success message');
-      }
-
-      shadow.appendChild(success.el);
-
-      const timeoutId = setTimeout(() => {
-        if (success) {
-          success.remove();
-        }
-      }, 5000);
-    } catch (err) {
-      // TODO: error handling
-      logger.error(err);
-      console.log(err); // eslint-disable-line no-console
-    }
-  }
-
-  /**
-   * Handler for when the feedback form is completed by the user. This will
-   * create and send the feedback message as an event.
-   */
-  async function _handleFeedbackSubmit(feedback: FeedbackFormData): Promise<void> {
-    if (!dialog) {
-      return;
-    }
-
-    const missingFields = getMissingFields(feedback, options);
-    if (missingFields.length > 0) {
-      dialog.showError(`Please enter in the following required fields: ${missingFields.join(', ')}`);
-      return;
-    }
-
-    dialog.hideError();
-    try {
-      await sendFeedback({ ...feedback, source: FEEDBACK_WIDGET_SOURCE });
-    } catch (err) {
-      DEBUG_BUILD && logger.error(err);
-      dialog.showError('There was a problem submitting feedback, please wait and try again.');
-      if (options.onSubmitError) {
-        options.onSubmitError();
-      }
-      return;
-    }
-
-    // Success
-    removeDialog();
-    showSuccessMessage();
-
-    if (options.onSubmitSuccess) {
-      options.onSubmitSuccess();
-    }
-  }
 
   /**
    * Displays the default actor
@@ -157,7 +83,7 @@ export function createWidget({
       const user = scope && scope.getUser();
 
       loadDialog({ screenshots: false })
-        .then(Dialog => {
+        .then(({ Dialog, showSuccessMessage }) => {
           dialog = Dialog({
             colorScheme: options.colorScheme,
             showBranding: options.showBranding,
@@ -180,7 +106,35 @@ export function createWidget({
               closeDialog();
               showActor();
             },
-            onSubmit: _handleFeedbackSubmit,
+            onSubmit: async function _handleFeedbackSubmit(feedback: FeedbackFormData): Promise<void> {
+              if (!dialog) {
+                return;
+              }
+
+              const missingFields = getMissingFields(feedback, options);
+              if (missingFields.length > 0) {
+                dialog.showError(`Please enter in the following required fields: ${missingFields.join(', ')}`);
+                return;
+              }
+
+              dialog.hideError();
+              try {
+                await sendFeedback({ ...feedback, source: FEEDBACK_WIDGET_SOURCE });
+              } catch (err) {
+                DEBUG_BUILD && logger.error(err);
+                dialog.showError('There was a problem submitting feedback, please wait and try again.');
+                if (options.onSubmitError) {
+                  options.onSubmitError();
+                }
+                return;
+              }
+
+              removeDialog();
+              showSuccessMessage(shadow, options, showActor);
+              if (options.onSubmitSuccess) {
+                options.onSubmitSuccess();
+              }
+            },
           });
 
           if (!dialog.el) {
