@@ -45,7 +45,7 @@ snapshot[`captureException 1`] = `
               colno: 27,
               context_line: "  client.captureException(something());",
               filename: "app:///test/mod.test.ts",
-              function: "<anonymous>",
+              function: "?",
               in_app: true,
               lineno: 47,
               post_context: [
