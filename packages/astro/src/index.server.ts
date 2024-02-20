@@ -16,7 +16,6 @@ export {
   captureCheckIn,
   withMonitor,
   createTransport,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,

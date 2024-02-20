@@ -17,7 +17,8 @@ export * as Handlers from './sdk/handlers';
 export type { Span } from './types';
 
 export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
-export { getClient } from './sdk/api';
+export { getClient, getSentryRelease, defaultStackParser } from './sdk/api';
+export { createGetModuleFromFilename } from './utils/module';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
 
@@ -25,15 +26,12 @@ export {
   addBreadcrumb,
   isInitialized,
   makeNodeTransport,
-  defaultStackParser,
-  getSentryRelease,
   getGlobalScope,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
   // eslint-disable-next-line deprecation/deprecation
   getModuleFromFilename,
-  createGetModuleFromFilename,
   close,
   createTransport,
   flush,

@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,

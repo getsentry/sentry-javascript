@@ -8,8 +8,6 @@ const INTEGRATION_NAME = 'HttpContext';
 const _httpContextIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     preprocessEvent(event) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {

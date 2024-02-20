@@ -2,15 +2,15 @@ import * as http from 'http';
 import * as sentryCore from '@sentry/core';
 import {
   Hub,
-  Scope as ScopeClass,
   Transaction,
   getClient,
   getCurrentScope,
   getIsolationScope,
   getMainCarrier,
-  makeMain,
   mergeScopeData,
+  setCurrentClient,
   spanToJSON,
+  withScope,
 } from '@sentry/core';
 import type { Event, PropagationContext, Scope } from '@sentry/types';
 import { SentryError } from '@sentry/utils';
@@ -21,6 +21,9 @@ import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 describe('requestHandler', () => {
   beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
     // Ensure we reset a potentially set acs to use the default
     const sentry = getMainCarrier().__SENTRY__;
     if (sentry) {
@@ -38,7 +41,6 @@ describe('requestHandler', () => {
   const sentryRequestMiddleware = requestHandler();
 
   let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
-  let client: NodeClient;
 
   function createNoOpSpy() {
     const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
@@ -63,11 +65,8 @@ describe('requestHandler', () => {
 
   it('autoSessionTracking is enabled, sets requestSession status to ok, when handling a request', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
-    client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
     let isolationScope: Scope;
     sentryRequestMiddleware(req, res, () => {
@@ -83,11 +82,8 @@ describe('requestHandler', () => {
 
   it('autoSessionTracking is disabled, does not set requestSession, when handling a request', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
-    client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
     let isolationScope: Scope;
     sentryRequestMiddleware(req, res, () => {
@@ -103,11 +99,8 @@ describe('requestHandler', () => {
 
   it('autoSessionTracking is enabled, calls _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: true, release: '1.2' });
-    client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -128,11 +121,8 @@ describe('requestHandler', () => {
 
   it('autoSessionTracking is disabled, does not call _captureRequestSession, on response finish', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '1.2' });
-    client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
     const captureRequestSession = jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -179,10 +169,8 @@ describe('requestHandler', () => {
   });
 
   it('stores request and request data options in `sdkProcessingMetadata`', done => {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new NodeClient(getDefaultNodeClientOptions()));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(getDefaultNodeClientOptions());
+    setCurrentClient(client);
 
     const requestHandlerOptions = { include: { ip: false } };
     const sentryRequestMiddleware = requestHandler(requestHandlerOptions);
@@ -208,6 +196,17 @@ describe('requestHandler', () => {
 });
 
 describe('tracingHandler', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    // Ensure we reset a potentially set acs to use the default
+    const sentry = getMainCarrier().__SENTRY__;
+    if (sentry) {
+      sentry.acs = undefined;
+    }
+  });
+
   const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
   const method = 'wagging';
   const protocol = 'mutualsniffing';
@@ -218,7 +217,7 @@ describe('tracingHandler', () => {
 
   const sentryTracingMiddleware = tracingHandler();
 
-  let hub: Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
+  let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
 
   function createNoOpSpy() {
     const noop = { noop: () => undefined }; // this is wrapped in an object so jest can spy on it
@@ -226,10 +225,8 @@ describe('tracingHandler', () => {
   }
 
   beforeEach(() => {
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 })));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(getDefaultNodeClientOptions({ tracesSampleRate: 1.0 }));
+    setCurrentClient(client);
 
     req = {
       headers,
@@ -349,12 +346,10 @@ describe('tracingHandler', () => {
   it('extracts request data for sampling context', () => {
     const tracesSampler = jest.fn();
     const options = getDefaultNodeClientOptions({ tracesSampler });
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new NodeClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
-    hub.run(() => {
+    withScope(() => {
       sentryTracingMiddleware(req, res, next);
 
       expect(tracesSampler).toHaveBeenCalledWith(
@@ -373,10 +368,8 @@ describe('tracingHandler', () => {
 
   it('puts its transaction on the scope', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new NodeClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new NodeClient(options);
+    setCurrentClient(client);
 
     sentryTracingMiddleware(req, res, next);
 
@@ -521,6 +514,17 @@ describe('tracingHandler', () => {
 });
 
 describe('errorHandler()', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+
+    // Ensure we reset a potentially set acs to use the default
+    const sentry = getMainCarrier().__SENTRY__;
+    if (sentry) {
+      sentry.acs = undefined;
+    }
+  });
+
   const headers = { ears: 'furry', nose: 'wet', tongue: 'spotted', cookie: 'favorite=zukes' };
   const method = 'wagging';
   const protocol = 'mutualsniffing';
@@ -561,10 +565,7 @@ describe('errorHandler()', () => {
     // by the`requestHandler`)
     client.initSessionFlusher();
 
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -585,11 +586,9 @@ describe('errorHandler()', () => {
   it('autoSessionTracking is enabled + requestHandler is not used -> does not set requestSession status on Crash', done => {
     const options = getDefaultNodeClientOptions({ autoSessionTracking: false, release: '3.3' });
     client = new NodeClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
+    setCurrentClient(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
 
     getIsolationScope().setRequestSession({ status: 'ok' });
 
@@ -611,15 +610,12 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new ScopeClass();
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client, scope);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+
+    setCurrentClient(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
-    hub.run(() => {
+    withScope(() => {
       getIsolationScope().setRequestSession({ status: 'ok' });
       sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {
         expect(getIsolationScope().getRequestSession()).toEqual({ status: 'crashed' });
@@ -633,11 +629,7 @@ describe('errorHandler()', () => {
     // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
     // by the`requestHandler`)
     client.initSessionFlusher();
-    const scope = new ScopeClass();
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client, scope);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
 
     jest.spyOn<any, any>(client, '_captureRequestSession');
 
@@ -656,11 +648,7 @@ describe('errorHandler()', () => {
   it('stores request in `sdkProcessingMetadata`', done => {
     const options = getDefaultNodeClientOptions({});
     client = new NodeClient(options);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
 
     let isolationScope: Scope;
     sentryErrorMiddleware({ name: 'error', message: 'this is an error' }, req, res, () => {

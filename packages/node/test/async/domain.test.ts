@@ -1,5 +1,6 @@
 /* eslint-disable deprecation/deprecation */
-import { Hub, getCurrentHub, getCurrentScope, makeMain, setAsyncContextStrategy, withScope } from '@sentry/core';
+import type { Hub } from '@sentry/core';
+import { getCurrentHub, getCurrentScope, setAsyncContextStrategy, withScope } from '@sentry/core';
 import { getIsolationScope, withIsolationScope } from '@sentry/core';
 import type { Scope } from '@sentry/types';
 
@@ -7,9 +8,8 @@ import { setDomainAsyncContextStrategy } from '../../src/async/domain';
 
 describe('setDomainAsyncContextStrategy()', () => {
   beforeEach(() => {
-    const hub = new Hub();
-
-    makeMain(hub);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   afterEach(() => {

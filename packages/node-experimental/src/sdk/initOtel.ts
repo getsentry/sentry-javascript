@@ -8,14 +8,14 @@ import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SentryContextManager } from '../otel/contextManager';
-import type { NodeExperimentalClient } from '../types';
 import { getClient } from './api';
+import type { NodeClient } from './client';
 
 /**
  * Initialize OpenTelemetry for Node.
  */
 export function initOtel(): void {
-  const client = getClient<NodeExperimentalClient>();
+  const client = getClient<NodeClient>();
 
   if (!client) {
     DEBUG_BUILD &&
@@ -43,7 +43,7 @@ export function initOtel(): void {
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeExperimentalClient): BasicTracerProvider {
+export function setupOtel(client: NodeClient): BasicTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
