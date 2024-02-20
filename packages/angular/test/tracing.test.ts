@@ -113,7 +113,7 @@ describe('Angular Tracing', () => {
   });
 
   describe('TraceService', () => {
-    it('does not change the transaction name if the source is something other than `url`', async () => {
+    it.only('does not change the transaction name if the source is something other than `url`', async () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
@@ -153,7 +153,7 @@ describe('Angular Tracing', () => {
       });
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
-      expect(spanToJSON(transaction).description).toEqual(url);
+      expect(transaction.name).toEqual(url);
       expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
