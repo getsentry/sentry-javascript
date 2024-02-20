@@ -899,6 +899,7 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          TS_VERSION: ${{ matrix.typescript }}
         run: |
           cd dev-packages/node-integration-tests
           yarn test
