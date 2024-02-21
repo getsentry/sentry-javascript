@@ -1,10 +1,10 @@
-import type { Span } from '@opentelemetry/api';
+import type { Span, TimeInput } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getClient } from '@sentry/core';
-import type { PropagationContext } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getClient, getCurrentScope } from '@sentry/core';
+import type { PropagationContext, Scope } from '@sentry/types';
 
 import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
@@ -238,7 +238,7 @@ describe('trace', () => {
     });
 
     it('allows to pass base SpanOptions', () => {
-      const date = Date.now() - 1000;
+      const date = [5000, 0] as TimeInput;
 
       startSpan(
         {
@@ -248,12 +248,12 @@ describe('trace', () => {
             test1: 'test 1',
             test2: 2,
           },
-
           startTime: date,
         },
         span => {
           expect(span).toBeDefined();
           expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
@@ -263,6 +263,44 @@ describe('trace', () => {
         },
       );
     });
+
+    it('allows to pass a startTime in seconds', () => {
+      const startTime = 1708504860.961;
+      const start = startSpan({ name: 'outer', startTime: startTime }, span => {
+        return getSpanStartTime(span);
+      });
+
+      expect(start).toEqual([1708504860, 961000000]);
+    });
+
+    it('allows to pass a scope', () => {
+      const initialScope = getCurrentScope();
+
+      let manualScope: Scope;
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+        manualScope = getCurrentScope();
+        manualScope.setTag('manual', 'tag');
+      });
+
+      getCurrentScope().setTag('outer', 'tag');
+
+      startSpan({ name: 'GET users/[id]', scope: manualScope! }, span => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+
+        expect(getCurrentScope()).toEqual(manualScope);
+        expect(getActiveSpan()).toBe(span);
+
+        expect(getSpanParentSpanId(span)).toBe(parentSpan.spanContext().spanId);
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
+    // TODO: propagation scope is not picked up by spans...
 
     describe('onlyIfParent', () => {
       it('does not create a span if there is no parent', () => {
@@ -355,7 +393,7 @@ describe('trace', () => {
     });
 
     it('allows to pass base SpanOptions', () => {
-      const date = Date.now() - 1000;
+      const date = [5000, 0] as TimeInput;
 
       const span = startInactiveSpan({
         name: 'outer',
@@ -369,12 +407,41 @@ describe('trace', () => {
 
       expect(span).toBeDefined();
       expect(getSpanName(span)).toEqual('outer');
+      expect(getSpanStartTime(span)).toEqual(date);
       expect(getSpanAttributes(span)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         test1: 'test 1',
         test2: 2,
       });
       expect(getSpanKind(span)).toEqual(SpanKind.CLIENT);
+    });
+
+    it('allows to pass a startTime in seconds', () => {
+      const startTime = 1708504860.961;
+      const span = startInactiveSpan({ name: 'outer', startTime: startTime });
+
+      expect(getSpanStartTime(span)).toEqual([1708504860, 961000000]);
+    });
+
+    it('allows to pass a scope', () => {
+      const initialScope = getCurrentScope();
+
+      let manualScope: Scope;
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+        manualScope = getCurrentScope();
+        manualScope.setTag('manual', 'tag');
+      });
+
+      getCurrentScope().setTag('outer', 'tag');
+
+      const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope! });
+      expect(getSpanParentSpanId(span)).toBe(parentSpan!.spanContext().spanId);
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
     });
 
     describe('onlyIfParent', () => {
@@ -439,7 +506,7 @@ describe('trace', () => {
     });
 
     it('allows to pass base SpanOptions', () => {
-      const date = Date.now() - 1000;
+      const date = [5000, 0] as TimeInput;
 
       startSpanManual(
         {
@@ -454,6 +521,7 @@ describe('trace', () => {
         span => {
           expect(span).toBeDefined();
           expect(getSpanName(span)).toEqual('outer');
+          expect(getSpanStartTime(span)).toEqual(date);
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
             test1: 'test 1',
@@ -463,27 +531,67 @@ describe('trace', () => {
         },
       );
     });
-  });
 
-  describe('onlyIfParent', () => {
-    it('does not create a span if there is no parent', () => {
-      const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
-        return span;
+    it('allows to pass a startTime in seconds', () => {
+      const startTime = 1708504860.961;
+      const start = startSpanManual({ name: 'outer', startTime: startTime }, span => {
+        const start = getSpanStartTime(span);
+        span.end();
+        return start;
       });
 
-      expect(span).not.toBeInstanceOf(SpanClass);
+      expect(start).toEqual([1708504860, 961000000]);
     });
 
-    it('creates a span if there is a parent', () => {
-      const span = startSpan({ name: 'parent span' }, () => {
+    it('allows to pass a scope', () => {
+      const initialScope = getCurrentScope();
+
+      let manualScope: Scope;
+      let parentSpan: Span;
+
+      startSpanManual({ name: 'detached' }, span => {
+        parentSpan = span;
+        manualScope = getCurrentScope();
+        manualScope.setTag('manual', 'tag');
+      });
+
+      getCurrentScope().setTag('outer', 'tag');
+
+      startSpanManual({ name: 'GET users/[id]', scope: manualScope! }, span => {
+        expect(getCurrentScope()).not.toBe(initialScope);
+
+        expect(getCurrentScope()).toEqual(manualScope);
+        expect(getActiveSpan()).toBe(span);
+
+        expect(getSpanParentSpanId(span)).toBe(parentSpan.spanContext().spanId);
+
+        span.end();
+      });
+
+      expect(getCurrentScope()).toBe(initialScope);
+      expect(getActiveSpan()).toBe(undefined);
+    });
+
+    describe('onlyIfParent', () => {
+      it('does not create a span if there is no parent', () => {
         const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
           return span;
         });
 
-        return span;
+        expect(span).not.toBeInstanceOf(SpanClass);
       });
 
-      expect(span).toBeInstanceOf(SpanClass);
+      it('creates a span if there is a parent', () => {
+        const span = startSpan({ name: 'parent span' }, () => {
+          const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
+            return span;
+          });
+
+          return span;
+        });
+
+        expect(span).toBeInstanceOf(SpanClass);
+      });
     });
   });
 });
@@ -835,6 +943,14 @@ function getSpanEndTime(span: AbstractSpan): [number, number] | undefined {
   return (span as ReadableSpan).endTime;
 }
 
+function getSpanStartTime(span: AbstractSpan): [number, number] | undefined {
+  return (span as ReadableSpan).startTime;
+}
+
 function getSpanAttributes(span: AbstractSpan): Record<string, unknown> | undefined {
   return spanHasAttributes(span) ? span.attributes : undefined;
+}
+
+function getSpanParentSpanId(span: AbstractSpan): string | undefined {
+  return (span as ReadableSpan).parentSpanId;
 }
