@@ -1,5 +1,3 @@
-export { errorHandler } from './sdk/handlers/errorHandler';
-
 export { httpIntegration } from './integrations/http';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
 
@@ -11,7 +9,7 @@ export { modulesIntegration } from './integrations/modules';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
 
-export { expressIntegration } from './integrations/tracing/express';
+export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { mongoIntegration } from './integrations/tracing/mongo';

@@ -1,11 +1,11 @@
 import * as http from 'http';
 import { getCurrentScope, getIsolationScope, setAsyncContextStrategy, setCurrentClient, withScope } from '@sentry/core';
 import type { Scope } from '@sentry/types';
-import { NodeClient } from '../../../src/sdk/client';
-import { errorHandler } from '../../../src/sdk/handlers/errorHandler';
-import { getDefaultNodeClientOptions } from '../../helpers/getDefaultNodeClientOptions';
+import { expressErrorHandler } from '../../src/integrations/tracing/express';
+import { NodeClient } from '../../src/sdk/client';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
-describe('errorHandler()', () => {
+describe('expressErrorHandler()', () => {
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -20,7 +20,7 @@ describe('errorHandler()', () => {
   const path = '/by/the/trees/';
   const queryString = 'chase=me&please=thankyou';
 
-  const sentryErrorMiddleware = errorHandler();
+  const sentryErrorMiddleware = expressErrorHandler();
 
   let req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
   let client: NodeClient;
