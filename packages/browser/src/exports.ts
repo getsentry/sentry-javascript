@@ -59,6 +59,7 @@ export {
   setUser,
   withScope,
   withIsolationScope,
+  withActiveSpan,
   // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation
@@ -69,6 +70,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
 } from '@sentry/core';
 
 export {

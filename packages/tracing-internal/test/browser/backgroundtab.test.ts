@@ -54,13 +54,11 @@ describe('registerBackgroundTabDetection', () => {
       global.document.hidden = true;
       events.visibilitychange();
 
-      const { status, timestamp } = spanToJSON(span!);
+      const { status, timestamp, data } = spanToJSON(span!);
 
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.status).toBe('cancelled');
+      expect(status).toBe('cancelled');
       expect(status).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.tags.visibilitychange).toBe('document.hidden');
+      expect(data!['sentry.cancellation_reason']).toBe('document.hidden');
       expect(timestamp).toBeDefined();
     });
   });

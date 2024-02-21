@@ -1,6 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import '@sentry/tracing';
-
 import * as Sentry from '@sentry/node';
 
 Sentry.init({
@@ -9,7 +6,4 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-// eslint-disable-next-line deprecation/deprecation
-const transaction = Sentry.startTransaction({ name: 'test_transaction_1' });
-
-transaction.end();
+Sentry.startSpan({ name: 'test_span' }, () => undefined);

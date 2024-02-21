@@ -13,10 +13,10 @@ test('should report finished spans as children of the root transaction.', async 
   expect(span3Id).toEqual(expect.any(String));
 
   assertSentryTransaction(envelope[2], {
-    transaction: 'test_transaction_1',
+    transaction: 'root_span',
     spans: [
       {
-        op: 'span_1',
+        description: 'span_1',
         data: {
           foo: 'bar',
           baz: [1, 2, 3],
@@ -24,11 +24,11 @@ test('should report finished spans as children of the root transaction.', async 
         parent_span_id: rootSpanId,
       },
       {
-        op: 'span_3',
+        description: 'span_3',
         parent_span_id: rootSpanId,
       },
       {
-        op: 'span_5',
+        description: 'span_5',
         parent_span_id: span3Id,
       },
     ],
