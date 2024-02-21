@@ -26,7 +26,7 @@ describe('MongoDB Test', () => {
     expect(envelope).toHaveLength(3);
 
     assertSentryTransaction(envelope[2], {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: [
         {
           data: {

@@ -10,9 +10,6 @@ Sentry.init({
   profilesSampleRate: 1.0,
 });
 
-const txn = Sentry.startTransaction('Precompile test');
-
-(async () => {
+Sentry.startSpan({ name: 'Precompile test' }, async () => {
   await wait(500);
-  txn.finish();
-})();
+});
