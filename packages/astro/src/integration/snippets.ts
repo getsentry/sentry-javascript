@@ -57,7 +57,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
   const integrations: string[] = [];
 
   if (options.tracesSampleRate == null || options.tracesSampleRate) {
-    integrations.push('new Sentry.BrowserTracing()');
+    integrations.push('Sentry.browserTracingIntegration()');
   }
 
   if (
@@ -66,7 +66,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
     options.replaysOnErrorSampleRate == null ||
     options.replaysOnErrorSampleRate
   ) {
-    integrations.push('new Sentry.Replay()');
+    integrations.push('Sentry.replayIntegration()');
   }
 
   return integrations.join(', ');
