@@ -18,7 +18,7 @@ describe('index.bundle.replay', () => {
     expect(TracingReplayBundle.Replay).toBe(Replay);
     expect(TracingReplayBundle.replayIntegration).toBe(replayIntegration);
 
-    expect(TracingReplayBundle.browserTracingIntegration()).toBe(BrowserTracingShim);
+    expect(TracingReplayBundle.browserTracingIntegration()).toBeInstanceOf(BrowserTracingShim);
 
     expect(TracingReplayBundle.Feedback).toBe(FeedbackShim);
     expect(TracingReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
