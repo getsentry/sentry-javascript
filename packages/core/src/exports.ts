@@ -1,7 +1,6 @@
 import type {
   CaptureContext,
   CheckIn,
-  Client,
   CustomSamplingContext,
   Event,
   EventHint,
@@ -22,11 +21,10 @@ import type {
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getCurrentScope, getIsolationScope } from './currentScopes';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import type { Hub } from './hub';
-import { getCurrentHub, runWithAsyncContext } from './hub';
-import type { Scope } from './scope';
+import { getCurrentHub } from './hub';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -43,8 +41,7 @@ export function captureException(
   exception: any,
   hint?: ExclusiveEventHintOrCaptureContext,
 ): string {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureException(exception, parseEventHintOrCaptureContext(hint));
+  return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
 }
 
 /**
@@ -59,8 +56,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   // arity of the `captureMessage(message, level)` method.
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureMessage(message, level, context);
+  return getCurrentScope().captureMessage(message, level, context);
 }
 
 /**
@@ -71,8 +67,7 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
  * @returns the id of the captured event.
  */
 export function captureEvent(event: Event, hint?: EventHint): string {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentHub().captureEvent(event, hint);
+  return getCurrentScope().captureEvent(event, hint);
 }
 
 /**
@@ -82,8 +77,7 @@ export function captureEvent(event: Event, hint?: EventHint): string {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setContext(name, context);
+  getIsolationScope().setContext(name, context);
 }
 
 /**
@@ -91,8 +85,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * @param extras Extras object to merge into current context.
  */
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtras(extras);
+  getIsolationScope().setExtras(extras);
 }
 
 /**
@@ -101,8 +94,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param extra Any kind of data. This data will be normalized.
  */
 export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setExtra(key, extra);
+  getIsolationScope().setExtra(key, extra);
 }
 
 /**
@@ -110,8 +102,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * @param tags Tags context object to merge into current context.
  */
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTags(tags);
+  getIsolationScope().setTags(tags);
 }
 
 /**
@@ -123,8 +114,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param value Value of tag
  */
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setTag(key, value);
+  getIsolationScope().setTag(key, value);
 }
 
 /**
@@ -133,88 +123,22 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub().setUser(user);
+  getIsolationScope().setUser(user);
 }
 
 /**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be
+ * passed `null` to start an entirely new span tree.
  *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- */
-export function withScope<T>(callback: (scope: ScopeInterface) => T): T;
-/**
- * Set the given scope as the active scope in the callback.
- */
-export function withScope<T>(scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T): T;
-/**
- * Either creates a new active scope, or sets the given scope as active scope in the given callback.
- */
-export function withScope<T>(
-  ...rest:
-    | [callback: (scope: ScopeInterface) => T]
-    | [scope: ScopeInterface | undefined, callback: (scope: ScopeInterface) => T]
-): T {
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub() as Hub;
-
-  // If a scope is defined, we want to make this the active scope instead of the default one
-  if (rest.length === 2) {
-    const [scope, callback] = rest;
-    if (!scope) {
-      // eslint-disable-next-line deprecation/deprecation
-      return hub.withScope(callback);
-    }
-
-    // eslint-disable-next-line deprecation/deprecation
-    return hub.withScope(() => {
-      // eslint-disable-next-line deprecation/deprecation
-      hub.getStackTop().scope = scope as Scope;
-      return callback(scope as Scope);
-    });
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  return hub.withScope(rest[0]);
-}
-
-/**
- * Attempts to fork the current isolation scope and the current scope based on the current async context strategy. If no
- * async context strategy is set, the isolation scope and the current scope will not be forked (this is currently the
- * case, for example, in the browser).
- *
- * Usage of this function in environments without async context strategy is discouraged and may lead to unexpected behaviour.
- *
- * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
- * applications directly because it comes with pitfalls. Use at your own risk!
- *
- * @param callback The callback in which the passed isolation scope is active. (Note: In environments without async
- * context strategy, the currently active isolation scope may change within execution of the callback.)
- * @returns The same value that `callback` returns.
- */
-export function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T): T {
-  return runWithAsyncContext(() => {
-    return callback(getIsolationScope());
-  });
-}
-
-/**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
- *
- * @param span Spans started in the context of the provided callback will be children of this span.
+ * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
+ * spans started within the callback will not be attached to a parent span.
  * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
  * @returns the value returned from the provided callback function.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: ScopeInterface) => T): T {
+export function withActiveSpan<T>(span: Span | null, callback: (scope: ScopeInterface) => T): T {
   return withScope(scope => {
     // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(span);
+    scope.setSpan(span || undefined);
     return callback(scope);
   });
 }
@@ -345,13 +269,6 @@ export async function close(timeout?: number): Promise<boolean> {
   }
   DEBUG_BUILD && logger.warn('Cannot flush events and disable SDK. No client defined.');
   return Promise.resolve(false);
-}
-
-/**
- * Get the currently active client.
- */
-export function getClient<C extends Client>(): C | undefined {
-  return getCurrentScope().getClient<C>();
 }
 
 /**

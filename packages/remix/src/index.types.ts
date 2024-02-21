@@ -18,7 +18,6 @@ export declare const Integrations: typeof clientSdk.Integrations & typeof server
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 
-export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
@@ -29,3 +28,5 @@ declare const runtime: 'client' | 'server';
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
+
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

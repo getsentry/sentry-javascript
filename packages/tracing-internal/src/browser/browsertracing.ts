@@ -1,5 +1,5 @@
-/* eslint-disable max-lines */
 import type { Hub, IdleTransaction } from '@sentry/core';
+import { spanToJSON } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
@@ -330,16 +330,15 @@ export class BrowserTracing implements Integration {
     const finalContext = modifiedContext === undefined ? { ...expandedContext, sampled: false } : modifiedContext;
 
     // If `beforeNavigate` set a custom name, record that fact
-    // eslint-disable-next-line deprecation/deprecation
-    finalContext.metadata =
+    finalContext.attributes =
       finalContext.name !== expandedContext.name
-        ? // eslint-disable-next-line deprecation/deprecation
-          { ...finalContext.metadata, source: 'custom' }
-        : // eslint-disable-next-line deprecation/deprecation
-          finalContext.metadata;
+        ? { ...finalContext.attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' }
+        : finalContext.attributes;
 
     this._latestRouteName = finalContext.name;
-    this._latestRouteSource = getSource(finalContext);
+    if (finalContext.attributes) {
+      this._latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    }
 
     // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
@@ -390,12 +389,15 @@ export class BrowserTracing implements Integration {
 
       // eslint-disable-next-line deprecation/deprecation
       const currentTransaction = getActiveTransaction();
-      if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-        DEBUG_BUILD &&
-          logger.warn(
-            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-          );
-        return undefined;
+      if (currentTransaction) {
+        const currentTransactionOp = spanToJSON(currentTransaction).op;
+        if (currentTransactionOp && ['navigation', 'pageload'].includes(currentTransactionOp)) {
+          DEBUG_BUILD &&
+            logger.warn(
+              `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
+            );
+          return undefined;
+        }
       }
 
       if (inflightInteractionTransaction) {
@@ -451,14 +453,4 @@ export function getMetaContent(metaName: string): string | undefined {
   const metaTag = getDomElement(`meta[name=${metaName}]`);
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   return metaTag ? metaTag.getAttribute('content') : undefined;
-}
-
-function getSource(context: TransactionContext): TransactionSource | undefined {
-  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromMetadata = context.metadata && context.metadata.source;
-
-  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

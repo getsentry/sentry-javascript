@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
-import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
+import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node-experimental';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';

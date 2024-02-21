@@ -44,6 +44,7 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({
     type: 'feedback',
+    breadcrumbs: expect.any(Array),
     contexts: {
       feedback: {
         contact_email: 'janedoe@example.org',

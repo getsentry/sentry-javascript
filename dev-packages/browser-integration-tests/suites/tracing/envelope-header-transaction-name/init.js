@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
@@ -16,4 +17,4 @@ scope.addEventProcessor(event => {
   event.transaction = 'testTransactionDSC';
   return event;
 });
-scope.getTransaction().setMetadata({ source: 'custom' });
+scope.getTransaction().setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');

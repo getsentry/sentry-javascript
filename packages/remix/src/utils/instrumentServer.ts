@@ -1,18 +1,19 @@
 /* eslint-disable max-lines */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getActiveTransaction,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
+  withIsolationScope,
 } from '@sentry/core';
-import { captureException, getCurrentHub } from '@sentry/node';
+import { captureException, getCurrentHub } from '@sentry/node-experimental';
 import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -46,7 +47,6 @@ import type {
   EntryContext,
   FutureConfig,
   HandleDocumentRequestFunction,
-  ReactRouterDomPkg,
   RemixRequest,
   RequestHandler,
   ServerBuild,
@@ -195,7 +195,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
         const span = activeTransaction?.startChild({
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
-          description: spanToJSON(activeTransaction).description,
+          name: spanToJSON(activeTransaction).description,
           tags: {
             method: request.method,
             url: request.url,
@@ -252,7 +252,7 @@ function makeWrappedDataFunction(
       const span = activeTransaction?.startChild({
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
-        description: id,
+        name: id,
         tags: {
           name,
         },
@@ -383,10 +383,6 @@ export function createRoutes(manifest: ServerRouteManifest, parentId?: string): 
 
 /**
  * Starts a new transaction for the given request to be used by different `RequestHandler` wrappers.
- *
- * @param request
- * @param routes
- * @param pkg
  */
 export function startRequestHandlerTransaction(
   hub: Hub,
@@ -415,13 +411,13 @@ export function startRequestHandlerTransaction(
     op: 'http.server',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
     tags: {
       method: request.method,
     },
     ...traceparentData,
     metadata: {
-      source,
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
     },
   });
@@ -434,19 +430,14 @@ export function startRequestHandlerTransaction(
 /**
  * Get transaction name from routes and url
  */
-export function getTransactionName(
-  routes: ServerRoute[],
-  url: URL,
-  pkg?: ReactRouterDomPkg,
-): [string, TransactionSource] {
-  const matches = matchServerRoutes(routes, url.pathname, pkg);
+export function getTransactionName(routes: ServerRoute[], url: URL): [string, TransactionSource] {
+  const matches = matchServerRoutes(routes, url.pathname);
   const match = matches && getRequestMatch(url, matches);
-  return match === null ? [url.pathname, 'url'] : [match.route.id, 'route'];
+  return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
 }
 
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     // This means that the request handler of the adapter (ex: express) is already wrapped.
@@ -455,11 +446,10 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    return runWithAsyncContext(async () => {
+    return withIsolationScope(async isolationScope => {
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -470,9 +460,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       }
 
       const url = new URL(request.url);
-      const [name, source] = getTransactionName(routes, url, pkg);
+      const [name, source] = getTransactionName(routes, url);
 
-      scope.setSDKProcessingMetadata({
+      isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
           route: {

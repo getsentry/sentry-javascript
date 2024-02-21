@@ -12,12 +12,12 @@ Sentry.init({
   release: '1.0',
   debug: true,
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
+  autoSessionTracking: true,
 });
 
 function longWork() {
   for (let i = 0; i < 20; i++) {
     const salt = crypto.randomBytes(128).toString('base64');
-    // eslint-disable-next-line no-unused-vars
     const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
     assert.ok(hash);
   }

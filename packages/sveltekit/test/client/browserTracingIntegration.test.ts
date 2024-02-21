@@ -45,6 +45,7 @@ describe('browserTracingIntegration', () => {
         }),
         setTag: vi.fn(),
       };
+      return createdRootSpan;
     });
 
   const startBrowserTracingNavigationSpanSpy = vi
@@ -56,6 +57,7 @@ describe('browserTracingIntegration', () => {
         setAttribute: vi.fn(),
         setTag: vi.fn(),
       };
+      return createdRootSpan;
     });
 
   const fakeClient = { getOptions: () => ({}), on: () => {} };
@@ -113,7 +115,6 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
       op: 'pageload',
-      description: '/',
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
@@ -173,6 +174,7 @@ describe('browserTracingIntegration', () => {
     navigating.set({
       from: { route: { id: '/users' }, url: { pathname: '/users' } },
       to: { route: { id: '/users/[id]' }, url: { pathname: '/users/7762' } },
+      type: 'link',
     });
 
     // This should update the transaction name with the parameterized route:
@@ -183,9 +185,9 @@ describe('browserTracingIntegration', () => {
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-      tags: {
-        'routing.instrumentation': '@sentry/sveltekit',
+        'sentry.sveltekit.navigation.from': '/users',
+        'sentry.sveltekit.navigation.to': '/users/[id]',
+        'sentry.sveltekit.navigation.type': 'link',
       },
     });
 
@@ -195,11 +197,12 @@ describe('browserTracingIntegration', () => {
       name: 'SvelteKit Route Change',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+        'sentry.sveltekit.navigation.from': '/users',
+        'sentry.sveltekit.navigation.to': '/users/[id]',
+        'sentry.sveltekit.navigation.type': 'link',
       },
+      onlyIfParent: true,
     });
-
-    // eslint-disable-next-line deprecation/deprecation
-    expect(createdRootSpan?.setAttribute).toHaveBeenCalledWith('sentry.sveltekit.navigation.from', '/users');
 
     // We emit `null` here to simulate the end of the navigation lifecycle
     // @ts-expect-error - page is a writable but the types say it's just readable
@@ -246,9 +249,8 @@ describe('browserTracingIntegration', () => {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-        },
-        tags: {
-          'routing.instrumentation': '@sentry/sveltekit',
+          'sentry.sveltekit.navigation.from': '/users/[id]',
+          'sentry.sveltekit.navigation.to': '/users/[id]',
         },
       });
 
@@ -258,11 +260,11 @@ describe('browserTracingIntegration', () => {
         name: 'SvelteKit Route Change',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+          'sentry.sveltekit.navigation.from': '/users/[id]',
+          'sentry.sveltekit.navigation.to': '/users/[id]',
         },
+        onlyIfParent: true,
       });
-
-      // eslint-disable-next-line deprecation/deprecation
-      expect(createdRootSpan?.setAttribute).toHaveBeenCalledWith('sentry.sveltekit.navigation.from', '/users/[id]');
     });
 
     it('falls back to `window.location.pathname` to determine the raw origin', () => {

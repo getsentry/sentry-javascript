@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type {
   ClientReport,
   Envelope,
@@ -76,7 +75,6 @@ const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
 };
 
 type MockResult<T> = T | Error;

@@ -62,7 +62,6 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-  DEFAULT_TRACE_PROPAGATION_TARGETS,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
@@ -80,9 +79,4 @@ export {
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
-export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserProfilingIntegration,
-  browserProfilingIntegration,
-} from './profiling/integration';
+export { browserProfilingIntegration } from './profiling/integration';

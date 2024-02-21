@@ -1,6 +1,6 @@
-import { Hub, addTracingExtensions, makeMain } from '@sentry/core';
-import { NodeClient } from '@sentry/node';
-import * as SentryNode from '@sentry/node';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions, spanToJSON } from '@sentry/core';
+import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node-experimental';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
@@ -81,7 +81,6 @@ function resolve(
   };
 }
 
-let hub: Hub;
 let client: NodeClient;
 
 beforeAll(() => {
@@ -91,10 +90,8 @@ beforeAll(() => {
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
   client = new NodeClient(options);
-  // eslint-disable-next-line deprecation/deprecation
-  hub = new Hub(client);
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain(hub);
+  setCurrentClient(client);
+  client.init();
 
   mockCaptureException.mockClear();
 });
@@ -133,10 +130,10 @@ describe('handleSentry', () => {
 
       expect(ref).toBeDefined();
 
-      expect(ref.name).toEqual('GET /users/[id]');
-      expect(ref.op).toEqual('http.server');
+      expect(spanToJSON(ref).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(ref).op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
       expect(ref.spanRecorder.spans).toHaveLength(1);
@@ -169,17 +166,18 @@ describe('handleSentry', () => {
       expect(txnCount).toEqual(1);
       expect(ref).toBeDefined();
 
-      expect(ref.name).toEqual('GET /users/[id]');
-      expect(ref.op).toEqual('http.server');
+      expect(spanToJSON(ref).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(ref).op).toEqual('http.server');
       expect(ref.status).toEqual(isError ? 'internal_error' : 'ok');
-      expect(ref.metadata.source).toEqual('route');
+      expect(ref.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       expect(ref.endTimestamp).toBeDefined();
 
       expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(ref.spanRecorder.spans).toEqual(
+      const spans = ref.spanRecorder.spans.map(spanToJSON);
+      expect(spans).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ op: 'http.server', name: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
           expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
         ]),
       );

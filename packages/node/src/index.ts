@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -46,6 +45,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -70,11 +70,15 @@ export {
   startSpanManual,
   continueTrace,
   parameterize,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  withActiveSpan,
 } from '@sentry/core';
 
 export {
@@ -91,8 +95,6 @@ export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
   defaultStackParser,
@@ -100,12 +102,7 @@ export {
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
-import { createGetModuleFromFilename } from './module';
-/**
- * @deprecated use `createGetModuleFromFilename` instead.
- */
-export const getModuleFromFilename = createGetModuleFromFilename();
-export { createGetModuleFromFilename };
+export { createGetModuleFromFilename } from './module';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

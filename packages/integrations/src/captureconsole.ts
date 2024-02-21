@@ -20,8 +20,6 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (!('console' in GLOBAL_OBJ)) {
         return;
@@ -71,7 +69,7 @@ function consoleHandler(args: unknown[], level: string): void {
     }
 
     const error = args.find(arg => arg instanceof Error);
-    if (level === 'error' && error) {
+    if (error) {
       captureException(error, captureContext);
       return;
     }

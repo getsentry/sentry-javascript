@@ -13,7 +13,7 @@ import {
   modulesIntegration,
   nativeNodeFetchintegration,
   nodeContextIntegration,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
@@ -21,34 +21,28 @@ import { bunServerIntegration } from './integrations/bunserver';
 import { makeFetchTransport } from './transports';
 import type { BunOptions } from './types';
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  // Common
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  linkedErrorsIntegration(),
-  requestDataIntegration(),
-  // Native Wrappers
-  consoleIntegration(),
-  httpIntegration(),
-  nativeNodeFetchintegration(),
-  // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
-  // new NodeIntegrations.OnUncaughtException(),
-  // new NodeIntegrations.OnUnhandledRejection(),
-  // Event Info
-  contextLinesIntegration(),
-  nodeContextIntegration(),
-  modulesIntegration(),
-  // Bun Specific
-  bunServerIntegration(),
-];
-
 /** Get the default integrations for the Bun SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    requestDataIntegration(),
+    // Native Wrappers
+    consoleIntegration(),
+    httpIntegration(),
+    nativeNodeFetchintegration(),
+    // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
+    // new NodeIntegrations.OnUncaughtException(),
+    // new NodeIntegrations.OnUnhandledRejection(),
+    // Event Info
+    contextLinesIntegration(),
+    nodeContextIntegration(),
+    modulesIntegration(),
+    // Bun Specific
+    bunServerIntegration(),
   ];
 }
 
@@ -73,7 +67,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const { addBreadcrumb } = require('@sentry/node');
+ * const { addBreadcrumb } = require('@sentry/node-experimental');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
@@ -83,7 +77,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const Sentry = require('@sentry/node');
+ * const Sentry = require('@sentry/node-experimental');
  * Sentry.captureMessage('Hello, world!');
  * Sentry.captureException(new Error('Good bye'));
  * Sentry.captureEvent({

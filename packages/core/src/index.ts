@@ -25,9 +25,6 @@ export {
   setTag,
   setTags,
   setUser,
-  withScope,
-  withIsolationScope,
-  getClient,
   isInitialized,
   startSession,
   endSession,
@@ -38,19 +35,23 @@ export {
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  getHubFromCarrier,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
-  setHubOnCarrier,
-  ensureHubOnCarrier,
-  runWithAsyncContext,
+  getGlobalHub,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './hub';
 export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   setGlobalScope,
+  withScope,
+  withIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
+  runWithAsyncContext,
+  getClient,
 } from './currentScopes';
 export {
   getMainCarrier,
@@ -110,6 +111,9 @@ export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
 export { metrics } from './metrics/exports';
+export type { MetricData } from './metrics/exports';
+export { metricsDefault } from './metrics/exports-default';
+export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 const Integrations = INTEGRATIONS;

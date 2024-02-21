@@ -1,4 +1,5 @@
-import { Hub, addTracingExtensions, makeMain, spanToJSON, startSpan } from '@sentry/core';
+import { addTracingExtensions, getCurrentScope } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
@@ -6,17 +7,15 @@ import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
-  let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
     const options = getDefaultClientOptions({ tracesSampleRate: 1 });
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(new TestClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
 
     addTracingExtensions();
 
@@ -28,8 +27,7 @@ describe('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    // eslint-disable-next-line deprecation/deprecation
-    hub.getScope().setSpan(undefined);
+    getCurrentScope().clear();
   });
 
   it('does not create an event listener if global document is undefined', () => {
@@ -52,13 +50,11 @@ describe('registerBackgroundTabDetection', () => {
       global.document.hidden = true;
       events.visibilitychange();
 
-      const { status, timestamp } = spanToJSON(span!);
+      const { status, timestamp, data } = spanToJSON(span!);
 
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.status).toBe('cancelled');
+      expect(status).toBe('cancelled');
       expect(status).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.tags.visibilitychange).toBe('document.hidden');
+      expect(data!['sentry.cancellation_reason']).toBe('document.hidden');
       expect(timestamp).toBeDefined();
     });
   });

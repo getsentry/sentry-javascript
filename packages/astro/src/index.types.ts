@@ -19,11 +19,11 @@ export declare const Integrations: typeof serverSdk.Integrations;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 
-export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 export default sentryAstro;

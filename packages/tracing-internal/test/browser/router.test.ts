@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 import { conditionalTest } from '../../../node/test/utils';
@@ -45,7 +46,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
       name: 'blank',
       op: 'pageload',
       origin: 'auto.pageload.browser',
-      metadata: { source: 'url' },
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       startTimestamp: expect.any(Number),
     });
   });
@@ -80,7 +81,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
         name: 'blank',
         op: 'navigation',
         origin: 'auto.navigation.browser',
-        metadata: { source: 'url' },
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
       });
     });
 

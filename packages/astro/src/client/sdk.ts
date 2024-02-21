@@ -8,7 +8,7 @@ import {
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 
-// Treeshakable guard to remove all code related to tracing
+// Tree-shakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean;
 
 /**

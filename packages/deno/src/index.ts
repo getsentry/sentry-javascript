@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -46,6 +45,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -68,7 +68,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
-  metrics,
+  metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
@@ -77,6 +77,9 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export type { SpanStatusType } from '@sentry/core';
@@ -84,8 +87,6 @@ export type { SpanStatusType } from '@sentry/core';
 export { DenoClient } from './client';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';

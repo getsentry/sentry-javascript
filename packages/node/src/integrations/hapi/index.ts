@@ -83,8 +83,7 @@ export const hapiTracingPlugin = {
           return startTransaction({
             ...transactionContext,
             op: 'hapi.request',
-            name: request.route.path,
-            description: `${request.route.method} ${request.path}`,
+            name: `${request.route.method} ${request.path}`,
           });
         },
       );

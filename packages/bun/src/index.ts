@@ -18,7 +18,7 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
-export type { TransactionNamingScheme } from '@sentry/node';
+export type { TransactionNamingScheme } from '@sentry/node-experimental';
 export type { BunOptions } from './types';
 
 export {
@@ -35,7 +35,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -47,6 +46,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -70,17 +70,19 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
-  metrics,
+  metricsDefault as metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
+  withActiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   cron,
@@ -105,18 +107,16 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 
 export { BunClient } from './client';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { Integrations as NodeIntegrations } from '@sentry/node';
+import { Integrations as NodeIntegrations } from '@sentry/node-experimental';
 import { BunServer } from './integrations/bunserver';
 export { bunServerIntegration } from './integrations/bunserver';
 

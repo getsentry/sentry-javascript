@@ -1,7 +1,7 @@
 import * as SentryAstro from '@sentry/astro';
 import * as SentryBun from '@sentry/bun';
 import * as SentryNextJs from '@sentry/nextjs';
-import * as SentryNode from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
 import * as SentryRemix from '@sentry/remix';
 import * as SentryServerless from '@sentry/serverless';
 import * as SentrySvelteKit from '@sentry/sveltekit';

@@ -66,7 +66,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
     if (sentryParentSpan) {
       // eslint-disable-next-line deprecation/deprecation
       const sentryChildSpan = sentryParentSpan.startChild({
-        description: otelSpan.name,
+        name: otelSpan.name,
         instrumenter: 'otel',
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
@@ -179,7 +179,9 @@ function getTraceData(otelSpan: OtelSpan, parentContext: Context): Partial<Trans
     metadata: {
       // only set dynamic sampling context if sentry-trace header was set
       dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-      source: 'custom',
+    },
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
     },
   };
 

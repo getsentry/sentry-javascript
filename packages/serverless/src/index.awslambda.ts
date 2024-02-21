@@ -5,4 +5,4 @@ import * as AWSLambda from './awslambda';
 export { AWSLambda };
 
 export * from './awsservices';
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';

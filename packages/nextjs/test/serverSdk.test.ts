@@ -1,5 +1,5 @@
-import * as SentryNode from '@sentry/node';
-import { getClient, getCurrentScope } from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
+import { getClient, getCurrentScope } from '@sentry/node-experimental';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
@@ -18,8 +18,12 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 describe('Server init()', () => {
   afterEach(() => {
     jest.clearAllMocks();
-    // @ts-expect-error for testing
-    delete GLOBAL_OBJ.__SENTRY__;
+
+    SentryNode.getGlobalScope().clear();
+    SentryNode.getIsolationScope().clear();
+    SentryNode.getCurrentScope().clear();
+    SentryNode.getCurrentScope().setClient(undefined);
+
     delete process.env.VERCEL;
   });
 
@@ -68,15 +72,11 @@ describe('Server init()', () => {
   });
 
   it('sets runtime on scope', () => {
-    const currentScope = getCurrentScope();
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
 
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({});
+    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-    init({});
-
-    // @ts-expect-error need access to protected _tags attribute
-    expect(currentScope._tags).toEqual({ runtime: 'node' });
+    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
   });
 
   // TODO: test `vercel` tag when running on Vercel

@@ -2,7 +2,7 @@ import { getCurrentScope, setGlobalScope } from '@sentry/core';
 import { getClient, getSpanScopes } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
-import type { NodeExperimentalClient } from '../../src/types';
+import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
@@ -20,7 +20,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
 
       const rootScope = getCurrentScope();
 
@@ -88,7 +88,7 @@ describe('Integration | Scope', () => {
           expect.objectContaining({
             contexts: expect.objectContaining({
               trace: {
-                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual' },
+                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual', 'sentry.source': 'custom' },
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,
@@ -121,7 +121,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -457,7 +457,7 @@ describe('Integration | Scope', () => {
 
       // client is attached to current scope
       expect(currentScope.getClient()).toBeDefined();
-      // current scope remains intact
+
       expect(Sentry.getCurrentScope()).toBe(currentScope);
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });

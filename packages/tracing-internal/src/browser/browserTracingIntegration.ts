@@ -236,16 +236,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     const finalContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
 
     // If `beforeStartSpan` set a custom name, record that fact
-    // eslint-disable-next-line deprecation/deprecation
-    finalContext.metadata =
+    finalContext.attributes =
       finalContext.name !== expandedContext.name
-        ? // eslint-disable-next-line deprecation/deprecation
-          { ...finalContext.metadata, source: 'custom' }
-        : // eslint-disable-next-line deprecation/deprecation
-          finalContext.metadata;
+        ? { ...finalContext.attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' }
+        : finalContext.attributes;
 
     latestRouteName = finalContext.name;
-    latestRouteSource = getSource(finalContext);
+    if (finalContext.attributes) {
+      latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    }
 
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
@@ -266,7 +265,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
     );
 
-    if (isPageloadTransaction) {
+    if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
         if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
           idleTransaction.sendAutoFinishSignal();
@@ -295,7 +294,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         options;
 
       let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location.href;
+      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
       client.on('startNavigationSpan', (context: StartSpanOptions) => {
         if (activeSpan) {
@@ -321,7 +320,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
-      if (options.instrumentPageLoad) {
+      if (options.instrumentPageLoad && WINDOW.location) {
         const context: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
@@ -334,7 +333,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         startBrowserTracingPageLoadSpan(client, context);
       }
 
-      if (options.instrumentNavigation) {
+      if (options.instrumentNavigation && WINDOW.location) {
         addHistoryInstrumentationHandler(({ to, from }) => {
           /**
            * This early return is there to account for some cases where a navigation transaction starts right after
@@ -434,12 +433,15 @@ function registerInteractionListener(
 
     // eslint-disable-next-line deprecation/deprecation
     const currentTransaction = getActiveTransaction();
-    if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-      DEBUG_BUILD &&
-        logger.warn(
-          `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-        );
-      return undefined;
+    if (currentTransaction) {
+      const currentTransactionOp = spanToJSON(currentTransaction).op;
+      if (currentTransactionOp && ['navigation', 'pageload'].includes(currentTransactionOp)) {
+        DEBUG_BUILD &&
+          logger.warn(
+            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
+          );
+        return undefined;
+      }
     }
 
     if (inflightInteractionTransaction) {
@@ -479,14 +481,4 @@ function registerInteractionListener(
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
   });
-}
-
-function getSource(context: TransactionContext): TransactionSource | undefined {
-  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromMetadata = context.metadata && context.metadata.source;
-
-  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

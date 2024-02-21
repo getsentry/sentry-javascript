@@ -45,7 +45,7 @@ export type FetchImpl = typeof fetch;
  * Firefox: NetworkError when attempting to fetch resource
  * Safari:  resource blocked by content blocker
  */
-export function getNativeFetchImplementation(): FetchImpl {
+export function getNativeFetchImplementation(): FetchImpl | undefined {
   if (cachedFetchImpl) {
     return cachedFetchImpl;
   }
@@ -75,7 +75,13 @@ export function getNativeFetchImplementation(): FetchImpl {
     }
   }
 
-  return (cachedFetchImpl = fetchImpl.bind(WINDOW));
+  try {
+    return (cachedFetchImpl = fetchImpl.bind(WINDOW));
+  } catch (e) {
+    // empty
+  }
+
+  return undefined;
   /* eslint-enable @typescript-eslint/unbound-method */
 }
 

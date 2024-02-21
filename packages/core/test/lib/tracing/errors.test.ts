@@ -1,4 +1,4 @@
-import { Hub, addTracingExtensions, makeMain, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
+import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { registerErrorInstrumentation } from '../../../src/tracing/errors';
@@ -33,10 +33,9 @@ describe('registerErrorHandlers()', () => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
     const options = getDefaultTestClientOptions({ enableTracing: true });
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new TestClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('registers error instrumentation', () => {

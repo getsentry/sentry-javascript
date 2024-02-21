@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/node",
+  "name": "@sentry/node-experimental",
   "version": "7.100.0",
-  "description": "Official Sentry SDK for Node.js",
+  "description": "The old version of Sentry SDK for Node.js, without OpenTelemetry support.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
   "author": "Sentry",

@@ -1,4 +1,5 @@
 import type { Hub, Integration } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
 /**
@@ -8,14 +9,39 @@ import { GLOBAL_OBJ } from '@sentry/utils';
  */
 export interface AsyncContextStrategy {
   /**
-   * Gets the current async context. Returns undefined if there is no current async context.
+   * Gets the currently active hub.
    */
-  getCurrentHub: () => Hub | undefined;
+  getCurrentHub: () => Hub;
 
   /**
-   * Runs the supplied callback in its own async context.
+   * Fork the isolation scope inside of the provided callback.
    */
-  runWithAsyncContext<T>(callback: () => T): T;
+  withIsolationScope: <T>(callback: (isolationScope: Scope) => T) => T;
+
+  /**
+   * Fork the current scope inside of the provided callback.
+   */
+  withScope: <T>(callback: (isolationScope: Scope) => T) => T;
+
+  /**
+   * Set the provided scope as the current scope inside of the provided callback.
+   */
+  withSetScope: <T>(scope: Scope, callback: (scope: Scope) => T) => T;
+
+  /**
+   * Set the provided isolation as the current isolation scope inside of the provided callback.
+   */
+  withSetIsolationScope: <T>(isolationScope: Scope, callback: (isolationScope: Scope) => T) => T;
+
+  /**
+   * Get the currently active scope.
+   */
+  getCurrentScope: () => Scope;
+
+  /**
+   * Get the currently active isolation scope.
+   */
+  getIsolationScope: () => Scope;
 }
 
 /**
@@ -27,7 +53,6 @@ export interface Carrier {
 }
 
 interface SentryCarrier {
-  hub?: Hub;
   acs?: AsyncContextStrategy;
   /**
    * Extra Hub properties injected by various SDKs
@@ -70,7 +95,6 @@ export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   if (!carrier.__SENTRY__) {
     carrier.__SENTRY__ = {
       extensions: {},
-      hub: undefined,
     };
   }
   return carrier.__SENTRY__;

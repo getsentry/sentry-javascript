@@ -1,5 +1,37 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of the `MetricsAggregator` integration class and `metricsAggregatorIntegration`
+
+The SDKs now support metrics features without any additional configuration.
+
+## Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
+
+We updated the behaviour of the SDKs when no `tracePropagationTargets` option was defined. As a reminder, you can
+provide a list of strings or RegExes that will be matched against URLs to tell the SDK, to which outgoing requests
+tracing HTTP headers should be attached to. These tracing headers are used for distributed tracing.
+
+Previously, on the browser, when `tracePropagationTargets` were not defined, they defaulted to the following:
+`['localhost', /^\/(?!\/)/]`. This meant that all request targets to that had "localhost" in the URL, or started with a
+`/` were equipped with tracing headers. This default was chosen to prevent CORS errors in your browser applications.
+However, this default had a few flaws.
+
+Going forward, when the `tracePropagationTargets` option is not set, tracing headers will be attached to all outgoing
+requests on the same origin. For example, if you're on `https://example.com/` and you send a request to
+`https://example.com/api`, the request will be traced (ie. will have trace headers attached). Requests to
+`https://api.example.com/` will not, because it is on a different origin. The same goes for all applications running on
+`localhost`.
+
+When you provide a `tracePropagationTargets` option, all of the entries you defined will now be matched be matched
+against the full URL of the outgoing request. Previously, it was only matched against what you called request APIs with.
+For example, if you made a request like `fetch("/api/posts")`, the provided `tracePropagationTargets` were only compared
+against `"/api/posts"`. Going forward they will be matched against the entire URL, for example, if you were on the page
+`https://example.com/` and you made the same request, it would be matched against `"https://example.com/api/posts"`.
+
+But that is not all. Because it would be annoying having to create matchers for the entire URL, if the request is a
+same-origin request, we also match the `tracePropagationTargets` against the resolved `pathname` of the request.
+Meaning, a matcher like `/^\/api/` would match a request call like `fetch('/api/posts')`, or
+`fetch('https://same-origin.com/api/posts')` but not `fetch('https://different-origin.com/api/posts')`.
+
 ## Removal of the `tracingOrigins` option
 
 After its deprecation in v7 the `tracingOrigins` option is now removed in favor of the `tracePropagationTargets` option.
@@ -26,6 +58,11 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
 - `IS_BUILD`
 - `isBuild`
+
+## Removal of `Span` class export from SDK packages
+
+In v8, we are no longer exporting the `Span` class from SDK packages (e.g. `@sentry/browser` or `@sentry/node`).
+Internally, this class is now called `SentrySpan`, and it is no longer meant to be used by users directly.
 
 ## Removal of Severity Enum
 
@@ -58,6 +95,11 @@ to access and mutate the current scope.
 
 `@sentry/tracing` has been removed. All exports from `@sentry/tracing` should be available in `@sentry/core` or in
 `@sentry/browser` and `@sentry/node`.
+
+## Removal of `makeXHRTransport` transport (#10703)
+
+The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the
+Sentry SDK requires the fetch API to be available in the environment.
 
 ## General API Changes
 

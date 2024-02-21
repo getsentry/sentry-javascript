@@ -1,15 +1,7 @@
-import {
-  getClient,
-  getCurrentHub,
-  getCurrentScope,
-  hasTracingEnabled,
-  runWithAsyncContext,
-  setHttpStatus,
-} from '@sentry/core';
-import { flush } from '@sentry/node';
+import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
+import { flush } from '@sentry/node-experimental';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
-import { cwd } from 'process';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
@@ -22,11 +14,8 @@ import type {
   ExpressRequestHandler,
   ExpressResponse,
   GetLoadContextFunction,
-  ReactRouterDomPkg,
   ServerBuild,
 } from '../vendor/types';
-
-let pkg: ReactRouterDomPkg;
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -40,19 +29,7 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
-    if (!pkg) {
-      try {
-        pkg = await import('react-router-dom');
-      } catch (e) {
-        pkg = await import(`${cwd()}/node_modules/react-router-dom`);
-      } finally {
-        if (!pkg) {
-          DEBUG_BUILD && logger.error('Could not find `react-router-dom` package.');
-        }
-      }
-    }
-
-    await runWithAsyncContext(async () => {
+    await withIsolationScope(async isolationScope => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       res.end = wrapEndMethod(res.end);
 
@@ -60,9 +37,8 @@ function wrapExpressRequestHandler(
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
-      scope.setSDKProcessingMetadata({ request });
+      isolationScope.setSDKProcessingMetadata({ request });
 
       if (!options || !hasTracingEnabled(options) || !request.url || !request.method) {
         return origRequestHandler.call(this, req, res, next);
@@ -70,7 +46,7 @@ function wrapExpressRequestHandler(
 
       const url = new URL(request.url);
 
-      const [name, source] = getTransactionName(routes, url, pkg);
+      const [name, source] = getTransactionName(routes, url);
       const transaction = startRequestHandlerTransaction(hub, name, source, {
         headers: {
           'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
