@@ -267,15 +267,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   spanContext(): SpanContextData;
 
   /**
-   * Sets the finish timestamp on the current span.
-   *
-   * @param endTimestamp Takes an endTimestamp if the end should not be the time when you call this function.
-   *
-   * @deprecated Use `.end()` instead.
-   */
-  finish(endTimestamp?: number): void;
-
-  /**
    * End the current span.
    */
   end(endTimestamp?: SpanTimeInput): void;

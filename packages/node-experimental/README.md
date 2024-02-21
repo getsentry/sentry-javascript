@@ -82,7 +82,7 @@ const span = Sentry.startInactiveSpan({ description: 'non-active span' });
 
 doSomethingSlow();
 
-span.finish();
+span.end();
 ```
 
 Finally you can also get the currently active span, if you need to do more with it:

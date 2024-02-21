@@ -74,7 +74,7 @@ describe('hubextensions', () => {
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
-    transaction.finish();
+    transaction.end();
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -87,7 +87,7 @@ describe('hubextensions', () => {
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
-    transaction.finish();
+    transaction.end();
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe('hubextensions', () => {
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
-    transaction.finish();
+    transaction.end();
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -118,7 +118,7 @@ describe('hubextensions', () => {
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
-    transaction.finish();
+    transaction.end();
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
@@ -136,7 +136,7 @@ describe('hubextensions', () => {
 
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, {});
-    transaction.finish();
+    transaction.end();
 
     expect(startTransaction).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
@@ -150,7 +150,7 @@ describe('hubextensions', () => {
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const samplingContext = { beep: 'boop' };
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
-    transaction.finish();
+    transaction.end();
 
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('hubextensions', () => {
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const samplingContext = { beep: 'boop' };
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
-    transaction.finish();
+    transaction.end();
 
     expect(options.profilesSampler).toHaveBeenCalled();
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe('hubextensions', () => {
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const samplingContext = { beep: 'boop' };
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
-    transaction.finish();
+    transaction.end();
 
     expect(options.profilesSampler).toHaveBeenCalled();
     expect(startProfilingSpy).not.toHaveBeenCalled();
@@ -212,7 +212,7 @@ describe('hubextensions', () => {
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const samplingContext = { beep: 'boop' };
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
-    transaction.finish();
+    transaction.end();
 
     expect(options.profilesSampler).toHaveBeenCalledWith({
       ...samplingContext,
@@ -235,7 +235,7 @@ describe('hubextensions', () => {
     const maybeStartTransactionWithProfiling = __PRIVATE__wrapStartTransactionWithProfiling(startTransaction);
     const samplingContext = { beep: 'boop' };
     const transaction = maybeStartTransactionWithProfiling.call(hub, { name: '' }, samplingContext);
-    transaction.finish();
+    transaction.end();
 
     expect(startProfilingSpy).toHaveBeenCalled();
   });
