@@ -1,4 +1,4 @@
-import type { Span, Tracer } from '@opentelemetry/api';
+import type { Span, SpanOptions, Tracer } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
@@ -18,17 +18,19 @@ import { setSpanMetadata } from './utils/spanData';
  *
  * Note that you'll always get a span passed to the callback, it may just be a NonRecordingSpan if the span is not sampled.
  */
-export function startSpan<T>(spanContext: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
+export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
   const tracer = getTracer();
 
-  const { name } = spanContext;
+  const { name } = options;
 
   const activeCtx = context.active();
-  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
+  const spanContext = getSpanContext(options);
+
   return tracer.startActiveSpan(name, spanContext, ctx, span => {
-    _applySentryAttributesToSpan(span, spanContext);
+    _applySentryAttributesToSpan(span, options);
 
     return handleCallbackErrors(
       () => callback(span),
@@ -49,17 +51,19 @@ export function startSpan<T>(spanContext: OpenTelemetrySpanContext, callback: (s
  *
  * Note that you'll always get a span passed to the callback, it may just be a NonRecordingSpan if the span is not sampled.
  */
-export function startSpanManual<T>(spanContext: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
+export function startSpanManual<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
   const tracer = getTracer();
 
-  const { name } = spanContext;
+  const { name } = options;
 
   const activeCtx = context.active();
-  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
+  const spanContext = getSpanContext(options);
+
   return tracer.startActiveSpan(name, spanContext, ctx, span => {
-    _applySentryAttributesToSpan(span, spanContext);
+    _applySentryAttributesToSpan(span, options);
 
     return handleCallbackErrors(
       () => callback(span),
@@ -85,18 +89,20 @@ export const startActiveSpan = startSpan;
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startInactiveSpan(spanContext: OpenTelemetrySpanContext): Span {
+export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
   const tracer = getTracer();
 
-  const { name } = spanContext;
+  const { name } = options;
 
   const activeCtx = context.active();
-  const shouldSkipSpan = spanContext.onlyIfParent && !trace.getSpan(activeCtx);
+  const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
+
+  const spanContext = getSpanContext(options);
 
   const span = tracer.startSpan(name, spanContext, ctx);
 
-  _applySentryAttributesToSpan(span, spanContext);
+  _applySentryAttributesToSpan(span, options);
 
   return span;
 }
@@ -120,8 +126,9 @@ function getTracer(): Tracer {
   return (client && client.tracer) || trace.getTracer('@sentry/opentelemetry', SDK_VERSION);
 }
 
-function _applySentryAttributesToSpan(span: Span, spanContext: OpenTelemetrySpanContext): void {
-  const { origin, op, source, metadata } = spanContext;
+function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanContext): void {
+  // eslint-disable-next-line deprecation/deprecation
+  const { origin, op, source, metadata } = options;
 
   if (origin) {
     span.setAttribute(InternalSentrySemanticAttributes.ORIGIN, origin);
@@ -138,4 +145,22 @@ function _applySentryAttributesToSpan(span: Span, spanContext: OpenTelemetrySpan
   if (metadata) {
     setSpanMetadata(span, metadata);
   }
+}
+
+function getSpanContext(options: OpenTelemetrySpanContext): SpanOptions {
+  const { startTime, attributes, kind } = options;
+
+  // OTEL expects timestamps in ms, not seconds
+  const fixedStartTime = typeof startTime === 'number' ? ensureTimestampInMilliseconds(startTime) : startTime;
+
+  return {
+    attributes,
+    kind,
+    startTime: fixedStartTime,
+  };
+}
+
+function ensureTimestampInMilliseconds(timestamp: number): number {
+  const isMs = timestamp < 9999999999;
+  return isMs ? timestamp * 1000 : timestamp;
 }
