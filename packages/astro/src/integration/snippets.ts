@@ -66,7 +66,7 @@ const buildClientIntegrations = (options: SentryOptions): string => {
     options.replaysOnErrorSampleRate == null ||
     options.replaysOnErrorSampleRate
   ) {
-    integrations.push('new Sentry.Replay()');
+    integrations.push('Sentry.replayIntegration()');
   }
 
   return integrations.join(', ');

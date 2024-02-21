@@ -23,7 +23,7 @@ describe('buildClientSnippet', () => {
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
         tracesSampleRate: 1,
-        integrations: [Sentry.browserTracingIntegration(), new Sentry.Replay()],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"
@@ -43,7 +43,7 @@ describe('buildClientSnippet', () => {
         release: \\"1.0.0\\",
         tracesSampleRate: 0.3,
         sampleRate: 0.2,
-        integrations: [Sentry.browserTracingIntegration(), new Sentry.Replay()],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.5,
         replaysOnErrorSampleRate: 0.4,
       });"
@@ -61,7 +61,7 @@ describe('buildClientSnippet', () => {
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
         tracesSampleRate: 0,
-        integrations: [new Sentry.Replay()],
+        integrations: [Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"

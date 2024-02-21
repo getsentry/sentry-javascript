@@ -1,6 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
-import { init as initNodeSdk, setTag } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { init as initNodeSdk, setTag } from '@sentry/node-experimental';
 
 /**
  *

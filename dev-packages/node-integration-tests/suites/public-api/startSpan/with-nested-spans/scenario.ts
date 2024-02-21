@@ -12,7 +12,7 @@ Sentry.startSpan({ name: 'root_span' }, () => {
   Sentry.startSpan(
     {
       name: 'span_1',
-      data: {
+      attributes: {
         foo: 'bar',
         baz: [1, 2, 3],
       },
@@ -25,7 +25,7 @@ Sentry.startSpan({ name: 'root_span' }, () => {
 
   Sentry.startSpan({ name: 'span_3' }, () => {
     // span_4 is the child of span_3 but doesn't finish.
-    Sentry.startInactiveSpan({ name: 'span_4', data: { qux: 'quux' } });
+    Sentry.startInactiveSpan({ name: 'span_4', attributes: { qux: 'quux' } });
 
     // span_5 is another child of span_3 but finishes.
     Sentry.startSpan({ name: 'span_5' }, () => undefined);

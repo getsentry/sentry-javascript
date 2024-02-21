@@ -17,7 +17,7 @@ import type {
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';

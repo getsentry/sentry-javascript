@@ -7,7 +7,7 @@ import type {
   TransactionMetadata,
 } from '@sentry/types';
 
-import type { NodeClient } from '@sentry/node';
+import type { NodeClient } from '@sentry/node-experimental';
 
 import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { __PRIVATE__wrapStartTransactionWithProfiling } from '../src/hubextensions';

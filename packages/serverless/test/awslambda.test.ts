@@ -20,8 +20,8 @@ const mockScope = {
   addEventProcessor: jest.fn(),
 };
 
-jest.mock('@sentry/node', () => {
-  const original = jest.requireActual('@sentry/node');
+jest.mock('@sentry/node-experimental', () => {
+  const original = jest.requireActual('@sentry/node-experimental');
   return {
     ...original,
     init: (options: unknown) => {

@@ -13,7 +13,7 @@ import {
   modulesIntegration,
   nativeNodeFetchintegration,
   nodeContextIntegration,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
@@ -67,7 +67,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const { addBreadcrumb } = require('@sentry/node');
+ * const { addBreadcrumb } = require('@sentry/node-experimental');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
@@ -77,7 +77,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const Sentry = require('@sentry/node');
+ * const Sentry = require('@sentry/node-experimental');
  * Sentry.captureMessage('Hello, world!');
  * Sentry.captureException(new Error('Good bye'));
  * Sentry.captureEvent({

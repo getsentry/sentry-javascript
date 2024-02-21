@@ -5,7 +5,7 @@ import {
   defineIntegration,
   getClient,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/node';
+import { startInactiveSpan } from '@sentry/node-experimental';
 import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { fill } from '@sentry/utils';
 

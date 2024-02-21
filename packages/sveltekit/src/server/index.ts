@@ -1,5 +1,5 @@
 // Node SDK exports
-// Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
+// Unfortunately, we cannot `export * from '@sentry/node-experimental'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 // Hence, we export everything from the Node SDK explicitly:
@@ -85,10 +85,10 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 
 // We can still leave this for the carrier init and type exports
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 
 // -------------------------
 // SvelteKit SDK exports:

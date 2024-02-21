@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
-import * as SentryNode from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';

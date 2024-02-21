@@ -18,7 +18,7 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
-export type { TransactionNamingScheme } from '@sentry/node';
+export type { TransactionNamingScheme } from '@sentry/node-experimental';
 export type { BunOptions } from './types';
 
 export {
@@ -109,7 +109,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 
 export { BunClient } from './client';
 export {
@@ -118,7 +118,7 @@ export {
 } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { Integrations as NodeIntegrations } from '@sentry/node';
+import { Integrations as NodeIntegrations } from '@sentry/node-experimental';
 import { BunServer } from './integrations/bunserver';
 export { bunServerIntegration } from './integrations/bunserver';
 

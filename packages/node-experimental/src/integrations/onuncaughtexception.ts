@@ -86,20 +86,19 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
       // exit behaviour of the SDK accordingly:
       // - If other listeners are attached, do not exit.
       // - If the only listener attached is ours, exit.
-      const userProvidedListenersCount = (
-        global.process.listeners('uncaughtException') as TaggedListener[]
-      ).reduce<number>((acc, listener) => {
-        if (
+      const userProvidedListenersCount = (global.process.listeners('uncaughtException') as TaggedListener[]).filter(
+        listener => {
           // There are 3 listeners we ignore:
-          listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-          (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
-          (listener as ErrorHandler)._errorHandler // the handler we register in this integration
-        ) {
-          return acc;
-        } else {
-          return acc + 1;
-        }
-      }, 0);
+          return (
+            // as soon as we're using domains this listener is attached by node itself
+            listener.name !== 'domainUncaughtExceptionClear' &&
+            // the handler we register for tracing
+            listener.tag !== 'sentry_tracingErrorCallback' &&
+            // the handler we register in this integration
+            (listener as ErrorHandler)._errorHandler !== true
+          );
+        },
+      ).length;
 
       const processWouldExit = userProvidedListenersCount === 0;
       const shouldApplyFatalHandlingLogic = options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;

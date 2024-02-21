@@ -12,7 +12,7 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node": "latest || *",
+    "@sentry/node-experimental": "latest || *",
     "@sentry/sveltekit": "latest || *",
     "@sentry/remix": "latest || *",
     "@sentry/astro": "latest || *",
