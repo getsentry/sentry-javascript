@@ -86,40 +86,6 @@ describe('span', () => {
       expect(span.tags['http.status_code']).toBe('404');
       expect(span.data['http.response.status_code']).toBe(404);
     });
-
-    // TODO (v8): Remove
-    test('isSuccess', () => {
-      const span = new SentrySpan({});
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(200);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
-      span.setStatus('permission_denied');
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(0);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(-1);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(99);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(100);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
-    });
-  });
-
-  describe('toTraceparent', () => {
-    test('simple', () => {
-      expect(new SentrySpan().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
-    });
-    test('with sample', () => {
-      expect(new SentrySpan({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
-    });
   });
 
   describe('toJSON', () => {
@@ -278,8 +244,8 @@ describe('span', () => {
       expect(span.spanContext().traceId).toBe('c');
       expect(span.spanContext().spanId).toBe('d');
       expect(span.sampled).toBe(true);
-      expect(span.description).toBe(undefined);
-      expect(span.op).toBe(undefined);
+      expect(spanToJSON(span).description).toBe(undefined);
+      expect(spanToJSON(span).op).toBe(undefined);
       expect(span.tags).toStrictEqual({});
     });
 
@@ -315,9 +281,9 @@ describe('span', () => {
 
       expect(span.spanContext().traceId).toBe('a');
       expect(span.spanContext().spanId).toBe('b');
-      expect(span.description).toBe('new');
+      expect(spanToJSON(span).description).toBe('new');
       expect(spanToJSON(span).timestamp).toBe(1);
-      expect(span.op).toBe('new-op');
+      expect(spanToJSON(span).op).toBe('new-op');
       expect(span.sampled).toBe(true);
       expect(span.tags).toStrictEqual({ tag1: 'bye' });
       expect(span.data).toStrictEqual({
