@@ -399,12 +399,12 @@ describe('BrowserTracing', () => {
       it('is created on location change', () => {
         createBrowserTracing(true);
         const transaction1 = getActiveTransaction() as IdleTransaction;
-        expect(transaction1.op).toBe('pageload');
+        expect(spanToJSON(transaction1).op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction() as IdleTransaction;
-        expect(transaction2.op).toBe('navigation');
+        expect(spanToJSON(transaction2).op).toBe('navigation');
 
         expect(spanToJSON(transaction1).timestamp).toBeDefined();
       });
@@ -412,12 +412,12 @@ describe('BrowserTracing', () => {
       it('is not created if startTransactionOnLocationChange is false', () => {
         createBrowserTracing(true, { startTransactionOnLocationChange: false });
         const transaction1 = getActiveTransaction() as IdleTransaction;
-        expect(transaction1.op).toBe('pageload');
+        expect(spanToJSON(transaction1).op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction() as IdleTransaction;
-        expect(transaction2.op).toBe('pageload');
+        expect(spanToJSON(transaction2).op).toBe('pageload');
       });
     });
   });

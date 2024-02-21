@@ -90,8 +90,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
@@ -301,8 +299,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
 
     const spanAttributes = spanToJSON(spans[1]).data || {};
@@ -328,8 +324,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
     expect(spanAttributes['http.method']).toEqual('GET');
     expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
