@@ -1,4 +1,4 @@
-import { addTracingExtensions, getClient } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';

@@ -26,7 +26,6 @@ import {
 import { setNodeAsyncContextStrategy } from '../src/async';
 import { ContextLines } from '../src/integrations';
 import { defaultStackParser, getDefaultIntegrations } from '../src/sdk';
-import type { NodeClientOptions } from '../src/types';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 jest.mock('@sentry/core', () => {

@@ -1,7 +1,6 @@
 import {
   addTracingExtensions,
   getActiveSpan,
-  getClient,
   getDynamicSamplingContextFromSpan,
   getRootSpan,
   spanToTraceHeader,

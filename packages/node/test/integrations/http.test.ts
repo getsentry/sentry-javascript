@@ -7,7 +7,7 @@ import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
+import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
