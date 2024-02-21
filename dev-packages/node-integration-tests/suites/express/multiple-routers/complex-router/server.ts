@@ -7,8 +7,7 @@ const app = express();
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  // eslint-disable-next-line deprecation/deprecation
-  integrations: [new Sentry.Integrations.Http({ tracing: true }), new Sentry.Integrations.Express({ app })],
+  integrations: [Sentry.httpIntegration({ tracing: true }), new Sentry.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });
