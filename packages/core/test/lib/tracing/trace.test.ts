@@ -145,8 +145,7 @@ describe('startSpan', () => {
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
           if (span) {
-            // eslint-disable-next-line deprecation/deprecation
-            span.op = 'http.server';
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           }
           return callback();
         });

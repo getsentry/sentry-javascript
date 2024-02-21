@@ -832,10 +832,7 @@ describe('SentrySpanProcessor', () => {
         parentOtelSpan.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
         parentOtelSpan.end();
 
-        // eslint-disable-next-line deprecation/deprecation
-        expect(transaction.op).toBe('test faas trigger');
         expect(spanToJSON(transaction).op).toBe('test faas trigger');
-
         expect(spanToJSON(transaction).description).toBe('test operation');
       });
     });

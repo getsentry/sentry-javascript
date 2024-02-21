@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type {
   Instrumenter,
   Primitive,
@@ -296,25 +295,6 @@ export class SentrySpan implements SpanInterface {
     this._status = status;
   }
 
-  /**
-   * Operation of the span
-   *
-   * @deprecated Use `spanToJSON().op` to read the op instead.
-   */
-  public get op(): string | undefined {
-    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
-  }
-
-  /**
-   * Operation of the span
-   *
-   * @deprecated Use `startSpan()` functions to set or `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
-   *             to update the span instead.
-   */
-  public set op(op: string | undefined) {
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -493,8 +473,7 @@ export class SentrySpan implements SpanInterface {
       data: this._getData(),
       name: this._name,
       endTimestamp: this._endTime,
-      // eslint-disable-next-line deprecation/deprecation
-      op: this.op,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parentSpanId: this._parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
@@ -516,8 +495,7 @@ export class SentrySpan implements SpanInterface {
     this.data = spanContext.data || {};
     this._name = spanContext.name;
     this._endTime = spanContext.endTimestamp;
-    // eslint-disable-next-line deprecation/deprecation
-    this.op = spanContext.op;
+    this._attributes = { ...this._attributes, [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op };
     this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
@@ -551,7 +529,7 @@ export class SentrySpan implements SpanInterface {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,

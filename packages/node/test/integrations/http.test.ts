@@ -413,8 +413,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation
@@ -523,8 +522,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation
