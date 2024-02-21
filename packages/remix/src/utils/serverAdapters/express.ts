@@ -9,7 +9,6 @@ import {
 import { flush } from '@sentry/node';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
-import { cwd } from 'process';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
@@ -22,11 +21,8 @@ import type {
   ExpressRequestHandler,
   ExpressResponse,
   GetLoadContextFunction,
-  ReactRouterDomPkg,
   ServerBuild,
 } from '../vendor/types';
-
-let pkg: ReactRouterDomPkg;
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
@@ -40,18 +36,6 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
-    if (!pkg) {
-      try {
-        pkg = await import('react-router-dom');
-      } catch (e) {
-        pkg = await import(`${cwd()}/node_modules/react-router-dom`);
-      } finally {
-        if (!pkg) {
-          DEBUG_BUILD && logger.error('Could not find `react-router-dom` package.');
-        }
-      }
-    }
-
     await runWithAsyncContext(async () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       res.end = wrapEndMethod(res.end);
@@ -70,7 +54,7 @@ function wrapExpressRequestHandler(
 
       const url = new URL(request.url);
 
-      const [name, source] = getTransactionName(routes, url, pkg);
+      const [name, source] = getTransactionName(routes, url);
       const transaction = startRequestHandlerTransaction(hub, name, source, {
         headers: {
           'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
