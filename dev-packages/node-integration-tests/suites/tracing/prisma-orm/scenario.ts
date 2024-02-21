@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { PrismaClient } from '@prisma/client';
 import * as Sentry from '@sentry/node';
-import * as Tracing from '@sentry/tracing';
 
 const client = new PrismaClient();
 
@@ -9,8 +8,7 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  // eslint-disable-next-line deprecation/deprecation
-  integrations: [new Tracing.Integrations.Prisma({ client })],
+  integrations: [new Sentry.Integrations.Prisma({ client })],
 });
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
