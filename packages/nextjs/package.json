@@ -27,7 +27,7 @@
     "@rollup/plugin-commonjs": "24.0.0",
     "@sentry/core": "7.100.0",
     "@sentry/integrations": "7.100.0",
-    "@sentry/node": "7.100.0",
+    "@sentry/node-experimental": "7.100.0",
     "@sentry/react": "7.100.0",
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0",
