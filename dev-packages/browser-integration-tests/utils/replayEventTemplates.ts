@@ -19,7 +19,7 @@ const DEFAULT_REPLAY_EVENT = {
     integrations: [
       'InboundFilters',
       'FunctionToString',
-      'TryCatch',
+      'BrowserApiErrors',
       'Breadcrumbs',
       'GlobalHandlers',
       'LinkedErrors',

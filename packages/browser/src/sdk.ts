@@ -21,11 +21,11 @@ import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW, wrap as internalWrap } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
+import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { dedupeIntegration } from './integrations/dedupe';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
-import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 

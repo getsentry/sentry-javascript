@@ -112,7 +112,7 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
-export { browserApiErrorsIntegration } from './integrations/trycatch';
+export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
 // eslint-disable-next-line deprecation/deprecation
-export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
