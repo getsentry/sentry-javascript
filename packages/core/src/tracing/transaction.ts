@@ -21,7 +21,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan } from './trace';
+import { getCapturedScopesOnSpan, getSpanTree } from './trace';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
@@ -92,23 +92,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * Getter for `name` property.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get name(): string {
-    return this._name;
-  }
-
-  /**
-   * Setter for `name` property, which also sets `source` as custom.
-   * @deprecated Use `updateName()` and `setMetadata()` instead.
-   */
-  public set name(newName: string) {
-    // eslint-disable-next-line deprecation/deprecation
-    this.setName(newName);
-  }
-
-  /**
    * Get the metadata for this transaction.
    * @deprecated Use `spanGetMetadata(transaction)` instead.
    */
@@ -138,19 +121,10 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
   /* eslint-enable @typescript-eslint/member-ordering */
 
-  /**
-   * Setter for `name` property, which also sets `source` on the metadata.
-   *
-   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
-   */
-  public setName(name: string, source: TransactionSource = 'custom'): void {
-    this._name = name;
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-  }
-
   /** @inheritdoc */
   public updateName(name: string): this {
     this._name = name;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
   }
 
@@ -293,11 +267,8 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       return undefined;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const finishedSpans = this.spanRecorder
-      ? // eslint-disable-next-line deprecation/deprecation
-        this.spanRecorder.spans.filter(span => span !== this && spanToJSON(span).timestamp)
-      : [];
+    // We only want to include finished spans in the event
+    const finishedSpans = getSpanTree(this).filter(span => span !== this && spanToJSON(span).timestamp);
 
     if (this._trimEnd && finishedSpans.length > 0) {
       const endTimes = finishedSpans.map(span => spanToJSON(span).timestamp).filter(Boolean) as number[];

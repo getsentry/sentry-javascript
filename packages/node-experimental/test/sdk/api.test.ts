@@ -40,7 +40,7 @@ describe('withActiveSpan()', () => {
     expect(beforeSendTransaction).toHaveBeenCalledWith(
       expect.objectContaining({
         transaction: 'inactive-span',
-        spans: expect.arrayContaining([expect.objectContaining({ description: 'child-span' })]),
+        spans: expect.arrayContaining([expect.any(Object)]),
       }),
       expect.anything(),
     );

@@ -79,7 +79,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
               const rawSentryResponseBody = Buffer.concat(sentryResponseChunks).toString();
 
               const data: SentryRequestCallbackData = {
-                envelope: parseEnvelope(proxyRequestBody, new TextEncoder(), new TextDecoder()),
+                envelope: parseEnvelope(proxyRequestBody),
                 rawProxyRequestBody: proxyRequestBody,
                 rawSentryResponseBody,
                 sentryResponseStatusCode: sentryResponse.statusCode,

@@ -29,6 +29,7 @@ import {
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
 import { setHttpStatus } from './spanstatus';
+import { addChildSpanToSpan } from './trace';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -143,8 +144,7 @@ export class SentrySpan implements SpanInterface {
       ...spanContext.attributes,
     });
 
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
 
     if (spanContext.parentSpanId) {
       this._parentSpanId = spanContext.parentSpanId;
@@ -163,38 +163,6 @@ export class SentrySpan implements SpanInterface {
 
   // This rule conflicts with another eslint rule :(
   /* eslint-disable @typescript-eslint/member-ordering */
-
-  /**
-   * An alias for `description` of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get name(): string {
-    return this._name || '';
-  }
-
-  /**
-   * Update the name of the span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set name(name: string) {
-    this.updateName(name);
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get description(): string | undefined {
-    return this._name;
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set description(description: string | undefined) {
-    this._name = description;
-  }
 
   /**
    * The ID of the trace.
@@ -401,6 +369,11 @@ export class SentrySpan implements SpanInterface {
       childSpan.spanRecorder.add(childSpan);
     }
 
+    // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
+    // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.
+    // To ensure interoperability with the `startSpan` API, `addChildSpanToSpan` is also called here.
+    addChildSpanToSpan(this, childSpan);
+
     const rootSpan = getRootSpan(this);
     // TODO: still set span.transaction here until we have a more permanent solution
     // Probably similarly to the weakmap we hold in node-experimental
@@ -481,29 +454,11 @@ export class SentrySpan implements SpanInterface {
   }
 
   /**
-   * @inheritdoc
-   *
-   * @deprecated Use `.updateName()` instead.
-   */
-  public setName(name: string): void {
-    this.updateName(name);
-  }
-
-  /**
    * @inheritDoc
    */
   public updateName(name: string): this {
     this._name = name;
     return this;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
-   */
-  public isSuccess(): boolean {
-    return this._status === 'ok';
   }
 
   /**
@@ -554,7 +509,7 @@ export class SentrySpan implements SpanInterface {
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this._name,
+      name: this._name,
       endTimestamp: this._endTime,
       // eslint-disable-next-line deprecation/deprecation
       op: this.op,
@@ -577,8 +532,7 @@ export class SentrySpan implements SpanInterface {
   public updateWithContext(spanContext: SpanContext): this {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
     this._endTime = spanContext.endTimestamp;
     // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;

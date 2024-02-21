@@ -58,7 +58,7 @@ export function getNumberOfUrlSegments(url: string): number {
 }
 
 /**
- * Takes a URL object and returns a sanitized string which is safe to use as span description
+ * Takes a URL object and returns a sanitized string which is safe to use as span name
  * see: https://develop.sentry.dev/sdk/data-handling/#structuring-data
  */
 export function getSanitizedUrlString(url: PartialURL): string {

@@ -84,7 +84,7 @@ export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
-export { makeFetchTransport, makeXHRTransport } from './transports';
+export { makeFetchTransport } from './transports/fetch';
 export {
   defaultStackParser,
   defaultStackLineParsers,
@@ -97,8 +97,6 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   forceLoad,
   init,

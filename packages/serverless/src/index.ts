@@ -53,8 +53,6 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,

@@ -102,7 +102,6 @@ export type {
 } from './span';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
-export type { TextEncoderInternal } from './textencoder';
 export type { PropagationContext, TracePropagationTargets } from './tracing';
 export type { StartSpanOptions } from './startSpanOptions';
 export type {

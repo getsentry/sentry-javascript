@@ -51,7 +51,7 @@ function recordInitSpan(transaction: Transaction, componentName: string): Span {
   // eslint-disable-next-line deprecation/deprecation
   const initSpan = transaction.startChild({
     op: UI_SVELTE_INIT,
-    description: componentName,
+    name: componentName,
     origin: 'auto.ui.svelte',
   });
 
@@ -80,7 +80,7 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     // eslint-disable-next-line deprecation/deprecation
     updateSpan = parentSpan.startChild({
       op: UI_SVELTE_UPDATE,
-      description: componentName,
+      name: componentName,
       origin: 'auto.ui.svelte',
     });
   });

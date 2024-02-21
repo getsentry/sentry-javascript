@@ -100,14 +100,7 @@ export interface SpanContextData {
 /** Interface holding all properties that can be set on a Span on creation. */
 export interface SpanContext {
   /**
-   * Description of the Span.
-   *
-   * @deprecated Use `name` instead.
-   */
-  description?: string | undefined;
-
-  /**
-   * Human-readable identifier for the span. Alias for span.description.
+   * Human-readable identifier for the span.
    */
   name?: string | undefined;
 
@@ -181,13 +174,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
-  /**
-   * Human-readable identifier for the span. Identical to span.description.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  name: string;
-
+export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin'> {
   /**
    * Operation of the Span.
    *
@@ -346,13 +333,6 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
   setHttpStatus(httpStatus: number): this;
 
   /**
-   * Set the name of the span.
-   *
-   * @deprecated Use `updateName()` instead.
-   */
-  setName(name: string): void;
-
-  /**
    * Update the name of the span.
    */
   updateName(name: string): this;
@@ -364,13 +344,6 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
-
-  /**
-   * Determines whether span was successful (HTTP200)
-   *
-   * @deprecated Use `spanToJSON(span).status === 'ok'` instead.
-   */
-  isSuccess(): boolean;
 
   /**
    * Return a traceparent compatible header string.

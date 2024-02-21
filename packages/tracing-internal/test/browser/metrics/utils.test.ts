@@ -6,7 +6,7 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test' });
     const span = _startChild(transaction, {
-      description: 'evaluation',
+      name: 'evaluation',
       op: 'script',
     });
 
@@ -21,7 +21,7 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
-      description: 'script.js',
+      name: 'script.js',
       op: 'resource',
       startTimestamp: 100,
     });
@@ -34,7 +34,7 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
-      description: 'script.js',
+      name: 'script.js',
       op: 'resource',
       startTimestamp: 150,
     });

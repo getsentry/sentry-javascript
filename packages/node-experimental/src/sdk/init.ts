@@ -1,5 +1,6 @@
 import {
   endSession,
+  getClient,
   getCurrentScope,
   getIntegrationsToSetup,
   getIsolationScope,
@@ -18,9 +19,9 @@ import {
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 
-import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { httpIntegration } from '../integrations/http';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
+import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { defaultStackParser, getSentryRelease } from './api';
@@ -184,6 +185,11 @@ function updateScopeFromEnvVariables(): void {
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
+  const client = getClient<NodeClient>();
+  if (client && client.getOptions().autoSessionTracking) {
+    client.initSessionFlusher();
+  }
+
   startSession();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because

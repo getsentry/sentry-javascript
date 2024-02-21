@@ -8,7 +8,6 @@ import {
   captureException,
   captureMessage,
   continueTrace,
-  defaultIntegrations as nodeDefaultIntegrations,
   flush,
   getCurrentScope,
   getDefaultIntegrations as getNodeDefaultIntegrations,
@@ -65,13 +64,6 @@ export interface WrapperOptions {
    */
   startTrace: boolean;
 }
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations: Integration[] = [
-  // eslint-disable-next-line deprecation/deprecation
-  ...nodeDefaultIntegrations,
-  awsServicesIntegration({ optional: true }),
-];
 
 /** Get the default integrations for the AWSLambda SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {

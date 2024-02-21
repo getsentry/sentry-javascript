@@ -102,9 +102,9 @@ describe('SentrySpan', () => {
 
     test('setName', () => {
       const span = new SentrySpan({});
-      expect(span.description).toBeUndefined();
+      expect(spanToJSON(span).description).toBeUndefined();
       span.updateName('foo');
-      expect(span.description).toBe('foo');
+      expect(spanToJSON(span).description).toBe('foo');
     });
   });
 
@@ -122,31 +122,6 @@ describe('SentrySpan', () => {
       expect((span.getTraceContext() as any).status).toBe('not_found');
       expect(span.tags['http.status_code']).toBe('404');
       expect(span.data['http.response.status_code']).toBe(404);
-    });
-
-    // TODO (v8): Remove
-    test('isSuccess', () => {
-      const span = new SentrySpan({});
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(200);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
-      span.setStatus('permission_denied');
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(0);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(-1);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(99);
-      expect(span.isSuccess()).toBe(false);
-      expect(spanToJSON(span).status).not.toBe('ok');
-      span.setHttpStatus(100);
-      expect(span.isSuccess()).toBe(true);
-      expect(spanToJSON(span).status).toBe('ok');
     });
   });
 
@@ -270,22 +245,6 @@ describe('SentrySpan', () => {
         expect(spy).toHaveBeenCalled();
         expect(spy.mock.calls[0][0].spans).toHaveLength(2);
         expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
-      });
-
-      test('maxSpans correctly limits number of spans', () => {
-        const options = getDefaultBrowserClientOptions({
-          _experiments: { maxSpans: 3 },
-          tracesSampleRate: 1,
-        });
-        const _hub = new Hub(new BrowserClient(options));
-        const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startTransaction({ name: 'test' });
-        for (let i = 0; i < 10; i++) {
-          const child = transaction.startChild();
-          child.end();
-        }
-        transaction.end();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(3);
       });
 
       test('no span recorder created if transaction.sampled is false', () => {
@@ -421,22 +380,6 @@ describe('SentrySpan', () => {
         expect(spy.mock.calls[0][0].contexts.trace).toEqual(transaction.getTraceContext());
       });
 
-      test('maxSpans correctly limits number of spans', () => {
-        const options = getDefaultBrowserClientOptions({
-          _experiments: { maxSpans: 3 },
-          tracesSampleRate: 1,
-        });
-        const _hub = new Hub(new BrowserClient(options));
-        const spy = jest.spyOn(_hub as any, 'captureEvent') as any;
-        const transaction = _hub.startTransaction({ name: 'test' });
-        for (let i = 0; i < 10; i++) {
-          const child = transaction.startChild();
-          child.end();
-        }
-        transaction.end();
-        expect(spy.mock.calls[0][0].spans).toHaveLength(3);
-      });
-
       test('no span recorder created if transaction.sampled is false', () => {
         const options = getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -521,7 +464,7 @@ describe('SentrySpan', () => {
         traceId: 'a',
         spanId: 'b',
         sampled: false,
-        description: 'test',
+        name: 'test',
         op: 'op',
       };
       const span = new SentrySpan(originalContext);
@@ -546,7 +489,7 @@ describe('SentrySpan', () => {
         traceId: 'a',
         spanId: 'b',
         sampled: false,
-        description: 'test',
+        name: 'test',
         op: 'op',
         tags: {
           tag0: 'hello',
@@ -563,7 +506,7 @@ describe('SentrySpan', () => {
       expect(span.spanContext().traceId).toBe('c');
       expect(span.spanContext().spanId).toBe('d');
       expect(span.sampled).toBe(true);
-      expect(span.description).toBe(undefined);
+      expect(spanToJSON(span).description).toBe(undefined);
       expect(span.op).toBe(undefined);
       expect(span.tags).toStrictEqual({});
     });
@@ -573,7 +516,7 @@ describe('SentrySpan', () => {
         traceId: 'a',
         spanId: 'b',
         sampled: false,
-        description: 'test',
+        name: 'test',
         op: 'op',
         tags: { tag0: 'hello' },
         data: { data0: 'foo' },
@@ -582,7 +525,7 @@ describe('SentrySpan', () => {
 
       const newContext = {
         ...span.toContext(),
-        description: 'new',
+        name: 'new',
         endTimestamp: 1,
         op: 'new-op',
         sampled: true,
@@ -600,7 +543,7 @@ describe('SentrySpan', () => {
 
       expect(span.spanContext().traceId).toBe('a');
       expect(span.spanContext().spanId).toBe('b');
-      expect(span.description).toBe('new');
+      expect(spanToJSON(span).description).toBe('new');
       expect(spanToJSON(span).timestamp).toBe(1);
       expect(span.op).toBe('new-op');
       expect(span.sampled).toBe(true);

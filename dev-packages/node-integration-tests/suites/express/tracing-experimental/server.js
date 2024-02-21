@@ -34,6 +34,6 @@ app.get(['/test/arr/:id', /\/test\/arr[0-9]*\/required(path)?(\/optionalPath)?\/
   res.send({ response: 'response 4' });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+app.use(Sentry.errorHandler());
 
 startExpressServerAndSendPortToRunner(app);

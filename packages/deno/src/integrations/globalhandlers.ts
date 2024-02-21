@@ -67,7 +67,7 @@ function installGlobalErrorHandler(client: Client): void {
 
     const { message, error } = data;
 
-    const event = eventFromUnknownInput(getClient(), stackParser, error || message);
+    const event = eventFromUnknownInput(client, stackParser, error || message);
 
     event.level = 'fatal';
 
@@ -116,7 +116,7 @@ function installGlobalUnhandledRejectionHandler(client: Client): void {
 
     const event = isPrimitive(error)
       ? eventFromRejectionWithPrimitive(error)
-      : eventFromUnknownInput(getClient(), stackParser, error, undefined);
+      : eventFromUnknownInput(client, stackParser, error, undefined);
 
     event.level = 'fatal';
 

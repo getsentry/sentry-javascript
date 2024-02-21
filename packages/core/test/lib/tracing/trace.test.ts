@@ -105,7 +105,7 @@ describe('startSpan', () => {
       }
       expect(ref).toBeDefined();
 
-      expect(ref.name).toEqual('GET users/[id]');
+      expect(spanToJSON(ref).description).toEqual('GET users/[id]');
       expect(ref.status).toEqual(isError ? 'internal_error' : undefined);
     });
 
@@ -192,7 +192,7 @@ describe('startSpan', () => {
       }
 
       expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(ref.spanRecorder.spans[1].description).toEqual('SELECT * from users');
+      expect(spanToJSON(ref.spanRecorder.spans[1]).description).toEqual('SELECT * from users');
       expect(ref.spanRecorder.spans[1].parentSpanId).toEqual(ref.spanId);
       expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
     });
@@ -436,6 +436,16 @@ describe('startSpan', () => {
       expect.anything(),
     );
   });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      startSpan({ name: 'inner' }, innerSpan => {
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        expect(childSpans).toContain(innerSpan);
+      });
+    });
+  });
 });
 
 describe('startSpanManual', () => {
@@ -543,6 +553,16 @@ describe('startSpanManual', () => {
       });
 
       expect(span).toBeDefined();
+    });
+  });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      startSpanManual({ name: 'inner' }, innerSpan => {
+        const childSpans = Array.from(outerSpan._sentryChildSpans);
+        expect(childSpans).toContain(innerSpan);
+      });
     });
   });
 });
@@ -673,6 +693,15 @@ describe('startInactiveSpan', () => {
       }),
       expect.anything(),
     );
+  });
+
+  it('sets a child span reference on the parent span', () => {
+    expect.assertions(1);
+    startSpan({ name: 'outer' }, (outerSpan: any) => {
+      const innerSpan = startInactiveSpan({ name: 'inner' });
+      const childSpans = Array.from(outerSpan._sentryChildSpans);
+      expect(childSpans).toContain(innerSpan);
+    });
   });
 });
 
