@@ -26,6 +26,7 @@ export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getClient, getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
+export { NodeClient } from './sdk/client';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
