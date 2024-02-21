@@ -88,7 +88,6 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
 
   test('With session', done => {
     createRunner(__dirname, 'basic-session.js')
-      .ignore('event')
       .expect({
         session: {
           status: 'abnormal',
