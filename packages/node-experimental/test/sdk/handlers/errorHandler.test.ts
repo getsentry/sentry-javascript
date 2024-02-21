@@ -3,7 +3,7 @@ import { getCurrentScope, getIsolationScope, setAsyncContextStrategy, setCurrent
 import type { Scope } from '@sentry/types';
 import { NodeClient } from '../../../src/sdk/client';
 import { errorHandler } from '../../../src/sdk/handlers/errorHandler';
-import { getDefaultNodeClientOptions } from '../../helpers/getDefaultNodePreviewClientOptions';
+import { getDefaultNodeClientOptions } from '../../helpers/getDefaultNodeClientOptions';
 
 describe('errorHandler()', () => {
   beforeEach(() => {
