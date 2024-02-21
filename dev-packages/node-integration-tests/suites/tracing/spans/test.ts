@@ -1,6 +1,6 @@
 import nock from 'nock';
 
-import { TestEnv, assertSentryTransaction } from '../../../../utils';
+import { TestEnv, assertSentryTransaction } from '../../../utils';
 
 test('should capture spans for outgoing http requests', async () => {
   const match1 = nock('http://match-this-url.com').get('/api/v0').reply(200);
