@@ -92,23 +92,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * Getter for `name` property.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get name(): string {
-    return this._name;
-  }
-
-  /**
-   * Setter for `name` property, which also sets `source` as custom.
-   * @deprecated Use `updateName()` and `setMetadata()` instead.
-   */
-  public set name(newName: string) {
-    // eslint-disable-next-line deprecation/deprecation
-    this.setName(newName);
-  }
-
-  /**
    * Get the metadata for this transaction.
    * @deprecated Use `spanGetMetadata(transaction)` instead.
    */
@@ -138,19 +121,10 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
   /* eslint-enable @typescript-eslint/member-ordering */
 
-  /**
-   * Setter for `name` property, which also sets `source` on the metadata.
-   *
-   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
-   */
-  public setName(name: string, source: TransactionSource = 'custom'): void {
-    this._name = name;
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-  }
-
   /** @inheritdoc */
   public updateName(name: string): this {
     this._name = name;
+    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
   }
 

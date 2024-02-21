@@ -42,26 +42,26 @@ function redactAuthority(auth: string): string {
 }
 
 /**
- * Handle various edge cases in the span description (for spans representing http(s) requests).
+ * Handle various edge cases in the span name (for spans representing http(s) requests).
  *
- * @param description current `description` property of the span representing the request
+ * @param description current `name` property of the span representing the request
  * @param requestOptions Configuration data for the request
  * @param Request Request object
  *
- * @returns The cleaned description
+ * @returns The cleaned name
  */
-export function cleanSpanDescription(
-  description: string | undefined,
+export function cleanSpanName(
+  name: string | undefined,
   requestOptions: RequestOptions,
   request: http.ClientRequest,
 ): string | undefined {
   // nothing to clean
-  if (!description) {
-    return description;
+  if (!name) {
+    return name;
   }
 
   // eslint-disable-next-line prefer-const
-  let [method, requestUrl] = description.split(' ');
+  let [method, requestUrl] = name.split(' ');
 
   // superagent sticks the protocol in a weird place (we check for host because if both host *and* protocol are missing,
   // we're likely dealing with an internal route and this doesn't apply)

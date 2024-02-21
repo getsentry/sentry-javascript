@@ -59,13 +59,13 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: {} } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -92,7 +92,7 @@ describe('Sentry.trackComponent()', () => {
     // once for init (unimportant here), once for starting the update span
     expect(testTransaction.startChild).toHaveBeenCalledTimes(2);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -103,7 +103,7 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackUpdates: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
@@ -118,7 +118,7 @@ describe('Sentry.trackComponent()', () => {
     render(DummyComponent, { props: { options: { trackInit: false } } });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -137,19 +137,19 @@ describe('Sentry.trackComponent()', () => {
     expect(testTransaction.spans.length).toEqual(0);
   });
 
-  it('sets a custom component name as a span description if `componentName` is provided', async () => {
+  it('sets a custom component name as a span name if `componentName` is provided', async () => {
     render(DummyComponent, {
       props: { options: { componentName: 'CustomComponentName' } },
     });
 
     expect(testTransaction.startChild).toHaveBeenCalledWith({
-      description: '<CustomComponentName>',
+      name: '<CustomComponentName>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });
 
     expect(testInitSpan.startChild).toHaveBeenCalledWith({
-      description: '<CustomComponentName>',
+      name: '<CustomComponentName>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
     });
@@ -188,7 +188,7 @@ describe('Sentry.trackComponent()', () => {
     // but not the second update
     expect(testTransaction.startChild).toHaveBeenCalledTimes(1);
     expect(testTransaction.startChild).toHaveBeenLastCalledWith({
-      description: '<Dummy$>',
+      name: '<Dummy$>',
       op: 'ui.svelte.init',
       origin: 'auto.ui.svelte',
     });

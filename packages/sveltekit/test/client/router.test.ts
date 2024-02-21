@@ -57,7 +57,6 @@ describe('sveltekitRoutingInstrumentation', () => {
       name: '/',
       op: 'pageload',
       origin: 'auto.pageload.sveltekit',
-      description: '/',
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
@@ -121,7 +120,7 @@ describe('sveltekitRoutingInstrumentation', () => {
     expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
       origin: 'auto.ui.sveltekit',
-      description: 'SvelteKit Route Change',
+      name: 'SvelteKit Route Change',
     });
 
     // eslint-disable-next-line deprecation/deprecation
@@ -171,7 +170,7 @@ describe('sveltekitRoutingInstrumentation', () => {
       expect(returnedTransaction?.startChild).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',
         origin: 'auto.ui.sveltekit',
-        description: 'SvelteKit Route Change',
+        name: 'SvelteKit Route Change',
       });
 
       // eslint-disable-next-line deprecation/deprecation

@@ -173,7 +173,7 @@ export class TraceService implements OnDestroy {
       if (activeTransaction) {
         // eslint-disable-next-line deprecation/deprecation
         this._routingSpan = activeTransaction.startChild({
-          description: `${navigationEvent.url}`,
+          name: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
           origin: 'auto.ui.angular',
           tags: {
@@ -327,7 +327,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
     if (activeTransaction) {
       // eslint-disable-next-line deprecation/deprecation
       this._tracingSpan = activeTransaction.startChild({
-        description: `<${this.componentName}>`,
+        name: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
         origin: 'auto.ui.angular.trace_directive',
       });
@@ -371,7 +371,7 @@ export function TraceClassDecorator(): ClassDecorator {
       if (activeTransaction) {
         // eslint-disable-next-line deprecation/deprecation
         tracingSpan = activeTransaction.startChild({
-          description: `<${target.name}>`,
+          name: `<${target.name}>`,
           op: ANGULAR_INIT_OP,
           origin: 'auto.ui.angular.trace_class_decorator',
         });
@@ -410,7 +410,7 @@ export function TraceMethodDecorator(): MethodDecorator {
       if (activeTransaction) {
         // eslint-disable-next-line deprecation/deprecation
         activeTransaction.startChild({
-          description: `<${target.constructor.name}>`,
+          name: `<${target.constructor.name}>`,
           endTimestamp: now,
           op: `${ANGULAR_OP}.${String(propertyKey)}`,
           origin: 'auto.ui.angular.trace_method_decorator',

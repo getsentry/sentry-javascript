@@ -84,7 +84,7 @@ describe('patchOperation()', () => {
         },
         op: 'db',
         origin: 'auto.db.mongo',
-        description: 'insertOne',
+        name: 'insertOne',
       });
       expect(childSpan.end).toBeCalled();
       done();
@@ -103,7 +103,7 @@ describe('patchOperation()', () => {
       },
       op: 'db',
       origin: 'auto.db.mongo',
-      description: 'insertOne',
+      name: 'insertOne',
     });
     expect(childSpan.end).toBeCalled();
   });
@@ -122,7 +122,7 @@ describe('patchOperation()', () => {
       },
       op: 'db',
       origin: 'auto.db.mongo',
-      description: 'insertOne',
+      name: 'insertOne',
     });
     expect(childSpan.end).toBeCalled();
   });
@@ -139,7 +139,7 @@ describe('patchOperation()', () => {
       },
       op: 'db',
       origin: 'auto.db.mongo',
-      description: 'initializeOrderedBulkOp',
+      name: 'initializeOrderedBulkOp',
     });
     expect(childSpan.end).toBeCalled();
   });

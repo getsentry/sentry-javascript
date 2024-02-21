@@ -115,14 +115,7 @@ describe('Integration | Transactions', () => {
         server_name: expect.any(String),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: {
           'outer.tag': 'test value',
@@ -270,14 +263,7 @@ describe('Integration | Transactions', () => {
             origin: 'auto.test',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value' },
         timestamp: expect.any(Number),
@@ -317,14 +303,7 @@ describe('Integration | Transactions', () => {
             origin: 'manual',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1b',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2b',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value b' },
         timestamp: expect.any(Number),
@@ -429,14 +408,7 @@ describe('Integration | Transactions', () => {
             origin: 'manual',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value' },
         timestamp: expect.any(Number),
@@ -473,14 +445,7 @@ describe('Integration | Transactions', () => {
             origin: 'manual',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1b',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2b',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value b' },
         timestamp: expect.any(Number),
@@ -565,14 +530,7 @@ describe('Integration | Transactions', () => {
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
         transaction: 'test name',

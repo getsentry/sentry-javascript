@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   Transaction,
+  spanToJSON,
 } from '../../../src';
 
 describe('transaction', () => {
@@ -10,40 +11,19 @@ describe('transaction', () => {
     /* eslint-disable deprecation/deprecation */
     it('works with name', () => {
       const transaction = new Transaction({ name: 'span name' });
-      expect(transaction.name).toEqual('span name');
-    });
-
-    it('allows to update the name via setter', () => {
-      const transaction = new Transaction({ name: 'span name' });
-      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      expect(transaction.name).toEqual('span name');
-
-      transaction.name = 'new name';
-
-      expect(transaction.name).toEqual('new name');
-      expect(transaction.attributes['sentry.source']).toEqual('custom');
-    });
-
-    it('allows to update the name via setName', () => {
-      const transaction = new Transaction({ name: 'span name' });
-      transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      expect(transaction.name).toEqual('span name');
-
-      transaction.setName('new name');
-
-      expect(transaction.name).toEqual('new name');
-      expect(transaction.attributes['sentry.source']).toEqual('custom');
+      expect(spanToJSON(transaction).description).toEqual('span name');
     });
 
     it('allows to update the name via updateName', () => {
       const transaction = new Transaction({ name: 'span name' });
       transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      expect(transaction.name).toEqual('span name');
+      expect(spanToJSON(transaction).description).toEqual('span name');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
 
       transaction.updateName('new name');
 
-      expect(transaction.name).toEqual('new name');
-      expect(transaction.attributes['sentry.source']).toEqual('route');
+      expect(spanToJSON(transaction).description).toEqual('new name');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
     /* eslint-enable deprecation/deprecation */
   });

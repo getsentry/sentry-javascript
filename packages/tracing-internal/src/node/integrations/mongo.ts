@@ -250,7 +250,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       op: 'db',
       // TODO v8: Use `${collection.collectionName}.${operation}`
       origin: 'auto.db.mongo',
-      description: operation,
+      name: operation,
       data,
     };
 
