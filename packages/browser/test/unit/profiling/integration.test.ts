@@ -1,4 +1,5 @@
 import type { BrowserClient } from '@sentry/browser';
+import { spanToJSON } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
@@ -50,7 +51,8 @@ describe('BrowserProfilingIntegration', () => {
 
     // eslint-disable-next-line deprecation/deprecation
     const currentTransaction = Sentry.getCurrentScope().getTransaction();
-    expect(currentTransaction?.op).toBe('pageload');
+    expect(currentTransaction).toBeDefined();
+    expect(spanToJSON(currentTransaction as any)?.op).toBe('pageload');
     currentTransaction?.end();
     await client?.flush(1000);
 

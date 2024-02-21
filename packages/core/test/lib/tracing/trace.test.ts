@@ -152,7 +152,7 @@ describe('startSpan', () => {
         //
       }
 
-      expect(ref.op).toEqual('http.server');
+      expect(spanToJSON(ref).op).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
