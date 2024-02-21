@@ -12,11 +12,6 @@ import * as TracingBundle from '../../src/index.bundle';
 describe('index.bundle', () => {
   it('has correct exports', () => {
     Object.keys(TracingBundle.Integrations).forEach(key => {
-      // Skip BrowserTracing because it doesn't have a static id field.
-      if (key === 'BrowserTracing') {
-        return;
-      }
-
       expect((TracingBundle.Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
 
@@ -24,8 +19,7 @@ describe('index.bundle', () => {
     expect(TracingBundle.Replay).toBe(ReplayShim);
     expect(TracingBundle.replayIntegration).toBe(replayIntegrationShim);
 
-    expect(TracingBundle.Integrations.BrowserTracing).toBe(BrowserTracingShim);
-    expect(TracingBundle.BrowserTracing).toBe(BrowserTracingShim);
+    expect(TracingBundle.browserTracingIntegration).toBe(BrowserTracingShim);
 
     expect(TracingBundle.Feedback).toBe(FeedbackShim);
     expect(TracingBundle.feedbackIntegration).toBe(feedbackIntegrationShim);

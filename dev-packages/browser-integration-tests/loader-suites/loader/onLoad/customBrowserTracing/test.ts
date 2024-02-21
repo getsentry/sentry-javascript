@@ -7,7 +7,7 @@ import {
   waitForTransactionRequestOnUrl,
 } from '../../../../utils/helpers';
 
-sentryTest('should handle custom added BrowserTracing integration', async ({ getLocalTestUrl, page }) => {
+sentryTest('should handle custom added browserTracingIntegration instances', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }

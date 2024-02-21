@@ -5,7 +5,6 @@ import type {
 import {
   Apollo,
   BROWSER_TRACING_INTEGRATION_ID as BROWSER_TRACING_INTEGRATION_ID_T,
-  BrowserTracing as BrowserTracingT,
   Express,
   GraphQL,
   IdleTransaction as IdleTransactionT,
@@ -24,32 +23,6 @@ import {
   startIdleTransaction as startIdleTransactionT,
   stripUrlQueryAndFragment as stripUrlQueryAndFragmentT,
 } from '@sentry-internal/tracing';
-
-// BrowserTracing is already exported as part of `Integrations` below (and for the moment will remain so for
-// backwards compatibility), but that interferes with treeshaking, so we also export it separately
-// here.
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
- *
- * import { BrowserTracing } from '@sentry/browser';
- * new BrowserTracing()
- */
-// eslint-disable-next-line deprecation/deprecation
-export const BrowserTracing = BrowserTracingT;
-
-// BrowserTracing is already exported as part of `Integrations` below (and for the moment will remain so for
-// backwards compatibility), but that interferes with treeshaking, so we also export it separately
-// here.
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
- *
- * import { BrowserTracing } from '@sentry/browser';
- * new BrowserTracing()
- */
-// eslint-disable-next-line deprecation/deprecation
-export type BrowserTracing = BrowserTracingT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
@@ -156,15 +129,6 @@ export type SpanStatus = SpanStatusT;
 export type RequestInstrumentationOptions = RequestInstrumentationOptionsT;
 
 export const Integrations = {
-  /**
-   * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
-   * `BrowserTracing` can be imported from `@sentry/browser` or your framework SDK
-   *
-   * import { BrowserTracing } from '@sentry/browser';
-   * new BrowserTracing()
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing: BrowserTracing,
   /**
    * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
    * `Apollo` can be imported from `@sentry/node`

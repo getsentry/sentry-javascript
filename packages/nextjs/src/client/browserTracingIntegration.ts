@@ -7,7 +7,7 @@ import type { Integration, StartSpanOptions } from '@sentry/types';
 import { nextRouterInstrumentation } from './routing/nextRoutingInstrumentation';
 
 /**
- * A custom BrowserTracing integration for Next.js.
+ * A custom browser tracing integration for Next.js.
  */
 export function browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},

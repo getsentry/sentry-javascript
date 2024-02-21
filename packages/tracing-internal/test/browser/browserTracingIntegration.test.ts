@@ -677,7 +677,7 @@ describe('browserTracingIntegration', () => {
       );
       setCurrentClient(client);
 
-      // pageload transactions are created as part of the BrowserTracing integration's initialization
+      // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
       const transaction = getActiveTransaction() as IdleTransaction;
@@ -705,7 +705,7 @@ describe('browserTracingIntegration', () => {
       );
       setCurrentClient(client);
 
-      // pageload transactions are created as part of the BrowserTracing integration's initialization
+      // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
       const transaction = getActiveTransaction() as IdleTransaction;
@@ -731,7 +731,7 @@ describe('browserTracingIntegration', () => {
       );
       setCurrentClient(client);
 
-      // pageload transactions are created as part of the BrowserTracing integration's initialization
+      // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
       // this is what is used to get the span name - JSDOM does not update this on it's own!

@@ -56,7 +56,7 @@ describe('Sentry client SDK', () => {
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['enableTracing', { enableTracing: true }],
-      ])('adds the BrowserTracing integration if tracing is enabled via %s', (_, tracingOptions) => {
+      ])('adds browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
@@ -72,7 +72,7 @@ describe('Sentry client SDK', () => {
       it.each([
         ['enableTracing', { enableTracing: false }],
         ['no tracing option set', {}],
-      ])("doesn't add the BrowserTracing integration if tracing is disabled via %s", (_, tracingOptions) => {
+      ])("doesn't add browserTracingIntegration if tracing is disabled via %s", (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
@@ -85,7 +85,7 @@ describe('Sentry client SDK', () => {
         expect(browserTracing).toBeUndefined();
       });
 
-      it("doesn't add the BrowserTracing integration if `__SENTRY_TRACING__` is set to false", () => {
+      it("doesn't add browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -102,7 +102,7 @@ describe('Sentry client SDK', () => {
         delete globalThis.__SENTRY_TRACING__;
       });
 
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntegration instance', () => {
+      it('Overrides the automatically default browserTracingIntegration instance with a a user-provided browserTracingIntegration instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [

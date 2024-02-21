@@ -254,12 +254,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span start for a page load.
+   * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
   on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span for a navigation.
+   * A hook for browser tracing integrations to trigger a span for a navigation.
    */
   on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
@@ -335,12 +335,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span start for a page load.
+   * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
   emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span for a navigation.
+   * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
   emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 

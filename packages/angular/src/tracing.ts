@@ -67,7 +67,7 @@ export function routingInstrumentation(
 export const instrumentAngularRouting = routingInstrumentation;
 
 /**
- * A custom BrowserTracing integration for Angular.
+ * A custom browser tracing integration for Angular.
  *
  * Use this integration in combination with `TraceService`
  */
