@@ -82,7 +82,7 @@ export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
-export { makeFetchTransport, makeXHRTransport } from './transports';
+export { makeFetchTransport } from './transports/fetch';
 export {
   defaultStackParser,
   defaultStackLineParsers,

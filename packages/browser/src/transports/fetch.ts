@@ -11,7 +11,7 @@ import { clearCachedFetchImplementation, getNativeFetchImplementation } from './
  */
 export function makeFetchTransport(
   options: BrowserTransportOptions,
-  nativeFetch: FetchImpl = getNativeFetchImplementation(),
+  nativeFetch: FetchImpl | undefined = getNativeFetchImplementation(),
 ): Transport {
   let pendingBodySize = 0;
   let pendingCount = 0;
@@ -40,6 +40,11 @@ export function makeFetchTransport(
       keepalive: pendingBodySize <= 60_000 && pendingCount < 15,
       ...options.fetchOptions,
     };
+
+    if (!nativeFetch) {
+      clearCachedFetchImplementation();
+      return rejectedSyncPromise('No fetch implementation available');
+    }
 
     try {
       return nativeFetch(options.url, requestOptions).then(response => {

@@ -27,7 +27,7 @@ import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
 import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
-import { makeFetchTransport, makeXHRTransport } from './transports';
+import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
@@ -116,11 +116,18 @@ export function init(options: BrowserOptions = {}): void {
     options.sendClientReports = true;
   }
 
+  if (DEBUG_BUILD) {
+    if (!supportsFetch()) {
+      logger.warn(
+        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+      );
+    }
+  }
   const clientOptions: BrowserClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
+    transport: options.transport || makeFetchTransport,
   };
 
   initAndBind(BrowserClient, clientOptions);
