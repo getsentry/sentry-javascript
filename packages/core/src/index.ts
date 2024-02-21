@@ -49,8 +49,6 @@ export {
   setGlobalScope,
   withScope,
   withIsolationScope,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   getClient,
 } from './currentScopes';
 export {

@@ -55,7 +55,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // We set the `SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY` context value, which is picked up by
     // the OTEL context manager, which uses the presence of this key to determine if it should
     // fork the isolation scope, or not
-    // as by default, we don't want to fork this, unless triggered explicitly by `runWithAsyncContext`
+    // as by default, we don't want to fork this, unless triggered explicitly by `withScope`
     return api.context.with(ctx, () => {
       return callback(getCurrentScope());
     });
