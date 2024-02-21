@@ -77,10 +77,6 @@ export function getCurrentHub(): Hub {
       return getClient().getIntegration(integration);
     },
 
-    traceHeaders(): { [key: string]: string } {
-      return callExtensionMethod<{ [key: string]: string }>(this, 'traceHeaders');
-    },
-
     startTransaction(
       _context: TransactionContext,
       _customSamplingContext?: CustomSamplingContext,
