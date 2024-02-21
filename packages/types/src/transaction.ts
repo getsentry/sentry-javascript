@@ -21,12 +21,12 @@ export interface TransactionContext extends SpanContext {
    * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
    * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
-  trimEnd?: boolean;
+  trimEnd?: boolean | undefined;
 
   /**
    * If this transaction has a parent, the parent's sampling decision
    */
-  parentSampled?: boolean;
+  parentSampled?: boolean | undefined;
 
   /**
    * Metadata associated with the transaction, for internal SDK use.
