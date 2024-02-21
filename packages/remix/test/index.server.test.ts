@@ -1,4 +1,4 @@
-import * as SentryNode from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
 
 import { Integrations, init } from '../src/index.server';
 

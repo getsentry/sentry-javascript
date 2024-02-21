@@ -1,6 +1,6 @@
-import * as SentryNode from '@sentry/node';
-import type { NodeClient } from '@sentry/node';
-import { SDK_VERSION, getClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
+import type { NodeClient } from '@sentry/node-experimental';
+import { SDK_VERSION, getClient } from '@sentry/node-experimental';
 
 import { init } from '../../src/server/sdk';
 

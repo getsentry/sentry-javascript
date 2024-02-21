@@ -1,4 +1,4 @@
-import { Integrations } from '@sentry/node';
+import { Integrations } from '@sentry/node-experimental';
 
 /**
  * A custom OnUncaughtException integration that does not exit by default.

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import type { SessionFlusher } from '@sentry/core';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import express from 'express';
 
 const app = express();

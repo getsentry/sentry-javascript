@@ -2,6 +2,7 @@
 
 import { getCurrentScope } from '@sentry/core';
 import type { Client, StackParser } from '@sentry/types';
+import type { Hub } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
 import { createGetModuleFromFilename } from '../utils/module';
 
@@ -54,3 +55,14 @@ export function getSentryRelease(fallback?: string): string | undefined {
 
 /** Node.js stack parser */
 export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
+
+/**
+ * This method is a noop and only here to ensure vite-plugin v0.6.0 (which is used by Sveltekit) still works,
+ * as that uses this.
+ *
+ * @deprecated This will be removed before v8 is finalized.
+ */
+export function makeMain(hub: Hub): Hub {
+  // noop
+  return hub;
+}
