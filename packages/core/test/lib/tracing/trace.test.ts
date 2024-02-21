@@ -105,7 +105,7 @@ describe('startSpan', () => {
       }
       expect(ref).toBeDefined();
 
-      expect(ref.name).toEqual('GET users/[id]');
+      expect(spanToJSON(ref).description).toEqual('GET users/[id]');
       expect(ref.status).toEqual(isError ? 'internal_error' : undefined);
     });
 
@@ -192,7 +192,7 @@ describe('startSpan', () => {
       }
 
       expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(ref.spanRecorder.spans[1].description).toEqual('SELECT * from users');
+      expect(spanToJSON(ref.spanRecorder.spans[1]).description).toEqual('SELECT * from users');
       expect(ref.spanRecorder.spans[1].parentSpanId).toEqual(ref.spanId);
       expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
     });
@@ -291,7 +291,7 @@ describe('startSpan', () => {
     expect(spanToJSON(_span!).timestamp).toBeDefined();
   });
 
-  it('allows to pass a `startTime` yyy', () => {
+  it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
       return spanToJSON(span!).start_timestamp;
     });

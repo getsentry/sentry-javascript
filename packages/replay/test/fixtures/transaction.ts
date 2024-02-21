@@ -249,7 +249,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       integrations: [
         'InboundFilters',
         'FunctionToString',
-        'TryCatch',
+        'BrowserApiErrors',
         'Breadcrumbs',
         'GlobalHandlers',
         'LinkedErrors',

@@ -14,7 +14,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
   integrations: [window.Replay],
   transport: options => {
-    const transport = new Sentry.makeXHRTransport(options);
+    const transport = new Sentry.makeFetchTransport(options);
 
     delete transport.send.__sentry__baseTransport__;
 

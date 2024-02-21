@@ -33,21 +33,17 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', async function (req, res) {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
-  Sentry.getCurrentScope().setSpan(transaction);
+app.get('/test-transaction', function (req, res) {
+  Sentry.withActiveSpan(null, async () => {
+    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
+      Sentry.startSpan({ name: 'test-span' }, () => undefined);
+    });
 
-  // eslint-disable-next-line deprecation/deprecation
-  const span = transaction.startChild();
+    await Sentry.flush();
 
-  span.end();
-  transaction.end();
-
-  await Sentry.flush();
-
-  res.send({
-    transactionIds: global.transactionIds || [],
+    res.send({
+      transactionIds: global.transactionIds || [],
+    });
   });
 });
 

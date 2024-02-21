@@ -50,7 +50,6 @@
     "@opentelemetry/semantic-conventions": "1.21.0",
     "@prisma/instrumentation": "5.9.0",
     "@sentry/core": "7.100.0",
-    "@sentry/node": "7.100.0",
     "@sentry/opentelemetry": "7.100.0",
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0",

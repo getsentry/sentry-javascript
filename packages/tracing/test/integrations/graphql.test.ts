@@ -54,7 +54,7 @@ describe('setupOnce', () => {
     await GQLExecute.execute();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
-      description: 'execute',
+      name: 'execute',
       op: 'graphql.execute',
       origin: 'auto.graphql.graphql',
     });

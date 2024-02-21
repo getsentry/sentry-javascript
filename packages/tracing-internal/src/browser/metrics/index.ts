@@ -81,7 +81,7 @@ export function startTrackingLongTasks(): void {
 
       // eslint-disable-next-line deprecation/deprecation
       transaction.startChild({
-        description: 'Main UI thread blocked',
+        name: 'Main UI thread blocked',
         op: 'ui.long-task',
         origin: 'auto.ui.browser.metrics',
         startTimestamp: startTime,
@@ -108,7 +108,7 @@ export function startTrackingInteractions(): void {
         const duration = msToSec(entry.duration);
 
         const span: SpanContext = {
-          description: htmlTreeAsString(entry.target),
+          name: htmlTreeAsString(entry.target),
           op: `ui.interaction.${entry.name}`,
           origin: 'auto.ui.browser.metrics',
           startTimestamp: startTime,
@@ -265,7 +265,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     if (fidMark && _measurements['fid']) {
       // create span for FID
       _startChild(transaction, {
-        description: 'first input delay',
+        name: 'first input delay',
         endTimestamp: fidMark.value + msToSec(_measurements['fid'].value),
         op: 'ui.action',
         origin: 'auto.ui.browser.metrics',
@@ -307,7 +307,7 @@ export function _addMeasureSpans(
   const measureEndTimestamp = measureStartTimestamp + duration;
 
   _startChild(transaction, {
-    description: entry.name as string,
+    name: entry.name as string,
     endTimestamp: measureEndTimestamp,
     op: entry.entryType as string,
     origin: 'auto.resource.browser.metrics',
@@ -336,7 +336,7 @@ function _addPerformanceNavigationTiming(
   entry: Record<string, any>,
   event: string,
   timeOrigin: number,
-  description?: string,
+  name?: string,
   eventEnd?: string,
 ): void {
   const end = eventEnd ? (entry[eventEnd] as number | undefined) : (entry[`${event}End`] as number | undefined);
@@ -347,7 +347,7 @@ function _addPerformanceNavigationTiming(
   _startChild(transaction, {
     op: 'browser',
     origin: 'auto.browser.browser.metrics',
-    description: description || event,
+    name: name || event,
     startTimestamp: timeOrigin + msToSec(start),
     endTimestamp: timeOrigin + msToSec(end),
   });
@@ -364,7 +364,7 @@ function _addRequest(transaction: Transaction, entry: Record<string, any>, timeO
     _startChild(transaction, {
       op: 'browser',
       origin: 'auto.browser.browser.metrics',
-      description: 'request',
+      name: 'request',
       startTimestamp: timeOrigin + msToSec(entry.requestStart as number),
       endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     });
@@ -372,7 +372,7 @@ function _addRequest(transaction: Transaction, entry: Record<string, any>, timeO
     _startChild(transaction, {
       op: 'browser',
       origin: 'auto.browser.browser.metrics',
-      description: 'response',
+      name: 'response',
       startTimestamp: timeOrigin + msToSec(entry.responseStart as number),
       endTimestamp: timeOrigin + msToSec(entry.responseEnd as number),
     });
@@ -427,7 +427,7 @@ export function _addResourceSpans(
   const endTimestamp = startTimestamp + duration;
 
   _startChild(transaction, {
-    description: resourceUrl.replace(WINDOW.location.origin, ''),
+    name: resourceUrl.replace(WINDOW.location.origin, ''),
     endTimestamp,
     op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
     origin: 'auto.resource.browser.metrics',

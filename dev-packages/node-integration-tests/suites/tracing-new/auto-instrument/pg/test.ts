@@ -35,7 +35,7 @@ test('should auto-instrument `pg` package.', async () => {
   expect(envelope).toHaveLength(3);
 
   assertSentryTransaction(envelope[2], {
-    transaction: 'Test Transaction',
+    transaction: 'Test Span',
     spans: [
       {
         description: 'SELECT * FROM foo where bar ilike "baz%"',

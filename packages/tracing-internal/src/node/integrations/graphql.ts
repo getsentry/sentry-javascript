@@ -58,7 +58,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
 
         // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
-          description: 'execute',
+          name: 'execute',
           op: 'graphql.execute',
           origin: 'auto.graphql.graphql',
         });

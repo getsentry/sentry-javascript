@@ -6,7 +6,7 @@ describe('Prisma ORM Integration', () => {
     const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
 
     assertSentryTransaction(envelope[2], {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: [
         {
           description: 'User create',

@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { Transaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, Transaction } from '@sentry/core';
 import type { Context, SpanOrigin } from '@sentry/types';
 
 import { getSentrySpan } from './spanMap';
@@ -46,7 +46,7 @@ export function addOtelSpanData(
   }
 
   if (origin) {
-    sentrySpan.origin = origin;
+    sentrySpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
   }
 
   if (sentrySpan instanceof Transaction) {

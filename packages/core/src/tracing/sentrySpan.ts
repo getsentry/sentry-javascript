@@ -144,8 +144,7 @@ export class SentrySpan implements SpanInterface {
       ...spanContext.attributes,
     });
 
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
 
     if (spanContext.parentSpanId) {
       this._parentSpanId = spanContext.parentSpanId;
@@ -164,38 +163,6 @@ export class SentrySpan implements SpanInterface {
 
   // This rule conflicts with another eslint rule :(
   /* eslint-disable @typescript-eslint/member-ordering */
-
-  /**
-   * An alias for `description` of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get name(): string {
-    return this._name || '';
-  }
-
-  /**
-   * Update the name of the span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set name(name: string) {
-    this.updateName(name);
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public get description(): string | undefined {
-    return this._name;
-  }
-
-  /**
-   * Get the description of the Span.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  public set description(description: string | undefined) {
-    this._name = description;
-  }
 
   /**
    * The ID of the trace.
@@ -348,24 +315,6 @@ export class SentrySpan implements SpanInterface {
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  /**
-   * The origin of the span, giving context about what created the span.
-   *
-   * @deprecated Use `spanToJSON().origin` to read the origin instead.
-   */
-  public get origin(): SpanOrigin | undefined {
-    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
-  }
-
-  /**
-   * The origin of the span, giving context about what created the span.
-   *
-   * @deprecated Use `startSpan()` functions to set the origin instead.
-   */
-  public set origin(origin: SpanOrigin | undefined) {
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -487,15 +436,6 @@ export class SentrySpan implements SpanInterface {
   }
 
   /**
-   * @inheritdoc
-   *
-   * @deprecated Use `.updateName()` instead.
-   */
-  public setName(name: string): void {
-    this.updateName(name);
-  }
-
-  /**
    * @inheritDoc
    */
   public updateName(name: string): this {
@@ -551,7 +491,7 @@ export class SentrySpan implements SpanInterface {
   public toContext(): SpanContext {
     return dropUndefinedKeys({
       data: this._getData(),
-      description: this._name,
+      name: this._name,
       endTimestamp: this._endTime,
       // eslint-disable-next-line deprecation/deprecation
       op: this.op,
@@ -574,8 +514,7 @@ export class SentrySpan implements SpanInterface {
   public updateWithContext(spanContext: SpanContext): this {
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data || {};
-    // eslint-disable-next-line deprecation/deprecation
-    this._name = spanContext.name || spanContext.description;
+    this._name = spanContext.name;
     this._endTime = spanContext.endTimestamp;
     // eslint-disable-next-line deprecation/deprecation
     this.op = spanContext.op;

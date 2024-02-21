@@ -1,6 +1,7 @@
 import {
   setAsyncContextStrategy,
   setCurrentClient,
+  spanToJSON,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -81,7 +82,7 @@ describe('startSpan()', () => {
 
     const transactionEvent = await transactionEventPromise;
 
-    expect(transactionEvent.spans).toContainEqual(expect.objectContaining({ description: 'second' }));
+    expect(spanToJSON(transactionEvent.spans?.[0] as any).description).toBe('second');
   });
 });
 
@@ -153,7 +154,7 @@ describe('startSpanManual()', () => {
 
     const transactionEvent = await transactionEventPromise;
 
-    expect(transactionEvent.spans).toContainEqual(expect.objectContaining({ description: 'second' }));
+    expect(spanToJSON(transactionEvent.spans?.[0] as any).description).toBe('second');
   });
 
   it('should use the scopes at time of creation instead of the scopes at time of termination', async () => {

@@ -10,6 +10,23 @@ describe('Sentry.VueIntegration', () => {
   let loggerWarnings: unknown[] = [];
   let warnings: unknown[] = [];
 
+  const globalFetch = globalThis.fetch;
+  const globalResponse = globalThis.Response;
+  const globalRequest = globalThis.Request;
+
+  beforeAll(() => {
+    globalThis.fetch = jest.fn();
+    // @ts-expect-error This is a mock
+    globalThis.Response = jest.fn();
+    globalThis.Request = jest.fn();
+  });
+
+  afterAll(() => {
+    globalThis.fetch = globalFetch;
+    globalThis.Response = globalResponse;
+    globalThis.Request = globalRequest;
+  });
+
   beforeEach(() => {
     warnings = [];
     loggerWarnings = [];
@@ -28,7 +45,11 @@ describe('Sentry.VueIntegration', () => {
   });
 
   it('allows to initialize integration later', () => {
-    Sentry.init({ dsn: PUBLIC_DSN, defaultIntegrations: false, autoSessionTracking: false });
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      autoSessionTracking: false,
+    });
 
     const el = document.createElement('div');
     const app = createApp({
@@ -48,7 +69,11 @@ describe('Sentry.VueIntegration', () => {
   });
 
   it('warns when mounting before SDK.VueIntegration', () => {
-    Sentry.init({ dsn: PUBLIC_DSN, defaultIntegrations: false, autoSessionTracking: false });
+    Sentry.init({
+      dsn: PUBLIC_DSN,
+      defaultIntegrations: false,
+      autoSessionTracking: false,
+    });
 
     const el = document.createElement('div');
     const app = createApp({

@@ -66,7 +66,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const instrumentFunction = async <X extends (...args: unknown[]) => any>(
     op: string,
-    description: string,
+    name: string,
     fn: X,
     args: Parameters<X>,
     source: TransactionSource,
@@ -77,7 +77,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
         op,
-        name: description,
+        name,
       },
       () => {
         return fn(...args);

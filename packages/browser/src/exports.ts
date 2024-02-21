@@ -59,6 +59,7 @@ export {
   setUser,
   withScope,
   withIsolationScope,
+  withActiveSpan,
   // eslint-disable-next-line deprecation/deprecation
   FunctionToString,
   // eslint-disable-next-line deprecation/deprecation
@@ -69,6 +70,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
 } from '@sentry/core';
 
 export {
@@ -82,7 +84,7 @@ export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
-export { makeFetchTransport, makeXHRTransport } from './transports';
+export { makeFetchTransport } from './transports/fetch';
 export {
   defaultStackParser,
   defaultStackLineParsers,
@@ -110,7 +112,7 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
-export { browserApiErrorsIntegration } from './integrations/trycatch';
+export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
 // eslint-disable-next-line deprecation/deprecation
-export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
