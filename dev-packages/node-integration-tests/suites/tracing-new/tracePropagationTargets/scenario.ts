@@ -6,7 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   tracePropagationTargets: [/\/v0/, 'v1'],
-  integrations: [new Sentry.Integrations.Http({ tracing: true })],
+  integrations: [Sentry.httpIntegration({ tracing: true })],
 });
 
 Sentry.startSpan({ name: 'test_span' }, () => {
