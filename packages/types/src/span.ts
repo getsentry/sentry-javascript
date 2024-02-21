@@ -181,11 +181,6 @@ export interface SpanContext {
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin | undefined;
-
-  /**
-   * Exclusive time in milliseconds.
-   */
-  exclusiveTime?: number;
 }
 
 /** Span holding trace_id, span_id */
