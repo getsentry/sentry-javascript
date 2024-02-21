@@ -24,7 +24,13 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export { getClient, getSentryRelease, defaultStackParser } from './sdk/api';
+export {
+  getClient,
+  getSentryRelease,
+  defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
+} from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
