@@ -1,0 +1,6 @@
+/** JSDoc */
+export interface WrappedFunction extends Function {
+  [key: string]: any;
+  __sentry_wrapped__?: WrappedFunction;
+  __sentry_original__?: WrappedFunction;
+}

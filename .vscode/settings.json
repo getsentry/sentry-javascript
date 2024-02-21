@@ -1,0 +1,42 @@
+{
+  "editor.formatOnType": true,
+  "editor.formatOnPaste": false,
+  "editor.formatOnSave": true,
+  "editor.rulers": [120],
+  "editor.tabSize": 2,
+  "files.autoSave": "onWindowChange",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "search.exclude": {
+    "**/node_modules/": true,
+    "**/build/": true,
+    "**/dist/": true,
+    "**/coverage/": true,
+    "**/yarn-error.log": true
+  },
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "[json]": {
+    "editor.formatOnType": false,
+    "editor.formatOnPaste": false,
+    "editor.formatOnSave": false
+  },
+  "[markdown]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-workflow.json": ".github/workflows/**.yml"
+  },
+  "eslint.workingDirectories": [
+    {
+      "mode": "auto"
+    }
+  ],
+  "deno.enablePaths": ["packages/deno/test"],
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit",
+  },
+  "editor.defaultFormatter": "biomejs.biome"
+}

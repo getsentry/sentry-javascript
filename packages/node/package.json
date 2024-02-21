@@ -1,0 +1,81 @@
+{
+  "name": "@sentry/node-experimental",
+  "version": "7.100.0",
+  "description": "The old version of Sentry SDK for Node.js, without OpenTelemetry support.",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "cjs",
+    "esm",
+    "types",
+    "types-ts3.8"
+  ],
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
+  "typesVersions": {
+    "<4.9": {
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
+      ]
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@sentry-internal/tracing": "7.100.0",
+    "@sentry/core": "7.100.0",
+    "@sentry/types": "7.100.0",
+    "@sentry/utils": "7.100.0"
+  },
+  "devDependencies": {
+    "@types/cookie": "0.5.2",
+    "@types/express": "^4.17.14",
+    "@types/lru-cache": "^5.1.0",
+    "@types/node": "~10.17.0",
+    "express": "^4.17.1",
+    "nock": "^13.0.5",
+    "undici": "^5.21.0"
+  },
+  "scripts": {
+    "build": "run-s build:transpile build:types",
+    "build:dev": "yarn build",
+    "build:transpile": "rollup -c rollup.npm.config.mjs",
+    "build:types": "run-s build:types:core build:types:downlevel",
+    "build:types:core": "tsc -p tsconfig.types.json",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
+    "build:watch": "run-p build:transpile:watch build:types:watch",
+    "build:dev:watch": "yarn build:watch",
+    "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
+    "build:types:watch": "tsc -p tsconfig.types.json --watch",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "circularDepCheck": "madge --circular src/index.ts",
+    "clean": "rimraf build coverage sentry-node-*.tgz",
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
+    "test": "run-s test:jest test:express test:webpack test:release-health",
+    "test:express": "node test/manual/express-scope-separation/start.js",
+    "test:jest": "jest",
+    "test:release-health": "node test/manual/release-health/runner.js",
+    "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent --ignore-engines && node npm-build.js",
+    "test:watch": "jest --watch",
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "madge": {
+    "detectiveOptions": {
+      "ts": {
+        "skipTypeImports": true
+      }
+    }
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    commit-message:
+      prefix: ci
+      prefix-development: ci
+      include: scope
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    allow:
+      - dependency-name: "@sentry/cli"
+      - dependency-name: "@sentry/vite-plugin"
+    versioning-strategy: increase
+    commit-message:
+      prefix: feat
+      prefix-development: feat
+      include: scope

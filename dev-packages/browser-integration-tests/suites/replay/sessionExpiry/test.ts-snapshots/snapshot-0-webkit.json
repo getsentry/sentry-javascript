@@ -1,0 +1,113 @@
+{
+  "type": 2,
+  "data": {
+    "node": {
+      "type": 0,
+      "childNodes": [
+        {
+          "type": 1,
+          "name": "html",
+          "publicId": "",
+          "systemId": "",
+          "id": 2
+        },
+        {
+          "type": 2,
+          "tagName": "html",
+          "attributes": {},
+          "childNodes": [
+            {
+              "type": 2,
+              "tagName": "head",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 2,
+                  "tagName": "meta",
+                  "attributes": {
+                    "charset": "utf-8"
+                  },
+                  "childNodes": [],
+                  "id": 5
+                }
+              ],
+              "id": 4
+            },
+            {
+              "type": 3,
+              "textContent": "\n  ",
+              "id": 6
+            },
+            {
+              "type": 2,
+              "tagName": "body",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 8
+                },
+                {
+                  "type": 2,
+                  "tagName": "button",
+                  "attributes": {
+                    "onclick": "console.log('Test log 1')",
+                    "id": "button1"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** **",
+                      "id": 10
+                    }
+                  ],
+                  "id": 9
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "id": 11
+                },
+                {
+                  "type": 2,
+                  "tagName": "button",
+                  "attributes": {
+                    "onclick": "console.log('Test log 2')",
+                    "id": "button2"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** **",
+                      "id": 13
+                    }
+                  ],
+                  "id": 12
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n  ",
+                  "id": 14
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n\n",
+                  "id": 15
+                }
+              ],
+              "id": 7
+            }
+          ],
+          "id": 3
+        }
+      ],
+      "id": 1
+    },
+    "initialOffset": {
+      "left": 0,
+      "top": 0
+    }
+  },
+  "timestamp": [timestamp]
+}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <button id="noop" type="button">Noop</button>
+    <button id="button-add" type="button">Add items</button>
+    <button id="button-modify" type="button">Modify items</button>
+    <button id="button-remove" type="button">Remove items</button>
+    <ul class="list"></ul>
+
+    <script>
+      document.querySelector('#button-add').addEventListener('click', () => {
+        const list = document.querySelector('.list');
+        for (let i = 0; i < 1000; i++) {
+          const li = document.createElement('li');
+          li.textContent = `test list item: ${i}`;
+          li.setAttribute('id', `${i}`);
+          list.appendChild(li);
+        }
+      });
+
+      document.querySelector('#button-modify').addEventListener('click', () => {
+        document.querySelectorAll('li').forEach(li => {
+          el.setAttribute('js-is-checked', new Date().toISOString());
+          el.setAttribute('js-is-checked-2', new Date().toISOString());
+          el.setAttribute('js-is-checked-3', 'yes');
+          el.setAttribute('js-is-checked-4', 'yes');
+          el.setAttribute('js-is-checked-5', 'yes');
+          el.setAttribute('js-is-checked-6', 'yes');
+        });
+      });
+
+      document.querySelector('#button-remove').addEventListener('click', () => {
+        document.querySelectorAll('li').forEach(li => {
+          document.querySelector('ul').removeChild(li);
+        });
+      });
+    </script>
+  </body>
+</html>

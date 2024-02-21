@@ -1,0 +1,17 @@
+# Since version 2.23 (released in August 2019), git-blame has a feature
+# to ignore or bypass certain commits.
+#
+# This file contains a list of commits that are not likely what you
+# are looking for in a blame, such as mass reformatting or renaming.
+
+#  build: Add `@typescript-eslint/consistent-type-imports` rule (#6662)
+2aa4e94b036675245290596884959e06dcced044
+
+# chore: Rename `integration-tests` -> `browser-integration-tests` (#7455)
+ef6b3c7877d5fc8031c08bb28b0ffafaeb01f501
+
+# chore: Enforce formatting of MD files in repository root #10127
+aecf26f22dbf65ce2c0caadc4ce71b46266c9f45
+
+# chore: Create dev-packages folder #9997 
+35205b4cc5783237e69452c39ea001e461d9c84d

@@ -1,0 +1,13 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558 for documentation about `tasks.json` syntax
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Prepare nextjs integration test app for VSCode debugger",
+      "type": "npm",
+      "script": "predebug",
+      "path": "packages/nextjs/test/integration/",
+      "detail": "Link the SDK (if not already linked) and build test app"
+    }
+  ]
+}

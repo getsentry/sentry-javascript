@@ -1,0 +1,35 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev",
+    "start": "remix-serve build/index.js",
+    "typecheck": "tsc",
+    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "pnpm playwright test"
+  },
+  "dependencies": {
+    "@sentry/remix": "latest || *",
+    "@remix-run/css-bundle": "2.0.0",
+    "@remix-run/node": "2.0.0",
+    "@remix-run/react": "2.0.0",
+    "@remix-run/serve": "2.0.0",
+    "isbot": "^3.6.8",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.36.2",
+    "@remix-run/dev": "2.0.0",
+    "@remix-run/eslint-config": "2.0.0",
+    "@types/react": "^18.0.35",
+    "@types/react-dom": "^18.0.11",
+    "eslint": "^8.38.0",
+    "typescript": "^5.0.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "nx/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build:bundle", "build:transpile", "build:types", "lint", "test:unit", "build:tarball"],
+        "cacheDirectory": ".nxcache"
+      }
+    }
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json"],
+    "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
+  },
+  "targetDefaults": {
+    "build:bundle": {
+      "inputs": ["production", "^production"],
+      "dependsOn": ["build:transpile"],
+      "outputs": ["{projectRoot}/build/bundles"]
+    },
+    "build:tarball": {
+      "inputs": ["production", "^production"],
+      "dependsOn": ["build:transpile", "^build:transpile", "build:types", "^build:types"],
+      "outputs": ["{projectRoot}/*.tgz"]
+    },
+    "build:transpile": {
+      "inputs": ["production", "^production"],
+      "dependsOn": ["^build:transpile"],
+      "outputs": ["{projectRoot}/build"]
+    },
+    "build:types": {
+      "inputs": ["production", "^production"],
+      "dependsOn": ["^build:types"],
+      "outputs": ["{projectRoot}/build/**/*.d.ts"]
+    },
+    "lint": {
+      "inputs": ["default"],
+      "dependsOn": ["^build:types", "build:types"],
+      "outputs": []
+    },
+    "test:unit": {
+      "dependsOn": ["build:types", "^build:types", "build:transpile", "^build:transpile"],
+      "inputs": ["default"],
+      "outputs": ["{projectRoot}/coverage"]
+    }
+  },
+  "$schema": "./node_modules/nx/schemas/nx-schema.json"
+}

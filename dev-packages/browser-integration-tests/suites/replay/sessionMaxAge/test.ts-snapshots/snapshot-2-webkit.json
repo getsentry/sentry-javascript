@@ -1,0 +1,127 @@
+{
+  "type": 2,
+  "data": {
+    "node": {
+      "type": 0,
+      "childNodes": [
+        {
+          "type": 1,
+          "name": "html",
+          "publicId": "",
+          "systemId": "",
+          "rootId": 16,
+          "id": 17
+        },
+        {
+          "type": 2,
+          "tagName": "html",
+          "attributes": {},
+          "childNodes": [
+            {
+              "type": 2,
+              "tagName": "head",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 2,
+                  "tagName": "meta",
+                  "attributes": {
+                    "charset": "utf-8"
+                  },
+                  "childNodes": [],
+                  "rootId": 16,
+                  "id": 20
+                }
+              ],
+              "rootId": 16,
+              "id": 19
+            },
+            {
+              "type": 3,
+              "textContent": "\n  ",
+              "rootId": 16,
+              "id": 21
+            },
+            {
+              "type": 2,
+              "tagName": "body",
+              "attributes": {},
+              "childNodes": [
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "rootId": 16,
+                  "id": 23
+                },
+                {
+                  "type": 2,
+                  "tagName": "button",
+                  "attributes": {
+                    "onclick": "console.log('Test log 1')",
+                    "id": "button1"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** **",
+                      "rootId": 16,
+                      "id": 25
+                    }
+                  ],
+                  "rootId": 16,
+                  "id": 24
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n    ",
+                  "rootId": 16,
+                  "id": 26
+                },
+                {
+                  "type": 2,
+                  "tagName": "button",
+                  "attributes": {
+                    "onclick": "console.log('Test log 2')",
+                    "id": "button2"
+                  },
+                  "childNodes": [
+                    {
+                      "type": 3,
+                      "textContent": "***** **",
+                      "rootId": 16,
+                      "id": 28
+                    }
+                  ],
+                  "rootId": 16,
+                  "id": 27
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n  ",
+                  "rootId": 16,
+                  "id": 29
+                },
+                {
+                  "type": 3,
+                  "textContent": "\n\n",
+                  "rootId": 16,
+                  "id": 30
+                }
+              ],
+              "rootId": 16,
+              "id": 22
+            }
+          ],
+          "rootId": 16,
+          "id": 18
+        }
+      ],
+      "id": 16
+    },
+    "initialOffset": {
+      "left": 0,
+      "top": 0
+    }
+  },
+  "timestamp": [timestamp]
+}

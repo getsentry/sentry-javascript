@@ -1,0 +1,30 @@
+name: Add size info to release
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Which version to add size info for
+        required: false
+
+# This workflow is triggered when a release is published
+# It fetches the size-limit info from the release branch and adds it to the release
+jobs:
+  release-size-info:
+    runs-on: ubuntu-20.04
+    name: 'Add size-limit info to release'
+
+    steps:
+      - name: Get version
+        id: get_version
+        run: echo "version=${{ github.event.inputs.version || github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+
+      - name: Update Github Release
+        if: steps.get_version.outputs.version != ''
+        uses: getsentry/size-limit-release@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          version: ${{ steps.get_version.outputs.version }}
+          workflow_name: 'Build & Test'

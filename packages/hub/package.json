@@ -1,0 +1,26 @@
+{
+  "name": "@sentry/hub",
+  "version": "7.100.0",
+  "description": "Placeholder package for the former @sentry/hub package for publishing",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/hub",
+  "author": "Sentry",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "mkdir -p build && touch build/dummy.js",
+    "build:transpile": "yarn build",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
+    "clean": "rimraf build coverage sentry-hub-*.tgz"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "sideEffects": false
+}

@@ -1,0 +1,32 @@
+{
+  "name": "@sentry-internal/e2e-tests",
+  "version": "7.100.0",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "fix": "eslint . --format stylish --fix",
+    "lint": "eslint . --format stylish",
+    "lint:ts": "tsc --noEmit",
+    "test:e2e": "run-s test:validate-configuration test:validate-test-app-setups test:run",
+    "test:run": "ts-node run.ts",
+    "test:validate-configuration": "ts-node validate-verdaccio-configuration.ts",
+    "test:validate-test-app-setups": "ts-node validate-test-app-setups.ts",
+    "test:prepare": "ts-node prepare.ts",
+    "test:validate": "run-s test:validate-configuration test:validate-test-app-setups",
+    "clean": "rimraf tmp node_modules pnpm-lock.yaml && yarn clean:test-applications",
+    "clean:test-applications": "rimraf test-applications/**/{node_modules,dist,build,.next,.sveltekit,pnpm-lock.yaml}"
+  },
+  "devDependencies": {
+    "@types/glob": "8.0.0",
+    "@types/node": "^14.6.4",
+    "dotenv": "16.0.3",
+    "glob": "8.0.3",
+    "ts-node": "10.9.1",
+    "yaml": "2.2.2",
+    "esbuild": "0.20.0"
+  },
+  "volta": {
+    "node": "18.17.1",
+    "yarn": "1.22.19"
+  }
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/png" href="file://assets/icon/favicon.png"/>
+  </head>
+  <body>
+    <button aria-label="Click me" onclick="console.log('Test log')">Click me</button>
+    <div>This should be masked by default</div>
+    <div data-sentry-unmask>This should be unmasked due to data attribute</div>
+    <input placeholder="Placeholder should be masked" />
+    <div title="Title should be masked">Title should be masked</div>
+    <svg style="width:200px;height:200px" viewBox="0 0 80 80"><path d=""/><area /><rect /></svg>
+    <div data-sentry-block>
+      <div>This should be blocked</div>
+    </div>
+    <svg style="width:200px;height:200px" viewBox="0 0 80 80" data-sentry-unblock><path d=""/><area /><rect /></svg>
+    <img style="width:100px;height:100px" src="file:///none.png" />
+    <img data-sentry-unblock style="width:100px;height:100px" src="file:///none.png" />
+    <video style="width:30px;height:30px"><source src="file://foo.mp4" /></video>
+    <div class="nested-hide">
+      <div>This should be hidden.</div>
+    </div>
+  </body>
+</html>

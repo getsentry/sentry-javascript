@@ -1,0 +1,61 @@
+# dependencies
+node_modules/
+packages/*/package-lock.json
+dev-packages/*/package-lock.json
+package-lock.json
+
+# build and test
+# SDK builds
+build/
+# various integration test builds
+dist/
+coverage/
+scratch/
+*.js.map
+*.pyc
+*.tsbuildinfo
+# side effects of running AWS lambda layer zip action locally
+dist-serverless/
+sentry-node-serverless-*.zip
+# transpiled transformers
+jest/transformers/*.js
+# node tarballs
+packages/*/sentry-*.tgz
+.nxcache
+
+# logs
+yarn-error.log
+npm-debug.log
+lerna-debug.log
+local.log
+
+# ide
+.idea
+*.sublime-*
+
+# misc
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+.nx
+
+.rpt2_cache
+
+lint-results.json
+
+# legacy
+tmp.js
+
+# eslint
+.eslintcache
+**/eslintcache/*
+
+# deno
+packages/deno/build-types
+packages/deno/build-test
+packages/deno/lib.deno.d.ts
+
+# gatsby
+packages/gatsby/gatsby-browser.d.ts
+packages/gatsby/gatsby-node.d.ts

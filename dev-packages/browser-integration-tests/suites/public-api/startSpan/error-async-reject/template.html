@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title></title>
+  </head>
+  <body>
+    <button id="button1" type="button">Button 1</button>
+
+    <script>
+      async function run() {
+        await Sentry.startSpan({ name: 'parent_span', op: 'test' }, async () => {
+          Promise.reject('Async Promise Rejection');
+        });
+      }
+
+      const button = document.getElementById('button1');
+      button.addEventListener('click', async () => {
+        await run();
+      });
+    </script>
+  </body>
+</html>

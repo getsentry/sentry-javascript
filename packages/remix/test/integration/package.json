@@ -1,0 +1,45 @@
+{
+  "private": true,
+  "sideEffects": false,
+  "scripts": {
+    "build": "remix build",
+    "dev": "remix dev",
+    "start": "remix-serve build"
+  },
+  "dependencies": {
+    "@remix-run/express": "1.17.0",
+    "@remix-run/node": "1.17.0",
+    "@remix-run/react": "1.17.0",
+    "@remix-run/serve": "1.17.0",
+    "@sentry/remix": "file:../..",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2"
+  },
+  "devDependencies": {
+    "@remix-run/dev": "1.17.0",
+    "@types/react": "^17.0.47",
+    "@types/react-dom": "^17.0.17",
+    "nock": "^13.1.0",
+    "typescript": "4.9.5"
+  },
+  "resolutions": {
+    "@sentry/browser": "file:../../../browser",
+    "@sentry/core": "file:../../../core",
+    "@sentry/integrations": "file:../../../integrations",
+    "@sentry/node": "file:../../../node-experimental",
+    "@sentry/node-experimental": "file:../../../node",
+    "@sentry/react": "file:../../../react",
+    "@sentry/replay": "file:../../../replay",
+    "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
+    "@sentry/tracing": "file:../../../tracing",
+    "@sentry-internal/tracing": "file:../../../tracing-internal",
+    "@sentry-internal/feedback": "file:../../../feedback",
+    "@sentry/types": "file:../../../types",
+    "@sentry/utils": "file:../../../utils",
+    "@vanilla-extract/css": "1.13.0",
+    "@vanilla-extract/integration": "6.2.4"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}

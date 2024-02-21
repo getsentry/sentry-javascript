@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+
+  // Some of the templates for code we inject into a user's app include an import from `@sentry/nextjs`. This makes
+  // creating types for these template files a circular exercise, which causes `tsc` to crash. Fortunately, since the
+  // templates aren't consumed as modules (they're essentially just text files which happen to contain code), we don't
+  // actually need to create types for them.
+  "exclude": ["src/config/templates/*"],
+
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "build/types"
+  }
+}

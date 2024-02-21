@@ -1,0 +1,53 @@
+name: Gitflow - Sync master into develop
+on:
+  push:
+    branches:
+      - master
+    paths:
+      # When the version is updated on master (but nothing else)
+      - 'lerna.json'
+      - '!**/*.js'
+      - '!**/*.ts'
+  workflow_dispatch:
+
+env:
+  SOURCE_BRANCH: master
+  TARGET_BRANCH: develop
+
+jobs:
+  main:
+    name: Create PR master->develop
+    runs-on: ubuntu-20.04
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: git checkout
+        uses: actions/checkout@v4
+
+      # https://github.com/marketplace/actions/github-pull-request-action
+      - name: Create Pull Request
+        id: open-pr
+        uses: repo-sync/pull-request@v2
+        with:
+          source_branch: ${{ env.SOURCE_BRANCH }}
+          destination_branch: ${{ env.TARGET_BRANCH }}
+          pr_title: '[Gitflow] Merge ${{ env.SOURCE_BRANCH }} into ${{ env.TARGET_BRANCH }}'
+          pr_body: 'Merge ${{ env.SOURCE_BRANCH }} branch into ${{ env.TARGET_BRANCH }}'
+          pr_label: 'Dev: Gitflow'
+          # This token is scoped to Daniel Griesser
+          github_token: ${{ secrets.REPO_SCOPED_TOKEN }}
+
+      - name: Enable automerge for PR
+        if: steps.open-pr.outputs.pr_number != ''
+        run: gh pr merge --merge --auto "${{ steps.open-pr.outputs.pr_number }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # https://github.com/marketplace/actions/auto-approve
+      - name: Auto approve PR
+        if: steps.open-pr.outputs.pr_number != ''
+        uses: hmarr/auto-approve-action@v4
+        with:
+          pull-request-number: ${{ steps.open-pr.outputs.pr_number }}
+          review-message: 'Auto approved automated PR'

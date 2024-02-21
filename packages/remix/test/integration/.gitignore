@@ -1,0 +1,10 @@
+node_modules
+
+/.cache
+/build
+/public/build
+.env
+/test-results/
+/playwright-report/
+/playwright/.cache/
+yarn.lock

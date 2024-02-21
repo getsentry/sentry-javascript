@@ -1,0 +1,13 @@
+/*
+ * This file defines flags and constants that can be modified during compile time in order to facilitate tree shaking
+ * for users.
+ *
+ * We define "magic strings" like `__SENTRY_DEBUG__` that may get replaced with actual values during our, or the user's
+ * build process. Take care when introducing new flags - they must not throw if they are not replaced. See the Debug
+ * Build Flags section in CONTRIBUTING.md.
+ */
+
+declare const __SENTRY_DEBUG__: boolean;
+
+/** Flag that is true for debug builds, false otherwise. */
+export const IS_DEBUG_BUILD = typeof __SENTRY_DEBUG__ === 'undefined' ? true : __SENTRY_DEBUG__;

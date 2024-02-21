@@ -1,0 +1,11 @@
+{
+  "include": ["index.ts"],
+  "compilerOptions": {
+    "lib": ["es6", "DOM"],
+    "skipLibCheck": false,
+    "noEmit": true,
+    "types": [],
+    "target": "es6",
+    "moduleResolution": "node"
+  }
+}
