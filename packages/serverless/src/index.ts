@@ -75,8 +75,6 @@ export {
   linkedErrorsIntegration,
   inboundFiltersIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   metrics,
   // eslint-disable-next-line deprecation/deprecation
