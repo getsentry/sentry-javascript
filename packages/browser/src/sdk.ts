@@ -25,7 +25,7 @@ import { dedupeIntegration } from './integrations/dedupe';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
-import { browserApiErrorsIntegration } from './integrations/trycatch';
+import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { defaultStackParser } from './stack-parsers';
 import { makeFetchTransport } from './transports/fetch';
 
