@@ -407,15 +407,6 @@ export class SentrySpan implements SpanInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  public setHttpStatus(httpStatus: number): this {
-    setHttpStatus(this, httpStatus);
-    return this;
-  }
-
-  /**
-   * @inheritDoc
    */
   public updateName(name: string): this {
     this._name = name;
