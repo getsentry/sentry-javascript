@@ -26,7 +26,6 @@ import {
   spanToTraceContext,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { setHttpStatus } from './spanstatus';
 import { addChildSpanToSpan } from './trace';
 
 /**
