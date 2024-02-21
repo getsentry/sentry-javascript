@@ -81,8 +81,6 @@ export {
   cron,
   parameterize,
   metrics,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   hapiErrorPlugin,
   // eslint-disable-next-line deprecation/deprecation
