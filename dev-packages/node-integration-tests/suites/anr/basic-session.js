@@ -12,6 +12,7 @@ Sentry.init({
   release: '1.0',
   debug: true,
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
+  autoSessionTracking: true,
 });
 
 function longWork() {
