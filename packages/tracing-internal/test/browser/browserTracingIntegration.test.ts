@@ -1,5 +1,5 @@
+import type { IdleTransaction } from '@sentry/core';
 import {
-  IdleTransaction,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
@@ -680,13 +680,19 @@ describe('browserTracingIntegration', () => {
       // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction;
+      // eslint-disable-next-line deprecation/deprecation
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.op).toBe('pageload');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.parentSpanId).toEqual('1121201211212012');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.sampled).toBe(false);
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
@@ -708,13 +714,19 @@ describe('browserTracingIntegration', () => {
       // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction;
+      // eslint-disable-next-line deprecation/deprecation
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.op).toBe('pageload');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).toEqual('12312012123120121231201212312012');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.parentSpanId).toEqual('1121201211212012');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.sampled).toBe(false);
       expect(dynamicSamplingContext).toStrictEqual({});
     });
@@ -740,12 +752,17 @@ describe('browserTracingIntegration', () => {
 
       WINDOW.history.pushState({}, '', '/navigation-test');
 
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction;
+      // eslint-disable-next-line deprecation/deprecation
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.op).toBe('navigation');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
+      // eslint-disable-next-line deprecation/deprecation
       expect(transaction.parentSpanId).toBeUndefined();
       expect(dynamicSamplingContext).toMatchObject({
         trace_id: expect.not.stringMatching('12312012123120121231201212312012'),
@@ -767,10 +784,12 @@ describe('browserTracingIntegration', () => {
       client.init();
 
       const mockFinish = jest.fn();
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction;
       transaction.sendAutoFinishSignal();
       transaction.end = mockFinish;
 
+      // eslint-disable-next-line deprecation/deprecation
       const span = transaction.startChild(); // activities = 1
       span.end(); // activities = 0
 
@@ -792,10 +811,12 @@ describe('browserTracingIntegration', () => {
       client.init();
 
       const mockFinish = jest.fn();
+      // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction() as IdleTransaction;
       transaction.sendAutoFinishSignal();
       transaction.end = mockFinish;
 
+      // eslint-disable-next-line deprecation/deprecation
       const span = transaction.startChild(); // activities = 1
       span.end(); // activities = 0
 
@@ -806,7 +827,8 @@ describe('browserTracingIntegration', () => {
   });
 
   // TODO(lforst): I cannot manage to get this test to pass.
-  it.skip('heartbeatInterval can be a custom value', () => {
+  /*
+  it('heartbeatInterval can be a custom value', () => {
     jest.useFakeTimers();
 
     const interval = 200;
@@ -822,6 +844,7 @@ describe('browserTracingIntegration', () => {
     client.init();
 
     const mockFinish = jest.fn();
+    // eslint-disable-next-line deprecation/deprecation
     const transaction = getActiveTransaction() as IdleTransaction;
     transaction.sendAutoFinishSignal();
     transaction.end = mockFinish;
@@ -833,4 +856,5 @@ describe('browserTracingIntegration', () => {
     jest.advanceTimersByTime(interval * 3);
     expect(mockFinish).toHaveBeenCalledTimes(1);
   });
+  */
 });
