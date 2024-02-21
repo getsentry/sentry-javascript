@@ -11,7 +11,6 @@ function getDefaultClientOptions(options: Partial<ServerRuntimeClientOptions> = 
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
-    instrumenter: 'sentry',
     ...options,
   };
 }

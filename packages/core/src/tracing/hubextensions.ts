@@ -1,8 +1,6 @@
 import type { ClientOptions, CustomSamplingContext, Hub, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { getMainCarrier } from '../asyncContext';
 
-import { DEBUG_BUILD } from '../debug-build';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
@@ -31,19 +29,6 @@ function _startTransaction(
   // eslint-disable-next-line deprecation/deprecation
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
-
-  const configInstrumenter = options.instrumenter || 'sentry';
-  const transactionInstrumenter = transactionContext.instrumenter || 'sentry';
-
-  if (configInstrumenter !== transactionInstrumenter) {
-    DEBUG_BUILD &&
-      logger.error(
-        `A transaction was started with instrumenter=\`${transactionInstrumenter}\`, but the SDK is configured with the \`${configInstrumenter}\` instrumenter.
-The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
-      );
-
-    transactionContext.sampled = false;
-  }
 
   // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);

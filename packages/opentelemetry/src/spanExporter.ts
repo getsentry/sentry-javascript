@@ -156,7 +156,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     parentSampled,
     name: description,
     op,
-    instrumenter: 'otel',
     status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
@@ -213,7 +212,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     op,
     data: allData,
     status: mapStatus(span),
-    instrumenter: 'otel',
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     spanId,
     origin,

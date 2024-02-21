@@ -26,14 +26,10 @@ export function wrapGetStaticPropsWithSentry(
       addTracingExtensions();
 
       const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
-      const options = getClient()?.getOptions();
-
-      if (options?.instrumenter === 'sentry') {
-        return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
-          parameterizedRoute,
-          dataFetchingMethodName: 'getStaticProps',
-        });
-      }
+      return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
+        parameterizedRoute,
+        dataFetchingMethodName: 'getStaticProps',
+      });
 
       return errorWrappedGetStaticProps.apply(thisArg, args);
     },

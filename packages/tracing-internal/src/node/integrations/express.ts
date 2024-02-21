@@ -11,7 +11,6 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
   | 'all'
@@ -119,14 +118,9 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
+  public setupOnce(_: unknown): void {
     if (!this._router) {
       DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Express Integration is skipped because of instrumenter configuration.');
       return;
     }
 

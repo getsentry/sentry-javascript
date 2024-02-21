@@ -259,33 +259,6 @@ describe('tracing', () => {
     expect(baggage).not.toBeDefined();
   });
 
-  it("doesn't attach when using otel instrumenter", () => {
-    const loggerLogSpy = jest.spyOn(logger, 'log');
-
-    const options = getDefaultNodeClientOptions({
-      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      tracesSampleRate: 1.0,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new HttpIntegration({ tracing: true })],
-      release: '1.0.0',
-      environment: 'production',
-      instrumenter: 'otel',
-    });
-    const client = new NodeClient(options);
-    setCurrentClient(client);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-
-    // eslint-disable-next-line deprecation/deprecation
-    const integration = new HttpIntegration();
-    integration.setupOnce(
-      () => {},
-      () => hub as Hub,
-    );
-
-    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
-  });
-
   it('omits query and fragment from description and adds to span data instead', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 

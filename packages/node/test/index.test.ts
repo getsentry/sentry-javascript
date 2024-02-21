@@ -487,24 +487,6 @@ describe('SentryNode initialization', () => {
     });
   });
 
-  describe('instrumenter', () => {
-    it('defaults to sentry instrumenter', () => {
-      init({ dsn });
-
-      const instrumenter = (getClient()?.getOptions() as NodeClientOptions).instrumenter;
-
-      expect(instrumenter).toEqual('sentry');
-    });
-
-    it('allows to set instrumenter', () => {
-      init({ dsn, instrumenter: 'otel' });
-
-      const instrumenter = (getClient()?.getOptions() as NodeClientOptions).instrumenter;
-
-      expect(instrumenter).toEqual('otel');
-    });
-  });
-
   describe('propagation context', () => {
     beforeEach(() => {
       process.env.SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-0';
