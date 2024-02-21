@@ -1,5 +1,4 @@
 import type { BrowserClient } from '@sentry/browser';
-import { spanToJSON } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
 
 import type { JSSelfProfile } from '../../../src/profiling/jsSelfProfiling';
