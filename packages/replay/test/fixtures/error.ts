@@ -41,7 +41,7 @@ export function Error(obj?: Event): any {
       integrations: [
         'InboundFilters',
         'FunctionToString',
-        'TryCatch',
+        'BrowserApiErrors',
         'Breadcrumbs',
         'GlobalHandlers',
         'LinkedErrors',

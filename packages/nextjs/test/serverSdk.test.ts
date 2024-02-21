@@ -1,5 +1,5 @@
-import * as SentryNode from '@sentry/node';
-import { getClient, getCurrentScope } from '@sentry/node';
+import * as SentryNode from '@sentry/node-experimental';
+import { getClient, getCurrentScope } from '@sentry/node-experimental';
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 

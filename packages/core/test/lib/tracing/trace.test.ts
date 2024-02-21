@@ -291,7 +291,7 @@ describe('startSpan', () => {
     expect(spanToJSON(_span!).timestamp).toBeDefined();
   });
 
-  it('allows to pass a `startTime` yyy', () => {
+  it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
       return spanToJSON(span!).start_timestamp;
     });

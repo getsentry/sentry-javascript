@@ -8,7 +8,7 @@ import {
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from './constants';
 import { getCurrentHub } from './custom/getCurrentHub';
-import { getScopesFromContext, setHubOnContext, setScopesOnContext } from './utils/contextData';
+import { getScopesFromContext, setContextOnScope, setHubOnContext, setScopesOnContext } from './utils/contextData';
 
 /**
  * Wrap an OpenTelemetry ContextManager in a way that ensures the context is kept in sync with the Sentry Hub.
@@ -69,6 +69,8 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
         .deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY)
         .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
         .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY);
+
+      setContextOnScope(newCurrentScope, ctx3);
 
       return super.with(ctx3, fn, thisArg, ...args);
     }

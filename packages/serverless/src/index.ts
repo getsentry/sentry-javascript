@@ -7,7 +7,7 @@ export { AWSLambda, GCPFunction };
 export { AWSServices, awsServicesIntegration } from './awsservices';
 
 // TODO(v8): We have to explicitly export these because of the namespace exports
-// above. This is because just doing `export * from '@sentry/node'` will not
+// above. This is because just doing `export * from '@sentry/node-experimental'` will not
 // work with Node native esm while we also have namespace exports in a package.
 // What we should do is get rid of the namespace exports.
 export {
@@ -98,4 +98,5 @@ export {
   startSession,
   captureSession,
   endSession,
-} from '@sentry/node';
+  withActiveSpan,
+} from '@sentry/node-experimental';

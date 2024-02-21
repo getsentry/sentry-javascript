@@ -23,7 +23,7 @@ describe('buildClientSnippet', () => {
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
         tracesSampleRate: 1,
-        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"
@@ -43,7 +43,7 @@ describe('buildClientSnippet', () => {
         release: \\"1.0.0\\",
         tracesSampleRate: 0.3,
         sampleRate: 0.2,
-        integrations: [new Sentry.BrowserTracing(), new Sentry.Replay()],
+        integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.5,
         replaysOnErrorSampleRate: 0.4,
       });"
@@ -61,7 +61,7 @@ describe('buildClientSnippet', () => {
         environment: import.meta.env.PUBLIC_VERCEL_ENV,
         release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
         tracesSampleRate: 0,
-        integrations: [new Sentry.Replay()],
+        integrations: [Sentry.replayIntegration()],
         replaysSessionSampleRate: 0.1,
         replaysOnErrorSampleRate: 1,
       });"
@@ -80,7 +80,7 @@ it('does not include Replay if replay sample ratest are 0', () => {
       environment: import.meta.env.PUBLIC_VERCEL_ENV,
       release: import.meta.env.PUBLIC_VERCEL_GIT_COMMIT_SHA,
       tracesSampleRate: 1,
-      integrations: [new Sentry.BrowserTracing()],
+      integrations: [Sentry.browserTracingIntegration()],
       replaysSessionSampleRate: 0,
       replaysOnErrorSampleRate: 0,
     });"

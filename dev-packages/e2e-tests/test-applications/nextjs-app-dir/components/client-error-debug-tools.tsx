@@ -2,11 +2,11 @@
 
 import { captureException } from '@sentry/nextjs';
 import { useContext, useState } from 'react';
-import { TransactionContext } from './transaction-context';
+import { SpanContext } from './span-context';
 
 export function ClientErrorDebugTools() {
-  const transactionContextValue = useContext(TransactionContext);
-  const [transactionName, setTransactionName] = useState<string>('');
+  const spanContextValue = useContext(SpanContext);
+  const [spanName, setSpanName] = useState<string>('');
 
   const [isFetchingAPIRoute, setIsFetchingAPIRoute] = useState<boolean>();
   const [isFetchingEdgeAPIRoute, setIsFetchingEdgeAPIRoute] = useState<boolean>();
@@ -19,31 +19,31 @@ export function ClientErrorDebugTools() {
 
   return (
     <div>
-      {transactionContextValue.transactionActive ? (
+      {spanContextValue.spanActive ? (
         <button
           onClick={() => {
-            transactionContextValue.stop();
-            setTransactionName('');
+            spanContextValue.stop();
+            setSpanName('');
           }}
         >
-          Stop transaction
+          Stop span
         </button>
       ) : (
         <>
           <input
             type="text"
-            placeholder="Transaction name"
-            value={transactionName}
+            placeholder="Span name"
+            value={spanName}
             onChange={e => {
-              setTransactionName(e.target.value);
+              setSpanName(e.target.value);
             }}
           />
           <button
             onClick={() => {
-              transactionContextValue.start(transactionName);
+              spanContextValue.start(spanName);
             }}
           >
-            Start transaction
+            Start span
           </button>
         </>
       )}

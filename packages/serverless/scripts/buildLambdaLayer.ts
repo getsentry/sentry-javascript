@@ -18,7 +18,7 @@ async function buildLambdaLayer(): Promise<void> {
   // Create the main SDK bundle
   // TODO: Check if we can get rid of this, after the lerna 6/nx update??
   await ensureBundleBuildPrereqs({
-    dependencies: ['@sentry/utils', '@sentry/core', '@sentry/node'],
+    dependencies: ['@sentry/utils', '@sentry/core', '@sentry/node-experimental'],
   });
   run('yarn rollup --config rollup.aws.config.mjs');
 

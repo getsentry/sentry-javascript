@@ -5,7 +5,7 @@ import {
   getCurrentScope,
   startSpan,
 } from '@sentry/core';
-import { captureException } from '@sentry/node';
+import { captureException } from '@sentry/node-experimental';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 

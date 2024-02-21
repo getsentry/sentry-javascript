@@ -7,7 +7,7 @@ import {
   getCurrentScope,
   startSpan,
   withIsolationScope,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { Client, Scope, Span } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';

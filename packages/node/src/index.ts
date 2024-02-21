@@ -78,6 +78,7 @@ export {
   startSession,
   captureSession,
   endSession,
+  withActiveSpan,
 } from '@sentry/core';
 
 export {

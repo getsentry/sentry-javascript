@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { TransactionContextProvider } from '../components/transaction-context';
+import { SpanContextProvider } from '../components/span-context';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -36,7 +36,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <Link href="/redirect">/redirect</Link>
             </li>
           </ul>
-          <TransactionContextProvider>{children}</TransactionContextProvider>
+          <SpanContextProvider>{children}</SpanContextProvider>
         </div>
       </body>
     </html>
