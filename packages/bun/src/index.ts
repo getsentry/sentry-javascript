@@ -82,8 +82,6 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   cron,
