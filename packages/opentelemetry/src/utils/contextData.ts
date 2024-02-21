@@ -55,10 +55,15 @@ export function getScopesFromContext(context: Context): CurrentScopes | undefine
  * This will return a forked context with the Propagation Context set.
  */
 export function setScopesOnContext(context: Context, scopes: CurrentScopes): Context {
-  // So we can look up the context from the scope later
-  SCOPE_CONTEXT_MAP.set(scopes.scope, context);
-
   return context.setValue(SENTRY_SCOPES_CONTEXT_KEY, scopes);
+}
+
+/**
+ * Set the context on the scope so we can later look it up.
+ * We need this to get the context from the scope in the `trace` functions.
+ */
+export function setContextOnScope(scope: Scope, context: Context): void {
+  SCOPE_CONTEXT_MAP.set(scope, context);
 }
 
 /**
