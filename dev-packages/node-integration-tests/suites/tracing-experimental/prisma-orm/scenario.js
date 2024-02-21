@@ -1,7 +1,7 @@
 const { randomBytes } = require('crypto');
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 const { PrismaClient } = require('@prisma/client');
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({
