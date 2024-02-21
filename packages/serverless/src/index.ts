@@ -111,4 +111,7 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/node';

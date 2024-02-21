@@ -89,6 +89,9 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 
 export {

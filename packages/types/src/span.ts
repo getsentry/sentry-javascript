@@ -104,43 +104,43 @@ export interface SpanContext {
    *
    * @deprecated Use `name` instead.
    */
-  description?: string;
+  description?: string | undefined;
 
   /**
    * Human-readable identifier for the span. Alias for span.description.
    */
-  name?: string;
+  name?: string | undefined;
 
   /**
    * Operation of the Span.
    */
-  op?: string;
+  op?: string | undefined;
 
   /**
    * Completion status of the Span.
    * See: {@sentry/tracing SpanStatus} for possible values
    */
-  status?: string;
+  status?: string | undefined;
 
   /**
    * Parent Span ID
    */
-  parentSpanId?: string;
+  parentSpanId?: string | undefined;
 
   /**
    * Was this span chosen to be sent as part of the sample?
    */
-  sampled?: boolean;
+  sampled?: boolean | undefined;
 
   /**
    * Span ID
    */
-  spanId?: string;
+  spanId?: string | undefined;
 
   /**
    * Trace ID
    */
-  traceId?: string;
+  traceId?: string | undefined;
 
   /**
    * Tags of the Span.
@@ -162,22 +162,22 @@ export interface SpanContext {
   /**
    * Timestamp in seconds (epoch time) indicating when the span started.
    */
-  startTimestamp?: number;
+  startTimestamp?: number | undefined;
 
   /**
    * Timestamp in seconds (epoch time) indicating when the span ended.
    */
-  endTimestamp?: number;
+  endTimestamp?: number | undefined;
 
   /**
    * The instrumenter that created this span.
    */
-  instrumenter?: Instrumenter;
+  instrumenter?: Instrumenter | undefined;
 
   /**
    * The origin of the span, giving context about what created the span.
    */
-  origin?: SpanOrigin;
+  origin?: SpanOrigin | undefined;
 }
 
 /** Span holding trace_id, span_id */
@@ -194,7 +194,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
    * to update and `spanToJSON().op` to read the op instead
    */
-  op?: string;
+  op?: string | undefined;
 
   /**
    * The ID of the span.
@@ -207,7 +207,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    *
    * @deprecated Use `spanToJSON(span).parent_span_id` instead.
    */
-  parentSpanId?: string;
+  parentSpanId?: string | undefined;
 
   /**
    * The ID of the trace.
@@ -219,7 +219,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * Was this span chosen to be sent as part of the sample?
    * @deprecated Use `isRecording()` instead.
    */
-  sampled?: boolean;
+  sampled?: boolean | undefined;
 
   /**
    * Timestamp in seconds (epoch time) indicating when the span started.
@@ -231,7 +231,7 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    * Timestamp in seconds (epoch time) indicating when the span ended.
    * @deprecated Use `spanToJSON()` instead.
    */
-  endTimestamp?: number;
+  endTimestamp?: number | undefined;
 
   /**
    * Tags for the span.
@@ -271,14 +271,14 @@ export interface Span extends Omit<SpanContext, 'op' | 'status' | 'origin'> {
    *
    * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
    */
-  status?: string;
+  status?: string | undefined;
 
   /**
    * The origin of the span, giving context about what created the span.
    *
    * @deprecated Use `startSpan` function to set and `spanToJSON(span).origin` to read the origin instead.
    */
-  origin?: SpanOrigin;
+  origin?: SpanOrigin | undefined;
 
   /**
    * Get context data for this span.
