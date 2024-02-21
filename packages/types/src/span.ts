@@ -331,12 +331,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
 
   /**
-   * Return a traceparent compatible header string.
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  toTraceparent(): string;
-
-  /**
    * Returns the current span properties as a `SpanContext`.
    * @deprecated Use `toJSON()` or access the fields directly instead.
    */

@@ -24,7 +24,6 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
-  spanToTraceHeader,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
 import { setHttpStatus } from './spanstatus';
@@ -452,15 +451,6 @@ export class SentrySpan implements SpanInterface {
     }
 
     this._endTime = spanTimeInputToSeconds(endTimestamp);
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  public toTraceparent(): string {
-    return spanToTraceHeader(this);
   }
 
   /**

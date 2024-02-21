@@ -14,7 +14,7 @@ import {
 } from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions } from '@sentry/types';
 
-import { TRACEPARENT_REGEXP, Transaction } from '../src';
+import { Transaction } from '../src';
 import { getDefaultBrowserClientOptions } from './testutils';
 
 describe('SentrySpan', () => {
@@ -122,15 +122,6 @@ describe('SentrySpan', () => {
       expect((span.getTraceContext() as any).status).toBe('not_found');
       expect(span.tags['http.status_code']).toBe('404');
       expect(span.data['http.response.status_code']).toBe(404);
-    });
-  });
-
-  describe('toTraceparent', () => {
-    test('simple', () => {
-      expect(new SentrySpan().toTraceparent()).toMatch(TRACEPARENT_REGEXP);
-    });
-    test('with sample', () => {
-      expect(new SentrySpan({ sampled: true }).toTraceparent()).toMatch(TRACEPARENT_REGEXP);
     });
   });
 
