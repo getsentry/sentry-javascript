@@ -1,4 +1,4 @@
-import type { Span, SpanOptions, Tracer } from '@opentelemetry/api';
+import type { Context, Span, SpanOptions, Tracer } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
@@ -7,6 +7,7 @@ import type { Client, Scope } from '@sentry/types';
 
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
+import { getContextFromScope } from './utils/contextData';
 import { setSpanMetadata } from './utils/spanData';
 
 /**
@@ -23,7 +24,7 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
 
   const { name } = options;
 
-  const activeCtx = context.active();
+  const activeCtx = getContext(options.scope);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -56,7 +57,7 @@ export function startSpanManual<T>(options: OpenTelemetrySpanContext, callback: 
 
   const { name } = options;
 
-  const activeCtx = context.active();
+  const activeCtx = getContext(options.scope);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -94,7 +95,7 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
 
   const { name } = options;
 
-  const activeCtx = context.active();
+  const activeCtx = getContext(options.scope);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -163,4 +164,15 @@ function getSpanContext(options: OpenTelemetrySpanContext): SpanOptions {
 function ensureTimestampInMilliseconds(timestamp: number): number {
   const isMs = timestamp < 9999999999;
   return isMs ? timestamp * 1000 : timestamp;
+}
+
+function getContext(scope?: Scope): Context {
+  if (scope) {
+    const ctx = getContextFromScope(scope);
+    if (ctx) {
+      return ctx;
+    }
+  }
+
+  return context.active();
 }
