@@ -13,7 +13,7 @@ import {
   spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, getCurrentHub } from '@sentry/node';
+import { captureException, getCurrentHub } from '@sentry/node-experimental';
 import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
