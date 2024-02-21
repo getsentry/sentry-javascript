@@ -315,24 +315,6 @@ export class SentrySpan implements SpanInterface {
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
-  /**
-   * The origin of the span, giving context about what created the span.
-   *
-   * @deprecated Use `spanToJSON().origin` to read the origin instead.
-   */
-  public get origin(): SpanOrigin | undefined {
-    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
-  }
-
-  /**
-   * The origin of the span, giving context about what created the span.
-   *
-   * @deprecated Use `startSpan()` functions to set the origin instead.
-   */
-  public set origin(origin: SpanOrigin | undefined) {
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
