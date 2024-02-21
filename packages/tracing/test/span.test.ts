@@ -57,8 +57,8 @@ describe('Span', () => {
       const span2 = transaction.startChild();
       const span3 = span2.startChild();
       span3.end();
-      expect(transaction.spanRecorder).toBe(span2.spanRecorder);
-      expect(transaction.spanRecorder).toBe(span3.spanRecorder);
+      expect(transaction.spanRecorder).toBe((span2 as Span).spanRecorder);
+      expect(transaction.spanRecorder).toBe((span3 as Span).spanRecorder);
     });
   });
 

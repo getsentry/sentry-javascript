@@ -11,7 +11,7 @@ on:
       merge_target:
         description: Target branch to merge into. Uses the default branch as a fallback (optional)
         required: false
-        default: master
+        default: v7
 jobs:
   release:
     runs-on: ubuntu-20.04
@@ -29,3 +29,5 @@ jobs:
           version: ${{ github.event.inputs.version }}
           force: ${{ github.event.inputs.force }}
           merge_target: ${{ github.event.inputs.merge_target }}
+          craft_config_from_merge_target: true
+

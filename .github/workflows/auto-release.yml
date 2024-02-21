@@ -36,3 +36,4 @@ jobs:
           version: ${{ steps.version.outputs.group1 }}
           force: false
           merge_target: master
+          craft_config_from_merge_target: true

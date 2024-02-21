@@ -88,6 +88,9 @@ export {
   linkedErrorsIntegration,
   requestDataIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
