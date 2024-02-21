@@ -26,7 +26,6 @@ import {
   withScope,
 } from '@sentry/core';
 import { getClient } from './api';
-import { callExtensionMethod } from './globals';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
