@@ -5,9 +5,9 @@ import {
   handleCallbackErrors,
   setHttpStatus,
 } from '@sentry/core';
-import { continueTrace, startSpanManual } from '@sentry/node';
-import { getCurrentScope } from '@sentry/node';
-import { captureException, flush } from '@sentry/node';
+import { continueTrace, startSpanManual } from '@sentry/node-experimental';
+import { getCurrentScope } from '@sentry/node-experimental';
+import { captureException, flush } from '@sentry/node-experimental';
 import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';

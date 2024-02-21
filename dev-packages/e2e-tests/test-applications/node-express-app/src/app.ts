@@ -22,9 +22,6 @@ Sentry.init({
 const app = express();
 const port = 3030;
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
-
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
 });
@@ -73,7 +70,7 @@ app.get('/test-local-variables-caught', function (req, res) {
   res.send({ exceptionId, randomVariableToRecord });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 // @ts-ignore
 app.use(function onError(err, req, res, next) {

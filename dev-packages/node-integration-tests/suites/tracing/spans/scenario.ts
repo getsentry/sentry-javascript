@@ -1,13 +1,12 @@
 import '@sentry/tracing';
 
 import * as http from 'http';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
-  integrations: [Sentry.httpIntegration({ tracing: false })],
 });
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises

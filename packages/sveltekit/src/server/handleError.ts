@@ -1,4 +1,4 @@
-import { captureException } from '@sentry/node';
+import { captureException } from '@sentry/node-experimental';
 import type { HandleServerError } from '@sveltejs/kit';
 
 import { flushIfServerless } from './utils';

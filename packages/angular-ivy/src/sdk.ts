@@ -11,14 +11,14 @@ import { IS_DEBUG_BUILD } from './flags';
  */
 export function init(options: BrowserOptions): void {
   const opts = {
-    // Filter out TryCatch integration as it interferes with our Angular `ErrorHandler`:
-    // TryCatch would catch certain errors before they reach the `ErrorHandler` and thus provide a
+    // Filter out BrowserApiErrors integration as it interferes with our Angular `ErrorHandler`:
+    // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and thus provide a
     // lower fidelity error than what `SentryErrorHandler` (see errorhandler.ts) would provide.
     // see:
     //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
     //  - https://github.com/getsentry/sentry-javascript/issues/2744
     defaultIntegrations: getDefaultIntegrations(options).filter(integration => {
-      return integration.name !== 'TryCatch';
+      return integration.name !== 'BrowserApiErrors';
     }),
     ...options,
   };

@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn, WrappedFunction } from '@sentry/types';
 import { fill, getFunctionName, getOriginalFunction } from '@sentry/utils';
 
 import { WINDOW, wrap } from '../helpers';
@@ -38,11 +38,11 @@ const DEFAULT_EVENT_TARGET = [
   'XMLHttpRequestUpload',
 ];
 
-const INTEGRATION_NAME = 'TryCatch';
+const INTEGRATION_NAME = 'BrowserApiErrors';
 
 type XMLHttpRequestProp = 'onload' | 'onerror' | 'onprogress' | 'onreadystatechange';
 
-interface TryCatchOptions {
+interface BrowserApiErrorsOptions {
   setTimeout: boolean;
   setInterval: boolean;
   requestAnimationFrame: boolean;
@@ -50,7 +50,7 @@ interface TryCatchOptions {
   eventTarget: boolean | string[];
 }
 
-const _browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) => {
+const _browserApiErrorsIntegration = ((options: Partial<BrowserApiErrorsOptions> = {}) => {
   const _options = {
     XMLHttpRequest: true,
     eventTarget: true,
@@ -90,25 +90,10 @@ const _browserApiErrorsIntegration = ((options: Partial<TryCatchOptions> = {}) =
   };
 }) satisfies IntegrationFn;
 
-export const browserApiErrorsIntegration = defineIntegration(_browserApiErrorsIntegration);
-
 /**
  * Wrap timer functions and event targets to catch errors and provide better meta data.
- * @deprecated Use `browserApiErrorsIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const TryCatch = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  browserApiErrorsIntegration,
-) as IntegrationClass<Integration> & {
-  new (options?: {
-    setTimeout: boolean;
-    setInterval: boolean;
-    requestAnimationFrame: boolean;
-    XMLHttpRequest: boolean;
-    eventTarget: boolean | string[];
-  }): Integration;
-};
+export const browserApiErrorsIntegration = defineIntegration(_browserApiErrorsIntegration);
 
 function _wrapTimeFunction(original: () => void): () => number {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -167,7 +152,7 @@ function _wrapXHR(originalSend: () => void): () => void {
             },
           };
 
-          // If Instrument integration has been called before TryCatch, get the name of original function
+          // If Instrument integration has been called before BrowserApiErrors, get the name of original function
           const originalFunction = getOriginalFunction(original);
           if (originalFunction) {
             wrapOptions.mechanism.data.handler = getFunctionName(originalFunction);

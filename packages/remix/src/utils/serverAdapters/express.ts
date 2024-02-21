@@ -1,5 +1,5 @@
 import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
-import { flush } from '@sentry/node';
+import { flush } from '@sentry/node-experimental';
 import type { Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 import { cwd } from 'process';

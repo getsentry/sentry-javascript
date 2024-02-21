@@ -2,8 +2,8 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions } from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { SDK_VERSION } from '@sentry/node-experimental';
 import {
   captureException,
   captureMessage,
@@ -14,7 +14,7 @@ import {
   init as initNode,
   startSpanManual,
   withScope,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
@@ -26,7 +26,7 @@ import { awsServicesIntegration } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 
 const { isPromise } = types;
 
