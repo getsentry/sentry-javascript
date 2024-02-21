@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Transaction, TransactionContext } from '@sentry/types';
 import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
@@ -53,7 +53,8 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       if (from !== to) {
         startingUrl = undefined;
         if (activeTransaction) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
+          DEBUG_BUILD &&
+            logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeTransaction).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeTransaction.end();
         }

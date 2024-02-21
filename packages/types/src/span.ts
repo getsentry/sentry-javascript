@@ -174,15 +174,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin'> {
-  /**
-   * Operation of the Span.
-   *
-   * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
-   * to update and `spanToJSON().op` to read the op instead
-   */
-  op?: string | undefined;
-
+export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin' | 'op'> {
   /**
    * The ID of the span.
    * @deprecated Use `spanContext().spanId` instead.

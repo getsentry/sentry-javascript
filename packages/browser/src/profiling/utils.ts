@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 
-import { DEFAULT_ENVIRONMENT, getClient } from '@sentry/core';
+import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
 import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
@@ -202,7 +202,7 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
  *
  */
 export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  return transaction.op === 'pageload';
+  return spanToJSON(transaction).op === 'pageload';
 }
 
 /**

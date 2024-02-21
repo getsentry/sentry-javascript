@@ -1,6 +1,7 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
   continueTrace,
@@ -306,7 +307,7 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
     if (sentryTransaction) {
       sentryTransaction.updateName(`trpc/${path}`);
       sentryTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      sentryTransaction.op = 'rpc.server';
+      sentryTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'rpc.server');
 
       const trpcContext: Record<string, unknown> = {
         procedure_type: type,
