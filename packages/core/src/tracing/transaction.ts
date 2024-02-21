@@ -314,16 +314,16 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     const hasMeasurements = Object.keys(this._measurements).length > 0;
 
-    if (DEBUG_BUILD) {
-      if (hasMeasurements) {
+    if (hasMeasurements) {
+      DEBUG_BUILD &&
         logger.log(
           '[Measurements] Adding measurements to transaction',
           JSON.stringify(this._measurements, undefined, 2),
         );
-      }
-
-      logger.log(`[Tracing] Finishing ${spanToJSON(this).op} transaction: ${this._name}.`);
+      transaction.measurements = this._measurements;
     }
+
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${spanToJSON(this).op} transaction: ${this._name}.`);
     return transaction;
   }
 }
