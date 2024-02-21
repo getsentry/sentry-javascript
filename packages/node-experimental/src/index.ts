@@ -8,6 +8,7 @@ export { localVariablesIntegration } from './integrations/local-variables';
 export { modulesIntegration } from './integrations/modules';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { anrIntegration } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration } from './integrations/tracing/fastify';

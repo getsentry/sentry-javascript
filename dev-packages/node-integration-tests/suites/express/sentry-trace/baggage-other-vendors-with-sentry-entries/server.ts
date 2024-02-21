@@ -1,6 +1,6 @@
 import * as http from 'http';
 import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import cors from 'cors';
 import express from 'express';
 

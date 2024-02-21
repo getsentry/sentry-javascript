@@ -1,5 +1,5 @@
 import * as http from 'http';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -9,7 +9,7 @@ Sentry.init({
   integrations: [Sentry.httpIntegration({ tracing: true })],
 });
 
-Sentry.startSpan({ name: 'test_span' }, () => {
+Sentry.startSpan({ name: 'test_transaction' }, () => {
   http.get('http://match-this-url.com/api/v0');
   http.get('http://match-this-url.com/api/v1');
   http.get('http://dont-match-this-url.com/api/v2');
