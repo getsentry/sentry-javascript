@@ -160,7 +160,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         if (transaction) {
           // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({
-            description: fn.name,
+            name: fn.name,
             op: `middleware.express.${method}`,
             origin: 'auto.middleware.express',
           });
@@ -181,7 +181,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
-          description: fn.name,
+          name: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });
@@ -202,7 +202,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
-          description: fn.name,
+          name: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });

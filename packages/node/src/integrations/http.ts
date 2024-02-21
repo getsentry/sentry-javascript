@@ -40,7 +40,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
 import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
-import { cleanSpanDescription, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
+import { cleanSpanName, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
 
 interface TracingOptions {
   /**
@@ -335,7 +335,7 @@ function _createWrappedRequestMethodFactory(
           parentSpan?.startChild({
             op: 'http.client',
             origin: 'auto.http.node.http',
-            description: `${data['http.method']} ${data.url}`,
+            name: `${data['http.method']} ${data.url}`,
             data,
           })
         : undefined;
@@ -378,9 +378,7 @@ function _createWrappedRequestMethodFactory(
             if (res.statusCode) {
               setHttpStatus(requestSpan, res.statusCode);
             }
-            requestSpan.updateName(
-              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
-            );
+            requestSpan.updateName(cleanSpanName(spanToJSON(requestSpan).description || '', requestOptions, req) || '');
             requestSpan.end();
           }
         })
@@ -393,9 +391,7 @@ function _createWrappedRequestMethodFactory(
           }
           if (requestSpan) {
             setHttpStatus(requestSpan, 500);
-            requestSpan.updateName(
-              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
-            );
+            requestSpan.updateName(cleanSpanName(spanToJSON(requestSpan).description || '', requestOptions, req) || '');
             requestSpan.end();
           }
         });

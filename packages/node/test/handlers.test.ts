@@ -2,6 +2,7 @@ import * as http from 'http';
 import * as sentryCore from '@sentry/core';
 import {
   Hub,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   Transaction,
   getClient,
   getCurrentScope,
@@ -377,9 +378,9 @@ describe('tracingHandler', () => {
     const transaction = getCurrentScope().getTransaction();
 
     expect(transaction).toBeDefined();
-    expect(transaction).toEqual(
-      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
-    );
+    const transactionJson = spanToJSON(transaction as Transaction);
+    expect(transactionJson.description).toEqual(`${method.toUpperCase()} ${path}`);
+    expect(transactionJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
   });
 
   it('puts its transaction on the response object', () => {
@@ -388,9 +389,10 @@ describe('tracingHandler', () => {
     const transaction = (res as any).__sentry_transaction;
 
     expect(transaction).toBeDefined();
-    expect(transaction).toEqual(
-      expect.objectContaining({ name: `${method.toUpperCase()} ${path}`, op: 'http.server' }),
-    );
+
+    const transactionJson = spanToJSON(transaction);
+    expect(transactionJson.description).toEqual(`${method.toUpperCase()} ${path}`);
+    expect(transactionJson.data?.[SEMANTIC_ATTRIBUTE_SENTRY_OP]).toEqual('http.server');
   });
 
   it('pulls status code from the response', done => {
@@ -422,7 +424,7 @@ describe('tracingHandler', () => {
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('strips fragment from request path', () => {
@@ -432,7 +434,7 @@ describe('tracingHandler', () => {
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('strips query string and fragment from request path', () => {
@@ -442,7 +444,7 @@ describe('tracingHandler', () => {
 
     const transaction = (res as any).__sentry_transaction;
 
-    expect(transaction?.name).toBe(`${method.toUpperCase()} ${path}`);
+    expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });
 
   it('closes the transaction when request processing is done', done => {
@@ -466,7 +468,7 @@ describe('tracingHandler', () => {
     transaction.initSpanRecorder();
     // eslint-disable-next-line deprecation/deprecation
     const span = transaction.startChild({
-      description: 'reallyCoolHandler',
+      name: 'reallyCoolHandler',
       op: 'middleware',
     });
     jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);

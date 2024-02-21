@@ -75,7 +75,7 @@ describe('setupOnce', () => {
       Client.query('SELECT NOW()', {}, function () {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
-          description: 'SELECT NOW()',
+          name: 'SELECT NOW()',
           op: 'db',
           origin: 'auto.db.postgres',
           data: {
@@ -91,7 +91,7 @@ describe('setupOnce', () => {
       Client.query('SELECT NOW()', function () {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
-          description: 'SELECT NOW()',
+          name: 'SELECT NOW()',
           op: 'db',
           origin: 'auto.db.postgres',
           data: {
@@ -107,7 +107,7 @@ describe('setupOnce', () => {
       await Client.query('SELECT NOW()', null);
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
-        description: 'SELECT NOW()',
+        name: 'SELECT NOW()',
         op: 'db',
         origin: 'auto.db.postgres',
         data: {

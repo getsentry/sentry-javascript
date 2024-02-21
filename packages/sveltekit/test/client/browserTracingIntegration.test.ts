@@ -115,7 +115,6 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledWith(fakeClient, {
       name: '/',
       op: 'pageload',
-      description: '/',
       tags: {
         'routing.instrumentation': '@sentry/sveltekit',
       },
