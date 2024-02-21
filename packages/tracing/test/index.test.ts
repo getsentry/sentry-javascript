@@ -14,7 +14,7 @@ describe('index', () => {
   describe('Integrations', () => {
     it('is exported correctly', () => {
       Object.keys(Integrations).forEach(key => {
-        expect(Integrations[key].id).toStrictEqual(expect.any(String));
+        expect((Integrations as any)[key].id).toStrictEqual(expect.any(String));
       });
     });
   });

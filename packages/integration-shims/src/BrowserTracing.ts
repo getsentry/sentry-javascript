@@ -41,7 +41,7 @@ class BrowserTracingShim implements Integration {
  * It is needed in order for the CDN bundles to continue working when users add/remove tracing
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-function browserTracingIntegrationShim(_options: unknown): Integration {
+function browserTracingIntegrationShim(_options?: unknown): Integration {
   // eslint-disable-next-line deprecation/deprecation
   return new BrowserTracingShim({});
 }
