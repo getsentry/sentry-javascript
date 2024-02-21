@@ -1,4 +1,3 @@
-/* eslint-disable complexity */
 import { spanToJSON } from '@sentry/core';
 import type { Transaction } from '@sentry/types';
 import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
@@ -10,31 +9,8 @@ import {
   MAX_PROFILE_DURATION_MS,
   addProfileToGlobalCache,
   isAutomatedPageLoadTransaction,
-  shouldProfileTransaction,
   startJSSelfProfile,
 } from './utils';
-
-/**
- * Safety wrapper for startTransaction for the unlikely case that transaction starts before tracing is imported -
- * if that happens we want to avoid throwing an error from profiling code.
- * see https://github.com/getsentry/sentry-javascript/issues/4731.
- *
- * @experimental
- */
-export function onProfilingStartRouteTransaction(transaction: Transaction | undefined): Transaction | undefined {
-  if (!transaction) {
-    if (DEBUG_BUILD) {
-      logger.log('[Profiling] Transaction is undefined, skipping profiling');
-    }
-    return transaction;
-  }
-
-  if (shouldProfileTransaction(transaction)) {
-    return startProfileForTransaction(transaction);
-  }
-
-  return transaction;
-}
 
 /**
  * Wraps startTransaction and stopTransaction with profiling related logic.
