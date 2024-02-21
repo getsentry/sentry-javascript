@@ -1,5 +1,5 @@
 import * as http from 'http';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

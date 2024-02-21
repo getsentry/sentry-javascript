@@ -1,5 +1,5 @@
 const { loggingTransport, startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node');
 const cors = require('cors');
 
 Sentry.init({

@@ -10,13 +10,11 @@
     "test:assert": "pnpm test"
   },
   "dependencies": {
-    "@sentry/node-experimental": "latest || *",
+    "@sentry/node": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/utils": "latest || *",
-    "@sentry/node": "latest || *",
-    "@sentry/opentelemetry-node": "latest || *",
-    "@sentry-internal/tracing": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
     "@types/node": "18.15.1",
     "fastify": "4.23.2",
     "fastify-plugin": "4.5.1",

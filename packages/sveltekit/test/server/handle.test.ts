@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions, spanToJSON } from '@sentry/core';
-import { NodeClient, setCurrentClient } from '@sentry/node';
-import * as SentryNode from '@sentry/node';
+import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node-experimental';
 import type { Transaction } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';

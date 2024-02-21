@@ -8,6 +8,7 @@ export { localVariablesIntegration } from './integrations/local-variables';
 export { modulesIntegration } from './integrations/modules';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { anrIntegration } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
 export { fastifyIntegration } from './integrations/tracing/fastify';
@@ -23,9 +24,16 @@ export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/h
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export { getClient, getSentryRelease, defaultStackParser } from './sdk/api';
+export {
+  getClient,
+  getSentryRelease,
+  defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
+} from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
+export { NodeClient } from './sdk/client';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
