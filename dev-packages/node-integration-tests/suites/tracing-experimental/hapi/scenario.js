@@ -26,6 +26,7 @@ const init = async () => {
     },
   });
 
+  await Sentry.setupHapiErrorHandler(server);
   await server.start();
 
   sendPortToRunner(port);
