@@ -8,7 +8,6 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
-import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
