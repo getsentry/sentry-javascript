@@ -15,6 +15,7 @@ import {
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 import { IdleTransaction, SentrySpan, getClient } from '../../../src';
+import { IdleTransactionSpanRecorder } from '../../../src/tracing/idletransaction';
 
 const dsn = 'https://123@sentry.io/42';
 beforeEach(() => {
