@@ -1,8 +1,8 @@
 import { createEventEnvelope, getClient, withScope, createAttachmentEnvelope } from '@sentry/core';
-import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { Attachment, FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
-import type { Screenshot, SendFeedbackData, SendFeedbackOptions } from '../types';
+import type { SendFeedbackData, SendFeedbackOptions } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
 /**
@@ -11,7 +11,7 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 export async function sendFeedbackRequest(
   { feedback: { message, email, name, source, url } }: SendFeedbackData,
   { includeReplay = true }: SendFeedbackOptions = {},
-  screenshots: Screenshot[],
+  screenshots: Attachment[],
 ): Promise<void | TransportMakeRequestResponse> {
   const client = getClient();
   const transport = client && client.getTransport();
@@ -56,19 +56,6 @@ export async function sendFeedbackRequest(
 
     const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 
-    let attachment_envelope;
-    for (const attachment of screenshots || []) {
-      attachment_envelope = createAttachmentEnvelope(
-        feedbackEvent,
-        attachment,
-        dsn,
-        client.getOptions()._metadata,
-        client.getOptions().tunnel,
-        // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
-        client.getOptions().transportOptions && client.getOptions().transportOptions?.textEncoder,
-      );
-    }
-
     let response: void | TransportMakeRequestResponse;
 
     try {
@@ -96,7 +83,15 @@ export async function sendFeedbackRequest(
       throw new Error('Unable to send Feedback');
     }
 
-    if (attachment_envelope) {
+    if (screenshots) {
+      const attachment_envelope = createAttachmentEnvelope(
+        feedbackEvent,
+        screenshots,
+        dsn,
+        client.getOptions()._metadata,
+        client.getOptions().tunnel,
+      );
+
       try {
         response = await transport.send(attachment_envelope);
       } catch (err) {

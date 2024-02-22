@@ -1,10 +1,5 @@
-import type {
-  FeedbackComponent,
-  FeedbackFormData,
-  FeedbackInternalOptions,
-  FeedbackTextConfiguration,
-  Screenshot,
-} from '../types';
+import type { Attachment } from '@sentry/types';
+import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
@@ -27,7 +22,7 @@ export interface FormComponentProps
    */
   defaultEmail: string;
   onCancel?: (e: Event) => void;
-  onSubmit?: (feedback: FeedbackFormData, screenshots?: Screenshot[]) => void;
+  onSubmit?: (feedback: FeedbackFormData, screenshots?: Attachment[]) => void;
 }
 
 interface FormComponent extends FeedbackComponent<HTMLFormElement> {

@@ -11,7 +11,6 @@ import type {
   SessionAggregates,
   SessionEnvelope,
   SessionItem,
-  TextEncoderInternal,
 } from '@sentry/types';
 import {
   createAttachmentEnvelopeItem,
@@ -96,11 +95,10 @@ export function createEventEnvelope(
  */
 export function createAttachmentEnvelope(
   event: Event,
-  attachment: Attachment,
+  attachments: Attachment[],
   dsn?: DsnComponents,
   metadata?: SdkMetadata,
   tunnel?: string,
-  textEncoder?: TextEncoderInternal,
 ): EventEnvelope {
   const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
   enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
@@ -113,6 +111,9 @@ export function createAttachmentEnvelope(
   // of this `delete`, lest we miss putting it back in the next time the property is in use.)
   delete event.sdkProcessingMetadata;
 
-  const attachmentItem: AttachmentItem = createAttachmentEnvelopeItem(attachment, textEncoder);
-  return createEnvelope<EventEnvelope>(envelopeHeaders, [attachmentItem]);
+  const attachmentItems: AttachmentItem[] = [];
+  for (const attachment of attachments || []) {
+    attachmentItems.push(createAttachmentEnvelopeItem(attachment));
+  }
+  return createEnvelope<EventEnvelope>(envelopeHeaders, attachmentItems);
 }

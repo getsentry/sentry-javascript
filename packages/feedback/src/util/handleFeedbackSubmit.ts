@@ -1,10 +1,10 @@
-import type { TransportMakeRequestResponse } from '@sentry/types';
+import type { Attachment, TransportMakeRequestResponse } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
 import { sendFeedback } from '../sendFeedback';
-import type { FeedbackFormData, Screenshot, SendFeedbackOptions } from '../types';
+import type { FeedbackFormData, SendFeedbackOptions } from '../types';
 import type { DialogComponent } from '../widget/Dialog';
 
 /**
@@ -14,7 +14,7 @@ import type { DialogComponent } from '../widget/Dialog';
 export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
-  screenshots?: Screenshot[],
+  screenshots?: Attachment[],
   options?: SendFeedbackOptions,
 ): Promise<TransportMakeRequestResponse | void> {
   if (!dialog) {
