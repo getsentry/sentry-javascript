@@ -34,7 +34,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@sentry/node": "latest || *"
+      "@sentry/node": "latest || *",
+      "@sentry/tracing": "file:../../tracing-shim"
     }
   },
   "type": "module"
