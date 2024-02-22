@@ -1,6 +1,6 @@
 import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node-experimental';
-import type { Transaction } from '@sentry/types';
+import type { Hub, Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -52,29 +52,57 @@ function wrapExpressRequestHandler(
         const resolvedBuild = build();
 
         if (resolvedBuild instanceof Promise) {
-          const resolved = await resolvedBuild;
-          routes = createRoutes(resolved.routes);
+          // eslint-disable-next-line @typescript-eslint/no-floating-promises
+          resolvedBuild.then(resolved => {
+            routes = createRoutes(resolved.routes);
+
+            startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
+          });
         } else {
           routes = createRoutes(resolvedBuild.routes);
         }
+
+        return startRequestHandlerTransactionWithRoutes.call(
+          this,
+          origRequestHandler,
+          routes,
+          req,
+          res,
+          next,
+          hub,
+          url,
+        );
       } else {
         routes = createRoutes(build.routes);
       }
 
-      const [name, source] = getTransactionName(routes, url);
-      const transaction = startRequestHandlerTransaction(hub, name, source, {
-        headers: {
-          'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
-          baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
-        },
-        method: request.method,
-      });
-      // save a link to the transaction on the response, so that even if there's an error (landing us outside of
-      // the domain), we can still finish it (albeit possibly missing some scope data)
-      (res as AugmentedExpressResponse).__sentryTransaction = transaction;
-      return origRequestHandler.call(this, req, res, next);
+      startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
     });
   };
+}
+
+function startRequestHandlerTransactionWithRoutes(
+  this: unknown,
+  origRequestHandler: ExpressRequestHandler,
+  routes: ServerRoute[],
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction,
+  hub: Hub,
+  url: URL,
+): Transaction | undefined {
+  const [name, source] = getTransactionName(routes, url);
+  const transaction = startRequestHandlerTransaction(hub, name, source, {
+    headers: {
+      'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
+      baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
+    },
+    method: req.method,
+  });
+  // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+  // the domain), we can still finish it (albeit possibly missing some scope data)
+  (res as AugmentedExpressResponse).__sentryTransaction = transaction;
+  return origRequestHandler.call(this, req, res, next);
 }
 
 function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadContextFunction {
