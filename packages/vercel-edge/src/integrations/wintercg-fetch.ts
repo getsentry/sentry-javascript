@@ -131,10 +131,7 @@ export const WinterCGFetch = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   winterCGFetchIntegration,
 ) as IntegrationClass<Integration & { setupOnce: () => void }> & {
-  new (options?: {
-    breadcrumbs: boolean;
-    shouldCreateSpanForRequest?: (url: string) => boolean;
-  }): Integration;
+  new (options?: Partial<Options>): Integration;
 };
 
 // eslint-disable-next-line deprecation/deprecation
