@@ -11,8 +11,6 @@ export {
 } from './Replay';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracingShim,
   browserTracingIntegrationShim,
   addTracingExtensionsShim,
 } from './BrowserTracing';

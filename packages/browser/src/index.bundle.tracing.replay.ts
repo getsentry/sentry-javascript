@@ -1,4 +1,4 @@
-import { BrowserTracingShim, FeedbackShim, feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import { FeedbackShim, feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 import { addExtensionMethods, browserTracingIntegration } from '@sentry-internal/tracing';
 import { Replay, replayIntegration } from '@sentry/replay';
 
@@ -10,9 +10,6 @@ import * as Sentry from './index.bundle.base';
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.Replay = Replay;
 
-// eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.BrowserTracing = BrowserTracingShim;
-
 // We are patching the global object with our hub extension methods
 addExtensionMethods();
 
@@ -23,8 +20,6 @@ export {
   Replay,
   replayIntegration,
   feedbackIntegrationShim as feedbackIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracingShim as BrowserTracing,
   browserTracingIntegration,
   addExtensionMethods,
 };

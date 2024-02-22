@@ -5,10 +5,8 @@ import { consoleSandbox } from '@sentry/utils';
  * This is a shim for the BrowserTracing integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove tracing
  * from it, without changing their config. This is necessary for the loader mechanism.
- *
- * @deprecated Use `browserTracingIntegration()` instead.
  */
-export class BrowserTracingShim implements Integration {
+class BrowserTracingShim implements Integration {
   /**
    * @inheritDoc
    */
