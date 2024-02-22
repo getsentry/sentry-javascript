@@ -340,7 +340,6 @@ export class BrowserTracing implements Integration {
       this._latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
     }
 
-    // eslint-disable-next-line deprecation/deprecation
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
     }

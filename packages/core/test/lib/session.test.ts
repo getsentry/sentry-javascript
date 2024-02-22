@@ -1,5 +1,3 @@
-/* eslint-disable deprecation/deprecation */
-
 import type { SessionContext } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 
