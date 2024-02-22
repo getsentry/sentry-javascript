@@ -85,7 +85,6 @@ export interface StartSpanOptions extends TransactionContext {
   /**
    * @deprecated Use attributes instead.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: { [key: string]: any };
 
   /**
