@@ -8,7 +8,7 @@ import { consoleSandbox } from '@sentry/utils';
  *
  * @deprecated Use `browserTracingIntegration()` instead.
  */
-class BrowserTracingShim implements Integration {
+export class BrowserTracingShim implements Integration {
   /**
    * @inheritDoc
    */
@@ -41,18 +41,12 @@ class BrowserTracingShim implements Integration {
  * It is needed in order for the CDN bundles to continue working when users add/remove tracing
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-function browserTracingIntegrationShim(_options?: unknown): Integration {
+export function browserTracingIntegrationShim(_options?: unknown): Integration {
   // eslint-disable-next-line deprecation/deprecation
   return new BrowserTracingShim({});
 }
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracingShim as BrowserTracing,
-  browserTracingIntegrationShim as browserTracingIntegration,
-};
-
 /** Shim function */
-export function addTracingExtensions(): void {
+export function addTracingExtensionsShim(): void {
   // noop
 }

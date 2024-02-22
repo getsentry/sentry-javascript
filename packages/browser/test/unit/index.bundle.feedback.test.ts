@@ -1,9 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import {
-  BrowserTracing as BrowserTracingShim,
-  Replay as ReplayShim,
-  replayIntegration as replayIntegrationShim,
-} from '@sentry-internal/integration-shims';
+import { BrowserTracingShim, ReplayShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
 import { Feedback, feedbackIntegration } from '@sentry/browser';
 
 import * as TracingReplayBundle from '../../src/index.bundle.feedback';

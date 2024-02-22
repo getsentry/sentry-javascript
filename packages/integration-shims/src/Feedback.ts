@@ -8,7 +8,7 @@ import { consoleSandbox } from '@sentry/utils';
  *
  * @deprecated Use `feedbackIntegration()` instead.
  */
-class FeedbackShim implements Integration {
+export class FeedbackShim implements Integration {
   /**
    * @inheritDoc
    */
@@ -75,10 +75,7 @@ class FeedbackShim implements Integration {
  * It is needed in order for the CDN bundles to continue working when users add/remove feedback
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-export function feedbackIntegration(_options: unknown): Integration {
+export function feedbackIntegrationShim(_options: unknown): Integration {
   // eslint-disable-next-line deprecation/deprecation
   return new FeedbackShim({});
 }
-
-// eslint-disable-next-line deprecation/deprecation
-export { FeedbackShim as Feedback };

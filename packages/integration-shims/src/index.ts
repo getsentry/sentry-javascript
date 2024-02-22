@@ -1,18 +1,18 @@
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Feedback,
-  feedbackIntegration,
+  FeedbackShim,
+  feedbackIntegrationShim,
 } from './Feedback';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Replay,
-  replayIntegration,
+  ReplayShim,
+  replayIntegrationShim,
 } from './Replay';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
-  browserTracingIntegration,
-  addTracingExtensions,
+  BrowserTracingShim,
+  browserTracingIntegrationShim,
+  addTracingExtensionsShim,
 } from './BrowserTracing';

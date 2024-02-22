@@ -1,10 +1,10 @@
 /* eslint-disable deprecation/deprecation */
 import {
-  BrowserTracing as BrowserTracingShim,
-  Feedback as FeedbackShim,
-  Replay as ReplayShim,
-  feedbackIntegration as feedbackIntegrationShim,
-  replayIntegration as replayIntegrationShim,
+  BrowserTracingShim,
+  FeedbackShim,
+  ReplayShim,
+  feedbackIntegrationShim,
+  replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
 
 import * as TracingBundle from '../../src/index.bundle';

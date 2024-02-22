@@ -1,9 +1,9 @@
 /* eslint-disable deprecation/deprecation */
 import {
-  Feedback as FeedbackShim,
-  Replay as ReplayShim,
-  feedbackIntegration as feedbackIntegrationShim,
-  replayIntegration as replayIntegrationShim,
+  FeedbackShim,
+  ReplayShim,
+  feedbackIntegrationShim,
+  replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { browserTracingIntegration } from '@sentry-internal/tracing';
 
