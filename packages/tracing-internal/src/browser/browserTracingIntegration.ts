@@ -430,12 +430,15 @@ function registerInteractionListener(
 
     // eslint-disable-next-line deprecation/deprecation
     const currentTransaction = getActiveTransaction();
-    if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-      DEBUG_BUILD &&
-        logger.warn(
-          `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-        );
-      return undefined;
+    if (currentTransaction) {
+      const currentTransactionOp = spanToJSON(currentTransaction).op;
+      if (currentTransactionOp && ['navigation', 'pageload'].includes(currentTransactionOp)) {
+        DEBUG_BUILD &&
+          logger.warn(
+            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
+          );
+        return undefined;
+      }
     }
 
     if (inflightInteractionTransaction) {
