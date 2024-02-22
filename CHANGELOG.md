@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.102.1
+
+- fix(performance): Fixes latest route name and source for interactions not updating properly on navigation (#10702)
+- fix(tracing): Guard against missing `window.location` (#10659)
+- ref: Make span types more robust (#10660)
+- ref(remix): Make `@remix-run/router` a dependency (v7) (#10779)
+
 ## 7.102.0
 
 - fix: Export session API (#10712)
