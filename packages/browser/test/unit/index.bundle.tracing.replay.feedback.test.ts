@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import { browserTracingIntegration } from '@sentry-internal/tracing';
 import { Feedback, Replay, feedbackIntegration, replayIntegration } from '@sentry/browser';
 
