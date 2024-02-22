@@ -15,13 +15,18 @@ import type {
   ExpressResponse,
   GetLoadContextFunction,
   ServerBuild,
+  ServerRoute,
 } from '../vendor/types';
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
-  build: ServerBuild,
+  build: ServerBuild | Promise<ServerBuild>,
 ): ExpressRequestHandler {
-  const routes = createRoutes(build.routes);
+  let routes: ServerRoute[];
+
+  if ('routes' in build) {
+    routes = createRoutes(build.routes);
+  }
 
   return async function (
     this: unknown,
@@ -45,6 +50,12 @@ function wrapExpressRequestHandler(
       }
 
       const url = new URL(request.url);
+
+      // This is only meant to be used on development servers, so we don't need to worry about performance here
+      if (!routes) {
+        const resolvedBuild = await build;
+        routes = createRoutes(resolvedBuild.routes);
+      }
 
       const [name, source] = getTransactionName(routes, url);
       const transaction = startRequestHandlerTransaction(hub, name, source, {
@@ -72,6 +83,16 @@ function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadCo
   };
 }
 
+// A wrapper around build if it's a Promise or a function that returns a Promise that calls instrumentServer on the resolved value
+// This is currently only required for development mode with HMR
+function wrapBuild(build: ServerBuild | Promise<ServerBuild>): ServerBuild | Promise<ServerBuild> {
+  if (build instanceof Promise) {
+    return build.then(resolved => instrumentBuild(resolved, true));
+  }
+
+  return instrumentBuild(build, true);
+}
+
 /**
  * Instruments `createRequestHandler` from `@remix-run/express`
  */
@@ -87,7 +108,7 @@ export function wrapExpressCreateRequestHandler(
 
     fill(options, 'getLoadContext', wrapGetLoadContext);
 
-    const newBuild = instrumentBuild(options.build, true);
+    const newBuild = wrapBuild(options.build);
     const requestHandler = origCreateRequestHandler.call(this, {
       ...options,
       build: newBuild,

@@ -912,7 +912,6 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-          TS_VERSION: ${{ matrix.typescript }}
         run: |
           cd dev-packages/node-integration-tests
           yarn test
@@ -1058,6 +1057,7 @@ jobs:
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
@@ -1069,8 +1069,7 @@ jobs:
             'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
-            # TODO(v8): Re-enable hapi tests
-            # 'node-hapi-app',
+            'node-hapi-app',
             'node-exports-test-app',
             'vue-3'
           ]
