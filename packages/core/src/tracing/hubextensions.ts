@@ -3,25 +3,10 @@ import { logger } from '@sentry/utils';
 import { getMainCarrier } from '../asyncContext';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
 import { Transaction } from './transaction';
-
-/** Returns all trace headers that are currently on the top scope. */
-function traceHeaders(this: Hub): { [key: string]: string } {
-  // eslint-disable-next-line deprecation/deprecation
-  const scope = this.getScope();
-  // eslint-disable-next-line deprecation/deprecation
-  const span = scope.getSpan();
-
-  return span
-    ? {
-        'sentry-trace': spanToTraceHeader(span),
-      }
-    : {};
-}
 
 /**
  * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
@@ -141,9 +126,6 @@ export function addTracingExtensions(): void {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions.startTransaction) {
     carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
-  }
-  if (!carrier.__SENTRY__.extensions.traceHeaders) {
-    carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
 
   registerErrorInstrumentation();
