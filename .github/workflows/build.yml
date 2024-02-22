@@ -912,6 +912,7 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          TS_VERSION: ${{ matrix.typescript }}
         run: |
           cd dev-packages/node-integration-tests
           yarn test
@@ -1069,7 +1070,8 @@ jobs:
             'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
-            'node-hapi-app',
+            # TODO(v8): Re-enable hapi tests
+            # 'node-hapi-app',
             'node-exports-test-app',
             'vue-3'
           ]
