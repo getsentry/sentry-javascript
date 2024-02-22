@@ -1,5 +1,5 @@
 export {
   // eslint-disable-next-line deprecation/deprecation
-  FeedbackAsync,
-  feedbackAsyncIntegration,
+  Feedback2Screenshot,
+  feedback2ScreenshotIntegration,
 } from './integration';

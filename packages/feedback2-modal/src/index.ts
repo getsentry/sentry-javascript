@@ -1,5 +1,5 @@
 export {
   // eslint-disable-next-line deprecation/deprecation
-  FeedbackAsync,
-  feedbackAsyncIntegration,
+  Feedback2Modal,
+  feedback2ModalIntegration,
 } from './integration';

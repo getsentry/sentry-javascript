@@ -80,8 +80,6 @@ export interface FeedbackGeneralConfiguration {
     email: string;
     name: string;
   };
-
-  // getScreenshotIntegration: () => Integration;
 }
 
 /**

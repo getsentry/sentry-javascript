@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/feedback-screenshot": "7.100.0",
     "@sentry/core": "7.100.0",
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0"

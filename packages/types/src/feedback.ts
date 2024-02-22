@@ -1,6 +1,6 @@
 import type { Event } from './event';
 
-export interface FeedbackContext extends Record<string, unknown> {
+interface FeedbackContext extends Record<string, unknown> {
   message: string;
   contact_email?: string;
   name?: string;
@@ -17,4 +17,16 @@ export interface FeedbackEvent extends Event {
   contexts: Event['contexts'] & {
     feedback: FeedbackContext;
   };
+}
+
+export interface FeedbackComponent<T extends HTMLElement> {
+  el: T | null;
+}
+
+export interface FeedbackDialogComponent extends FeedbackComponent<HTMLDialogElement> {
+  showError: (message: string) => void;
+  hideError: () => void;
+  open: () => void;
+  close: () => void;
+  isOpen: () => boolean;
 }

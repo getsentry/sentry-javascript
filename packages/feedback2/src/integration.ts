@@ -1,10 +1,13 @@
+import { getClient } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 
+import { Actor } from './components/Actor';
 import {
   ACTOR_LABEL,
   CANCEL_BUTTON_LABEL,
   DEFAULT_THEME,
+  DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
@@ -14,20 +17,20 @@ import {
   NAME_PLACEHOLDER,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
-  WINDOW,
 } from './constants';
+
+import type { Feedback2Modal } from '../integrations/feedback2-modal';
+import type { Feedback2Screenshot } from '../integrations/feedback2-screenshot';
+
+import { createMainStyles } from './createMainStyles';
 import { DEBUG_BUILD } from './debug-build';
-import type { FeedbackInternalOptions, FeedbackWidget, OptionalFeedbackConfiguration } from './types';
+import type { FeedbackCallbacks, FeedbackInternalOptions, OptionalFeedbackConfiguration } from './types';
+
 import { mergeOptions } from './util/mergeOptions';
-import { createActorStyles } from './widget/Actor.css';
-import { createShadowHost } from './widget/createShadowHost';
-import { createWidget } from './widget/createWidget';
 
-const doc = WINDOW.document;
-
-export const feedbackAsyncIntegration = ((options?: OptionalFeedbackConfiguration) => {
+export const feedback2Integration = ((options?: OptionalFeedbackConfiguration) => {
   // eslint-disable-next-line deprecation/deprecation
-  return new FeedbackAsync(options);
+  return new Feedback2(options);
 }) satisfies IntegrationFn;
 
 /**
@@ -37,11 +40,11 @@ export const feedbackAsyncIntegration = ((options?: OptionalFeedbackConfiguratio
  *
  * @deprecated Use `feedbackIntegration()` instead.
  */
-export class FeedbackAsync implements Integration {
+export class Feedback2 implements Integration {
   /**
    * @inheritDoc
    */
-  public static id: string = 'Feedback';
+  public static id: string = 'Feedback2';
 
   /**
    * @inheritDoc
@@ -54,29 +57,30 @@ export class FeedbackAsync implements Integration {
   public options: FeedbackInternalOptions;
 
   /**
-   * Reference to widget element that is created when autoInject is true
-   */
-  private _widget: FeedbackWidget | null;
-
-  /**
-   * List of all widgets that are created from the integration
-   */
-  private _widgets: Set<FeedbackWidget>;
-
-  /**
    * Reference to the host element where widget is inserted
    */
   private _host: HTMLDivElement | null;
 
   /**
-   * Refernce to Shadow DOM root
+   * Reference to Shadow DOM root
    */
   private _shadow: ShadowRoot | null;
 
   /**
-   * Tracks if actor styles have ever been inserted into shadow DOM
+   * The sentry-provided button to trigger the modal
    */
-  private _hasInsertedActorStyles: boolean;
+  private _triggerButton: null | any;
+
+  /**
+   * The integration that we will use to render the modal
+   * This value can be either passed in, or will be async loaded
+   */
+  private _dialogRenderStrategy: null | any;
+
+  /**
+   * The ModalComponent itself, as rendered on the screen
+   */
+  private _modal: null | any;
 
   public constructor({
     id = 'sentry-feedback',
@@ -111,27 +115,20 @@ export class FeedbackAsync implements Integration {
     onFormOpen,
     onSubmitError,
     onSubmitSuccess,
-
-    // getScreenshotIntegration,
+    showScreenshot = true,
   }: OptionalFeedbackConfiguration = {}) {
     // eslint-disable-next-line deprecation/deprecation
-    this.name = FeedbackAsync.id;
-
-    // tsc fails if these are not initialized explicitly constructor, e.g. can't call `_initialize()`
-    this._host = null;
-    this._shadow = null;
-    this._widget = null;
-    this._widgets = new Set();
-    this._hasInsertedActorStyles = false;
+    this.name = Feedback2.id;
 
     this.options = {
       id,
-      showBranding,
       autoInject,
+      showBranding,
       isEmailRequired,
       isNameRequired,
       showEmail,
       showName,
+      showScreenshot,
       useSentryUser,
 
       colorScheme,
@@ -160,146 +157,24 @@ export class FeedbackAsync implements Integration {
       onFormOpen,
       onSubmitError,
       onSubmitSuccess,
-
-      // getScreenshotIntegration,
     };
+
+    this._initialize();
   }
 
   /**
    * Setup and initialize feedback container
    */
   public setupOnce(): void {
-    if (!isBrowser()) {
+    if (!isBrowser() || !this.options.autoInject) {
       return;
     }
 
-    try {
-      this._cleanupWidgetIfExists();
-
-      const { autoInject } = this.options;
-
-      if (!autoInject) {
-        // Nothing to do here
-        return;
-      }
-
-      this._createWidget(this.options);
-    } catch (err) {
-      DEBUG_BUILD && logger.error(err);
-      console.log(err); // eslint-disable-line no-console
-    }
-  }
-
-  /**
-   * Allows user to open the dialog box. Creates a new widget if
-   * `autoInject` was false, otherwise re-uses the default widget that was
-   * created during initialization of the integration.
-   */
-  public openDialog(): void {
-    if (!this._widget) {
-      this._createWidget({ ...this.options, shouldCreateActor: false });
-    }
-
-    if (!this._widget) {
-      return;
-    }
-
-    this._widget.openDialog();
-  }
-
-  /**
-   * Closes the dialog for the default widget, if it exists
-   */
-  public closeDialog(): void {
-    if (!this._widget) {
-      // Nothing to do if widget does not exist
-      return;
-    }
-
-    this._widget.closeDialog();
-  }
-
-  /**
-   * Adds click listener to attached element to open a feedback dialog
-   */
-  public attachTo(el: Element | string, optionOverrides?: OptionalFeedbackConfiguration): FeedbackWidget | null {
-    try {
-      const options = mergeOptions(this.options, optionOverrides || {});
-
-      return this._ensureShadowHost<FeedbackWidget | null>(options, ({ shadow }) => {
-        const targetEl =
-          typeof el === 'string' ? doc.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
-
-        if (!targetEl) {
-          DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
-          return null;
-        }
-
-        const widget = createWidget({ shadow, options, attachTo: targetEl });
-        this._widgets.add(widget);
-
-        if (!this._widget) {
-          this._widget = widget;
-        }
-
-        return widget;
-      });
-    } catch (err) {
-      DEBUG_BUILD && logger.error(err);
-      console.log(err); // eslint-disable-line no-console
-      return null;
-    }
-  }
-
-  /**
-   * Creates a new widget. Accepts partial options to override any options passed to constructor.
-   */
-  public createWidget(
-    optionOverrides?: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean },
-  ): FeedbackWidget | null {
-    try {
-      return this._createWidget(mergeOptions(this.options, optionOverrides || {}));
-    } catch (err) {
-      DEBUG_BUILD && logger.error(err);
-      console.log(err); // eslint-disable-line no-console
-      return null;
-    }
-  }
-
-  /**
-   * Removes a single widget
-   */
-  public removeWidget(widget: FeedbackWidget | null | undefined): boolean {
-    if (!widget) {
-      return false;
-    }
-
-    try {
-      if (this._widgets.has(widget)) {
-        widget.removeActor();
-        widget.removeDialog();
-        this._widgets.delete(widget);
-
-        if (this._widget === widget) {
-          // TODO: is more clean-up needed? e.g. call remove()
-          this._widget = null;
-        }
-
-        return true;
-      }
-    } catch (err) {
-      console.log(err); // eslint-disable-line no-console
-      DEBUG_BUILD && logger.error(err);
-    }
-
-    return false;
-  }
-
-  /**
-   * Returns the default (first-created) widget
-   */
-  public getWidget(): FeedbackWidget | null {
-    return this._widget;
+    const shadow = this._getShadow(this.options);
+    const actor = Actor({ buttonLabel: String(this.options.buttonLabel) });
+    shadow.appendChild(actor.style);
+    shadow.appendChild(actor.el);
+    this.attachTo(actor.el, {});
   }
 
   /**
@@ -313,81 +188,168 @@ export class FeedbackAsync implements Integration {
   }
 
   /**
+   * Adds click listener to attached element to open a feedback dialog
+   *
+   * The returned function can be used to detact the click listener
+   */
+  public attachTo(el: Element | string, optionOverrides: Partial<FeedbackCallbacks> = {}): null | (() => void) {
+    const options = mergeOptions(this.options, optionOverrides);
+
+    const targetEl =
+      typeof el === 'string' ? DOCUMENT.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
+
+    if (!targetEl) {
+      DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
+      return null;
+    }
+
+    const handleClick = async (): Promise<void> => {
+      await this._ensureModalRenderer();
+      const shadow = this._getShadow(options); // options have not changed, because optionOverrides is a subset!
+
+      const client = getClient(); // TODO: could be typed as getClient<BrowserClient>(), but that might be a circular import
+      if (!client || !client.emit) {
+        // After fixing the BrowserClient type above, this might be easier... but if there's no client things are bad.
+        throw new Error('Sentry Client is not initialized correctly');
+      }
+      client.emit('createFeedbackModal', { hello: 'world' }, shadow.appendChild.bind(shadow));
+    };
+    targetEl.addEventListener('click', handleClick);
+    return () => {
+      targetEl.removeEventListener('click', handleClick);
+    };
+  }
+
+  /**
+   * Creates a new widget. Accepts partial options to override any options passed to constructor.
+   */
+  public createWidget(optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean } = {}): null {
+    // FeedbackWidget
+    const options = mergeOptions(this.options, optionOverrides);
+
+    // the dialog should have some standard callbacks:
+    // onFormClose: () => this._triggerButton.show(); this.options.onFormClose()
+    // onFormOpen: () => this._triggerButton.hide(); this.options.onFormOpen()
+    // onSubmitError: () => this._triggerButton.show(); this.options.onSubmitError();
+    // onSubmitSuccess: () => this._triggerButton.show(); this.options.onSubmitSuccss();
+    //
+    // actually, we might want to rename the callbacks that the form itself takes... or expand the list so that
+    // we can allow the form to render the SuccessMessage
+
+    return null;
+  }
+
+  /**
+   * Returns the default (first-created) widget
+   */
+  public getWidget(): null {
+    // FeedbackWidget (incl dialog!)
+    //
+    return null;
+  }
+
+  /**
+   * Allows user to open the dialog box. Creates a new widget if
+   * `autoInject` was false, otherwise re-uses the default widget that was
+   * created during initialization of the integration.
+   */
+  public openDialog(): void {
+    //
+  }
+
+  /**
+   * Closes the dialog for the default widget, if it exists
+   */
+  public closeDialog(): void {
+    //
+  }
+
+  /**
+   * Removes a single widget
+   */
+  public removeWidget(widget: null | undefined): void {
+    //
+  }
+
+  /**
    * Initializes values of protected properties
    */
   protected _initialize(): void {
     this._host = null;
     this._shadow = null;
-    this._widget = null;
-    this._widgets = new Set();
-    this._hasInsertedActorStyles = false;
   }
 
   /**
-   * Clean-up the widget if it already exists in the DOM. This shouldn't happen
-   * in prod, but can happen in development with hot module reloading.
+   * Get the dom root, where DOM nodes will be appended into
    */
-  protected _cleanupWidgetIfExists(): void {
-    if (this._host) {
-      this.remove();
-    }
-    const existingFeedback = doc.querySelector(`#${this.options.id}`);
-    if (existingFeedback) {
-      existingFeedback.remove();
-    }
-  }
+  private _getHost(options: FeedbackInternalOptions): HTMLDivElement {
+    if (!this._host) {
+      const { id, colorScheme } = options;
 
-  /**
-   * Creates a new widget, after ensuring shadow DOM exists
-   */
-  protected _createWidget(options: FeedbackInternalOptions & { shouldCreateActor?: boolean }): FeedbackWidget | null {
-    return this._ensureShadowHost<FeedbackWidget>(options, ({ shadow }) => {
-      const widget = createWidget({ shadow, options });
-
-      if (!this._hasInsertedActorStyles && widget.actor) {
-        shadow.appendChild(createActorStyles(doc));
-        this._hasInsertedActorStyles = true;
-      }
-
-      this._widgets.add(widget);
-
-      if (!this._widget) {
-        this._widget = widget;
-      }
-
-      return widget;
-    });
-  }
-
-  /**
-   * Ensures that shadow DOM exists and is added to the DOM
-   */
-  protected _ensureShadowHost<T>(
-    options: FeedbackInternalOptions,
-    cb: (createShadowHostResult: ReturnType<typeof createShadowHost>) => T,
-  ): T | null {
-    let needsAppendHost = false;
-
-    // Don't create if it already exists
-    if (!this._shadow || !this._host) {
-      const { id, colorScheme, themeLight, themeDark } = options;
-      const { shadow, host } = createShadowHost({
-        id,
-        colorScheme,
-        themeLight,
-        themeDark,
-      });
-      this._shadow = shadow;
+      const host = DOCUMENT.createElement('div');
       this._host = host;
-      needsAppendHost = true;
+      host.id = String(id);
+      host.dataset.sentryFeedbackColorscheme = colorScheme;
+      DOCUMENT.body.appendChild(this._host);
+    }
+    return this._host;
+  }
+
+  /**
+   * Get the shadow root where we will append css
+   */
+  private _getShadow(options: FeedbackInternalOptions): ShadowRoot {
+    if (!this._shadow) {
+      const host = this._getHost(options);
+
+      const { colorScheme, themeDark, themeLight } = options;
+      const shadow = host.attachShadow({ mode: 'open' });
+      shadow.appendChild(
+        createMainStyles(colorScheme, {
+          themeDark,
+          themeLight,
+        }),
+      );
+      this._shadow = shadow;
     }
 
-    const result = cb({ shadow: this._shadow, host: this._host });
+    return this._shadow;
+  }
 
-    if (needsAppendHost) {
-      doc.body.appendChild(this._host);
+  /**
+   *
+   */
+  private async _ensureModalRenderer(): Promise<void> {
+    const client = getClient(); // TODO: could be typed as getClient<BrowserClient>(), but that might be a circular import
+    if (!client || !client.getIntegrationByName) {
+      // After fixing the BrowserClient type above, this might be easier... but if there's no client things are bad.
+      throw new Error('Sentry Client is not initialized correctly');
+    }
+    const modalIntegration = client.getIntegrationByName<Feedback2Modal>('Feedback2Modal');
+    const screenshotIntegration = client.getIntegrationByName<Feedback2Screenshot>('Feedback2Screenshot');
+    const { showScreenshot } = this.options;
+
+    // START TEMP: Error messages
+    console.log('ensureRenderer:', { modalIntegration, showScreenshot, screenshotIntegration });
+    if (!modalIntegration && showScreenshot && !screenshotIntegration) {
+      throw new Error('Async loading of Feedback Modal & Screenshot integrations is not yet implemented');
+    } else if (!modalIntegration) {
+      throw new Error('Async loading of Feedback Modal is not yet implemented');
+    } else if (showScreenshot && !screenshotIntegration) {
+      throw new Error('Async loading of Feedback Screenshot integration is not yet implemented');
+    }
+    // END TEMP
+
+    if (showScreenshot === false && screenshotIntegration) {
+      // Warn the user that they loaded too much and explicitly asked for screen shots to be off
+      console.log('WARNING: youre not rendering screenshots but they are bundled into your application.');
     }
 
-    return result;
+    if (!modalIntegration) {
+      // TODO: load modalIntegration
+    }
+    if (showScreenshot && !screenshotIntegration) {
+      // TODO: load screenshotIntegration
+    }
   }
 }

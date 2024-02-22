@@ -491,6 +491,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
+  public on(
+    hook: 'createFeedbackModal',
+    callback: (options: Record<string, unknown>, appendChild: (child: HTMLElement) => void) => void,
+  ): void;
+
+  /** @inheritdoc */
   public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /** @inheritdoc */
@@ -535,6 +541,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
+
+  /** @inheritdoc */
+  public emit(
+    hook: 'createFeedbackModal',
+    options: Record<string, unknown>,
+    appendChild: (child: HTMLElement) => void,
+  ): void;
 
   /** @inheritdoc */
   public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
