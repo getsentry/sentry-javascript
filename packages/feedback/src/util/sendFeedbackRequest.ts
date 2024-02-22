@@ -1,8 +1,8 @@
-import { createEventEnvelope, getClient, withScope } from '@sentry/core';
+import { createEventEnvelope, getClient, withScope, createAttachmentEnvelope } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
-import type { SendFeedbackData, SendFeedbackOptions } from '../types';
+import type { Screenshot, SendFeedbackData, SendFeedbackOptions } from '../types';
 import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 
 /**
@@ -11,6 +11,7 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 export async function sendFeedbackRequest(
   { feedback: { message, email, name, source, url } }: SendFeedbackData,
   { includeReplay = true }: SendFeedbackOptions = {},
+  screenshots: Screenshot[],
 ): Promise<void | TransportMakeRequestResponse> {
   const client = getClient();
   const transport = client && client.getTransport();
@@ -57,6 +58,19 @@ export async function sendFeedbackRequest(
 
     const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 
+    let attachment_envelope;
+    for (const attachment of screenshots || []) {
+      attachment_envelope = createAttachmentEnvelope(
+        feedbackEvent,
+        attachment,
+        dsn,
+        client.getOptions()._metadata,
+        client.getOptions().tunnel,
+        // eslint-disable-next-line @sentry-internal/sdk/no-optional-chaining
+        client.getOptions().transportOptions && client.getOptions().transportOptions?.textEncoder,
+      );
+    }
+
     let response: void | TransportMakeRequestResponse;
 
     try {
@@ -82,6 +96,33 @@ export async function sendFeedbackRequest(
     // Require valid status codes, otherwise can assume feedback was not sent successfully
     if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
       throw new Error('Unable to send Feedback');
+    }
+
+    if (attachment_envelope) {
+      try {
+        response = await transport.send(attachment_envelope);
+      } catch (err) {
+        const error = new Error('Unable to send Feedback screenshot');
+
+        try {
+          // In case browsers don't allow this property to be writable
+          // @ts-expect-error This needs lib es2022 and newer
+          error.cause = err;
+        } catch {
+          // nothing to do
+        }
+        throw error;
+      }
+
+      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+      if (!response) {
+        return;
+      }
+
+      // Require valid status codes, otherwise can assume feedback was not sent successfully
+      if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+        throw new Error('Unable to send Feedback screenshot');
+      }
     }
 
     return response;

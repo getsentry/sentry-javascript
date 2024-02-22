@@ -1,4 +1,10 @@
-import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
+import type {
+  FeedbackComponent,
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  FeedbackTextConfiguration,
+  Screenshot,
+} from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
 import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
@@ -21,7 +27,7 @@ export interface FormComponentProps
    */
   defaultEmail: string;
   onCancel?: (e: Event) => void;
-  onSubmit?: (feedback: FeedbackFormData) => void;
+  onSubmit?: (feedback: FeedbackFormData, screenshots?: Screenshot[]) => void;
 }
 
 interface FormComponent extends FeedbackComponent<HTMLFormElement> {
@@ -42,6 +48,22 @@ function retrieveStringValue(formData: FormData, key: string): string {
     return value.trim();
   }
   return '';
+}
+
+async function canvasToUint8Array(image: HTMLCanvasElement): Promise<Uint8Array | null> {
+  const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
+    return new Promise(resolve => {
+      canvas.toBlob(blob => {
+        resolve(blob);
+      });
+    });
+  };
+  const blob = await canvasToBlob(image);
+  if (blob) {
+    const blobData = await blob.arrayBuffer();
+    return new Uint8Array(blobData);
+  }
+  return null;
 }
 
 /**
@@ -67,11 +89,15 @@ export function Form({
   onCancel,
   onSubmit,
 }: FormComponentProps): FormComponent {
+  let screenshotImage: HTMLCanvasElement | null = null;
+  function setScreenshotImage(newScreenshot: HTMLCanvasElement | null): void {
+    screenshotImage = newScreenshot;
+  }
   const { el: submitEl } = SubmitButton({
     label: submitButtonLabel,
   });
 
-  function handleSubmit(e: Event): void {
+  async function handleSubmit(e: Event): Promise<void> {
     e.preventDefault();
 
     if (!(e.target instanceof HTMLFormElement)) {
@@ -81,15 +107,22 @@ export function Form({
     try {
       if (onSubmit) {
         const formData = new FormData(e.target as HTMLFormElement);
-        const imageData = undefined;
         const feedback = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
           message: retrieveStringValue(formData, 'message'),
-          screenshot: imageData,
         };
 
-        onSubmit(feedback);
+        if (screenshotImage) {
+          const screenshotBlob = await canvasToUint8Array(screenshotImage);
+          if (screenshotBlob) {
+            onSubmit(feedback, [
+              { filename: 'screenshot.png', data: screenshotBlob, contentType: 'application/octet-stream' },
+            ]);
+          }
+        } else {
+          onSubmit(feedback);
+        }
       }
     } catch {
       // pass
@@ -166,7 +199,7 @@ export function Form({
   ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
     croppingRef: screenshot,
     buttonRef: screenshotButton,
-    props: null,
+    props: { screenshotImage, setScreenshotImage },
   });
 
   const formEl = createElement(

@@ -1,4 +1,6 @@
 import type {
+  Attachment,
+  AttachmentItem,
   DsnComponents,
   Event,
   EventEnvelope,
@@ -9,8 +11,10 @@ import type {
   SessionAggregates,
   SessionEnvelope,
   SessionItem,
+  TextEncoderInternal,
 } from '@sentry/types';
 import {
+  createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
   dsnToString,
@@ -85,4 +89,30 @@ export function createEventEnvelope(
 
   const eventItem: EventItem = [{ type: eventType }, event];
   return createEnvelope<EventEnvelope>(envelopeHeaders, [eventItem]);
+}
+
+/**
+ * Create an Envelope from an event.
+ */
+export function createAttachmentEnvelope(
+  event: Event,
+  attachment: Attachment,
+  dsn?: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string,
+  textEncoder?: TextEncoderInternal,
+): EventEnvelope {
+  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
+  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
+
+  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
+
+  // Prevent this data (which, if it exists, was used in earlier steps in the processing pipeline) from being sent to
+  // sentry. (Note: Our use of this property comes and goes with whatever we might be debugging, whatever hacks we may
+  // have temporarily added, etc. Even if we don't happen to be using it at some point in the future, let's not get rid
+  // of this `delete`, lest we miss putting it back in the next time the property is in use.)
+  delete event.sdkProcessingMetadata;
+
+  const attachmentItem: AttachmentItem = createAttachmentEnvelopeItem(attachment, textEncoder);
+  return createEnvelope<EventEnvelope>(envelopeHeaders, [attachmentItem]);
 }

@@ -21,6 +21,7 @@ export interface SendFeedbackOptions {
    * Should include replay with the feedback?
    */
   includeReplay?: boolean;
+  screenshots?: Screenshot[];
 }
 
 /**
@@ -30,7 +31,6 @@ export interface FeedbackFormData {
   message: string;
   email?: string;
   name?: string;
-  screenshot?: Uint8Array;
 }
 
 /**
@@ -342,4 +342,10 @@ export interface FeedbackWidget {
   openDialog: () => void;
   closeDialog: () => void;
   removeDialog: () => void;
+}
+
+export interface Screenshot {
+  filename: string;
+  data: Uint8Array;
+  contentType: string;
 }

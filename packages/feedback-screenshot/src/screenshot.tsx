@@ -7,20 +7,26 @@ import { h, render } from 'preact';
 interface FeedbackScreenshotOptions {
   buttonRef: HTMLDivElement;
   croppingRef: HTMLDivElement;
-  props: unknown;
+  props: {
+    screenshotImage: HTMLCanvasElement | null;
+    setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+  };
 }
 
 export interface FeedbackScreenshotIntegrationOptions {
   buttonRef: HTMLDivElement;
   croppingRef: HTMLDivElement;
-  props: unknown;
+  props: {
+    screenshotImage: HTMLCanvasElement | null;
+    setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+  };
 }
 
 const INTEGRATION_NAME = 'FeedbackScreenshot';
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 /** Exported only for type safe tests. */
-export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreenshotOptions> = {}) => {
+export const _feedbackScreenshotIntegration = ((options: FeedbackScreenshotOptions) => {
   return {
     name: INTEGRATION_NAME,
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -29,11 +35,21 @@ export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreens
       return {
         buttonRef: options.buttonRef || WINDOW.document.createElement('div'),
         croppingRef: options.croppingRef || WINDOW.document.createElement('div'),
-        props: options.props || null,
+        props: {
+          screenshotImage: options.props.screenshotImage,
+          setScreenshotImage: options.props.setScreenshotImage,
+        },
       };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
-      return render(<ScreenshotButton croppingRef={options.croppingRef} />, options.buttonRef);
+      return render(
+        <ScreenshotButton
+          croppingRef={options.croppingRef}
+          screenshotImage={options.props.screenshotImage}
+          setScreenshotImage={options.props.setScreenshotImage}
+        />,
+        options.buttonRef,
+      );
     },
   };
 }) satisfies IntegrationFn;

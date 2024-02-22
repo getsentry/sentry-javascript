@@ -4,17 +4,23 @@ import { useTakeScreenshot } from './useTakeScreenshot';
 import type { VNode } from 'preact';
 import { ScreenshotWidget } from './screenshotWidget';
 
-type Props = { croppingRef: HTMLDivElement };
+type Props = {
+  croppingRef: HTMLDivElement;
+  screenshotImage: HTMLCanvasElement | null;
+  setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+};
 
-export function ScreenshotButton({ croppingRef }: Props): VNode {
+export function ScreenshotButton({ croppingRef, screenshotImage, setScreenshotImage }: Props): VNode {
   const [clicked, setClicked] = useState(false);
   const { isInProgress, takeScreenshot } = useTakeScreenshot();
 
   const handleClick = useCallback(async () => {
     if (!clicked) {
       const image = await takeScreenshot();
-      render(<ScreenshotWidget image={image} />, croppingRef);
+      setScreenshotImage(image);
+      render(<ScreenshotWidget screenshotImage={image} setScreenshotImage={setScreenshotImage} />, croppingRef);
     } else {
+      setScreenshotImage(null);
       render(null, croppingRef);
     }
     setClicked(prev => !prev);

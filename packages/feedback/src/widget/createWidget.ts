@@ -1,8 +1,7 @@
 import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
-import * as Sentry from '@sentry/browser';
 
-import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget, Screenshot } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
 import { Actor } from './Actor';
@@ -77,7 +76,6 @@ export function createWidget({
     } catch (err) {
       // TODO: error handling
       logger.error(err);
-      console.log(err);
     }
   }
 
@@ -85,7 +83,7 @@ export function createWidget({
    * Handler for when the feedback form is completed by the user. This will
    * create and send the feedback message as an event.
    */
-  async function _handleFeedbackSubmit(feedback: FeedbackFormData): Promise<void> {
+  async function _handleFeedbackSubmit(feedback: FeedbackFormData, screenshots?: Screenshot[]): Promise<void> {
     if (!dialog) {
       return;
     }
@@ -106,7 +104,7 @@ export function createWidget({
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback);
+    const result = await handleFeedbackSubmit(dialog, feedback, screenshots);
 
     // Error submitting feedback
     if (!result) {
@@ -120,15 +118,6 @@ export function createWidget({
     // Success
     removeDialog();
     showSuccessMessage();
-    Sentry.withScope(scope => {
-      if (feedback.screenshot) {
-        scope.addAttachment({
-          filename: 'screenshot.png',
-          data: feedback.screenshot,
-          contentType: 'image/png',
-        });
-      }
-    });
 
     if (options.onSubmitSuccess) {
       options.onSubmitSuccess();

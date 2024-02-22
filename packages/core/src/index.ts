@@ -7,7 +7,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
 export {
   addBreadcrumb,
   captureCheckIn,
@@ -83,12 +83,7 @@ export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
-export {
-  spanToTraceHeader,
-  spanToJSON,
-  spanIsSampled,
-  spanToTraceContext,
-} from './utils/spanUtils';
+export { spanToTraceHeader, spanToJSON, spanIsSampled, spanToTraceContext } from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';

@@ -1,7 +1,7 @@
 import { getLocationHref } from '@sentry/utils';
 
 import { FEEDBACK_API_SOURCE } from './constants';
-import type { SendFeedbackOptions } from './types';
+import type { Screenshot, SendFeedbackOptions } from './types';
 import { sendFeedbackRequest } from './util/sendFeedbackRequest';
 
 interface SendFeedbackParams {
@@ -18,6 +18,7 @@ interface SendFeedbackParams {
 export function sendFeedback(
   { name, email, message, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   options: SendFeedbackOptions = {},
+  screenshots: Screenshot[] = [],
 ): ReturnType<typeof sendFeedbackRequest> {
   if (!message) {
     throw new Error('Unable to submit feedback with empty message');
@@ -34,5 +35,6 @@ export function sendFeedback(
       },
     },
     options,
+    screenshots,
   );
 }

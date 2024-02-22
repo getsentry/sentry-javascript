@@ -1,9 +1,13 @@
 import { h, render } from 'preact';
 import type { VNode } from 'preact';
 
-type Props = { image: HTMLCanvasElement };
+type Props = {
+  screenshotImage: HTMLCanvasElement | null;
+  setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+};
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function ScreenshotWidget({ image }: Props): VNode | null {
+export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props): VNode | null {
+  const image = screenshotImage;
   return image ? (
     <div style="padding-right: 16px;">
       <img
