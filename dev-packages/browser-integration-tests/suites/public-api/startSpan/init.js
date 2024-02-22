@@ -1,7 +1,5 @@
 import * as Sentry from '@sentry/browser';
 
-Sentry.addTracingExtensions();
-
 window.Sentry = Sentry;
 
 Sentry.init({
