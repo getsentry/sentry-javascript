@@ -70,7 +70,7 @@ module.exports = {
 
     // Node
     {
-      files: ['.eslintrc.cjs', 'server.js'],
+      files: ['.eslintrc.js', 'server.mjs'],
       env: {
         node: true,
       },

@@ -96,8 +96,7 @@ function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadCo
 }
 
 // A wrapper around build if it's a Promise or a function that returns a Promise that calls instrumentServer on the resolved value
-// This is currently only required for development mode with HM
-
+// This is currently only required for Vite development mode with HMR
 function wrapBuild(
   build: ServerBuild | Promise<ServerBuild> | (() => Promise<ServerBuild> | ServerBuild),
 ): ServerBuild | Promise<ServerBuild> {
