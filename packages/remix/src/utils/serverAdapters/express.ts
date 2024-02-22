@@ -20,7 +20,7 @@ import type {
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
-  build: ServerBuild | Promise<ServerBuild> | (() => Promise<ServerBuild> | ServerBuild),
+  build: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
 ): ExpressRequestHandler {
   let routes: ServerRoute[];
 
@@ -52,20 +52,14 @@ function wrapExpressRequestHandler(
       const url = new URL(request.url);
 
       // This is only meant to be used on development servers, so we don't need to worry about performance here
-      if (!routes) {
-        if (build instanceof Promise) {
-          const resolvedBuild = await build;
-          routes = createRoutes(resolvedBuild.routes);
-        }
+      if (!routes && typeof build === 'function') {
+        const resolvedBuild = build();
 
-        if (typeof build === 'function') {
-          const resolvedBuild = build();
-          if (resolvedBuild instanceof Promise) {
-            const resolved = await resolvedBuild;
-            routes = createRoutes(resolved.routes);
-          } else {
-            routes = createRoutes(resolvedBuild.routes);
-          }
+        if (resolvedBuild instanceof Promise) {
+          const resolved = await resolvedBuild;
+          routes = createRoutes(resolved.routes);
+        } else {
+          routes = createRoutes(resolvedBuild.routes);
         }
       }
 
@@ -98,16 +92,12 @@ function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadCo
 // A wrapper around build if it's a Promise or a function that returns a Promise that calls instrumentServer on the resolved value
 // This is currently only required for Vite development mode with HMR
 function wrapBuild(
-  build: ServerBuild | Promise<ServerBuild> | (() => Promise<ServerBuild> | ServerBuild),
-): ServerBuild | Promise<ServerBuild> {
-  if (build instanceof Promise) {
-    return build.then(resolved => instrumentBuild(resolved, true));
-  }
-
+  build: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
+): ServerBuild | (() => Promise<ServerBuild> | ServerBuild) {
   if (typeof build === 'function') {
     const resolved = build();
     if (resolved instanceof Promise) {
-      return resolved.then(resolved => instrumentBuild(resolved, true));
+      return () => resolved.then(resolved => instrumentBuild(resolved, true));
     }
 
     return instrumentBuild(resolved, true);

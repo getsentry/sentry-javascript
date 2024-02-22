@@ -44,7 +44,7 @@ app.all(
   '*',
   sentryCreateRequestHandler({
     build: viteDevServer
-      ? viteDevServer.ssrLoadModule('virtual:remix/server-build')
+      ? () => viteDevServer.ssrLoadModule('virtual:remix/server-build')
       : await import('./build/server/index.js'),
   }),
 );
