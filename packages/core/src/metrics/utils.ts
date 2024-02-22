@@ -1,18 +1,18 @@
 import type { ClientOptions, MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
-import { dropUndefinedKeys } from '@sentry/utils';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 import type { BaseClient } from '../baseclient';
 import { NAME_AND_TAG_KEY_NORMALIZATION_REGEX, TAG_VALUE_NORMALIZATION_REGEX } from './constants';
 import { createMetricEnvelope } from './envelope';
 import type { MetricType } from './types';
 
 /**
- *
+ * Captures aggregated metrics to the supplied client.
  */
 export function captureAggregateMetrics(
   client: BaseClient<ClientOptions>,
   metricBucketItems: Array<MetricBucketItem>,
 ): void {
-  // DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
+  logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
   const dsn = client.getDsn();
   const metadata = client.getSdkMetadata();
   const tunnel = client.getOptions().tunnel;
