@@ -24,10 +24,6 @@ function wrapExpressRequestHandler(
 ): ExpressRequestHandler {
   let routes: ServerRoute[];
 
-  if (build && 'routes' in build) {
-    routes = createRoutes(build.routes);
-  }
-
   return async function (
     this: unknown,
     req: ExpressRequest,
@@ -52,7 +48,7 @@ function wrapExpressRequestHandler(
       const url = new URL(request.url);
 
       // This is only meant to be used on development servers, so we don't need to worry about performance here
-      if (!routes && typeof build === 'function') {
+      if (build && typeof build === 'function') {
         const resolvedBuild = build();
 
         if (resolvedBuild instanceof Promise) {
@@ -61,6 +57,8 @@ function wrapExpressRequestHandler(
         } else {
           routes = createRoutes(resolvedBuild.routes);
         }
+      } else {
+        routes = createRoutes(build.routes);
       }
 
       const [name, source] = getTransactionName(routes, url);
