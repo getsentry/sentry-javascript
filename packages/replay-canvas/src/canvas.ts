@@ -76,9 +76,11 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
           const manager = new CanvasManager({
             ...options,
             enableManualSnapshot,
-            errorHandler: (err: Error & { __rrweb__?: boolean }) => {
+            errorHandler: (err: unknown) => {
               try {
-                err.__rrweb__ = true;
+                if (typeof err === 'object') {
+                  (err as Error & {__rrweb__?: boolean}).__rrweb__ = true;
+                }
               } catch (error) {
                 // ignore errors here
                 // this can happen if the error is frozen or does not allow mutation for other reasons
