@@ -40,10 +40,15 @@ export const useTakeScreenshot = () => {
   const takeScreenshotCallback = useCallback(async (): Promise<HTMLCanvasElement> => {
     setIsInProgress(true);
     let image: HTMLCanvasElement | null = null;
+    const style = document.createElement('style');
+    style.innerHTML = '.dialog { display: none; }';
+    document.getElementById('sentry-feedback')?.shadowRoot?.appendChild(style);
     try {
       image = await takeScreenshot();
+      document.getElementById('sentry-feedback')?.shadowRoot?.removeChild(style);
     } catch (error) {
       setIsInProgress(false);
+      document.getElementById('sentry-feedback')?.shadowRoot?.removeChild(style);
       throw error;
     }
     setIsInProgress(false);
