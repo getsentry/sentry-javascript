@@ -173,7 +173,6 @@ function _getPossibleEventMessages(event: Event): string[] {
   let lastException;
   try {
     // @ts-expect-error Try catching to save bundle size
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     lastException = event.exception.values[event.exception.values.length - 1];
   } catch (e) {
     // try catching to save bundle size checking existence of variables
@@ -198,7 +197,6 @@ function _getPossibleEventMessages(event: Event): string[] {
 function _isSentryError(event: Event): boolean {
   try {
     // @ts-expect-error can't be a sentry error if undefined
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return event.exception.values[0].type === 'SentryError';
   } catch (e) {
     // ignore

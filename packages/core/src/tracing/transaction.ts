@@ -89,7 +89,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   // This sadly conflicts with the getter/setter ordering :(
-  /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
    * Get the metadata for this transaction.

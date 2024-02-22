@@ -121,7 +121,6 @@ export { bunServerIntegration } from './integrations/bunserver';
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
   BunServer,
 };

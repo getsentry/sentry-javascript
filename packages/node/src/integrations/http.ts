@@ -314,7 +314,6 @@ function _createWrappedRequestMethodFactory(
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
       const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
-      // eslint-disable-next-line deprecation/deprecation
       const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
       const client = getClient();

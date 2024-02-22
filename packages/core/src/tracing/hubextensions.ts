@@ -42,7 +42,6 @@ function _startTransaction(
 The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
       );
 
-    // eslint-disable-next-line deprecation/deprecation
     transactionContext.sampled = false;
   }
 
