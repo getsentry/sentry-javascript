@@ -92,7 +92,7 @@ describe('Tracekit - Misc Tests', () => {
           { filename: '<anonymous>', function: 'Array.forEach', in_app: true },
           {
             filename: '../node_modules/@sentry-internal/rrweb/es/rrweb/ext/@xstate/fsm/es/index.js',
-            function: '<anonymous>',
+            function: '?',
             in_app: true,
             lineno: 15,
             colno: 2595,

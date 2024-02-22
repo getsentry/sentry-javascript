@@ -5,9 +5,9 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
-  runWithAsyncContext,
   startSpan,
-} from '@sentry/node';
+  withIsolationScope,
+} from '@sentry/node-experimental';
 import type { Client, Scope, Span } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
@@ -74,7 +74,7 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
-    return runWithAsyncContext(() => {
+    return withIsolationScope(() => {
       return instrumentRequest(ctx, next, handlerOptions);
     });
   };

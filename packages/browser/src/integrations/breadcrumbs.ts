@@ -70,8 +70,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
@@ -88,7 +86,7 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
       if (_options.history) {
         addHistoryInstrumentationHandler(_getHistoryBreadcrumbHandler(client));
       }
-      if (_options.sentry && client.on) {
+      if (_options.sentry) {
         client.on('beforeSendEvent', _getSentryBreadcrumbHandler(client));
       }
     },

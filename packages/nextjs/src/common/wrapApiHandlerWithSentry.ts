@@ -3,10 +3,9 @@ import {
   addTracingExtensions,
   captureException,
   continueTrace,
-  getCurrentScope,
-  runWithAsyncContext,
   setHttpStatus,
   startSpanManual,
+  withIsolationScope,
 } from '@sentry/core';
 import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -55,7 +54,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
       addTracingExtensions();
 
-      return runWithAsyncContext(() => {
+      return withIsolationScope(isolationScope => {
         return continueTrace(
           {
             // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
@@ -82,7 +81,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
             const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
-            getCurrentScope().setSDKProcessingMetadata({ request: req });
+            isolationScope.setSDKProcessingMetadata({ request: req });
 
             return startSpanManual(
               {

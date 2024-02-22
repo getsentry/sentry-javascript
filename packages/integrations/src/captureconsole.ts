@@ -1,12 +1,5 @@
-import {
-  captureException,
-  captureMessage,
-  convertIntegrationFnToClass,
-  defineIntegration,
-  getClient,
-  withScope,
-} from '@sentry/core';
-import type { CaptureContext, Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { captureException, captureMessage, defineIntegration, getClient, withScope } from '@sentry/core';
+import type { CaptureContext, IntegrationFn } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
   GLOBAL_OBJ,
@@ -27,8 +20,6 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (!('console' in GLOBAL_OBJ)) {
         return;
@@ -45,19 +36,10 @@ const _captureConsoleIntegration = ((options: CaptureConsoleOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
-
 /**
  * Send Console API calls as Sentry Events.
- * @deprecated Use `captureConsoleIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const CaptureConsole = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  captureConsoleIntegration,
-) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
-  new (options?: { levels?: string[] }): Integration;
-};
+export const captureConsoleIntegration = defineIntegration(_captureConsoleIntegration);
 
 function consoleHandler(args: unknown[], level: string): void {
   const captureContext: CaptureContext = {
@@ -87,7 +69,7 @@ function consoleHandler(args: unknown[], level: string): void {
     }
 
     const error = args.find(arg => arg instanceof Error);
-    if (level === 'error' && error) {
+    if (error) {
       captureException(error, captureContext);
       return;
     }

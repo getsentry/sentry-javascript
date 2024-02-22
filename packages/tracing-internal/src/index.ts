@@ -32,5 +32,3 @@ export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './commo
 export type { RequestInstrumentationOptions } from './browser';
 
 export { addExtensionMethods } from './extensions';
-
-export { DEFAULT_TRACE_PROPAGATION_TARGETS } from './browser/request';

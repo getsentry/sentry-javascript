@@ -1,4 +1,4 @@
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import type { Transport } from '@sentry/types';
 
 import { getMainCarrier } from '@sentry/core';

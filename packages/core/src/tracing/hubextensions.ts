@@ -1,9 +1,8 @@
-import type { ClientOptions, CustomSamplingContext, TransactionContext } from '@sentry/types';
+import type { ClientOptions, CustomSamplingContext, Hub, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { getMainCarrier } from '../asyncContext';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
-import { getMainCarrier } from '../hub';
 import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
@@ -76,9 +75,9 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {
-    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+    transaction.initSpanRecorder();
   }
-  if (client && client.emit) {
+  if (client) {
     client.emit('startTransaction', transaction);
   }
   return transaction;
@@ -123,9 +122,9 @@ export function startIdleTransaction(
     ...customSamplingContext,
   });
   if (transaction.isRecording()) {
-    transaction.initSpanRecorder(options._experiments && (options._experiments.maxSpans as number));
+    transaction.initSpanRecorder();
   }
-  if (client && client.emit) {
+  if (client) {
     client.emit('startTransaction', transaction);
   }
   return transaction;

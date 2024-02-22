@@ -42,7 +42,6 @@ function instrumentPageload(startTransactionFn: (context: TransactionContext) =>
     name: initialPath,
     op: 'pageload',
     origin: 'auto.pageload.sveltekit',
-    description: initialPath,
     tags: {
       ...DEFAULT_TAGS,
     },
@@ -124,7 +123,7 @@ function instrumentNavigations(startTransactionFn: (context: TransactionContext)
       // eslint-disable-next-line deprecation/deprecation
       routingSpan = activeTransaction.startChild({
         op: 'ui.sveltekit.routing',
-        description: 'SvelteKit Route Change',
+        name: 'SvelteKit Route Change',
         origin: 'auto.ui.sveltekit',
       });
       // eslint-disable-next-line deprecation/deprecation

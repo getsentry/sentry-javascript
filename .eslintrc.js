@@ -22,6 +22,7 @@ module.exports = {
     'test/manual/**',
     'types/**',
   ],
+  reportUnusedDisableDirectives: true,
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],

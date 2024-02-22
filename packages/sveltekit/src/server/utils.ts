@@ -1,4 +1,4 @@
-import { flush } from '@sentry/node';
+import { flush } from '@sentry/node-experimental';
 import { logger, tracingContextFromHeaders } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 

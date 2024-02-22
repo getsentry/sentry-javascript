@@ -3,7 +3,7 @@ import type { Load } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { wrapLoadWithSentry } from '../../src/client/load';
 
 const mockCaptureException = vi.spyOn(SentrySvelte, 'captureException').mockImplementation(() => 'xx');
@@ -109,13 +109,11 @@ describe('wrapLoadWithSentry', () => {
         {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           },
           op: 'function.sveltekit.load',
           name: '/users/[id]',
           status: 'ok',
-          metadata: {
-            source: 'route',
-          },
         },
         expect.any(Function),
       );
@@ -139,13 +137,11 @@ describe('wrapLoadWithSentry', () => {
         {
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
           },
           op: 'function.sveltekit.load',
           name: '/users/123',
           status: 'ok',
-          metadata: {
-            source: 'url',
-          },
         },
         expect.any(Function),
       );

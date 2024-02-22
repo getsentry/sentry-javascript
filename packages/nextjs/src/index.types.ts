@@ -23,7 +23,6 @@ export declare const Integrations: undefined; // TODO(v8): Remove this line. Can
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 
-export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
@@ -33,8 +32,9 @@ export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
-export declare const Span: typeof edgeSdk.Span;
 export declare const Transaction: typeof edgeSdk.Transaction;
+
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 
 export { withSentryConfig } from './config';
 

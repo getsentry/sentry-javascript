@@ -5,14 +5,13 @@ import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
-import { OpenTelemetryScope } from './custom/scope';
 import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getHubFromContext } from './utils/contextData';
 import { getSpanHub, setSpanHub, setSpanParent, setSpanScopes } from './utils/spanData';
 
-function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof OpenTelemetryScope): void {
+function onSpanStart(span: Span, parentContext: Context): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
   const parentSpan = trace.getSpan(parentContext);
   const hub = getHubFromContext(parentContext);
@@ -37,15 +36,7 @@ function onSpanStart(span: Span, parentContext: Context, _ScopeClass: typeof Ope
     // eslint-disable-next-line deprecation/deprecation
     const isolationScope = actualHub.getIsolationScope();
     setSpanHub(span, actualHub);
-
-    // Use this scope for finishing the span
-    // TODO: For now we need to clone this, as we need to store the `activeSpan` on it
-    // Once we can get rid of this (when we move breadcrumbs to the isolation scope),
-    // we can stop cloning this here
-    const finishScope = (scope as OpenTelemetryScope).clone();
-    // this is needed for breadcrumbs, for now, as they are stored on the span currently
-    finishScope.activeSpan = span;
-    setSpanScopes(span, { scope: finishScope, isolationScope });
+    setSpanScopes(span, { scope, isolationScope });
   }
 }
 
@@ -63,19 +54,15 @@ function onSpanEnd(span: Span): void {
  * the Sentry SDK.
  */
 export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProcessorInterface {
-  private _scopeClass: typeof OpenTelemetryScope;
-
-  public constructor(options: { scopeClass?: typeof OpenTelemetryScope } = {}) {
+  public constructor() {
     super(new SentrySpanExporter());
-
-    this._scopeClass = options.scopeClass || OpenTelemetryScope;
   }
 
   /**
    * @inheritDoc
    */
   public onStart(span: Span, parentContext: Context): void {
-    onSpanStart(span, parentContext, this._scopeClass);
+    onSpanStart(span, parentContext);
 
     DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
 

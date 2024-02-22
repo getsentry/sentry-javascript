@@ -78,8 +78,8 @@ export function startPageloadSpan(): void {
     op: 'pageload',
     origin: 'auto.pageload.remix',
     tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
 
@@ -103,8 +103,8 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     op: 'navigation',
     origin: 'auto.navigation.remix',
     tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'route',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
 

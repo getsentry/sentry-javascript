@@ -1,7 +1,7 @@
 import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getSentryRelease } from '@sentry/node';
+import { getSentryRelease } from '@sentry/node-experimental';
 import { escapeStringForRegex, uuid4 } from '@sentry/utils';
 import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
@@ -166,7 +166,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
       // eslint-disable-next-line no-console
       debug && console.log('[Source Maps Plugin] Flattening source maps');
 
-      jsFiles.forEach(async file => {
+      for (const file of jsFiles) {
         try {
           await (sorcery as Sorcery).load(file).then(async chain => {
             if (!chain) {
@@ -202,7 +202,7 @@ export async function makeCustomSentryVitePlugin(options?: CustomSentryVitePlugi
           );
           await fs.promises.writeFile(mapFile, cleanedMapContent);
         }
-      });
+      }
 
       try {
         // @ts-expect-error - this hook exists on the plugin!

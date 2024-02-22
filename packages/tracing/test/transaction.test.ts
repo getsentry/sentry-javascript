@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  spanToJSON,
 } from '@sentry/core';
 
 import { Transaction, addExtensionMethods } from '../src';
@@ -16,25 +17,28 @@ describe('`Transaction` class', () => {
 
   describe('transaction name source', () => {
     it('sets source in constructor if provided', () => {
-      const transaction = new Transaction({ name: 'dogpark', metadata: { source: 'route' } });
+      const transaction = new Transaction({
+        name: 'dogpark',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+      });
 
-      expect(transaction.name).toEqual('dogpark');
-      expect(transaction.metadata.source).toEqual('route');
+      expect(spanToJSON(transaction).description).toEqual('dogpark');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
     });
 
     it("sets source to be `'custom'` in constructor if not provided", () => {
       const transaction = new Transaction({ name: 'dogpark' });
 
-      expect(transaction.name).toEqual('dogpark');
-      expect(transaction.metadata.source).toBe('custom');
+      expect(spanToJSON(transaction).description).toEqual('dogpark');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
     });
 
     it("sets source to `'custom'` when assigning to `name` property", () => {
       const transaction = new Transaction({ name: 'dogpark' });
-      transaction.name = 'ballpit';
+      transaction.updateName('ballpit');
 
-      expect(transaction.name).toEqual('ballpit');
-      expect(transaction.metadata.source).toEqual('custom');
+      expect(spanToJSON(transaction).description).toEqual('ballpit');
+      expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
     });
 
     it('sets instrumenter to be `sentry` in constructor if not provided', () => {
@@ -49,32 +53,22 @@ describe('`Transaction` class', () => {
       expect(transaction.instrumenter).toEqual('otel');
     });
 
-    describe('`setName` method', () => {
+    describe('`updateName` method', () => {
       it("sets source to `'custom'` if no source provided", () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setName('ballpit');
+        transaction.updateName('ballpit');
 
-        expect(transaction.name).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('custom');
+        expect(spanToJSON(transaction).description).toEqual('ballpit');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('custom');
       });
 
       it('uses given `source` value', () => {
         const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setName('ballpit', 'route');
-
-        expect(transaction.name).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('route');
-      });
-    });
-
-    describe('`updateName` method', () => {
-      it('does not change the source', () => {
-        const transaction = new Transaction({ name: 'dogpark' });
-        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
         transaction.updateName('ballpit');
+        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
-        expect(transaction.name).toEqual('ballpit');
-        expect(transaction.metadata.source).toEqual('route');
+        expect(spanToJSON(transaction).description).toEqual('ballpit');
+        expect(spanToJSON(transaction).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
       });
     });
   });
@@ -170,6 +164,7 @@ describe('`Transaction` class', () => {
               data: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
               },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,
@@ -201,6 +196,7 @@ describe('`Transaction` class', () => {
               data: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
                 [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
               },
               span_id: transaction.spanId,
               trace_id: transaction.traceId,

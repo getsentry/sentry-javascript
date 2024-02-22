@@ -94,9 +94,11 @@ export function sampleTransaction<T extends Transaction>(
     return transaction;
   }
 
-  DEBUG_BUILD &&
-    // eslint-disable-next-line deprecation/deprecation
-    logger.log(`[Tracing] starting ${transaction.op} transaction - ${spanToJSON(transaction).description}`);
+  if (DEBUG_BUILD) {
+    const { op, description } = spanToJSON(transaction);
+    logger.log(`[Tracing] starting ${op} transaction - ${description}`);
+  }
+
   return transaction;
 }
 

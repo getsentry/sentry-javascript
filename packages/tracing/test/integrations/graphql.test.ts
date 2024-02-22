@@ -1,9 +1,10 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { Integrations, Span } from '../../src';
+import { Integrations } from '../../src';
 import { getTestClient } from '../testutils';
 
 const GQLExecute = {
@@ -41,7 +42,7 @@ describe('setupOnce', () => {
 
   beforeEach(() => {
     scope = new Scope();
-    parentSpan = new Span();
+    parentSpan = new SentrySpan();
     childSpan = parentSpan.startChild();
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(scope, 'setSpan');
@@ -53,7 +54,7 @@ describe('setupOnce', () => {
     await GQLExecute.execute();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
-      description: 'execute',
+      name: 'execute',
       op: 'graphql.execute',
       origin: 'auto.graphql.graphql',
     });

@@ -52,9 +52,7 @@ export async function sendFeedbackRequest(
       return;
     }
 
-    if (client.emit) {
-      client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
-    }
+    client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
 
     const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 

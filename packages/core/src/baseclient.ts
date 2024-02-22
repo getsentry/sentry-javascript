@@ -17,7 +17,6 @@ import type {
   Integration,
   IntegrationClass,
   MetricBucketItem,
-  MetricsAggregator,
   Outcome,
   ParameterizedString,
   SdkMetadata,
@@ -47,10 +46,9 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
@@ -94,13 +92,6 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
-  /**
-   * A reference to a metrics aggregator
-   *
-   * @experimental Note this is alpha API. It may experience breaking changes in the future.
-   */
-  public metricsAggregator?: MetricsAggregator;
-
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -281,9 +272,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
-      if (this.metricsAggregator) {
-        this.metricsAggregator.flush();
-      }
+      this.emit('flush');
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -298,9 +287,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
-      if (this.metricsAggregator) {
-        this.metricsAggregator.close();
-      }
+      this.emit('close');
       return result;
     });
   }
@@ -387,13 +374,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(
-        env,
-        createAttachmentEnvelopeItem(
-          attachment,
-          this._options.transportOptions && this._options.transportOptions.textEncoder,
-        ),
-      );
+      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
     const promise = this._sendEnvelope(env);
@@ -496,6 +477,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
+  public on(hook: 'flush', callback: () => void): void;
+
+  public on(hook: 'close', callback: () => void): void;
+
   /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
@@ -541,6 +526,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'flush'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'close'): void;
 
   /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
@@ -932,18 +923,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

@@ -1,18 +1,8 @@
-import type { Event, Integration, StackFrame } from '@sentry/types';
+import type { Event, StackFrame } from '@sentry/types';
 
-import type { rewriteFramesIntegration } from '../src/rewriteframes';
-import { RewriteFrames } from '../src/rewriteframes';
+import { rewriteFramesIntegration } from '../src/rewriteframes';
 
-interface IntegrationWithProcessEvent extends Integration {
-  processEvent(event: Event): Event;
-}
-
-function getIntegration(...args: Parameters<typeof rewriteFramesIntegration>) {
-  // eslint-disable-next-line deprecation/deprecation
-  return new RewriteFrames(...args);
-}
-
-let rewriteFrames: IntegrationWithProcessEvent;
+let rewriteFrames: ReturnType<typeof rewriteFramesIntegration>;
 let exceptionEvent: Event;
 let exceptionWithoutStackTrace: Event;
 let windowsExceptionEvent: Event;
@@ -108,11 +98,11 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with `/`', () => {
     beforeEach(() => {
-      rewriteFrames = getIntegration();
+      rewriteFrames = rewriteFramesIntegration();
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.processEvent(exceptionEvent);
+      const event = rewriteFrames.processEvent?.(exceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
@@ -120,20 +110,20 @@ describe('RewriteFrames', () => {
     it('ignore exception without StackTrace', () => {
       // @ts-expect-error Validates that the Stacktrace does not exist before validating the test.
       expect(exceptionWithoutStackTrace.exception?.values[0].stacktrace).toEqual(undefined);
-      const event = rewriteFrames.processEvent(exceptionWithoutStackTrace);
+      const event = rewriteFrames.processEvent?.(exceptionWithoutStackTrace, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace).toEqual(undefined);
     });
   });
 
   describe('default iteratee prepends custom prefix to basename if frame starts with `/`', () => {
     beforeEach(() => {
-      rewriteFrames = getIntegration({
+      rewriteFrames = rewriteFramesIntegration({
         prefix: 'foobar/',
       });
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.processEvent(exceptionEvent);
+      const event = rewriteFrames.processEvent?.(exceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('foobar/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('foobar/file2.js');
     });
@@ -141,29 +131,29 @@ describe('RewriteFrames', () => {
 
   describe('default iteratee appends basename to `app:///` if frame starts with Windows path prefix', () => {
     beforeEach(() => {
-      rewriteFrames = getIntegration();
+      rewriteFrames = rewriteFramesIntegration();
     });
 
     it('transforms windowsExceptionEvent frames (C:\\)', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEvent);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with lower-case prefix (c:\\)', () => {
-      const event = rewriteFrames.processEvent(windowsLowerCaseExceptionEvent);
+      const event = rewriteFrames.processEvent?.(windowsLowerCaseExceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with no prefix', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEventWithoutPrefix);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEventWithoutPrefix, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with backslash prefix', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEventWithBackslashPrefix);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEventWithBackslashPrefix, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
     });
@@ -171,37 +161,37 @@ describe('RewriteFrames', () => {
 
   describe('can use custom root to perform `relative` on filepaths', () => {
     beforeEach(() => {
-      rewriteFrames = getIntegration({
+      rewriteFrames = rewriteFramesIntegration({
         root: '/www',
       });
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.processEvent(exceptionEvent);
+      const event = rewriteFrames.processEvent?.(exceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEvent);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent lower-case prefix frames', () => {
-      const event = rewriteFrames.processEvent(windowsLowerCaseExceptionEvent);
+      const event = rewriteFrames.processEvent?.(windowsLowerCaseExceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with no prefix', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEventWithoutPrefix);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEventWithoutPrefix, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
 
     it('transforms windowsExceptionEvent frames with backslash prefix', () => {
-      const event = rewriteFrames.processEvent(windowsExceptionEventWithBackslashPrefix);
+      const event = rewriteFrames.processEvent?.(windowsExceptionEventWithBackslashPrefix, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/file2.js');
     });
@@ -209,7 +199,7 @@ describe('RewriteFrames', () => {
 
   describe('can use custom iteratee', () => {
     beforeEach(() => {
-      rewriteFrames = getIntegration({
+      rewriteFrames = rewriteFramesIntegration({
         iteratee: (frame: StackFrame) => ({
           ...frame,
           function: 'whoops',
@@ -218,7 +208,7 @@ describe('RewriteFrames', () => {
     });
 
     it('transforms exceptionEvent frames', () => {
-      const event = rewriteFrames.processEvent(exceptionEvent);
+      const event = rewriteFrames.processEvent?.(exceptionEvent, {}, {} as any) as Event;
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('/www/src/app/mo\\dule/file2.js');
@@ -228,8 +218,8 @@ describe('RewriteFrames', () => {
 
   describe('can process events that contain multiple stacktraces', () => {
     it('with defaults', () => {
-      rewriteFrames = getIntegration();
-      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
+      rewriteFrames = rewriteFramesIntegration();
+      const event = rewriteFrames.processEvent?.(multipleStacktracesEvent, {}, {} as any) as Event;
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///file2.js');
@@ -242,10 +232,10 @@ describe('RewriteFrames', () => {
     });
 
     it('with custom root', () => {
-      rewriteFrames = getIntegration({
+      rewriteFrames = rewriteFramesIntegration({
         root: '/www',
       });
-      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
+      const event = rewriteFrames.processEvent?.(multipleStacktracesEvent, {}, {} as any) as Event;
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('app:///src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![1].filename).toEqual('app:///src/app/mo\\dule/file2.js');
@@ -258,13 +248,13 @@ describe('RewriteFrames', () => {
     });
 
     it('with custom iteratee', () => {
-      rewriteFrames = getIntegration({
+      rewriteFrames = rewriteFramesIntegration({
         iteratee: (frame: StackFrame) => ({
           ...frame,
           function: 'whoops',
         }),
       });
-      const event = rewriteFrames.processEvent(multipleStacktracesEvent);
+      const event = rewriteFrames.processEvent?.(multipleStacktracesEvent, {}, {} as any) as Event;
       // first stacktrace
       expect(event.exception!.values![0].stacktrace!.frames![0].filename).toEqual('/www/src/app/file1.js');
       expect(event.exception!.values![0].stacktrace!.frames![0].function).toEqual('whoops');
@@ -285,17 +275,17 @@ describe('RewriteFrames', () => {
 
   describe('bails when unable to extract frames', () => {
     it('no exception values', () => {
-      rewriteFrames = getIntegration({});
+      rewriteFrames = rewriteFramesIntegration({});
       const brokenEvent = {
         exception: {
           values: undefined,
         },
       };
-      expect(rewriteFrames.processEvent(brokenEvent)).toEqual(brokenEvent);
+      expect(rewriteFrames.processEvent?.(brokenEvent, {}, {} as any)).toEqual(brokenEvent);
     });
 
     it('no frames', () => {
-      rewriteFrames = getIntegration({});
+      rewriteFrames = rewriteFramesIntegration({});
       const brokenEvent = {
         exception: {
           values: [
@@ -305,7 +295,7 @@ describe('RewriteFrames', () => {
           ],
         },
       };
-      expect(rewriteFrames.processEvent(brokenEvent)).toEqual(brokenEvent);
+      expect(rewriteFrames.processEvent?.(brokenEvent, {}, {} as any)).toEqual(brokenEvent);
     });
   });
 });

@@ -110,7 +110,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
 
         // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
-          description: typeof options === 'string' ? options : (options as { sql: string }).sql,
+          name: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
           origin: 'auto.db.mysql',
           data: {

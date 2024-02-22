@@ -24,8 +24,8 @@ module.exports = function (environment) {
       tracesSampleRate: 1,
       // Include fake dsn so that instrumentation is enabled when running from cli
       dsn: process.env.SENTRY_DSN || 'https://0@0.ingest.sentry.io/0',
+      tracePropagationTargets: ['localhost', 'doesntexist.example'],
       browserTracingOptions: {
-        tracingOrigins: ['localhost', 'doesntexist.example'],
         _experiments: {
           // This lead to some flaky tests, as that is sometimes logged
           enableLongTask: false,

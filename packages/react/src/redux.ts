@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
+import { addBreadcrumb, getClient, getCurrentScope, getGlobalScope } from '@sentry/core';
 import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 
@@ -121,7 +121,7 @@ function createReduxEnhancer(enhancerOptions?: Partial<SentryEnhancerOptions>): 
         /* Action breadcrumbs */
         const transformedAction = options.actionTransformer(action);
         if (typeof transformedAction !== 'undefined' && transformedAction !== null) {
-          scope.addBreadcrumb({
+          addBreadcrumb({
             category: ACTION_BREADCRUMB_CATEGORY,
             data: transformedAction,
             type: ACTION_BREADCRUMB_TYPE,

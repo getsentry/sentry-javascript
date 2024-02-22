@@ -520,8 +520,6 @@ describe('ErrorBoundary', () => {
 
 describe('isAtLeastReact17', () => {
   test.each([
-    ['React 15 with no patch', '15.0', false],
-    ['React 15 with no patch and no minor', '15.5', false],
     ['React 16', '16.0.4', false],
     ['React 17', '17.0.0', true],
     ['React 17 with no patch', '17.4', true],

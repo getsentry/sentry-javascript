@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.101.0
+
+- feat: Export semantic attribute keys from SDK packages (#10637)
+- feat(core): Add metric summaries to spans (#10554)
+- feat(core): Deprecate the `Hub` constructor (#10584)
+- feat(core): Make custom tracing methods return spans & set default op (#10633)
+- feat(replay): Add `getReplay` utility function (#10510)
+- fix(angular-ivy): Add `exports` field to `package.json` (#10569)
+- fix(sveltekit): Avoid capturing Http 4xx errors on the client (#10571)
+- fix(sveltekit): Properly await sourcemaps flattening (#10602)
+
+## 7.100.1
+
+This release contains build fixes for profiling-node.
+
+- build(profiling-node): make sure debug build plugin is used #10534
+- build: Only run profiling e2e test if bindings have changed #10542
+- fix(feedback): Replay breadcrumb for feedback events was incorrect #10536
+
 ## 7.100.0
 
 ### Important Changes

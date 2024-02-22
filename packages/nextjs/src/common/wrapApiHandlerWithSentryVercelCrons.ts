@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureCheckIn, runWithAsyncContext } from '@sentry/core';
+import { addTracingExtensions, captureCheckIn, withIsolationScope } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 
 import type { VercelCronsConfig } from './types';
@@ -19,7 +19,7 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
   return new Proxy(handler, {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     apply: (originalFunction, thisArg, args: any[]) => {
-      return runWithAsyncContext(() => {
+      return withIsolationScope(() => {
         if (!args || !args[0]) {
           return originalFunction.apply(thisArg, args);
         }

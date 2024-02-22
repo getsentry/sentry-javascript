@@ -517,7 +517,6 @@ jobs:
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
@@ -901,6 +900,7 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          TS_VERSION: ${{ matrix.typescript }}
         run: |
           cd dev-packages/node-integration-tests
           yarn test
@@ -1044,9 +1044,8 @@ jobs:
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            # disabling remix e2e tests because of flakes
-            # 'create-remix-app',
-            # 'create-remix-app-v2',
+            'create-remix-app',
+            'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
@@ -1058,7 +1057,8 @@ jobs:
             'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
-            'node-hapi-app',
+            # TODO(v8): Re-enable hapi tests
+            # 'node-hapi-app',
             'node-exports-test-app',
             'vue-3'
           ]

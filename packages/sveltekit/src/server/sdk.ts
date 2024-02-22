@@ -1,7 +1,7 @@
-import { applySdkMetadata, getCurrentScope } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
-import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
-import { init as initNodeSdk } from '@sentry/node';
+import { applySdkMetadata, setTag } from '@sentry/core';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node-experimental';
+import { init as initNodeSdk } from '@sentry/node-experimental';
 
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 
@@ -19,5 +19,5 @@ export function init(options: NodeOptions): void {
 
   initNodeSdk(opts);
 
-  getCurrentScope().setTag('runtime', 'node');
+  setTag('runtime', 'node');
 }

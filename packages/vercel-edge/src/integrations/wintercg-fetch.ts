@@ -87,8 +87,6 @@ const _winterCGFetch = ((options: Partial<Options> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this again
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {
       addFetchInstrumentationHandler(handlerData => {
         const client = getClient();

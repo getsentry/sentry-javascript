@@ -1,6 +1,5 @@
 import type { Options } from '@sentry/types';
-
-import { getClient } from '../exports';
+import { getClient } from '../currentScopes';
 
 // Treeshakable guard to remove all code related to tracing
 declare const __SENTRY_TRACING__: boolean | undefined;

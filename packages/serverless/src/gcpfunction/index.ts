@@ -1,10 +1,9 @@
-import type { NodeOptions } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
 import {
   SDK_VERSION,
-  defaultIntegrations as defaultNodeIntegrations,
   getDefaultIntegrations as getDefaultNodeIntegrations,
   init as initNode,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
 import { googleCloudGrpcIntegration } from '../google-cloud-grpc';
@@ -13,14 +12,6 @@ import { googleCloudHttpIntegration } from '../google-cloud-http';
 export * from './http';
 export * from './events';
 export * from './cloud_events';
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations: Integration[] = [
-  // eslint-disable-next-line deprecation/deprecation
-  ...defaultNodeIntegrations,
-  googleCloudHttpIntegration({ optional: true }), // We mark this integration optional since '@google-cloud/common' module could be missing.
-  googleCloudGrpcIntegration({ optional: true }), // We mark this integration optional since 'google-gax' module could be missing.
-];
 
 /** Get the default integrations for the GCP SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {

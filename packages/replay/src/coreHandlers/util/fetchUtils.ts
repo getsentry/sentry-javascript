@@ -1,4 +1,4 @@
-import type { Breadcrumb, FetchBreadcrumbData, TextEncoderInternal } from '@sentry/types';
+import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../debug-build';
@@ -31,7 +31,6 @@ export async function captureFetchBreadcrumbToReplay(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: Partial<FetchHint>,
   options: ReplayNetworkOptions & {
-    textEncoder: TextEncoderInternal;
     replay: ReplayContainer;
   },
 ): Promise<void> {
@@ -54,12 +53,11 @@ export async function captureFetchBreadcrumbToReplay(
 export function enrichFetchBreadcrumb(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: Partial<FetchHint>,
-  options: { textEncoder: TextEncoderInternal },
 ): void {
   const { input, response } = hint;
 
   const body = input ? _getFetchRequestArgBody(input) : undefined;
-  const reqSize = getBodySize(body, options.textEncoder);
+  const reqSize = getBodySize(body);
 
   const resSize = response ? parseContentLengthHeader(response.headers.get('content-length')) : undefined;
 
@@ -74,9 +72,7 @@ export function enrichFetchBreadcrumb(
 async function _prepareFetchData(
   breadcrumb: Breadcrumb & { data: FetchBreadcrumbData },
   hint: Partial<FetchHint>,
-  options: ReplayNetworkOptions & {
-    textEncoder: TextEncoderInternal;
-  },
+  options: ReplayNetworkOptions,
 ): Promise<ReplayNetworkRequestData> {
   const now = Date.now();
   const { startTimestamp = now, endTimestamp = now } = hint;
@@ -136,11 +132,8 @@ export async function _getResponseInfo(
   captureDetails: boolean,
   {
     networkCaptureBodies,
-    textEncoder,
     networkResponseHeaders,
-  }: Pick<ReplayNetworkOptions, 'networkCaptureBodies' | 'networkResponseHeaders'> & {
-    textEncoder: TextEncoderInternal;
-  },
+  }: Pick<ReplayNetworkOptions, 'networkCaptureBodies' | 'networkResponseHeaders'>,
   response: Response | undefined,
   responseBodySize?: number,
 ): Promise<ReplayNetworkRequestOrResponse | undefined> {
@@ -157,7 +150,7 @@ export async function _getResponseInfo(
   const [bodyText, warning] = await _parseFetchResponseBody(response);
   const result = getResponseData(bodyText, {
     networkCaptureBodies,
-    textEncoder,
+
     responseBodySize,
     captureDetails,
     headers,
@@ -174,7 +167,6 @@ function getResponseData(
   bodyText: string | undefined,
   {
     networkCaptureBodies,
-    textEncoder,
     responseBodySize,
     captureDetails,
     headers,
@@ -183,14 +175,11 @@ function getResponseData(
     networkCaptureBodies: boolean;
     responseBodySize: number | undefined;
     headers: Record<string, string>;
-    textEncoder: TextEncoderInternal;
   },
 ): ReplayNetworkRequestOrResponse | undefined {
   try {
     const size =
-      bodyText && bodyText.length && responseBodySize === undefined
-        ? getBodySize(bodyText, textEncoder)
-        : responseBodySize;
+      bodyText && bodyText.length && responseBodySize === undefined ? getBodySize(bodyText) : responseBodySize;
 
     if (!captureDetails) {
       return buildSkippedNetworkRequestOrResponse(size);

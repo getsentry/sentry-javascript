@@ -1,13 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type {
-  Contexts,
-  Event,
-  EventHint,
-  ExtendedError,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-} from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -21,23 +13,20 @@ interface ExtraErrorDataOptions {
   depth: number;
 
   /**
-   * Whether to capture error causes.
+   * Whether to capture error causes. Defaults to true.
    *
    * More information: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause
    */
   captureErrorCause: boolean;
 }
 
+/**
+ * Extract additional data for from original exceptions.
+ */
 const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {}) => {
-  const depth = options.depth || 3;
-
-  // TODO(v8): Flip the default for this option to true
-  const captureErrorCause = options.captureErrorCause || false;
-
+  const { depth = 3, captureErrorCause = true } = options;
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, hint) {
       return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause);
     },
@@ -45,23 +34,6 @@ const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {
 }) satisfies IntegrationFn;
 
 export const extraErrorDataIntegration = defineIntegration(_extraErrorDataIntegration);
-
-/**
- * Extract additional data for from original exceptions.
- * @deprecated Use `extraErrorDataIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const ExtraErrorData = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  extraErrorDataIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event, hint: EventHint) => Event }> & {
-  new (
-    options?: Partial<{
-      depth: number;
-      captureErrorCause: boolean;
-    }>,
-  ): Integration;
-};
 
 function _enhanceEventWithErrorData(
   event: Event,

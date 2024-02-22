@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   endSession,
   functionToStringIntegration,
@@ -38,27 +37,6 @@ import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  // Common
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  linkedErrorsIntegration(),
-  requestDataIntegration(),
-  // Native Wrappers
-  consoleIntegration(),
-  httpIntegration(),
-  nativeNodeFetchintegration(),
-  // Global Handlers
-  onUncaughtExceptionIntegration(),
-  onUnhandledRejectionIntegration(),
-  // Event Info
-  contextLinesIntegration(),
-  localVariablesIntegration(),
-  nodeContextIntegration(),
-  modulesIntegration(),
-];
-
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   const carrier = getMainCarrier();
@@ -66,8 +44,23 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    requestDataIntegration(),
+    // Native Wrappers
+    consoleIntegration(),
+    httpIntegration(),
+    nativeNodeFetchintegration(),
+    // Global Handlers
+    onUncaughtExceptionIntegration(),
+    onUnhandledRejectionIntegration(),
+    // Event Info
+    contextLinesIntegration(),
+    localVariablesIntegration(),
+    nodeContextIntegration(),
+    modulesIntegration(),
     ...autoloadedIntegrations,
   ];
 }
@@ -87,17 +80,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * const { configureScope } = require('@sentry/node');
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -187,7 +169,7 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.spotlight) {
     const client = getClient();
-    if (client && client.addIntegration) {
+    if (client) {
       // force integrations to be setup even if no DSN was set
       // If they have already been added before, they will be ignored anyhow
       const integrations = client.getOptions().integrations;

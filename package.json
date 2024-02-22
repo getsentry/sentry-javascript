@@ -58,6 +58,7 @@
     "packages/feedback",
     "packages/feedback-screenshot",
     "packages/gatsby",
+    "packages/hub",
     "packages/integrations",
     "packages/integration-shims",
     "packages/nextjs",

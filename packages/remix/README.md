@@ -113,12 +113,9 @@ To set context information or send manual events, use the exported functions of 
 import * as Sentry from '@sentry/remix';
 
 // Set user information, as well as tags and further extras
-Sentry.configureScope(scope => {
-  scope.setExtra('battery', 0.7);
-  scope.setTag('user_mode', 'admin');
-  scope.setUser({ id: '4711' });
-  // scope.clear();
-});
+Sentry.setExtra('battery', 0.7);
+Sentry.setTag('user_mode', 'admin');
+Sentry.setUser({ id: '4711' });
 
 // Add a breadcrumb for future events
 Sentry.addBreadcrumb({

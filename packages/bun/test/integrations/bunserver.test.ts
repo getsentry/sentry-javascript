@@ -1,5 +1,5 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test';
-import { Hub, getDynamicSamplingContextFromSpan, makeMain, spanIsSampled, spanToJSON } from '@sentry/core';
+import { getDynamicSamplingContextFromSpan, setCurrentClient, spanIsSampled, spanToJSON } from '@sentry/core';
 
 import { BunClient } from '../../src/client';
 import { instrumentBunServe } from '../../src/integrations/bunserver';
@@ -9,7 +9,6 @@ import { getDefaultBunClientOptions } from '../helpers';
 const DEFAULT_PORT = 22114;
 
 describe('Bun Serve Integration', () => {
-  let hub: Hub;
   let client: BunClient;
 
   beforeAll(() => {
@@ -19,10 +18,8 @@ describe('Bun Serve Integration', () => {
   beforeEach(() => {
     const options = getDefaultBunClientOptions({ tracesSampleRate: 1, debug: true });
     client = new BunClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   test('generates a transaction around a request', async () => {
@@ -32,7 +29,7 @@ describe('Bun Serve Integration', () => {
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('GET /');
     });
 
@@ -55,7 +52,7 @@ describe('Bun Serve Integration', () => {
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('POST /');
     });
 
