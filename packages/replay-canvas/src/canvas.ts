@@ -73,7 +73,18 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
         enableManualSnapshot,
         recordCanvas: true,
         getCanvasManager: (options: CanvasManagerOptions) => {
-          const manager = new CanvasManager({ ...options, enableManualSnapshot });
+          const manager = new CanvasManager({
+            ...options,
+            enableManualSnapshot,
+            errorHandler: (err: Error & { __rrweb__?: boolean }) => {
+              try {
+                err.__rrweb__ = true;
+              } catch (error) {
+                // ignore errors here
+                // this can happen if the error is frozen or does not allow mutation for other reasons
+              }
+            },
+          });
           canvasManagerResolve(manager);
           return manager;
         },
