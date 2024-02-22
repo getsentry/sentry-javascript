@@ -174,15 +174,7 @@ export interface SpanContext {
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin'> {
-  /**
-   * Operation of the Span.
-   *
-   * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
-   * to update and `spanToJSON().op` to read the op instead
-   */
-  op?: string | undefined;
-
+export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin' | 'op'> {
   /**
    * The ID of the span.
    * @deprecated Use `spanContext().spanId` instead.
@@ -261,13 +253,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   status?: string | undefined;
 
   /**
-   * The origin of the span, giving context about what created the span.
-   *
-   * @deprecated Use `startSpan` function to set and `spanToJSON(span).origin` to read the origin instead.
-   */
-  origin?: SpanOrigin | undefined;
-
-  /**
    * Get context data for this span.
    * This includes the spanId & the traceId.
    */
@@ -344,12 +329,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
-
-  /**
-   * Return a traceparent compatible header string.
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  toTraceparent(): string;
 
   /**
    * Returns the current span properties as a `SpanContext`.

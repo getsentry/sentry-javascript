@@ -715,6 +715,13 @@ jobs:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
+
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
@@ -772,6 +779,12 @@ jobs:
         run: |
           cd dev-packages/browser-integration-tests
           yarn test:loader
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
 
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests

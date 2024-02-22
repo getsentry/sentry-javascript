@@ -1,6 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
-import { getClient, init as nodeInit, setTag } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { getClient, init as nodeInit, setTag } from '@sentry/node-experimental';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
@@ -81,8 +81,6 @@ export {
   cron,
   parameterize,
   metrics,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   hapiErrorPlugin,
   // eslint-disable-next-line deprecation/deprecation
@@ -91,10 +89,10 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 
 // Keeping the `*` exports for backwards compatibility and types
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 
 export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';

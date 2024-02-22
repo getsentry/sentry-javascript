@@ -176,7 +176,7 @@ describe('BrowserTracing', () => {
       const transaction = getActiveTransaction() as IdleTransaction;
       expect(transaction).toBeDefined();
       expect(spanToJSON(transaction).description).toBe('a/path');
-      expect(transaction.op).toBe('pageload');
+      expect(spanToJSON(transaction).op).toBe('pageload');
     });
 
     it('trims all transactions', () => {
@@ -230,7 +230,7 @@ describe('BrowserTracing', () => {
         });
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
-        expect(transaction.op).toBe('not-pageload');
+        expect(spanToJSON(transaction).op).toBe('not-pageload');
 
         expect(mockBeforeNavigation).toHaveBeenCalledTimes(1);
       });
@@ -373,7 +373,7 @@ describe('BrowserTracing', () => {
         const transaction = getActiveTransaction() as IdleTransaction;
         expect(transaction).toBeDefined();
 
-        expect(transaction.op).toBe('pageload');
+        expect(spanToJSON(transaction).op).toBe('pageload');
       });
 
       it('is not created if the option is false', () => {
@@ -399,12 +399,12 @@ describe('BrowserTracing', () => {
       it('is created on location change', () => {
         createBrowserTracing(true);
         const transaction1 = getActiveTransaction() as IdleTransaction;
-        expect(transaction1.op).toBe('pageload');
+        expect(spanToJSON(transaction1).op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction() as IdleTransaction;
-        expect(transaction2.op).toBe('navigation');
+        expect(spanToJSON(transaction2).op).toBe('navigation');
 
         expect(spanToJSON(transaction1).timestamp).toBeDefined();
       });
@@ -412,12 +412,12 @@ describe('BrowserTracing', () => {
       it('is not created if startTransactionOnLocationChange is false', () => {
         createBrowserTracing(true, { startTransactionOnLocationChange: false });
         const transaction1 = getActiveTransaction() as IdleTransaction;
-        expect(transaction1.op).toBe('pageload');
+        expect(spanToJSON(transaction1).op).toBe('pageload');
         expect(spanToJSON(transaction1).timestamp).not.toBeDefined();
 
         mockChangeHistory({ to: 'here', from: 'there' });
         const transaction2 = getActiveTransaction() as IdleTransaction;
-        expect(transaction2.op).toBe('pageload');
+        expect(spanToJSON(transaction2).op).toBe('pageload');
       });
     });
   });
@@ -480,7 +480,7 @@ describe('BrowserTracing', () => {
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
-        expect(transaction.op).toBe('pageload');
+        expect(spanToJSON(transaction).op).toBe('pageload');
         expect(transaction.traceId).toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
@@ -500,7 +500,7 @@ describe('BrowserTracing', () => {
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
-        expect(transaction.op).toBe('pageload');
+        expect(spanToJSON(transaction).op).toBe('pageload');
         expect(transaction.traceId).toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toEqual('1121201211212012');
         expect(transaction.sampled).toBe(false);
@@ -520,7 +520,7 @@ describe('BrowserTracing', () => {
         const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
         expect(transaction).toBeDefined();
-        expect(transaction.op).toBe('navigation');
+        expect(spanToJSON(transaction).op).toBe('navigation');
         expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
         expect(transaction.parentSpanId).toBeUndefined();
         expect(dynamicSamplingContext).toStrictEqual({

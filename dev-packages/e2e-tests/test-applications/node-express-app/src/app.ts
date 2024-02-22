@@ -22,9 +22,6 @@ Sentry.init({
 const app = express();
 const port = 3030;
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
-
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
 });
@@ -33,21 +30,17 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-transaction', async function (req, res) {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = Sentry.startTransaction({ name: 'test-transaction', op: 'e2e-test' });
-  Sentry.getCurrentScope().setSpan(transaction);
+app.get('/test-transaction', function (req, res) {
+  Sentry.withActiveSpan(null, async () => {
+    Sentry.startSpan({ name: 'test-transaction', op: 'e2e-test' }, () => {
+      Sentry.startSpan({ name: 'test-span' }, () => undefined);
+    });
 
-  // eslint-disable-next-line deprecation/deprecation
-  const span = transaction.startChild();
+    await Sentry.flush();
 
-  span.end();
-  transaction.end();
-
-  await Sentry.flush();
-
-  res.send({
-    transactionIds: global.transactionIds || [],
+    res.send({
+      transactionIds: global.transactionIds || [],
+    });
   });
 });
 
@@ -77,7 +70,7 @@ app.get('/test-local-variables-caught', function (req, res) {
   res.send({ exceptionId, randomVariableToRecord });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 // @ts-ignore
 app.use(function onError(err, req, res, next) {

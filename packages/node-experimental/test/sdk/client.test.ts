@@ -15,7 +15,7 @@ import type { Scope } from '@sentry/types';
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import { NodeClient } from '../../src/sdk/client';
 import { initOtel } from '../../src/sdk/initOtel';
-import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodePreviewClientOptions';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 describe('NodeClient', () => {

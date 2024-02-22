@@ -1,5 +1,5 @@
 const { loggingTransport, sendPortToRunner } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node');
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -26,6 +26,7 @@ const init = async () => {
     },
   });
 
+  await Sentry.setupHapiErrorHandler(server);
   await server.start();
 
   sendPortToRunner(port);

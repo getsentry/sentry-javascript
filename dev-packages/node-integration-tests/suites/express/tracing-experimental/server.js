@@ -1,5 +1,5 @@
 const { loggingTransport, startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node');
 const cors = require('cors');
 
 Sentry.init({
@@ -34,6 +34,6 @@ app.get(['/test/arr/:id', /\/test\/arr[0-9]*\/required(path)?(\/optionalPath)?\/
   res.send({ response: 'response 4' });
 });
 
-app.use(Sentry.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
