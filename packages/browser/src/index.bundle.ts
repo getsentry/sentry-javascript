@@ -15,6 +15,9 @@ import * as Sentry from './index.bundle.base';
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.Replay = ReplayShim;
 
+// eslint-disable-next-line deprecation/deprecation
+Sentry.Integrations.BrowserTracing = BrowserTracingShim;
+
 export * from './index.bundle.base';
 export {
   // eslint-disable-next-line deprecation/deprecation

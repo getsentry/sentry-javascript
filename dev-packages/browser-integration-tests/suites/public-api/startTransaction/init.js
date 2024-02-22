@@ -1,6 +1,7 @@
+/* eslint-disable no-unused-vars */
 import * as Sentry from '@sentry/browser';
-
-Sentry.addTracingExtensions();
+// biome-ignore lint/nursery/noUnusedImports: Need to import tracing for side effect
+import * as _ from '@sentry/tracing';
 
 window.Sentry = Sentry;
 
