@@ -1,4 +1,4 @@
-import type { Integration } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
 
 /**
@@ -6,43 +6,16 @@ import { consoleSandbox } from '@sentry/utils';
  * It is needed in order for the CDN bundles to continue working when users add/remove tracing
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-class BrowserTracingShim implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'BrowserTracing';
+export const browserTracingIntegrationShim = defineIntegration((_options?: unknown) => {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('You are using new BrowserTracing() even though this bundle does not include tracing.');
+  });
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public constructor(_options: any) {
-    // eslint-disable-next-line deprecation/deprecation
-    this.name = BrowserTracingShim.id;
-
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('You are using new BrowserTracing() even though this bundle does not include tracing.');
-    });
+  return {
+    name: 'BrowserTracing'
   }
-
-  /** jsdoc */
-  public setupOnce(): void {
-    // noop
-  }
-}
-
-/**
- * This is a shim for the BrowserTracing integration.
- * It is needed in order for the CDN bundles to continue working when users add/remove tracing
- * from it, without changing their config. This is necessary for the loader mechanism.
- */
-export function browserTracingIntegrationShim(_options?: unknown): Integration {
-  // eslint-disable-next-line deprecation/deprecation
-  return new BrowserTracingShim({});
-}
+})
 
 /** Shim function */
 export function addTracingExtensionsShim(): void {

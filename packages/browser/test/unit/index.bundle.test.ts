@@ -1,6 +1,5 @@
 /* eslint-disable deprecation/deprecation */
 import {
-  BrowserTracingShim,
   FeedbackShim,
   ReplayShim,
   feedbackIntegrationShim,
@@ -18,8 +17,6 @@ describe('index.bundle', () => {
     expect(TracingBundle.Integrations.Replay).toBe(ReplayShim);
     expect(TracingBundle.Replay).toBe(ReplayShim);
     expect(TracingBundle.replayIntegration).toBe(replayIntegrationShim);
-
-    expect(TracingBundle.browserTracingIntegration()).toBeInstanceOf(BrowserTracingShim);
 
     expect(TracingBundle.Feedback).toBe(FeedbackShim);
     expect(TracingBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
