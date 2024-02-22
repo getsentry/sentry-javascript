@@ -686,8 +686,7 @@ describe('browserTracingIntegration', () => {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.op).toBe('pageload');
+      expect(spanToJSON(transaction).op).toBe('pageload');
       // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).toEqual('12312012123120121231201212312012');
       // eslint-disable-next-line deprecation/deprecation
@@ -720,8 +719,7 @@ describe('browserTracingIntegration', () => {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.op).toBe('pageload');
+      expect(spanToJSON(transaction).op).toBe('pageload');
       // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).toEqual('12312012123120121231201212312012');
       // eslint-disable-next-line deprecation/deprecation
@@ -758,8 +756,7 @@ describe('browserTracingIntegration', () => {
       const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
 
       expect(transaction).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.op).toBe('navigation');
+      expect(spanToJSON(transaction).op).toBe('navigation');
       // eslint-disable-next-line deprecation/deprecation
       expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
       // eslint-disable-next-line deprecation/deprecation
