@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { IdleTransaction } from '@sentry/core';
 import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';

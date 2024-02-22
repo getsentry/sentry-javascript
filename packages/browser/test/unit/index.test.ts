@@ -91,7 +91,6 @@ describe('SentryBrowser', () => {
         getCurrentScope().setUser(EX_USER);
         setCurrentClient(client);
 
-        // eslint-disable-next-line deprecation/deprecation
         showReportDialog({ eventId: 'foobar' });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
@@ -106,7 +105,6 @@ describe('SentryBrowser', () => {
         setCurrentClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
-        // eslint-disable-next-line deprecation/deprecation
         showReportDialog({ eventId: 'foobar', user: DIALOG_OPTION_USER });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
@@ -140,7 +138,7 @@ describe('SentryBrowser', () => {
 
       it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = jest.fn();
-        // eslint-disable-next-line deprecation/deprecation
+
         showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
@@ -155,7 +153,7 @@ describe('SentryBrowser', () => {
         const onClose = jest.fn(() => {
           throw new Error();
         });
-        // eslint-disable-next-line deprecation/deprecation
+
         showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
@@ -168,7 +166,7 @@ describe('SentryBrowser', () => {
 
       it('should not call `onClose` for other MessageEvents', async () => {
         const onClose = jest.fn();
-        // eslint-disable-next-line deprecation/deprecation
+
         showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('some_message');

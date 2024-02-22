@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { Hub, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 

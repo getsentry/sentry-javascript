@@ -26,7 +26,6 @@ import {
   withScope,
 } from '@sentry/core';
 import { getClient } from './api';
-import { callExtensionMethod } from './globals';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -75,10 +74,6 @@ export function getCurrentHub(): Hub {
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
       // eslint-disable-next-line deprecation/deprecation
       return getClient().getIntegration(integration);
-    },
-
-    traceHeaders(): { [key: string]: string } {
-      return callExtensionMethod<{ [key: string]: string }>(this, 'traceHeaders');
     },
 
     startTransaction(

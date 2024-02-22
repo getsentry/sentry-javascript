@@ -4,7 +4,6 @@ import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/ut
 
 describe('span', () => {
   describe('name', () => {
-    /* eslint-disable deprecation/deprecation */
     it('works with name', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(spanToJSON(span).description).toEqual('span name');

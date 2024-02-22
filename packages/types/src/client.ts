@@ -8,7 +8,6 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
-import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
@@ -159,7 +158,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
@@ -179,13 +177,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param event The dropped event.
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
-
-  /**
-   * Captures serialized metrics and sends them to Sentry.
-   *
-   * @experimental This API is experimental and might experience breaking changes
-   */
-  captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void;
 
   // HOOKS
   // TODO(v8): Make the hooks non-optional.

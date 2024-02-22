@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 /* eslint-disable no-console */
 import { spawn } from 'child_process';
 import { resolve } from 'path';

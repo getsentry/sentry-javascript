@@ -96,9 +96,9 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       tunnel: this.getOptions().tunnel,
     });
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(envelope);
+    this.sendEnvelope(envelope);
   }
 
   /**
@@ -130,8 +130,8 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(envelope);
+    this.sendEnvelope(envelope);
   }
 }

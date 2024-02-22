@@ -16,7 +16,6 @@ import type {
   FeedbackEvent,
   Integration,
   IntegrationClass,
-  MetricBucketItem,
   Outcome,
   ParameterizedString,
   SdkMetadata,
@@ -52,7 +51,6 @@ import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -150,7 +148,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
@@ -377,7 +375,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
-    const promise = this._sendEnvelope(env);
+    const promise = this.sendEnvelope(env);
     if (promise) {
       promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
@@ -389,9 +387,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(env);
+    this.sendEnvelope(env);
   }
 
   /**
@@ -413,23 +411,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
-    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
-    const metricsEnvelope = createMetricEnvelope(
-      metricBucketItems,
-      this._dsn,
-      this._options._metadata,
-      this._options.tunnel,
-    );
-
-    // _sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
@@ -537,6 +518,21 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
       this._hooks[hook].forEach(callback => callback(...rest));
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+    this.emit('beforeEnvelope', envelope);
+
+    if (this._isEnabled() && this._transport) {
+      return this._transport.send(envelope).then(null, reason => {
+        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      DEBUG_BUILD && logger.error('Transport disabled');
     }
   }
 
@@ -824,21 +820,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @inheritdoc
-   */
-  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    this.emit('beforeEnvelope', envelope);
-
-    if (this._isEnabled() && this._transport) {
-      return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
-    }
-  }
-
-  /**
    * Clears outcomes on this client and returns them.
    */
   protected _clearOutcomes(): Outcome[] {
@@ -857,7 +838,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
 
   /**

@@ -50,7 +50,6 @@ export function filenameIsInApp(filename: string, isNative: boolean = false): bo
 }
 
 /** Node Stack line parser */
-// eslint-disable-next-line complexity
 export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
