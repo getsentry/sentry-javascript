@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { SerializedEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -15,8 +15,7 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  // eslint-disable-next-line deprecation/deprecation
+  const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
   const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
 
   expect(uiSpans?.length).toBeGreaterThan(0);
@@ -29,8 +28,8 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
       parent_span_id: eventData.contexts?.trace?.span_id,
     }),
   );
-  const start = (firstUISpan as Event)['start_timestamp'] ?? 0;
-  const end = (firstUISpan as Event)['timestamp'] ?? 0;
+  const start = firstUISpan.start_timestamp ?? 0;
+  const end = firstUISpan.timestamp ?? 0;
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);
