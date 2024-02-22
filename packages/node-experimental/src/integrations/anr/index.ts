@@ -1,8 +1,8 @@
 import { URL } from 'url';
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
-import { dynamicRequire, logger } from '@sentry/utils';
-import type { Worker, WorkerOptions } from 'worker_threads';
+import { logger } from '@sentry/utils';
+import { Worker } from 'worker_threads';
 import { NODE_MAJOR, NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
@@ -11,22 +11,8 @@ import { base64WorkerScript } from './worker-script';
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
 
-type WorkerNodeV14 = Worker & { new (filename: string | URL, options?: WorkerOptions): Worker };
-
-type WorkerThreads = {
-  Worker: WorkerNodeV14;
-};
-
 function log(message: string, ...args: unknown[]): void {
   logger.log(`[ANR] ${message}`, ...args);
-}
-
-/**
- * We need to use dynamicRequire because worker_threads is not available in node < v12 and webpack error will when
- * targeting those versions
- */
-function getWorkerThreads(): WorkerThreads {
-  return dynamicRequire(module, 'worker_threads');
 }
 
 /**
@@ -111,8 +97,6 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
       inspector.open(0);
     }
   }
-
-  const { Worker } = getWorkerThreads();
 
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
