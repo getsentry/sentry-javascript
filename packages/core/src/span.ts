@@ -5,13 +5,13 @@ import { createEnvelope } from '@sentry/utils';
 /**
  * Create envelope from Span item.
  */
-export function createSpanEnvelope(span: Span): SpanEnvelope {
+export function createSpanEnvelope(spans: Span[]): SpanEnvelope {
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
   };
 
-  const item = createSpanItem(span);
-  return createEnvelope<SpanEnvelope>(headers, [item]);
+  const items = spans.map(createSpanItem);
+  return createEnvelope<SpanEnvelope>(headers, items);
 }
 
 function createSpanItem(span: Span): SpanItem {

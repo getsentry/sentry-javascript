@@ -110,17 +110,16 @@ export class Span implements SpanInterface {
 
   protected _traceId: string;
   protected _spanId: string;
-  protected _parentSpanId?: string;
+  protected _parentSpanId?: string | undefined;
   protected _sampled: boolean | undefined;
-  protected _name?: string;
+  protected _name?: string | undefined;
   protected _attributes: SpanAttributes;
   /** Epoch timestamp in seconds when the span started. */
   protected _startTime: number;
   /** Epoch timestamp in seconds when the span ended. */
-  protected _endTime?: number;
+  protected _endTime?: number | undefined;
   /** Internal keeper of the status */
-  protected _status?: SpanStatusType | string;
-  protected _exclusiveTime?: number;
+  protected _status?: SpanStatusType | string | undefined;
 
   private _logMessage?: string;
 
@@ -164,9 +163,6 @@ export class Span implements SpanInterface {
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
-    }
-    if (spanContext.exclusiveTime) {
-      this._exclusiveTime = spanContext.exclusiveTime;
     }
   }
 
@@ -394,7 +390,7 @@ export class Span implements SpanInterface {
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span {
+  ): SpanInterface {
     const childSpan = new Span({
       ...spanContext,
       parentSpanId: this._spanId,
@@ -635,7 +631,6 @@ export class Span implements SpanInterface {
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
-      exclusive_time: this._exclusiveTime,
       measurements: this._attributes[SEMANTIC_ATTRIBUTE_MEASUREMENTS] as Measurements | undefined,
     });
   }
