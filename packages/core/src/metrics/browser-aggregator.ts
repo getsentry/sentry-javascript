@@ -1,10 +1,11 @@
-import type { Client, ClientOptions, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
+import type { ClientOptions, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
+import type { BaseClient } from '../baseclient';
 import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { METRIC_MAP } from './instance';
 import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { captureAggregateMetrics, getBucketKey, sanitizeTags } from './utils';
 
 /**
  * A simple metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -19,7 +20,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
   private _buckets: MetricBucket;
   private readonly _interval: ReturnType<typeof setInterval>;
 
-  public constructor(private readonly _client: Client<ClientOptions>) {
+  public constructor(private readonly _client: BaseClient<ClientOptions>) {
     this._buckets = new Map();
     this._interval = setInterval(() => this.flush(), DEFAULT_BROWSER_FLUSH_INTERVAL);
   }
@@ -80,7 +81,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
 
     // TODO(@anonrig): Use Object.values() when we support ES6+
     const metricBuckets = Array.from(this._buckets).map(([, bucketItem]) => bucketItem);
-    this._client.captureAggregateMetrics(metricBuckets);
+    captureAggregateMetrics(this._client, metricBuckets);
 
     this._buckets.clear();
   }

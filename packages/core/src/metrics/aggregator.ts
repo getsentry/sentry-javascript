@@ -1,16 +1,16 @@
 import type {
-  Client,
   ClientOptions,
   MeasurementUnit,
   MetricsAggregator as MetricsAggregatorBase,
   Primitive,
 } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
+import type { BaseClient } from '../baseclient';
 import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { METRIC_MAP } from './instance';
 import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { captureAggregateMetrics, getBucketKey, sanitizeTags } from './utils';
 
 /**
  * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -39,7 +39,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // Force flush is used on either shutdown, flush() or when we exceed the max weight.
   private _forceFlush: boolean;
 
-  public constructor(private readonly _client: Client<ClientOptions>) {
+  public constructor(private readonly _client: BaseClient<ClientOptions>) {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
     this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
@@ -166,7 +166,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
       // TODO(@anonrig): Optimization opportunity.
       // This copy operation can be avoided if we store the key in the bucketItem.
       const buckets = Array.from(flushedBuckets).map(([, bucketItem]) => bucketItem);
-      this._client.captureAggregateMetrics(buckets);
+      captureAggregateMetrics(this._client, buckets);
     }
   }
 }

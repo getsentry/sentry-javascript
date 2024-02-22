@@ -1,7 +1,28 @@
-import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
+import type { ClientOptions, MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
+import type { BaseClient } from '../baseclient';
 import { NAME_AND_TAG_KEY_NORMALIZATION_REGEX, TAG_VALUE_NORMALIZATION_REGEX } from './constants';
+import { createMetricEnvelope } from './envelope';
 import type { MetricType } from './types';
+
+/**
+ *
+ */
+export function captureAggregateMetrics(
+  client: BaseClient<ClientOptions>,
+  metricBucketItems: Array<MetricBucketItem>,
+): void {
+  // DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
+  const dsn = client.getDsn();
+  const metadata = client.getSdkMetadata();
+  const tunnel = client.getOptions().tunnel;
+
+  const metricsEnvelope = createMetricEnvelope(metricBucketItems, dsn, metadata, tunnel);
+
+  // sendEnvelope should not throw
+  // eslint-disable-next-line @typescript-eslint/no-floating-promises
+  client.sendEnvelope(metricsEnvelope);
+}
 
 /**
  * Generate bucket key from metric properties.
