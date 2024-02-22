@@ -10,6 +10,10 @@ const config: PlaywrightTestConfig = {
   workers: process.env.CI ? 3 : undefined,
   testMatch: /test.ts/,
 
+  use: {
+    trace: process.env.CI ? 'retry-with-trace' : 'off',
+  },
+
   projects: [
     {
       name: 'chromium',
