@@ -220,10 +220,10 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
         release,
         environment,
         transaction: routeName,
+        exclusiveTime: metric.value,
       },
-      exclusiveTime: metric.value,
     });
-    const envelope = span ? createSpanEnvelope(span) : undefined;
+    const envelope = span ? createSpanEnvelope([span]) : undefined;
     const transport = client && client.getTransport();
     if (transport && envelope) {
       transport.send(envelope).then(null, reason => {
