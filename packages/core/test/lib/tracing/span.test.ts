@@ -1,10 +1,9 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
   describe('name', () => {
-    /* eslint-disable deprecation/deprecation */
     it('works with name', () => {
       const span = new SentrySpan({ name: 'span name' });
       expect(spanToJSON(span).description).toEqual('span name');
@@ -23,46 +22,15 @@ describe('span', () => {
   describe('new SentrySpan', () => {
     test('simple', () => {
       const span = new SentrySpan({ sampled: true });
+      // eslint-disable-next-line deprecation/deprecation
       const span2 = span.startChild();
       expect((span2 as any).parentSpanId).toBe((span as any).spanId);
       expect((span2 as any).traceId).toBe((span as any).traceId);
       expect((span2 as any).sampled).toBe((span as any).sampled);
     });
-
-    test('sets instrumenter to `sentry` if not specified in constructor', () => {
-      const span = new SentrySpan({});
-
-      expect(span.instrumenter).toBe('sentry');
-    });
-
-    test('allows to set instrumenter in constructor', () => {
-      const span = new SentrySpan({ instrumenter: 'otel' });
-
-      expect(span.instrumenter).toBe('otel');
-    });
   });
 
   describe('setters', () => {
-    test('setTag', () => {
-      const span = new SentrySpan({});
-      expect(span.tags.foo).toBeUndefined();
-      span.setTag('foo', 'bar');
-      expect(span.tags.foo).toBe('bar');
-      span.setTag('foo', 'baz');
-      expect(span.tags.foo).toBe('baz');
-    });
-
-    test('setData', () => {
-      const span = new SentrySpan({});
-      expect(span.data.foo).toBeUndefined();
-      span.setData('foo', null);
-      expect(span.data.foo).toBe(null);
-      span.setData('foo', 2);
-      expect(span.data.foo).toBe(2);
-      span.setData('foo', true);
-      expect(span.data.foo).toBe(true);
-    });
-
     test('setName', () => {
       const span = new SentrySpan({});
       expect(spanToJSON(span).description).toBeUndefined();
@@ -75,23 +43,14 @@ describe('span', () => {
     test('setStatus', () => {
       const span = new SentrySpan({});
       span.setStatus('permission_denied');
-      expect((span.getTraceContext() as any).status).toBe('permission_denied');
-    });
-
-    // TODO (v8): Remove
-    test('setHttpStatus', () => {
-      const span = new SentrySpan({});
-      span.setHttpStatus(404);
-      expect((span.getTraceContext() as any).status).toBe('not_found');
-      expect(span.tags['http.status_code']).toBe('404');
-      expect(span.data['http.response.status_code']).toBe(404);
+      expect(spanToTraceContext(span).status).toBe('permission_denied');
     });
   });
 
   describe('toJSON', () => {
     test('simple', () => {
-      const span = JSON.parse(
-        JSON.stringify(new SentrySpan({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' })),
+      const span = spanToJSON(
+        new SentrySpan({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' }),
       );
       expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
       expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
@@ -100,7 +59,7 @@ describe('span', () => {
     test('with parent', () => {
       const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
       const spanB = new SentrySpan({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
-      const serialized = JSON.parse(JSON.stringify(spanB));
+      const serialized = spanToJSON(spanB);
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
       expect(serialized).toHaveProperty('trace_id', 'c');
@@ -113,7 +72,7 @@ describe('span', () => {
         spanId: 'd',
         traceId: 'c',
       });
-      const serialized = spanB.toJSON();
+      const serialized = spanToJSON(spanB);
       expect(serialized).toStrictEqual({
         start_timestamp: expect.any(Number),
         parent_span_id: 'b',
@@ -160,142 +119,6 @@ describe('span', () => {
       expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
     });
   });
-
-  describe('getTraceContext', () => {
-    test('should have status attribute undefined if no status tag is available', () => {
-      const span = new SentrySpan({});
-      const context = span.getTraceContext();
-      expect((context as any).status).toBeUndefined();
-    });
-
-    test('should have success status extracted from tags', () => {
-      const span = new SentrySpan({});
-      span.setStatus('ok');
-      const context = span.getTraceContext();
-      expect((context as any).status).toBe('ok');
-    });
-
-    test('should have failure status extracted from tags', () => {
-      const span = new SentrySpan({});
-      span.setStatus('resource_exhausted');
-      const context = span.getTraceContext();
-      expect((context as any).status).toBe('resource_exhausted');
-    });
-
-    test('should drop all `undefined` values', () => {
-      const spanB = new SentrySpan({ spanId: 'd', traceId: 'c' });
-      const context = spanB.getTraceContext();
-      expect(context).toStrictEqual({
-        span_id: 'd',
-        trace_id: 'c',
-        data: {
-          'sentry.origin': 'manual',
-        },
-        origin: 'manual',
-      });
-    });
-  });
-
-  describe('toContext and updateWithContext', () => {
-    test('toContext should return correct context', () => {
-      const originalContext = {
-        traceId: 'a',
-        spanId: 'b',
-        sampled: false,
-        description: 'test',
-        op: 'op',
-      };
-      const span = new SentrySpan(originalContext);
-
-      const newContext = span.toContext();
-
-      expect(newContext).toStrictEqual({
-        ...originalContext,
-        spanId: expect.any(String),
-        startTimestamp: expect.any(Number),
-        tags: {},
-        traceId: expect.any(String),
-        data: {
-          'sentry.op': 'op',
-          'sentry.origin': 'manual',
-        },
-      });
-    });
-
-    test('updateWithContext should completely change span properties', () => {
-      const originalContext = {
-        traceId: 'a',
-        spanId: 'b',
-        sampled: false,
-        description: 'test',
-        op: 'op',
-        tags: {
-          tag0: 'hello',
-        },
-      };
-      const span = new SentrySpan(originalContext);
-
-      span.updateWithContext({
-        traceId: 'c',
-        spanId: 'd',
-        sampled: true,
-      });
-
-      expect(span.spanContext().traceId).toBe('c');
-      expect(span.spanContext().spanId).toBe('d');
-      expect(span.sampled).toBe(true);
-      expect(spanToJSON(span).description).toBe(undefined);
-      expect(spanToJSON(span).op).toBe(undefined);
-      expect(span.tags).toStrictEqual({});
-    });
-
-    test('using toContext and updateWithContext together should update only changed properties', () => {
-      const originalContext = {
-        traceId: 'a',
-        spanId: 'b',
-        sampled: false,
-        description: 'test',
-        op: 'op',
-        tags: { tag0: 'hello' },
-        data: { data0: 'foo' },
-      };
-      const span = new SentrySpan(originalContext);
-
-      const newContext = {
-        ...span.toContext(),
-        description: 'new',
-        endTimestamp: 1,
-        op: 'new-op',
-        sampled: true,
-        tags: {
-          tag1: 'bye',
-        },
-        data: {
-          ...span.toContext().data,
-        },
-      };
-
-      if (newContext.data) newContext.data.data1 = 'bar';
-
-      span.updateWithContext(newContext);
-
-      expect(span.spanContext().traceId).toBe('a');
-      expect(span.spanContext().spanId).toBe('b');
-      expect(spanToJSON(span).description).toBe('new');
-      expect(spanToJSON(span).timestamp).toBe(1);
-      expect(spanToJSON(span).op).toBe('new-op');
-      expect(span.sampled).toBe(true);
-      expect(span.tags).toStrictEqual({ tag1: 'bye' });
-      expect(span.data).toStrictEqual({
-        data0: 'foo',
-        data1: 'bar',
-        'sentry.op': 'op',
-        'sentry.origin': 'manual',
-      });
-    });
-  });
-
-  /* eslint-enable deprecation/deprecation */
 
   describe('setAttribute', () => {
     it('allows to set attributes', () => {
