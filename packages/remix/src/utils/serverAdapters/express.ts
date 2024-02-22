@@ -87,18 +87,29 @@ function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadCo
   };
 }
 
+// wrap build function which returns either a Promise or the build itself
+// This is currently only required for Vite development mode with HMR
+function wrapBuildFn(origBuildFn: () => Promise<ServerBuild> | ServerBuild): () => Promise<ServerBuild> | ServerBuild {
+  return async function (this: unknown, ...args: unknown[]) {
+    const resolvedBuild = origBuildFn.call(this, ...args);
+
+    if (resolvedBuild instanceof Promise) {
+      return resolvedBuild.then(resolved => {
+        return instrumentBuild(resolved, true);
+      });
+    }
+
+    return instrumentBuild(resolvedBuild, true);
+  };
+}
+
 // A wrapper around build if it's a Promise or a function that returns a Promise that calls instrumentServer on the resolved value
 // This is currently only required for Vite development mode with HMR
 function wrapBuild(
   build: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
 ): ServerBuild | (() => Promise<ServerBuild> | ServerBuild) {
   if (typeof build === 'function') {
-    const resolved = build();
-    if (resolved instanceof Promise) {
-      return () => resolved.then(resolved => instrumentBuild(resolved, true));
-    }
-
-    return instrumentBuild(resolved, true);
+    return wrapBuildFn(build);
   }
 
   return instrumentBuild(build, true);
