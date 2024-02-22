@@ -284,8 +284,6 @@ export class ReplayContainer implements ReplayContainerInterface {
    * _performanceObserver, Recording, Sentry SDK, etc)
    */
   public start(): void {
-    console.log('REPLAY START');
-
     if (this._isEnabled && this.recordingMode === 'session') {
       throw new Error('Replay recording is already in progress');
     }
