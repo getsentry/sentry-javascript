@@ -29,7 +29,7 @@ describe('WinterCGFetch instrumentation', () => {
       tracesSampleRate: 1,
       integrations: [],
       transport: () => ({
-        send: () => Promise.resolve(undefined),
+        send: () => Promise.resolve({}),
         flush: () => Promise.resolve(true),
       }),
       tracePropagationTargets: ['http://my-website.com/'],
