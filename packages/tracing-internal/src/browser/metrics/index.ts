@@ -194,8 +194,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
     const startTime = msToSec(entry.startTime);
     const duration = msToSec(entry.duration);
 
-    // eslint-disable-next-line deprecation/deprecation
-    if (transaction.op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
+    if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
       return;
     }
 

@@ -46,8 +46,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -83,8 +81,6 @@ export {
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   cron,
@@ -125,7 +121,6 @@ export { bunServerIntegration } from './integrations/bunserver';
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
   BunServer,
 };

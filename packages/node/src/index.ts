@@ -45,8 +45,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -102,12 +100,7 @@ export {
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
-import { createGetModuleFromFilename } from './module';
-/**
- * @deprecated use `createGetModuleFromFilename` instead.
- */
-export const getModuleFromFilename = createGetModuleFromFilename();
-export { createGetModuleFromFilename };
+export { createGetModuleFromFilename } from './module';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 

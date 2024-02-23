@@ -12,8 +12,7 @@ describe('_startChild()', () => {
 
     expect(span).toBeInstanceOf(SentrySpan);
     expect(spanToJSON(span).description).toBe('evaluation');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(span.op).toBe('script');
+    expect(spanToJSON(span).op).toBe('script');
     expect(spanToJSON(span).op).toBe('script');
   });
 

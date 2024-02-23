@@ -1,13 +1,13 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Hub, SentrySpan } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
+import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
@@ -90,8 +90,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
@@ -261,33 +259,6 @@ describe('tracing', () => {
     expect(baggage).not.toBeDefined();
   });
 
-  it("doesn't attach when using otel instrumenter", () => {
-    const loggerLogSpy = jest.spyOn(logger, 'log');
-
-    const options = getDefaultNodeClientOptions({
-      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      tracesSampleRate: 1.0,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new HttpIntegration({ tracing: true })],
-      release: '1.0.0',
-      environment: 'production',
-      instrumenter: 'otel',
-    });
-    const client = new NodeClient(options);
-    setCurrentClient(client);
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-
-    // eslint-disable-next-line deprecation/deprecation
-    const integration = new HttpIntegration();
-    integration.setupOnce(
-      () => {},
-      () => hub as Hub,
-    );
-
-    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
-  });
-
   it('omits query and fragment from description and adds to span data instead', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
@@ -301,8 +272,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
 
     const spanAttributes = spanToJSON(spans[1]).data || {};
@@ -328,8 +297,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
     expect(spanAttributes['http.method']).toEqual('GET');
     expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
@@ -413,8 +380,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation
@@ -523,8 +489,7 @@ describe('tracing', () => {
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation

@@ -1,6 +1,5 @@
 import type { Context } from './context';
 import type { DynamicSamplingContext } from './envelope';
-import type { Instrumenter } from './instrumenter';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
@@ -43,7 +42,7 @@ export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends Omit<TransactionContext, 'name'>, Span {
+export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Span {
   /**
    * The ID of the transaction.
    * @deprecated Use `spanContext().spanId` instead.
@@ -90,13 +89,6 @@ export interface Transaction extends Omit<TransactionContext, 'name'>, Span {
    * @deprecated Use attributes or store data on the scope instead.
    */
   metadata: TransactionMetadata;
-
-  /**
-   * The instrumenter that created this transaction.
-   *
-   * @deprecated This field will be removed in v8.
-   */
-  instrumenter: Instrumenter;
 
   /**
    * Set the context of a transaction event.

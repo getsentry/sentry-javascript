@@ -8,7 +8,6 @@ export function getDefaultBunClientOptions(options: Partial<BunClientOptions> = 
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
-    instrumenter: 'sentry',
     ...options,
   };
 }

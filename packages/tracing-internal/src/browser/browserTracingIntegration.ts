@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { IdleTransaction } from '@sentry/core';
 import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
@@ -380,15 +379,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         enableHTTPTimings,
       });
     },
-    // TODO v8: Remove this again
-    // This is private API that we use to fix converted BrowserTracing integrations in Next.js & SvelteKit
-    options,
   };
 }) satisfies IntegrationFn;
 
 /**
  * Manually start a page load span.
- * This will only do something if the BrowserTracing integration has been setup.
+ * This will only do something if a browser tracing integration integration has been setup.
  */
 export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions);
@@ -400,7 +396,7 @@ export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: Sta
 
 /**
  * Manually start a navigation span.
- * This will only do something if the BrowserTracing integration has been setup.
+ * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
@@ -433,12 +429,15 @@ function registerInteractionListener(
 
     // eslint-disable-next-line deprecation/deprecation
     const currentTransaction = getActiveTransaction();
-    if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-      DEBUG_BUILD &&
-        logger.warn(
-          `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-        );
-      return undefined;
+    if (currentTransaction) {
+      const currentTransactionOp = spanToJSON(currentTransaction).op;
+      if (currentTransactionOp && ['navigation', 'pageload'].includes(currentTransactionOp)) {
+        DEBUG_BUILD &&
+          logger.warn(
+            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
+          );
+        return undefined;
+      }
     }
 
     if (inflightInteractionTransaction) {

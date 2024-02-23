@@ -34,6 +34,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@remix-run/router": "1.x",
     "@sentry/cli": "^2.28.6",
     "@sentry/core": "7.100.0",
     "@sentry/node-experimental": "7.100.0",

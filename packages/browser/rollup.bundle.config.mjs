@@ -21,7 +21,7 @@ targets.forEach(jsVersion => {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.ts'],
     jsVersion,
-    licenseTitle: '@sentry/browser & @sentry/tracing',
+    licenseTitle: '@sentry/browser (Performance Monitoring)',
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
@@ -50,7 +50,7 @@ if (targets.includes('es6')) {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.replay.ts'],
     jsVersion: 'es6',
-    licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay',
+    licenseTitle: '@sentry/browser (Performance Monitoring and Replay)',
     outputFileBase: () => 'bundles/bundle.tracing.replay',
   });
 
@@ -58,7 +58,7 @@ if (targets.includes('es6')) {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.replay.feedback.ts'],
     jsVersion: 'es6',
-    licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay & @sentry/feedback',
+    licenseTitle: '@sentry/browser (Performance Monitoring, Replay, and Feedback)',
     outputFileBase: () => 'bundles/bundle.tracing.replay.feedback',
   });
 

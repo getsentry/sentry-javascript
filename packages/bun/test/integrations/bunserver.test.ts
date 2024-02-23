@@ -29,7 +29,7 @@ describe('Bun Serve Integration', () => {
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('GET /');
     });
 
@@ -52,7 +52,7 @@ describe('Bun Serve Integration', () => {
       expect(transaction.tags).toEqual({
         'http.status_code': '200',
       });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('POST /');
     });
 

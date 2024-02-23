@@ -1,5 +1,4 @@
 import type { TraceContext } from './context';
-import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction, TransactionSource } from './transaction';
@@ -111,7 +110,7 @@ export interface SpanContext {
 
   /**
    * Completion status of the Span.
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {SpanStatusType} for possible values
    */
   status?: string | undefined;
 
@@ -163,26 +162,13 @@ export interface SpanContext {
   endTimestamp?: number | undefined;
 
   /**
-   * The instrumenter that created this span.
-   */
-  instrumenter?: Instrumenter | undefined;
-
-  /**
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin | undefined;
 }
 
 /** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin'> {
-  /**
-   * Operation of the Span.
-   *
-   * @deprecated Use `startSpan()` functions to set, `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
-   * to update and `spanToJSON().op` to read the op instead
-   */
-  op?: string | undefined;
-
+export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin' | 'op'> {
   /**
    * The ID of the span.
    * @deprecated Use `spanContext().spanId` instead.
@@ -245,16 +231,9 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   transaction?: Transaction;
 
   /**
-   * The instrumenter that created this span.
-   *
-   * @deprecated this field will be removed.
-   */
-  instrumenter: Instrumenter;
-
-  /**
    * Completion status of the Span.
    *
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {SpanStatusType} for possible values
    *
    * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
    */
@@ -304,17 +283,10 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
 
   /**
    * Sets the status attribute on the current span
-   * See: {@sentry/tracing SpanStatus} for possible values
+   * See: {@sentry/core SpanStatusType} for possible values
    * @param status http code used to set the status
    */
   setStatus(status: string): this;
-
-  /**
-   * Sets the status attribute on the current span based on the http code
-   * @param httpStatus http code used to set the status
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  setHttpStatus(httpStatus: number): this;
 
   /**
    * Update the name of the span.
@@ -328,12 +300,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
-
-  /**
-   * Return a traceparent compatible header string.
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  toTraceparent(): string;
 
   /**
    * Returns the current span properties as a `SpanContext`.

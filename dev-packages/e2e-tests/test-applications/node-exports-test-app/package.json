@@ -23,6 +23,12 @@
     "@types/node": "18.15.1",
     "typescript": "4.9.5"
   },
+  "pnpm": {
+    "overrides": {
+      "@sentry/node": "latest || *",
+      "@sentry/tracing": "file:../../tracing-shim-esm"
+    }
+  },
   "devDependencies": {
     "ts-node": "10.9.1"
   },

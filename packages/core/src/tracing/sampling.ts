@@ -94,9 +94,11 @@ export function sampleTransaction<T extends Transaction>(
     return transaction;
   }
 
-  DEBUG_BUILD &&
-    // eslint-disable-next-line deprecation/deprecation
-    logger.log(`[Tracing] starting ${transaction.op} transaction - ${spanToJSON(transaction).description}`);
+  if (DEBUG_BUILD) {
+    const { op, description } = spanToJSON(transaction);
+    logger.log(`[Tracing] starting ${op} transaction - ${description}`);
+  }
+
   return transaction;
 }
 
@@ -105,7 +107,6 @@ export function sampleTransaction<T extends Transaction>(
  */
 function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     DEBUG_BUILD &&
       logger.warn(

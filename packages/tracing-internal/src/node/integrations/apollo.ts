@@ -4,7 +4,6 @@ import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface ApolloOptions {
   useNestjs?: boolean;
@@ -77,11 +76,6 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     if (this._useNest) {
       const pkg = this.loadDependency();
 

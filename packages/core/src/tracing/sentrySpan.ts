@@ -1,6 +1,4 @@
-/* eslint-disable max-lines */
 import type {
-  Instrumenter,
   Primitive,
   Span as SpanInterface,
   SpanAttributeValue,
@@ -25,10 +23,8 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
-  spanToTraceHeader,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { setHttpStatus } from './spanstatus';
 import { addChildSpanToSpan } from './trace';
 
 /**
@@ -92,18 +88,6 @@ export class SentrySpan implements SpanInterface {
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
-
-  /**
-   * The instrumenter that created this span.
-   *
-   * TODO (v8): This can probably be replaced by an `instanceOf` check of the span class.
-   *            the instrumenter can only be sentry or otel so we can check the span instance
-   *            to verify which one it is and remove this field entirely.
-   *
-   * @deprecated This field will be removed.
-   */
-  public instrumenter: Instrumenter;
-
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string | undefined;
@@ -134,8 +118,6 @@ export class SentrySpan implements SpanInterface {
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
-    // eslint-disable-next-line deprecation/deprecation
-    this.instrumenter = spanContext.instrumenter || 'sentry';
 
     this._attributes = {};
     this.setAttributes({
@@ -296,25 +278,6 @@ export class SentrySpan implements SpanInterface {
     this._status = status;
   }
 
-  /**
-   * Operation of the span
-   *
-   * @deprecated Use `spanToJSON().op` to read the op instead.
-   */
-  public get op(): string | undefined {
-    return this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
-  }
-
-  /**
-   * Operation of the span
-   *
-   * @deprecated Use `startSpan()` functions to set or `span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'op')
-   *             to update the span instead.
-   */
-  public set op(op: string | undefined) {
-    this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -428,15 +391,6 @@ export class SentrySpan implements SpanInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  public setHttpStatus(httpStatus: number): this {
-    setHttpStatus(this, httpStatus);
-    return this;
-  }
-
-  /**
-   * @inheritDoc
    */
   public updateName(name: string): this {
     this._name = name;
@@ -468,15 +422,6 @@ export class SentrySpan implements SpanInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  public toTraceparent(): string {
-    return spanToTraceHeader(this);
-  }
-
-  /**
-   * @inheritDoc
-   *
    * @deprecated Use `spanToJSON()` or access the fields directly instead.
    */
   public toContext(): SpanContext {
@@ -484,8 +429,7 @@ export class SentrySpan implements SpanInterface {
       data: this._getData(),
       name: this._name,
       endTimestamp: this._endTime,
-      // eslint-disable-next-line deprecation/deprecation
-      op: this.op,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parentSpanId: this._parentSpanId,
       sampled: this._sampled,
       spanId: this._spanId,
@@ -507,8 +451,7 @@ export class SentrySpan implements SpanInterface {
     this.data = spanContext.data || {};
     this._name = spanContext.name;
     this._endTime = spanContext.endTimestamp;
-    // eslint-disable-next-line deprecation/deprecation
-    this.op = spanContext.op;
+    this._attributes = { ...this._attributes, [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op };
     this._parentSpanId = spanContext.parentSpanId;
     this._sampled = spanContext.sampled;
     this._spanId = spanContext.spanId || this._spanId;
@@ -542,7 +485,7 @@ export class SentrySpan implements SpanInterface {
     return dropUndefinedKeys({
       data: this._getData(),
       description: this._name,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined,
+      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parent_span_id: this._parentSpanId,
       span_id: this._spanId,
       start_timestamp: this._startTime,

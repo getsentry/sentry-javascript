@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { SerializedEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -11,8 +11,7 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  // eslint-disable-next-line deprecation/deprecation
+  const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
   const browserSpans = eventData.spans?.filter(({ op }) => op === 'browser');
 
   // Spans `connect`, `cache` and `DNS` are not always inside `pageload` transaction.
