@@ -1,5 +1,4 @@
 import type { TraceContext } from './context';
-import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction, TransactionSource } from './transaction';
@@ -163,11 +162,6 @@ export interface SpanContext {
   endTimestamp?: number | undefined;
 
   /**
-   * The instrumenter that created this span.
-   */
-  instrumenter?: Instrumenter | undefined;
-
-  /**
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin | undefined;
@@ -235,13 +229,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   transaction?: Transaction;
-
-  /**
-   * The instrumenter that created this span.
-   *
-   * @deprecated this field will be removed.
-   */
-  instrumenter: Instrumenter;
 
   /**
    * Completion status of the Span.

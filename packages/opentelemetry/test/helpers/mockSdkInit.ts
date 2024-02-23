@@ -13,13 +13,8 @@ const PUBLIC_DSN = 'https://username@domain/123';
  * Initialize Sentry for Node.
  */
 function init(options: Partial<Options> | undefined = {}): void {
-  const fullOptions: Partial<Options> = {
-    instrumenter: 'otel',
-    ...options,
-  };
-
   setOpenTelemetryContextAsyncContextStrategy();
-  initTestClient(fullOptions);
+  initTestClient(options);
   initOtel();
 }
 

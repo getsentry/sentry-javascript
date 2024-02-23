@@ -147,10 +147,6 @@ export function init(options: NodeOptions = {}): void {
     options.autoSessionTracking = true;
   }
 
-  if (options.instrumenter === undefined) {
-    options.instrumenter = 'sentry';
-  }
-
   // TODO(v7): Refactor this to reduce the logic above
   const clientOptions: NodeClientOptions = {
     ...options,

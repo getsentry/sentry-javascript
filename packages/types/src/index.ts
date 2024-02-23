@@ -133,7 +133,6 @@ export type {
 export type { User, UserFeedback } from './user';
 export type { WebFetchHeaders, WebFetchRequest } from './webfetchapi';
 export type { WrappedFunction } from './wrappedfunction';
-export type { Instrumenter } from './instrumenter';
 export type {
   HandlerDataFetch,
   HandlerDataXhr,

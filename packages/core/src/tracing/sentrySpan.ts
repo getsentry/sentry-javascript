@@ -1,5 +1,4 @@
 import type {
-  Instrumenter,
   Primitive,
   Span as SpanInterface,
   SpanAttributeValue,
@@ -90,18 +89,6 @@ export class SentrySpan implements SpanInterface {
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
-
-  /**
-   * The instrumenter that created this span.
-   *
-   * TODO (v8): This can probably be replaced by an `instanceOf` check of the span class.
-   *            the instrumenter can only be sentry or otel so we can check the span instance
-   *            to verify which one it is and remove this field entirely.
-   *
-   * @deprecated This field will be removed.
-   */
-  public instrumenter: Instrumenter;
-
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string | undefined;
@@ -132,8 +119,6 @@ export class SentrySpan implements SpanInterface {
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
-    // eslint-disable-next-line deprecation/deprecation
-    this.instrumenter = spanContext.instrumenter || 'sentry';
 
     this._attributes = {};
     this.setAttributes({

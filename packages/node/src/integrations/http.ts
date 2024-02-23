@@ -185,12 +185,6 @@ export class Http implements Integration {
       return;
     }
 
-    // Do not auto-instrument for other instrumenter
-    if (clientOptions && clientOptions.instrumenter !== 'sentry') {
-      DEBUG_BUILD && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const shouldCreateSpanForRequest = _getShouldCreateSpanForRequest(shouldCreateSpans, this._tracing, clientOptions);
 
     // eslint-disable-next-line deprecation/deprecation

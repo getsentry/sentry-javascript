@@ -4,7 +4,6 @@ import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type GraphQLModule = {
   [method: string]: (...args: unknown[]) => unknown;
@@ -37,11 +36,6 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const pkg = this.loadDependency();
 
     if (!pkg) {

@@ -1,4 +1,3 @@
-import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { SpanAttributes, SpanOrigin, SpanTimeInput } from './span';
@@ -96,9 +95,4 @@ export interface StartSpanOptions extends TransactionContext {
    * @deprecated Use `span.end()` instead.
    */
   endTimestamp?: number;
-
-  /**
-   * @deprecated You cannot set the instrumenter manually anymore.
-   */
-  instrumenter?: Instrumenter;
 }
