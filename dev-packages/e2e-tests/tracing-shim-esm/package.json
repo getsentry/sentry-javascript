@@ -2,7 +2,8 @@
   "name": "tracing-shim-esm",
   "version": "0.0.1",
   "private": true,
-  "main": "index.mjs",
+  "main": "index.cjs",
+  "module": "index.mjs",
   "scripts": {},
   "dependencies": {},
   "devDependencies": {}
