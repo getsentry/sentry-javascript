@@ -25,7 +25,6 @@ import {
   spanToTraceContext,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { setHttpStatus } from './spanstatus';
 import { addChildSpanToSpan } from './trace';
 
 /**
@@ -387,15 +386,6 @@ export class SentrySpan implements SpanInterface {
    */
   public setStatus(value: SpanStatusType): this {
     this._status = value;
-    return this;
-  }
-
-  /**
-   * @inheritDoc
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  public setHttpStatus(httpStatus: number): this {
-    setHttpStatus(this, httpStatus);
     return this;
   }
 

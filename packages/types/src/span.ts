@@ -298,13 +298,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   setStatus(status: string): this;
 
   /**
-   * Sets the status attribute on the current span based on the http code
-   * @param httpStatus http code used to set the status
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  setHttpStatus(httpStatus: number): this;
-
-  /**
    * Update the name of the span.
    */
   updateName(name: string): this;
