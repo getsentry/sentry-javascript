@@ -317,12 +317,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
   toContext(): SpanContext;
 
   /**
-   * Updates the current span with a new `SpanContext`.
-   * @deprecated Update the fields directly instead.
-   */
-  updateWithContext(spanContext: SpanContext): this;
-
-  /**
    * Convert the object to JSON for w. spans array info only.
    * @deprecated Use `spanToTraceContext()` util function instead.
    */
