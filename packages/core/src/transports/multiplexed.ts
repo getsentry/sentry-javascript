@@ -152,7 +152,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
   };
 }
 
-export const MULTIPLEXED_TRANSPORT_EXTRA_KEY = "multiplexed_transport";
+export const MULTIPLEXED_TRANSPORT_EXTRA_KEY = "ROUTE_TO";
 
 /**
  * Creates a transport that will send events to all DSNs provided in event.extra["multiplexed_transport"]
