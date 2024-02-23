@@ -18,15 +18,3 @@ export interface FeedbackEvent extends Event {
     feedback: FeedbackContext;
   };
 }
-
-export interface FeedbackComponent<T extends HTMLElement> {
-  el: T | null;
-}
-
-export interface FeedbackDialogComponent extends FeedbackComponent<HTMLDialogElement> {
-  showError: (message: string) => void;
-  hideError: () => void;
-  open: () => void;
-  close: () => void;
-  isOpen: () => boolean;
-}

@@ -6,6 +6,8 @@ import type {
 } from './config';
 import type { FeedbackTheme } from './theme';
 
+export type { FeedbackFormData } from './form';
+
 export {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -35,6 +37,14 @@ export interface OptionalFeedbackConfiguration
   extends Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'> {
   themeLight?: Partial<FeedbackTheme>;
   themeDark?: Partial<FeedbackTheme>;
+}
+
+export interface SendFeedbackParams {
+  message: string;
+  name?: string;
+  email?: string;
+  url?: string;
+  source?: string;
 }
 
 export interface SendFeedbackOptions {

@@ -1,3 +1,4 @@
+import type { FeedbackFormData } from './form';
 import type { FeedbackTheme } from './theme';
 
 /**
@@ -153,7 +154,7 @@ export interface FeedbackCallbacks {
   /**
    * Callback when feedback is successfully submitted
    */
-  onSubmitSuccess?: () => void;
+  onSubmitSuccess?: (data: FeedbackFormData) => void;
 
   /**
    * Callback when feedback is unsuccessfully submitted

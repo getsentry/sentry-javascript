@@ -262,10 +262,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
     callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
   ): void;
 
-  on?(
-    hook: 'createFeedbackModal',
-    callback: (options: Record<string, unknown>, appendChild: (child: HTMLElement) => void) => void,
-  ): void;
+  // on?(
+  //   hook: 'createFeedbackModal',
+  //   callback: (options: Record<string, unknown>, appendChild: (child: HTMLElement) => void) => void,
+  // ): void;
 
   /**
    * A hook for BrowserTracing to trigger a span start for a page load.
@@ -338,7 +338,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
-  emit?(hook: 'createFeedbackModal', options: Record<string, unknown>, appendChild: (child: HTMLElement) => void): void;
+  // emit?(hook: 'createFeedbackModal', options: Record<string, unknown>, appendChild: (child: HTMLElement) => void): void;
 
   /**
    * Emit a hook event for BrowserTracing to trigger a span start for a page load.

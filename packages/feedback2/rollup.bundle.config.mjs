@@ -7,5 +7,9 @@ export default makeBundleConfigVariants(
     jsVersion: 'es6',
     licenseTitle: '@sentry-internal/feedback2',
     outputFileBase: () => 'bundles/feedback2',
+    sucrase: {
+      jsxPragma: 'h',
+      jsxFragmentPragma: 'Fragment',
+    },
   }),
 );
