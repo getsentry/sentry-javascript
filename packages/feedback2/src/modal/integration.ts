@@ -3,8 +3,8 @@ import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
 import type { FeedbackFormData, FeedbackInternalOptions } from '../types';
 import type { SendFeedbackOptions, SendFeedbackParams } from '../types';
-import { makeDialog } from './Dialog';
-import type { DialogComponent } from './Dialog';
+import { Dialog } from './components/Dialog';
+import type { DialogComponent } from './components/Dialog';
 
 export interface DialogLifecycleCallbacks {
   /**
@@ -22,7 +22,7 @@ export interface DialogLifecycleCallbacks {
   /**
    * When the dialog is either closed, or was submitted successfully, and nothing is rendered anymore.
    *
-   * This is called after onClose OR onSuccess
+   * This is called after onFormClose OR onSubmitSuccess
    */
   onDone: (dialog: DialogComponent) => void;
 }
@@ -79,7 +79,7 @@ export class Feedback2Modal implements Integration {
       const user = scope && scope.getUser();
 
       // TODO: options may have changed?
-      const dialog = makeDialog({
+      const dialog = Dialog({
         colorScheme: options.colorScheme,
         showBranding: options.showBranding,
         showName: options.showName || options.isNameRequired,
@@ -97,17 +97,20 @@ export class Feedback2Modal implements Integration {
         namePlaceholder: options.namePlaceholder,
         defaultName: (userKey && user && user[userKey.name]) || '',
         defaultEmail: (userKey && user && user[userKey.email]) || '',
+        successMessageText: options.successMessageText,
         onFormClose: () => {
           callbacks.onDone(dialog);
           options.onFormClose && options.onFormClose();
         },
         onSubmit: callbacks.onSubmit,
         onSubmitSuccess: (data: FeedbackFormData) => {
-          callbacks.onDone(dialog);
           options.onSubmitSuccess && options.onSubmitSuccess(data);
         },
         onSubmitError: () => {
           options.onSubmitError && options.onSubmitError();
+        },
+        onDone: () => {
+          callbacks.onDone(dialog);
         },
       });
       this._dialog = dialog;

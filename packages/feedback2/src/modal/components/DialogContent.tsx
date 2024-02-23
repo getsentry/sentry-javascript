@@ -2,7 +2,6 @@
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { ComponentChildren, VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
-
 import { Form } from './Form';
 import type { Props as FormProps } from './Form';
 import type { Props as LogoProps } from './Logo';

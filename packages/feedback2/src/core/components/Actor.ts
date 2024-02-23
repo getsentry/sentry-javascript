@@ -16,16 +16,6 @@ export interface ActorComponent {
    * The style element for this component
    */
   style: HTMLStyleElement;
-
-  /**
-   * Show the actor element
-   */
-  show: () => void;
-
-  /**
-   * Hide the actor element
-   */
-  hide: () => void;
 }
 
 /**
@@ -53,14 +43,6 @@ export function Actor({ buttonLabel }: ActorProps): ActorComponent {
     },
     get style() {
       return style;
-    },
-    show: (): void => {
-      el.classList.remove('widget__actor--hidden');
-      el.setAttribute('aria-hidden', 'false');
-    },
-    hide: (): void => {
-      el.classList.add('widget__actor--hidden');
-      el.setAttribute('aria-hidden', 'true');
     },
   };
 }

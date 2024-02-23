@@ -17,7 +17,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
-import type { DialogComponent } from '../modal/Dialog';
+import type { DialogComponent } from '../modal/components/Dialog';
 import type { DialogLifecycleCallbacks, feedback2ModalIntegration } from '../modal/integration';
 import type { feedback2ScreenshotIntegration } from '../screenshot/integration';
 import type {
@@ -182,26 +182,31 @@ export class Feedback2 implements Integration {
 
     const shadow = this._getShadow(options);
     const actor = Actor({ buttonLabel: options.buttonLabel });
-    shadow.appendChild(actor.style);
-    shadow.appendChild(actor.el);
+    const insertActor = (): void => {
+      shadow.appendChild(actor.style);
+      shadow.appendChild(actor.el);
+    };
     this.attachTo(actor.el, {
       onFormOpen() {
-        actor.hide();
+        shadow.removeChild(actor.el);
+        shadow.removeChild(actor.style);
         options.onFormOpen && options.onFormOpen();
       },
       onFormClose() {
-        actor.show();
+        insertActor();
         options.onFormClose && options.onFormClose();
       },
       onSubmitSuccess(data: FeedbackFormData) {
-        actor.show();
+        insertActor();
         options.onSubmitSuccess && options.onSubmitSuccess(data);
       },
       onSubmitError() {
-        actor.show();
+        insertActor();
         options.onSubmitError && options.onSubmitError();
       },
     });
+
+    insertActor();
   }
 
   /**
