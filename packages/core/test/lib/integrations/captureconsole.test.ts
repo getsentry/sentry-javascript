@@ -1,16 +1,11 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import * as SentryCore from '@sentry/core';
 import type { Client, ConsoleLevel, Event } from '@sentry/types';
-import {
-  CONSOLE_LEVELS,
-  GLOBAL_OBJ,
-  addConsoleInstrumentationHandler,
-  originalConsoleMethods,
-  resetInstrumentationHandlers,
-} from '@sentry/utils';
+import { CONSOLE_LEVELS, GLOBAL_OBJ, originalConsoleMethods, resetInstrumentationHandlers } from '@sentry/utils';
+import * as CurrentScopes from '../../../src/currentscopes';
+import * as SentryCore from '../../../src/exports';
 
-import { captureConsoleIntegration } from '../src/captureconsole';
+import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
 
 const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
   debug: jest.fn(),
@@ -24,7 +19,7 @@ const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
 
 describe('CaptureConsole setup', () => {
   // Ensure we've initialized the instrumentation so we can get the original one
-  addConsoleInstrumentationHandler(() => {});
+  // addConsoleInstrumentationHandler(() => {});
   const _originalConsoleMethods = Object.assign({}, originalConsoleMethods);
 
   let mockClient: Client;
@@ -45,8 +40,8 @@ describe('CaptureConsole setup', () => {
 
     jest.spyOn(SentryCore, 'captureMessage').mockImplementation(captureMessage);
     jest.spyOn(SentryCore, 'captureException').mockImplementation(captureException);
-    jest.spyOn(SentryCore, 'getClient').mockImplementation(() => mockClient);
-    jest.spyOn(SentryCore, 'withScope').mockImplementation(withScope);
+    jest.spyOn(CurrentScopes, 'getClient').mockImplementation(() => mockClient);
+    jest.spyOn(CurrentScopes, 'withScope').mockImplementation(withScope);
 
     CONSOLE_LEVELS.forEach(key => {
       originalConsoleMethods[key] = mockConsole[key];

@@ -1,5 +1,5 @@
 import type { Event } from '@sentry/types';
-import { sessionTimingIntegration } from '../src/sessiontiming';
+import { sessionTimingIntegration } from '../../../src/integrations/sessiontiming';
 
 const sessionTiming = sessionTimingIntegration();
 

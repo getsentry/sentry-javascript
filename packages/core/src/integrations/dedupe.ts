@@ -1,8 +1,8 @@
-import { defineIntegration } from '@sentry/core';
 import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { defineIntegration } from '../integration';
 
-import { DEBUG_BUILD } from './debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'Dedupe';
 

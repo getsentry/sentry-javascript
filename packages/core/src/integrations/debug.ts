@@ -1,6 +1,6 @@
-import { defineIntegration } from '@sentry/core';
 import type { Event, EventHint, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
+import { defineIntegration } from '../integration';
 
 const INTEGRATION_NAME = 'Debug';
 
