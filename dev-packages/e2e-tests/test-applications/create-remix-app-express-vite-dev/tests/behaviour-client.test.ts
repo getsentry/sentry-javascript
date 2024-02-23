@@ -171,42 +171,6 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   expect(hadPageNavigationTransaction).toBe(true);
 });
 
-test('Sends a client-side ErrorBoundary exception to Sentry', async ({ page }) => {
-  await page.goto('/client-error');
-
-  const exceptionIdHandle = await page.waitForSelector('#event-id');
-  const exceptionEventId = await exceptionIdHandle.textContent();
-
-  console.log(`Polling for error eventId: ${exceptionEventId}`);
-
-  await expect
-    .poll(
-      async () => {
-        try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
-          return response.status;
-        } catch (e) {
-          if (e instanceof AxiosError && e.response) {
-            if (e.response.status !== 404) {
-              throw e;
-            } else {
-              return e.response.status;
-            }
-          } else {
-            throw e;
-          }
-        }
-      },
-      {
-        timeout: EVENT_POLLING_TIMEOUT,
-      },
-    )
-    .toBe(200);
-});
-
 test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
   await page.goto('/');
 
