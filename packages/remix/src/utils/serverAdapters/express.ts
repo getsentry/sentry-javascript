@@ -52,31 +52,30 @@ function wrapExpressRequestHandler(
         const resolvedBuild = build();
 
         if (resolvedBuild instanceof Promise) {
-          // eslint-disable-next-line @typescript-eslint/no-floating-promises
-          resolvedBuild.then(resolved => {
+          return resolvedBuild.then(resolved => {
             routes = createRoutes(resolved.routes);
 
             startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
           });
         } else {
           routes = createRoutes(resolvedBuild.routes);
-        }
 
-        return startRequestHandlerTransactionWithRoutes.call(
-          this,
-          origRequestHandler,
-          routes,
-          req,
-          res,
-          next,
-          hub,
-          url,
-        );
+          return startRequestHandlerTransactionWithRoutes.call(
+            this,
+            origRequestHandler,
+            routes,
+            req,
+            res,
+            next,
+            hub,
+            url,
+          );
+        }
       } else {
         routes = createRoutes(build.routes);
       }
 
-      startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
+      return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
     });
   };
 }
