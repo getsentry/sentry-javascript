@@ -18,8 +18,8 @@ function makeTransactionMock(options = {}): Transaction {
     tags: {},
     sampled: true,
     contexts: {},
-    startChild: () => ({ finish: () => void 0 }),
-    finish() {
+    startChild: () => ({ end: () => void 0 }),
+    end() {
       return;
     },
     toContext: () => {
