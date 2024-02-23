@@ -151,3 +151,27 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     };
   };
 }
+
+export const MULTIPLEXED_TRANSPORT_EXTRA_KEY = "multiplexed_transport";
+
+/**
+ * Creates a transport that will send events to all DSNs provided in event.extra["multiplexed_transport"]
+ * in the format of [{dsn: "__MY_DSN__", release: "__MY_RELEASE__"}, ...]. If no such key exists or list 
+ * is empty event will be sent to main DSN provided in Sentry.init().
+ */
+export function makeSimpleMultiplexedTransport<TO extends BaseTransportOptions>(
+  createTransport: (options: TO) => Transport,
+): (options: TO) => Transport {
+  return makeMultiplexedTransport(makeFetchTransport, (args) => {
+    const event = args.getEvent();
+    if (
+      event &&
+      event.extra &&
+      MULTIPLEXED_TRANSPORT_EXTRA_KEY in event.extra &&
+      Array.isArray(event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY])
+    ) {
+      return event.extra[MULTIPLEXED_TRANSPORT_EXTRA_KEY];
+    }
+    return [];
+  });
+}
