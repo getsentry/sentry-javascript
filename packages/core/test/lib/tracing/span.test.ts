@@ -1,6 +1,6 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
   describe('name', () => {
@@ -18,7 +18,107 @@ describe('span', () => {
       expect(spanToJSON(span).description).toEqual('new name');
     });
   });
-  /* eslint-enable deprecation/deprecation */
+
+  describe('new SentrySpan', () => {
+    test('simple', () => {
+      const span = new SentrySpan({ sampled: true });
+      // eslint-disable-next-line deprecation/deprecation
+      const span2 = span.startChild();
+      expect((span2 as any).parentSpanId).toBe((span as any).spanId);
+      expect((span2 as any).traceId).toBe((span as any).traceId);
+      expect((span2 as any).sampled).toBe((span as any).sampled);
+    });
+  });
+
+  describe('setters', () => {
+    test('setName', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).description).toBeUndefined();
+      span.updateName('foo');
+      expect(spanToJSON(span).description).toBe('foo');
+    });
+  });
+
+  describe('status', () => {
+    test('setStatus', () => {
+      const span = new SentrySpan({});
+      span.setStatus('permission_denied');
+      expect(spanToTraceContext(span).status).toBe('permission_denied');
+    });
+  });
+
+  describe('toJSON', () => {
+    test('simple', () => {
+      const span = spanToJSON(
+        new SentrySpan({ traceId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', spanId: 'bbbbbbbbbbbbbbbb' }),
+      );
+      expect(span).toHaveProperty('span_id', 'bbbbbbbbbbbbbbbb');
+      expect(span).toHaveProperty('trace_id', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa');
+    });
+
+    test('with parent', () => {
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new SentrySpan({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
+      const serialized = spanToJSON(spanB);
+      expect(serialized).toHaveProperty('parent_span_id', 'b');
+      expect(serialized).toHaveProperty('span_id', 'd');
+      expect(serialized).toHaveProperty('trace_id', 'c');
+    });
+
+    test('should drop all `undefined` values', () => {
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanB = new SentrySpan({
+        parentSpanId: spanA.spanId,
+        spanId: 'd',
+        traceId: 'c',
+      });
+      const serialized = spanToJSON(spanB);
+      expect(serialized).toStrictEqual({
+        start_timestamp: expect.any(Number),
+        parent_span_id: 'b',
+        span_id: 'd',
+        trace_id: 'c',
+        origin: 'manual',
+        data: {
+          'sentry.origin': 'manual',
+        },
+      });
+    });
+  });
+
+  describe('finish', () => {
+    test('simple', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      span.end();
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
+    });
+  });
+
+  describe('end', () => {
+    test('simple', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      span.end();
+      expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
+    });
+
+    test('with endTime in seconds', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      const endTime = Date.now() / 1000;
+      span.end(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime);
+    });
+
+    test('with endTime in milliseconds', () => {
+      const span = new SentrySpan({});
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      const endTime = Date.now();
+      span.end(endTime);
+      expect(spanToJSON(span).timestamp).toBe(endTime / 1000);
+    });
+  });
 
   describe('setAttribute', () => {
     it('allows to set attributes', () => {

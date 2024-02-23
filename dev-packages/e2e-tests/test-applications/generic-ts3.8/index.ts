@@ -11,8 +11,6 @@ import * as _SentryOpentelemetry from '@sentry/opentelemetry-node';
 // biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryReplay from '@sentry/replay';
 // biome-ignore lint/nursery/noUnusedImports:
-import * as _SentryTracing from '@sentry/tracing';
-// biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryTypes from '@sentry/types';
 // biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryUtils from '@sentry/utils';

@@ -5,7 +5,8 @@ import {
   feedbackIntegrationShim,
   replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
-import { addExtensionMethods, browserTracingIntegration } from '@sentry-internal/tracing';
+import { browserTracingIntegration } from '@sentry-internal/tracing';
+import { addTracingExtensions } from '@sentry/core';
 
 import * as Sentry from './index.bundle.base';
 
@@ -16,7 +17,7 @@ import * as Sentry from './index.bundle.base';
 Sentry.Integrations.Replay = ReplayShim;
 
 // We are patching the global object with our hub extension methods
-addExtensionMethods();
+addTracingExtensions();
 
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -26,6 +27,6 @@ export {
   feedbackIntegrationShim as feedbackIntegration,
   replayIntegrationShim as replayIntegration,
   browserTracingIntegration,
-  addExtensionMethods,
+  addTracingExtensions,
 };
 export * from './index.bundle.base';
