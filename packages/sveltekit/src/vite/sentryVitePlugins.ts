@@ -1,4 +1,3 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
 
 import type { AutoInstrumentSelection } from './autoInstrument';
@@ -18,7 +17,49 @@ type SourceMapsUploadOptions = {
    * Options for the Sentry Vite plugin to customize and override the release creation and source maps upload process.
    * See [Sentry Vite Plugin Options](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin#configuration) for a detailed description.
    */
-  sourceMapsUploadOptions?: Partial<SentryVitePluginOptions>;
+  sourceMapsUploadOptions?: {
+    /**
+     * The auth token to use when uploading source maps to Sentry.
+     *
+     * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
+     *
+     * To create an auth token, follow this guide:
+     * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+     */
+    authToken?: string;
+
+    /**
+     * The organization slug of your Sentry organization.
+     * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+     */
+    org?: string;
+
+    /**
+     * The project slug of your Sentry project.
+     * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+     */
+    project?: string;
+
+    /**
+     * A glob or an array of globs that specify the build artifacts and source maps that will uploaded to Sentry.
+     *
+     * If this option is not specified, sensible defaults based on your adapter and svelte.config.js
+     * setup will be used. Use this option to override these defaults, for instance if you have a
+     * customized build setup that diverges from SvelteKit's defaults.
+     *
+     * The globbing patterns must follow the implementation of the `glob` package.
+     * @see https://www.npmjs.com/package/glob#glob-primer
+     */
+    assets?: string | Array<string>;
+
+    /**
+     * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
+     * It will not collect any sensitive or user-specific data.
+     *
+     * @default true
+     */
+    telemetry?: boolean;
+  };
 };
 
 type AutoInstrumentOptions = {
