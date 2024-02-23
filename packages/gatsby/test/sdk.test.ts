@@ -48,7 +48,7 @@ describe('Initialize React SDK', () => {
     });
   });
 
-  test('Has BrowserTracing if tracing enabled', () => {
+  test('Has browserTracingIntegration if tracing enabled', () => {
     gatsbyInit({ tracesSampleRate: 1 });
     expect(reactInit).toHaveBeenCalledTimes(1);
     const calledWith = reactInit.mock.calls[0][0];
@@ -66,13 +66,13 @@ describe('Integrations from options', () => {
     ['tracing disabled, no integrations', [], {}, []],
     ['tracing enabled, no integrations', [], { tracesSampleRate: 1 }, ['BrowserTracing']],
     [
-      'tracing disabled, with BrowserTracing as an array',
+      'tracing disabled, with browserTracingIntegration as an array',
       [],
       { integrations: [browserTracingIntegration()] },
       ['BrowserTracing'],
     ],
     [
-      'tracing disabled, with BrowserTracing as a function',
+      'tracing disabled, with browserTracingIntegration as a function',
       [],
       {
         integrations: () => [browserTracingIntegration()],
@@ -80,13 +80,13 @@ describe('Integrations from options', () => {
       ['BrowserTracing'],
     ],
     [
-      'tracing enabled, with BrowserTracing as an array',
+      'tracing enabled, with browserTracingIntegration as an array',
       [],
       { tracesSampleRate: 1, integrations: [browserTracingIntegration()] },
       ['BrowserTracing'],
     ],
     [
-      'tracing enabled, with BrowserTracing as a function',
+      'tracing enabled, with browserTracingIntegration as a function',
       [],
       { tracesSampleRate: 1, integrations: () => [browserTracingIntegration()] },
       ['BrowserTracing'],

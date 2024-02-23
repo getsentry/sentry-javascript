@@ -1,8 +1,7 @@
 import { Feedback, feedbackIntegration } from '@sentry-internal/feedback';
-import { BrowserTracing } from '@sentry-internal/tracing';
+import { browserTracingIntegration } from '@sentry-internal/tracing';
 import { addTracingExtensions } from '@sentry/core';
 import { Replay, replayIntegration } from '@sentry/replay';
-import { bundleBrowserTracingIntegration as browserTracingIntegration } from './helpers';
 
 import * as Sentry from './index.bundle.base';
 
@@ -11,9 +10,6 @@ import * as Sentry from './index.bundle.base';
 // with the NPM package version.
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.Replay = Replay;
-
-// eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 // We are patching the global object with our hub extension methods
 addTracingExtensions();
@@ -25,8 +21,6 @@ export {
   Replay,
   feedbackIntegration,
   replayIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
   browserTracingIntegration,
   addTracingExtensions,
 };

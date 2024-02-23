@@ -1,7 +1,6 @@
 import { navigating, page } from '$app/stores';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
-  BrowserTracing as OriginalBrowserTracing,
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -10,26 +9,6 @@ import {
 } from '@sentry/svelte';
 import type { Client, Integration, Span } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { svelteKitRoutingInstrumentation } from './router';
-
-/**
- * A custom BrowserTracing integration for Sveltekit.
- *
- * @deprecated use `browserTracingIntegration()` instead. The new `browserTracingIntegration()`
- * includes SvelteKit-specific routing instrumentation out of the box. Therefore there's no need
- * to pass in `svelteKitRoutingInstrumentation` anymore.
- */
-// eslint-disable-next-line deprecation/deprecation
-export class BrowserTracing extends OriginalBrowserTracing {
-  // eslint-disable-next-line deprecation/deprecation
-  public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
-    super({
-      // eslint-disable-next-line deprecation/deprecation
-      routingInstrumentation: svelteKitRoutingInstrumentation,
-      ...options,
-    });
-  }
-}
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.

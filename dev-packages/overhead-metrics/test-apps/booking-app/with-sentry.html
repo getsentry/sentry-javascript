@@ -220,7 +220,7 @@
       Sentry.init({
         dsn: 'https://d16ae2d36f9249849c7964e9a3a8a608@o447951.ingest.sentry.io/5429213',
         enableTracing: true,
-        integrations: [new Sentry.Integrations.BrowserTracing()],
+        integrations: [Sentry.browserTracingIntegration()],
       });
     </script>
   </body>

@@ -50,7 +50,7 @@ describe('buildClientSnippet', () => {
     `);
   });
 
-  it('does not include BrowserTracing if tracesSampleRate is 0', () => {
+  it('does not include browserTracingIntegration if tracesSampleRate is 0', () => {
     const snippet = buildClientSnippet({ tracesSampleRate: 0 });
     expect(snippet).toMatchInlineSnapshot(`
       "import * as Sentry from \\"@sentry/astro\\";

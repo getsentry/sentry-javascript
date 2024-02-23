@@ -1,7 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Hub, SentrySpan } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
