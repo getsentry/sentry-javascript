@@ -397,15 +397,6 @@ export class SentrySpan implements SpanInterface {
     return this;
   }
 
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `.end()` instead.
-   */
-  public finish(endTimestamp?: number): void {
-    return this.end(endTimestamp);
-  }
-
   /** @inheritdoc */
   public end(endTimestamp?: SpanTimeInput): void {
     // If already ended, skip
