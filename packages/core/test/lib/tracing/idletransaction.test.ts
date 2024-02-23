@@ -1,5 +1,3 @@
-/* eslint-disable deprecation/deprecation */
-import { BrowserClient } from '@sentry/browser';
 import {
   TRACING_DEFAULTS,
   Transaction,
@@ -13,10 +11,11 @@ import {
   startSpan,
   startSpanManual,
 } from '@sentry/core';
+/* eslint-disable deprecation/deprecation */
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-import { IdleTransaction, SentrySpan, getClient } from '../../core/src';
-import { IdleTransactionSpanRecorder } from '../../core/src/tracing/idletransaction';
-import { getDefaultBrowserClientOptions } from './testutils';
+import { IdleTransaction, SentrySpan, getClient } from '../../../src';
+import { IdleTransactionSpanRecorder } from '../../../src/tracing/idletransaction';
 
 const dsn = 'https://123@sentry.io/42';
 beforeEach(() => {
@@ -24,8 +23,8 @@ beforeEach(() => {
   getIsolationScope().clear();
   getGlobalScope().clear();
 
-  const options = getDefaultBrowserClientOptions({ dsn, tracesSampleRate: 1 });
-  const client = new BrowserClient(options);
+  const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1 });
+  const client = new TestClient(options);
   setCurrentClient(client);
   client.init();
 });

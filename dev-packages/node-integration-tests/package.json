@@ -32,7 +32,6 @@
     "@nestjs/platform-express": "^10.3.3",
     "@prisma/client": "5.9.1",
     "@sentry/node": "7.100.0",
-    "@sentry/tracing": "7.100.0",
     "@sentry/types": "7.100.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",

@@ -88,7 +88,13 @@ to access and mutate the current scope.
 
 ## Deletion of `@sentry/hub` package (#10530)
 
-`@sentry/hub` has been removed. All exports from `@sentry.hub` should be available in `@sentry/core`.
+`@sentry/hub` has been removed. All exports from `@sentry/tracing` should be available in `@sentry/core` or in
+`@sentry/browser` and `@sentry/node`.
+
+## Deletion of `@sentry/tracing` package
+
+`@sentry/tracing` has been removed. All exports from `@sentry/tracing` should be available in `@sentry/core` or in
+`@sentry/browser` and `@sentry/node`.
 
 ## Removal of `makeXHRTransport` transport (#10703)
 

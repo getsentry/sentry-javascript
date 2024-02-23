@@ -2,6 +2,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
+  getActiveTransaction,
   getClient,
   getCurrentHub,
   setCurrentClient,
@@ -11,16 +12,14 @@ import * as hubExtensions from '@sentry/core';
 import type { BaseTransportOptions, ClientOptions, DsnComponents, HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 
+import type { IdleTransaction } from '@sentry/core';
 import { timestampInSeconds } from '@sentry/utils';
-import type { IdleTransaction } from '../../../tracing/src';
-import { getActiveTransaction } from '../../../tracing/src';
-import { getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import type { BrowserTracingOptions } from '../../src/browser/browsertracing';
 import { BrowserTracing, getMetaContent } from '../../src/browser/browsertracing';
 import { defaultRequestInstrumentationOptions } from '../../src/browser/request';
 import { instrumentRoutingWithDefaults } from '../../src/browser/router';
 import { WINDOW } from '../../src/browser/types';
-import { TestClient } from '../utils/TestClient';
+import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 let mockChangeHistory: (data: HandlerDataHistory) => void = () => {};
 
@@ -65,7 +64,7 @@ beforeAll(() => {
 describe('BrowserTracing', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
+    const options = getDefaultClientOptions({ tracesSampleRate: 1 });
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -551,7 +550,7 @@ describe('BrowserTracing', () => {
       WINDOW.location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
-      const options = getDefaultBrowserClientOptions({ tracesSampler });
+      const options = getDefaultClientOptions({ tracesSampler });
       const client = new TestClient(options);
       setCurrentClient(client);
       client.init();
@@ -570,7 +569,7 @@ describe('BrowserTracing', () => {
       WINDOW.location = dogParkLocation as any;
 
       const tracesSampler = jest.fn();
-      const options = getDefaultBrowserClientOptions({ tracesSampler });
+      const options = getDefaultClientOptions({ tracesSampler });
       const client = new TestClient(options);
       setCurrentClient(client);
       client.init();

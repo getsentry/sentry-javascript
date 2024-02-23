@@ -30,5 +30,3 @@ export {
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './common/fetch';
 
 export type { RequestInstrumentationOptions } from './browser';
-
-export { addExtensionMethods } from './extensions';
