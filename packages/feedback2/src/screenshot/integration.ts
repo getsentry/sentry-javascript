@@ -1,9 +1,10 @@
-import type { Integration, IntegrationFn } from '@sentry/types';
+import type { Attachment, Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
 import type { ComponentType, h as hType } from 'preact';
 import { DOCUMENT } from '../constants';
 import { makeInput } from './components/ScreenshotInput';
 import type { Props as ScreenshotInputProps } from './components/ScreenshotInput';
+import { createScreenshotInputStyles } from './components/ScreenshotInput.css';
 import { makeToggle } from './components/ScreenshotToggle';
 import type { Props as ScreenshotToggleProps } from './components/ScreenshotToggle';
 
@@ -34,7 +35,7 @@ export class Feedback2Screenshot implements Integration {
   }
 
   /**
-   * Setup and initialize feedback container
+   * Setupand initialize feedback container
    */
   public setupOnce(): void {
     if (!isBrowser()) {
@@ -48,26 +49,34 @@ export class Feedback2Screenshot implements Integration {
    */
   public createWidget(h: typeof hType): ScreenshotWidget {
     const canvasEl = DOCUMENT.createElement('canvas');
+
     return {
+      style: createScreenshotInputStyles(),
       input: makeInput(h, canvasEl),
       toggle: makeToggle(h),
-      value: () => {
-        // TODO: maybe this only returns if the canvas is in the document?
-        // then handleFormData can be moved into this integration!
-        return canvasToBlob(canvasEl);
+      value: async () => {
+        const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {
+          canvasEl.toBlob(resolve, 'image/png');
+        });
+        if (blob) {
+          const data = new Uint8Array(await blob.arrayBuffer());
+          const attachment: Attachment = {
+            data,
+            filename: 'screenshot.png',
+            contentType: 'application/png',
+            // attachmentType?: string;
+          };
+          return attachment;
+        }
+        return;
       },
     };
   }
 }
 
-async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
-  return new Promise(resolve => {
-    canvas.toBlob(resolve);
-  });
-}
-
 export interface ScreenshotWidget {
+  style: HTMLStyleElement;
   input: ComponentType<ScreenshotInputProps>;
   toggle: ComponentType<ScreenshotToggleProps>;
-  value: () => Promise<Blob | null>;
+  value: () => Promise<Attachment | undefined>;
 }

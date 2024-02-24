@@ -9,7 +9,7 @@ import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
  * Public API to send a Feedback item to Sentry
  */
 export async function sendFeedback(
-  { name, email, message, attachment, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
+  { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): Promise<TransportMakeRequestResponse> {
   if (!message) {
@@ -60,17 +60,12 @@ export async function sendFeedback(
         createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel),
       );
 
-      if (attachment) {
-        const formatted = {
-          filename: attachment.name,
-          data: new Uint8Array(await attachment.arrayBuffer()),
-          contentType: attachment.type,
-        };
-        console.log({ formatted });
+      if (attachments && attachments.length) {
+        // TODO: https://docs.sentry.io/platforms/javascript/enriching-events/attachments/
         await transport.send(
           createAttachmentEnvelope(
             feedbackEvent,
-            [formatted],
+            attachments,
             dsn,
             client.getOptions()._metadata,
             client.getOptions().tunnel,

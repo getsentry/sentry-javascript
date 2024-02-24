@@ -71,15 +71,8 @@ export function Form({
   const ScreenshotInput = screenshotWidget && screenshotWidget.input;
   const ScreenshotToggle = screenshotWidget && screenshotWidget.toggle;
 
-  const validateForm = useCallback(
-    (form: HTMLFormElement) => {
-      const formData = new FormData(form);
-      const data: FeedbackFormData = {
-        name: retrieveStringValue(formData, 'name'),
-        email: retrieveStringValue(formData, 'email'),
-        message: retrieveStringValue(formData, 'message'),
-        attachment: (formData.get('attachment') as File) || undefined,
-      };
+  const hasAllRequiredFields = useCallback(
+    (data: FeedbackFormData) => {
       const missingFields = getMissingFields(data, {
         emailLabel,
         isEmailRequired,
@@ -94,21 +87,9 @@ export function Form({
         setError(null);
       }
 
-      return { data, missingFields };
+      return missingFields.length === 0;
     },
     [emailLabel, isEmailRequired, isNameRequired, messageLabel, nameLabel],
-  );
-
-  const handleFormData = useCallback(
-    async (e: JSX.TargetedEvent<HTMLFormElement>) => {
-      if (screenshotWidget && includeScreenshot && 'formData' in e && e.formData instanceof FormData) {
-        const value = await screenshotWidget.value();
-        if (value) {
-          e.formData.set('attachment', value, 'screenshot.png');
-        }
-      }
-    },
-    [screenshotWidget, includeScreenshot],
   );
 
   const handleSubmit = useCallback(
@@ -118,8 +99,15 @@ export function Form({
         if (!(e.target instanceof HTMLFormElement)) {
           return;
         }
-        const { data, missingFields } = validateForm(e.target);
-        if (missingFields.length > 0) {
+        const formData = new FormData(e.target);
+        const attachment = await (screenshotWidget && includeScreenshot ? screenshotWidget.value() : undefined);
+        const data: FeedbackFormData = {
+          name: retrieveStringValue(formData, 'name'),
+          email: retrieveStringValue(formData, 'email'),
+          message: retrieveStringValue(formData, 'message'),
+          attachments: attachment ? [attachment] : undefined,
+        };
+        if (!hasAllRequiredFields(data)) {
           return;
         }
         try {
@@ -138,7 +126,7 @@ export function Form({
   );
 
   return (
-    <form class="form" onSubmit={handleSubmit} onFormData={handleFormData}>
+    <form class="form" onSubmit={handleSubmit}>
       {error ? <div class="form__error-container">{error}</div> : null}
 
       {ScreenshotInput && includeScreenshot ? <ScreenshotInput initialImage={undefined} /> : null}

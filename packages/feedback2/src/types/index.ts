@@ -1,3 +1,4 @@
+import type { Attachment } from '@sentry/types';
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -43,7 +44,7 @@ export interface SendFeedbackParams {
   message: string;
   name?: string;
   email?: string;
-  attachment?: File;
+  attachments?: Attachment[];
   url?: string;
   source?: string;
 }

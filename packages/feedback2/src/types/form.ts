@@ -1,6 +1,8 @@
+import type { Attachment } from '@sentry/types';
+
 export type FeedbackFormData = {
   name: string;
   email: string;
   message: string;
-  attachment: File | undefined;
+  attachments: Attachment[] | undefined;
 };

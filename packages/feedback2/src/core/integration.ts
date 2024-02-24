@@ -363,25 +363,15 @@ export class Feedback2 implements Integration {
       throw new Error('Not implemented yet');
     }
 
-    const shadow = this._getShadow(options);
-
-    // TODO: some combination stuff when screenshots exists:
-    const dialog = modalIntegration.createDialog(
+    const dialog = modalIntegration.createDialog({
+      shadow: this._getShadow(options),
+      sendFeedback,
       options,
-      {
-        onCreate: (dialog: DialogComponent) => {
-          shadow.appendChild(dialog.style);
-          shadow.appendChild(dialog.el);
-        },
-        onSubmit: sendFeedback,
-        onDone: (dialog: DialogComponent) => {
-          shadow.removeChild(dialog.el);
-          shadow.removeChild(dialog.style);
-          this._dialog = null;
-        },
+      onDone: () => {
+        this._dialog = null;
       },
       screenshotIntegration,
-    );
+    });
     this._dialog = dialog;
     return dialog;
   }

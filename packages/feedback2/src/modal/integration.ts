@@ -2,31 +2,28 @@ import { getCurrentScope } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
 import { h } from 'preact';
+import type { sendFeedback as sendFeedbackFn } from '../core/sendFeedback';
 import type { Feedback2Screenshot } from '../screenshot/integration';
-import type { FeedbackFormData, FeedbackInternalOptions, SendFeedbackOptions, SendFeedbackParams } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '../types';
 import { Dialog } from './components/Dialog';
 import type { DialogComponent } from './components/Dialog';
 
-/**
- * Internal callbacks for pushing more form event code into the Feedback2Modal integration
- */
-export interface DialogLifecycleCallbacks {
-  /**
-   * When the dialog is created.
-   */
-  onCreate: (dialog: DialogComponent) => void;
+interface CreateDialogProps {
+  shadow: ShadowRoot;
 
-  /**
-   * When the data is ready to be submitted
-   */
-  onSubmit: (data: SendFeedbackParams, options?: SendFeedbackOptions) => void;
+  sendFeedback: typeof sendFeedbackFn;
+
+  options: FeedbackInternalOptions;
 
   /**
    * When the dialog is either closed, or was submitted successfully, and nothing is rendered anymore.
    *
    * This is called as part of onFormClose and onFormSubmitted
    */
-  onDone: (dialog: DialogComponent) => void;
+  onDone: () => void;
+
+  // eslint-disable-next-line deprecation/deprecation
+  screenshotIntegration: Feedback2Screenshot | undefined;
 }
 
 export const feedback2ModalIntegration = (() => {
@@ -69,12 +66,13 @@ export class Feedback2Modal implements Integration {
   /**
    *
    */
-  public createDialog(
-    options: FeedbackInternalOptions,
-    callbacks: DialogLifecycleCallbacks,
-    // eslint-disable-next-line deprecation/deprecation
-    screenshotIntegration: Feedback2Screenshot | undefined,
-  ): DialogComponent {
+  public createDialog({
+    shadow,
+    sendFeedback,
+    options,
+    onDone,
+    screenshotIntegration,
+  }: CreateDialogProps): DialogComponent {
     const userKey = options.useSentryUser;
     const scope = getCurrentScope();
     const user = scope && scope.getUser();
@@ -102,10 +100,13 @@ export class Feedback2Modal implements Integration {
       defaultEmail: (userKey && user && user[userKey.email]) || '',
       successMessageText: options.successMessageText,
       onFormClose: () => {
-        callbacks.onDone(dialog);
+        shadow.removeChild(dialog.el);
+        shadow.removeChild(dialog.style);
+        screenshotWidget && shadow.removeChild(screenshotWidget.style);
+        onDone();
         options.onFormClose && options.onFormClose();
       },
-      onSubmit: callbacks.onSubmit,
+      onSubmit: sendFeedback,
       onSubmitSuccess: (data: FeedbackFormData) => {
         options.onSubmitSuccess && options.onSubmitSuccess(data);
       },
@@ -113,11 +114,16 @@ export class Feedback2Modal implements Integration {
         options.onSubmitError && options.onSubmitError(error);
       },
       onFormSubmitted: () => {
-        callbacks.onDone(dialog);
+        shadow.removeChild(dialog.el);
+        shadow.removeChild(dialog.style);
+        screenshotWidget && shadow.removeChild(screenshotWidget.style);
+        onDone();
         options.onFormSubmitted && options.onFormSubmitted();
       },
     });
-    callbacks.onCreate(dialog);
+    shadow.appendChild(dialog.style);
+    screenshotWidget && shadow.appendChild(screenshotWidget.style);
+    shadow.appendChild(dialog.el);
     options.onFormOpen && options.onFormOpen();
 
     return dialog;
