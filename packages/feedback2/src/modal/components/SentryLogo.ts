@@ -1,17 +1,19 @@
-import { WINDOW } from '../../constants';
-import type { FeedbackInternalOptions } from '../../types';
+import { DOCUMENT } from '../../constants';
 import { setAttributesNS } from '../../util/setAttributesNS';
 
 const XMLNS = 'http://www.w3.org/2000/svg';
 
-export type Props = Pick<FeedbackInternalOptions, 'colorScheme'>;
+export type Props = {
+  // TODO: reuse the type from somewhere else
+  colorScheme: 'light' | 'dark' | 'system';
+};
 
 /**
  * Sentry Logo
  */
-export function Logo({ colorScheme }: Props): SVGElement {
+export function SentryLogo({ colorScheme }: Props): SVGElement {
   const createElementNS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
-    WINDOW.document.createElementNS(XMLNS, tagName);
+    DOCUMENT.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(createElementNS('svg'), {
     class: 'sentry-logo',
     width: '32',

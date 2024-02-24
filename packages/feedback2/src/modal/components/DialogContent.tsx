@@ -4,8 +4,8 @@ import type { ComponentChildren, VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
 import { Form } from './Form';
 import type { Props as FormProps } from './Form';
-import type { Props as LogoProps } from './Logo';
-import { Logo } from './Logo';
+import type { Props as LogoProps } from './SentryLogo';
+import { SentryLogo } from './SentryLogo';
 
 export interface Props extends FormProps, LogoProps {
   children?: ComponentChildren;
@@ -15,7 +15,7 @@ export interface Props extends FormProps, LogoProps {
 
 export function DialogContent({ children, colorScheme, formTitle, showBranding, ...props }: Props): VNode {
   const logoHtml = useMemo(() => {
-    const logo = Logo({ colorScheme });
+    const logo = SentryLogo({ colorScheme });
     return { __html: logo.outerHTML };
   }, [colorScheme]);
 

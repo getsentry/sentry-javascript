@@ -4,8 +4,7 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type { VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
-import type { FeedbackFormData } from '../../types';
-import type { SendFeedbackOptions, SendFeedbackParams } from '../../types';
+import type { FeedbackFormData, SendFeedbackOptions, SendFeedbackParams } from '../../types';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 

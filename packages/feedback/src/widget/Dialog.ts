@@ -1,4 +1,3 @@
-import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
 import type { FeedbackComponent, FeedbackInternalOptions } from '../types';
 import type { FormComponentProps } from './Form';
 import { Form } from './Form';

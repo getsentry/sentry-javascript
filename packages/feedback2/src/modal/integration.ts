@@ -1,8 +1,7 @@
 import { getCurrentScope } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
-import type { FeedbackFormData, FeedbackInternalOptions } from '../types';
-import type { SendFeedbackOptions, SendFeedbackParams } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions, SendFeedbackOptions, SendFeedbackParams } from '../types';
 import { Dialog } from './components/Dialog';
 import type { DialogComponent } from './components/Dialog';
 
