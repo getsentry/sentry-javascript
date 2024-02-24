@@ -1,4 +1,3 @@
-import type { BrowserClient } from '@sentry/browser';
 import { getClient } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
@@ -329,7 +328,7 @@ export class Feedback2 implements Integration {
       return this._dialog;
     }
 
-    const client = getClient<BrowserClient>();
+    const client = getClient(); // TODO: getClient<BrowserClient>()
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
     }
@@ -367,18 +366,22 @@ export class Feedback2 implements Integration {
     const shadow = this._getShadow(options);
 
     // TODO: some combination stuff when screenshots exists:
-    const dialog = modalIntegration.createDialog(options, {
-      onCreate: (dialog: DialogComponent) => {
-        shadow.appendChild(dialog.style);
-        shadow.appendChild(dialog.el);
+    const dialog = modalIntegration.createDialog(
+      options,
+      {
+        onCreate: (dialog: DialogComponent) => {
+          shadow.appendChild(dialog.style);
+          shadow.appendChild(dialog.el);
+        },
+        onSubmit: sendFeedback,
+        onDone: (dialog: DialogComponent) => {
+          shadow.removeChild(dialog.el);
+          shadow.removeChild(dialog.style);
+          this._dialog = null;
+        },
       },
-      onSubmit: sendFeedback,
-      onDone: (dialog: DialogComponent) => {
-        shadow.removeChild(dialog.el);
-        shadow.removeChild(dialog.style);
-        this._dialog = null;
-      },
-    });
+      screenshotIntegration,
+    );
     this._dialog = dialog;
     return dialog;
   }

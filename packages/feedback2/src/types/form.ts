@@ -1,5 +1,6 @@
 export type FeedbackFormData = {
+  name: string;
+  email: string;
   message: string;
-  email?: string;
-  name?: string;
+  attachment: File | undefined;
 };

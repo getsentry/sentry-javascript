@@ -1,9 +1,15 @@
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
+import type { ComponentType, h as hType } from 'preact';
+import { DOCUMENT } from '../constants';
+import { makeInput } from './components/ScreenshotInput';
+import type { Props as ScreenshotInputProps } from './components/ScreenshotInput';
+import { makeToggle } from './components/ScreenshotToggle';
+import type { Props as ScreenshotToggleProps } from './components/ScreenshotToggle';
 
-export const feedback2ScreenshotIntegration = ((options?: Record<string, unknown>) => {
+export const feedback2ScreenshotIntegration = (() => {
   // eslint-disable-next-line deprecation/deprecation
-  return new Feedback2Screenshot(options);
+  return new Feedback2Screenshot();
 }) satisfies IntegrationFn;
 
 /**
@@ -22,7 +28,7 @@ export class Feedback2Screenshot implements Integration {
    */
   public name: string;
 
-  public constructor({ id = 'sentry-feedback' }: Record<string, unknown> = {}) {
+  public constructor() {
     // eslint-disable-next-line deprecation/deprecation
     this.name = Feedback2Screenshot.id;
   }
@@ -34,7 +40,34 @@ export class Feedback2Screenshot implements Integration {
     if (!isBrowser()) {
       return;
     }
-
-    console.log('Feedback Screenshot is setup');
+    // Nothing?
   }
+
+  /**
+   *
+   */
+  public createWidget(h: typeof hType): ScreenshotWidget {
+    const canvasEl = DOCUMENT.createElement('canvas');
+    return {
+      input: makeInput(h, canvasEl),
+      toggle: makeToggle(h),
+      value: () => {
+        // TODO: maybe this only returns if the canvas is in the document?
+        // then handleFormData can be moved into this integration!
+        return canvasToBlob(canvasEl);
+      },
+    };
+  }
+}
+
+async function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise(resolve => {
+    canvas.toBlob(resolve);
+  });
+}
+
+export interface ScreenshotWidget {
+  input: ComponentType<ScreenshotInputProps>;
+  toggle: ComponentType<ScreenshotToggleProps>;
+  value: () => Promise<Blob | null>;
 }

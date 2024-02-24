@@ -161,7 +161,7 @@ export interface FeedbackCallbacks {
   /**
    * Callback when feedback is unsuccessfully submitted
    */
-  onSubmitError?: () => void;
+  onSubmitError?: (error: Error) => void;
 
   /**
    * Callback when the feedback form is submitted successfully, and the SuccessMessage is complete, or dismissed

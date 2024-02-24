@@ -1,11 +1,11 @@
 import { DOCUMENT } from '../../constants';
+import type { FeedbackInternalOptions } from '../../types';
 import { setAttributesNS } from '../../util/setAttributesNS';
 
 const XMLNS = 'http://www.w3.org/2000/svg';
 
 export type Props = {
-  // TODO: reuse the type from somewhere else
-  colorScheme: 'light' | 'dark' | 'system';
+  colorScheme: FeedbackInternalOptions['colorScheme'];
 };
 
 /**

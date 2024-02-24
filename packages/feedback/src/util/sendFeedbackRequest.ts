@@ -1,4 +1,4 @@
-import { createEventEnvelope, getClient, withScope, createAttachmentEnvelope } from '@sentry/core';
+import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
 import type { Attachment, FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';

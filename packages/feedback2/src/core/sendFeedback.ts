@@ -1,4 +1,4 @@
-import { createEventEnvelope, getClient, withScope } from '@sentry/core';
+import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
@@ -9,7 +9,7 @@ import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
  * Public API to send a Feedback item to Sentry
  */
 export async function sendFeedback(
-  { name, email, message, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
+  { name, email, message, attachment, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true }: SendFeedbackOptions = {},
 ): Promise<TransportMakeRequestResponse> {
   if (!message) {
@@ -55,12 +55,40 @@ export async function sendFeedback(
       client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
     }
 
-    const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
-
-    let response: void | TransportMakeRequestResponse;
-
     try {
-      response = await transport.send(envelope);
+      const response = await transport.send(
+        createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel),
+      );
+
+      if (attachment) {
+        const formatted = {
+          filename: attachment.name,
+          data: new Uint8Array(await attachment.arrayBuffer()),
+          contentType: attachment.type,
+        };
+        console.log({ formatted });
+        await transport.send(
+          createAttachmentEnvelope(
+            feedbackEvent,
+            [formatted],
+            dsn,
+            client.getOptions()._metadata,
+            client.getOptions().tunnel,
+          ),
+        );
+      }
+
+      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
+      if (!response) {
+        throw new Error('Unable to send Feedback');
+      }
+
+      // Require valid status codes, otherwise can assume feedback was not sent successfully
+      if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+        throw new Error('Unable to send Feedback. Invalid response from server.');
+      }
+
+      return response;
     } catch (err) {
       const error = new Error('Unable to send Feedback');
 
@@ -73,18 +101,6 @@ export async function sendFeedback(
       }
       throw error;
     }
-
-    // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-    if (!response) {
-      throw new Error('Unable to send Feedback');
-    }
-
-    // Require valid status codes, otherwise can assume feedback was not sent successfully
-    if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
-      throw new Error('Unable to send Feedback. Invalid response from server.');
-    }
-
-    return response;
   });
 }
 

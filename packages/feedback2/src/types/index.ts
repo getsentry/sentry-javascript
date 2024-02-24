@@ -43,6 +43,7 @@ export interface SendFeedbackParams {
   message: string;
   name?: string;
   email?: string;
+  attachment?: File;
   url?: string;
   source?: string;
 }

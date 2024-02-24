@@ -1,6 +1,8 @@
 import { getCurrentScope } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser } from '@sentry/utils';
+import { h } from 'preact';
+import type { Feedback2Screenshot } from '../screenshot/integration';
 import type { FeedbackFormData, FeedbackInternalOptions, SendFeedbackOptions, SendFeedbackParams } from '../types';
 import { Dialog } from './components/Dialog';
 import type { DialogComponent } from './components/Dialog';
@@ -67,13 +69,20 @@ export class Feedback2Modal implements Integration {
   /**
    *
    */
-  public createDialog(options: FeedbackInternalOptions, callbacks: DialogLifecycleCallbacks): DialogComponent {
+  public createDialog(
+    options: FeedbackInternalOptions,
+    callbacks: DialogLifecycleCallbacks,
+    // eslint-disable-next-line deprecation/deprecation
+    screenshotIntegration: Feedback2Screenshot | undefined,
+  ): DialogComponent {
     const userKey = options.useSentryUser;
     const scope = getCurrentScope();
     const user = scope && scope.getUser();
 
-    // TODO: options may have changed?
+    const screenshotWidget = screenshotIntegration && screenshotIntegration.createWidget(h);
+
     const dialog = Dialog({
+      screenshotWidget,
       colorScheme: options.colorScheme,
       showBranding: options.showBranding,
       showName: options.showName || options.isNameRequired,
@@ -100,8 +109,8 @@ export class Feedback2Modal implements Integration {
       onSubmitSuccess: (data: FeedbackFormData) => {
         options.onSubmitSuccess && options.onSubmitSuccess(data);
       },
-      onSubmitError: () => {
-        options.onSubmitError && options.onSubmitError();
+      onSubmitError: (error: Error) => {
+        options.onSubmitError && options.onSubmitError(error);
       },
       onFormSubmitted: () => {
         callbacks.onDone(dialog);

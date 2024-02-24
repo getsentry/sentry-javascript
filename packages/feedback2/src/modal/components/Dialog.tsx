@@ -6,10 +6,13 @@ import { DOCUMENT, SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { FeedbackFormData } from '../../types';
 import { createDialogStyles } from './Dialog.css';
 import { DialogContent } from './DialogContent';
-import type { Props as DialogContentProps } from './DialogContent';
+import { DialogHeader } from './DialogHeader';
+import type { Props as HeaderProps } from './DialogHeader';
+import type { Props as FormProps } from './Form';
+import { Form } from './Form';
 import { SuccessIcon } from './SuccessIcon';
 
-export interface Props extends DialogContentProps {
+export interface Props extends HeaderProps, FormProps {
   successMessageText: string;
   onFormSubmitted: () => void;
 }
@@ -98,7 +101,12 @@ function DialogContainer({ open, onFormSubmitted, ...props }: Props & { open: bo
         </div>
       ) : (
         <dialog class="dialog" onClick={props.onFormClose} open={open}>
-          <DialogContent {...props} onSubmitSuccess={onSubmitSuccess} />
+          <DialogContent {...props}>
+            <DialogHeader {...props} />
+            <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
+              <Form {...props} onSubmitSuccess={onSubmitSuccess} />
+            </div>
+          </DialogContent>
         </dialog>
       )}
     </Fragment>

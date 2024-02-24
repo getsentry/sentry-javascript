@@ -1,32 +1,37 @@
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { VNode } from 'preact';
+import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
-import type { FeedbackFormData, SendFeedbackOptions, SendFeedbackParams } from '../../types';
+import type { ScreenshotWidget } from '../../screenshot/integration';
+import type { FeedbackFormData, FeedbackInternalOptions, SendFeedbackOptions, SendFeedbackParams } from '../../types';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 
-export interface Props {
-  cancelButtonLabel: string;
+export interface Props
+  extends Pick<
+    FeedbackInternalOptions,
+    | 'cancelButtonLabel'
+    | 'emailLabel'
+    | 'emailPlaceholder'
+    | 'isEmailRequired'
+    | 'isNameRequired'
+    | 'messageLabel'
+    | 'messagePlaceholder'
+    | 'nameLabel'
+    | 'namePlaceholder'
+    | 'showEmail'
+    | 'showName'
+    | 'submitButtonLabel'
+  > {
   defaultEmail: string;
   defaultName: string;
-  emailLabel: string;
-  emailPlaceholder: string;
-  isEmailRequired: boolean;
-  isNameRequired: boolean;
-  messageLabel: string;
-  messagePlaceholder: string;
-  nameLabel: string;
-  namePlaceholder: string;
   onFormClose: () => void;
   onSubmit: (data: SendFeedbackParams, options?: SendFeedbackOptions) => void;
-  onSubmitSuccess: (feedback: FeedbackFormData) => void;
+  onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
-  showEmail: boolean;
-  showName: boolean;
-  submitButtonLabel: string;
+  screenshotWidget: ScreenshotWidget | undefined;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
@@ -56,9 +61,15 @@ export function Form({
   showEmail,
   showName,
   submitButtonLabel,
+  screenshotWidget,
 }: Props): VNode {
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
   const [error, setError] = useState<null | string>(null);
+
+  const [includeScreenshot, setIncludeScreeshot] = useState(false);
+
+  const ScreenshotInput = screenshotWidget && screenshotWidget.input;
+  const ScreenshotToggle = screenshotWidget && screenshotWidget.toggle;
 
   const validateForm = useCallback(
     (form: HTMLFormElement) => {
@@ -67,6 +78,7 @@ export function Form({
         name: retrieveStringValue(formData, 'name'),
         email: retrieveStringValue(formData, 'email'),
         message: retrieveStringValue(formData, 'message'),
+        attachment: (formData.get('attachment') as File) || undefined,
       };
       const missingFields = getMissingFields(data, {
         emailLabel,
@@ -87,33 +99,49 @@ export function Form({
     [emailLabel, isEmailRequired, isNameRequired, messageLabel, nameLabel],
   );
 
-  return (
-    <form
-      class="form"
-      onSubmit={async e => {
-        try {
-          e.preventDefault();
-          if (!(e.target instanceof HTMLFormElement)) {
-            return;
-          }
-          const { data, missingFields } = validateForm(e.target);
-          if (missingFields.length > 0) {
-            return;
-          }
-          try {
-            await onSubmit({ ...data, source: FEEDBACK_WIDGET_SOURCE });
-            onSubmitSuccess(data);
-          } catch (error) {
-            DEBUG_BUILD && logger.error(error);
-            setError('There was a problem submitting feedback, please wait and try again.');
-            onSubmitError(error as Error);
-          }
-        } catch {
-          // pass
+  const handleFormData = useCallback(
+    async (e: JSX.TargetedEvent<HTMLFormElement>) => {
+      if (screenshotWidget && includeScreenshot && 'formData' in e && e.formData instanceof FormData) {
+        const value = await screenshotWidget.value();
+        if (value) {
+          e.formData.set('attachment', value, 'screenshot.png');
         }
-      }}
-    >
+      }
+    },
+    [screenshotWidget, includeScreenshot],
+  );
+
+  const handleSubmit = useCallback(
+    async (e: JSX.TargetedSubmitEvent<HTMLFormElement>) => {
+      try {
+        e.preventDefault();
+        if (!(e.target instanceof HTMLFormElement)) {
+          return;
+        }
+        const { data, missingFields } = validateForm(e.target);
+        if (missingFields.length > 0) {
+          return;
+        }
+        try {
+          await onSubmit({ ...data, source: FEEDBACK_WIDGET_SOURCE });
+          onSubmitSuccess(data);
+        } catch (error) {
+          DEBUG_BUILD && logger.error(error);
+          setError('There was a problem submitting feedback, please wait and try again.');
+          onSubmitError(error as Error);
+        }
+      } catch {
+        // pass
+      }
+    },
+    [onSubmitSuccess, onSubmitError],
+  );
+
+  return (
+    <form class="form" onSubmit={handleSubmit} onFormData={handleFormData}>
       {error ? <div class="form__error-container">{error}</div> : null}
+
+      {ScreenshotInput && includeScreenshot ? <ScreenshotInput initialImage={undefined} /> : null}
 
       {showName ? (
         <label for="name" class="form__label">
@@ -161,6 +189,15 @@ export function Form({
           rows={5}
         />
       </label>
+
+      {ScreenshotToggle ? (
+        <ScreenshotToggle
+          onClick={() => {
+            setIncludeScreeshot(prev => !prev);
+          }}
+          isScreenshotIncluded={includeScreenshot}
+        />
+      ) : null}
 
       <div class="btn-group">
         <button class="btn btn--primary" type="submit">

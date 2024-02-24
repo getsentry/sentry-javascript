@@ -1,6 +1,5 @@
-import type { Scope } from '@sentry/core';
 import { getIsolationScope, prepareEvent } from '@sentry/core';
-import type { Client, FeedbackEvent } from '@sentry/types';
+import type { Client, FeedbackEvent, Scope } from '@sentry/types';
 
 interface PrepareFeedbackEventParams {
   client: Client;
