@@ -62,7 +62,7 @@ export function sanitizeTags(unsanitizedTags: Record<string, Primitive>): Record
   for (const key in unsanitizedTags) {
     if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
       const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
-      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '_');
+      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '');
     }
   }
   return tags;

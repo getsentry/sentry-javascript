@@ -1,10 +1,11 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { loadModule, logger } from '@sentry/utils';
 import pg from 'pg';
 
-import { Integrations, Span } from '../../../src';
+import { Integrations } from '../../../src';
 import { getTestClient } from '../../testutils';
 
 class PgClient {
@@ -63,7 +64,7 @@ describe('setupOnce', () => {
 
     beforeEach(() => {
       scope = new Scope();
-      parentSpan = new Span();
+      parentSpan = new SentrySpan();
       childSpan = parentSpan.startChild();
       jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
       jest.spyOn(parentSpan, 'startChild').mockReturnValueOnce(childSpan);
@@ -74,7 +75,7 @@ describe('setupOnce', () => {
       Client.query('SELECT NOW()', {}, function () {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
-          description: 'SELECT NOW()',
+          name: 'SELECT NOW()',
           op: 'db',
           origin: 'auto.db.postgres',
           data: {
@@ -90,7 +91,7 @@ describe('setupOnce', () => {
       Client.query('SELECT NOW()', function () {
         expect(scope.getSpan).toBeCalled();
         expect(parentSpan.startChild).toBeCalledWith({
-          description: 'SELECT NOW()',
+          name: 'SELECT NOW()',
           op: 'db',
           origin: 'auto.db.postgres',
           data: {
@@ -106,7 +107,7 @@ describe('setupOnce', () => {
       await Client.query('SELECT NOW()', null);
       expect(scope.getSpan).toBeCalled();
       expect(parentSpan.startChild).toBeCalledWith({
-        description: 'SELECT NOW()',
+        name: 'SELECT NOW()',
         op: 'db',
         origin: 'auto.db.postgres',
         data: {
@@ -134,7 +135,7 @@ describe('setupOnce', () => {
 
   it('does not attempt resolution when module is passed directly', async () => {
     const scope = new Scope();
-    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(new Span());
+    jest.spyOn(scope, 'getSpan').mockReturnValueOnce(new SentrySpan());
 
     new Integrations.Postgres({ module: mockModule }).setupOnce(
       () => undefined,

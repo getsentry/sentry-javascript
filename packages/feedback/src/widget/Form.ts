@@ -1,4 +1,5 @@
 import * as ScreenshotIntegration from '@sentry-internal/feedback-screenshot';
+import type { Attachment } from '@sentry/types';
 import type { FeedbackComponent, FeedbackFormData, FeedbackInternalOptions, FeedbackTextConfiguration } from '../types';
 import { SubmitButton } from './SubmitButton';
 import { createElement } from './util/createElement';
@@ -21,7 +22,7 @@ export interface FormComponentProps
    */
   defaultEmail: string;
   onCancel?: (e: Event) => void;
-  onSubmit?: (feedback: FeedbackFormData) => void;
+  onSubmit?: (feedback: FeedbackFormData, screenshots?: Attachment[]) => void;
 }
 
 interface FormComponent extends FeedbackComponent<HTMLFormElement> {
@@ -42,6 +43,22 @@ function retrieveStringValue(formData: FormData, key: string): string {
     return value.trim();
   }
   return '';
+}
+
+async function canvasToUint8Array(image: HTMLCanvasElement): Promise<Uint8Array | null> {
+  const canvasToBlob = (canvas: HTMLCanvasElement): Promise<Blob | null> => {
+    return new Promise(resolve => {
+      canvas.toBlob(blob => {
+        resolve(blob);
+      });
+    });
+  };
+  const blob = await canvasToBlob(image);
+  if (blob) {
+    const blobData = await blob.arrayBuffer();
+    return new Uint8Array(blobData);
+  }
+  return null;
 }
 
 /**
@@ -67,11 +84,15 @@ export function Form({
   onCancel,
   onSubmit,
 }: FormComponentProps): FormComponent {
+  let screenshotImage: HTMLCanvasElement | null = null;
+  function setScreenshotImage(newScreenshot: HTMLCanvasElement | null): void {
+    screenshotImage = newScreenshot;
+  }
   const { el: submitEl } = SubmitButton({
     label: submitButtonLabel,
   });
 
-  function handleSubmit(e: Event): void {
+  async function handleSubmit(e: Event): Promise<void> {
     e.preventDefault();
 
     if (!(e.target instanceof HTMLFormElement)) {
@@ -87,7 +108,16 @@ export function Form({
           message: retrieveStringValue(formData, 'message'),
         };
 
-        onSubmit(feedback);
+        if (screenshotImage) {
+          const screenshotBlob = await canvasToUint8Array(screenshotImage);
+          if (screenshotBlob) {
+            onSubmit(feedback, [
+              { filename: 'screenshot.png', data: screenshotBlob, contentType: 'application/octet-stream' },
+            ]);
+          }
+        } else {
+          onSubmit(feedback);
+        }
       }
     } catch {
       // pass
@@ -156,12 +186,15 @@ export function Form({
     cancelButtonLabel,
   );
 
-  const button = createElement('div', { className: 'btn-group' });
+  const screenshot = createElement('div', { className: 'screenshot' });
+
+  const screenshotButton = createElement('div', { className: 'btn-group' });
 
   // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotButton({
-    el: button,
-    props: null,
+  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
+    croppingRef: screenshot,
+    buttonRef: screenshotButton,
+    props: { screenshotImage, setScreenshotImage },
   });
 
   const formEl = createElement(
@@ -172,70 +205,79 @@ export function Form({
     },
     [
       errorEl,
-
-      showName &&
-        createElement(
-          'label',
-          {
-            htmlFor: 'name',
-            className: 'form__label',
-          },
-          [
-            createElement(
-              'span',
-              { className: 'form__label__text' },
-              nameLabel,
-              isNameRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-            ),
-            nameEl,
-          ],
-        ),
-      !showName && nameEl,
-
-      showEmail &&
-        createElement(
-          'label',
-          {
-            htmlFor: 'email',
-            className: 'form__label',
-          },
-          [
-            createElement(
-              'span',
-              { className: 'form__label__text' },
-              emailLabel,
-              isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-            ),
-            emailEl,
-          ],
-        ),
-      !showEmail && emailEl,
-
-      createElement(
-        'label',
-        {
-          htmlFor: 'message',
-          className: 'form__label',
-        },
-        [
-          createElement(
-            'span',
-            { className: 'form__label__text' },
-            messageLabel,
-            createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-          ),
-          messageEl,
-        ],
-      ),
-
-      button,
+      screenshot,
 
       createElement(
         'div',
         {
-          className: 'btn-group',
+          className: 'info',
         },
-        [submitEl, cancelEl],
+        [
+          showName &&
+            createElement(
+              'label',
+              {
+                htmlFor: 'name',
+                className: 'form__label',
+              },
+              [
+                createElement(
+                  'span',
+                  { className: 'form__label__text' },
+                  nameLabel,
+                  isNameRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+                ),
+                nameEl,
+              ],
+            ),
+          !showName && nameEl,
+
+          showEmail &&
+            createElement(
+              'label',
+              {
+                htmlFor: 'email',
+                className: 'form__label',
+              },
+              [
+                createElement(
+                  'span',
+                  { className: 'form__label__text' },
+                  emailLabel,
+                  isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+                ),
+                emailEl,
+              ],
+            ),
+          !showEmail && emailEl,
+
+          createElement(
+            'label',
+            {
+              htmlFor: 'message',
+              className: 'form__label',
+            },
+            [
+              createElement(
+                'span',
+                { className: 'form__label__text' },
+                messageLabel,
+                createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+              ),
+              messageEl,
+            ],
+          ),
+
+          screenshotButton,
+
+          createElement(
+            'div',
+            {
+              className: 'btn-group',
+            },
+            [submitEl, cancelEl],
+          ),
+        ],
       ),
     ],
   );

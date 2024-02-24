@@ -42,8 +42,7 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
   background-color: var(--background);
   color: var(--foreground);
 
-  width: 320px;
-  max-width: 100%;
+  max-width: calc(100% - 2rem);
   max-height: calc(100% - 2rem);
   display: flex;
   flex-direction: column;
@@ -73,11 +72,21 @@ export function createDialogStyles(d: Document): HTMLStyleElement {
 }
 
 .form {
-  display: grid;
+  display: flex;
   overflow: auto;
+  flex-direction: row;
+  padding: 0 24px 24px;
+}
+
+.screenshot {
+  border-color: var(--submit-border);
+}
+
+.info {
+  display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 0 24px 24px;
+  width: 272px;
 }
 
 .form__error-container {

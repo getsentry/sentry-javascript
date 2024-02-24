@@ -41,9 +41,7 @@ app.use((req, res, next) => {
 });
 
 app.get('/context/basic', (req, res, next) => {
-  Sentry.configureScope(scope => {
-    scope.setExtra('example', 'hey look we set some example context data yay');
-  });
+  Sentry.setExtra('example', 'hey look we set some example context data yay');
 
   res.textToSend = 'hello there! we set some stuff to the context';
   next();

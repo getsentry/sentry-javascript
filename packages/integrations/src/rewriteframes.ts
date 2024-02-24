@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -71,8 +71,6 @@ const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(originalEvent) {
       let processedEvent = originalEvent;
 
@@ -85,16 +83,7 @@ const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const rewriteFramesIntegration = defineIntegration(_rewriteFramesIntegration);
-
 /**
  * Rewrite event frames paths.
- * @deprecated Use `rewriteFramesIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const RewriteFrames = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  rewriteFramesIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }> & {
-  new (options?: { root?: string; prefix?: string; iteratee?: StackFrameIteratee }): Integration;
-};
+export const rewriteFramesIntegration = defineIntegration(_rewriteFramesIntegration);

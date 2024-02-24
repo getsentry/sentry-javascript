@@ -1,14 +1,8 @@
 import type { Event as SentryEvent, ExtendedError } from '@sentry/types';
 
-import type { extraErrorDataIntegration } from '../src/extraerrordata';
-import { ExtraErrorData } from '../src/extraerrordata';
+import { extraErrorDataIntegration } from '../src/extraerrordata';
 
-function getIntegration(...args: Parameters<typeof extraErrorDataIntegration>) {
-  // eslint-disable-next-line deprecation/deprecation
-  return new ExtraErrorData(...args);
-}
-
-const extraErrorData = getIntegration();
+const extraErrorData = extraErrorDataIntegration();
 let event: SentryEvent;
 
 describe('ExtraErrorData()', () => {
@@ -21,9 +15,13 @@ describe('ExtraErrorData()', () => {
     error.baz = 42;
     error.foo = 'bar';
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -37,9 +35,13 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar');
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -58,9 +60,13 @@ describe('ExtraErrorData()', () => {
       },
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -82,9 +88,13 @@ describe('ExtraErrorData()', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.baz = 42;
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -97,24 +107,32 @@ describe('ExtraErrorData()', () => {
   it('should return event if originalException is not an Error object', () => {
     const error = 'error message, not object';
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no SentryEventHint', () => {
-    const enhancedEvent = extraErrorData.processEvent(event, {});
+    const enhancedEvent = extraErrorData.processEvent?.(event, {}, {} as any);
 
     expect(enhancedEvent).toEqual(event);
   });
 
   it('should return event if there is no originalException', () => {
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      // @ts-expect-error Allow event to have extra properties
-      notOriginalException: 'fooled you',
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        // @ts-expect-error Allow event to have extra properties
+        notOriginalException: 'fooled you',
+      },
+      {} as any,
+    );
 
     expect(enhancedEvent).toEqual(event);
   });
@@ -130,9 +148,13 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -153,9 +175,13 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -173,9 +199,13 @@ describe('ExtraErrorData()', () => {
       };
     };
 
-    const enhancedEvent = extraErrorData.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       TypeError: {
@@ -185,21 +215,25 @@ describe('ExtraErrorData()', () => {
     });
   });
 
-  it('captures Error causes when captureErrorCause = true', () => {
+  it('captures Error causes when captureErrorCause = true (default)', () => {
     // Error.cause is only available from node 16 upwards
     const nodeMajorVersion = parseInt(process.versions.node.split('.')[0]);
     if (nodeMajorVersion < 16) {
       return;
     }
 
-    const extraErrorDataWithCauseCapture = getIntegration({ captureErrorCause: true });
+    const extraErrorDataWithCauseCapture = extraErrorDataIntegration();
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorDataWithCauseCapture.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).toEqual({
       Error: {
@@ -217,14 +251,18 @@ describe('ExtraErrorData()', () => {
       return;
     }
 
-    const extraErrorDataWithoutCauseCapture = getIntegration();
+    const extraErrorDataWithoutCauseCapture = extraErrorDataIntegration({ captureErrorCause: false });
 
     // @ts-expect-error The typing .d.ts library we have installed isn't aware of Error.cause yet
     const error = new Error('foo', { cause: { woot: 'foo' } }) as ExtendedError;
 
-    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent(event, {
-      originalException: error,
-    });
+    const enhancedEvent = extraErrorDataWithoutCauseCapture.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
 
     expect(enhancedEvent.contexts).not.toEqual({
       Error: {

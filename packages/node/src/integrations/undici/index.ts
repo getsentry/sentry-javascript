@@ -340,7 +340,7 @@ function createRequestSpan(
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',
-    description: `${method} ${getSanitizedUrlString(url)}`,
+    name: `${method} ${getSanitizedUrlString(url)}`,
     data,
   });
 }

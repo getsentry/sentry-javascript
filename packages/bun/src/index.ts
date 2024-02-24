@@ -18,7 +18,7 @@ export type {
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
 
-export type { TransactionNamingScheme } from '@sentry/node';
+export type { TransactionNamingScheme } from '@sentry/node-experimental';
 export type { BunOptions } from './types';
 
 export {
@@ -31,15 +31,10 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -49,10 +44,9 @@ export {
   getIsolationScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
+  // eslint-disable-next-line deprecation/deprecation
   runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
@@ -66,8 +60,6 @@ export {
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -78,19 +70,19 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
-  metrics,
+  metricsDefault as metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
+  withActiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  enableAnrDetection,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   cron,
@@ -111,18 +103,20 @@ export {
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   spotlightIntegration,
-} from '@sentry/node';
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/node-experimental';
 
 export { BunClient } from './client';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
-import { Integrations as NodeIntegrations } from '@sentry/node';
+import { Integrations as NodeIntegrations } from '@sentry/node-experimental';
 import { BunServer } from './integrations/bunserver';
 export { bunServerIntegration } from './integrations/bunserver';
 

@@ -184,4 +184,222 @@ test.describe('performance events', () => {
       },
     });
   });
+
+  test('captures a navigation transaction directly after pageload', async ({ page }) => {
+    await page.goto('/');
+
+    const clientPageloadTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.contexts?.trace?.op === 'pageload' && txnEvent?.tags?.runtime === 'browser';
+    });
+
+    const clientNavigationTxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.contexts?.trace?.op === 'navigation' && txnEvent?.tags?.runtime === 'browser';
+    });
+
+    const navigationClickPromise = page.locator('#routeWithParamsLink').click();
+
+    const [pageloadTxnEvent, navigationTxnEvent, _] = await Promise.all([
+      clientPageloadTxnPromise,
+      clientNavigationTxnPromise,
+      navigationClickPromise,
+    ]);
+
+    expect(pageloadTxnEvent).toMatchObject({
+      transaction: '/',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'pageload',
+          origin: 'auto.pageload.sveltekit',
+        },
+      },
+    });
+
+    expect(navigationTxnEvent).toMatchObject({
+      transaction: '/users/[id]',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
+          data: {
+            'sentry.sveltekit.navigation.from': '/',
+            'sentry.sveltekit.navigation.to': '/users/[id]',
+            'sentry.sveltekit.navigation.type': 'link',
+          },
+        },
+      },
+    });
+
+    const routingSpans = navigationTxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(routingSpans).toHaveLength(1);
+
+    const routingSpan = routingSpans && routingSpans[0];
+    expect(routingSpan).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
+        'sentry.sveltekit.navigation.from': '/',
+        'sentry.sveltekit.navigation.to': '/users/[id]',
+        'sentry.sveltekit.navigation.type': 'link',
+      },
+    });
+  });
+
+  test('captures one navigation transaction per redirect', async ({ page }) => {
+    await page.goto('/');
+
+    const clientNavigationRedirect1TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return (
+        txnEvent?.contexts?.trace?.op === 'navigation' &&
+        txnEvent?.tags?.runtime === 'browser' &&
+        txnEvent?.transaction === '/redirect1'
+      );
+    });
+
+    const clientNavigationRedirect2TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return (
+        txnEvent?.contexts?.trace?.op === 'navigation' &&
+        txnEvent?.tags?.runtime === 'browser' &&
+        txnEvent?.transaction === '/redirect2'
+      );
+    });
+
+    const clientNavigationRedirect3TxnPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return (
+        txnEvent?.contexts?.trace?.op === 'navigation' &&
+        txnEvent?.tags?.runtime === 'browser' &&
+        txnEvent?.transaction === '/users/[id]'
+      );
+    });
+
+    const navigationClickPromise = page.locator('#redirectLink').click();
+
+    const [redirect1TxnEvent, redirect2TxnEvent, redirect3TxnEvent, _] = await Promise.all([
+      clientNavigationRedirect1TxnPromise,
+      clientNavigationRedirect2TxnPromise,
+      clientNavigationRedirect3TxnPromise,
+      navigationClickPromise,
+    ]);
+
+    expect(redirect1TxnEvent).toMatchObject({
+      transaction: '/redirect1',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
+          data: {
+            'sentry.origin': 'auto.navigation.sveltekit',
+            'sentry.op': 'navigation',
+            'sentry.source': 'route',
+            'sentry.sveltekit.navigation.type': 'link',
+            'sentry.sveltekit.navigation.from': '/',
+            'sentry.sveltekit.navigation.to': '/redirect1',
+            'sentry.sample_rate': 1,
+          },
+        },
+      },
+    });
+
+    const redirect1Spans = redirect1TxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(redirect1Spans).toHaveLength(1);
+
+    const redirect1Span = redirect1Spans && redirect1Spans[0];
+    expect(redirect1Span).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
+        'sentry.sveltekit.navigation.from': '/',
+        'sentry.sveltekit.navigation.to': '/redirect1',
+        'sentry.sveltekit.navigation.type': 'link',
+      },
+    });
+
+    expect(redirect2TxnEvent).toMatchObject({
+      transaction: '/redirect2',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
+          data: {
+            'sentry.origin': 'auto.navigation.sveltekit',
+            'sentry.op': 'navigation',
+            'sentry.source': 'route',
+            'sentry.sveltekit.navigation.type': 'goto',
+            'sentry.sveltekit.navigation.from': '/',
+            'sentry.sveltekit.navigation.to': '/redirect2',
+            'sentry.sample_rate': 1,
+          },
+        },
+      },
+    });
+
+    const redirect2Spans = redirect2TxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(redirect2Spans).toHaveLength(1);
+
+    const redirect2Span = redirect2Spans && redirect2Spans[0];
+    expect(redirect2Span).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
+        'sentry.sveltekit.navigation.from': '/',
+        'sentry.sveltekit.navigation.to': '/redirect2',
+        'sentry.sveltekit.navigation.type': 'goto',
+      },
+    });
+
+    expect(redirect3TxnEvent).toMatchObject({
+      transaction: '/users/[id]',
+      tags: { runtime: 'browser' },
+      transaction_info: { source: 'route' },
+      type: 'transaction',
+      contexts: {
+        trace: {
+          op: 'navigation',
+          origin: 'auto.navigation.sveltekit',
+          data: {
+            'sentry.origin': 'auto.navigation.sveltekit',
+            'sentry.op': 'navigation',
+            'sentry.source': 'route',
+            'sentry.sveltekit.navigation.type': 'goto',
+            'sentry.sveltekit.navigation.from': '/',
+            'sentry.sveltekit.navigation.to': '/users/[id]',
+            'sentry.sample_rate': 1,
+          },
+        },
+      },
+    });
+
+    const redirect3Spans = redirect3TxnEvent.spans?.filter(s => s.op === 'ui.sveltekit.routing');
+    expect(redirect3Spans).toHaveLength(1);
+
+    const redirect3Span = redirect3Spans && redirect3Spans[0];
+    expect(redirect3Span).toMatchObject({
+      op: 'ui.sveltekit.routing',
+      description: 'SvelteKit Route Change',
+      data: {
+        'sentry.op': 'ui.sveltekit.routing',
+        'sentry.origin': 'auto.ui.sveltekit',
+        'sentry.sveltekit.navigation.from': '/',
+        'sentry.sveltekit.navigation.to': '/users/[id]',
+        'sentry.sveltekit.navigation.type': 'goto',
+      },
+    });
+  });
 });

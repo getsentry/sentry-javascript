@@ -1,6 +1,6 @@
 import { getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
-
+import type { Attachment } from '@sentry/types';
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
@@ -76,7 +76,6 @@ export function createWidget({
     } catch (err) {
       // TODO: error handling
       logger.error(err);
-      console.log(err);
     }
   }
 
@@ -84,7 +83,7 @@ export function createWidget({
    * Handler for when the feedback form is completed by the user. This will
    * create and send the feedback message as an event.
    */
-  async function _handleFeedbackSubmit(feedback: FeedbackFormData): Promise<void> {
+  async function _handleFeedbackSubmit(feedback: FeedbackFormData, screenshots?: Attachment[]): Promise<void> {
     if (!dialog) {
       return;
     }
@@ -105,7 +104,7 @@ export function createWidget({
       return;
     }
 
-    const result = await handleFeedbackSubmit(dialog, feedback);
+    const result = await handleFeedbackSubmit(dialog, feedback, screenshots);
 
     // Error submitting feedback
     if (!result) {
@@ -211,8 +210,6 @@ export function createWidget({
       }
     } catch (err) {
       // TODO: Error handling?
-      logger.error(err);
-      console.log(err);
     }
   }
 

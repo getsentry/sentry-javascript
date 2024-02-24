@@ -96,14 +96,6 @@ export function Dialog({
     return (el && el.open === true) || false;
   }
 
-  const screenshot = createElement('div', { className: 'dialog-content' });
-
-  // @ts-expect-error temp
-  ScreenshotIntegration.feedbackScreenshotIntegration().renderScreenshotWidget({
-    el: screenshot,
-    props: null,
-  });
-
   const {
     el: formEl,
     showError,
@@ -128,7 +120,6 @@ export function Dialog({
       open: true,
       onClick: handleDialogClick,
     },
-    screenshot,
     createElement(
       'div',
       {

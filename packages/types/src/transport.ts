@@ -1,6 +1,5 @@
 import type { Client } from './client';
 import type { Envelope } from './envelope';
-import type { TextEncoderInternal } from './textencoder';
 
 export type TransportRequest = {
   body: string | Uint8Array;
@@ -18,7 +17,6 @@ export type TransportMakeRequestResponse = {
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: Client['recordDroppedEvent'];
-  textEncoder?: TextEncoderInternal;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {

@@ -1,37 +1,55 @@
 import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { ScreenshotButton } from './screenshotButton';
-import { ScreenshotWidget } from './screenshotWidget';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { h, render } from 'preact';
 
 interface FeedbackScreenshotOptions {
-  el: Element;
-  props: unknown;
+  buttonRef: HTMLDivElement;
+  croppingRef: HTMLDivElement;
+  props: {
+    screenshotImage: HTMLCanvasElement | null;
+    setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+  };
 }
 
 export interface FeedbackScreenshotIntegrationOptions {
-  el: Element;
-  props: unknown;
+  buttonRef: HTMLDivElement;
+  croppingRef: HTMLDivElement;
+  props: {
+    screenshotImage: HTMLCanvasElement | null;
+    setScreenshotImage: (screenshot: HTMLCanvasElement | null) => void;
+  };
 }
 
 const INTEGRATION_NAME = 'FeedbackScreenshot';
 const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 
 /** Exported only for type safe tests. */
-export const _feedbackScreenshotIntegration = ((options: Partial<FeedbackScreenshotOptions> = {}) => {
+export const _feedbackScreenshotIntegration = ((options: FeedbackScreenshotOptions) => {
   return {
     name: INTEGRATION_NAME,
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     getOptions(): FeedbackScreenshotIntegrationOptions {
-      return { el: options.el || WINDOW.document.createElement('div'), props: options.props || null };
+      return {
+        buttonRef: options.buttonRef || WINDOW.document.createElement('div'),
+        croppingRef: options.croppingRef || WINDOW.document.createElement('div'),
+        props: {
+          screenshotImage: options.props.screenshotImage,
+          setScreenshotImage: options.props.setScreenshotImage,
+        },
+      };
     },
     renderScreenshotWidget: (options: FeedbackScreenshotOptions) => {
-      return render(<ScreenshotWidget />, options.el);
-    },
-    renderScreenshotButton: (options: FeedbackScreenshotOptions) => {
-      return render(<ScreenshotButton />, options.el);
+      return render(
+        <ScreenshotButton
+          croppingRef={options.croppingRef}
+          screenshotImage={options.props.screenshotImage}
+          setScreenshotImage={options.props.setScreenshotImage}
+        />,
+        options.buttonRef,
+      );
     },
   };
 }) satisfies IntegrationFn;

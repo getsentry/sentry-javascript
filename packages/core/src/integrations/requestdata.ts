@@ -50,20 +50,16 @@ const DEFAULT_OPTIONS = {
       email: true,
     },
   },
-  transactionNamingScheme: 'methodPath',
+  transactionNamingScheme: 'methodPath' as const,
 };
 
 const INTEGRATION_NAME = 'RequestData';
 
 const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) => {
-  const _addRequestData = addRequestDataToEvent;
   const _options: Required<RequestDataIntegrationOptions> = {
     ...DEFAULT_OPTIONS,
     ...options,
     include: {
-      // @ts-expect-error It's mad because `method` isn't a known `include` key. (It's only here and not set by default in
-      // `addRequestDataToEvent` for legacy reasons. TODO (v8): Change that.)
-      method: true,
       ...DEFAULT_OPTIONS.include,
       ...options.include,
       user:
@@ -79,8 +75,6 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event, _hint, client) {
       // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
       // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
@@ -95,15 +89,9 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
         return event;
       }
 
-      // The Express request handler takes a similar `include` option to that which can be passed to this integration.
-      // If passed there, we store it in `sdkProcessingMetadata`. TODO(v8): Force express and GCP people to use this
-      // integration, so that all of this passing and conversion isn't necessary
-      const addRequestDataOptions =
-        sdkProcessingMetadata.requestDataOptionsFromExpressHandler ||
-        sdkProcessingMetadata.requestDataOptionsFromGCPWrapper ||
-        convertReqDataIntegrationOptsToAddReqDataOpts(_options);
+      const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
-      const processedEvent = _addRequestData(event, req, addRequestDataOptions);
+      const processedEvent = addRequestDataToEvent(event, req, addRequestDataOptions);
 
       // Transaction events already have the right `transaction` value
       if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
@@ -185,7 +173,7 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
     include: { ip, user, ...requestOptions },
   } = integrationOptions;
 
-  const requestIncludeKeys: string[] = [];
+  const requestIncludeKeys: string[] = ['method'];
   for (const [key, value] of Object.entries(requestOptions)) {
     if (value) {
       requestIncludeKeys.push(key);

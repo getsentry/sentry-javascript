@@ -7,8 +7,8 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { Hub, Transaction, addTracingExtensions, makeMain } from '@sentry/core';
-import type { TransactionContext } from '@sentry/types';
+import { Transaction, addTracingExtensions, getCurrentHub, setCurrentClient } from '@sentry/core';
+import type { Client, TransactionContext } from '@sentry/types';
 
 import {
   SENTRY_BAGGAGE_HEADER,
@@ -45,12 +45,10 @@ describe('SentryPropagator', () => {
         getDsn: () => ({
           publicKey: 'abc',
         }),
-      };
-      // @ts-expect-error Use mock client for unit tests
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client);
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
+        emit: () => {},
+      } as unknown as Client;
+
+      setCurrentClient(client);
 
       afterEach(() => {
         SPAN_MAP.clear();
@@ -63,7 +61,7 @@ describe('SentryPropagator', () => {
 
       function createTransactionAndMaybeSpan(type: PerfType, transactionContext: TransactionContext) {
         // eslint-disable-next-line deprecation/deprecation
-        const transaction = new Transaction(transactionContext, hub);
+        const transaction = new Transaction(transactionContext, getCurrentHub());
         setSentrySpan(transaction.spanContext().spanId, transaction);
         if (type === PerfType.Span) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars

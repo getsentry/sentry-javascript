@@ -1,6 +1,6 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -20,7 +20,7 @@ describe('Integration | Transactions', () => {
   it('correctly creates transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({ enableTracing: true, beforeSendTransaction, debug: true });
 
     const client = getClient() as TestClientInterface;
 
@@ -31,9 +31,11 @@ describe('Integration | Transactions', () => {
       {
         op: 'test op',
         name: 'test name',
-        source: 'task',
         origin: 'auto.test',
         metadata: { requestPath: 'test-path' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        },
       },
       span => {
         addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
@@ -86,6 +88,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -106,20 +109,12 @@ describe('Integration | Transactions', () => {
             transaction: 'test name',
           }),
           sampleRate: 1,
-          source: 'task',
           spanMetadata: expect.any(Object),
           requestPath: 'test-path',
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: {
           'outer.tag': 'test value',
@@ -174,7 +169,7 @@ describe('Integration | Transactions', () => {
     ]);
   });
 
-  it('correctly creates concurrent transaction & spans xxx', async () => {
+  it('correctly creates concurrent transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
@@ -250,6 +245,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -258,14 +254,7 @@ describe('Integration | Transactions', () => {
             origin: 'auto.test',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value' },
         timestamp: expect.any(Number),
@@ -296,6 +285,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
+              'sentry.source': 'custom',
             },
             op: 'test op b',
             span_id: expect.any(String),
@@ -304,14 +294,7 @@ describe('Integration | Transactions', () => {
             origin: 'manual',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1b',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2b',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: { 'test.tag': 'test value b' },
         timestamp: expect.any(Number),
@@ -377,6 +360,7 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -388,14 +372,7 @@ describe('Integration | Transactions', () => {
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
         transaction: 'test name',

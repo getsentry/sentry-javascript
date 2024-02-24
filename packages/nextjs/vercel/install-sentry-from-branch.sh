@@ -71,14 +71,12 @@ Error.stackTraceLimit = Infinity;
 
 SDK_COMMIT_MESSAGE=$(cd sentry-javascript && git log --format="%C(auto)%s" | head -n 1)
 CONFIGURE_SCOPE_CODE="
-Sentry.configureScope(scope => {
-  if (process.env.VERCEL) {
-    scope.setTag('vercel', true);
-  }
-  scope.setTag('commitMessage', process.env.VERCEL_GIT_COMMIT_MESSAGE);
-  scope.setTag('sdkCommitMessage', \"$SDK_COMMIT_MESSAGE\");
-});
-  "
+if (process.env.VERCEL) {
+  Sentry.setTag('vercel', true);
+}
+Sentry.setTag('commitMessage', process.env.VERCEL_GIT_COMMIT_MESSAGE);
+Sentry.setTag('sdkCommitMessage', \"$SDK_COMMIT_MESSAGE\");
+"
 
 echo "$INFINITE_STACKTRACE_CODE" "$CONFIGURE_SCOPE_CODE" >>sentry.server.config.js
 echo "$INFINITE_STACKTRACE_CODE" "$CONFIGURE_SCOPE_CODE" >>sentry.client.config.js

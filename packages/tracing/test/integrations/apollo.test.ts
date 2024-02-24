@@ -1,9 +1,10 @@
 /* eslint-disable deprecation/deprecation */
 /* eslint-disable @typescript-eslint/unbound-method */
-import { Hub, Scope } from '@sentry/core';
+import { Hub, Scope, SentrySpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import { Integrations, Span } from '../../src';
+import { Integrations } from '../../src';
 import { getTestClient } from '../testutils';
 
 type ApolloResolverGroup = {
@@ -79,7 +80,7 @@ describe('setupOnce', () => {
 
   beforeEach(() => {
     scope = new Scope();
-    parentSpan = new Span();
+    parentSpan = new SentrySpan();
     childSpan = parentSpan.startChild();
     jest.spyOn(scope, 'getSpan').mockReturnValueOnce(parentSpan);
     jest.spyOn(scope, 'setSpan');
@@ -91,7 +92,7 @@ describe('setupOnce', () => {
     ApolloServer.config.resolvers[0]?.['Query']?.['res_1']?.();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
-      description: 'Query.res_1',
+      name: 'Query.res_1',
       op: 'graphql.resolve',
       origin: 'auto.graphql.apollo',
     });
@@ -102,7 +103,7 @@ describe('setupOnce', () => {
     ApolloServer.config.resolvers[0]?.['Mutation']?.['res_2']?.();
     expect(scope.getSpan).toBeCalled();
     expect(parentSpan.startChild).toBeCalledWith({
-      description: 'Mutation.res_2',
+      name: 'Mutation.res_2',
       op: 'graphql.resolve',
       origin: 'auto.graphql.apollo',
     });

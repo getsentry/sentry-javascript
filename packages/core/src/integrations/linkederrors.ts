@@ -18,8 +18,6 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     preprocessEvent(event, hint, client) {
       const options = client.getOptions();
 

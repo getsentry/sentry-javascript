@@ -7,9 +7,9 @@ import {
   convertIntegrationFnToClass,
   defineIntegration,
   getCurrentScope,
-  runWithAsyncContext,
   setHttpStatus,
   startSpan,
+  withIsolationScope,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl } from '@sentry/utils';
@@ -53,7 +53,7 @@ export function instrumentBunServe(): void {
 function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]): void {
   serveOptions.fetch = new Proxy(serveOptions.fetch, {
     apply(fetchTarget, fetchThisArg, fetchArgs: Parameters<typeof serveOptions.fetch>) {
-      return runWithAsyncContext(() => {
+      return withIsolationScope(() => {
         const request = fetchArgs[0];
         const upperCaseMethod = request.method.toUpperCase();
         if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {

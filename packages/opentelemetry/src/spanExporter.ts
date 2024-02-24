@@ -4,6 +4,7 @@ import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { Transaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentHub } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
@@ -159,9 +160,11 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
-      source,
       sampleRate: span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined,
       ...metadata,
+    },
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     },
     data: removeSentryAttributes(data),
     origin,
@@ -206,7 +209,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
 
   // eslint-disable-next-line deprecation/deprecation
   const sentrySpan = sentryParentSpan.startChild({
-    description,
+    name: description,
     op,
     data: allData,
     status: mapStatus(span),

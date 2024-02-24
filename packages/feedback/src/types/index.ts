@@ -1,4 +1,4 @@
-import type { Primitive } from '@sentry/types';
+import type { Attachment, Primitive } from '@sentry/types';
 
 import type { ActorComponent } from '../widget/Actor';
 import type { DialogComponent } from '../widget/Dialog';
@@ -21,6 +21,7 @@ export interface SendFeedbackOptions {
    * Should include replay with the feedback?
    */
   includeReplay?: boolean;
+  screenshots?: Attachment[];
 }
 
 /**

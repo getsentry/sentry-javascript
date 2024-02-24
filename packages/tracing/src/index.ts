@@ -13,13 +13,11 @@ import {
   Mysql,
   Postgres,
   Prisma,
-  Span as SpanT,
   SpanStatus as SpanStatusT,
   TRACEPARENT_REGEXP as TRACEPARENT_REGEXP_T,
   Transaction as TransactionT,
   addExtensionMethods as addExtensionMethodsT,
   defaultRequestInstrumentationOptions as defaultRequestInstrumentationOptionsT,
-  extractTraceparentData as extractTraceparentDataT,
   getActiveTransaction as getActiveTransactionT,
   hasTracingEnabled as hasTracingEnabledT,
   instrumentOutgoingRequests as instrumentOutgoingRequestsT,
@@ -69,14 +67,6 @@ export const getActiveTransaction = getActiveTransactionT;
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
  *
- * `extractTraceparentData` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-// eslint-disable-next-line deprecation/deprecation
-export const extractTraceparentData = extractTraceparentDataT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
  * `SpanStatusType` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export type SpanStatusType = SpanStatusTypeT;
@@ -94,20 +84,6 @@ export const Transaction = TransactionT;
  * `Transaction` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
  */
 export type Transaction = TransactionT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `Span` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-export const Span = SpanT;
-
-/**
- * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.
- *
- * `Span` can be imported from `@sentry/node`, `@sentry/browser`, or your framework SDK
- */
-export type Span = SpanT;
 
 /**
  * @deprecated `@sentry/tracing` has been deprecated and will be moved to to `@sentry/node`, `@sentry/browser`, or your framework SDK in the next major version.

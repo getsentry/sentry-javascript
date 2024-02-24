@@ -1,5 +1,5 @@
 import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import cors from 'cors';
 import express from 'express';
 
@@ -10,7 +10,7 @@ Sentry.init({
   release: '1.0',
   // disable attaching headers to /test/* endpoints
   tracePropagationTargets: [/^(?!.*test).*$/],
-  integrations: [new Sentry.Integrations.Http({ tracing: true }), new Sentry.Integrations.Express({ app })],
+  integrations: [Sentry.httpIntegration({ tracing: true }), new Sentry.Integrations.Express({ app })],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });

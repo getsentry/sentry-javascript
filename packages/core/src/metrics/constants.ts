@@ -21,7 +21,7 @@ export const NAME_AND_TAG_KEY_NORMALIZATION_REGEX = /[^a-zA-Z0-9_/.-]+/g;
  *
  * See: https://develop.sentry.dev/sdk/metrics/#normalization
  */
-export const TAG_VALUE_NORMALIZATION_REGEX = /[^\w\d_:/@.{}[\]$-]+/g;
+export const TAG_VALUE_NORMALIZATION_REGEX = /[^\w\d\s_:/@.{}[\]$-]+/g;
 
 /**
  * This does not match spec in https://develop.sentry.dev/sdk/metrics

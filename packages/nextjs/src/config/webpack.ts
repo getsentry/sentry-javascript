@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
-import { getSentryRelease } from '@sentry/node';
+import { getSentryRelease } from '@sentry/node-experimental';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
@@ -764,7 +764,7 @@ export function getWebpackPluginOptions(
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
-    stripPrefix: ['webpack://_N_E/'],
+    stripPrefix: ['webpack://_N_E/', 'webpack://'],
     urlPrefix,
     entries: [], // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
     release: getSentryRelease(buildId),

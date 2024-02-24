@@ -59,7 +59,7 @@ export interface Scope {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
   /** Add new event processor that will be called after {@link applyToEvent}. */
   addEventProcessor(callback: EventProcessor): this;
@@ -259,4 +259,9 @@ export interface Scope {
    * @returns the id of the captured event.
    */
   captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Clone all data from this scope into a new scope.
+   */
+  clone(): Scope;
 }

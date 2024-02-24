@@ -6,7 +6,7 @@ import type {
   SessionFlusherLike,
 } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { getCurrentScope } from './exports';
+import { getIsolationScope } from './currentScopes';
 
 type ReleaseHealthAttributes = {
   environment?: string;
@@ -74,14 +74,14 @@ export class SessionFlusher implements SessionFlusherLike {
     if (!this._isEnabled) {
       return;
     }
-    const scope = getCurrentScope();
-    const requestSession = scope.getRequestSession();
+    const isolationScope = getIsolationScope();
+    const requestSession = isolationScope.getRequestSession();
 
     if (requestSession && requestSession.status) {
       this._incrementSessionStatusCount(requestSession.status, new Date());
       // This is not entirely necessarily but is added as a safe guard to indicate the bounds of a request and so in
       // case captureRequestSession is called more than once to prevent double count
-      scope.setRequestSession(undefined);
+      isolationScope.setRequestSession(undefined);
       /* eslint-enable @typescript-eslint/no-unsafe-member-access */
     }
   }

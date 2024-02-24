@@ -1,10 +1,10 @@
 export { startIdleTransaction, addTracingExtensions } from './hubextensions';
 export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
 export type { BeforeFinishCallback } from './idletransaction';
-export { Span } from './span';
+export { SentrySpan } from './sentrySpan';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
-export { extractTraceparentData, getActiveTransaction } from './utils';
+export { getActiveTransaction } from './utils';
 // eslint-disable-next-line deprecation/deprecation
 export { SpanStatus } from './spanstatus';
 export {
@@ -13,13 +13,9 @@ export {
 } from './spanstatus';
 export type { SpanStatusType } from './spanstatus';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   getActiveSpan,
   startSpan,
   startInactiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startSpanManual,
   continueTrace,
 } from './trace';
