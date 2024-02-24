@@ -12,7 +12,6 @@ export function SuccessIcon(): SVGElement {
   const createElementNS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
     WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(createElementNS('svg'), {
-    class: 'success-icon',
     width: `${WIDTH}`,
     height: `${HEIGHT}`,
     viewBox: `0 0 ${WIDTH} ${HEIGHT}`,

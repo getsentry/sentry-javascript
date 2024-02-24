@@ -194,6 +194,10 @@ export function createDialogStyles(): HTMLStyleElement {
   cursor: default;
 }
 
+.success-icon {
+  display: flex;
+}
+
 .success-icon path {
   fill: var(--success);
 }

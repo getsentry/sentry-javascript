@@ -18,14 +18,9 @@ import {
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
 import type { DialogComponent } from '../modal/components/Dialog';
-import type { DialogLifecycleCallbacks, feedback2ModalIntegration } from '../modal/integration';
+import type { feedback2ModalIntegration } from '../modal/integration';
 import type { feedback2ScreenshotIntegration } from '../screenshot/integration';
-import type {
-  FeedbackCallbacks,
-  FeedbackFormData,
-  FeedbackInternalOptions,
-  OptionalFeedbackConfiguration,
-} from '../types';
+import type { FeedbackCallbacks, FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
@@ -70,21 +65,21 @@ export class Feedback2 implements Integration {
    */
   private _shadow: ShadowRoot | null;
 
-  /**
-   * The sentry-provided button to trigger the modal
-   */
-  private _triggerButton: null | any;
+  // /**
+  //  * The sentry-provided button to trigger the modal
+  //  */
+  // private _triggerButton: null | any;
+
+  // /**
+  //  * The integration that we will use to render the modal
+  //  * This value can be either passed in, or will be async loaded
+  //  */
+  // private _dialogRenderStrategy: null | any;
 
   /**
-   * The integration that we will use to render the modal
-   * This value can be either passed in, or will be async loaded
+   * The DialogComponent itself, as rendered on the screen
    */
-  private _dialogRenderStrategy: null | any;
-
-  /**
-   * The ModalComponent itself, as rendered on the screen
-   */
-  private _modal: null | any;
+  private _dialog: null | DialogComponent;
 
   public constructor({
     // FeedbackGeneralConfiguration
@@ -169,6 +164,8 @@ export class Feedback2 implements Integration {
 
     this._host = null;
     this._shadow = null;
+
+    this._dialog = null;
   }
 
   /**
@@ -196,13 +193,9 @@ export class Feedback2 implements Integration {
         insertActor();
         options.onFormClose && options.onFormClose();
       },
-      onSubmitSuccess(data: FeedbackFormData) {
+      onFormSubmitted() {
         insertActor();
-        options.onSubmitSuccess && options.onSubmitSuccess(data);
-      },
-      onSubmitError() {
-        insertActor();
-        options.onSubmitError && options.onSubmitError();
+        options.onFormSubmitted && options.onFormSubmitted();
       },
     });
 
@@ -237,19 +230,8 @@ export class Feedback2 implements Integration {
     }
 
     const handleClick = async (): Promise<void> => {
-      const shadow = this._getShadow(options); // options have not changed, because optionOverrides is a subset!
-
-      await this._loadAndRenderDialog(options, {
-        onCreate: (dialog: DialogComponent) => {
-          shadow.appendChild(dialog.style);
-          shadow.appendChild(dialog.el);
-        },
-        onSubmit: sendFeedback,
-        onDone(dialog: DialogComponent) {
-          shadow.removeChild(dialog.el);
-          shadow.removeChild(dialog.style);
-        },
-      });
+      const dialog = await this._loadAndRenderDialog(options);
+      dialog.open();
     };
     targetEl.addEventListener('click', handleClick);
     return () => {
@@ -260,29 +242,19 @@ export class Feedback2 implements Integration {
   /**
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
-  public createWidget(optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean } = {}): null {
-    // FeedbackWidget
+  public createWidget(
+    optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean } = {},
+  ): Promise<DialogComponent> {
     const options = mergeOptions(this.options, optionOverrides);
 
-    // the dialog should have some standard callbacks:
-    // onFormClose: () => this._triggerButton.show(); this.options.onFormClose()
-    // onFormOpen: () => this._triggerButton.hide(); this.options.onFormOpen()
-    // onSubmitError: () => this._triggerButton.show(); this.options.onSubmitError();
-    // onSubmitSuccess: () => this._triggerButton.show(); this.options.onSubmitSuccss();
-    //
-    // actually, we might want to rename the callbacks that the form itself takes... or expand the list so that
-    // we can allow the form to render the SuccessMessage
-
-    return null;
+    return this._loadAndRenderDialog(options);
   }
 
   /**
-   * Returns the default (first-created) widget
+   * Returns the default widget, if it exists
    */
-  public getWidget(): null {
-    // FeedbackWidget (incl dialog!)
-    //
-    return null;
+  public getWidget(): DialogComponent | null {
+    return this._dialog;
   }
 
   /**
@@ -291,21 +263,25 @@ export class Feedback2 implements Integration {
    * created during initialization of the integration.
    */
   public openDialog(): void {
-    //
+    this._dialog && this._dialog.open();
   }
 
   /**
    * Closes the dialog for the default widget, if it exists
    */
   public closeDialog(): void {
-    //
+    this._dialog && this._dialog.close();
   }
 
   /**
-   * Removes a single widget
+   * Removes the rendered widget, if it exists
    */
   public removeWidget(_widget: null | undefined): void {
-    //
+    if (this._shadow && this._dialog) {
+      this._shadow.removeChild(this._dialog.el);
+      this._shadow.removeChild(this._dialog.style);
+    }
+    this._dialog = null;
   }
 
   /**
@@ -348,10 +324,11 @@ export class Feedback2 implements Integration {
   /**
    *
    */
-  protected async _loadAndRenderDialog(
-    options: FeedbackInternalOptions,
-    callbacks: DialogLifecycleCallbacks,
-  ): Promise<void> {
+  protected async _loadAndRenderDialog(options: FeedbackInternalOptions): Promise<DialogComponent> {
+    if (this._dialog) {
+      return this._dialog;
+    }
+
     const client = getClient<BrowserClient>();
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
@@ -387,7 +364,21 @@ export class Feedback2 implements Integration {
       throw new Error('Not implemented yet');
     }
 
+    const shadow = this._getShadow(options);
+
     // TODO: some combination stuff when screenshots exists:
-    modalIntegration.renderDialog(options, callbacks);
+    this._dialog = modalIntegration.createDialog(options, {
+      onCreate: (dialog: DialogComponent) => {
+        shadow.appendChild(dialog.style);
+        shadow.appendChild(dialog.el);
+      },
+      onSubmit: sendFeedback,
+      onDone: (dialog: DialogComponent) => {
+        shadow.removeChild(dialog.el);
+        shadow.removeChild(dialog.style);
+        this._dialog = null;
+      },
+    });
+    return this._dialog;
   }
 }

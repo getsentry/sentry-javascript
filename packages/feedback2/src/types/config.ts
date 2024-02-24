@@ -153,6 +153,8 @@ export interface FeedbackCallbacks {
 
   /**
    * Callback when feedback is successfully submitted
+   *
+   * After this you'll see a SuccessMessage on the screen for a moment.
    */
   onSubmitSuccess?: (data: FeedbackFormData) => void;
 
@@ -160,4 +162,9 @@ export interface FeedbackCallbacks {
    * Callback when feedback is unsuccessfully submitted
    */
   onSubmitError?: () => void;
+
+  /**
+   * Callback when the feedback form is submitted successfully, and the SuccessMessage is complete, or dismissed
+   */
+  onFormSubmitted?: () => void;
 }

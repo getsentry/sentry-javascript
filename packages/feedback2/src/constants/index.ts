@@ -22,3 +22,5 @@ export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
 
 export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';
+
+export const SUCCESS_MESSAGE_TIMEOUT = 5000;
