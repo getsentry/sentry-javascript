@@ -97,7 +97,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
   };
 
   const customPlugin: Plugin = {
-    name: 'sentry-upload-source-maps',
+    name: 'sentry-upload-sveltekit-source-maps',
     apply: 'build', // only apply this plugin at build time
     enforce: 'post', // this needs to be set to post, otherwise we don't pick up the output from the SvelteKit adapter
 
@@ -150,7 +150,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
       if (isServerHooksFile) {
         const ms = new MagicString(code);
-        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";`);
+        ms.append(`\n; import "${VIRTUAL_GLOBAL_VALUES_FILE}";\n`);
         return {
           code: ms.toString(),
           map: ms.generateMap({ hires: true }),
