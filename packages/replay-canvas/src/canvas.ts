@@ -79,7 +79,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
             errorHandler: (err: unknown) => {
               try {
                 if (typeof err === 'object') {
-                  (err as Error & {__rrweb__?: boolean}).__rrweb__ = true;
+                  (err as Error & { __rrweb__?: boolean }).__rrweb__ = true;
                 }
               } catch (error) {
                 // ignore errors here
