@@ -1,5 +1,5 @@
 import type { SpanEnvelope, SpanItem } from '@sentry/types';
-import type { Span } from '@sentry/types/build/types/span';
+import type { Span } from '@sentry/types';
 import { createEnvelope } from '@sentry/utils';
 
 /**
