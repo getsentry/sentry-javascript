@@ -20,29 +20,46 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   const transactionEvent = await pageloadTransactionEventPromise;
   const transactionEventId = transactionEvent.event_id;
 
+  console.log(JSON.stringify(transactionEvent, null, 2));
+
+  expect(transactionEvent.contexts?.trace).toEqual({
+    data: {
+      'sentry.source': 'route',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.op': 'http.server',
+      'sentry.sample_rate': 1,
+      url: 'http://localhost:3030/test-transaction',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'http.url': 'http://localhost:3030/test-transaction',
+      'http.host': 'localhost:3030',
+      'net.host.name': 'localhost',
+      'http.method': 'GET',
+      'http.scheme': 'http',
+      'http.target': '/test-transaction',
+      'http.user_agent': 'axios/1.6.7',
+      'http.flavor': '1.1',
+      'net.transport': 'ip_tcp',
+      'net.host.ip': '127.0.0.1',
+      'net.host.port': expect.any(Number),
+      'net.peer.ip': '127.0.0.1',
+      'net.peer.port': expect.any(Number),
+      'http.status_code': 200,
+      'http.status_text': 'OK',
+      'http.route': '/test-transaction',
+    },
+    op: 'http.server',
+    span_id: expect.any(String),
+    status: 'ok',
+    tags: {
+      'http.status_code': '200',
+    },
+    trace_id: expect.any(String),
+    origin: 'auto.http.otel.http',
+  });
+
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-transaction',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          span_id: expect.any(String),
-          status: 'ok',
-          tags: {
-            'http.status_code': '200',
-          },
-          trace_id: expect.any(String),
-          origin: 'auto.http.otel.http',
-        },
-      }),
-
       spans: [
         {
           data: {
