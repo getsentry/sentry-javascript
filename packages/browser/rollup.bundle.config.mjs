@@ -8,6 +8,10 @@ if (targets.some(target => target !== 'es5' && target !== 'es6')) {
   throw new Error('JS_VERSION must be either "es5" or "es6"');
 }
 
+const addonIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver'];
+
+const coreIntegrationFiles = ['captureconsole', 'debug', 'dedupe', 'extraerrordata', 'rewriteframes', 'sessiontiming'];
+
 targets.forEach(jsVersion => {
   const baseBundleConfig = makeBaseBundleConfig({
     bundleType: 'standalone',
@@ -23,6 +27,30 @@ targets.forEach(jsVersion => {
     jsVersion,
     licenseTitle: '@sentry/browser (Performance Monitoring)',
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
+  });
+
+  addonIntegrationFiles.forEach(integrationName => {
+    const integrationsBundleConfig = makeBaseBundleConfig({
+      bundleType: 'addon',
+      entrypoints: [`src/integrations/${integrationName}.ts`],
+      jsVersion,
+      licenseTitle: `@sentry/browser - ${integrationName}`,
+      outputFileBase: () => `bundles/${integrationName}${jsVersion === 'es5' ? '.es5' : ''}`,
+    });
+
+    builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
+  });
+
+  coreIntegrationFiles.forEach(integrationName => {
+    const integrationsBundleConfig = makeBaseBundleConfig({
+      bundleType: 'addon',
+      entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],
+      jsVersion,
+      licenseTitle: `@sentry/browser - ${integrationName}`,
+      outputFileBase: () => `bundles/${integrationName}${jsVersion === 'es5' ? '.es5' : ''}`,
+    });
+
+    builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
   });
 
   builds.push(...makeBundleConfigVariants(baseBundleConfig), ...makeBundleConfigVariants(tracingBaseBundleConfig));

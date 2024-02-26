@@ -1,7 +1,7 @@
 import * as SentryCore from '@sentry/core';
 import type { Client } from '@sentry/types';
 
-import { reportingObserverIntegration } from '../src/reportingobserver';
+import { reportingObserverIntegration } from '../../../src/integrations/reportingobserver';
 
 const mockScope = {
   setExtra: jest.fn(),
