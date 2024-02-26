@@ -154,7 +154,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
     });
   });
 
-  it('creates a span for invalid looking urls xxx', async () => {
+  it('creates a span for invalid looking urls', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       try {
         // Intentionally add // to the url

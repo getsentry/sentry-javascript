@@ -301,7 +301,9 @@ export class Transaction extends SentrySpan implements TransactionInterface {
         ...metadata,
         capturedSpanScope,
         capturedSpanIsolationScope,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        ...dropUndefinedKeys({
+          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        }),
       },
       _metrics_summary: getMetricSummaryJsonForSpan(this),
       ...(source && {
