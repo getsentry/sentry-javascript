@@ -4,8 +4,11 @@ import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
-import { makeCustomSentryVitePlugin } from './sourceMaps';
+import { makeCustomSentryVitePlugins } from './sourceMaps';
 
+/**
+ * Options related to source maps upload to Sentry
+ */
 type SourceMapsUploadOptions = {
   /**
    * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
@@ -59,6 +62,33 @@ type SourceMapsUploadOptions = {
      * @default true
      */
     telemetry?: boolean;
+
+    /**
+     * Options related to managing the Sentry releases for a build.
+     *
+     * Note: Managing releases is optional and not required for uploading source maps.
+     */
+    release?: {
+      /**
+       * Unique identifier for the release you want to create.
+       * This value can also be specified via the SENTRY_RELEASE environment variable.
+       *
+       * Defaults to automatically detecting a value for your environment. This includes values for Cordova, Heroku,
+       * AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git HEAD's commit SHA (the latter requires
+       * access to git CLI and for the root directory to be a valid repository).
+       *
+       * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+       */
+      name?: string;
+
+      /**
+       * Whether the plugin should inject release information into the build for the SDK to pick it up when
+       * sending events.
+       *
+       * Defaults to `true`.
+       */
+      inject?: boolean;
+    };
   };
 };
 
@@ -120,7 +150,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(options.debug || false)),
+    adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
   const sentryPlugins: Plugin[] = [];
@@ -146,7 +176,8 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
       adapter: mergedOptions.adapter,
     };
-    sentryPlugins.push(await makeCustomSentryVitePlugin(pluginOptions));
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(pluginOptions);
+    sentryPlugins.push(...sentryVitePlugins);
   }
 
   return sentryPlugins;
