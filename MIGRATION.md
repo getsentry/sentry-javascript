@@ -117,12 +117,15 @@ Sentry SDK requires the fetch API to be available in the environment.
 We moved optional integrations from their own package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`.
 
 Integrations that are now exported from `@sentry/browser` :
+
 - httpClientIntegration
 - contextLinesIntegration
 - reportingObserverIntegration
 
-Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or framework-specific packages like `@sentry/react`):
-- captureConsoleIntegration 
+Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or framework-specific packages like
+`@sentry/react`):
+
+- captureConsoleIntegration
 - debugIntegration
 - dedupeIntegration
 - extraErrorDataIntegration
