@@ -57,7 +57,7 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Feedback) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Feedback }',
+    import: '{ init, feedbackIntegration }',
     gzip: true,
     limit: '50 KB',
   },
@@ -168,7 +168,7 @@ module.exports = [
   {
     name: '@sentry-internal/feedback - Webpack (gzipped)',
     path: 'packages/feedback/build/npm/esm/index.js',
-    import: '{ Feedback }',
+    import: '{ feedbackIntegration }',
     gzip: true,
     limit: '25 KB',
   },
