@@ -1,12 +1,11 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { spanToJSON } from '@sentry/core';
-import { SentrySpanProcessor, getClient, setPropagationContextOnContext } from '@sentry/opentelemetry';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
 import type { PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
-import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
 describe('Integration | Transactions', () => {
@@ -20,7 +19,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient<NodeClient>();
+    const client = Sentry.getClient()!;
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
     Sentry.setTag('outer.tag', 'test value');
@@ -29,11 +28,11 @@ describe('Integration | Transactions', () => {
       {
         op: 'test op',
         name: 'test name',
-        attributes: {
-          [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
-        },
         origin: 'auto.test',
         metadata: { requestPath: 'test-path' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        },
       },
       span => {
         Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
@@ -88,6 +87,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'sentry.sample_rate': 1,
+              'test.outer': 'test value',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -120,6 +121,7 @@ describe('Integration | Transactions', () => {
         tags: {
           'outer.tag': 'test value',
           'test.tag': 'test value',
+          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -175,39 +177,31 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient();
+    const client = Sentry.getClient()!;
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
     Sentry.withIsolationScope(() => {
-      Sentry.startSpan(
-        {
-          op: 'test op',
-          name: 'test name',
-          origin: 'auto.test',
-          attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
-        },
-        span => {
-          Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+      Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+        Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
-          span.setAttributes({
-            'test.outer': 'test value',
+        span.setAttributes({
+          'test.outer': 'test value',
+        });
+
+        const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
+
+        Sentry.setTag('test.tag', 'test value');
+
+        Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
+          Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+
+          innerSpan.setAttributes({
+            'test.inner': 'test value',
           });
-
-          const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-          subSpan.end();
-
-          Sentry.setTag('test.tag', 'test value');
-
-          Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-            Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
-
-            innerSpan.setAttributes({
-              'test.inner': 'test value',
-            });
-          });
-        },
-      );
+        });
+      });
     });
 
     Sentry.withIsolationScope(() => {
@@ -255,6 +249,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'test.outer': 'test value',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -265,7 +261,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value' },
+        tags: { 'test.tag': 'test value', transaction: 'test name' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -295,6 +291,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
+              'test.outer': 'test value b',
+              'sentry.sample_rate': 1,
             },
             op: 'test op b',
             span_id: expect.any(String),
@@ -305,7 +303,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b' },
+        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -322,7 +320,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient<NodeClient>();
+    const client = Sentry.getClient<Sentry.NodeClient>();
 
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
@@ -401,6 +399,8 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
+              'test.outer': 'test value',
+              'sentry.sample_rate': 1,
             },
             span_id: expect.any(String),
             status: 'ok',
@@ -410,7 +410,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value' },
+        tags: { 'test.tag': 'test value', transaction: 'test name' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         type: 'transaction',
@@ -438,6 +438,8 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
+              'test.outer': 'test value b',
+              'sentry.sample_rate': 1,
             },
             span_id: expect.any(String),
             status: 'ok',
@@ -447,7 +449,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b' },
+        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         type: 'transaction',
@@ -481,7 +483,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = getClient() as NodeClient;
+    const client = Sentry.getClient()!;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
     context.with(
@@ -519,6 +521,7 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -592,7 +595,7 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = getClient() as NodeClient;
+    const client = Sentry.getClient()!;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
