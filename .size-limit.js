@@ -3,7 +3,7 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, replayIntegration, browserTracingIntegration, Feedback }',
+    import: '{ init, replayIntegration, browserTracingIntegration, feedbackIntegration }',
     gzip: true,
     limit: '90 KB',
   },
@@ -138,7 +138,7 @@ module.exports = [
   {
     name: '@sentry/react (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/react/build/esm/index.js',
-    import: '{ init, browserTracingIntegration, Replay }',
+    import: '{ init, browserTracingIntegration, replayIntegration }',
     gzip: true,
     limit: '75 KB',
   },
