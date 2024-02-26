@@ -7,12 +7,13 @@ import type { Transaction } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentHub } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
-import { addNonEnumerableProperty, logger } from '@sentry/utils';
+import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
 
 import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
+import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
@@ -149,6 +150,17 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   const metadata = getSpanMetadata(span);
   const capturedSpanScopes = getSpanScopes(span);
 
+  const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
+
+  const attributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+    ...data,
+    ...removeSentryAttributes(span.attributes),
+  };
+
+  const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
+
   const transaction = startTransaction(hub, {
     spanId,
     traceId,
@@ -159,13 +171,13 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
-      sampleRate: span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined,
+      ...dropUndefinedKeys({
+        dynamicSamplingContext,
+        sampleRate,
+      }),
       ...metadata,
     },
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-    },
-    data: removeSentryAttributes(data),
+    attributes,
     origin,
     tags,
     sampled: true,
@@ -180,7 +192,14 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   });
 
   if (capturedSpanScopes) {
-    setCapturedScopesOnTransaction(transaction, capturedSpanScopes.scope, capturedSpanScopes.isolationScope);
+    // Ensure the `transaction` tag is correctly set on the transaction event
+    const scope = capturedSpanScopes.scope.clone();
+    scope.addEventProcessor(event => {
+      event.tags = { transaction: description, ...event.tags };
+      return event;
+    });
+
+    setCapturedScopesOnTransaction(transaction, scope, capturedSpanScopes.isolationScope);
   }
 
   return transaction;
@@ -264,6 +283,8 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   delete cleanedData[InternalSentrySemanticAttributes.ORIGIN];
   delete cleanedData[InternalSentrySemanticAttributes.OP];
   delete cleanedData[InternalSentrySemanticAttributes.SOURCE];
+  // We want to avoid having this on each span (as that is set by the Sampler)
+  // We only want this on the transaction, where we manually add it to `attributes`
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
