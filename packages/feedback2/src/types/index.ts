@@ -1,4 +1,6 @@
 import type { Attachment } from '@sentry/types';
+import type { ComponentType } from 'preact';
+import type { Props as ScreenshotToggleProps } from '../screenshot/components/ScreenshotToggle';
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -9,14 +11,7 @@ import type { FeedbackTheme } from './theme';
 
 export type { FeedbackFormData } from './form';
 
-export {
-  FeedbackCallbacks,
-  FeedbackGeneralConfiguration,
-  FeedbackTextConfiguration,
-  FeedbackThemeConfiguration,
-  FeedbackTheme,
-};
-
+export { FeedbackTheme };
 export interface FeedbackThemes {
   themeDark: FeedbackTheme;
   themeLight: FeedbackTheme;
@@ -42,16 +37,6 @@ export interface OptionalFeedbackConfiguration
   themeDark?: Partial<FeedbackTheme>;
 }
 
-/**
- * Partial configuration that overrides default configuration values
- *
- * This omits the color and theme properties, which cannot (yet) be modified
- */
-export type OverrideFeedbackConfiguration = Omit<
-  Partial<FeedbackInternalOptions>,
-  'colorScheme' | 'themeLight' | 'themeDark'
->;
-
 export interface SendFeedbackParams {
   message: string;
   name?: string;
@@ -66,4 +51,11 @@ export interface SendFeedbackOptions {
    * Should include replay with the feedback?
    */
   includeReplay?: boolean;
+}
+
+export interface ScreenshotWidget {
+  style: HTMLStyleElement;
+  input: ComponentType;
+  toggle: ComponentType<ScreenshotToggleProps>;
+  value: () => Promise<Attachment | undefined>;
 }

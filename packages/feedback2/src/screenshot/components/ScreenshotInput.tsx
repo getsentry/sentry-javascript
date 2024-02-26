@@ -1,14 +1,10 @@
 import type { ComponentType, VNode, h as hType } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 
-export interface Props {
-  initialImage: unknown;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeInput(h: typeof hType, canvasEl: HTMLCanvasElement): ComponentType<Props> {
-  return function ScreenshotToggle({ initialImage }: Props): VNode {
-    console.log({ initialImage, canvasEl }); // eslint-disable-line no-console
+export function makeInput(h: typeof hType, canvasEl: HTMLCanvasElement): ComponentType {
+  return function ScreenshotToggle(): VNode {
+    console.log({ canvasEl }); // eslint-disable-line no-console
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     useEffect(() => {

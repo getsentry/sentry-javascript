@@ -17,4 +17,4 @@ export {
   feedback2ScreenshotIntegration,
 } from './screenshot/integration';
 
-export type { OverrideFeedbackConfiguration } from './types/index';
+export type { OptionalFeedbackConfiguration } from './types';

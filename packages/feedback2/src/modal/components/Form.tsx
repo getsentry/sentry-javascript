@@ -4,8 +4,13 @@ import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-
 import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
-import type { ScreenshotWidget } from '../../screenshot/integration';
-import type { FeedbackFormData, FeedbackInternalOptions, SendFeedbackOptions, SendFeedbackParams } from '../../types';
+import type {
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  ScreenshotWidget,
+  SendFeedbackOptions,
+  SendFeedbackParams,
+} from '../../types';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 
@@ -127,7 +132,7 @@ export function Form({
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {ScreenshotInput && includeScreenshot ? <ScreenshotInput initialImage={undefined} /> : null}
+      {ScreenshotInput && includeScreenshot ? <ScreenshotInput /> : null}
 
       <div class="form__right">
         <div class="form__top">
