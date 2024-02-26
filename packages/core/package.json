@@ -15,13 +15,13 @@
     "types",
     "types-ts3.8"
   ],
-  "main": "build/npm/cjs/index.js",
-  "module": "build/npm/esm/index.js",
-  "types": "build/npm/types/index.d.ts",
+  "main": "build/cjs/index.js",
+  "module": "build/esm/index.js",
+  "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
+      "build/types/index.d.ts": [
+        "build/types-ts3.8/index.d.ts"
       ]
     }
   },
@@ -33,20 +33,17 @@
     "@sentry/utils": "7.100.0"
   },
   "scripts": {
-    "build": "run-p build:transpile build:types build:bundle",
-    "build:bundle": "run-p build:bundle:es5 build:bundle:es6",
-    "build:bundle:es5": "JS_VERSION=es5 rollup -c rollup.bundle.config.mjs",
-    "build:bundle:es6": "JS_VERSION=es6 rollup -c rollup.bundle.config.mjs",
+    "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn downlevel-dts build/types build/types-ts3.8 --to ts3.8",
     "build:watch": "run-p build:transpile:watch build:types:watch",
     "build:dev:watch": "yarn build:watch",
     "build:transpile:watch": "rollup -c rollup.npm.config.mjs --watch",
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
-    "build:tarball": "ts-node ../../scripts/prepack.ts --bundles && npm pack ./build/npm",
+    "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-core-*.tgz",
     "fix": "eslint . --format stylish --fix",
@@ -54,7 +51,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "version": "node ../../scripts/versionbump.js src/version.ts",
-    "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish build/npm --push --sig"
+    "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
