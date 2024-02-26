@@ -7,10 +7,14 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   style.textContent = `
+.dialog__content:has(.editor) {
+  top: var(--bottom);
+  left: var(--right);
+}
+
 .editor {
   background: red;
-  width: 75px;
-  height: 75px;
+  flex: 1 0 auto;
 }
 `;
 

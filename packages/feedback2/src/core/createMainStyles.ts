@@ -44,19 +44,12 @@ export function createMainStyles(colorScheme: 'system' | 'dark' | 'light', theme
   style.textContent = `
 :host {
   --bottom: 1rem;
-  --right: 1rem;
+  --right: 1rem; /* this is the font-size of the page, not the shadowroot */
   --top: auto;
   --left: auto;
   --z-index: 100000;
   --font-family: ${themes.themeLight.fontFamily};
   --font-size: ${themes.themeLight.fontSize};
-
-  position: fixed;
-  left: var(--left);
-  right: var(--right);
-  bottom: var(--bottom);
-  top: var(--top);
-  z-index: var(--z-index);
 
   font-family: var(--font-family);
   font-size: var(--font-size);

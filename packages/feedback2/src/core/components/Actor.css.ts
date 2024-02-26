@@ -7,11 +7,19 @@ export function createActorStyles(): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 .widget__actor {
+  position: fixed;
+  left: var(--left);
+  right: var(--right);
+  bottom: var(--bottom);
+  top: var(--top);
+  z-index: var(--z-index);
+
   line-height: 25px;
 
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 9000;
 
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -19,7 +27,6 @@ export function createActorStyles(): HTMLStyleElement {
   font-weight: 600;
   padding: 12px 16px;
   text-decoration: none;
-  z-index: 9000;
 
   color: var(--foreground);
   background-color: var(--background);

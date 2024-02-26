@@ -127,73 +127,78 @@ export function Form({
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {error ? <div class="form__error-container">{error}</div> : null}
-
       {ScreenshotInput && includeScreenshot ? <ScreenshotInput initialImage={undefined} /> : null}
 
-      {showName ? (
-        <label for="name" class="form__label">
-          <LabelText label={nameLabel} isRequired={isNameRequired} />
-          <input
-            class="form__input"
-            defaultValue={defaultName}
-            id="name"
-            name="name"
-            placeholder={namePlaceholder}
-            required={isNameRequired}
-            type="text"
-          />
-        </label>
-      ) : (
-        <input aria-hidden value={defaultName} name="name" type="hidden" />
-      )}
+      <div class="form__right">
+        <div class="form__top">
+          {error ? <div class="form__error-container">{error}</div> : null}
 
-      {showEmail ? (
-        <label for="email" class="form__label">
-          <LabelText label={emailLabel} isRequired={isEmailRequired} />
-          <input
-            class="form__input"
-            defaultValue={defaultEmail}
-            id="email"
-            name="email"
-            placeholder={emailPlaceholder}
-            required={isEmailRequired}
-            type="text"
-          ></input>
-        </label>
-      ) : (
-        <input aria-hidden value={defaultEmail} name="email" type="hidden" />
-      )}
+          {showName ? (
+            <label for="name" class="form__label">
+              <LabelText label={nameLabel} isRequired={isNameRequired} />
+              <input
+                class="form__input"
+                defaultValue={defaultName}
+                id="name"
+                name="name"
+                placeholder={namePlaceholder}
+                required={isNameRequired}
+                type="text"
+              />
+            </label>
+          ) : (
+            <input aria-hidden value={defaultName} name="name" type="hidden" />
+          )}
 
-      <label for="message" class="form__label">
-        <LabelText label={messageLabel} isRequired />
-        <textarea
-          autoFocus
-          class="form__input form__input--textarea"
-          id="message"
-          name="message"
-          placeholder={messagePlaceholder}
-          required={true}
-          rows={5}
-        />
-      </label>
+          {showEmail ? (
+            <label for="email" class="form__label">
+              <LabelText label={emailLabel} isRequired={isEmailRequired} />
+              <input
+                class="form__input"
+                defaultValue={defaultEmail}
+                id="email"
+                name="email"
+                placeholder={emailPlaceholder}
+                required={isEmailRequired}
+                type="text"
+              ></input>
+            </label>
+          ) : (
+            <input aria-hidden value={defaultEmail} name="email" type="hidden" />
+          )}
 
-      {ScreenshotToggle ? (
-        <ScreenshotToggle
-          onClick={() => {
-            setIncludeScreeshot(prev => !prev);
-          }}
-          isScreenshotIncluded={includeScreenshot}
-        />
-      ) : null}
+          <label for="message" class="form__label">
+            <LabelText label={messageLabel} isRequired />
+            <textarea
+              autoFocus
+              class="form__input form__input--textarea"
+              id="message"
+              name="message"
+              placeholder={messagePlaceholder}
+              required={true}
+              rows={5}
+            />
+          </label>
 
-      <div class="btn-group">
-        <button class="btn btn--primary" type="submit">
-          {submitButtonLabel}
-        </button>
-        <button class="btn btn--default" type="button" onClick={onFormClose}>
-          {cancelButtonLabel}
-        </button>
+          {ScreenshotToggle ? (
+            <ScreenshotToggle
+              onClick={() => {
+                setIncludeScreeshot(prev => !prev);
+              }}
+              isScreenshotIncluded={includeScreenshot}
+            />
+          ) : null}
+        </div>
+        <div class="form__bottom">
+          <div class="btn-group">
+            <button class="btn btn--primary" type="submit">
+              {submitButtonLabel}
+            </button>
+            <button class="btn btn--default" type="button" onClick={onFormClose}>
+              {cancelButtonLabel}
+            </button>
+          </div>
+        </div>
       </div>
     </form>
   );

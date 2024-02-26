@@ -44,14 +44,20 @@ export function createDialogStyles(): HTMLStyleElement {
   background-color: var(--background);
   color: var(--foreground);
 
-  width: 320px;
   max-width: 100%;
   max-height: calc(100% - 2rem);
   display: flex;
   flex-direction: column;
+  gap: 16px;
   box-shadow: var(--box-shadow);
   transition: transform 0.2s ease-in-out;
   transform: translate(0, 0) scale(1);
+
+  padding: 24px;
+}
+.dialog__content-fullscreen {
+  top: 16px;
+  left: 16px;
 }
 
 .dialog__header {
@@ -60,9 +66,8 @@ export function createDialogStyles(): HTMLStyleElement {
   justify-content: space-between;
   font-size: 20px;
   font-weight: 600;
-  padding: 24px 24px 0 24px;
   margin: 0;
-  margin-bottom: 16px;
+
 }
 
 .brand-link {
@@ -71,24 +76,29 @@ export function createDialogStyles(): HTMLStyleElement {
 
 .error {
   color: var(--error);
-  margin-bottom: 16px;
 }
 
 .form {
   display: flex;
   overflow: auto;
-  flex-direction: column;
+  flex-direction: row;
   gap: 16px;
-  padding: 0 24px 24px;
   flex: 1 0 auto;
 }
 
-.form__error-container {
-  color: var(--error);
+.form__right {
+  width: 272px;
+  display: flex;
+  overflow: auto;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+
 }
 
-.form__error-container--hidden {
-  display: none;
+
+.form__error-container {
+  color: var(--error);
 }
 
 .form__label {
@@ -179,6 +189,13 @@ export function createDialogStyles(): HTMLStyleElement {
 }
 
 .success-message {
+  position: fixed;
+  left: var(--left);
+  right: var(--right);
+  bottom: var(--bottom);
+  top: var(--top);
+  z-index: var(--z-index);
+
   background-color: var(--background);
   border: var(--border);
   border-radius: var(--border-radius);

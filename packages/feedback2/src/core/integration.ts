@@ -19,9 +19,8 @@ import {
 import type { DialogComponent } from '../modal/components/Dialog';
 import type { feedback2ModalIntegration } from '../modal/integration';
 import type { feedback2ScreenshotIntegration } from '../screenshot/integration';
-import type { FeedbackCallbacks, FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
+import type { FeedbackInternalOptions, OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
-import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
@@ -163,7 +162,6 @@ export class Feedback2 implements Integration {
 
     this._host = null;
     this._shadow = null;
-
     this._dialog = null;
   }
 
@@ -213,19 +211,19 @@ export class Feedback2 implements Integration {
   }
 
   /**
-   * Adds click listener to attached element to open a feedback dialog
+   * Adds click listener to the element to open a feedback dialog
    *
-   * The returned function can be used to detact the click listener
+   * The returned function can be used to remove the click listener
    */
-  public attachTo(el: Element | string, optionOverrides: Partial<FeedbackCallbacks> = {}): null | (() => void) {
-    const options = mergeOptions(this.options, optionOverrides);
+  public attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): () => void {
+    const options = { ...this.options, ...optionOverrides };
 
     const targetEl =
       typeof el === 'string' ? DOCUMENT.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
 
     if (!targetEl) {
       DEBUG_BUILD && logger.error('[Feedback] Unable to attach to target element');
-      return null;
+      throw new Error('Unable to attach to target element');
     }
 
     const handleClick = async (): Promise<void> => {
@@ -242,9 +240,9 @@ export class Feedback2 implements Integration {
    * Creates a new widget. Accepts partial options to override any options passed to constructor.
    */
   public createWidget(
-    optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean } = {},
+    optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean } = {},
   ): Promise<DialogComponent> {
-    const options = mergeOptions(this.options, optionOverrides);
+    const options = { ...this.options, ...optionOverrides };
 
     return this._loadAndRenderDialog(options);
   }
@@ -309,6 +307,9 @@ export class Feedback2 implements Integration {
       const { colorScheme, themeDark, themeLight } = options;
       const shadow = host.attachShadow({ mode: 'open' });
       shadow.appendChild(
+        // TODO: inject main styles as part of actor and dialog styles
+        // therefore each render root can have it's own theme
+        // err, everything can just have it's own shadowroot...
         createMainStyles(colorScheme, {
           themeDark,
           themeLight,
@@ -338,10 +339,13 @@ export class Feedback2 implements Integration {
       client.getIntegrationByName<ReturnType<typeof feedback2ScreenshotIntegration>>('Feedback2Screenshot');
     const { showScreenshot } = this.options;
 
-    if (showScreenshot === false && screenshotIntegration) {
-      // Warn the user that they loaded too much and explicitly asked for screen shots to be off
-      console.log('WARNING: youre not rendering screenshots but they are bundled into your application.'); // eslint-disable-line no-console
-    }
+    // Disable this because the site could have multiple feedback buttons, not all of them need to have screenshots enabled.
+    // Must be a better way...
+    //
+    // if (showScreenshot === false && screenshotIntegration) {
+    //   // Warn the user that they loaded too much and explicitly asked for screen shots to be off
+    //   console.log('WARNING: Feedback2Screenshot is bundled but not rendered.'); // eslint-disable-line no-console
+    // }
 
     // START TEMP: Error messages
     console.log('ensureRenderer:', { modalIntegration, showScreenshot, screenshotIntegration }); // eslint-disable-line no-console

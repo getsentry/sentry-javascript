@@ -103,9 +103,7 @@ function DialogContainer({ open, onFormSubmitted, ...props }: Props & { open: bo
         <dialog class="dialog" onClick={props.onFormClose} open={open}>
           <DialogContent {...props}>
             <DialogHeader {...props} />
-            <div style={{ display: 'flex', flexDirection: 'row', gap: '8px' }}>
-              <Form {...props} onSubmitSuccess={onSubmitSuccess} />
-            </div>
+            <Form {...props} onSubmitSuccess={onSubmitSuccess} />
           </DialogContent>
         </dialog>
       )}
