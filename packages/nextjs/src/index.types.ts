@@ -22,6 +22,7 @@ export declare function init(
 export declare const Integrations: undefined; // TODO(v8): Remove this line. Can only be done when dependencies don't export `Integrations` anymore.
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;

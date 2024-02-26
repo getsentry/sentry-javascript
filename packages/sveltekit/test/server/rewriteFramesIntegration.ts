@@ -1,4 +1,4 @@
-import { rewriteFramesIntegration } from '@sentry/integrations';
+import { rewriteFramesIntegration } from '@sentry/browser';
 import type { Event, StackFrame } from '@sentry/types';
 import { basename } from '@sentry/utils';
 

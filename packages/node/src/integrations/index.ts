@@ -10,3 +10,12 @@ export { RequestData } from '@sentry/core';
 export { Undici } from './undici';
 export { Spotlight } from './spotlight';
 export { Hapi } from './hapi';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';

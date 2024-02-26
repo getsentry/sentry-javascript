@@ -101,7 +101,6 @@ jobs:
               - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
-              - 'packages/integrations/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
@@ -424,7 +423,6 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz

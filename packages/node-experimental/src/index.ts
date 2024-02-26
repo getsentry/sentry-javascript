@@ -84,6 +84,12 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
 } from '@sentry/core';
 
 export type {

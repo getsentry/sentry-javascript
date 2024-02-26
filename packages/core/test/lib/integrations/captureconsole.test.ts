@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import type { Client, ConsoleLevel, Event } from '@sentry/types';
-import { CONSOLE_LEVELS, GLOBAL_OBJ, originalConsoleMethods, resetInstrumentationHandlers } from '@sentry/utils';
+import {
+  CONSOLE_LEVELS,
+  GLOBAL_OBJ,
+  addConsoleInstrumentationHandler,
+  originalConsoleMethods,
+  resetInstrumentationHandlers,
+} from '@sentry/utils';
 import * as CurrentScopes from '../../../src/currentscopes';
 import * as SentryCore from '../../../src/exports';
 
@@ -19,7 +25,7 @@ const mockConsole: { [key in ConsoleLevel]: jest.Mock<any> } = {
 
 describe('CaptureConsole setup', () => {
   // Ensure we've initialized the instrumentation so we can get the original one
-  // addConsoleInstrumentationHandler(() => {});
+  addConsoleInstrumentationHandler(() => {});
   const _originalConsoleMethods = Object.assign({}, originalConsoleMethods);
 
   let mockClient: Client;

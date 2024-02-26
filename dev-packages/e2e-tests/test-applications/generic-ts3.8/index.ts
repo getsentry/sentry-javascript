@@ -3,8 +3,6 @@ import * as _SentryBrowser from '@sentry/browser';
 // biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryCore from '@sentry/core';
 // biome-ignore lint/nursery/noUnusedImports:
-import * as _SentryIntegrations from '@sentry/integrations';
-// biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryNode from '@sentry/node';
 // biome-ignore lint/nursery/noUnusedImports:
 import * as _SentryOpentelemetry from '@sentry/opentelemetry-node';

@@ -169,7 +169,6 @@ class SentryScenarioGenerationPlugin {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
           '@sentry/browser': 'Sentry',
           '@sentry/replay': 'Sentry',
-          '@sentry/integrations': 'Sentry',
           '@sentry/wasm': 'Sentry',
         }
       : {};
