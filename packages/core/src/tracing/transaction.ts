@@ -199,19 +199,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
-   */
-  public updateWithContext(transactionContext: TransactionContext): this {
-    // eslint-disable-next-line deprecation/deprecation
-    super.updateWithContext(transactionContext);
-
-    this._name = transactionContext.name || '';
-    this._trimEnd = transactionContext.trimEnd;
-
-    return this;
-  }
-
-  /**
    * @inheritdoc
    *
    * @experimental

@@ -114,12 +114,6 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Sp
   toContext(): TransactionContext;
 
   /**
-   * Updates the current transaction with a new `TransactionContext`.
-   * @deprecated Update the fields directly instead.
-   */
-  updateWithContext(transactionContext: TransactionContext): this;
-
-  /**
    * Set metadata for this transaction.
    * @deprecated Use attributes or store data on the scope instead.
    */

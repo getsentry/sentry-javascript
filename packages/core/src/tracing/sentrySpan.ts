@@ -444,29 +444,6 @@ export class SentrySpan implements SpanInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Update the fields directly instead.
-   */
-  public updateWithContext(spanContext: SpanContext): this {
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = spanContext.data || {};
-    this._name = spanContext.name;
-    this._endTime = spanContext.endTimestamp;
-    this._attributes = { ...this._attributes, [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op };
-    this._parentSpanId = spanContext.parentSpanId;
-    this._sampled = spanContext.sampled;
-    this._spanId = spanContext.spanId || this._spanId;
-    this._startTime = spanContext.startTimestamp || this._startTime;
-    this._status = spanContext.status;
-    // eslint-disable-next-line deprecation/deprecation
-    this.tags = spanContext.tags || {};
-    this._traceId = spanContext.traceId || this._traceId;
-
-    return this;
-  }
-
-  /**
-   * @inheritDoc
-   *
    * @deprecated Use `spanToTraceContext()` util function instead.
    */
   public getTraceContext(): TraceContext {
