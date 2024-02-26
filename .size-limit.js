@@ -3,28 +3,28 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration, Feedback }',
+    import: '{ init, replayIntegration, browserTracingIntegration, Feedback }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration }',
+    import: '{ init, replayIntegration, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay with Canvas) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration, ReplayCanvas }',
+    import: '{ init, replayIntegration, browserTracingIntegration, replayCanvasIntegration }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration }',
+    import: '{ init, replayIntegration, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
     modifyWebpackConfig: function (config) {

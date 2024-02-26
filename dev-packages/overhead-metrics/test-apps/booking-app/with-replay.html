@@ -224,7 +224,7 @@
         enableTracing: true,
         integrations: [
           Sentry.browserTracingIntegration(),
-          new Sentry.Integrations.Replay({
+          Sentry.replayIntegration({
             useCompression: true,
             flushMinDelay: 2000,
             flushMaxDelay: 2000,

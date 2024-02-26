@@ -30,8 +30,6 @@ export {
 } from '@sentry/core';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  Replay,
   replayIntegration,
   getReplay,
 } from '@sentry/replay';
@@ -47,15 +45,9 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  ReplayCanvas,
-  replayCanvasIntegration,
-} from '@sentry-internal/replay-canvas';
+export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  Feedback,
   feedbackIntegration,
   sendFeedback,
 } from '@sentry-internal/feedback';
