@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@hapi/hapi": "21.3.2",
-    "@sentry/integrations": "latest || *",
     "@sentry/node": "latest || *",
     "@sentry/types": "latest || *",
     "@types/node": "18.15.1",

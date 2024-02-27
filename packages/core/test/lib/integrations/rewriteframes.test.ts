@@ -1,6 +1,6 @@
 import type { Event, StackFrame } from '@sentry/types';
 
-import { rewriteFramesIntegration } from '../src/rewriteframes';
+import { rewriteFramesIntegration } from '../../../src/integrations/rewriteframes';
 
 let rewriteFrames: ReturnType<typeof rewriteFramesIntegration>;
 let exceptionEvent: Event;

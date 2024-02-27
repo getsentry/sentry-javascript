@@ -1,4 +1,3 @@
-import { captureException, captureMessage, defineIntegration, getClient, withScope } from '@sentry/core';
 import type { CaptureContext, IntegrationFn } from '@sentry/types';
 import {
   CONSOLE_LEVELS,
@@ -8,6 +7,9 @@ import {
   safeJoin,
   severityLevelFromString,
 } from '@sentry/utils';
+import { getClient, withScope } from '../currentScopes';
+import { captureException, captureMessage } from '../exports';
+import { defineIntegration } from '../integration';
 
 interface CaptureConsoleOptions {
   levels?: string[];

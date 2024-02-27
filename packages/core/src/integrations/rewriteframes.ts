@@ -1,6 +1,6 @@
-import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
+import { defineIntegration } from '../integration';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 

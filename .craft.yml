@@ -70,9 +70,6 @@ targets:
   - name: npm
     id: '@sentry/wasm'
     includeNames: /^sentry-wasm-\d.*\.tgz$/
-  - name: npm
-    id: '@sentry/integrations'
-    includeNames: /^sentry-integrations-\d.*\.tgz$/
 
   ## 4. WinterCG Packages
   - name: npm

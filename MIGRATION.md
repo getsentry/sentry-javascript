@@ -112,6 +112,26 @@ Sentry SDK requires the fetch API to be available in the environment.
   [`error.cause`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause) by
   default.
 
+## Integrations
+
+We moved pluggable integrations from their own package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`.
+
+Integrations that are now exported from `@sentry/browser` (or framework-specific packages like `@sentry/react`):
+
+- httpClientIntegration
+- contextLinesIntegration
+- reportingObserverIntegration
+
+Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or framework-specific packages like
+`@sentry/react`):
+
+- captureConsoleIntegration
+- debugIntegration
+- extraErrorDataIntegration
+- rewriteFramesIntegration
+- sessionTimingIntegration
+- dedupeIntegration (enabled by default, not pluggable)
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update

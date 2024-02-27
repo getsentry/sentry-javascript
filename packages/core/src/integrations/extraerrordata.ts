@@ -1,8 +1,8 @@
-import { defineIntegration } from '@sentry/core';
 import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
 import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
+import { defineIntegration } from '../integration';
 
-import { DEBUG_BUILD } from './debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 
 const INTEGRATION_NAME = 'ExtraErrorData';
 

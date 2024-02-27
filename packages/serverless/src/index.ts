@@ -98,3 +98,12 @@ export {
   endSession,
   withActiveSpan,
 } from '@sentry/node-experimental';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';

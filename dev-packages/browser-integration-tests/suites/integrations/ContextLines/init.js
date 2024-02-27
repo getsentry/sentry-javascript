@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-import { contextLinesIntegration } from '@sentry/integrations';
+import { contextLinesIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;
 

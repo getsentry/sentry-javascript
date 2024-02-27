@@ -1,6 +1,6 @@
 import type { Client, Event, EventHint } from '@sentry/types';
 
-import { debugIntegration } from '../src/debug';
+import { debugIntegration } from '../../../src/integrations/debug';
 
 function testEventLogged(
   integration: ReturnType<typeof debugIntegration>,

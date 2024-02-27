@@ -23,6 +23,18 @@ const INTEGRATIONS = {
 // eslint-disable-next-line deprecation/deprecation
 export { INTEGRATIONS as Integrations };
 
+export { reportingObserverIntegration } from './integrations/reportingobserver';
+export { httpClientIntegration } from './integrations/httpclient';
+export { contextLinesIntegration } from './integrations/contextlines';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,

@@ -57,8 +57,6 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
-- [`@sentry/integrations`](https://github.com/getsentry/sentry-javascript/tree/master/packages/integrations): Pluggable
-  integrations that can be used to enhance JS SDKs
 - [`@sentry/serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless): SDK for
   Serverless Platforms (AWS, GCP)
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes

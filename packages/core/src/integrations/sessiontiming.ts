@@ -1,5 +1,5 @@
-import { defineIntegration } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '../integration';
 
 const INTEGRATION_NAME = 'SessionTiming';
 
