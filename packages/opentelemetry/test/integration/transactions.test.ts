@@ -446,7 +446,7 @@ describe('Integration | Transactions', () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
@@ -515,7 +515,7 @@ describe('Integration | Transactions', () => {
 
   it('includes child spans that are finished in the same tick but after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
@@ -566,7 +566,7 @@ describe('Integration | Transactions', () => {
 
   it('discards child spans that are finished after their parent span', async () => {
     const now = Date.now();
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];

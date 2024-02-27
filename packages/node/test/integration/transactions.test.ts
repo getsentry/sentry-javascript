@@ -565,7 +565,7 @@ describe('Integration | Transactions', () => {
     const beforeSendTransaction = jest.fn(() => null);
 
     const now = Date.now();
-    jest.useFakeTimers();
+    jest.useFakeTimers({ legacyFakeTimers: true });
     jest.setSystemTime(now);
 
     const logs: unknown[] = [];
