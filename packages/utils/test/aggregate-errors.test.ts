@@ -83,7 +83,6 @@ describe('applyAggregateErrorsToEvent()', () => {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
@@ -94,7 +93,6 @@ describe('applyAggregateErrorsToEvent()', () => {
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
@@ -140,7 +138,6 @@ describe('applyAggregateErrorsToEvent()', () => {
       mechanism: {
         exception_id: 0,
         handled: true,
-        is_exception_group: true,
         type: 'instrument',
       },
     });
@@ -191,7 +188,6 @@ describe('applyAggregateErrorsToEvent()', () => {
             mechanism: {
               exception_id: 4,
               handled: true,
-              is_exception_group: true,
               parent_id: 2,
               source: 'errors[1]',
               type: 'chained',
@@ -279,7 +275,6 @@ describe('applyAggregateErrorsToEvent()', () => {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
@@ -290,7 +285,6 @@ describe('applyAggregateErrorsToEvent()', () => {
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
@@ -330,7 +324,6 @@ describe('applyAggregateErrorsToEvent()', () => {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
@@ -341,7 +334,6 @@ describe('applyAggregateErrorsToEvent()', () => {
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
