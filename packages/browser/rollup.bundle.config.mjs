@@ -8,7 +8,7 @@ if (targets.some(target => target !== 'es5' && target !== 'es6')) {
   throw new Error('JS_VERSION must be either "es5" or "es6"');
 }
 
-const addonIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver'];
+const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver'];
 
 const coreIntegrationFiles = ['captureconsole', 'debug', 'dedupe', 'extraerrordata', 'rewriteframes', 'sessiontiming'];
 
@@ -29,7 +29,7 @@ targets.forEach(jsVersion => {
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
-  addonIntegrationFiles.forEach(integrationName => {
+  browserPluggableIntegrationFiles.forEach(integrationName => {
     const integrationsBundleConfig = makeBaseBundleConfig({
       bundleType: 'addon',
       entrypoints: [`src/integrations/${integrationName}.ts`],
