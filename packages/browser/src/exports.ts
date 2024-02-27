@@ -66,6 +66,7 @@ export {
   InboundFilters,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  dedupeIntegration,
   parameterize,
   startSession,
   captureSession,

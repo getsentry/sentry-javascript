@@ -73,6 +73,7 @@ export {
   requestDataIntegration,
   captureConsoleIntegration,
   debugIntegration,
+  dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
@@ -94,7 +95,7 @@ export {
   init,
 } from './sdk';
 
-export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
+export { breadcrumbsIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 export { denoContextIntegration } from './integrations/context';

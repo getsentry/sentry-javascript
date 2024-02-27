@@ -30,7 +30,6 @@ export { contextLinesIntegration } from './integrations/contextlines';
 export {
   captureConsoleIntegration,
   debugIntegration,
-  dedupeIntegration,
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,

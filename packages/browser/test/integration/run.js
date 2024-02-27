@@ -73,7 +73,7 @@ function build() {
 
   writeFile(
     'artifacts/dedupe.js',
-    readFile('../../../integrations/build/bundles/dedupe.js').replace('//# sourceMappingURL=dedupe.js.map', ''),
+    readFile('../../../browser/build/bundles/dedupe.js').replace('//# sourceMappingURL=dedupe.js.map', ''),
   );
   concatFiles('artifacts/setup.js', ['artifacts/dedupe.js', 'common/utils.js', 'common/triggers.js', 'common/init.js']);
   rmdir('artifacts/dedupe.js');
