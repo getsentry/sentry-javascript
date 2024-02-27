@@ -27,12 +27,12 @@
     "build:transpile": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:transpile"],
-      "outputs": ["{projectRoot}/build"]
+      "outputs": ["{projectRoot}/build/{esm,cjs}", "{projectRoot}/build/npm/{esm,cjs}"]
     },
     "build:types": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:types"],
-      "outputs": ["{projectRoot}/build/**/*.d.ts"]
+      "outputs": ["{projectRoot}/build/**/*.d.ts", "{projectRoot}/build/**/*.d.ts.map"]
     },
     "lint": {
       "inputs": ["default"],
