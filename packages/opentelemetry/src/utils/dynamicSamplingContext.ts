@@ -24,17 +24,17 @@ export function getDynamicSamplingContextFromSpan(span: AbstractSpan): Readonly<
     return {};
   }
 
-  const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
-
   const traceState = span.spanContext().traceState;
   const traceStateDsc = traceState?.get(SENTRY_TRACE_STATE_DSC);
 
-  if (traceStateDsc) {
-    const dsc = baggageHeaderToDynamicSamplingContext(traceStateDsc);
-    if (dsc) {
-      return dsc;
-    }
+  // If the span has a DSC, we want it to take precedence
+  const dscOnSpan = traceStateDsc ? baggageHeaderToDynamicSamplingContext(traceStateDsc) : undefined;
+
+  if (dscOnSpan) {
+    return dscOnSpan;
   }
+
+  const dsc = getDynamicSamplingContextFromClient(span.spanContext().traceId, client);
 
   const attributes = spanHasAttributes(span) ? span.attributes : {};
 
@@ -51,6 +51,7 @@ export function getDynamicSamplingContextFromSpan(span: AbstractSpan): Readonly<
     dsc.transaction = name;
   }
 
+  // TODO: Once we aligned span types, use spanIsSampled() from core instead
   // eslint-disable-next-line no-bitwise
   const sampled = Boolean(span.spanContext().traceFlags & TraceFlags.SAMPLED);
   dsc.sampled = String(sampled);
