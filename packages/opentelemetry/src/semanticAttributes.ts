@@ -6,7 +6,6 @@ export const InternalSentrySemanticAttributes = {
   ORIGIN: 'sentry.origin',
   OP: 'sentry.op',
   SOURCE: 'sentry.source',
-  SAMPLE_RATE: 'sentry.sample_rate',
   PARENT_SAMPLED: 'sentry.parentSampled',
   BREADCRUMB_TYPE: 'sentry.breadcrumb.type',
   BREADCRUMB_LEVEL: 'sentry.breadcrumb.level',

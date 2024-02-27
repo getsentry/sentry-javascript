@@ -1,12 +1,39 @@
 import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
-import { W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
+import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { getClient, getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
-import { SENTRY_BAGGAGE_KEY_PREFIX, generateSentryTraceHeader, propagationContextFromHeaders } from '@sentry/utils';
+import {
+  SENTRY_BAGGAGE_KEY_PREFIX,
+  baggageHeaderToDynamicSamplingContext,
+  dynamicSamplingContextToSentryBaggageHeader,
+  generateSentryTraceHeader,
+  propagationContextFromHeaders,
+} from '@sentry/utils';
 
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from './constants';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
+
+function getDynamicSamplingContextFromContext(context: Context): Partial<DynamicSamplingContext> | undefined {
+  // If possible, we want to take the DSC from the active span
+  // That should take precedence over the DSC from the propagation context
+  const activeSpan = trace.getSpan(context);
+  const traceStateDsc = activeSpan?.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC);
+  const dscOnSpan = traceStateDsc ? baggageHeaderToDynamicSamplingContext(traceStateDsc) : undefined;
+
+  if (dscOnSpan) {
+    return dscOnSpan;
+  }
+
+  const propagationContext = getPropagationContextFromContext(context);
+
+  if (propagationContext) {
+    const { traceId } = getSentryTraceData(context, propagationContext);
+    return getDynamicSamplingContext(propagationContext, traceId);
+  }
+
+  return undefined;
+}
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -24,7 +51,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const propagationContext = getPropagationContextFromContext(context);
     const { spanId, traceId, sampled } = getSentryTraceData(context, propagationContext);
-    const dynamicSamplingContext = propagationContext ? getDsc(propagationContext, traceId) : undefined;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromContext(context);
 
     if (dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
@@ -58,11 +86,19 @@ export class SentryPropagator extends W3CBaggagePropagator {
     // Add propagation context to context
     const contextWithPropagationContext = setPropagationContextOnContext(context, propagationContext);
 
+    // We store the DSC as OTEL trace state on the span context
+    const dscString = propagationContext.dsc
+      ? dynamicSamplingContextToSentryBaggageHeader(propagationContext.dsc)
+      : undefined;
+
+    const traceState = dscString ? new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString) : undefined;
+
     const spanContext: SpanContext = {
       traceId: propagationContext.traceId,
       spanId: propagationContext.parentSpanId || '',
       isRemote: true,
       traceFlags: propagationContext.sampled === true ? TraceFlags.SAMPLED : TraceFlags.NONE,
+      traceState,
     };
 
     // Add remote parent span context
@@ -77,7 +113,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
   }
 }
 
-function getDsc(
+/** Get the DSC. */
+function getDynamicSamplingContext(
   propagationContext: PropagationContext,
   traceId: string | undefined,
 ): Partial<DynamicSamplingContext> | undefined {
@@ -96,6 +133,7 @@ function getDsc(
   return undefined;
 }
 
+/** Get the trace data for propagation. */
 function getSentryTraceData(
   context: Context,
   propagationContext: PropagationContext | undefined,

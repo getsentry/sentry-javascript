@@ -2,6 +2,7 @@ import { createContextKey } from '@opentelemetry/api';
 
 export const SENTRY_TRACE_HEADER = 'sentry-trace';
 export const SENTRY_BAGGAGE_HEADER = 'baggage';
+export const SENTRY_TRACE_STATE_DSC = 'sentry.trace';
 
 /** Context Key to hold a PropagationContext. */
 export const SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY = createContextKey('SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY');
