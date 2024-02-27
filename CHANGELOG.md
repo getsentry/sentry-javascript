@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.103.0
+
+### Important Changes
+
+- **feat(core): Allow to pass `forceTransaction` to `startSpan()` APIs (#10819)**
+
+You can now pass `forceTransaction: true` to `startSpan()`, `startSpanManual()` and `startInactiveSpan()`. This allows
+you to start a span that you want to be a transaction, if possible. Under the hood, the SDK will connect this span to
+the running active span (if there is one), but still send the new span as a transaction to the Sentry backend, if
+possible, ensuring it shows up as a transaction throughout the system.
+
+Please note that setting this to `true` does not _guarantee_ that this will be sent as a transaction, but that the SDK
+will try to do so. You can enable this flag if this span is important to you and you want to ensure that you can see it
+in the Sentry UI.
+
+### Other Changes
+
+- fix: Make breadcrumbs option optional in WinterCGFetch integration (#10792)
+
 ## 7.102.1
 
 - fix(performance): Fixes latest route name and source for interactions not updating properly on navigation (#10702)
