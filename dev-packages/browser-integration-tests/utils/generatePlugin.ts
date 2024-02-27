@@ -129,14 +129,17 @@ function generateSentryAlias(): Record<string, string> {
 
   return Object.fromEntries(
     packageNames.map(packageName => {
+      // pluggable integrations exist in the browser package
+      const actPackageName = packageName === 'integrations' ? 'browser' : packageName;
+
       const packageJSON: Package = JSON.parse(
-        fs.readFileSync(path.resolve(PACKAGES_DIR, packageName, 'package.json'), { encoding: 'utf-8' }).toString(),
+        fs.readFileSync(path.resolve(PACKAGES_DIR, actPackageName, 'package.json'), { encoding: 'utf-8' }).toString(),
       );
 
-      const modulePath = path.resolve(PACKAGES_DIR, packageName);
+      const modulePath = path.resolve(PACKAGES_DIR, actPackageName);
 
-      if (useCompiledModule && bundleKey && BUNDLE_PATHS[packageName]?.[bundleKey]) {
-        const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[packageName][bundleKey]);
+      if (useCompiledModule && bundleKey && BUNDLE_PATHS[actPackageName]?.[bundleKey]) {
+        const bundlePath = path.resolve(modulePath, BUNDLE_PATHS[actPackageName][bundleKey]);
 
         return [packageJSON['name'], bundlePath];
       }
@@ -241,7 +244,7 @@ class SentryScenarioGenerationPlugin {
               this.localOutPath,
               path.resolve(
                 PACKAGES_DIR,
-                'integrations',
+                'browser',
                 BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
               ),
               fileName,

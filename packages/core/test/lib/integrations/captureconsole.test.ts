@@ -8,7 +8,7 @@ import {
   originalConsoleMethods,
   resetInstrumentationHandlers,
 } from '@sentry/utils';
-import * as CurrentScopes from '../../../src/currentscopes';
+import * as CurrentScopes from '../../../src/currentScopes';
 import * as SentryCore from '../../../src/exports';
 
 import { captureConsoleIntegration } from '../../../src/integrations/captureconsole';
