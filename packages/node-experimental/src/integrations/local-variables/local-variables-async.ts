@@ -52,8 +52,10 @@ function unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables): void {
     } else {
       vars[prop.name] = prop.value.value;
     }
-  } else if (prop.value.description && prop.value.type !== 'function') {
+  } else if ('description' in prop.value && prop.value.type !== 'function') {
     vars[prop.name] = `<${prop.value.description}>`;
+  } else if (prop.value.type === 'undefined') {
+    vars[prop.name] = '<undefined>';
   }
 }
 

@@ -26,6 +26,8 @@ function one(name) {
   const bool = false;
   const num = 0;
   const str = '';
+  const something = undefined;
+  const somethingElse = null;
 
   const ty = new Some();
 
