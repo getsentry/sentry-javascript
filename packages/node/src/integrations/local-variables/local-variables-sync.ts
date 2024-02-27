@@ -129,7 +129,7 @@ class AsyncSession implements DebugSession {
         } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
           const id = prop.value.objectId;
           add(vars => this._unrollObject(id, prop.name, vars, next));
-        } else if (prop?.value?.value || prop?.value?.description) {
+        } else if (prop?.value?.value != null || prop?.value?.description != null) {
           add(vars => this._unrollOther(prop, vars, next));
         }
       }
@@ -192,9 +192,9 @@ class AsyncSession implements DebugSession {
    * Unrolls other properties
    */
   private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, next: (vars: Variables) => void): void {
-    if (prop?.value?.value) {
+    if (prop?.value?.value != null) {
       vars[prop.name] = prop.value.value;
-    } else if (prop?.value?.description && prop?.value?.type !== 'function') {
+    } else if (prop?.value?.description != null && prop?.value?.type !== 'function') {
       vars[prop.name] = `<${prop.value.description}>`;
     }
 
@@ -269,11 +269,12 @@ const _localVariablesSyncIntegration = ((
         });
       } else {
         const id = localScope.object.objectId;
-        add(frames =>
-          session?.getLocalVariables(id, vars => {
-            frames[i] = { function: fn, vars };
-            next(frames);
-          }),
+        add(
+          frames =>
+            session?.getLocalVariables(id, vars => {
+              frames[i] = { function: fn, vars };
+              next(frames);
+            }),
         );
       }
     }
