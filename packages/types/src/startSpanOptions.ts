@@ -21,6 +21,13 @@ export interface StartSpanOptions extends TransactionContext {
   op?: string;
 
   /**
+   * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.
+   * Note that it is up to the SDK to decide how exactly the span will be sent, which may change in future SDK versions.
+   * It is not guaranteed that a span started with this flag set to `true` will be sent as a transaction.
+   */
+  forceTransaction?: boolean;
+
+  /**
    * The origin of the span - if it comes from auto instrumentation or manual instrumentation.
    *
    * @deprecated Set `attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]` instead.
