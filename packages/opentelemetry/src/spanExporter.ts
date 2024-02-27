@@ -145,7 +145,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
 
   const parentSampled = span.attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] as boolean | undefined;
 
-  const { op, description, tags, data, origin, source } = getSpanData(span);
+  const { op, description, data, origin, source } = getSpanData(span);
   const metadata = getSpanMetadata(span);
   const capturedSpanScopes = getSpanScopes(span);
 
@@ -167,7 +167,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     },
     data: removeSentryAttributes(data),
     origin,
-    tags,
     sampled: true,
   });
 
@@ -203,7 +202,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
   const spanId = span.spanContext().spanId;
   const { attributes } = span;
 
-  const { op, description, tags, data, origin } = getSpanData(span);
+  const { op, description, data, origin } = getSpanData(span);
   const allData = { ...removeSentryAttributes(attributes), ...data };
 
   // eslint-disable-next-line deprecation/deprecation
@@ -215,7 +214,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     spanId,
     origin,
-    tags,
   });
 
   node.children.forEach(child => {
@@ -226,7 +224,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
 }
 
 function getSpanData(span: ReadableSpan): {
-  tags: Record<string, string>;
   data: Record<string, unknown>;
   op?: string;
   description: string;
@@ -239,7 +236,6 @@ function getSpanData(span: ReadableSpan): {
   const op = definedOp || inferredOp;
   const source = definedSource || inferredSource;
 
-  const tags = getTags(span);
   const data = { ...inferredData, ...getData(span) };
 
   return {
@@ -247,7 +243,6 @@ function getSpanData(span: ReadableSpan): {
     description,
     source,
     origin,
-    tags,
     data,
   };
 }
@@ -268,18 +263,6 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;
-}
-
-function getTags(span: ReadableSpan): Record<string, string> {
-  const attributes = span.attributes;
-  const tags: Record<string, string> = {};
-
-  if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string | number;
-    tags['http.status_code'] = `${statusCode}`;
-  }
-
-  return tags;
 }
 
 function getData(span: ReadableSpan): Record<string, unknown> {
