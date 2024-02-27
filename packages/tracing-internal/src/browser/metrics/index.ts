@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import type { SentrySpan } from '@sentry/core';
 import { getActiveSpan, startInactiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
 import type { Measurements, Span, StartSpanOptions } from '@sentry/types';
@@ -445,15 +444,11 @@ function _trackNavigator(span: Span): void {
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag('effectiveConnectionType', connection.effectiveType);
+      span.setAttribute('effectiveConnectionType', connection.effectiveType);
     }
 
     if (connection.type) {
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag('connectionType', connection.type);
+      span.setAttribute('connectionType', connection.type);
     }
 
     if (isMeasurementValue(connection.rtt)) {
@@ -462,15 +457,11 @@ function _trackNavigator(span: Span): void {
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
-    // TODO: Can we rewrite this to an attribute?
-    // eslint-disable-next-line deprecation/deprecation
-    (span as SentrySpan).setTag('deviceMemory', `${navigator.deviceMemory} GB`);
+    span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
-    // TODO: Can we rewrite this to an attribute?
-    // eslint-disable-next-line deprecation/deprecation
-    (span as SentrySpan).setTag('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
   }
 }
 
@@ -482,36 +473,26 @@ function _tagMetricInfo(span: Span): void {
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag('lcp.element', htmlTreeAsString(_lcpEntry.element));
+      span.setAttribute('lcp.element', htmlTreeAsString(_lcpEntry.element));
     }
 
     if (_lcpEntry.id) {
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag('lcp.id', _lcpEntry.id);
+      span.setAttribute('lcp.id', _lcpEntry.id);
     }
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag('lcp.url', _lcpEntry.url.trim().slice(0, 200));
+      span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
     }
 
-    // TODO: Can we rewrite this to an attribute?
-    // eslint-disable-next-line deprecation/deprecation
-    (span as SentrySpan).setTag('lcp.size', _lcpEntry.size);
+    span.setAttribute('lcp.size', _lcpEntry.size);
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
     DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
     _clsEntry.sources.forEach((source, index) =>
-      // TODO: Can we rewrite this to an attribute?
-      // eslint-disable-next-line deprecation/deprecation
-      (span as SentrySpan).setTag(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
+      span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
     );
   }
 }
