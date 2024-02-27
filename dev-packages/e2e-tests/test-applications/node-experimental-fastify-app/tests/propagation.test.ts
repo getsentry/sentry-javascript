@@ -3,11 +3,6 @@ import { Span } from '@sentry/types';
 import axios from 'axios';
 import { waitForTransaction } from '../event-proxy-server';
 
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
-const EVENT_POLLING_TIMEOUT = 90_000;
-
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const inboundTransactionPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
     return (
@@ -55,50 +50,38 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     ]),
   );
 
-  expect(outboundTransaction).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-outgoing-http',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          span_id: expect.any(String),
-          status: 'ok',
-          trace_id: traceId,
-          origin: 'auto.http.otel.http',
-        },
-      }),
-    }),
-  );
+  expect(outboundTransaction.contexts?.trace).toEqual({
+    data: {
+      url: 'http://localhost:3030/test-outgoing-http',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.source': 'route',
+    },
+    op: 'http.server',
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: traceId,
+    origin: 'auto.http.otel.http',
+  });
 
-  expect(inboundTransaction).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-inbound-headers',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          parent_span_id: outgoingHttpSpanId,
-          span_id: expect.any(String),
-          status: 'ok',
-          trace_id: traceId,
-          origin: 'auto.http.otel.http',
-        },
-      }),
-    }),
-  );
+  expect(inboundTransaction.contexts?.trace).toEqual({
+    data: {
+      url: 'http://localhost:3030/test-inbound-headers',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.source': 'route',
+    },
+    op: 'http.server',
+    parent_span_id: outgoingHttpSpanId,
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: traceId,
+    origin: 'auto.http.otel.http',
+  });
 });
 
 test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
@@ -148,48 +131,36 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     ]),
   );
 
-  expect(outboundTransaction).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-outgoing-fetch',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          span_id: expect.any(String),
-          status: 'ok',
-          trace_id: traceId,
-          origin: 'auto.http.otel.http',
-        },
-      }),
-    }),
-  );
+  expect(outboundTransaction.contexts?.trace).toEqual({
+    data: {
+      url: 'http://localhost:3030/test-outgoing-fetch',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.source': 'route',
+    },
+    op: 'http.server',
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: traceId,
+    origin: 'auto.http.otel.http',
+  });
 
-  expect(inboundTransaction).toEqual(
-    expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-inbound-headers',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          parent_span_id: outgoingHttpSpanId,
-          span_id: expect.any(String),
-          status: 'ok',
-          trace_id: traceId,
-          origin: 'auto.http.otel.http',
-        },
-      }),
+  expect(inboundTransaction.contexts?.trace).toEqual({
+    data: expect.objectContaining({
+      url: 'http://localhost:3030/test-inbound-headers',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.source': 'route',
     }),
-  );
+    op: 'http.server',
+    parent_span_id: outgoingHttpSpanId,
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: traceId,
+    origin: 'auto.http.otel.http',
+  });
 });

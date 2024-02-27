@@ -20,26 +20,24 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   const transactionEvent = await pageloadTransactionEventPromise;
   const transactionEventId = transactionEvent.event_id;
 
+  expect(transactionEvent.contexts?.trace).toEqual({
+    data: {
+      url: 'http://localhost:3030/test-transaction',
+      'otel.kind': 'SERVER',
+      'http.response.status_code': 200,
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.source': 'route',
+    },
+    op: 'http.server',
+    span_id: expect.any(String),
+    status: 'ok',
+    trace_id: expect.any(String),
+    origin: 'auto.http.otel.http',
+  });
+
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      contexts: expect.objectContaining({
-        trace: {
-          data: {
-            url: 'http://localhost:3030/test-transaction',
-            'otel.kind': 'SERVER',
-            'http.response.status_code': 200,
-            'sentry.op': 'http.server',
-            'sentry.origin': 'auto.http.otel.http',
-            'sentry.source': 'route',
-          },
-          op: 'http.server',
-          span_id: expect.any(String),
-          status: 'ok',
-          trace_id: expect.any(String),
-          origin: 'auto.http.otel.http',
-        },
-      }),
-
       spans: [
         {
           data: {
