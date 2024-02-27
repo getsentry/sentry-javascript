@@ -6,6 +6,15 @@ const stackParser = createStackParser([0, line => ({ filename: line })]);
 const exceptionFromError = (_stackParser: StackParser, ex: Error): Exception => {
   return { value: ex.message, type: ex.name, mechanism: { type: 'instrument', handled: true } };
 };
+class FakeAggregateError extends Error {
+  public errors: Error[];
+
+  constructor(errors: Error[], message: string) {
+    super(message);
+    this.errors = errors;
+    this.name = 'AggregateError';
+  }
+}
 
 describe('applyAggregateErrorsToEvent()', () => {
   test('should not do anything if event does not contain an exception', () => {
@@ -138,8 +147,10 @@ describe('applyAggregateErrorsToEvent()', () => {
   });
 
   test('should keep the original mechanism type for the root exception', () => {
-    const fakeAggregateError: ExtendedError = new Error('Root Error');
-    fakeAggregateError.errors = [new Error('Nested Error 1'), new Error('Nested Error 2')];
+    const fakeAggregateError = new FakeAggregateError(
+      [new Error('Nested Error 1'), new Error('Nested Error 2')],
+      'Root Error',
+    );
 
     const event: Event = { exception: { values: [exceptionFromError(stackParser, fakeAggregateError)] } };
     const eventHint: EventHint = { originalException: fakeAggregateError };
@@ -151,10 +162,12 @@ describe('applyAggregateErrorsToEvent()', () => {
   test('should recursively walk mixed errors (Aggregate errors and based on `key`)', () => {
     const chainedError: ExtendedError = new Error('Nested Error 3');
     chainedError.cause = new Error('Nested Error 4');
-    const fakeAggregateError2: ExtendedError = new Error('AggregateError2');
-    fakeAggregateError2.errors = [new Error('Nested Error 2'), chainedError];
-    const fakeAggregateError1: ExtendedError = new Error('AggregateError1');
-    fakeAggregateError1.errors = [new Error('Nested Error 1'), fakeAggregateError2];
+
+    const fakeAggregateError2 = new FakeAggregateError([new Error('Nested Error 2'), chainedError], 'AggregateError2');
+    const fakeAggregateError1 = new FakeAggregateError(
+      [new Error('Nested Error 1'), fakeAggregateError2],
+      'AggregateError1',
+    );
 
     const event: Event = { exception: { values: [exceptionFromError(stackParser, fakeAggregateError1)] } };
     const eventHint: EventHint = { originalException: fakeAggregateError1 };
@@ -206,7 +219,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               source: 'errors[1]',
               type: 'chained',
             },
-            type: 'Error',
+            type: 'AggregateError',
             value: 'AggregateError2',
           },
           {
@@ -227,7 +240,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               is_exception_group: true,
               type: 'instrument',
             },
-            type: 'Error',
+            type: 'AggregateError',
             value: 'AggregateError1',
           },
         ],
