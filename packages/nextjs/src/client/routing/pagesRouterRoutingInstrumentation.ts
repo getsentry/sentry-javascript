@@ -7,12 +7,7 @@ import {
 } from '@sentry/core';
 import { WINDOW } from '@sentry/react';
 import type { StartSpanOptions, TransactionSource } from '@sentry/types';
-import {
-  browserPerformanceTimeOrigin,
-  logger,
-  propagationContextFromHeaders,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import { browserPerformanceTimeOrigin, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import { default as Router } from 'next/router';
 
@@ -111,8 +106,7 @@ export function pagesRouterInstrumentation(
   startPageloadSpanCallback: StartSpanCb,
   startNavigationSpanCallback: StartSpanCb,
 ): void {
-  const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
+  const { route, params } = extractNextDataTagInformation();
   let prevLocationName = route || globalObject.location.pathname;
 
   if (shouldInstrumentPageload) {
@@ -121,18 +115,20 @@ export function pagesRouterInstrumentation(
       name: prevLocationName,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-      traceId,
-      parentSpanId,
-      parentSampled: sampled,
       ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
       },
-      metadata: {
+      // TODO: What should we do with this??!
+      /*
+        traceId,
+        parentSpanId,
+        parentSampled: sampled,
+        metadata: {
         dynamicSamplingContext: dsc,
-      },
+      }, */
     });
   }
 

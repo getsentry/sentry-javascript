@@ -80,7 +80,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
             }
 
             const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
-
             isolationScope.setSDKProcessingMetadata({ request: req });
 
             return startSpanManual(
@@ -90,9 +89,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
-                },
-                metadata: {
-                  request: req,
                 },
               },
               async span => {

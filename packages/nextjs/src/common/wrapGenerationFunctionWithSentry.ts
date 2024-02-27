@@ -8,7 +8,7 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import type { WebFetchHeaders } from '@sentry/types';
+import type { SpanAttributes, WebFetchHeaders } from '@sentry/types';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
@@ -36,13 +36,14 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         /** empty */
       }
 
-      let data: Record<string, unknown> | undefined = undefined;
+      const attributes: SpanAttributes | undefined = {};
       if (getClient()?.getOptions().sendDefaultPii) {
         const props: unknown = args[0];
-        const params = props && typeof props === 'object' && 'params' in props ? props.params : undefined;
-        const searchParams =
-          props && typeof props === 'object' && 'searchParams' in props ? props.searchParams : undefined;
-        data = { params, searchParams };
+        const params = hasParams(props) ? props.params : {};
+        const searchParams = hasSearchParams(props) ? props.searchParams : {};
+
+        addObjectToAttributes(attributes, 'params', params);
+        addObjectToAttributes(attributes, 'searchParams', searchParams);
       }
 
       return withIsolationScope(isolationScope => {
@@ -51,7 +52,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
             headers: headers ? winterCGHeadersToDict(headers) : undefined,
           },
         });
-        isolationScope.setExtra('route_data', data);
+        isolationScope.setExtra('route_data', attributes);
 
         const incomingPropagationContext = propagationContextFromHeaders(
           headers?.get('sentry-trace') ?? undefined,
@@ -66,10 +67,10 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           {
             op: 'function.nextjs',
             name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-            data,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+              ...attributes,
             },
           },
           span => {
@@ -100,4 +101,26 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
       });
     },
   });
+}
+
+function hasParams(props: unknown): props is { params: Record<string, unknown> } {
+  return !!props && typeof props === 'object' && 'params' in props;
+}
+
+function hasSearchParams(props: unknown): props is { searchParams: Record<string, unknown> } {
+  return !!props && typeof props === 'object' && 'params' in props;
+}
+
+function addObjectToAttributes(
+  attributes: SpanAttributes,
+  prefix: string,
+  obj: Record<string, unknown>,
+): SpanAttributes {
+  Object.keys(obj).forEach(key => {
+    const val = obj[key];
+    if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') {
+      attributes[`${prefix}.${key}`] = val;
+    }
+  });
+  return attributes;
 }
