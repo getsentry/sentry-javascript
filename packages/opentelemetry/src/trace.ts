@@ -3,12 +3,19 @@ import { TraceFlags } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
 import { TraceState, suppressTracing } from '@opentelemetry/core';
-import { SDK_VERSION, getClient, getCurrentScope, handleCallbackErrors } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
+  getCurrentScope,
+  handleCallbackErrors,
+} from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_DSC } from './constants';
 
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
@@ -137,15 +144,15 @@ function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanCont
   const { origin, op, source, metadata } = options;
 
   if (origin) {
-    span.setAttribute(InternalSentrySemanticAttributes.ORIGIN, origin);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
   }
 
   if (op) {
-    span.setAttribute(InternalSentrySemanticAttributes.OP, op);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
   if (source) {
-    span.setAttribute(InternalSentrySemanticAttributes.SOURCE, source);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
 
   if (metadata) {
