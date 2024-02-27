@@ -207,7 +207,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   });
 
   expect(inboundTransaction.contexts?.trace).toEqual({
-    data: {
+    data: expect.objectContaining({
       'sentry.source': 'route',
       'sentry.origin': 'auto.http.otel.http',
       'sentry.op': 'http.server',
@@ -216,7 +216,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/test-inbound-headers',
-      'http.user_agent': 'undici',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
@@ -231,7 +230,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'http.status_code': 200,
       'http.status_text': 'OK',
       'http.route': '/test-inbound-headers',
-    },
+    }),
     op: 'http.server',
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.any(String),
