@@ -105,9 +105,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
           origin: 'manual',
         },
       ],
-      tags: {
-        'http.status_code': '200',
-      },
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {

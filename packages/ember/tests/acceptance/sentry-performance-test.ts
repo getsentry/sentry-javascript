@@ -21,7 +21,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
         'ui.ember.component.render | component:test-section',
       ],
       transaction: 'route:tracing',
-      tags: {
+      attributes: {
         fromRoute: undefined,
         toRoute: 'tracing',
       },
@@ -50,7 +50,7 @@ module('Acceptance | Sentry Performance', function (hooks) {
       ],
       transaction: 'route:slow-loading-route.index',
       durationCheck: duration => duration > SLOW_TRANSITION_WAIT,
-      tags: {
+      attributes: {
         fromRoute: 'tracing',
         toRoute: 'slow-loading-route.index',
       },

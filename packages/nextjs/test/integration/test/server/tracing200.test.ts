@@ -15,7 +15,6 @@ describe('Tracing 200', () => {
         trace: {
           op: 'http.server',
           status: 'ok',
-          tags: { 'http.status_code': '200' },
           data: {
             'http.response.status_code': 200,
           },

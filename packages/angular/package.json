@@ -66,9 +66,12 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "dependsOn": [
-          "^build:transpile",
-          "^build:types"
+        "dependsOn": ["^build:transpile", "^build:types"],
+        "outputs": [
+          "{projectRoot}/build/esm2015",
+          "{projectRoot}/build/fesm2015",
+          "{projectRoot}/build/*.{md,json}",
+          "{projectRoot}/build/LICENCE"
         ]
       }
     }

@@ -12,7 +12,6 @@ test('should capture React component errors.', async ({ page }) => {
   const [pageloadEnvelope, errorEnvelope] = envelopes;
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe(
     useV2 ? 'routes/error-boundary-capture.$id' : 'routes/error-boundary-capture/$id',

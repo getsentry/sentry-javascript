@@ -9,10 +9,6 @@ import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@s
 
 type StartSpanCb = (context: StartSpanOptions) => void;
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'next-app-router',
-} as const;
-
 /**
  * Instruments the Next.js Client App Router.
  */
@@ -29,7 +25,6 @@ export function appRouterInstrumentation(
   if (shouldInstrumentPageload) {
     startPageloadSpanCallback({
       name: currPathname,
-      tags: DEFAULT_TAGS,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       attributes: {
@@ -64,11 +59,8 @@ export function appRouterInstrumentation(
 
       startNavigationSpanCallback({
         name: newPathname,
-        tags: {
-          ...DEFAULT_TAGS,
-          from: currPathname,
-        },
         attributes: {
+          from: currPathname,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',

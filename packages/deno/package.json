@@ -11,11 +11,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": [
-    "index.mjs",
-    "index.mjs.map",
-    "index.d.ts"
-  ],
+  "files": ["index.mjs", "index.mjs.map", "index.d.ts"],
   "dependencies": {
     "@sentry/browser": "7.100.0",
     "@sentry/core": "7.100.0",
@@ -59,6 +55,16 @@
     "detectiveOptions": {
       "ts": {
         "skipTypeImports": true
+      }
+    }
+  },
+  "nx": {
+    "targets": {
+      "build:transpile": {
+        "outputs": ["{projectRoot}/build"]
+      },
+      "build:types": {
+        "outputs": ["{projectRoot}/build-types"]
       }
     }
   }
