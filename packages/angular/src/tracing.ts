@@ -144,8 +144,6 @@ export class TraceService implements OnDestroy {
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            },
-            tags: {
               url: strippedUrl,
               ...(navigationEvent.navigationTrigger && {
                 navigationTrigger: navigationEvent.navigationTrigger,
@@ -176,8 +174,7 @@ export class TraceService implements OnDestroy {
           name: `${navigationEvent.url}`,
           op: ANGULAR_ROUTING_OP,
           origin: 'auto.ui.angular',
-          tags: {
-            'routing.instrumentation': '@sentry/angular',
+          attributes: {
             url: strippedUrl,
             ...(navigationEvent.navigationTrigger && {
               navigationTrigger: navigationEvent.navigationTrigger,

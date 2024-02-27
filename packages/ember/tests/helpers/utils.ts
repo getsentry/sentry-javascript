@@ -51,7 +51,7 @@ export function assertSentryTransactions(
   options: {
     spans: string[];
     transaction: string;
-    tags: Record<string, string | undefined>;
+    attributes: Record<string, string | undefined>;
     durationCheck?: (duration: number) => boolean;
   },
 ): void {
@@ -83,8 +83,10 @@ export function assertSentryTransactions(
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');
 
   assert.equal(event.transaction, options.transaction);
-  assert.equal(event.tags?.fromRoute, options.tags.fromRoute);
-  assert.equal(event.tags?.toRoute, options.tags.toRoute);
+
+  Object.keys(options.attributes).forEach(key => {
+    assert.equal(event.contexts?.trace?.data?.[key], options.attributes[key]);
+  });
 
   if (options.durationCheck && event.timestamp && event.start_timestamp) {
     const duration = (event.timestamp - event.start_timestamp) * 1000;

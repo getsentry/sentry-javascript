@@ -19,7 +19,6 @@ describe('Tracing HTTP', () => {
         trace: {
           op: 'http.server',
           status: 'ok',
-          tags: { 'http.status_code': '200' },
           data: {
             'http.response.status_code': 200,
           },
@@ -30,7 +29,6 @@ describe('Tracing HTTP', () => {
           description: 'GET http://example.com/',
           op: 'http.client',
           status: 'ok',
-          tags: { 'http.status_code': '200' },
           data: {
             'http.response.status_code': 200,
           },

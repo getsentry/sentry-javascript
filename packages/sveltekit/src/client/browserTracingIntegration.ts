@@ -46,9 +46,6 @@ function _instrumentPageload(client: Client): void {
   const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
     name: initialPath,
     op: 'pageload',
-    tags: {
-      'routing.instrumentation': '@sentry/sveltekit',
-    },
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
