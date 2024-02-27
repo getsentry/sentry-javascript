@@ -16,8 +16,21 @@
     "types-ts3.8"
   ],
   "main": "build/esm/index.js",
-  "module": "build/esm/index.js",
+  "module": "build/esm/index.mjs",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.mjs"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [

@@ -3,8 +3,21 @@
   "version": "7.100.0",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
-  "module": "build/npm/esm/index.js",
+  "module": "build/npm/esm/index.mjs",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.mjs"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [

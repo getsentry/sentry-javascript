@@ -118,14 +118,18 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitMjs = true } = options;
+  const { emitMjs = true, entryFileNameWithoutExtension = '[name]'} = options;
   const variantSpecificConfigs = [
     { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
     { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') } },
   ];
 
   if (emitMjs) {
-    variantSpecificConfigs[1].output.entryFileNames = '[name].mjs';
+    variantSpecificConfigs[1].output.entryFileNames = `${entryFileNameWithoutExtension}.mjs`;
+  }
+
+  if (entryFileNameWithoutExtension !== '[name]') {
+    variantSpecificConfigs[0].output.entryFileNames = `${entryFileNameWithoutExtension}.js`;
   }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));

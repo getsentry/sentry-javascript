@@ -23,7 +23,7 @@
     "./package.json": "./package.json",
     ".": {
       "browser": {
-        "import": "./build/esm/index.client.js",
+        "import": "./build/esm/index.client.mjs",
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
