@@ -92,7 +92,11 @@ describe('sentrySvelteKit()', () => {
     await getSentrySvelteKitPlugins({
       debug: true,
       sourceMapsUploadOptions: {
-        assets: ['foo/*.js'],
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
+        },
       },
       autoInstrument: false,
       adapter: 'vercel',
@@ -100,7 +104,11 @@ describe('sentrySvelteKit()', () => {
 
     expect(makePluginSpy).toHaveBeenCalledWith({
       debug: true,
-      assets: ['foo/*.js'],
+      sourcemaps: {
+        assets: ['foo/*.js'],
+        ignore: ['bar/*.js'],
+        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
       adapter: 'vercel',
     });
   });

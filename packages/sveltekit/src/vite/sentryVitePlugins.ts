@@ -44,24 +44,49 @@ type SourceMapsUploadOptions = {
     project?: string;
 
     /**
-     * A glob or an array of globs that specify the build artifacts and source maps that will uploaded to Sentry.
-     *
-     * If this option is not specified, sensible defaults based on your adapter and svelte.config.js
-     * setup will be used. Use this option to override these defaults, for instance if you have a
-     * customized build setup that diverges from SvelteKit's defaults.
-     *
-     * The globbing patterns must follow the implementation of the `glob` package.
-     * @see https://www.npmjs.com/package/glob#glob-primer
-     */
-    assets?: string | Array<string>;
-
-    /**
      * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
      * It will not collect any sensitive or user-specific data.
      *
      * @default true
      */
     telemetry?: boolean;
+
+    /**
+     * Options related to sourcemaps
+     */
+    sourcemaps?: {
+      /**
+       * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
+       *
+       * If this option is not specified, sensible defaults based on your adapter and svelte.config.js
+       * setup will be used. Use this option to override these defaults, for instance if you have a
+       * customized build setup that diverges from SvelteKit's defaults.
+       *
+       * The globbing patterns must follow the implementation of the `glob` package.
+       * @see https://www.npmjs.com/package/glob#glob-primer
+       */
+      assets?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
+       *
+       * @default [] - By default no files are ignored. Thus, all files matching the `assets` glob
+       * or the default value for `assets` are uploaded.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      ignore?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+       * upload to Sentry has been completed.
+       *
+       * @default [] - By default no files are deleted.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      filesToDeleteAfterUpload?: string | Array<string>;
+    };
 
     /**
      * Options related to managing the Sentry releases for a build.
@@ -171,12 +196,15 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    const pluginOptions = {
-      ...mergedOptions.sourceMapsUploadOptions,
-      debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
+    const sourceMapsUploadOptions = mergedOptions.sourceMapsUploadOptions;
+
+    const sentryVitePlugins = await makeCustomSentryVitePlugins({
+      ...sourceMapsUploadOptions,
+
       adapter: mergedOptions.adapter,
-    };
-    const sentryVitePlugins = await makeCustomSentryVitePlugins(pluginOptions);
+      // override the plugin's debug flag with the one from the top-level options
+      debug: mergedOptions.debug,
+    });
     sentryPlugins.push(...sentryVitePlugins);
   }
 
