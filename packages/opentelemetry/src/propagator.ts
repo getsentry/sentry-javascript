@@ -5,6 +5,7 @@ import { getClient, getDynamicSamplingContextFromClient } from '@sentry/core';
 import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
 import {
   SENTRY_BAGGAGE_KEY_PREFIX,
+  baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   propagationContextFromHeaders,
@@ -12,6 +13,27 @@ import {
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_DSC } from './constants';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from './utils/contextData';
+
+function getDynamicSamplingContextFromContext(context: Context): Partial<DynamicSamplingContext> | undefined {
+  // If possible, we want to take the DSC from the active span
+  // That should take precedence over the DSC from the propagation context
+  const activeSpan = trace.getSpan(context);
+  const traceStateDsc = activeSpan?.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC);
+  const dscOnSpan = traceStateDsc ? baggageHeaderToDynamicSamplingContext(traceStateDsc) : undefined;
+
+  if (dscOnSpan) {
+    return dscOnSpan;
+  }
+
+  const propagationContext = getPropagationContextFromContext(context);
+
+  if (propagationContext) {
+    const { traceId } = getSentryTraceData(context, propagationContext);
+    return getDynamicSamplingContext(propagationContext, traceId);
+  }
+
+  return undefined;
+}
 
 /**
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
@@ -29,9 +51,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
 
     const propagationContext = getPropagationContextFromContext(context);
     const { spanId, traceId, sampled } = getSentryTraceData(context, propagationContext);
-    const dynamicSamplingContext = propagationContext
-      ? getDynamicSamplingContext(propagationContext, traceId)
-      : undefined;
+
+    const dynamicSamplingContext = getDynamicSamplingContextFromContext(context);
 
     if (dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {

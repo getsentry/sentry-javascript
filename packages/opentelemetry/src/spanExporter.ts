@@ -5,7 +5,7 @@ import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { Transaction } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentHub } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getCurrentHub } from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
 import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
@@ -74,14 +74,17 @@ export class SentrySpanExporter implements SpanExporter {
 
   /** @inheritDoc */
   public shutdown(): Promise<void> {
+    const forceFlush = this.forceFlush();
     this._stopped = true;
     this._finishedSpans = [];
-    return this.forceFlush();
+    return forceFlush;
   }
 
   /** @inheritDoc */
-  public async forceFlush(): Promise<void> {
-    await flush();
+  public forceFlush(): Promise<void> {
+    return new Promise(resolve => {
+      this.export(this._finishedSpans, () => resolve());
+    });
   }
 }
 
