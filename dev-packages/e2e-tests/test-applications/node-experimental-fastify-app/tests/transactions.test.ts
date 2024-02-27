@@ -49,9 +49,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
     op: 'http.server',
     span_id: expect.any(String),
     status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
     trace_id: expect.any(String),
     origin: 'auto.http.otel.http',
   });

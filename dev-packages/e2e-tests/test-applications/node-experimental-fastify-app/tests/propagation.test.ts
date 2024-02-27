@@ -79,9 +79,6 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     op: 'http.server',
     span_id: expect.any(String),
     status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
     trace_id: traceId,
     origin: 'auto.http.otel.http',
   });
@@ -115,9 +112,6 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.any(String),
     status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
     trace_id: traceId,
     origin: 'auto.http.otel.http',
   });
@@ -199,9 +193,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     op: 'http.server',
     span_id: expect.any(String),
     status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
     trace_id: traceId,
     origin: 'auto.http.otel.http',
   });
@@ -235,9 +226,6 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
     parent_span_id: outgoingHttpSpanId,
     span_id: expect.any(String),
     status: 'ok',
-    tags: {
-      'http.status_code': '200',
-    },
     trace_id: traceId,
     origin: 'auto.http.otel.http',
   });
