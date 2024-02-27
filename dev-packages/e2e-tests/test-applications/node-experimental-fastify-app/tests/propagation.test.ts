@@ -216,6 +216,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
       'otel.kind': 'SERVER',
       'http.response.status_code': 200,
       'http.url': 'http://localhost:3030/test-inbound-headers',
+      'http.user_agent': 'undici',
       'http.host': 'localhost:3030',
       'net.host.name': 'localhost',
       'http.method': 'GET',
