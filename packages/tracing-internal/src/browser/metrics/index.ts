@@ -230,8 +230,8 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
         release: options.release,
         environment: options.environment,
         transaction: routeName,
+        exclusive_time: metric.value,
       },
-      exclusiveTime: metric.value,
     });
 
     /** Check to see if the span should be sampled */
@@ -241,7 +241,7 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     }
 
     if (Math.random() < (sampleRate as number | boolean)) {
-      const envelope = span ? createSpanEnvelope(span) : undefined;
+      const envelope = span ? createSpanEnvelope([span]) : undefined;
       const transport = client && client.getTransport();
       if (transport && envelope) {
         transport.send(envelope).then(null, reason => {
