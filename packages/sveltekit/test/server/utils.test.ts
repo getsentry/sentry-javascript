@@ -23,32 +23,27 @@ const MOCK_REQUEST_EVENT: any = {
 };
 
 describe('getTracePropagationData', () => {
-  it('returns traceParentData and DSC if both are available', () => {
+  it('returns sentryTrace & baggage strings if both are available', () => {
     const event: any = MOCK_REQUEST_EVENT;
 
-    const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
+    const { sentryTrace, baggage } = getTracePropagationData(event);
 
-    expect(traceparentData).toEqual({
-      parentSampled: true,
-      parentSpanId: '1234567890abcdef',
-      traceId: '1234567890abcdef1234567890abcdef',
-    });
-
-    expect(dynamicSamplingContext).toEqual({
-      environment: 'production',
-      public_key: 'dogsarebadatkeepingsecrets',
-      release: '1.0.0',
-      sample_rate: '1',
-      trace_id: '1234567890abcdef1234567890abcdef',
-      transaction: 'dogpark',
-    });
+    expect(sentryTrace).toEqual('1234567890abcdef1234567890abcdef-1234567890abcdef-1');
+    expect(baggage?.split(',').sort()).toEqual([
+      'sentry-environment=production',
+      'sentry-public_key=dogsarebadatkeepingsecrets',
+      'sentry-release=1.0.0',
+      'sentry-sample_rate=1',
+      'sentry-trace_id=1234567890abcdef1234567890abcdef',
+      'sentry-transaction=dogpark',
+    ]);
   });
 
-  it('returns undefined if the necessary header is not avaolable', () => {
+  it('returns empty if the necessary header is not available', () => {
     const event: any = { request: { headers: { get: () => undefined } } };
-    const { traceparentData, dynamicSamplingContext } = getTracePropagationData(event);
+    const { sentryTrace, baggage } = getTracePropagationData(event);
 
-    expect(traceparentData).toBeUndefined();
-    expect(dynamicSamplingContext).toBeUndefined();
+    expect(sentryTrace).toBe('');
+    expect(baggage).toBeUndefined();
   });
 });
