@@ -10,7 +10,14 @@ if (targets.some(target => target !== 'es5' && target !== 'es6')) {
 
 const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver'];
 
-const coreIntegrationFiles = ['captureconsole', 'debug', 'dedupe', 'extraerrordata', 'rewriteframes', 'sessiontiming'];
+const corePluggableIntegrationFiles = [
+  'captureconsole',
+  'debug',
+  'dedupe',
+  'extraerrordata',
+  'rewriteframes',
+  'sessiontiming',
+];
 
 targets.forEach(jsVersion => {
   const baseBundleConfig = makeBaseBundleConfig({
@@ -41,7 +48,7 @@ targets.forEach(jsVersion => {
     builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
   });
 
-  coreIntegrationFiles.forEach(integrationName => {
+  corePluggableIntegrationFiles.forEach(integrationName => {
     const integrationsBundleConfig = makeBaseBundleConfig({
       bundleType: 'addon',
       entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],
