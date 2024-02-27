@@ -116,11 +116,8 @@ export function _instrumentEmberRouter(
       origin: 'auto.pageload.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-      tags: {
         url,
         toRoute: routeInfo.name,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
   }
@@ -146,11 +143,8 @@ export function _instrumentEmberRouter(
       origin: 'auto.navigation.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-      tags: {
         fromRoute,
         toRoute,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
 

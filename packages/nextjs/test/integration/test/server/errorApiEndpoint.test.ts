@@ -44,7 +44,6 @@ describe('Error API Endpoints', () => {
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: { 'http.status_code': '500' },
           data: {
             'http.response.status_code': 500,
           },

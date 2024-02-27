@@ -8,7 +8,6 @@ test('should add `pageload` transaction on load.', async ({ page }) => {
   const envelope = await getFirstSentryEnvelopeRequest<Event>(page, '/');
 
   expect(envelope.contexts?.trace.op).toBe('pageload');
-  expect(envelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(envelope.type).toBe('transaction');
 
   expect(envelope.transaction).toBe(useV2 ? 'root' : 'routes/index');
