@@ -277,12 +277,11 @@ const _localVariablesSyncIntegration = ((
         });
       } else {
         const id = localScope.object.objectId;
-        add(
-          frames =>
-            session?.getLocalVariables(id, vars => {
-              frames[i] = { function: fn, vars };
-              next(frames);
-            }),
+        add(frames =>
+          session?.getLocalVariables(id, vars => {
+            frames[i] = { function: fn, vars };
+            next(frames);
+          }),
         );
       }
     }
