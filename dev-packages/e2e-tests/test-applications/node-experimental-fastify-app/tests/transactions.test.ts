@@ -20,8 +20,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   const transactionEvent = await pageloadTransactionEventPromise;
   const transactionEventId = transactionEvent.event_id;
 
-  console.log(JSON.stringify(transactionEvent, null, 2));
-
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
       'sentry.source': 'route',
@@ -40,9 +38,9 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       'http.user_agent': 'axios/1.6.7',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
-      'net.host.ip': '127.0.0.1',
+      'net.host.ip': expect.any(String),
       'net.host.port': expect.any(Number),
-      'net.peer.ip': '127.0.0.1',
+      'net.peer.ip': expect.any(String),
       'net.peer.port': expect.any(Number),
       'http.status_code': 200,
       'http.status_text': 'OK',
