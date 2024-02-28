@@ -1,12 +1,14 @@
-import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { Plugin } from 'vite';
 
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
 import { detectAdapter } from './detectAdapter';
-import { makeCustomSentryVitePlugin } from './sourceMaps';
+import { makeCustomSentryVitePlugins } from './sourceMaps';
 
+/**
+ * Options related to source maps upload to Sentry
+ */
 type SourceMapsUploadOptions = {
   /**
    * If this flag is `true`, the Sentry plugins will automatically upload source maps to Sentry.
@@ -18,7 +20,101 @@ type SourceMapsUploadOptions = {
    * Options for the Sentry Vite plugin to customize and override the release creation and source maps upload process.
    * See [Sentry Vite Plugin Options](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin#configuration) for a detailed description.
    */
-  sourceMapsUploadOptions?: Partial<SentryVitePluginOptions>;
+  sourceMapsUploadOptions?: {
+    /**
+     * The auth token to use when uploading source maps to Sentry.
+     *
+     * Instead of specifying this option, you can also set the `SENTRY_AUTH_TOKEN` environment variable.
+     *
+     * To create an auth token, follow this guide:
+     * @see https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens
+     */
+    authToken?: string;
+
+    /**
+     * The organization slug of your Sentry organization.
+     * Instead of specifying this option, you can also set the `SENTRY_ORG` environment variable.
+     */
+    org?: string;
+
+    /**
+     * The project slug of your Sentry project.
+     * Instead of specifying this option, you can also set the `SENTRY_PROJECT` environment variable.
+     */
+    project?: string;
+
+    /**
+     * If this flag is `true`, the Sentry plugin will collect some telemetry data and send it to Sentry.
+     * It will not collect any sensitive or user-specific data.
+     *
+     * @default true
+     */
+    telemetry?: boolean;
+
+    /**
+     * Options related to sourcemaps
+     */
+    sourcemaps?: {
+      /**
+       * A glob or an array of globs that specify the build artifacts and source maps that will be uploaded to Sentry.
+       *
+       * If this option is not specified, sensible defaults based on your adapter and svelte.config.js
+       * setup will be used. Use this option to override these defaults, for instance if you have a
+       * customized build setup that diverges from SvelteKit's defaults.
+       *
+       * The globbing patterns must follow the implementation of the `glob` package.
+       * @see https://www.npmjs.com/package/glob#glob-primer
+       */
+      assets?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies which build artifacts should not be uploaded to Sentry.
+       *
+       * @default [] - By default no files are ignored. Thus, all files matching the `assets` glob
+       * or the default value for `assets` are uploaded.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      ignore?: string | Array<string>;
+
+      /**
+       * A glob or an array of globs that specifies the build artifacts that should be deleted after the artifact
+       * upload to Sentry has been completed.
+       *
+       * @default [] - By default no files are deleted.
+       *
+       * The globbing patterns follow the implementation of the glob package. (https://www.npmjs.com/package/glob)
+       */
+      filesToDeleteAfterUpload?: string | Array<string>;
+    };
+
+    /**
+     * Options related to managing the Sentry releases for a build.
+     *
+     * Note: Managing releases is optional and not required for uploading source maps.
+     */
+    release?: {
+      /**
+       * Unique identifier for the release you want to create.
+       * This value can also be specified via the SENTRY_RELEASE environment variable.
+       *
+       * Defaults to automatically detecting a value for your environment. This includes values for Cordova, Heroku,
+       * AWS CodeBuild, CircleCI, Xcode, and Gradle, and otherwise uses the git HEAD's commit SHA (the latter requires
+       * access to git CLI and for the root directory to be a valid repository).
+       *
+       * If you didn't provide a value and the plugin can't automatically detect one, no release will be created.
+       */
+      name?: string;
+
+      /**
+       * Whether the plugin should inject release information into the build for the SDK to pick it up when
+       * sending events.
+       *
+       * Defaults to `true`.
+       */
+      inject?: boolean;
+    };
+  };
 };
 
 type AutoInstrumentOptions = {
@@ -79,7 +175,7 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   const mergedOptions = {
     ...DEFAULT_PLUGIN_OPTIONS,
     ...options,
-    adapter: options.adapter || (await detectAdapter(options.debug || false)),
+    adapter: options.adapter || (await detectAdapter(options.debug)),
   };
 
   const sentryPlugins: Plugin[] = [];
@@ -100,12 +196,16 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    const pluginOptions = {
-      ...mergedOptions.sourceMapsUploadOptions,
-      debug: mergedOptions.debug, // override the plugin's debug flag with the one from the top-level options
+    const sourceMapsUploadOptions = mergedOptions.sourceMapsUploadOptions;
+
+    const sentryVitePlugins = await makeCustomSentryVitePlugins({
+      ...sourceMapsUploadOptions,
+
       adapter: mergedOptions.adapter,
-    };
-    sentryPlugins.push(await makeCustomSentryVitePlugin(pluginOptions));
+      // override the plugin's debug flag with the one from the top-level options
+      debug: mergedOptions.debug,
+    });
+    sentryPlugins.push(...sentryVitePlugins);
   }
 
   return sentryPlugins;
