@@ -11,6 +11,7 @@ import {
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
+  consoleSandbox,
   logger,
   stackParserFromStackParserOptions,
   supportsFetch,
@@ -114,6 +115,31 @@ export function init(options: BrowserOptions = {}): void {
   }
   if (options.sendClientReports === undefined) {
     options.sendClientReports = true;
+  }
+
+  // inside Chrome extension (chrome.* API)
+  const windowWithMaybeChrome = WINDOW as typeof WINDOW & { chrome?: { runtime?: { id?: string } } };
+
+  // inside Firefox/Safari extension (browser.* API)
+  const windowWithMaybeBrowser = WINDOW as typeof WINDOW & { browser?: { runtime?: { id?: string } } };
+
+  if (
+    (windowWithMaybeBrowser &&
+      windowWithMaybeBrowser.browser &&
+      windowWithMaybeBrowser.browser.runtime &&
+      windowWithMaybeBrowser.browser.runtime.id) ||
+    (windowWithMaybeChrome &&
+      windowWithMaybeChrome.chrome &&
+      windowWithMaybeChrome.chrome.runtime &&
+      windowWithMaybeChrome.chrome.runtime.id)
+  ) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[Sentry] You cannot run Sentry this way in an extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+      );
+    });
+    return;
   }
 
   if (DEBUG_BUILD) {
