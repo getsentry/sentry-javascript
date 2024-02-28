@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
+import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot, Routes } from '@angular/router';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
@@ -105,7 +105,7 @@ describe('Angular Tracing', () => {
         },
         '/users/:id/',
       ],
-    ])('%s', (_, routeSnapshot, expectedParams) => {
+    ])('%s', (_: string, routeSnapshot: unknown, expectedParams: string) => {
       expect(getParameterizedRouteFromSnapshot(routeSnapshot as unknown as ActivatedRouteSnapshot)).toEqual(
         expectedParams,
       );
@@ -326,7 +326,7 @@ describe('Angular Tracing', () => {
             },
           ],
         ],
-      ])('%s and sets the source to `route`', async (_, url, result, routes) => {
+      ])('%s and sets the source to `route`', async (_: string, url: string, result: string, routes: Routes) => {
         const customStartTransaction = jest.fn(defaultStartTransaction);
         const env = await TestEnv.setup({
           customStartTransaction,

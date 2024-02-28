@@ -29,16 +29,18 @@ function getTestPath(testPath: string): string {
 
 // We're creating a worker for each CPU core.
 const workers = os.cpus().map(async () => {
+  const { t, watch } = await args;
+
   while (testPaths.length > 0) {
     const testPath = testPaths.pop() as string;
     await new Promise<void>(resolve => {
       const jestArgs = ['--runTestsByPath', testPath as string, '--forceExit', '--colors'];
 
-      if (args.t) {
-        jestArgs.push('-t', args.t);
+      if (t) {
+        jestArgs.push('-t', t);
       }
 
-      if (args.watch) {
+      if (watch) {
         jestArgs.push('--watch');
       }
 

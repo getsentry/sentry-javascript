@@ -1,5 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
 
+import type { BrowserOptions } from '../src/index';
 import { getDefaultIntegrations, init } from '../src/index';
 
 describe('init', () => {
@@ -26,8 +27,8 @@ describe('init', () => {
 
       expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'BrowserApiErrors' }));
+      const options = browserInitSpy.mock.calls[0][0] as BrowserOptions | undefined;
+      expect(options?.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'BrowserApiErrors' }));
     });
 
     it("doesn't filter if `defaultIntegrations` is set to `false`", () => {
@@ -35,8 +36,8 @@ describe('init', () => {
 
       expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).toEqual(false);
+      const options = browserInitSpy.mock.calls[0][0] as BrowserOptions | undefined;
+      expect(options?.defaultIntegrations).toEqual(false);
     });
 
     it("doesn't filter if `defaultIntegrations` is overwritten", () => {
@@ -45,8 +46,8 @@ describe('init', () => {
 
       expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).toEqual(defaultIntegrations);
+      const options = browserInitSpy.mock.calls[0][0] as BrowserOptions | undefined;
+      expect(options?.defaultIntegrations).toEqual(defaultIntegrations);
     });
   });
 });

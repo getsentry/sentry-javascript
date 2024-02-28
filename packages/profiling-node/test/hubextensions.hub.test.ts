@@ -365,7 +365,7 @@ describe('hubextensions', () => {
       // it seems that in node 19 globals (or least part of them) are a readonly object
       // so when useFakeTimers is called it throws an error because it cannot override
       // a readonly property of performance on global object. Use legacyFakeTimers for now
-      jest.useFakeTimers('legacy');
+      jest.useFakeTimers({ legacyFakeTimers: true });
       const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
       const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
 
