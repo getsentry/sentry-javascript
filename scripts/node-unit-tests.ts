@@ -4,6 +4,7 @@ type NodeVersion = '14' | '16' | '18' | '20' | '21';
 
 interface VersionConfig {
   ignoredPackages: Array<`@${'sentry' | 'sentry-internal'}/${string}`>;
+  legacyDeps: Array<`${string}@${string}`>;
 }
 
 const CURRENT_NODE_VERSION = process.version.replace('v', '').split('.')[0] as NodeVersion;
@@ -38,18 +39,23 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
       '@sentry/nuxt',
       '@sentry/nestjs',
     ],
+    legacyDeps: ['lerna@7.1.1'],
   },
   '16': {
     ignoredPackages: ['@sentry/vercel-edge', '@sentry/astro'],
+    legacyDeps: ['lerna@7.1.1'],
   },
   '18': {
     ignoredPackages: [],
+    legacyDeps: [],
   },
   '20': {
     ignoredPackages: [],
+    legacyDeps: [],
   },
   '21': {
     ignoredPackages: [],
+    legacyDeps: [],
   },
 };
 
@@ -59,6 +65,15 @@ const SKIP_TEST_PACKAGES: Record<NodeVersion, VersionConfig> = {
  */
 function run(cmd: string, options?: childProcess.ExecSyncOptions): void {
   childProcess.execSync(cmd, { stdio: 'inherit', ...options });
+}
+
+/**
+ * Install the given legacy dependencies, for compatibility with tests run in older versions of Node.
+ */
+function installLegacyDeps(legacyDeps: string[] = []): void {
+  // Ignoring engines and scripts lets us get away with having incompatible things installed for SDK packages we're not
+  // testing in the current node version, and ignoring the root check lets us install things at the repo root.
+  run(`yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ${legacyDeps.join(' ')}`);
 }
 
 /**
@@ -80,6 +95,9 @@ function runTests(): void {
   const versionConfig = SKIP_TEST_PACKAGES[CURRENT_NODE_VERSION];
   if (versionConfig) {
     versionConfig.ignoredPackages.forEach(dep => ignores.add(dep));
+    if (versionConfig.legacyDeps.length > 0) {
+      installLegacyDeps(versionConfig.legacyDeps);
+    }
   }
 
   runWithIgnores(Array.from(ignores));
