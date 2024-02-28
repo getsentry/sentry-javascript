@@ -25,7 +25,7 @@ import {
   spanToTraceContext,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { addChildSpanToSpan } from './trace';
+import { addChildSpanToSpan } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
