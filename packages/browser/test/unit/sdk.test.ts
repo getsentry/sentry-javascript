@@ -137,14 +137,9 @@ describe('init', () => {
 
     const options = getDefaultBrowserOptions({ dsn: PUBLIC_DSN, defaultIntegrations: DEFAULT_INTEGRATIONS });
 
-    it('should not log a browser extension error if executed inside regular browser environment', () => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
-      init(options);
-
-      expect(consoleErrorSpy).toBeCalledTimes(0);
-
-      consoleErrorSpy.mockRestore();
+    afterEach(() => {
+      Object.defineProperty(WINDOW, 'chrome', { value: undefined, writable: true });
+      Object.defineProperty(WINDOW, 'browser', { value: undefined, writable: true });
     });
 
     it('should log a browser extension error if executed inside a Chrome extension', () => {
@@ -159,15 +154,10 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in an extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
       );
 
       consoleErrorSpy.mockRestore();
-
-      Object.defineProperty(WINDOW, 'chrome', {
-        value: null,
-        writable: true,
-      });
     });
 
     it('should log a browser extension error if executed inside a Firefox/Safari extension', () => {
@@ -179,12 +169,20 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in an extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
       );
 
       consoleErrorSpy.mockRestore();
+    });
 
-      Object.defineProperty(WINDOW, 'browser', { value: null, writable: true });
+    it('should not log a browser extension error if executed inside regular browser environment', () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      init(options);
+
+      expect(consoleErrorSpy).toBeCalledTimes(0);
+
+      consoleErrorSpy.mockRestore();
     });
   });
 });
