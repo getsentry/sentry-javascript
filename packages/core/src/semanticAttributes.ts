@@ -24,3 +24,8 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
  * Use this attribute to represent measurements of a span.
  */
 export const SEMANTIC_ATTRIBUTE_MEASUREMENTS = 'measurements';
+
+/**
+ * The id of the profile that this span occured in.
+ */
+export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'profile_id';

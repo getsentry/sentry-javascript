@@ -20,6 +20,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
   SEMANTIC_ATTRIBUTE_MEASUREMENTS,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
 } from '../semanticAttributes';
@@ -632,6 +633,7 @@ export class Span implements SpanInterface {
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
       measurements: this._attributes[SEMANTIC_ATTRIBUTE_MEASUREMENTS] as Measurements | undefined,
+      profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
     });
   }
 
