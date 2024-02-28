@@ -4,8 +4,8 @@ import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
   NextConfigObject,
-  SentryWebpackPluginOptions,
   SentryBuildtimeOptions,
+  SentryWebpackPluginOptions,
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
