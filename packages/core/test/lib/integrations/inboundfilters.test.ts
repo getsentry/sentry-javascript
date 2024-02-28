@@ -177,12 +177,35 @@ const SENTRY_EVENT: Event = {
   },
 };
 
+const BOGUS_EVENT: Event = {
+  message: '',
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'undefined',
+      },
+    ],
+  },
+};
+
 const SCRIPT_ERROR_EVENT: Event = {
   exception: {
     values: [
       {
         type: '[undefined]',
         value: 'Script error.',
+      },
+    ],
+  },
+};
+
+const RESIZEOBSERVER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'ResizeObserver loop completed with undelivered notifications.',
       },
     ],
   },
@@ -292,6 +315,16 @@ describe('InboundFilters', () => {
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters Resize', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters Empty', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(BOGUS_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
