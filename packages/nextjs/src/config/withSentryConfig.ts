@@ -1,10 +1,9 @@
 import { isThenable } from '@sentry/utils';
 
 import type {
-  ExportedNextConfig,
+  ExportedNextConfig as NextConfig,
   NextConfigFunction,
   NextConfigObject,
-  NextConfigObjectWithSentry,
   SentryWebpackPluginOptions,
   UserSentryOptions,
 } from './types';
@@ -13,52 +12,51 @@ import { constructWebpackConfigFunction } from './webpack';
 let showedExportModeTunnelWarning = false;
 
 /**
- * Add Sentry options to the config to be exported from the user's `next.config.js` file.
+ * Modifies the passed in Next.js configuration
  *
- * @param exportedUserNextConfig The existing config to be exported prior to adding Sentry
- * @param userSentryWebpackPluginOptions Configuration for SentryWebpackPlugin
- * @param sentryOptions Optional additional options to add as alternative to `sentry` property of config
+ * @param nextConfig The existing config to be exported prior to adding Sentry
+ * @param sentryWebpackPluginOptions Configuration for SentryWebpackPlugin
+ * @param sentrySDKOptions Optional additional options to add as alternative to `sentry` property of config
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
-  exportedUserNextConfig: ExportedNextConfig = {},
-  userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-  sentryOptions?: UserSentryOptions,
+  nextConfig: NextConfig = {},
+  sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
+  sentrySDKOptions: UserSentryOptions = {},
 ): NextConfigFunction | NextConfigObject {
-  if (typeof exportedUserNextConfig === 'function') {
+  if (typeof nextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
-      const maybeUserNextConfigObject: NextConfigObjectWithSentry = exportedUserNextConfig.apply(
-        this,
-        webpackConfigFunctionArgs,
-      );
+      const maybePromiseNextConfig: ReturnType<typeof nextConfig> = nextConfig.apply(this, webpackConfigFunctionArgs);
 
-      if (isThenable(maybeUserNextConfigObject)) {
-        return maybeUserNextConfigObject.then(function (userNextConfigObject: NextConfigObjectWithSentry) {
-          const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
-          return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
+      if (isThenable(maybePromiseNextConfig)) {
+        return maybePromiseNextConfig.then(promiseResultNextConfig => {
+          return getFinalConfigObject(promiseResultNextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
         });
       }
 
-      // Reassign for naming-consistency sake.
-      const userNextConfigObject = maybeUserNextConfigObject;
-      const userSentryOptions = { ...userNextConfigObject.sentry, ...sentryOptions };
-      return getFinalConfigObject(userNextConfigObject, userSentryOptions, userSentryWebpackPluginOptions);
+      return getFinalConfigObject(maybePromiseNextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
     };
   } else {
-    const userSentryOptions = { ...exportedUserNextConfig.sentry, ...sentryOptions };
-    return getFinalConfigObject(exportedUserNextConfig, userSentryOptions, userSentryWebpackPluginOptions);
+    return getFinalConfigObject(nextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
   }
 }
 
 // Modify the materialized object form of the user's next config by deleting the `sentry` property and wrapping the
 // `webpack` property
 function getFinalConfigObject(
-  incomingUserNextConfigObject: NextConfigObjectWithSentry,
+  incomingUserNextConfigObject: NextConfigObject,
   userSentryOptions: UserSentryOptions,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
-  // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
-  delete incomingUserNextConfigObject.sentry;
+  if ('sentry' in incomingUserNextConfigObject) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] Setting a `sentry` property on the Next.js config is no longer supported. Please use the `sentrySDKOptions` argument of `withSentryConfig` instead.',
+    );
+
+    // Next 12.2.3+ warns about non-canonical properties on `userNextConfig`.
+    delete incomingUserNextConfigObject.sentry;
+  }
 
   if (userSentryOptions?.tunnelRoute) {
     if (incomingUserNextConfigObject.output === 'export') {

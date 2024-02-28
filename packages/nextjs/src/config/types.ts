@@ -4,29 +4,15 @@ import type { DefinePlugin, WebpackPluginInstance } from 'webpack';
 
 export type SentryWebpackPluginOptions = SentryCliPluginOptions;
 export type SentryWebpackPlugin = WebpackPluginInstance & { options: SentryWebpackPluginOptions };
+
 // Export this from here because importing something from Webpack (the library) in `webpack.ts` confuses the heck out of
 // madge, which we use for circular dependency checking. We've manually excluded this file from the check (which is
 // safe, since it only includes types), so we can import it here without causing madge to fail. See
 // https://github.com/pahen/madge/issues/306.
 export type { WebpackPluginInstance };
 
-/**
- * Overall Nextjs config
- */
-
-// The first argument to `withSentryConfig` (which is the user's next config) may contain a `sentry` key, which we'll
-// remove once we've captured it, in order to prevent nextjs from throwing warnings. Since it's only in there
-// temporarily, we don't include it in the main `NextConfigObject` or `NextConfigFunction` types.
-export type ExportedNextConfig = NextConfigObjectWithSentry | NextConfigFunctionWithSentry;
-
-export type NextConfigObjectWithSentry = NextConfigObject & {
-  sentry?: UserSentryOptions;
-};
-
-export type NextConfigFunctionWithSentry = (
-  phase: string,
-  defaults: { defaultConfig: NextConfigObject },
-) => NextConfigObjectWithSentry | PromiseLike<NextConfigObjectWithSentry>;
+// The first argument to `withSentryConfig` (which is the user's next config).
+export type ExportedNextConfig = NextConfigObject | NextConfigFunction;
 
 // Vendored from Next.js (this type is not complete - extend if necessary)
 type NextRewrite = {

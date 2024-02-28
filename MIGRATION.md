@@ -132,6 +132,47 @@ Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or
 - sessionTimingIntegration
 - dedupeIntegration (enabled by default, not pluggable)
 
+## Next.js SDK Changes
+
+### Removal of the `sentry` property in your Next.js options
+
+With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
+property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
+
+```ts
+// OLD
+const nextConfig = {
+  // Your Next.js options...
+
+  sentry: {
+    // Your Sentry SDK options...
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+});
+
+// NEW
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // Your Sentry Webpack Plugin Options...
+  },
+  {
+    // Your Sentry SDK options...
+  },
+);
+```
+
+The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
+reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
+have code completion.
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
