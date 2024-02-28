@@ -1,5 +1,5 @@
 import type { Span, Transaction } from '@sentry/types';
-import { Scope } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 import { addNonEnumerableProperty } from '@sentry/utils';
 import { getCurrentScope } from '../currentScopes';
 
