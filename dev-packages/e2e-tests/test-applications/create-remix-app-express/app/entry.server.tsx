@@ -24,7 +24,7 @@ Sentry.init({
   // Performance Monitoring
   tunnel: 'http://localhost:3031/', // proxy server
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
-  sendDefaultPii: true,
+  sendDefaultPii: true, // Testing the FormData
 });
 
 export const handleError = Sentry.wrapRemixHandleError;
