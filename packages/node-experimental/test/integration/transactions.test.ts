@@ -70,6 +70,9 @@ describe('Integration | Transactions', () => {
           otel: {
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             resource: {
               'service.name': 'node-experimental',
@@ -241,6 +244,9 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
           }),
           trace: {
@@ -283,6 +289,7 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value b',
+              'sentry.op': 'test op b',
             },
           }),
           trace: {
@@ -513,7 +520,11 @@ describe('Integration | Transactions', () => {
       expect.objectContaining({
         contexts: expect.objectContaining({
           otel: expect.objectContaining({
-            attributes: {},
+            attributes: {
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+            },
           }),
           trace: {
             data: {

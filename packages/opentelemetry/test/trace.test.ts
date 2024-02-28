@@ -3,10 +3,17 @@ import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { Span as SpanClass } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, getClient, getCurrentScope, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
+  getCurrentScope,
+  spanToJSON,
+} from '@sentry/core';
 import type { Event, PropagationContext, Scope } from '@sentry/types';
 
-import { InternalSentrySemanticAttributes } from '../src/semanticAttributes';
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { setPropagationContextOnContext } from '../src/utils/contextData';
@@ -220,15 +227,15 @@ describe('trace', () => {
           origin: 'auto.test.origin',
           metadata: { requestPath: 'test-path' },
           attributes: {
-            [InternalSentrySemanticAttributes.SOURCE]: 'task',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
         },
         span => {
           expect(span).toBeDefined();
           expect(getSpanAttributes(span)).toEqual({
-            [InternalSentrySemanticAttributes.SOURCE]: 'task',
-            [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
-            [InternalSentrySemanticAttributes.OP]: 'my-op',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
 
@@ -481,7 +488,7 @@ describe('trace', () => {
         op: 'my-op',
         origin: 'auto.test.origin',
         attributes: {
-          [InternalSentrySemanticAttributes.SOURCE]: 'task',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         },
         metadata: { requestPath: 'test-path' },
       });
@@ -489,9 +496,9 @@ describe('trace', () => {
       expect(span2).toBeDefined();
       expect(getSpanAttributes(span2)).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
-        [InternalSentrySemanticAttributes.SOURCE]: 'task',
-        [InternalSentrySemanticAttributes.ORIGIN]: 'auto.test.origin',
-        [InternalSentrySemanticAttributes.OP]: 'my-op',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
       });
 
       expect(getSpanMetadata(span2)).toEqual({ requestPath: 'test-path' });
