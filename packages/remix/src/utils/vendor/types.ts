@@ -78,7 +78,7 @@ export type ExpressResponse = Express.Response;
 export type ExpressNextFunction = Express.NextFunction;
 
 export interface Route {
-  index?: boolean;
+  index: false | undefined;
   caseSensitive?: boolean;
   id: string;
   parentId?: string;
@@ -208,10 +208,6 @@ export interface DataFunctionArgs {
 
 export interface DataFunction {
   (args: DataFunctionArgs): Promise<Response> | Response | Promise<AppData> | AppData;
-}
-
-export interface ReactRouterDomPkg {
-  matchRoutes: (routes: ServerRoute[], pathname: string) => RouteMatch<ServerRoute>[] | null;
 }
 
 // Taken from Remix Implementation

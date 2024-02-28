@@ -7,8 +7,7 @@ const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 
-// skipping flaky test
-test.skip('Sends a client-side exception to Sentry', async ({ page }) => {
+test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const exceptionButton = page.locator('id=exception-button');
@@ -48,8 +47,7 @@ test.skip('Sends a client-side exception to Sentry', async ({ page }) => {
     .toBe(200);
 });
 
-// skipping flaky test
-test.skip('Sends a pageload transaction to Sentry', async ({ page }) => {
+test('Sends a pageload transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
