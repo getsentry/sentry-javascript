@@ -1,5 +1,5 @@
 import { startInactiveSpan } from '@sentry/browser';
-import { spanToJSON, withActiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, spanToJSON, withActiveSpan } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
@@ -59,8 +59,10 @@ class Profiler extends React.Component<ProfilerProps> {
       name: `<${name}>`,
       onlyIfParent: true,
       op: REACT_MOUNT_OP,
-      origin: 'auto.ui.react.profiler',
-      attributes: { 'ui.component_name': name },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        'ui.component_name': name,
+      },
     });
   }
 
@@ -86,9 +88,9 @@ class Profiler extends React.Component<ProfilerProps> {
             name: `<${this.props.name}>`,
             onlyIfParent: true,
             op: REACT_UPDATE_OP,
-            origin: 'auto.ui.react.profiler',
-            startTimestamp: now,
+            startTime: now,
             attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
               'ui.component_name': this.props.name,
               'ui.react.changed_props': changedProps,
             },
@@ -114,15 +116,17 @@ class Profiler extends React.Component<ProfilerProps> {
     const { name, includeRender = true } = this.props;
 
     if (this._mountSpan && includeRender) {
-      const startTimestamp = spanToJSON(this._mountSpan).timestamp;
+      const startTime = spanToJSON(this._mountSpan).timestamp;
       withActiveSpan(this._mountSpan, () => {
         const renderSpan = startInactiveSpan({
           onlyIfParent: true,
           name: `<${name}>`,
           op: REACT_RENDER_OP,
-          origin: 'auto.ui.react.profiler',
-          startTimestamp,
-          attributes: { 'ui.component_name': name },
+          startTime,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            'ui.component_name': name,
+          },
         });
         if (renderSpan) {
           // Have to cast to Span because the type of _mountSpan is Span | undefined
@@ -192,8 +196,10 @@ function useProfiler(
       name: `<${name}>`,
       onlyIfParent: true,
       op: REACT_MOUNT_OP,
-      origin: 'auto.ui.react.profiler',
-      attributes: { 'ui.component_name': name },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+        'ui.component_name': name,
+      },
     });
   });
 
@@ -204,16 +210,18 @@ function useProfiler(
 
     return (): void => {
       if (mountSpan && options.hasRenderSpan) {
-        const startTimestamp = spanToJSON(mountSpan).timestamp;
+        const startTime = spanToJSON(mountSpan).timestamp;
         const endTimestamp = timestampInSeconds();
 
         const renderSpan = startInactiveSpan({
           name: `<${name}>`,
           onlyIfParent: true,
           op: REACT_RENDER_OP,
-          origin: 'auto.ui.react.profiler',
-          startTimestamp,
-          attributes: { 'ui.component_name': name },
+          startTime,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.react.profiler',
+            'ui.component_name': name,
+          },
         });
         if (renderSpan) {
           // Have to cast to Span because the type of _mountSpan is Span | undefined

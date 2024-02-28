@@ -1,4 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getRootSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getRootSpan,
+} from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
 import {
@@ -72,8 +77,8 @@ export function startPageloadSpan(): void {
   const spanContext: StartSpanOptions = {
     name: initPathName,
     op: 'pageload',
-    origin: 'auto.pageload.remix',
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
@@ -96,8 +101,8 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
   const spanContext: StartSpanOptions = {
     name: matches[matches.length - 1].id,
     op: 'navigation',
-    origin: 'auto.navigation.remix',
     attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
