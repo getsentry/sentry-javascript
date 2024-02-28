@@ -3,7 +3,7 @@
   "version": "7.100.0",
   "license": "MIT",
   "engines": {
-    "node": ">=10"
+    "node": ">=14.8"
   },
   "private": true,
   "main": "build/cjs/index.js",

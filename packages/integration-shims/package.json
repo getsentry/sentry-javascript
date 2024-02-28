@@ -44,7 +44,7 @@
     "@sentry/utils": "7.100.0"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=14.8"
   },
   "volta": {
     "extends": "../../package.json"

@@ -54,7 +54,7 @@
     "@sentry/node-experimental": "7.100.0",
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0",
-    "@sentry/vite-plugin": "^2.8.0"
+    "@sentry/vite-plugin": "^2.14.2"
   },
   "devDependencies": {
     "astro": "^3.5.0",

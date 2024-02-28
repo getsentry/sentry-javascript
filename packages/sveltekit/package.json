@@ -43,8 +43,9 @@
     "@sentry/svelte": "7.100.0",
     "@sentry/types": "7.100.0",
     "@sentry/utils": "7.100.0",
-    "@sentry/vite-plugin": "^0.6.1",
+    "@sentry/vite-plugin": "^2.14.2",
     "magicast": "0.2.8",
+    "magic-string": "0.30.7",
     "sorcery": "0.11.0"
   },
   "devDependencies": {

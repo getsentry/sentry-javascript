@@ -1,5 +1,11 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of Client-Side health check transaction filters
+
+The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
+by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
+drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
+
 ## Removal of the `MetricsAggregator` integration class and `metricsAggregatorIntegration`
 
 The SDKs now support metrics features without any additional configuration.
