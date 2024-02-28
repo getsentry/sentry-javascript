@@ -61,10 +61,6 @@
     "rollup": "^3.20.2",
     "vite": "4.0.5"
   },
-  "resolutions": {
-    "**/@sentry/node": "8.0.0-alpha.0",
-    "**/@sentry/types": "8.0.0-alpha.0"
-  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",

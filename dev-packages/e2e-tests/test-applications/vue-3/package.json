@@ -36,12 +36,6 @@
     "vue-tsc": "^1.8.27",
     "wait-port": "1.0.4"
   },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/types": "latest || *"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }

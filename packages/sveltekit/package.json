@@ -54,10 +54,6 @@
     "svelte": "^4.2.8",
     "vite": "^5.0.10"
   },
-  "resolutions": {
-    "**/@sentry/node": "8.0.0-alpha.0",
-    "**/@sentry/types": "8.0.0-alpha.0"
-  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
