@@ -48,7 +48,7 @@ export type NextConfigObject = {
   >;
 };
 
-export type UserSentryOptions = {
+export type SentryBuildtimeOptions = {
   /**
    * Override the SDK's default decision about whether or not to enable to the Sentry webpack plugin for server files.
    * Note that `false` forces the plugin to be enabled, even in situations where it's not recommended.

@@ -5,24 +5,24 @@ import type {
   NextConfigFunction,
   NextConfigObject,
   SentryWebpackPluginOptions,
-  UserSentryOptions,
+  SentryBuildtimeOptions,
 } from './types';
 import { constructWebpackConfigFunction } from './webpack';
 
 let showedExportModeTunnelWarning = false;
 
 /**
- * Modifies the passed in Next.js configuration
+ * Modifies the passed in Next.js configuration with automatic build-time instrumentation and source map upload.
  *
- * @param nextConfig The existing config to be exported prior to adding Sentry
- * @param sentryWebpackPluginOptions Configuration for SentryWebpackPlugin
- * @param sentrySDKOptions Optional additional options to add as alternative to `sentry` property of config
+ * @param nextConfig A Next.js configuration object, as usually exported in `next.config.js` or `next.config.mjs`.
+ * @param sentryWebpackPluginOptions Options to configure the automatically included Sentry Webpack Plugin for source maps and release management in Sentry.
+ * @param sentryBuildtimeOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
 export function withSentryConfig(
   nextConfig: NextConfig = {},
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-  sentrySDKOptions: UserSentryOptions = {},
+  sentryBuildtimeOptions: SentryBuildtimeOptions = {},
 ): NextConfigFunction | NextConfigObject {
   if (typeof nextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
@@ -30,14 +30,14 @@ export function withSentryConfig(
 
       if (isThenable(maybePromiseNextConfig)) {
         return maybePromiseNextConfig.then(promiseResultNextConfig => {
-          return getFinalConfigObject(promiseResultNextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
+          return getFinalConfigObject(promiseResultNextConfig, sentryBuildtimeOptions, sentryWebpackPluginOptions);
         });
       }
 
-      return getFinalConfigObject(maybePromiseNextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
+      return getFinalConfigObject(maybePromiseNextConfig, sentryBuildtimeOptions, sentryWebpackPluginOptions);
     };
   } else {
-    return getFinalConfigObject(nextConfig, sentrySDKOptions, sentryWebpackPluginOptions);
+    return getFinalConfigObject(nextConfig, sentryBuildtimeOptions, sentryWebpackPluginOptions);
   }
 }
 
@@ -45,7 +45,7 @@ export function withSentryConfig(
 // `webpack` property
 function getFinalConfigObject(
   incomingUserNextConfigObject: NextConfigObject,
-  userSentryOptions: UserSentryOptions,
+  userSentryOptions: SentryBuildtimeOptions,
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): NextConfigObject {
   if ('sentry' in incomingUserNextConfigObject) {
