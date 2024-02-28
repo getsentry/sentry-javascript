@@ -21,7 +21,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan, getSpanTree } from './trace';
+import { getCapturedScopesOnSpan, getSpanTree } from './utils';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
