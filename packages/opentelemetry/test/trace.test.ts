@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
+  spanToJSON,
 } from '@sentry/core';
 import type { Event, PropagationContext, Scope } from '@sentry/types';
 
