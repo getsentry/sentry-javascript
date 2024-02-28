@@ -32,7 +32,7 @@
     "build:types": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:types"],
-      "outputs": ["{projectRoot}/build/**/*.d.ts", "{projectRoot}/build/**/*.d.ts.map"]
+      "outputs": ["{projectRoot}/build/{types,types-ts3.8}", "{projectRoot}/build/npm/{types,types-ts3.8}"]
     },
     "lint": {
       "inputs": ["default"],
