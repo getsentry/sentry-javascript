@@ -7,7 +7,7 @@ import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import type {
   FeedbackFormData,
   FeedbackInternalOptions,
-  ScreenshotWidget,
+  ScreenshotInput,
   SendFeedbackOptions,
   SendFeedbackParams,
 } from '../../types';
@@ -36,7 +36,7 @@ export interface Props
   onSubmit: (data: SendFeedbackParams, options?: SendFeedbackOptions) => void;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
-  screenshotWidget: ScreenshotWidget | undefined;
+  screenshotInput: ScreenshotInput | undefined;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
@@ -66,15 +66,14 @@ export function Form({
   showEmail,
   showName,
   submitButtonLabel,
-  screenshotWidget,
+  screenshotInput,
 }: Props): VNode {
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
   const [includeScreenshot, setIncludeScreeshot] = useState(false);
 
-  const ScreenshotInput = screenshotWidget && screenshotWidget.input;
-  const ScreenshotToggle = screenshotWidget && screenshotWidget.toggle;
+  const ScreenshotInput = screenshotInput && screenshotInput.input;
 
   const hasAllRequiredFields = useCallback(
     (data: FeedbackFormData) => {
@@ -105,7 +104,7 @@ export function Form({
           return;
         }
         const formData = new FormData(e.target);
-        const attachment = await (screenshotWidget && includeScreenshot ? screenshotWidget.value() : undefined);
+        const attachment = await (screenshotInput && includeScreenshot ? screenshotInput.value() : undefined);
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
@@ -185,13 +184,19 @@ export function Form({
             />
           </label>
 
-          {ScreenshotToggle ? (
-            <ScreenshotToggle
-              onClick={() => {
-                setIncludeScreeshot(prev => !prev);
-              }}
-              isScreenshotIncluded={includeScreenshot}
-            />
+          {ScreenshotInput ? (
+            <label for="screenshot" class="form__label">
+              <span class="form__label__text">Screenshot</span>
+              <button
+                class="btn btn--default"
+                type="button"
+                onClick={() => {
+                  setIncludeScreeshot(prev => !prev);
+                }}
+              >
+                {includeScreenshot ? 'Remove' : 'Add'}
+              </button>
+            </label>
           ) : null}
         </div>
         <div class="form__bottom">

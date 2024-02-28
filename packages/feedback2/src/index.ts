@@ -7,14 +7,14 @@ export {
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Feedback2Modal,
   feedback2ModalIntegration,
 } from './modal/integration';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Feedback2Screenshot,
   feedback2ScreenshotIntegration,
 } from './screenshot/integration';
 
 export type { OptionalFeedbackConfiguration } from './types';
+
+export type { IFeedback2Integration } from './core/integration';

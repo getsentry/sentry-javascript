@@ -1,10 +1,11 @@
 import type { ComponentType, VNode, h as hType } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useMemo, useRef } from 'preact/hooks';
+import { createScreenshotInputStyles } from './ScreenshotInput.css';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function makeInput(h: typeof hType, canvasEl: HTMLCanvasElement): ComponentType {
   return function ScreenshotToggle(): VNode {
-    console.log({ canvasEl }); // eslint-disable-line no-console
+    const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -15,6 +16,7 @@ export function makeInput(h: typeof hType, canvasEl: HTMLCanvasElement): Compone
 
     return (
       <div class="editor">
+        <style dangerouslySetInnerHTML={styles} />
         <input type="text" />
         <div ref={canvasContainerRef} style={{ display: 'none' }} />
       </div>

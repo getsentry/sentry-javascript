@@ -16,23 +16,27 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
-import type { DialogComponent } from '../modal/components/Dialog';
 import type { IFeedback2ModalIntegration } from '../modal/integration';
 import type { IFeedback2ScreenshotIntegration } from '../screenshot/integration';
-import type { FeedbackInternalOptions, OptionalFeedbackConfiguration } from '../types';
+import type {
+  Dialog,
+  FeedbackInternalOptions,
+  OptionalFeedbackConfiguration,
+  OverrideFeedbackConfiguration,
+} from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
 
+type Unsubscribe = () => void;
+
 interface PublicFeedback2Integration {
+  attachTo: (el: Element | string, optionOverrides: OverrideFeedbackConfiguration) => () => void;
+  createWidget: (optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean }) => Promise<Dialog>;
+  getWidget: () => Dialog | null;
   remove: () => void;
-  attachTo: (el: Element | string, optionOverrides: OptionalFeedbackConfiguration) => () => void;
-  createWidget: (
-    optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean },
-  ) => Promise<DialogComponent>;
-  getWidget: () => DialogComponent | null;
   openDialog: () => void;
   closeDialog: () => void;
   removeWidget: () => void;
@@ -119,55 +123,25 @@ export const _feedback2Integration = (({
     onFormSubmitted,
   };
 
-  let _host: HTMLElement | null = null;
   let _shadow: ShadowRoot | null = null;
-  let _dialog: DialogComponent | null = null;
-
-  /**
-   * Get the dom root, where DOM nodes will be appended into
-   */
-  const _getHost = (options: FeedbackInternalOptions): HTMLElement => {
-    if (!_host) {
-      const { id, colorScheme } = options;
-
-      const host = DOCUMENT.createElement('div');
-      _host = host;
-      host.id = String(id);
-      host.dataset.sentryFeedbackColorscheme = colorScheme;
-      DOCUMENT.body.appendChild(_host);
-    }
-    return _host;
-  };
+  let _subscriptions: Unsubscribe[] = [];
 
   /**
    * Get the shadow root where we will append css
    */
-  const _getShadow = (options: FeedbackInternalOptions): ShadowRoot => {
+  const _createShadow = (options: FeedbackInternalOptions): ShadowRoot => {
     if (!_shadow) {
-      const host = _getHost(options);
+      const host = DOCUMENT.createElement('div');
+      host.id = String(options.id);
+      DOCUMENT.body.appendChild(host);
 
-      const { colorScheme, themeDark, themeLight } = options;
-      const shadow = host.attachShadow({ mode: 'open' });
-      shadow.appendChild(
-        // TODO: inject main styles as part of actor and dialog styles
-        // therefore each render root can have it's own theme
-        // err, everything can just have it's own shadowroot...
-        createMainStyles(colorScheme, {
-          themeDark,
-          themeLight,
-        }),
-      );
-      _shadow = shadow;
+      _shadow = host.attachShadow({ mode: 'open' });
+      _shadow.appendChild(createMainStyles(options.colorScheme, options));
     }
-
-    return _shadow;
+    return _shadow as ShadowRoot;
   };
 
-  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<DialogComponent> => {
-    if (_dialog) {
-      return _dialog;
-    }
-
+  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<Dialog> => {
     const client = getClient(); // TODO: getClient<BrowserClient>()
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
@@ -175,16 +149,7 @@ export const _feedback2Integration = (({
     const modalIntegration = client.getIntegrationByName<IFeedback2ModalIntegration>('Feedback2Modal');
     const screenshotIntegration = client.getIntegrationByName<IFeedback2ScreenshotIntegration>('Feedback2Screenshot');
 
-    // Disable this because the site could have multiple feedback buttons, not all of them need to have screenshots enabled.
-    // Must be a better way...
-    //
-    // if (showScreenshot === false && screenshotIntegration) {
-    //   // Warn the user that they loaded too much and explicitly asked for screen shots to be off
-    //   console.log('WARNING: Feedback2Screenshot is bundled but not rendered.'); // eslint-disable-line no-console
-    // }
-
     // START TEMP: Error messages
-    console.log('ensureRenderer:', { modalIntegration, showScreenshot, screenshotIntegration }); // eslint-disable-line no-console
     if (!modalIntegration && showScreenshot && !screenshotIntegration) {
       throw new Error('Async loading of Feedback Modal & Screenshot integrations is not yet implemented');
     } else if (!modalIntegration) {
@@ -203,21 +168,16 @@ export const _feedback2Integration = (({
       throw new Error('Not implemented yet');
     }
 
-    const dialog = modalIntegration.createDialog({
-      shadow: _getShadow(options),
-      sendFeedback,
+    return modalIntegration.createDialog({
       options,
-      onDone: () => {
-        _dialog = null;
-      },
       screenshotIntegration,
+      sendFeedback,
+      shadow: _createShadow(options),
     });
-    _dialog = dialog;
-    return dialog;
   };
 
-  const attachTo = (el: Element | string, optionOverrides: OptionalFeedbackConfiguration = {}): (() => void) => {
-    const options = mergeOptions(_options, optionOverrides);
+  const attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
+    const mergedOptions = mergeOptions(_options, optionOverrides);
 
     const targetEl =
       typeof el === 'string' ? DOCUMENT.querySelector(el) : typeof el.addEventListener === 'function' ? el : null;
@@ -227,14 +187,52 @@ export const _feedback2Integration = (({
       throw new Error('Unable to attach to target element');
     }
 
+    let dialog: Dialog | null = null;
     const handleClick = async (): Promise<void> => {
-      const dialog = await _loadAndRenderDialog(options);
+      if (!dialog) {
+        dialog = await _loadAndRenderDialog({
+          ...mergedOptions,
+          onFormClose: () => {
+            dialog && dialog.close();
+            mergedOptions.onFormClose && mergedOptions.onFormClose();
+          },
+          onFormSubmitted: () => {
+            dialog && dialog.removeFromDom();
+            mergedOptions.onFormSubmitted && mergedOptions.onFormSubmitted();
+          },
+        });
+      }
+      dialog.appendToDom();
       dialog.open();
     };
     targetEl.addEventListener('click', handleClick);
-    return () => {
+    const unsubscribe = (): void => {
+      _subscriptions = _subscriptions.filter(sub => sub !== unsubscribe);
+      dialog && dialog.removeFromDom();
+      dialog = null;
       targetEl.removeEventListener('click', handleClick);
     };
+    _subscriptions.push(unsubscribe);
+    return unsubscribe;
+  };
+
+  const autoInjectActor = (): void => {
+    const shadow = _createShadow(_options);
+    const actor = Actor({ buttonLabel: _options.buttonLabel, shadow });
+    const mergedOptions = mergeOptions(_options, {
+      onFormOpen() {
+        actor.removeFromDom();
+      },
+      onFormClose() {
+        actor.appendToDom();
+      },
+      onFormSubmitted() {
+        actor.appendToDom();
+      },
+    });
+    attachTo(actor.el, mergedOptions);
+
+    actor.appendToDom();
   };
 
   return {
@@ -244,40 +242,7 @@ export const _feedback2Integration = (({
         return;
       }
 
-      const shadow = _getShadow(_options);
-      const actor = Actor({ buttonLabel: _options.buttonLabel });
-      const insertActor = (): void => {
-        shadow.appendChild(actor.style);
-        shadow.appendChild(actor.el);
-      };
-      attachTo(actor.el, {
-        onFormOpen() {
-          shadow.removeChild(actor.el);
-          shadow.removeChild(actor.style);
-          _options.onFormOpen && _options.onFormOpen();
-        },
-        onFormClose() {
-          insertActor();
-          _options.onFormClose && _options.onFormClose();
-        },
-        onFormSubmitted() {
-          insertActor();
-          _options.onFormSubmitted && _options.onFormSubmitted();
-        },
-      });
-
-      insertActor();
-    },
-
-    /**
-     * Removes the Feedback integration (including host, shadow DOM, and all widgets)
-     */
-    remove(): void {
-      if (_host) {
-        _host.remove();
-      }
-      _host = null;
-      _shadow = null;
+      autoInjectActor();
     },
 
     /**
@@ -290,46 +255,21 @@ export const _feedback2Integration = (({
     /**
      * Creates a new widget. Accepts partial options to override any options passed to constructor.
      */
-    createWidget(
-      optionOverrides: OptionalFeedbackConfiguration & { shouldCreateActor?: boolean } = {},
-    ): Promise<DialogComponent> {
-      const options = mergeOptions(_options, optionOverrides);
-
-      return _loadAndRenderDialog(options);
+    async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<Dialog> {
+      return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
     },
 
     /**
-     * Returns the default widget, if it exists
+     * Removes the Feedback integration (including host, shadow DOM, and all widgets)
      */
-    getWidget(): DialogComponent | null {
-      return _dialog;
-    },
-
-    /**
-     * Allows user to open the dialog box. Creates a new widget if
-     * `autoInject` was false, otherwise re-uses the default widget that was
-     * created during initialization of the integration.
-     */
-    openDialog(): void {
-      _dialog && _dialog.open();
-    },
-
-    /**
-     * Closes the dialog for the default widget, if it exists
-     */
-    closeDialog(): void {
-      _dialog && _dialog.close();
-    },
-
-    /**
-     * Removes the rendered widget, if it exists
-     */
-    removeWidget(): void {
-      if (_shadow && _dialog) {
-        _shadow.removeChild(_dialog.el);
-        _shadow.removeChild(_dialog.style);
+    remove(): void {
+      if (_shadow) {
+        _shadow.parentElement && _shadow.parentElement.remove();
+        _shadow = null;
       }
-      _dialog = null;
+      // Remove any lingering subscriptions
+      _subscriptions.forEach(sub => sub());
+      _subscriptions = [];
     },
   };
 }) satisfies IntegrationFn;

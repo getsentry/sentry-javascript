@@ -12,10 +12,7 @@ export interface Props extends LogoProps {
 }
 
 export function DialogHeader({ colorScheme, formTitle, showBranding }: Props): VNode {
-  const logoHtml = useMemo(() => {
-    const logo = SentryLogo({ colorScheme });
-    return { __html: logo.outerHTML };
-  }, [colorScheme]);
+  const logoHtml = useMemo(() => ({ __html: SentryLogo({ colorScheme }).outerHTML }), [colorScheme]);
 
   return (
     <h2 class="dialog__header">

@@ -1,6 +1,5 @@
 import type { Attachment } from '@sentry/types';
 import type { ComponentType } from 'preact';
-import type { Props as ScreenshotToggleProps } from '../screenshot/components/ScreenshotToggle';
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -37,6 +36,13 @@ export interface OptionalFeedbackConfiguration
   themeDark?: Partial<FeedbackTheme>;
 }
 
+/**
+ * Partial configuration that overrides default configuration values
+ *
+ * This is the config that gets passed into the integration constructor
+ */
+export type OverrideFeedbackConfiguration = Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'>;
+
 export interface SendFeedbackParams {
   message: string;
   name?: string;
@@ -53,9 +59,35 @@ export interface SendFeedbackOptions {
   includeReplay?: boolean;
 }
 
-export interface ScreenshotWidget {
-  style: HTMLStyleElement;
+export interface Dialog {
+  appendToDom: () => void;
+
+  removeFromDom: () => void;
+
+  /**
+   * Open/Show the dialog & form inside it
+   */
+  open: () => void;
+
+  /**
+   * Close/Hide the dialog & form inside it
+   */
+  close: () => void;
+}
+
+export interface ScreenshotInput {
+  /**
+   * The style element for this component
+   */
+  // style: HTMLStyleElement;
+
+  /**
+   * The preact component
+   */
   input: ComponentType;
-  toggle: ComponentType<ScreenshotToggleProps>;
+
+  /**
+   * The image/screenshot bytes
+   */
   value: () => Promise<Attachment | undefined>;
 }

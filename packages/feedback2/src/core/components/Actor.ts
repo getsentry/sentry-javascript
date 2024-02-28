@@ -4,24 +4,21 @@ import { FeedbackIcon } from './FeedbackIcon';
 
 export interface ActorProps {
   buttonLabel: string;
+  shadow: ShadowRoot;
 }
 
 export interface ActorComponent {
-  /**
-   * The button element itself
-   */
-  el: HTMLButtonElement;
+  el: HTMLElement;
 
-  /**
-   * The style element for this component
-   */
-  style: HTMLStyleElement;
+  appendToDom: () => void;
+
+  removeFromDom: () => void;
 }
 
 /**
  * The sentry-provided button to open the feedback modal
  */
-export function Actor({ buttonLabel }: ActorProps): ActorComponent {
+export function Actor({ buttonLabel, shadow }: ActorProps): ActorComponent {
   const el = DOCUMENT.createElement('button');
   el.type = 'button';
   el.className = 'widget__actor';
@@ -38,11 +35,14 @@ export function Actor({ buttonLabel }: ActorProps): ActorComponent {
   const style = createActorStyles();
 
   return {
-    get el() {
-      return el;
+    el,
+    appendToDom(): void {
+      shadow.appendChild(style);
+      shadow.appendChild(el);
     },
-    get style() {
-      return style;
+    removeFromDom(): void {
+      shadow.removeChild(el);
+      shadow.removeChild(style);
     },
   };
 }
