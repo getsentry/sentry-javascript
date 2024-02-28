@@ -118,7 +118,7 @@ export function makeBaseNPMConfig(options = {}) {
 }
 
 export function makeNPMConfigVariants(baseConfig, options = {}) {
-  const { emitMjs = true, entryFileNameWithoutExtension = '[name]'} = options;
+  const { emitMjs = true, entryFileNameWithoutExtension = '[name]' } = options;
   const variantSpecificConfigs = [
     { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
     { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') } },

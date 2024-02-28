@@ -2,28 +2,28 @@ module.exports = [
   // Main browser webpack builds
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, Replay, browserTracingIntegration, Feedback }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, Replay, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay with Canvas) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, Replay, browserTracingIntegration, ReplayCanvas }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, Replay, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
@@ -42,35 +42,35 @@ module.exports = [
   },
   {
     name: '@sentry/browser (incl. Tracing) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, browserTracingIntegration }',
     gzip: true,
     limit: '35 KB',
   },
   {
     name: '@sentry/browser (incl. browserTracingIntegration) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, browserTracingIntegration }',
     gzip: true,
     limit: '35 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, Feedback }',
     gzip: true,
     limit: '50 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback) - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init, sendFeedback }',
     gzip: true,
     limit: '50 KB',
   },
   {
     name: '@sentry/browser - Webpack (gzipped)',
-    path: 'packages/browser/build/npm/esm/index.js',
+    path: 'packages/browser/build/npm/esm/index.mjs',
     import: '{ init }',
     gzip: true,
     limit: '28 KB',
@@ -137,37 +137,43 @@ module.exports = [
   // React
   {
     name: '@sentry/react (incl. Tracing, Replay) - Webpack (gzipped)',
-    path: 'packages/react/build/esm/index.js',
+    path: 'packages/react/build/esm/index.mjs',
     import: '{ init, browserTracingIntegration, Replay }',
     gzip: true,
     limit: '75 KB',
   },
   {
     name: '@sentry/react - Webpack (gzipped)',
-    path: 'packages/react/build/esm/index.js',
+    path: 'packages/react/build/esm/index.mjs',
     import: '{ init }',
     gzip: true,
     limit: '30 KB',
   },
 
   // Next.js
+  // We ignore next/router and next/constants because they break size-limit calculation
+  // with new *.mjs bundles in v8
   {
     name: '@sentry/nextjs Client (incl. Tracing, Replay) - Webpack (gzipped)',
-    path: 'packages/nextjs/build/esm/client/index.js',
+    path: 'packages/nextjs/build/esm/client/index.mjs',
     import: '{ init, browserTracingIntegration, Replay }',
+    ignore: ['next/router', 'next/constants'],
     gzip: true,
     limit: '110 KB',
   },
   {
     name: '@sentry/nextjs Client - Webpack (gzipped)',
-    path: 'packages/nextjs/build/esm/client/index.js',
+    path: 'packages/nextjs/build/esm/client/index.mjs',
     import: '{ init }',
+    ignore: ['next/router', 'next/constants'],
     gzip: true,
     limit: '57 KB',
   },
+
+  // Feedback
   {
     name: '@sentry-internal/feedback - Webpack (gzipped)',
-    path: 'packages/feedback/build/npm/esm/index.js',
+    path: 'packages/feedback/build/npm/esm/index.mjs',
     import: '{ Feedback }',
     gzip: true,
     limit: '25 KB',

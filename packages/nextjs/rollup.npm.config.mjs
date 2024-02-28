@@ -53,7 +53,7 @@ export default [
       },
     }),
     // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-    { entryFileNameWithoutExtension: 'config/templates/[name]' }
+    { entryFileNameWithoutExtension: 'config/templates/[name]' },
   ),
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
@@ -68,6 +68,6 @@ export default [
       },
     }),
     // Preserve the original file structure (i.e., so that everything is still relative to `src`)
-    { entryFileNameWithoutExtension: 'config/loaders/[name]' }
+    { entryFileNameWithoutExtension: 'config/loaders/[name]' },
   ),
 ];
