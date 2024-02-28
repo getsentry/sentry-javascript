@@ -48,7 +48,7 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
