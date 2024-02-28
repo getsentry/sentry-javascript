@@ -267,17 +267,12 @@ jobs:
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
-        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
-        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
-        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
-        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
-        if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
