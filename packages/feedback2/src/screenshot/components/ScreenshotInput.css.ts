@@ -16,6 +16,11 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   background: red;
   flex: 1 0 auto;
 }
+
+.editor .image {
+  width: 100%;
+  height: 100%;
+}
 `;
 
   return style;

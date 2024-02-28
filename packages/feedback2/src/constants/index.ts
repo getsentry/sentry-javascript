@@ -7,6 +7,7 @@ export { DEFAULT_THEME } from './theme';
 // circular dependency between the browser and feedback packages
 export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 export const DOCUMENT = WINDOW.document;
+export const NAVIGATOR = WINDOW.navigator;
 
 export const ACTOR_LABEL = 'Report a Bug';
 export const CANCEL_BUTTON_LABEL = 'Cancel';

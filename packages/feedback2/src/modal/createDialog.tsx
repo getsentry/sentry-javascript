@@ -22,8 +22,32 @@ export function createDialog({ options, screenshotIntegration, sendFeedback, sha
   const el = DOCUMENT.createElement('div');
   const style = createDialogStyles();
 
+  const dialog = {
+    get el() {
+      return el;
+    },
+    appendToDom(): void {
+      if (!shadow.contains(style) && !shadow.contains(el)) {
+        shadow.appendChild(style);
+        shadow.appendChild(el);
+      }
+    },
+    removeFromDom(): void {
+      shadow.removeChild(el);
+      shadow.removeChild(style);
+    },
+    open() {
+      renderContent(true);
+      options.onFormOpen && options.onFormOpen();
+    },
+    close() {
+      renderContent(false);
+    },
+  };
+
+  const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h, dialog);
+
   const renderContent = (open: boolean): void => {
-    const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h);
     render(
       <DialogComponent
         screenshotInput={screenshotInput}
@@ -66,23 +90,5 @@ export function createDialog({ options, screenshotIntegration, sendFeedback, sha
     );
   };
 
-  return {
-    appendToDom(): void {
-      if (!shadow.contains(style) && !shadow.contains(el)) {
-        shadow.appendChild(style);
-        shadow.appendChild(el);
-      }
-    },
-    removeFromDom(): void {
-      shadow.removeChild(el);
-      shadow.removeChild(style);
-    },
-    open() {
-      renderContent(true);
-      options.onFormOpen && options.onFormOpen();
-    },
-    close() {
-      renderContent(false);
-    },
-  };
+  return dialog;
 }

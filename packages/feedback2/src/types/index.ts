@@ -60,6 +60,14 @@ export interface SendFeedbackOptions {
 }
 
 export interface Dialog {
+  /**
+   * The HTMLElement that is containing all the form content
+   */
+  el: HTMLElement;
+
+  /**
+   *
+   */
   appendToDom: () => void;
 
   removeFromDom: () => void;
