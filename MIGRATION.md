@@ -1,5 +1,22 @@
 # Upgrading from 7.x to 8.x
 
+## Removal of `trackHeaders` option for Astro middleware
+
+Instead of opting-in via the middleware config, you can configure if headers should be captured via
+`requestDataIntegration` options, which defaults to `true` but can be disabled like this:
+
+```
+Sentry.init({
+  integrations: [
+    Sentry.requestDataIntegration({
+      include: {
+        headers: false
+      },
+    }),
+  ],
+});
+```
+
 ## Removal of Client-Side health check transaction filters
 
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
