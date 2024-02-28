@@ -19,7 +19,7 @@
     "sentry-prune-profiler-binaries": "scripts/prune-profiler-binaries.js"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=14.8"
   },
   "publishConfig": {
     "access": "public"
