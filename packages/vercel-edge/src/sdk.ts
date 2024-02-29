@@ -22,19 +22,13 @@ declare const process: {
 
 const nodeStackParser = createStackParser(nodeStackLineParser());
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  linkedErrorsIntegration(),
-  winterCGFetchIntegration(),
-];
-
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    winterCGFetchIntegration(),
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
   ];
 }
@@ -73,10 +67,6 @@ export function init(options: VercelEdgeOptions = {}): void {
 
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
     options.autoSessionTracking = true;
-  }
-
-  if (options.instrumenter === undefined) {
-    options.instrumenter = 'sentry';
   }
 
   const clientOptions: VercelEdgeClientOptions = {

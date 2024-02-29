@@ -21,7 +21,8 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 //  THE SOFTWARE.
 
-import type { StackLineParserFn } from '@sentry/types';
+import type { StackLineParser, StackLineParserFn } from '@sentry/types';
+import { UNKNOWN_FUNCTION } from './stacktrace';
 
 export type GetModuleFn = (filename: string | undefined) => string | undefined;
 
@@ -49,7 +50,6 @@ export function filenameIsInApp(filename: string, isNative: boolean = false): bo
 }
 
 /** Node Stack line parser */
-// eslint-disable-next-line complexity
 export function node(getModule?: GetModuleFn): StackLineParserFn {
   const FILENAME_MATCH = /^\s*[-]{4,}$/;
   const FULL_MATCH = /at (?:async )?(?:(.+?)\s+\()?(?:(.+):(\d+):(\d+)?|([^)]+))\)?/;
@@ -96,7 +96,7 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
       }
 
       if (functionName === undefined) {
-        methodName = methodName || '<anonymous>';
+        methodName = methodName || UNKNOWN_FUNCTION;
         functionName = typeName ? `${typeName}.${methodName}` : methodName;
       }
 
@@ -130,4 +130,14 @@ export function node(getModule?: GetModuleFn): StackLineParserFn {
 
     return undefined;
   };
+}
+
+/**
+ * Node.js stack line parser
+ *
+ * This is in @sentry/utils so it can be used from the Electron SDK in the browser for when `nodeIntegration == true`.
+ * This allows it to be used without referencing or importing any node specific code which causes bundlers to complain
+ */
+export function nodeStackLineParser(getModule?: GetModuleFn): StackLineParser {
+  return [90, node(getModule)];
 }

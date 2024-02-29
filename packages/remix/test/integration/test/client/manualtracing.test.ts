@@ -17,7 +17,6 @@ test('should report a manually created / finished transaction.', async ({ page }
   expect(manualTransactionEnvelope.timestamp).toBeDefined();
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe(useV2 ? 'routes/manual-tracing.$id' : 'routes/manual-tracing/$id');
 });

@@ -1,12 +1,10 @@
-/* eslint-disable max-lines */
-import type { SpanTimeInput, TransactionContext } from '@sentry/types';
+import type { Hub, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import type { Span } from './span';
-import { SpanRecorder } from './span';
+import type { SentrySpan } from './sentrySpan';
+import { SpanRecorder } from './sentrySpan';
 import { Transaction } from './transaction';
 
 export const TRACING_DEFAULTS = {
@@ -42,7 +40,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   /**
    * @inheritDoc
    */
-  public add(span: Span): void {
+  public add(span: SentrySpan): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
     if (span.spanContext().spanId !== this.transactionSpanId) {
@@ -163,23 +161,23 @@ export class IdleTransaction extends Transaction {
     this._finished = true;
     this.activities = {};
 
-    // eslint-disable-next-line deprecation/deprecation
-    if (this.op === 'ui.action.click') {
+    const op = spanToJSON(this).op;
+
+    if (op === 'ui.action.click') {
       this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
     // eslint-disable-next-line deprecation/deprecation
     if (this.spanRecorder) {
       DEBUG_BUILD &&
-        // eslint-disable-next-line deprecation/deprecation
-        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
+        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), op);
 
       for (const callback of this._beforeFinishCallbacks) {
         callback(this, endTimestampInS);
       }
 
       // eslint-disable-next-line deprecation/deprecation
-      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
+      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: SentrySpan) => {
         // If we are dealing with the transaction itself, we just return it
         if (span.spanContext().spanId === this.spanContext().spanId) {
           return true;

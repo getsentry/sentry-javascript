@@ -1,4 +1,4 @@
-const Sentry = require('@sentry/node-experimental');
+const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
 Sentry.init({

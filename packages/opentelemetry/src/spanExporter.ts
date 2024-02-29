@@ -3,22 +3,28 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, flush, getCurrentScope } from '@sentry/core';
+import type { Transaction } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getCurrentHub,
+} from '@sentry/core';
 import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
-import { logger } from '@sentry/utils';
-
-import { getCurrentHub } from './custom/hub';
-import type { OpenTelemetryTransaction } from './custom/transaction';
+import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
+
 import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
+import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanFinishScope, getSpanHub, getSpanMetadata, getSpanScope } from './utils/spanData';
+import { getSpanHub, getSpanMetadata, getSpanScopes } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -73,14 +79,17 @@ export class SentrySpanExporter implements SpanExporter {
 
   /** @inheritDoc */
   public shutdown(): Promise<void> {
+    const forceFlush = this.forceFlush();
     this._stopped = true;
     this._finishedSpans = [];
-    return this.forceFlush();
+    return forceFlush;
   }
 
   /** @inheritDoc */
-  public async forceFlush(): Promise<void> {
-    await flush();
+  public forceFlush(): Promise<void> {
+    return new Promise(resolve => {
+      this.export(this._finishedSpans, () => resolve());
+    });
   }
 }
 
@@ -108,26 +117,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
       createAndFinishSpanForOtelSpan(child, transaction, remaining);
     });
 
-    // Now finish the transaction, which will send it together with all the spans
-    // We make sure to use the finish scope
-    const scope = getScopeForTransactionFinish(span);
-    transaction.finishWithScope(convertOtelTimeToSeconds(span.endTime), scope);
+    transaction.end(span.endTime);
   });
 
   return Array.from(remaining)
     .map(node => node.span)
     .filter((span): span is ReadableSpan => !!span);
-}
-
-function getScopeForTransactionFinish(span: ReadableSpan): Scope {
-  // The finish scope should normally always be there (and it is already a clone),
-  // but for the sake of type safety we fall back to a clone of the current scope
-  const scope = getSpanFinishScope(span) || getCurrentScope().clone();
-  scope.setContext('otel', {
-    attributes: removeSentryAttributes(span.attributes),
-    resource: span.resource.attributes,
-  });
-  return scope;
 }
 
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
@@ -142,15 +137,15 @@ function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number
 function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; source?: TransactionSource } {
   const attributes = span.attributes;
 
-  const origin = attributes[InternalSentrySemanticAttributes.ORIGIN] as SpanOrigin | undefined;
-  const op = attributes[InternalSentrySemanticAttributes.OP] as string | undefined;
-  const source = attributes[InternalSentrySemanticAttributes.SOURCE] as TransactionSource | undefined;
+  const origin = attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined;
+  const op = attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] as string | undefined;
+  const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
 
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransaction {
-  const scope = getSpanScope(span);
+function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getSpanHub(span) || getCurrentHub();
   const spanContext = span.spanContext();
   const spanId = spanContext.spanId;
@@ -158,10 +153,21 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
   const parentSpanId = span.parentSpanId;
 
   const parentSampled = span.attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] as boolean | undefined;
-  const dynamicSamplingContext = scope ? scope.getPropagationContext().dsc : undefined;
 
-  const { op, description, tags, data, origin, source } = getSpanData(span);
+  const { op, description, data, origin, source } = getSpanData(span);
   const metadata = getSpanMetadata(span);
+  const capturedSpanScopes = getSpanScopes(span);
+
+  const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
+
+  const attributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+    [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+    ...data,
+    ...removeSentryAttributes(span.attributes),
+  };
+
+  const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
 
   const transaction = startTransaction(hub, {
     spanId,
@@ -170,20 +176,38 @@ function createTransactionForOtelSpan(span: ReadableSpan): OpenTelemetryTransact
     parentSampled,
     name: description,
     op,
-    instrumenter: 'otel',
     status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
-      dynamicSamplingContext,
-      source,
-      sampleRate: span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined,
+      ...dropUndefinedKeys({
+        dynamicSamplingContext,
+        sampleRate,
+      }),
       ...metadata,
     },
-    data: removeSentryAttributes(data),
+    attributes,
     origin,
-    tags,
     sampled: true,
-  }) as OpenTelemetryTransaction;
+  });
+
+  // We currently don't want to write this to the scope because it would mutate it.
+  // In the future we will likely have some sort of transaction payload factory where we can pass this context in directly
+  // eslint-disable-next-line deprecation/deprecation
+  transaction.setContext('otel', {
+    attributes: removeSentryAttributes(span.attributes),
+    resource: span.resource.attributes,
+  });
+
+  if (capturedSpanScopes) {
+    // Ensure the `transaction` tag is correctly set on the transaction event
+    const scope = capturedSpanScopes.scope.clone();
+    scope.addEventProcessor(event => {
+      event.tags = { transaction: description, ...event.tags };
+      return event;
+    });
+
+    setCapturedScopesOnTransaction(transaction, scope, capturedSpanScopes.isolationScope);
+  }
 
   return transaction;
 }
@@ -205,20 +229,18 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
   const spanId = span.spanContext().spanId;
   const { attributes } = span;
 
-  const { op, description, tags, data, origin } = getSpanData(span);
+  const { op, description, data, origin } = getSpanData(span);
   const allData = { ...removeSentryAttributes(attributes), ...data };
 
   // eslint-disable-next-line deprecation/deprecation
   const sentrySpan = sentryParentSpan.startChild({
-    description,
+    name: description,
     op,
     data: allData,
     status: mapStatus(span),
-    instrumenter: 'otel',
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     spanId,
     origin,
-    tags,
   });
 
   node.children.forEach(child => {
@@ -229,7 +251,6 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
 }
 
 function getSpanData(span: ReadableSpan): {
-  tags: Record<string, string>;
   data: Record<string, unknown>;
   op?: string;
   description: string;
@@ -242,7 +263,6 @@ function getSpanData(span: ReadableSpan): {
   const op = definedOp || inferredOp;
   const source = definedSource || inferredSource;
 
-  const tags = getTags(span);
   const data = { ...inferredData, ...getData(span) };
 
   return {
@@ -250,7 +270,6 @@ function getSpanData(span: ReadableSpan): {
     description,
     source,
     origin,
-    tags,
     data,
   };
 }
@@ -264,25 +283,10 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
 
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[InternalSentrySemanticAttributes.PARENT_SAMPLED];
-  delete cleanedData[InternalSentrySemanticAttributes.ORIGIN];
-  delete cleanedData[InternalSentrySemanticAttributes.OP];
-  delete cleanedData[InternalSentrySemanticAttributes.SOURCE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;
-}
-
-function getTags(span: ReadableSpan): Record<string, string> {
-  const attributes = span.attributes;
-  const tags: Record<string, string> = {};
-
-  if (attributes[SemanticAttributes.HTTP_STATUS_CODE]) {
-    const statusCode = attributes[SemanticAttributes.HTTP_STATUS_CODE] as string | number;
-    tags['http.status_code'] = `${statusCode}`;
-  }
-
-  return tags;
 }
 
 function getData(span: ReadableSpan): Record<string, unknown> {
@@ -310,4 +314,15 @@ function getData(span: ReadableSpan): Record<string, unknown> {
   }
 
   return data;
+}
+
+const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
+const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
+
+/** Sets the scope and isolation scope to be used for when the transaction is finished. */
+function setCapturedScopesOnTransaction(span: Transaction, scope: Scope, isolationScope: Scope): void {
+  if (span) {
+    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
+  }
 }

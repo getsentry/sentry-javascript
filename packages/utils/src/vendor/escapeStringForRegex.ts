@@ -1,6 +1,6 @@
 // Based on https://github.com/sindresorhus/escape-string-regexp but with modifications to:
 //   a) reduce the size by skipping the runtime type - checking
-//   b) ensure it gets down - compiled for old versions of Node(the published package only supports Node 12+).
+//   b) ensure it gets down - compiled for old versions of Node(the published package only supports Node 14+).
 //
 // MIT License
 //

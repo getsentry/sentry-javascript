@@ -1,11 +1,10 @@
 import { MongoMemoryServer } from 'mongodb-memory-server-global';
 
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
 jest.setTimeout(20000);
 
-conditionalTest({ min: 14 })('MongoDB experimental Test', () => {
+describe('MongoDB experimental Test', () => {
   let mongoServer: MongoMemoryServer;
 
   beforeAll(async () => {

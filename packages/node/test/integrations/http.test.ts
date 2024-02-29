@@ -1,11 +1,13 @@
 import * as http from 'http';
 import * as https from 'https';
-import type { Span } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
+import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
-import { getCurrentScope, makeMain, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
-import { Hub, addTracingExtensions } from '@sentry/core';
+import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { TransactionContext } from '@sentry/types';
-import { TRACEPARENT_REGEXP, logger } from '@sentry/utils';
+import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
@@ -25,6 +27,11 @@ const originalHttpGet = http.get;
 const originalHttpRequest = http.request;
 
 describe('tracing', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+  });
+
   afterEach(() => {
     // eslint-disable-next-line deprecation/deprecation
     getCurrentScope().setSpan(undefined);
@@ -39,7 +46,6 @@ describe('tracing', () => {
 
     setUser({
       id: 'uid123',
-      segment: 'segmentA',
     });
 
     const transaction = startInactiveSpan({
@@ -67,11 +73,8 @@ describe('tracing', () => {
       ...customOptions,
     });
     const client = new NodeClient(options);
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
-    // eslint-disable-next-line deprecation/deprecation
-    hub.bindClient(client);
+    setCurrentClient(client);
+    client.init();
   }
 
   it("creates a span for each outgoing non-sentry request when there's a transaction on the scope", () => {
@@ -79,7 +82,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/');
 
@@ -87,8 +90,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
   });
 
@@ -97,7 +98,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
 
@@ -139,7 +140,7 @@ describe('tracing', () => {
 
     expect(baggageHeader).toEqual(
       'sentry-environment=production,sentry-release=1.0.0,' +
-        'sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,' +
+        'sentry-public_key=dogsarebadatkeepingsecrets,' +
         'sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,' +
         'sentry-transaction=dogpark,sentry-sampled=true',
     );
@@ -155,35 +156,35 @@ describe('tracing', () => {
 
     expect(baggageHeader[0]).toEqual('dog=great');
     expect(baggageHeader[1]).toEqual(
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     );
   });
 
   it('adds the transaction name to the the baggage header if a valid transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'route' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-transaction=dogpark,sentry-sampled=true',
     ]);
   });
 
   it('does not add the transaction name to the the baggage header if url transaction source is set', async () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
-    createTransactionOnScope({}, { metadata: { source: 'url' } });
+    createTransactionOnScope({}, { attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' } });
 
     const request = http.get({ host: 'http://dogs.are.great/', headers: { baggage: 'dog=great' } });
     const baggageHeader = request.getHeader('baggage') as string;
 
     expect(baggageHeader).toEqual([
       'dog=great',
-      'sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
+      'sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=12312012123120121231201212312012,sentry-sample_rate=1,sentry-sampled=true',
     ]);
   });
 
@@ -220,7 +221,7 @@ describe('tracing', () => {
     expect(parts[1]).toEqual(expect.any(String));
 
     expect(baggageHeader).toEqual(
-      `sentry-environment=production,sentry-release=1.0.0,sentry-user_segment=segmentA,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
+      `sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
     );
   });
 
@@ -258,36 +259,12 @@ describe('tracing', () => {
     expect(baggage).not.toBeDefined();
   });
 
-  it("doesn't attach when using otel instrumenter", () => {
-    const loggerLogSpy = jest.spyOn(logger, 'log');
-
-    const options = getDefaultNodeClientOptions({
-      dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      tracesSampleRate: 1.0,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new HttpIntegration({ tracing: true })],
-      release: '1.0.0',
-      environment: 'production',
-      instrumenter: 'otel',
-    });
-    const hub = new Hub(new NodeClient(options));
-
-    // eslint-disable-next-line deprecation/deprecation
-    const integration = new HttpIntegration();
-    integration.setupOnce(
-      () => {},
-      () => hub,
-    );
-
-    expect(loggerLogSpy).toBeCalledWith('HTTP Integration is skipped because of instrumenter configuration.');
-  });
-
   it('omits query and fragment from description and adds to span data instead', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
 
@@ -295,8 +272,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
 
     const spanAttributes = spanToJSON(spans[1]).data || {};
@@ -312,7 +287,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
 
@@ -322,8 +297,6 @@ describe('tracing', () => {
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/spaniel');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(spans[1].op).toEqual('http.client');
     expect(spanToJSON(spans[1]).op).toEqual('http.client');
     expect(spanAttributes['http.method']).toEqual('GET');
     expect(spanAttributes.url).toEqual('http://dogs.are.great/spaniel');
@@ -342,7 +315,7 @@ describe('tracing', () => {
 
     const transaction = createTransactionOnScope();
     // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get(`http://${auth}@dogs.are.great/`);
 
@@ -371,11 +344,10 @@ describe('tracing', () => {
       });
 
       const client = new NodeClient(options);
-      const hub = new Hub(client);
+      setCurrentClient(client);
+      client.init();
       // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
-
-      return hub;
+      return getCurrentHub();
     }
 
     function createTransactionAndPutOnScope() {
@@ -398,18 +370,17 @@ describe('tracing', () => {
 
         httpIntegration.setupOnce(
           () => undefined,
-          () => hub,
+          () => hub as Hub,
         );
 
         const transaction = createTransactionAndPutOnScope();
         // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation
@@ -446,7 +417,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -479,7 +450,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -508,18 +479,17 @@ describe('tracing', () => {
 
         httpIntegration.setupOnce(
           () => undefined,
-          () => hub,
+          () => hub as Hub,
         );
 
         const transaction = createTransactionAndPutOnScope();
         // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as Span).spanRecorder?.spans as Span[];
+        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
 
         // There should be no http spans
-        // eslint-disable-next-line deprecation/deprecation
-        const httpSpans = spans.filter(span => span.op?.startsWith('http'));
+        const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
         expect(httpSpans.length).toBe(0);
 
         // And headers are not attached without span creation
@@ -556,7 +526,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -589,7 +559,7 @@ describe('tracing', () => {
 
           httpIntegration.setupOnce(
             () => undefined,
-            () => hub,
+            () => hub as Hub,
           );
 
           createTransactionAndPutOnScope();
@@ -622,9 +592,8 @@ describe('default protocols', () => {
       },
     });
     const client = new NodeClient(options);
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
 
     return p;
   }
@@ -682,17 +651,11 @@ describe('default protocols', () => {
   it('makes https request over http proxy', async () => {
     const key = 'catcatchers';
     const p = captureBreadcrumb(key);
-    let nockProtocol = 'https';
 
     const proxy = 'http://some.url:3128';
     const agent = new HttpsProxyAgent(proxy);
 
-    // TODO (v8): No longer needed once we drop Node 8 support
-    if (NODE_VERSION.major < 9) {
-      nockProtocol = 'http';
-    }
-
-    nock(`${nockProtocol}://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
+    nock(`https://${key}.ingest.sentry.io`).get('/api/123122332/store/').reply(200);
 
     https.get({
       host: `${key}.ingest.sentry.io`,
@@ -715,9 +678,8 @@ describe('httpIntegration', () => {
       environment: 'production',
     });
     const client = new NodeClient(options);
-    const hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('converts default options', () => {
@@ -775,9 +737,8 @@ describe('httpIntegration', () => {
 
 describe('_shouldCreateSpans', () => {
   beforeEach(function () {
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   it.each([
@@ -789,6 +750,8 @@ describe('_shouldCreateSpans', () => {
     [{ enableIfHasTracingEnabled: true }, { tracesSampleRate: 0 }, true],
     [{}, {}, true],
   ])('works with tracing=%p and clientOptions=%p', (tracing, clientOptions, expected) => {
+    const client = new NodeClient(getDefaultNodeClientOptions(clientOptions));
+    setCurrentClient(client);
     const actual = _shouldCreateSpans(tracing, clientOptions);
     expect(actual).toEqual(expected);
   });
@@ -796,9 +759,8 @@ describe('_shouldCreateSpans', () => {
 
 describe('_getShouldCreateSpanForRequest', () => {
   beforeEach(function () {
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    getCurrentScope().clear();
+    getIsolationScope().clear();
   });
 
   it.each([

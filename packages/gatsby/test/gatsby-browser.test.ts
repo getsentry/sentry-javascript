@@ -1,8 +1,6 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
+import type { Client } from '@sentry/types';
 import { onClientEntry } from '../gatsby-browser';
-import { browserTracingIntegration } from '../src/index';
+import { browserTracingIntegration, getCurrentScope, getIsolationScope, setCurrentClient } from '../src/index';
 
 (global as any).__SENTRY_RELEASE__ = '683f3a6ab819d47d23abfca9a914c81f0524d35b';
 (global as any).__SENTRY_DSN__ = 'https://examplePublicKey@o0.ingest.sentry.io/0';
@@ -50,24 +48,21 @@ describe('onClientEntry', () => {
   });
 
   describe('inits Sentry once', () => {
+    beforeEach(() => {
+      getCurrentScope().clear();
+      getIsolationScope().clear();
+      getCurrentScope().setClient(undefined);
+    });
+
     afterEach(() => {
-      delete (window as any).__SENTRY__;
       (global.console.warn as jest.Mock).mockClear();
       (global.console.error as jest.Mock).mockClear();
     });
 
-    function setMockedSentryInWindow() {
-      (window as any).__SENTRY__ = {
-        hub: {
-          getClient: () => ({
-            // Empty object mocking the client
-          }),
-        },
-      };
-    }
-
     it('initialized in injected config, without pluginParams', () => {
-      setMockedSentryInWindow();
+      const client = {} as Client;
+      setCurrentClient(client);
+
       onClientEntry(undefined, { plugins: [] });
       // eslint-disable-next-line no-console
       expect(console.warn).not.toHaveBeenCalled();
@@ -77,7 +72,9 @@ describe('onClientEntry', () => {
     });
 
     it('initialized in injected config, with pluginParams', () => {
-      setMockedSentryInWindow();
+      const client = {} as Client;
+      setCurrentClient(client);
+
       onClientEntry(undefined, { plugins: [], dsn: 'dsn', release: 'release' });
       // eslint-disable-next-line no-console
       expect((console.warn as jest.Mock).mock.calls[0]).toMatchInlineSnapshot(`

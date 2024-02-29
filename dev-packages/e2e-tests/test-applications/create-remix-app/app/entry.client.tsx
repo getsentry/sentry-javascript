@@ -10,13 +10,9 @@ import { StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
 Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: window.ENV.SENTRY_DSN,
-  integrations: [
-    new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),
-    }),
-    new Sentry.Replay(),
-  ],
+  integrations: [Sentry.browserTracingIntegration({ useEffect, useMatches, useLocation }), new Sentry.Replay()],
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
   // Session Replay

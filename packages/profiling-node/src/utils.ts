@@ -17,7 +17,7 @@ import type {
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -26,7 +26,6 @@ import type { DebugImage } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
-// eslint-disable-next-line
 const THREAD_ID_STRING = String(threadId);
 const THREAD_NAME = isMainThread ? 'main' : 'worker';
 const FORMAT_VERSION = '1';

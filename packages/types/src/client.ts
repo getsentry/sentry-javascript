@@ -8,13 +8,12 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
-import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
@@ -48,13 +47,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param scope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(
-    message: string,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-    scope?: Scope,
-  ): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -71,7 +64,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * @param session Session to be delivered
    */
-  captureSession?(session: Session): void;
+  captureSession(session: Session): void;
 
   /**
    * Create a cron monitor check in and send it to Sentry. This method is not available on all clients.
@@ -93,9 +86,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * @inheritdoc
    *
-   * TODO (v8): Make this a required method.
    */
-  getSdkMetadata?(): SdkMetadata | undefined;
+  getSdkMetadata(): SdkMetadata | undefined;
 
   /**
    * Returns the transport that is used by the client.
@@ -127,17 +119,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /**
    * Adds an event processor that applies to any event processed by this client.
-   *
-   * TODO (v8): Make this a required method.
    */
-  addEventProcessor?(eventProcessor: EventProcessor): void;
+  addEventProcessor(eventProcessor: EventProcessor): void;
 
   /**
    * Get all added event processors for this client.
-   *
-   * TODO (v8): Make this a required method.
    */
-  getEventProcessors?(): EventProcessor[];
+  getEventProcessors(): EventProcessor[];
 
   /**
    * Returns the client's instance of the given integration class, it any.
@@ -146,7 +134,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /** Get the instance of the integration with the given name on the client, if it was added. */
-  getIntegrationByName?<T extends Integration = Integration>(name: string): T | undefined;
+  getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined;
 
   /**
    * Add an integration to the client.
@@ -154,9 +142,8 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * In most cases, this should not be necessary, and you're better off just passing the integrations via `integrations: []` at initialization time.
    * However, if you find the need to conditionally load & add an integration, you can use `addIntegration` to do so.
    *
-   * TODO (v8): Make this a required method.
    * */
-  addIntegration?(integration: Integration): void;
+  addIntegration(integration: Integration): void;
 
   /**
    * This is an internal function to setup all integrations that should run on the client.
@@ -168,19 +155,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Initialize this client.
    * Call this after the client was set on a scope.
    */
-  init?(): void;
+  init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
-  eventFromMessage(
-    message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
-    hint?: EventHint,
-  ): PromiseLike<Event>;
+  eventFromMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event, hint?: EventHint): void;
@@ -197,162 +178,171 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 
-  /**
-   * Captures serialized metrics and sends them to Sentry.
-   *
-   * @experimental This API is experimental and might experience breaking changes
-   */
-  captureAggregateMetrics?(metricBucketItems: Array<MetricBucketItem>): void;
-
   // HOOKS
-  // TODO(v8): Make the hooks non-optional.
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
    * Register a callback for transaction start.
    * Receives the transaction as argument.
    */
-  on?(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
    * Register a callback for transaction finish.
    * Receives the transaction as argument.
    */
-  on?(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
    * Register a callback for transaction start and finish.
    */
-  on?(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
+  on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /**
    * Register a callback for before sending an event.
    * This is called right before an event is sent and should not be used to mutate the event.
    * Receives an Event & EventHint as arguments.
    */
-  on?(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
+  on(hook: 'beforeSendEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
 
   /**
    * Register a callback for preprocessing an event,
    * before it is passed to (global) event processors.
    * Receives an Event & EventHint as arguments.
    */
-  on?(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
+  on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint | undefined) => void): void;
 
   /**
    * Register a callback for when an event has been sent.
    */
-  on?(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
    */
-  on?(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
+  on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /**
    * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
-  on?(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
+  on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
 
   /**
    * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
    * The option argument may be mutated to drop the span.
    */
-  on?(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
+  on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
    * Register a callback when a Feedback event has been prepared.
    * This should be used to mutate the event. The options argument can hint
    * about what kind of mutation it expects.
    */
-  on?(
+  on(
     hook: 'beforeSendFeedback',
     callback: (feedback: FeedbackEvent, options?: { includeReplay?: boolean }) => void,
   ): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span start for a page load.
+   * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
-  on?(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span for a navigation.
+   * A hook for browser tracing integrations to trigger a span for a navigation.
    */
-  on?(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+  on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /**
+   * A hook that is called when the client is flushing
+   */
+  on(hook: 'flush', callback: () => void): void;
+
+  /**
+   * A hook that is called when the client is closing
+   */
+  on(hook: 'close', callback: () => void): void;
 
   /**
    * Fire a hook event for transaction start.
    * Expects to be given a transaction as the second argument.
    */
-  emit?(hook: 'startTransaction', transaction: Transaction): void;
+  emit(hook: 'startTransaction', transaction: Transaction): void;
 
   /**
    * Fire a hook event for transaction finish.
    * Expects to be given a transaction as the second argument.
    */
-  emit?(hook: 'finishTransaction', transaction: Transaction): void;
+  emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
    */
-  emit?(hook: 'beforeEnvelope', envelope: Envelope): void;
+  emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /**
    * Fire a hook event before sending an event.
    * This is called right before an event is sent and should not be used to mutate the event.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
+  emit(hook: 'beforeSendEvent', event: Event, hint?: EventHint): void;
 
   /**
    * Fire a hook event to process events before they are passed to (global) event processors.
    * Expects to be given an Event & EventHint as the second/third argument.
    */
-  emit?(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
+  emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /*
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit?(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
    */
-  emit?(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
+  emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /**
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
-  emit?(hook: 'createDsc', dsc: DynamicSamplingContext): void;
+  emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
 
   /**
    * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
    * Expects the OTEL span & as second argument, and an option object as third argument.
    * The option argument may be mutated to drop the span.
    */
-  emit?(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
+  emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /**
    * Fire a hook event for after preparing a feedback event. Events to be given
    * a feedback event as the second argument, and an optional options object as
    * third argument.
    */
-  emit?(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
+  emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span start for a page load.
+   * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
-  emit?(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span for a navigation.
+   * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
-  emit?(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+  emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /**
+   * Emit a hook event for client flush
+   */
+  emit(hook: 'flush'): void;
+
+  /**
+   * Emit a hook event for client close
+   */
+  emit(hook: 'close'): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }

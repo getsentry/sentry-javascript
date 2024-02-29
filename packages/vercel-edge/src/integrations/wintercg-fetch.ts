@@ -87,8 +87,6 @@ const _winterCGFetch = ((options: Partial<Options> = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this again
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {
       addFetchInstrumentationHandler(handlerData => {
         const client = getClient();
@@ -131,10 +129,7 @@ export const WinterCGFetch = convertIntegrationFnToClass(
   INTEGRATION_NAME,
   winterCGFetchIntegration,
 ) as IntegrationClass<Integration & { setupOnce: () => void }> & {
-  new (options?: {
-    breadcrumbs: boolean;
-    shouldCreateSpanForRequest?: (url: string) => boolean;
-  }): Integration;
+  new (options?: Partial<Options>): Integration;
 };
 
 // eslint-disable-next-line deprecation/deprecation

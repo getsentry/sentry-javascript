@@ -29,31 +29,18 @@ describe('appRouterInstrumentation', () => {
 
   it('should create a pageload transactions with the current location name', () => {
     setUpPage('https://example.com/some/page?someParam=foobar');
-    const startTransactionCallbackFn = jest.fn();
     const mockStartPageloadSpan = jest.fn();
     const mockStartNavigationSpan = jest.fn();
 
-    appRouterInstrumentation(startTransactionCallbackFn, true, false, mockStartPageloadSpan, mockStartNavigationSpan);
-    expect(startTransactionCallbackFn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: '/some/page',
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        tags: {
-          'routing.instrumentation': 'next-app-router',
-        },
-        metadata: { source: 'url' },
-      }),
-    );
+    appRouterInstrumentation(true, false, mockStartPageloadSpan, mockStartNavigationSpan);
     expect(mockStartPageloadSpan).toHaveBeenCalledWith(
       expect.objectContaining({
         name: '/some/page',
-        op: 'pageload',
-        origin: 'auto.pageload.nextjs.app_router_instrumentation',
-        tags: {
-          'routing.instrumentation': 'next-app-router',
+        attributes: {
+          'sentry.op': 'pageload',
+          'sentry.origin': 'auto.pageload.nextjs.app_router_instrumentation',
+          'sentry.source': 'url',
         },
-        metadata: { source: 'url' },
       }),
     );
   });
@@ -64,7 +51,7 @@ describe('appRouterInstrumentation', () => {
     const mockStartPageloadSpan = jest.fn();
     const mockStartNavigationSpan = jest.fn();
 
-    appRouterInstrumentation(startTransactionCallbackFn, false, false, mockStartPageloadSpan, mockStartNavigationSpan);
+    appRouterInstrumentation(false, false, mockStartPageloadSpan, mockStartNavigationSpan);
     expect(startTransactionCallbackFn).not.toHaveBeenCalled();
   });
 
@@ -76,11 +63,10 @@ describe('appRouterInstrumentation', () => {
       fetchInstrumentationHandlerCallback = callback;
     });
 
-    const startTransactionCallbackFn = jest.fn();
     const mockStartPageloadSpan = jest.fn();
     const mockStartNavigationSpan = jest.fn();
 
-    appRouterInstrumentation(startTransactionCallbackFn, false, true, mockStartPageloadSpan, mockStartNavigationSpan);
+    appRouterInstrumentation(false, true, mockStartPageloadSpan, mockStartNavigationSpan);
 
     fetchInstrumentationHandlerCallback!({
       args: [
@@ -95,24 +81,13 @@ describe('appRouterInstrumentation', () => {
       startTimestamp: 1337,
     });
 
-    expect(startTransactionCallbackFn).toHaveBeenCalledWith({
-      name: '/some/server/component/page',
-      op: 'navigation',
-      origin: 'auto.navigation.nextjs.app_router_instrumentation',
-      metadata: { source: 'url' },
-      tags: {
-        from: '/some/page',
-        'routing.instrumentation': 'next-app-router',
-      },
-    });
     expect(mockStartNavigationSpan).toHaveBeenCalledWith({
       name: '/some/server/component/page',
-      op: 'navigation',
-      origin: 'auto.navigation.nextjs.app_router_instrumentation',
-      metadata: { source: 'url' },
-      tags: {
-        from: '/some/page',
-        'routing.instrumentation': 'next-app-router',
+      attributes: {
+        from: '/some/server/component/page',
+        'sentry.op': 'navigation',
+        'sentry.origin': 'auto.navigation.nextjs.app_router_instrumentation',
+        'sentry.source': 'url',
       },
     });
   });
@@ -176,7 +151,7 @@ describe('appRouterInstrumentation', () => {
       const mockStartPageloadSpan = jest.fn();
       const mockStartNavigationSpan = jest.fn();
 
-      appRouterInstrumentation(startTransactionCallbackFn, false, true, mockStartPageloadSpan, mockStartNavigationSpan);
+      appRouterInstrumentation(false, true, mockStartPageloadSpan, mockStartNavigationSpan);
       fetchInstrumentationHandlerCallback!(fetchCallbackData);
       expect(startTransactionCallbackFn).not.toHaveBeenCalled();
       expect(mockStartNavigationSpan).not.toHaveBeenCalled();
@@ -186,12 +161,11 @@ describe('appRouterInstrumentation', () => {
   it('should not create navigation transactions when `startTransactionOnLocationChange` is false', () => {
     setUpPage('https://example.com/some/page?someParam=foobar');
     const addFetchInstrumentationHandlerImpl = jest.fn();
-    const startTransactionCallbackFn = jest.fn();
     const mockStartPageloadSpan = jest.fn();
     const mockStartNavigationSpan = jest.fn();
 
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(addFetchInstrumentationHandlerImpl);
-    appRouterInstrumentation(startTransactionCallbackFn, false, false, mockStartPageloadSpan, mockStartNavigationSpan);
+    appRouterInstrumentation(false, false, mockStartPageloadSpan, mockStartNavigationSpan);
     expect(addFetchInstrumentationHandlerImpl).not.toHaveBeenCalled();
     expect(mockStartNavigationSpan).not.toHaveBeenCalled();
   });

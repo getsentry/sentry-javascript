@@ -20,7 +20,7 @@ To use this SDK, call `Sentry.init(options)` before you mount your React compone
 
 ```javascript
 import React from 'react';
-import ReactDOM from "react-dom";
+import ReactDOM from 'react-dom';
 import * as Sentry from '@sentry/react';
 
 Sentry.init({
@@ -39,17 +39,16 @@ ReactDOM.render(<App />, rootNode);
 ### ErrorBoundary
 
 `@sentry/react` exports an ErrorBoundary component that will automatically send Javascript errors from inside a
-component tree to Sentry, and set a fallback UI. Requires React version >= 16.
+component tree to Sentry, and set a fallback UI.
 
 > app.js
+
 ```javascript
 import React from 'react';
 import * as Sentry from '@sentry/react';
 
 function FallbackComponent() {
-  return (
-    <div>An error has occured</div>
-  )
+  return <div>An error has occured</div>;
 }
 
 class App extends React.Component {
@@ -58,7 +57,7 @@ class App extends React.Component {
       <Sentry.ErrorBoundary fallback={FallbackComponent} showDialog>
         <OtherComponents />
       </Sentry.ErrorBoundary>
-    )
+    );
   }
 }
 
@@ -67,11 +66,12 @@ export default App;
 
 ### Profiler
 
-`@sentry/react` exports a Profiler component that leverages the tracing features to add React-related
-spans to transactions. If tracing is not enabled, the Profiler component will not work. The Profiler
-tracks component mount, render duration and updates. Requires React version >= 15.
+`@sentry/react` exports a Profiler component that leverages the tracing features to add React-related spans to
+transactions. If tracing is not enabled, the Profiler component will not work. The Profiler tracks component mount,
+render duration and updates.
 
 > app.js
+
 ```javascript
 import React from 'react';
 import * as Sentry from '@sentry/react';
@@ -83,7 +83,7 @@ class App extends React.Component {
         <InsideComponent someProp={2} />
         <AnotherComponent />
       </FancyComponent>
-    )
+    );
   }
 }
 

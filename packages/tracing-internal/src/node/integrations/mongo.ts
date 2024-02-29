@@ -4,7 +4,6 @@ import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 // This allows us to use the same array for both defaults options and the type itself.
 // (note `as const` at the end to make it a union of string literal types (i.e. "a" | "b" | ... )
@@ -140,11 +139,6 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -174,7 +168,6 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
-        // eslint-disable-next-line deprecation/deprecation
         const hub = getCurrentHub();
         // eslint-disable-next-line deprecation/deprecation
         const scope = hub.getScope();
@@ -250,7 +243,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       op: 'db',
       // TODO v8: Use `${collection.collectionName}.${operation}`
       origin: 'auto.db.mongo',
-      description: operation,
+      name: operation,
       data,
     };
 

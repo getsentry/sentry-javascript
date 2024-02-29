@@ -36,23 +36,25 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  void page.evaluate(() => {
-    /* eslint-disable */
-    const xhr = new XMLHttpRequest();
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      const xhr = new XMLHttpRequest();
 
-    xhr.open('POST', 'http://localhost:7654/foo');
-    xhr.send('{"foo":"bar"}');
+      xhr.open('POST', 'http://localhost:7654/foo');
+      xhr.send('{"foo":"bar"}');
 
-    xhr.addEventListener('readystatechange', function () {
-      if (xhr.readyState === 4) {
-        // @ts-expect-error Sentry is a global
-        setTimeout(() => Sentry.captureException('test error', 0));
-      }
-    });
-    /* eslint-enable */
-  });
+      xhr.addEventListener('readystatechange', function () {
+        if (xhr.readyState === 4) {
+          // @ts-expect-error Sentry is a global
+          setTimeout(() => Sentry.captureException('test error', 0));
+        }
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);

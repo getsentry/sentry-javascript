@@ -1,3 +1,160 @@
+# Upgrading from 7.x to 8.x
+
+## Removal of `trackHeaders` option for Astro middleware
+
+Instead of opting-in via the middleware config, you can configure if headers should be captured via
+`requestDataIntegration` options, which defaults to `true` but can be disabled like this:
+
+```
+Sentry.init({
+  integrations: [
+    Sentry.requestDataIntegration({
+      include: {
+        headers: false
+      },
+    }),
+  ],
+});
+```
+
+## Removal of Client-Side health check transaction filters
+
+The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
+by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
+drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
+
+## Removal of the `MetricsAggregator` integration class and `metricsAggregatorIntegration`
+
+The SDKs now support metrics features without any additional configuration.
+
+## Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
+
+We updated the behaviour of the SDKs when no `tracePropagationTargets` option was defined. As a reminder, you can
+provide a list of strings or RegExes that will be matched against URLs to tell the SDK, to which outgoing requests
+tracing HTTP headers should be attached to. These tracing headers are used for distributed tracing.
+
+Previously, on the browser, when `tracePropagationTargets` were not defined, they defaulted to the following:
+`['localhost', /^\/(?!\/)/]`. This meant that all request targets to that had "localhost" in the URL, or started with a
+`/` were equipped with tracing headers. This default was chosen to prevent CORS errors in your browser applications.
+However, this default had a few flaws.
+
+Going forward, when the `tracePropagationTargets` option is not set, tracing headers will be attached to all outgoing
+requests on the same origin. For example, if you're on `https://example.com/` and you send a request to
+`https://example.com/api`, the request will be traced (ie. will have trace headers attached). Requests to
+`https://api.example.com/` will not, because it is on a different origin. The same goes for all applications running on
+`localhost`.
+
+When you provide a `tracePropagationTargets` option, all of the entries you defined will now be matched be matched
+against the full URL of the outgoing request. Previously, it was only matched against what you called request APIs with.
+For example, if you made a request like `fetch("/api/posts")`, the provided `tracePropagationTargets` were only compared
+against `"/api/posts"`. Going forward they will be matched against the entire URL, for example, if you were on the page
+`https://example.com/` and you made the same request, it would be matched against `"https://example.com/api/posts"`.
+
+But that is not all. Because it would be annoying having to create matchers for the entire URL, if the request is a
+same-origin request, we also match the `tracePropagationTargets` against the resolved `pathname` of the request.
+Meaning, a matcher like `/^\/api/` would match a request call like `fetch('/api/posts')`, or
+`fetch('https://same-origin.com/api/posts')` but not `fetch('https://different-origin.com/api/posts')`.
+
+## Removal of the `tracingOrigins` option
+
+After its deprecation in v7 the `tracingOrigins` option is now removed in favor of the `tracePropagationTargets` option.
+The `tracePropagationTargets` option should be set in the `Sentry.init()` options, or in your custom `Client`s option if
+you create them. The `tracePropagationTargets` option can no longer be set in the `browserTracingIntegration()` options.
+
+## Dropping Support for React 15
+
+Sentry will no longer officially support React 15 in version 8. This means that React 15.x will be removed
+from`@sentry/react`'s peer dependencies.
+
+## Removal of deprecated API in `@sentry/nextjs`
+
+The following previously deprecated API has been removed from the `@sentry/nextjs` package:
+
+- `withSentryApi` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryAPI` (Replacement: `wrapApiHandlerWithSentry`)
+- `withSentryGetServerSideProps` (Replacement: `wrapGetServerSidePropsWithSentry`)
+- `withSentryGetStaticProps` (Replacement: `wrapGetStaticPropsWithSentry`)
+- `withSentryServerSideGetInitialProps` (Replacement: `wrapGetInitialPropsWithSentry`)
+- `withSentryServerSideAppGetInitialProps` (Replacement: `wrapAppGetInitialPropsWithSentry`)
+- `withSentryServerSideDocumentGetInitialProps` (Replacement: `wrapDocumentGetInitialPropsWithSentry`)
+- `withSentryServerSideErrorGetInitialProps` was renamed to `wrapErrorGetInitialPropsWithSentry`
+- `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
+- `IS_BUILD`
+- `isBuild`
+
+## Removal of `Span` class export from SDK packages
+
+In v8, we are no longer exporting the `Span` class from SDK packages (e.g. `@sentry/browser` or `@sentry/node`).
+Internally, this class is now called `SentrySpan`, and it is no longer meant to be used by users directly.
+
+## Removal of Severity Enum
+
+In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` type. In v8 we removed the `Severity`
+enum. If you were using the `Severity` enum, you should replace it with the `SeverityLevel` type. See
+[below](#severity-severitylevel-and-severitylevels) for code snippet examples
+
+## Removal of the `Offline` integration
+
+The `Offline` integration has been removed in favor of the offline transport wrapper:
+http://docs.sentry.io/platforms/javascript/configuration/transports/#offline-caching
+
+## Removal of `enableAnrDetection` and `Anr` class (##10562)
+
+The `enableAnrDetection` and `Anr` class have been removed. See the
+[docs](https://docs.sentry.io/platforms/node/configuration/application-not-responding/) for more details how to migrate
+to `anrIntegration`, the new integration for ANR detection.
+
+## Removal of `Sentry.configureScope` (#10565)
+
+The top level `Sentry.configureScope` function has been removed. Instead, you should use the `Sentry.getCurrentScope()`
+to access and mutate the current scope.
+
+## Deletion of `@sentry/hub` package (#10530)
+
+`@sentry/hub` has been removed. All exports from `@sentry/tracing` should be available in `@sentry/core` or in
+`@sentry/browser` and `@sentry/node`.
+
+## Deletion of `@sentry/tracing` package
+
+`@sentry/tracing` has been removed. All exports from `@sentry/tracing` should be available in `@sentry/core` or in
+`@sentry/browser` and `@sentry/node`.
+
+## Removal of `makeXHRTransport` transport (#10703)
+
+The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the
+Sentry SDK requires the fetch API to be available in the environment.
+
+## General API Changes
+
+- The minumum supported Node version for all the SDK packages is Node 14 (#10527)
+- Remove `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode` (#10361)
+- Remove deprecated `deepReadDirSync` export from `@sentry/node` (#10564)
+- Remove `_eventFromIncompleteOnError` usage (#10553)
+- The `Transaction` integration in `@sentry/integrations` has been removed. There is no replacement API. (#10556)
+- `extraErrorDataIntegration` now looks at
+  [`error.cause`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/cause) by
+  default.
+
+## Integrations
+
+We moved pluggable integrations from their own package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`.
+
+Integrations that are now exported from `@sentry/browser` (or framework-specific packages like `@sentry/react`):
+
+- httpClientIntegration
+- contextLinesIntegration
+- reportingObserverIntegration
+
+Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or framework-specific packages like
+`@sentry/react`):
+
+- captureConsoleIntegration
+- debugIntegration
+- extraErrorDataIntegration
+- rewriteFramesIntegration
+- sessionTimingIntegration
+- dedupeIntegration (enabled by default, not pluggable)
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
@@ -271,6 +428,45 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | startSession()         | `Sentry.startSession()`                                                              |
 | endSession()           | `Sentry.endSession()`                                                                |
 | shouldSendDefaultPii() | REMOVED - The closest equivalent is `Sentry.getClient().getOptions().sendDefaultPii` |
+
+The `Hub` constructor is also deprecated and will be removed in the next major version. If you are creating Hubs for
+multi-client use like so:
+
+```ts
+// OLD
+const hub = new Hub();
+hub.bindClient(client);
+makeMain(hub);
+```
+
+instead initialize the client as follows:
+
+```ts
+// NEW
+Sentry.withIsolationScope(() => {
+  Sentry.setCurrentClient(client);
+  client.init();
+});
+```
+
+If you are using the Hub to capture events like so:
+
+```ts
+// OLD
+const client = new Client();
+const hub = new Hub(client);
+hub.captureException();
+```
+
+instead capture isolated events as follows:
+
+```ts
+// NEW
+const client = new Client();
+const scope = new Scope();
+scope.setClient(client);
+scope.captureException();
+```
 
 ## Deprecate `client.setupIntegrations()`
 

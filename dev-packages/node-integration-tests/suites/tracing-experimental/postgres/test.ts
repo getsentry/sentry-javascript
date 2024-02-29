@@ -1,7 +1,6 @@
-import { conditionalTest } from '../../../utils';
 import { createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 14 })('postgres auto instrumentation', () => {
+describe('postgres auto instrumentation', () => {
   test('should auto-instrument `pg` package', done => {
     const EXPECTED_TRANSACTION = {
       transaction: 'Test Transaction',

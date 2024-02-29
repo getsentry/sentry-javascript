@@ -14,7 +14,7 @@ describe('init', () => {
     expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 10 });
   });
 
-  describe('filtering out the `TryCatch` integration', () => {
+  describe('filtering out the `BrowserApiErrors` integration', () => {
     const browserInitSpy = jest.spyOn(SentryBrowser, 'init');
 
     beforeEach(() => {
@@ -27,7 +27,7 @@ describe('init', () => {
       expect(browserInitSpy).toHaveBeenCalledTimes(1);
 
       const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'TryCatch' }));
+      expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'BrowserApiErrors' }));
     });
 
     it("doesn't filter if `defaultIntegrations` is set to `false`", () => {

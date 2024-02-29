@@ -9,7 +9,6 @@ import type {
   EventHint,
   Options,
   ParameterizedString,
-  Severity,
   SeverityLevel,
   UserFeedback,
 } from '@sentry/types';
@@ -76,8 +75,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    */
   public eventFromMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel = 'info',
+    level: SeverityLevel = 'info',
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
@@ -98,9 +96,9 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
       tunnel: this.getOptions().tunnel,
     });
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(envelope);
+    this.sendEnvelope(envelope);
   }
 
   /**
@@ -132,8 +130,8 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
     const envelope = createClientReportEnvelope(outcomes, this._options.tunnel && dsnToString(this._dsn));
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(envelope);
+    this.sendEnvelope(envelope);
   }
 }

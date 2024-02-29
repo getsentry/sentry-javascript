@@ -3,7 +3,6 @@ import * as childProcess from 'child_process';
 import * as fs from 'fs';
 import * as rimraf from 'rimraf';
 
-import { ensureBundleBuildPrereqs } from '../../../scripts/ensure-bundle-deps';
 import { version } from '../package.json';
 
 /**
@@ -16,10 +15,6 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string {
 
 async function buildLambdaLayer(): Promise<void> {
   // Create the main SDK bundle
-  // TODO: Check if we can get rid of this, after the lerna 6/nx update??
-  await ensureBundleBuildPrereqs({
-    dependencies: ['@sentry/utils', '@sentry/hub', '@sentry/core', '@sentry/node'],
-  });
   run('yarn rollup --config rollup.aws.config.mjs');
 
   // We build a minified bundle, but it's standing in for the regular `index.js` file listed in `package.json`'s `main`

@@ -23,7 +23,7 @@ describe('data-fetching function wrappers should create spans', () => {
     jest.spyOn(SentryCore, 'hasTracingEnabled').mockReturnValue(true);
     jest.spyOn(SentryCore, 'getClient').mockImplementation(() => {
       return {
-        getOptions: () => ({ instrumenter: 'sentry' }),
+        getOptions: () => ({}),
         getDsn: () => {},
       } as Client;
     });

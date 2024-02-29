@@ -25,8 +25,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
   addTracingExtensions();
-  // eslint-disable-next-line deprecation/deprecation
-  const { method, parameterizedRoute, baggageHeader, sentryTraceHeader, headers } = context;
+  const { method, parameterizedRoute, headers } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
       return withIsolationScope(async isolationScope => {
@@ -37,8 +36,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         });
         return continueTrace(
           {
-            sentryTrace: sentryTraceHeader ?? headers?.get('sentry-trace') ?? undefined,
-            baggage: baggageHeader ?? headers?.get('baggage'),
+            // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
+            sentryTrace: headers?.get('sentry-trace') ?? undefined,
+            baggage: headers?.get('baggage'),
           },
           async () => {
             try {

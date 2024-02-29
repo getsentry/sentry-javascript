@@ -1,4 +1,4 @@
-import { getIsolationScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getIsolationScope } from '@sentry/core';
 import {
   addTracingExtensions,
   captureException,
@@ -94,8 +94,8 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
             {
               op: 'function.server_action',
               name: `serverAction/${serverActionName}`,
-              metadata: {
-                source: 'route',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               },
             },
             async span => {

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
+import type { SerializedEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -11,8 +11,7 @@ sentryTest('should create spans for multiple XHR requests', async ({ getLocalTes
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  // eslint-disable-next-line deprecation/deprecation
+  const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
   const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);

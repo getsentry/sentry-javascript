@@ -1,10 +1,11 @@
 import type { BrowserClient } from '@sentry/browser';
 import { getActiveSpan } from '@sentry/browser';
-import { browserTracingIntegration, getCurrentScope } from '@sentry/browser';
+import { browserTracingIntegration } from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
-import { BrowserTracing, SDK_VERSION, WINDOW, getClient } from '@sentry/browser';
+import { SDK_VERSION, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { init } from '../../../astro/src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
@@ -13,7 +14,11 @@ describe('Sentry client SDK', () => {
   describe('init', () => {
     afterEach(() => {
       vi.clearAllMocks();
-      WINDOW.__SENTRY__.hub = undefined;
+
+      getCurrentScope().clear();
+      getCurrentScope().setClient(undefined);
+      getIsolationScope().clear();
+      getGlobalScope().clear();
     });
 
     it('adds Astro metadata to the SDK options', () => {
@@ -38,16 +43,12 @@ describe('Sentry client SDK', () => {
       );
     });
 
-    it('sets the runtime tag on the scope', () => {
-      const currentScope = getCurrentScope();
-
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({});
+    it('sets the runtime tag on the isolation scope', () => {
+      expect(getIsolationScope().getScopeData().tags).toEqual({});
 
       init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
-      // @ts-expect-error need access to protected _tags attribute
-      expect(currentScope._tags).toEqual({ runtime: 'browser' });
+      expect(getIsolationScope().getScopeData().tags).toEqual({ runtime: 'browser' });
     });
 
     describe('automatically adds integrations', () => {
@@ -55,7 +56,7 @@ describe('Sentry client SDK', () => {
         ['tracesSampleRate', { tracesSampleRate: 0 }],
         ['tracesSampler', { tracesSampler: () => 1.0 }],
         ['enableTracing', { enableTracing: true }],
-      ])('adds the BrowserTracing integration if tracing is enabled via %s', (_, tracingOptions) => {
+      ])('adds browserTracingIntegration if tracing is enabled via %s', (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
@@ -71,7 +72,7 @@ describe('Sentry client SDK', () => {
       it.each([
         ['enableTracing', { enableTracing: false }],
         ['no tracing option set', {}],
-      ])("doesn't add the BrowserTracing integration if tracing is disabled via %s", (_, tracingOptions) => {
+      ])("doesn't add browserTracingIntegration if tracing is disabled via %s", (_, tracingOptions) => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           ...tracingOptions,
@@ -84,7 +85,7 @@ describe('Sentry client SDK', () => {
         expect(browserTracing).toBeUndefined();
       });
 
-      it("doesn't add the BrowserTracing integration if `__SENTRY_TRACING__` is set to false", () => {
+      it("doesn't add browserTracingIntegration if `__SENTRY_TRACING__` is set to false", () => {
         globalThis.__SENTRY_TRACING__ = false;
 
         init({
@@ -101,28 +102,7 @@ describe('Sentry client SDK', () => {
         delete globalThis.__SENTRY_TRACING__;
       });
 
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided BrowserTracing instance', () => {
-        init({
-          dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          // eslint-disable-next-line deprecation/deprecation
-          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
-          enableTracing: true,
-        });
-
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
-
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
-        const options = browserTracing.options;
-
-        expect(integrationsToInit).toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
-        expect(browserTracing).toBeDefined();
-
-        // This shows that the user-configured options are still here
-        expect(options.finalTimeout).toEqual(10);
-      });
-
-      it('Overrides the automatically default BrowserTracing instance with a a user-provided browserTracingIntegration instance', () => {
+      it('Overrides the automatically default browserTracingIntegration instance with a a user-provided browserTracingIntegration instance', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           integrations: [

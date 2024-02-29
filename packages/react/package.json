@@ -1,13 +1,13 @@
 {
   "name": "@sentry/react",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.0",
   "description": "Official Sentry SDK for React.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/react",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=8"
+    "node": ">=14.8"
   },
   "files": [
     "cjs",
@@ -29,14 +29,14 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "7.100.0",
-    "@sentry/core": "7.100.0",
-    "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0",
+    "@sentry/browser": "8.0.0-alpha.0",
+    "@sentry/core": "8.0.0-alpha.0",
+    "@sentry/types": "8.0.0-alpha.0",
+    "@sentry/utils": "8.0.0-alpha.0",
     "hoist-non-react-statics": "^3.3.2"
   },
   "peerDependencies": {
-    "react": "15.x || 16.x || 17.x || 18.x"
+    "react": "16.x || 17.x || 18.x"
   },
   "devDependencies": {
     "@testing-library/react": "^13.0.0",

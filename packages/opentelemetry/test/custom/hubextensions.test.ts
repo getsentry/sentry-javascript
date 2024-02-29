@@ -1,5 +1,4 @@
-import { setCurrentClient } from '@sentry/core';
-import { getCurrentHub } from '../../src/custom/hub';
+import { getCurrentHub, setCurrentClient } from '@sentry/core';
 import { addTracingExtensions } from '../../src/custom/hubextensions';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 

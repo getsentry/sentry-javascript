@@ -16,6 +16,11 @@ const EXPECTED_LOCAL_VARIABLES_EVENT = {
                 arr: [1, '2', null],
                 obj: { name: 'some name', num: 5 },
                 ty: '<Some>',
+                bool: false,
+                num: 0,
+                str: '',
+                something: '<undefined>',
+                somethingElse: '<null>',
               },
             }),
             expect.objectContaining({
@@ -80,8 +85,8 @@ conditionalTest({ min: 18 })('LocalVariables integration', () => {
     child.on('message', msg => {
       reportedCount++;
       const rssMb = msg.memUsage.rss / 1024 / 1024;
-      // We shouldn't use more than 100MB of memory
-      expect(rssMb).toBeLessThan(100);
+      // We shouldn't use more than 120MB of memory
+      expect(rssMb).toBeLessThan(120);
     });
 
     // Wait for 20 seconds

@@ -3,11 +3,10 @@ import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-ho
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, getClient } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { wrapContextManagerClass } from '../../src/contextManager';
-import { getClient } from '../../src/custom/hub';
 import { DEBUG_BUILD } from '../../src/debug-build';
 import { SentryPropagator } from '../../src/propagator';
 import { SentrySampler } from '../../src/sampler';

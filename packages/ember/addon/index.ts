@@ -9,7 +9,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
-import type { Transaction } from '@sentry/types';
+import type { TransactionSource } from '@sentry/types';
 import type { EmberSentryConfig, GlobalConfig, OwnConfig } from './types';
 
 function _getSentryInitConfig(): EmberSentryConfig['sentry'] {
@@ -60,33 +60,24 @@ export function init(_runtimeConfig?: BrowserOptions): void {
   }
 }
 
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export const getActiveTransaction = (): Transaction | undefined => {
-  // eslint-disable-next-line deprecation/deprecation
-  return Sentry.getCurrentScope().getTransaction();
-};
-
 type RouteConstructor = new (...args: ConstructorParameters<typeof Route>) => Route;
 
 export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute: T): T => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const instrumentFunction = async <X extends (...args: unknown[]) => any>(
     op: string,
-    description: string,
+    name: string,
     fn: X,
     args: Parameters<X>,
+    source: TransactionSource,
   ): Promise<ReturnType<X>> => {
     return startSpan(
       {
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'ember',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
         op,
-        name: description,
+        name,
       },
       () => {
         return fn(...args);
@@ -105,15 +96,22 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           this.fullRouteName,
           super.beforeModel.bind(this),
           args,
+          'custom',
         );
       }
 
       public async model(...args: unknown[]): Promise<unknown> {
-        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args);
+        return instrumentFunction('ui.ember.route.model', this.fullRouteName, super.model.bind(this), args, 'custom');
       }
 
       public afterModel(...args: unknown[]): void | Promise<unknown> {
-        return instrumentFunction('ui.ember.route.after_model', this.fullRouteName, super.afterModel.bind(this), args);
+        return instrumentFunction(
+          'ui.ember.route.after_model',
+          this.fullRouteName,
+          super.afterModel.bind(this),
+          args,
+          'custom',
+        );
       }
 
       public setupController(...args: unknown[]): void | Promise<unknown> {
@@ -122,6 +120,7 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
           this.fullRouteName,
           super.setupController.bind(this),
           args,
+          'custom',
         );
       }
     },

@@ -59,10 +59,10 @@ You can manual instrument using the following APIs:
 ```js
 const Sentry = require('@sentry/node-experimental');
 
-Sentry.startActiveSpan({ description: 'outer' }, function (span) {
+Sentry.startSpan({ description: 'outer' }, function (span) {
   span.setData(customData);
   doSomethingSlow();
-  Sentry.startActiveSpan({ description: 'inner' }, function() {
+  Sentry.startSpan({ description: 'inner' }, function() {
     // inner span is a child of outer span
     doSomethingVerySlow();
     // inner span is auto-ended when this callback ends
@@ -72,17 +72,17 @@ Sentry.startActiveSpan({ description: 'outer' }, function (span) {
 ```
 
 You can also create spans without marking them as the active span.
-Note that for most scenarios, we recommend the `startActiveSpan` syntax.
+Note that for most scenarios, we recommend the `startSpan` syntax.
 
 ```js
 const Sentry = require('@sentry/node-experimental');
 
 // This will _not_ be put on the scope/set as active, so no other spans will be attached to it
-const span = Sentry.startSpan({ description: 'non-active span' });
+const span = Sentry.startInactiveSpan({ description: 'non-active span' });
 
 doSomethingSlow();
 
-span.finish();
+span.end();
 ```
 
 Finally you can also get the currently active span, if you need to do more with it:
@@ -109,8 +109,11 @@ There is experimental support for running OpenTelemetry with ESM (`"type": "modu
 node --experimental-loader=@opentelemetry/instrumentation/hook.mjs ./app.js
 ```
 
+You'll need to install `@opentelemetry/instrumentation` in your app to ensure this works.
+
 See [OpenTelemetry Instrumentation Docs](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation#instrumentation-for-es-modules-in-nodejs-experimental) for details on this -
 but note that this is a) experimental, and b) does not work with all integrations.
+
 
 ## Available (Performance) Integrations
 

@@ -16,14 +16,11 @@ import type {
   FeedbackEvent,
   Integration,
   IntegrationClass,
-  MetricBucketItem,
-  MetricsAggregator,
   Outcome,
   ParameterizedString,
   SdkMetadata,
   Session,
   SessionAggregates,
-  Severity,
   SeverityLevel,
   StartSpanOptions,
   Transaction,
@@ -48,14 +45,12 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -95,13 +90,6 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
-  /**
-   * A reference to a metrics aggregator
-   *
-   * @experimental Note this is alpha API. It may experience breaking changes in the future.
-   */
-  public metricsAggregator?: MetricsAggregator;
-
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -160,7 +148,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
@@ -186,8 +174,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public captureMessage(
     message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    level?: Severity | SeverityLevel,
+    level?: SeverityLevel,
     hint?: EventHint,
     scope?: Scope,
   ): string | undefined {
@@ -283,9 +270,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
-      if (this.metricsAggregator) {
-        this.metricsAggregator.flush();
-      }
+      this.emit('flush');
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -300,9 +285,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
-      if (this.metricsAggregator) {
-        this.metricsAggregator.close();
-      }
+      this.emit('close');
       return result;
     });
   }
@@ -389,16 +372,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(
-        env,
-        createAttachmentEnvelopeItem(
-          attachment,
-          this._options.transportOptions && this._options.transportOptions.textEncoder,
-        ),
-      );
+      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
-    const promise = this._sendEnvelope(env);
+    const promise = this.sendEnvelope(env);
     if (promise) {
       promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
@@ -410,9 +387,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(env);
+    this.sendEnvelope(env);
   }
 
   /**
@@ -434,23 +411,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // The following works because undefined + 1 === NaN and NaN is falsy
       this._outcomes[key] = this._outcomes[key] + 1 || 1;
     }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
-    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
-    const metricsEnvelope = createMetricEnvelope(
-      metricBucketItems,
-      this._dsn,
-      this._options._metadata,
-      this._options.tunnel,
-    );
-
-    // _sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(metricsEnvelope);
   }
 
   // Keep on() & emit() signatures in sync with types' client.ts interface
@@ -497,6 +457,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  public on(hook: 'flush', callback: () => void): void;
+
+  public on(hook: 'close', callback: () => void): void;
 
   /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
@@ -545,9 +509,30 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /** @inheritdoc */
+  public emit(hook: 'flush'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'close'): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
       this._hooks[hook].forEach(callback => callback(...rest));
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+    this.emit('beforeEnvelope', envelope);
+
+    if (this._isEnabled() && this._transport) {
+      return this._transport.send(envelope).then(null, reason => {
+        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+      });
+    } else {
+      DEBUG_BUILD && logger.error('Transport disabled');
     }
   }
 
@@ -681,7 +666,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           ...evt.contexts,
         };
 
-        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this, scope);
+        const dynamicSamplingContext = dsc ? dsc : getDynamicSamplingContextFromClient(trace_id, this);
 
         evt.sdkProcessingMetadata = {
           dynamicSamplingContext,
@@ -835,21 +820,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @inheritdoc
-   */
-  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    this.emit('beforeEnvelope', envelope);
-
-    if (this._isEnabled() && this._transport) {
-      return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
-    }
-  }
-
-  /**
    * Clears outcomes on this client and returns them.
    */
   protected _clearOutcomes(): Outcome[] {
@@ -868,7 +838,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
 
   /**
@@ -876,8 +846,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public abstract eventFromMessage(
     _message: ParameterizedString,
-    // eslint-disable-next-line deprecation/deprecation
-    _level?: Severity | SeverityLevel,
+    _level?: SeverityLevel,
     _hint?: EventHint,
   ): PromiseLike<Event>;
 }
@@ -935,18 +904,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

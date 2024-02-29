@@ -1,14 +1,14 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
-import { Span, spanToTraceHeader } from '../../../src';
+import { SentrySpan, spanToTraceHeader } from '../../../src';
 import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
   test('simple', () => {
-    const span = new Span();
+    const span = new SentrySpan();
     expect(spanToTraceHeader(span)).toMatch(TRACEPARENT_REGEXP);
   });
   test('with sample', () => {
-    const span = new Span({ sampled: true });
+    const span = new SentrySpan({ sampled: true });
     expect(spanToTraceHeader(span)).toMatch(TRACEPARENT_REGEXP);
   });
 });
@@ -49,7 +49,7 @@ describe('spanTimeInputToSeconds', () => {
 
 describe('spanToJSON', () => {
   it('works with a simple span', () => {
-    const span = new Span();
+    const span = new SentrySpan();
     expect(spanToJSON(span)).toEqual({
       span_id: span.spanContext().spanId,
       trace_id: span.spanContext().traceId,
@@ -62,15 +62,12 @@ describe('spanToJSON', () => {
   });
 
   it('works with a full span', () => {
-    const span = new Span({
+    const span = new SentrySpan({
       name: 'test name',
       op: 'test op',
       parentSpanId: '1234',
       spanId: '5678',
       status: 'ok',
-      tags: {
-        foo: 'bar',
-      },
       traceId: 'abcd',
       origin: 'auto',
       startTimestamp: 123,
@@ -83,9 +80,6 @@ describe('spanToJSON', () => {
       parent_span_id: '1234',
       span_id: '5678',
       status: 'ok',
-      tags: {
-        foo: 'bar',
-      },
       trace_id: 'abcd',
       origin: 'auto',
       start_timestamp: 123,
@@ -107,7 +101,7 @@ describe('spanToJSON', () => {
           start_timestamp: 123,
         };
       },
-    } as unknown as Span;
+    } as unknown as SentrySpan;
 
     expect(spanToJSON(span)).toEqual({
       span_id: 'span_id',
@@ -119,20 +113,20 @@ describe('spanToJSON', () => {
 
   it('returns empty object if span does not have getter methods', () => {
     // eslint-disable-next-line
-    const span = new Span().toJSON();
+    const span = new SentrySpan().toJSON();
 
-    expect(spanToJSON(span as unknown as Span)).toEqual({});
+    expect(spanToJSON(span as unknown as SentrySpan)).toEqual({});
   });
 });
 
 describe('spanIsSampled', () => {
   test('sampled', () => {
-    const span = new Span({ sampled: true });
+    const span = new SentrySpan({ sampled: true });
     expect(spanIsSampled(span)).toBe(true);
   });
 
   test('not sampled', () => {
-    const span = new Span({ sampled: false });
+    const span = new SentrySpan({ sampled: false });
     expect(spanIsSampled(span)).toBe(false);
   });
 });

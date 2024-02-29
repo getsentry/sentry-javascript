@@ -1,3 +1,4 @@
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Transaction, TransactionContext } from '@sentry/types';
 import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
@@ -27,7 +28,9 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
       origin: 'auto.pageload.browser',
-      metadata: { source: 'url' },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+      },
     });
   }
 
@@ -50,7 +53,8 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       if (from !== to) {
         startingUrl = undefined;
         if (activeTransaction) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${activeTransaction.op}`);
+          DEBUG_BUILD &&
+            logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeTransaction).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeTransaction.end();
         }
@@ -58,7 +62,9 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
           name: WINDOW.location.pathname,
           op: 'navigation',
           origin: 'auto.navigation.browser',
-          metadata: { source: 'url' },
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          },
         });
       }
     });

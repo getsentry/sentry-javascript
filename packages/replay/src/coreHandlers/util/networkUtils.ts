@@ -1,4 +1,3 @@
-import type { TextEncoderInternal } from '@sentry/types';
 import { dropUndefinedKeys, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { NETWORK_BODY_MAX_SIZE, WINDOW } from '../../constants';
@@ -13,13 +12,12 @@ import type {
 } from '../../types';
 
 /** Get the size of a body. */
-export function getBodySize(
-  body: RequestInit['body'],
-  textEncoder: TextEncoder | TextEncoderInternal,
-): number | undefined {
+export function getBodySize(body: RequestInit['body']): number | undefined {
   if (!body) {
     return undefined;
   }
+
+  const textEncoder = new TextEncoder();
 
   try {
     if (typeof body === 'string') {

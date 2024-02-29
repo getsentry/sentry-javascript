@@ -48,7 +48,7 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -87,10 +87,12 @@ jobs:
         id: changed
         with:
           filters: |
+            workflow: &workflow
+              - '.github/**'
             shared: &shared
+              - *workflow
               - '*.{js,ts,json,yml,lock}'
               - 'CHANGELOG.md'
-              - '.github/**'
               - 'jest/**'
               - 'scripts/**'
               - 'packages/core/**'
@@ -99,7 +101,6 @@ jobs:
               - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
-              - 'packages/integrations/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
@@ -115,6 +116,11 @@ jobs:
               - *shared
               - *browser
               - 'packages/ember/**'
+            node:
+              - *shared
+              - 'packages/node/**'
+              - 'packages/node-experimental/**'
+              - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
               - *browser
@@ -127,18 +133,16 @@ jobs:
               - 'packages/remix/**'
               - 'packages/node/**'
               - 'packages/react/**'
-            node:
+            profiling_node:
               - *shared
               - 'packages/node/**'
               - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
-              - 'dev-packages/node-integration-tests/**'
-            profiling_node:
-              - *shared
-              - 'packages/node/**'
-              - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:
-              - 'packages/profiling-node/bindings/**'
+              - *workflow
+              - 'packages/profiling-node/**'
+              - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             deno:
               - *shared
               - *browser
@@ -263,17 +267,12 @@ jobs:
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
-        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
-        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
-        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
-        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
-        if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
@@ -419,7 +418,6 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
@@ -477,10 +475,6 @@ jobs:
       - name: Run tests
         run: |
           yarn test-ci-bun
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_deno_unit_tests:
     name: Deno Unit Tests
@@ -512,21 +506,16 @@ jobs:
           cd packages/deno
           yarn build
           yarn test
-      - name: Compute test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
 
   job_node_unit_tests:
     name: Node (${{ matrix.node }}) Unit Tests
-    if: needs.job_get_metadata.outputs.changed_node == 'true' || github.event_name != 'pull_request'
     needs: [job_get_metadata, job_build]
     timeout-minutes: 10
     runs-on: ubuntu-20.04
     strategy:
       fail-fast: false
       matrix:
-        node: [8, 10, 12, 14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 21]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -543,9 +532,7 @@ jobs:
       - name: Run tests
         env:
           NODE_VERSION: ${{ matrix.node }}
-        run: |
-          [[ $NODE_VERSION == 8 ]] && yarn add --dev --ignore-engines --ignore-scripts --ignore-workspace-root-check ts-node@8.10.2
-          yarn test-ci-node
+        run: yarn test-ci-node
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
         with:
@@ -554,7 +541,7 @@ jobs:
   job_profiling_node_unit_tests:
     name: Node Profiling Unit Tests
     needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_node =='true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
+    if: needs.job_get_metadata.outputs.changed_node == 'true' || needs.job_get_metadata.outputs.changed_profiling_node == 'true' || github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -588,7 +575,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 21]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -615,12 +602,12 @@ jobs:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
           key: ${{ runner.os }}-Playwright-${{steps.playwright-version.outputs.version}}
       - name: Install Playwright browser if not cached
-        if: steps.playwright-cache.outputs.cache-hit != 'true' && matrix.node >= 14
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{steps.npm-cache-dir.outputs.dir}}
       - name: Install OS dependencies of Playwright if cache hit
-        if: steps.playwright-cache.outputs.cache-hit == 'true' && matrix.node >= 14
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: npx playwright install-deps
       - name: Run tests
         env:
@@ -721,6 +708,13 @@ jobs:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
+
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
@@ -778,6 +772,12 @@ jobs:
         run: |
           cd dev-packages/browser-integration-tests
           yarn test:loader
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
 
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
@@ -877,7 +877,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 21]
         typescript:
           - false
         include:
@@ -905,6 +905,7 @@ jobs:
       - name: Run integration tests
         env:
           NODE_VERSION: ${{ matrix.node }}
+          TS_VERSION: ${{ matrix.typescript }}
         run: |
           cd dev-packages/node-integration-tests
           yarn test
@@ -1048,9 +1049,9 @@ jobs:
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            # disabling remix e2e tests because of flakes
-            # 'create-remix-app',
-            # 'create-remix-app-v2',
+            'create-remix-app',
+            'create-remix-app-v2',
+            'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
@@ -1062,9 +1063,9 @@ jobs:
             'sveltekit-2',
             'generic-ts3.8',
             'node-experimental-fastify-app',
-            'node-hapi-app',
+            # TODO(v8): Re-enable hapi tests
+            # 'node-hapi-app',
             'node-exports-test-app',
-            'node-profiling',
             'vue-3'
           ]
         build-command:
@@ -1086,7 +1087,6 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
-
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1106,34 +1106,6 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-
-      # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
-      - name: Build Profiling Node
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
-          (needs.job_get_metadata.outputs.is_release == 'true') ||
-          (github.event_name != 'pull_request')
-        run: yarn lerna run build:lib --scope @sentry/profiling-node
-
-      - name: Extract Profiling Node Prebuilt Binaries
-        # @TODO: v4 breaks convenient merging of same name artifacts
-        # https://github.com/actions/upload-artifact/issues/478
-        if: |
-          (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
-          (github.event_name != 'pull_request')
-        uses: actions/download-artifact@v3
-        with:
-          name: profiling-node-binaries-${{ github.sha }}
-          path: ${{ github.workspace }}/packages/profiling-node/lib/
-
-      - name: Build Profiling tarball
-        run: yarn build:tarball --scope @sentry/profiling-node
-
-      - name: Install esbuild
-        if: ${{ matrix.test-application == 'node-profiling' }}
-        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
-        run: yarn add esbuild@0.19.11
-      # End rebuild profiling
 
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
@@ -1176,6 +1148,93 @@ jobs:
           directory: dist
           workingDirectory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
 
+  job_profiling_e2e_tests:
+    name: E2E ${{ matrix.label || matrix.test-application }} Test
+    # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
+    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    # We need to add the `always()` check here because the previous step has this as well :(
+    # See: https://github.com/actions/runner/issues/2205
+    if:
+      # Only run profiling e2e tests if profiling node bindings have changed
+      always() && needs.job_e2e_prepare.result == 'success' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      github.actor != 'dependabot[bot]' && (
+        (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+        (needs.job_get_metadata.outputs.is_release == 'true') ||
+        (github.event_name != 'pull_request')
+      )
+    needs: [job_get_metadata, job_build, job_e2e_prepare]
+    runs-on: ubuntu-20.04
+    timeout-minutes: 10
+    env:
+      E2E_TEST_AUTH_TOKEN: ${{ secrets.E2E_TEST_AUTH_TOKEN }}
+      E2E_TEST_DSN: ${{ secrets.E2E_TEST_DSN }}
+      E2E_TEST_SENTRY_ORG_SLUG: 'sentry-javascript-sdks'
+      E2E_TEST_SENTRY_TEST_PROJECT: 'sentry-javascript-e2e-tests'
+    strategy:
+      fail-fast: false
+      matrix:
+        test-application: ['node-profiling']
+        build-command:
+          - false
+        label:
+          - false
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.3.1
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'dev-packages/e2e-tests/package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Build Profiling Node
+        run: yarn lerna run build:lib --scope @sentry/profiling-node
+      - name: Extract Profiling Node Prebuilt Binaries
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+      - name: Build Profiling tarball
+        run: yarn build:tarball --scope @sentry/profiling-node
+      - name: Restore tarball cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/packages/*/*.tgz
+          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+
+      - name: Get node version
+        id: versions
+        run: |
+          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
+
+      - name: Validate Verdaccio
+        run: yarn test:validate
+        working-directory: dev-packages/e2e-tests
+
+      - name: Prepare Verdaccio
+        run: yarn test:prepare
+        working-directory: dev-packages/e2e-tests
+        env:
+          E2E_TEST_PUBLISH_SCRIPT_NODE_VERSION: ${{ steps.versions.outputs.node }}
+
+      - name: Build E2E app
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn ${{ matrix.build-command || 'test:build' }}
+
+      - name: Run E2E test
+        working-directory: dev-packages/e2e-tests/test-applications/${{ matrix.test-application }}
+        timeout-minutes: 5
+        run: yarn test:assert
+
   job_required_jobs_passed:
     name: All required jobs passed or were skipped
     needs:
@@ -1195,6 +1254,7 @@ jobs:
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
+        job_profiling_e2e_tests,
         job_artifacts,
         job_lint,
         job_check_format,

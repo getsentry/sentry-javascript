@@ -1,4 +1,3 @@
-import { TextDecoder, TextEncoder } from 'util';
 import type { Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
 
@@ -37,8 +36,8 @@ describe('ModuleMetadata integration', () => {
         return event;
       },
       transport: () =>
-        createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, async req => {
-          const [, items] = parseEnvelope(req.body, new TextEncoder(), new TextDecoder());
+        createTransport({ recordDroppedEvent: () => undefined }, async req => {
+          const [, items] = parseEnvelope(req.body);
 
           expect(items[0][1]).toBeDefined();
           const event = items[0][1] as Event;

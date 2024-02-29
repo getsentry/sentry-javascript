@@ -1,7 +1,6 @@
-import { conditionalTest } from '../../../utils';
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-conditionalTest({ min: 14 })('express tracing experimental', () => {
+describe('express tracing experimental', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
@@ -22,9 +21,6 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
             spans: expect.arrayContaining([
@@ -62,9 +58,6 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
           },
@@ -94,9 +87,6 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                   },
                   op: 'http.server',
                   status: 'ok',
-                  tags: {
-                    'http.status_code': '200',
-                  },
                 },
               },
             },
@@ -134,9 +124,6 @@ conditionalTest({ min: 14 })('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
           },

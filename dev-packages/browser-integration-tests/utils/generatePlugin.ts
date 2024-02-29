@@ -115,7 +115,7 @@ export const LOADER_CONFIGS: Record<string, { options: Record<string, unknown>; 
  * When using compiled versions of the tracing and browser packages, their aliases look for example like
  *     '@sentry/browser': 'path/to/sentry-javascript/packages/browser/esm/index.js'
  * and all other monorepo packages' aliases look for example like
- *     '@sentry/hub': 'path/to/sentry-javascript/packages/hub'
+ *     '@sentry/react': 'path/to/sentry-javascript/packages/react'
  *
  * When using bundled versions of the tracing and browser packages, all aliases look for example like
  *     '@sentry/browser': false
@@ -168,14 +168,12 @@ class SentryScenarioGenerationPlugin {
       ? {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
           '@sentry/browser': 'Sentry',
-          '@sentry/tracing': 'Sentry',
           '@sentry/replay': 'Sentry',
-          '@sentry/integrations': 'Sentry',
           '@sentry/wasm': 'Sentry',
         }
       : {};
 
-    // Checking if the current scenario has imported `@sentry/tracing` or `@sentry/integrations`.
+    // Checking if the current scenario has imported `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -243,7 +241,7 @@ class SentryScenarioGenerationPlugin {
               this.localOutPath,
               path.resolve(
                 PACKAGES_DIR,
-                'integrations',
+                'browser',
                 BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
               ),
               fileName,

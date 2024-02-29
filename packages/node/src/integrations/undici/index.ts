@@ -214,10 +214,7 @@ export class Undici implements Integration {
       const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
       const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-        dsc ||
-          (span
-            ? getDynamicSamplingContextFromSpan(span)
-            : getDynamicSamplingContextFromClient(traceId, client, scope)),
+        dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
       );
 
       setHeadersOnRequest(request, sentryTraceHeader, sentryBaggageHeader);
@@ -343,7 +340,7 @@ function createRequestSpan(
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',
-    description: `${method} ${getSanitizedUrlString(url)}`,
+    name: `${method} ${getSanitizedUrlString(url)}`,
     data,
   });
 }

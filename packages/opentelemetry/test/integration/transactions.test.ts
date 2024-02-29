@@ -1,11 +1,13 @@
+import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { addBreadcrumb, setTag } from '@sentry/core';
-import type { PropagationContext, TransactionEvent } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
+import type { Event, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { TraceState } from '@opentelemetry/core';
 import { spanToJSON } from '@sentry/core';
-import { getClient } from '../../src/custom/hub';
+import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
@@ -15,6 +17,7 @@ import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 describe('Integration | Transactions', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
     cleanupOtel();
   });
 
@@ -32,9 +35,11 @@ describe('Integration | Transactions', () => {
       {
         op: 'test op',
         name: 'test name',
-        source: 'task',
         origin: 'auto.test',
         metadata: { requestPath: 'test-path' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+        },
       },
       span => {
         addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
@@ -72,6 +77,9 @@ describe('Integration | Transactions', () => {
           otel: {
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             resource: {
               'service.name': 'opentelemetry-test',
@@ -87,6 +95,9 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+              'sentry.sample_rate': 1,
+              'test.outer': 'test value',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -107,23 +118,17 @@ describe('Integration | Transactions', () => {
             transaction: 'test name',
           }),
           sampleRate: 1,
-          source: 'task',
           spanMetadata: expect.any(Object),
           requestPath: 'test-path',
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         tags: {
           'outer.tag': 'test value',
+          'test.tag': 'test value',
+          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -183,44 +188,48 @@ describe('Integration | Transactions', () => {
 
     addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
-    startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value',
-      });
+        span.setAttributes({
+          'test.outer': 'test value',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value');
+        setTag('test.tag', 'test value');
 
-      startSpan({ name: 'inner span 2' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+        startSpan({ name: 'inner span 2' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value',
+          innerSpan.setAttributes({
+            'test.inner': 'test value',
+          });
         });
       });
     });
 
-    startSpan({ op: 'test op b', name: 'test name b' }, span => {
-      addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
+    withIsolationScope(() => {
+      startSpan({ op: 'test op b', name: 'test name b' }, span => {
+        addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
-      span.setAttributes({
-        'test.outer': 'test value b',
-      });
+        span.setAttributes({
+          'test.outer': 'test value b',
+        });
 
-      const subSpan = startInactiveSpan({ name: 'inner span 1b' });
-      subSpan.end();
+        const subSpan = startInactiveSpan({ name: 'inner span 1b' });
+        subSpan.end();
 
-      setTag('test.tag', 'test value b');
+        setTag('test.tag', 'test value b');
 
-      startSpan({ name: 'inner span 2b' }, innerSpan => {
-        addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
+        startSpan({ name: 'inner span 2b' }, innerSpan => {
+          addBreadcrumb({ message: 'test breadcrumb 3b', timestamp: 123456 });
 
-        innerSpan.setAttributes({
-          'test.inner': 'test value b',
+          innerSpan.setAttributes({
+            'test.inner': 'test value b',
+          });
         });
       });
     });
@@ -239,6 +248,9 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
           }),
           trace: {
@@ -246,6 +258,9 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+              'test.outer': 'test value',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -254,16 +269,9 @@ describe('Integration | Transactions', () => {
             origin: 'auto.test',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value', transaction: 'test name' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -285,6 +293,7 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value b',
+              'sentry.op': 'test op b',
             },
           }),
           trace: {
@@ -292,6 +301,9 @@ describe('Integration | Transactions', () => {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
+              'sentry.source': 'custom',
+              'test.outer': 'test value b',
+              'sentry.sample_rate': 1,
             },
             op: 'test op b',
             span_id: expect.any(String),
@@ -300,16 +312,9 @@ describe('Integration | Transactions', () => {
             origin: 'manual',
           },
         }),
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1b',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2b',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: {},
+        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -366,13 +371,19 @@ describe('Integration | Transactions', () => {
       expect.objectContaining({
         contexts: expect.objectContaining({
           otel: expect.objectContaining({
-            attributes: {},
+            attributes: {
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+            },
           }),
           trace: {
             data: {
               'otel.kind': 'INTERNAL',
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -384,14 +395,7 @@ describe('Integration | Transactions', () => {
         }),
         // spans are circular (they have a reference to the transaction), which leads to jest choking on this
         // instead we compare them in detail below
-        spans: [
-          expect.objectContaining({
-            description: 'inner span 1',
-          }),
-          expect.objectContaining({
-            description: 'inner span 2',
-          }),
-        ],
+        spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -525,5 +529,69 @@ describe('Integration | Transactions', () => {
         `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
       ]),
     );
+  });
+
+  it('uses & inherits DSC on span trace state', async () => {
+    const transactionEvents: Event[] = [];
+    const beforeSendTransaction = jest.fn(event => {
+      transactionEvents.push(event);
+      return null;
+    });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const dscString = `sentry-transaction=other-transaction,sentry-environment=other,sentry-release=8.0.0,sentry-public_key=public,sentry-trace_id=${traceId},sentry-sampled=true`;
+
+    const spanContext: SpanContext = {
+      traceId,
+      spanId: parentSpanId,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+      traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
+    };
+
+    const propagationContext: PropagationContext = {
+      traceId,
+      parentSpanId,
+      spanId: '6e0c63257de34c93',
+      sampled: true,
+    };
+
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+
+    const client = getClient() as TestClientInterface;
+
+    // We simulate the correct context we'd normally get from the SentryPropagator
+    context.with(
+      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
+      () => {
+        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+          expect(span.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+
+          const subSpan = startInactiveSpan({ name: 'inner span 1' });
+
+          expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+
+          subSpan.end();
+
+          startSpan({ name: 'inner span 2' }, subSpan => {
+            expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+          });
+        });
+      },
+    );
+
+    await client.flush();
+
+    expect(transactionEvents).toHaveLength(1);
+    expect(transactionEvents[0]?.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
+      environment: 'other',
+      public_key: 'public',
+      release: '8.0.0',
+      sampled: 'true',
+      trace_id: traceId,
+      transaction: 'other-transaction',
+    });
   });
 });

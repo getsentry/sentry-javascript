@@ -1,4 +1,4 @@
-import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
+import { NodeClient, createTransport, setCurrentClient } from '@sentry/node-experimental';
 import * as AWS from 'aws-sdk';
 import * as nock from 'nock';
 
@@ -8,9 +8,9 @@ import { awsServicesIntegration } from '../src/awsservices';
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
 
-jest.mock('@sentry/node', () => {
+jest.mock('@sentry/node-experimental', () => {
   return {
-    ...jest.requireActual('@sentry/node'),
+    ...jest.requireActual('@sentry/node-experimental'),
     startInactiveSpan: (ctx: unknown) => {
       mockStartInactiveSpan(ctx);
       return { end: mockSpanEnd };

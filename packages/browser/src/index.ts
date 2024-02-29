@@ -23,10 +23,23 @@ const INTEGRATIONS = {
 // eslint-disable-next-line deprecation/deprecation
 export { INTEGRATIONS as Integrations };
 
+export { reportingObserverIntegration } from './integrations/reportingobserver';
+export { httpClientIntegration } from './integrations/httpclient';
+export { contextLinesIntegration } from './integrations/contextlines';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
+
 export {
   // eslint-disable-next-line deprecation/deprecation
   Replay,
   replayIntegration,
+  getReplay,
 } from '@sentry/replay';
 export type {
   ReplayEventType,
@@ -54,8 +67,6 @@ export {
 } from '@sentry-internal/feedback';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
   browserTracingIntegration,
@@ -67,15 +78,9 @@ export {
   addTracingExtensions,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,
@@ -84,9 +89,4 @@ export {
 export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
-export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserProfilingIntegration,
-  browserProfilingIntegration,
-} from './profiling/integration';
+export { browserProfilingIntegration } from './profiling/integration';

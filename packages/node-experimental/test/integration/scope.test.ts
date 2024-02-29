@@ -1,8 +1,8 @@
 import { getCurrentScope, setGlobalScope } from '@sentry/core';
-import { getClient, getSpanScope } from '@sentry/opentelemetry';
+import { getClient, getSpanScopes } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
-import type { NodeExperimentalClient } from '../../src/types';
+import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
@@ -20,7 +20,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
 
       const rootScope = getCurrentScope();
 
@@ -41,7 +41,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            expect(getSpanScope(span)).toBe(enableTracing ? scope2 : undefined);
+            expect(getSpanScopes(span)?.scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -56,22 +56,33 @@ describe('Integration | Scope', () => {
       await client.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
+
+      if (spanId) {
+        expect(beforeSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            contexts: expect.objectContaining({
+              trace: {
+                span_id: spanId,
+                trace_id: traceId,
+              },
+            }),
+          }),
+          {
+            event_id: expect.any(String),
+            originalException: error,
+            syntheticException: expect.any(Error),
+          },
+        );
+      }
+
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: spanId
-              ? {
-                  span_id: spanId,
-                  trace_id: traceId,
-                  parent_span_id: undefined,
-                }
-              : expect.any(Object),
-          }),
           tags: {
             tag1: 'val1',
             tag2: 'val2',
             tag3: 'val3',
             tag4: 'val4',
+            ...(enableTracing ? { transaction: 'outer' } : {}),
           },
         }),
         {
@@ -88,7 +99,12 @@ describe('Integration | Scope', () => {
           expect.objectContaining({
             contexts: expect.objectContaining({
               trace: {
-                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual' },
+                data: {
+                  'otel.kind': 'INTERNAL',
+                  'sentry.origin': 'manual',
+                  'sentry.source': 'custom',
+                  'sentry.sample_rate': 1,
+                },
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,
@@ -102,6 +118,7 @@ describe('Integration | Scope', () => {
               tag2: 'val2',
               tag3: 'val3',
               tag4: 'val4',
+              transaction: 'outer',
             },
             timestamp: expect.any(Number),
             transaction: 'outer',
@@ -121,7 +138,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -186,6 +203,7 @@ describe('Integration | Scope', () => {
             tag2: 'val2a',
             tag3: 'val3a',
             tag4: 'val4a',
+            ...(enableTracing ? { transaction: 'outer' } : {}),
           },
         }),
         {
@@ -211,6 +229,7 @@ describe('Integration | Scope', () => {
             tag2: 'val2b',
             tag3: 'val3b',
             tag4: 'val4b',
+            ...(enableTracing ? { transaction: 'outer' } : {}),
           },
         }),
         {
@@ -234,7 +253,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const globalScope = Sentry.getGlobalScope();
       expect(globalScope).toBeDefined();
-      expect(globalScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(globalScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -248,7 +266,7 @@ describe('Integration | Scope', () => {
       // Now when we call init, the global scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
 
-      expect(globalScope.getClient()).toBeDefined();
+      expect(globalScope.getClient()).toBeUndefined();
       expect(Sentry.getGlobalScope()).toBe(globalScope);
       expect(globalScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });
@@ -292,7 +310,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const isolationScope = Sentry.getIsolationScope();
       expect(isolationScope).toBeDefined();
-      expect(isolationScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(isolationScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -444,7 +461,6 @@ describe('Integration | Scope', () => {
     it('works before calling init', () => {
       const currentScope = Sentry.getCurrentScope();
       expect(currentScope).toBeDefined();
-      expect(currentScope).toBeInstanceOf(Sentry.Scope);
       // No client attached
       expect(currentScope.getClient()).toBeUndefined();
       // Repeatedly returns the same instance
@@ -458,9 +474,9 @@ describe('Integration | Scope', () => {
       // Now when we call init, the current scope remains intact
       Sentry.init({ dsn: 'https://username@domain/123', defaultIntegrations: false });
 
-      // client is only attached to global scope by default
-      expect(currentScope.getClient()).toBeUndefined();
-      // current scope remains intact
+      // client is attached to current scope
+      expect(currentScope.getClient()).toBeDefined();
+
       expect(Sentry.getCurrentScope()).toBe(currentScope);
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });

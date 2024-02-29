@@ -1,4 +1,4 @@
-import { InboundFilters, SDK_VERSION, getReportDialogEndpoint } from '@sentry/core';
+import { InboundFilters, SDK_VERSION, getGlobalScope, getIsolationScope, getReportDialogEndpoint } from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
@@ -39,7 +39,11 @@ describe('SentryBrowser', () => {
   const beforeSend = jest.fn(event => event);
 
   beforeEach(() => {
-    WINDOW.__SENTRY__ = { hub: undefined, logger: undefined, globalEventProcessors: [] };
+    getGlobalScope().clear();
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+
     init({
       beforeSend,
       dsn,
@@ -54,21 +58,21 @@ describe('SentryBrowser', () => {
   describe('getContext() / setContext()', () => {
     it('should store/load extra', () => {
       getCurrentScope().setExtra('abc', { def: [1] });
-      expect(global.__SENTRY__.hub._stack[0].scope._extra).toEqual({
+      expect(getCurrentScope().getScopeData().extra).toEqual({
         abc: { def: [1] },
       });
     });
 
     it('should store/load tags', () => {
       getCurrentScope().setTag('abc', 'def');
-      expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({
+      expect(getCurrentScope().getScopeData().tags).toEqual({
         abc: 'def',
       });
     });
 
     it('should store/load user', () => {
       getCurrentScope().setUser({ id: 'def' });
-      expect(global.__SENTRY__.hub._stack[0].scope._user).toEqual({
+      expect(getCurrentScope().getScopeData().user).toEqual({
         id: 'def',
       });
     });
@@ -87,8 +91,7 @@ describe('SentryBrowser', () => {
         getCurrentScope().setUser(EX_USER);
         setCurrentClient(client);
 
-        // eslint-disable-next-line deprecation/deprecation
-        showReportDialog();
+        showReportDialog({ eventId: 'foobar' });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -102,8 +105,7 @@ describe('SentryBrowser', () => {
         setCurrentClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
-        // eslint-disable-next-line deprecation/deprecation
-        showReportDialog({ user: DIALOG_OPTION_USER });
+        showReportDialog({ eventId: 'foobar', user: DIALOG_OPTION_USER });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -136,8 +138,8 @@ describe('SentryBrowser', () => {
 
       it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = jest.fn();
-        // eslint-disable-next-line deprecation/deprecation
-        showReportDialog({ onClose });
+
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -151,8 +153,8 @@ describe('SentryBrowser', () => {
         const onClose = jest.fn(() => {
           throw new Error();
         });
-        // eslint-disable-next-line deprecation/deprecation
-        showReportDialog({ onClose });
+
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -164,8 +166,8 @@ describe('SentryBrowser', () => {
 
       it('should not call `onClose` for other MessageEvents', async () => {
         const onClose = jest.fn();
-        // eslint-disable-next-line deprecation/deprecation
-        showReportDialog({ onClose });
+
+        showReportDialog({ eventId: 'foobar', onClose });
 
         await waitForPostMessage('some_message');
         expect(onClose).not.toHaveBeenCalled();
@@ -290,20 +292,20 @@ describe('SentryBrowser initialization', () => {
   it('should use window.SENTRY_RELEASE to set release on initialization if available', () => {
     global.SENTRY_RELEASE = { id: 'foobar' };
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBe('foobar');
+    expect(getClient()?.getOptions().release).toBe('foobar');
     delete global.SENTRY_RELEASE;
   });
 
   it('should use initialScope', () => {
     init({ dsn, initialScope: { tags: { a: 'b' } } });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(getCurrentScope().getScopeData().tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope Scope', () => {
     const scope = new Scope();
     scope.setTags({ a: 'b' });
     init({ dsn, initialScope: scope });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(getCurrentScope().getScopeData().tags).toEqual({ a: 'b' });
   });
 
   it('should use initialScope callback', () => {
@@ -314,13 +316,13 @@ describe('SentryBrowser initialization', () => {
         return scope;
       },
     });
-    expect(global.__SENTRY__.hub._stack[0].scope._tags).toEqual({ a: 'b' });
+    expect(getCurrentScope().getScopeData().tags).toEqual({ a: 'b' });
   });
 
   it('should have initialization proceed as normal if window.SENTRY_RELEASE is not set', () => {
     // This is mostly a happy-path test to ensure that the initialization doesn't throw an error.
     init({ dsn });
-    expect(global.__SENTRY__.hub._stack[0].client.getOptions().release).toBeUndefined();
+    expect(getClient()?.getOptions().release).toBeUndefined();
   });
 
   describe('SDK metadata', () => {

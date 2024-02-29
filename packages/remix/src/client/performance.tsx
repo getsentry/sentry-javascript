@@ -43,10 +43,6 @@ export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof or
   useMatches?: UseMatches;
 };
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'remix-router',
-} as const;
-
 let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
@@ -77,9 +73,8 @@ export function startPageloadSpan(): void {
     name: initPathName,
     op: 'pageload',
     origin: 'auto.pageload.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
 
@@ -102,9 +97,8 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     name: matches[matches.length - 1].id,
     op: 'navigation',
     origin: 'auto.navigation.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'route',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
 

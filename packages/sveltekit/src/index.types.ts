@@ -41,15 +41,12 @@ export declare function wrapLoadWithSentry<T extends (...args: any) => any>(orig
 export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
-export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
-/**
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
- */
-export declare function lastEventId(): string | undefined;
+export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

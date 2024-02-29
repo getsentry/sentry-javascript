@@ -1,33 +1,32 @@
 // This is exported so the loader does not fail when switching off Replay
-import { Feedback, Replay, feedbackIntegration, replayIntegration } from '@sentry-internal/integration-shims';
-import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
-import { bundleBrowserTracingIntegration as browserTracingIntegration } from './helpers';
+import {
+  FeedbackShim,
+  ReplayShim,
+  feedbackIntegrationShim,
+  replayIntegrationShim,
+} from '@sentry-internal/integration-shims';
+import { browserTracingIntegration } from '@sentry-internal/tracing';
+import { addTracingExtensions } from '@sentry/core';
 
 import * as Sentry from './index.bundle.base';
 
-// TODO (v8): Remove this as it was only needed for backwards compatibility
+// TODO(v8): Remove this as it was only needed for backwards compatibility
 // We want replay to be available under Sentry.Replay, to be consistent
 // with the NPM package version.
 // eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.Replay = Replay;
-
-// eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.BrowserTracing = BrowserTracing;
+Sentry.Integrations.Replay = ReplayShim;
 
 // We are patching the global object with our hub extension methods
-addExtensionMethods();
+addTracingExtensions();
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Feedback,
+  FeedbackShim as Feedback,
   // eslint-disable-next-line deprecation/deprecation
-  Replay,
-  feedbackIntegration,
-  replayIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
+  ReplayShim as Replay,
+  feedbackIntegrationShim as feedbackIntegration,
+  replayIntegrationShim as replayIntegration,
   browserTracingIntegration,
-  Span,
-  addExtensionMethods,
+  addTracingExtensions,
 };
 export * from './index.bundle.base';

@@ -190,7 +190,6 @@ describe('normalize()', () => {
     });
 
     test('circular arrays', () => {
-      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push(obj);
       obj.push(obj);
@@ -198,7 +197,6 @@ describe('normalize()', () => {
     });
 
     test('circular arrays with intermediaries', () => {
-      // eslint-disable-next-line @typescript-eslint/ban-types
       const obj: object[] = [];
       obj.push({ name: 'Alice', self: obj });
       obj.push({ name: 'Bob', self: obj });
@@ -406,10 +404,7 @@ describe('normalize()', () => {
     test('primitive values', () => {
       expect(normalize(NaN)).toEqual('[NaN]');
       expect(normalize(Symbol('dogs'))).toEqual('[Symbol(dogs)]');
-      // `BigInt` doesn't exist in Node 8
-      if (Number(process.versions.node.split('.')[0]) >= 10) {
-        expect(normalize(BigInt(1121201212312012))).toEqual('[BigInt: 1121201212312012]');
-      }
+      expect(normalize(BigInt(1121201212312012))).toEqual('[BigInt: 1121201212312012]');
     });
 
     test('functions', () => {

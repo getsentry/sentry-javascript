@@ -4,7 +4,6 @@ import { fill, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 interface MysqlConnection {
   prototype: {
@@ -46,11 +45,6 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Mysql Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -110,7 +104,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
 
         // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
-          description: typeof options === 'string' ? options : (options as { sql: string }).sql,
+          name: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
           origin: 'auto.db.mysql',
           data: {

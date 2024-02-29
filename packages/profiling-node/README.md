@@ -46,7 +46,7 @@ const transaction = Sentry.startTransaction({ name: 'some workflow' });
 
 // The code between startTransaction and transaction.finish will be profiled
 
-transaction.finish();
+transaction.end();
 ```
 
 ### Building the package from source

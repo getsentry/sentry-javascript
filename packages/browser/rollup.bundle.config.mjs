@@ -8,6 +8,17 @@ if (targets.some(target => target !== 'es5' && target !== 'es6')) {
   throw new Error('JS_VERSION must be either "es5" or "es6"');
 }
 
+const browserPluggableIntegrationFiles = ['contextlines', 'httpclient', 'reportingobserver'];
+
+const corePluggableIntegrationFiles = [
+  'captureconsole',
+  'debug',
+  'dedupe',
+  'extraerrordata',
+  'rewriteframes',
+  'sessiontiming',
+];
+
 targets.forEach(jsVersion => {
   const baseBundleConfig = makeBaseBundleConfig({
     bundleType: 'standalone',
@@ -21,8 +32,32 @@ targets.forEach(jsVersion => {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.ts'],
     jsVersion,
-    licenseTitle: '@sentry/browser & @sentry/tracing',
+    licenseTitle: '@sentry/browser (Performance Monitoring)',
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
+  });
+
+  browserPluggableIntegrationFiles.forEach(integrationName => {
+    const integrationsBundleConfig = makeBaseBundleConfig({
+      bundleType: 'addon',
+      entrypoints: [`src/integrations/${integrationName}.ts`],
+      jsVersion,
+      licenseTitle: `@sentry/browser - ${integrationName}`,
+      outputFileBase: () => `bundles/${integrationName}${jsVersion === 'es5' ? '.es5' : ''}`,
+    });
+
+    builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
+  });
+
+  corePluggableIntegrationFiles.forEach(integrationName => {
+    const integrationsBundleConfig = makeBaseBundleConfig({
+      bundleType: 'addon',
+      entrypoints: [`src/integrations-bundle/index.${integrationName}.ts`],
+      jsVersion,
+      licenseTitle: `@sentry/browser - ${integrationName}`,
+      outputFileBase: () => `bundles/${integrationName}${jsVersion === 'es5' ? '.es5' : ''}`,
+    });
+
+    builds.push(...makeBundleConfigVariants(integrationsBundleConfig));
   });
 
   builds.push(...makeBundleConfigVariants(baseBundleConfig), ...makeBundleConfigVariants(tracingBaseBundleConfig));
@@ -50,7 +85,7 @@ if (targets.includes('es6')) {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.replay.ts'],
     jsVersion: 'es6',
-    licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay',
+    licenseTitle: '@sentry/browser (Performance Monitoring and Replay)',
     outputFileBase: () => 'bundles/bundle.tracing.replay',
   });
 
@@ -58,7 +93,7 @@ if (targets.includes('es6')) {
     bundleType: 'standalone',
     entrypoints: ['src/index.bundle.tracing.replay.feedback.ts'],
     jsVersion: 'es6',
-    licenseTitle: '@sentry/browser & @sentry/tracing & @sentry/replay & @sentry/feedback',
+    licenseTitle: '@sentry/browser (Performance Monitoring, Replay, and Feedback)',
     outputFileBase: () => 'bundles/bundle.tracing.replay.feedback',
   });
 

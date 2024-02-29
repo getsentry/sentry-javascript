@@ -1,8 +1,10 @@
 import * as os from 'os';
-import { Scope, SessionFlusher } from '@sentry/core';
+import { SessionFlusher, getCurrentScope, getGlobalScope, getIsolationScope, withIsolationScope } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
 
+import type { Scope } from '@sentry/types';
 import { NodeClient } from '../src';
+import { setNodeAsyncContextStrategy } from '../src/async';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -13,19 +15,30 @@ describe('NodeClient', () => {
   afterEach(() => {
     if ('_sessionFlusher' in client) clearInterval((client as any)._sessionFlusher._intervalId);
     jest.restoreAllMocks();
+
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+  });
+
+  beforeEach(() => {
+    setNodeAsyncContextStrategy();
   });
 
   describe('captureException', () => {
     test('when autoSessionTracking is enabled, and requestHandler is not used -> requestStatus should not be set', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       client = new NodeClient(options);
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
 
-      client.captureException(new Error('test exception'), undefined, scope);
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+        client.captureException(new Error('test exception'));
+
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
 
     test('when autoSessionTracking is disabled -> requestStatus should not be set', () => {
@@ -35,13 +48,14 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      client.captureException(new Error('test exception'), undefined, scope);
+        client.captureException(new Error('test exception'));
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
 
     test('when autoSessionTracking is enabled + requestSession status is Crashed -> requestStatus should not be overridden', () => {
@@ -51,13 +65,14 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'crashed' });
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'crashed' });
 
-      client.captureException(new Error('test exception'), undefined, scope);
+        client.captureException(new Error('test exception'));
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('crashed');
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('crashed');
+      });
     });
 
     test('when autoSessionTracking is enabled + error occurs within request bounds -> requestStatus should be set to Errored', () => {
@@ -67,28 +82,37 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      client.captureException(new Error('test exception'), undefined, scope);
+        client.captureException(new Error('test exception'));
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('errored');
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('errored');
+      });
     });
 
-    test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', () => {
+    test('when autoSessionTracking is enabled + error occurs outside of request bounds -> requestStatus should not be set to Errored', done => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.4' });
       client = new NodeClient(options);
+
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      let isolationScope: Scope;
+      withIsolationScope(_isolationScope => {
+        _isolationScope.setRequestSession({ status: 'ok' });
+        isolationScope = _isolationScope;
+      });
 
-      client.captureException(new Error('test exception'), undefined, scope);
+      client.captureException(new Error('test exception'));
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession).toEqual(undefined);
+      setImmediate(() => {
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession).toEqual({ status: 'ok' });
+        done();
+      });
     });
   });
 
@@ -100,16 +124,12 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
-      client.captureEvent(
-        { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
-        undefined,
-        scope,
-      );
-
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
+        client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
 
     test('When captureEvent is called with an exception, requestSession status should be set to Errored', () => {
@@ -119,13 +139,14 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } }, {}, scope);
+        client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('errored');
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('errored');
+      });
     });
 
     test('When captureEvent is called without an exception, requestSession status should not be set to Errored', () => {
@@ -135,13 +156,14 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      client.captureEvent({ message: 'message' }, {}, scope);
+        client.captureEvent({ message: 'message' });
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
 
     test('When captureEvent is called with an exception but outside of a request, then requestStatus should not be set', () => {
@@ -151,15 +173,12 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
+      withIsolationScope(isolationScope => {
+        isolationScope.clear();
+        client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
 
-      client.captureEvent(
-        { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
-        undefined,
-        scope,
-      );
-
-      expect(scope.getRequestSession()).toEqual(undefined);
+        expect(isolationScope.getRequestSession()).toEqual(undefined);
+      });
     });
 
     test('When captureEvent is called with a transaction, then requestSession status should not be set', () => {
@@ -169,28 +188,28 @@ describe('NodeClient', () => {
       // by the`requestHandler`)
       client.initSessionFlusher();
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
-      client.captureEvent({ message: 'message', type: 'transaction' }, undefined, scope);
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+        client.captureEvent({ message: 'message', type: 'transaction' });
+
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
 
     test('When captureEvent is called with an exception but requestHandler is not used, then requestSession status should not be set', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, autoSessionTracking: true, release: '1.3' });
       client = new NodeClient(options);
 
-      const scope = new Scope();
-      scope.setRequestSession({ status: 'ok' });
-      client.captureEvent(
-        { message: 'message', exception: { values: [{ type: 'exception type 1' }] } },
-        undefined,
-        scope,
-      );
+      withIsolationScope(isolationScope => {
+        isolationScope.setRequestSession({ status: 'ok' });
 
-      const requestSession = scope.getRequestSession();
-      expect(requestSession!.status).toEqual('ok');
+        client.captureEvent({ message: 'message', exception: { values: [{ type: 'exception type 1' }] } });
+
+        const requestSession = isolationScope.getRequestSession();
+        expect(requestSession!.status).toEqual('ok');
+      });
     });
   });
 
@@ -291,8 +310,7 @@ describe('NodeClient', () => {
       });
       client = new NodeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn(
         { monitorSlug: 'foo', status: 'in_progress' },
@@ -363,8 +381,7 @@ describe('NodeClient', () => {
       });
       client = new NodeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       const id = client.captureCheckIn({ monitorSlug: 'heartbeat-monitor', status: 'ok' });
 
@@ -390,8 +407,7 @@ describe('NodeClient', () => {
       const options = getDefaultNodeClientOptions({ dsn: PUBLIC_DSN, serverName: 'bar', enabled: false });
       client = new NodeClient(options);
 
-      // @ts-expect-error accessing private method
-      const sendEnvelopeSpy = jest.spyOn(client, '_sendEnvelope');
+      const sendEnvelopeSpy = jest.spyOn(client, 'sendEnvelope');
 
       client.captureCheckIn({ monitorSlug: 'foo', status: 'in_progress' });
 

@@ -6,6 +6,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
+    "proxy": "ts-node-script start-event-proxy.ts",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
@@ -30,12 +31,6 @@
     "typescript": "^5.0.0",
     "vite": "^5.0.3",
     "wait-port": "1.0.4"
-  },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/tracing": "latest || *"
-    }
   },
   "type": "module"
 }

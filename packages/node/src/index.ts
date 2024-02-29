@@ -8,8 +8,6 @@ export type {
   EventHint,
   Exception,
   Session,
-  // eslint-disable-next-line deprecation/deprecation
-  Severity,
   SeverityLevel,
   Span,
   StackFrame,
@@ -32,15 +30,10 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -50,11 +43,8 @@ export {
   getIsolationScope,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -65,12 +55,8 @@ export {
   setTag,
   setTags,
   setUser,
-  // eslint-disable-next-line deprecation/deprecation
-  spanStatusfromHttpCode,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
   captureCheckIn,
@@ -78,44 +64,43 @@ export {
   setMeasurement,
   getActiveSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
   continueTrace,
   parameterize,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  withActiveSpan,
 } from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/core';
+
 export type { SpanStatusType } from '@sentry/core';
+
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
   defaultStackParser,
   getSentryRelease,
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-// eslint-disable-next-line deprecation/deprecation
-export { deepReadDirSync } from './utils';
 
-import { createGetModuleFromFilename } from './module';
-/**
- * @deprecated use `createGetModuleFromFilename` instead.
- */
-export const getModuleFromFilename = createGetModuleFromFilename();
-export { createGetModuleFromFilename };
-
-// eslint-disable-next-line deprecation/deprecation
-export { enableAnrDetection } from './integrations/anr/legacy';
+export { createGetModuleFromFilename } from './module';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
@@ -130,6 +115,15 @@ export const Integrations = {
   ...NodeIntegrations,
   ...TracingIntegrations,
 };
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
 
 export { consoleIntegration } from './integrations/console';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';

@@ -7,7 +7,7 @@ Sentry.init({
   includeLocalVariables: true,
   transport: loggingTransport,
   // Stop the rate limiting from kicking in
-  integrations: [new Sentry.Integrations.LocalVariables({ maxExceptionsPerSecond: 10000000 })],
+  integrations: [Sentry.localVariablesIntegration({ maxExceptionsPerSecond: 10000000 })],
 });
 
 class Some {
@@ -22,6 +22,11 @@ function one(name) {
     name,
     num: 5,
   };
+  const bool = false;
+  const num = 0;
+  const str = '';
+  const something = undefined;
+  const somethingElse = null;
 
   const ty = new Some();
 

@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Hub, Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Integration, PolymorphicRequest, Transaction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   extractPathForTransaction,
@@ -11,7 +11,6 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type Method =
   | 'all'
@@ -119,14 +118,9 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
+  public setupOnce(_: unknown): void {
     if (!this._router) {
       DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
-      return;
-    }
-
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Express Integration is skipped because of instrumenter configuration.');
       return;
     }
 
@@ -160,7 +154,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         if (transaction) {
           // eslint-disable-next-line deprecation/deprecation
           const span = transaction.startChild({
-            description: fn.name,
+            name: fn.name,
             op: `middleware.express.${method}`,
             origin: 'auto.middleware.express',
           });
@@ -181,7 +175,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
-          description: fn.name,
+          name: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });
@@ -202,7 +196,7 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
         const transaction = res.__sentry_transaction;
         // eslint-disable-next-line deprecation/deprecation
         const span = transaction?.startChild({
-          description: fn.name,
+          name: fn.name,
           op: `middleware.express.${method}`,
           origin: 'auto.middleware.express',
         });
@@ -376,7 +370,7 @@ function instrumentRouter(appOrRouter: ExpressRouter): void {
 
       const transaction = res.__sentry_transaction;
       const attributes = (transaction && spanToJSON(transaction).data) || {};
-      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
+      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
         // If the request URL is '/' or empty, the reconstructed route will be empty.
         // Therefore, we fall back to setting the final route to '/' in this case.
         const finalRoute = req._reconstructedRoute || '/';

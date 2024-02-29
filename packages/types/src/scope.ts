@@ -7,7 +7,7 @@ import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
-import type { Severity, SeverityLevel } from './severity';
+import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { PropagationContext } from './tracing';
 import type { Transaction } from './transaction';
@@ -19,8 +19,7 @@ export type CaptureContext = Scope | Partial<ScopeContext> | ((scope: Scope) => 
 /** JSDocs */
 export interface ScopeContext {
   user: User;
-  // eslint-disable-next-line deprecation/deprecation
-  level: Severity | SeverityLevel;
+  level: SeverityLevel;
   extra: Extras;
   contexts: Contexts;
   tags: { [key: string]: Primitive };
@@ -47,7 +46,7 @@ export interface ScopeData {
 }
 
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
+ * Holds additional event information.
  */
 export interface Scope {
   /**
@@ -60,9 +59,9 @@ export interface Scope {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
-  /** Add new event processor that will be called after {@link applyToEvent}. */
+  /** Add new event processor that will be called during event processing. */
   addEventProcessor(callback: EventProcessor): this;
 
   /** Get the data of this scope, which is applied to an event during processing. */
@@ -119,10 +118,7 @@ export interface Scope {
    * Sets the level on the scope for future events.
    * @param level string {@link SeverityLevel}
    */
-  setLevel(
-    // eslint-disable-next-line deprecation/deprecation
-    level: Severity | SeverityLevel,
-  ): this;
+  setLevel(level: SeverityLevel): this;
 
   /**
    * Sets the transaction name on the scope for future events.
@@ -263,4 +259,9 @@ export interface Scope {
    * @returns the id of the captured event.
    */
   captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Clone all data from this scope into a new scope.
+   */
+  clone(): Scope;
 }

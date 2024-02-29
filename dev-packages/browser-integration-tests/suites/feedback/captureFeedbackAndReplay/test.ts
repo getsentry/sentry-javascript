@@ -50,15 +50,16 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
 
   expect(breadcrumbs).toEqual(
     expect.arrayContaining([
-      {
+      expect.objectContaining({
         category: 'sentry.feedback',
         data: { feedbackId: expect.any(String) },
-      },
+      }),
     ]),
   );
 
   expect(feedbackEvent).toEqual({
     type: 'feedback',
+    breadcrumbs: expect.any(Array),
     contexts: {
       feedback: {
         contact_email: 'janedoe@example.org',

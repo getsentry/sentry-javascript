@@ -1,5 +1,4 @@
-import { spanToJSON } from '@sentry/core';
-import { Span, Transaction } from '../../../src';
+import { SentrySpan, Transaction, spanToJSON } from '@sentry/core';
 import { _startChild } from '../../../src/browser/metrics/utils';
 
 describe('_startChild()', () => {
@@ -7,14 +6,13 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test' });
     const span = _startChild(transaction, {
-      description: 'evaluation',
+      name: 'evaluation',
       op: 'script',
     });
 
-    expect(span).toBeInstanceOf(Span);
+    expect(span).toBeInstanceOf(SentrySpan);
     expect(spanToJSON(span).description).toBe('evaluation');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(span.op).toBe('script');
+    expect(spanToJSON(span).op).toBe('script');
     expect(spanToJSON(span).op).toBe('script');
   });
 
@@ -22,7 +20,7 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
-      description: 'script.js',
+      name: 'script.js',
       op: 'resource',
       startTimestamp: 100,
     });
@@ -35,7 +33,7 @@ describe('_startChild()', () => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'test', startTimestamp: 123 });
     const span = _startChild(transaction, {
-      description: 'script.js',
+      name: 'script.js',
       op: 'resource',
       startTimestamp: 150,
     });

@@ -66,8 +66,6 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
 
   return {
     name: INTEGRATION_NAME,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    setupOnce() {},
     getOptions(): ReplayCanvasIntegrationOptions {
       const { quality, enableManualSnapshot } = _canvasOptions;
 

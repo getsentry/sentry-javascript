@@ -1,4 +1,5 @@
-import type { NodeClient } from '@sentry/node';
+import { spanToJSON } from '@sentry/core';
+import type { NodeClient } from '@sentry/node-experimental';
 import type { Event, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
@@ -79,8 +80,10 @@ export class ProfilingIntegration implements Integration {
           // Enqueue a timeout to prevent profiles from running over max duration.
           PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
             DEBUG_BUILD &&
-              // eslint-disable-next-line deprecation/deprecation
-              logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
+              logger.log(
+                '[Profiling] max profile duration elapsed, stopping profiling for:',
+                spanToJSON(transaction).description,
+              );
 
             const profile = stopTransactionProfile(transaction, profile_id);
             if (profile) {
@@ -137,7 +140,6 @@ export class ProfilingIntegration implements Integration {
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
           if (profileContext) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete profiledTransaction.contexts?.['profile'];
           }
 

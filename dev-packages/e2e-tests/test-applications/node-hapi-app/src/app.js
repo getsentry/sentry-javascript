@@ -10,7 +10,6 @@ Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.E2E_TEST_DSN,
   includeLocalVariables: true,
-  integrations: [new Sentry.Integrations.Hapi({ server })],
   debug: true,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
@@ -56,6 +55,7 @@ const init = async () => {
 
 (async () => {
   init();
+  await Sentry.setupHapiErrorHandler(server);
   await server.start();
   console.log('Server running on %s', server.info.uri);
 })();

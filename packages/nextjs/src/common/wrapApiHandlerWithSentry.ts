@@ -3,10 +3,9 @@ import {
   addTracingExtensions,
   captureException,
   continueTrace,
-  getCurrentScope,
-  runWithAsyncContext,
   setHttpStatus,
   startSpanManual,
+  withIsolationScope,
 } from '@sentry/core';
 import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -25,29 +24,6 @@ import { flushQueue } from './utils/responseEnd';
  * @returns The wrapped handler
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
-  return new Proxy(apiHandler, {
-    apply: (wrappingTarget, thisArg, args: Parameters<NextApiHandler>) => {
-      // eslint-disable-next-line deprecation/deprecation
-      return withSentry(wrappingTarget, parameterizedRoute).apply(thisArg, args);
-    },
-  });
-}
-
-/**
- * @deprecated Use `wrapApiHandlerWithSentry()` instead
- */
-export const withSentryAPI = wrapApiHandlerWithSentry;
-
-/**
- * Legacy function for manually wrapping API route handlers, now used as the innards of `wrapApiHandlerWithSentry`.
- *
- * @param apiHandler The user's original API route handler
- * @param parameterizedRoute The route whose handler is being wrapped. Meant for internal use only.
- * @returns A wrapped version of the handler
- *
- * @deprecated Use `wrapApiWithSentry()` instead
- */
-export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: string): NextApiHandler {
   return new Proxy(apiHandler, {
     apply: (
       wrappingTarget,
@@ -78,9 +54,10 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
       addTracingExtensions();
 
-      return runWithAsyncContext(() => {
+      return withIsolationScope(isolationScope => {
         return continueTrace(
           {
+            // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
             sentryTrace: req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined,
             baggage: req.headers?.baggage,
           },
@@ -104,7 +81,7 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
 
             const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
-            getCurrentScope().setSDKProcessingMetadata({ request: req });
+            isolationScope.setSDKProcessingMetadata({ request: req });
 
             return startSpanManual(
               {
@@ -144,14 +121,11 @@ export function withSentry(apiHandler: NextApiHandler, parameterizedRoute?: stri
                     process.env.NODE_ENV === 'development' &&
                     !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR &&
                     !res.finished
-                    // TODO(v8): Remove this warning?
-                    // This can only happen (not always) when the user is using `withSentry` manually, which we're deprecating.
-                    // Warning suppression on Next.JS is only necessary in that case.
                   ) {
                     consoleSandbox(() => {
                       // eslint-disable-next-line no-console
                       console.warn(
-                        '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which may happen when you use `withSentry` manually to wrap your routes. To suppress this warning, set `SENTRY_IGNORE_API_RESOLUTION_ERROR` to 1 in your env. To suppress the nextjs warning, use the `externalResolver` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).',
+                        '[sentry] If Next.js logs a warning "API resolved without sending a response", it\'s a false positive, which may happen when you use `wrapApiHandlerWithSentry` manually to wrap your routes. To suppress this warning, set `SENTRY_IGNORE_API_RESOLUTION_ERROR` to 1 in your env. To suppress the nextjs warning, use the `externalResolver` API route option (see https://nextjs.org/docs/api-routes/api-middlewares#custom-config for details).',
                       );
                     });
                   }

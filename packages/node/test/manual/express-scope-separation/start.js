@@ -3,7 +3,6 @@ const express = require('express');
 const app = express();
 const Sentry = require('../../../build/cjs');
 const { colorize } = require('../colorize');
-const { TextEncoder } = require('util');
 
 // don't log the test errors we're going to throw, so at a quick glance it doesn't look like the test itself has failed
 global.console.error = () => null;
@@ -20,7 +19,7 @@ function assertTags(actual, expected) {
 let remaining = 3;
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     --remaining;
 
     if (!remaining) {
@@ -64,32 +63,24 @@ Sentry.init({
   },
 });
 
-Sentry.configureScope(scope => {
-  scope.setTag('global', 'wat');
-});
+Sentry.setTag('global', 'wat');
 
 app.use(Sentry.Handlers.requestHandler());
 
 app.get('/foo', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('foo', 'wat');
-  });
+  Sentry.setTag('foo', 'wat');
 
   throw new Error('foo');
 });
 
 app.get('/bar', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('bar', 'wat');
-  });
+  Sentry.setTag('bar', 'wat');
 
   throw new Error('bar');
 });
 
 app.get('/baz', req => {
-  Sentry.configureScope(scope => {
-    scope.setTag('baz', 'wat');
-  });
+  Sentry.setTag('baz', 'wat');
 
   throw new Error('baz');
 });

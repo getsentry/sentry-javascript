@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type { Transport } from '@sentry/types';
 import { SyncPromise } from '@sentry/utils';
 
@@ -17,7 +16,7 @@ export function makeFakeTransport(delay: number = 2000): {
   let sendCalled = 0;
   let sentCount = 0;
   const makeTransport = () =>
-    createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, () => {
+    createTransport({ recordDroppedEvent: () => undefined }, () => {
       sendCalled++;
       return new SyncPromise(async res => {
         await sleep(delay);

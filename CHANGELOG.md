@@ -4,6 +4,283 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.1
+
+This is the first Alpha release of the v8 cycle, which includes a variety of breaking changes.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
+
+### Important Changes
+
+**- feat(node): Make `@sentry/node` powered by OpenTelemetry (#10762)**
+
+The biggest change is the switch to use OpenTelemetry under the hood in `@sentry/node`. This brings with it a variety of
+changes:
+
+- There is now automated performance instrumentation for Express, Fastify, Nest.js and Koa. You can remove any
+  performance and request isolation code you previously wrote manually for these frameworks.
+- All performance instrumenttion is enabled by default, and will only take effect if the instrumented package is used.
+  You don't need to use `autoDiscoverNodePerformanceMonitoringIntegrations()` anymore.
+- You need to ensure to call `Sentry.init()` _before_ you import any other packages. Otherwise, the packages cannot be
+  instrumented:
+
+```js
+const Sentry = require('@sentry/node');
+Sentry.init({
+  dsn: '...',
+  // ... other config here
+});
+// now require other things below this!
+const http = require('http');
+const express = require('express');
+// ....
+```
+
+- Currently, we only support CJS-based Node application out of the box. There is experimental ESM support, see
+  [the instructions](./packages/node-experimental/README.md#esm-support).
+- `startTransaction` and `span.startChild()` are no longer supported. This is due to the underlying change to
+  OpenTelemetry powered performance instrumentation. See
+  [docs on the new performance APIs](./docs/v8-new-performance-apis.md) for details.
+
+Related changes:
+
+- feat(node-experimental): Add missing re-exports (#10679)
+- feat(node-experimental): Move `defaultStackParser` & `getSentryRelease` (#10722)
+- feat(node-experimental): Move `errorHandler` (#10728)
+- feat(node-experimental): Move cron code over (#10742)
+- feat(node-experimental): Move integrations from node (#10743)
+- feat(node-experimental): Properly set request & session on http requests (#10676)
+- feat(opentelemetry): Support `forceTransaction` in OTEL (#10807)
+- feat(opentelemetry): Align span options with core span options (#10761)
+- feat(opentelemetry): Do not capture span events as breadcrumbs (#10612)
+- feat(opentelemetry): Ensure DSC & attributes are correctly set (#10806)
+- feat(opentelemetry): Fix & align isolation scope usage in node-experimental (#10570)
+- feat(opentelemetry): Merge node-experimental changes into opentelemetry (#10689)
+- ref(node-experimental): Cleanup re-exports (#10741)
+- ref(node-experimental): Cleanup tracing intergations (#10730)
+- ref(node-experimental): Copy transport & client to node-experimental (#10720)
+- ref(node-experimental): Remove custom `isInitialized` (#10607)
+- ref(node-experimental): Remove custom hub & scope (#10616)
+- ref(node-experimental): Remove deprecated class integrations (#10675)
+- ref(node-experimental): Rename `errorHandler` to `expressErrorHandler` (#10746)
+- ref(node-integration-tests): Migrate to new Http integration (#10765)
+- ref(node): Align semantic attribute handling (#10827)
+
+**- feat: Remove `@sentry/integrations` package (#10799)**
+
+This package is no longer published. You can instead import these pluggable integrations directly from your SDK package
+(e.g. `@sentry/browser` or `@sentry/react`).
+
+**- feat: Remove `@sentry/hub` package (#10783)**
+
+This package is no longer published. You can instead import directly from your SDK package (e.g. `@sentry/react` or
+`@sentry/node`).
+
+**- feat(v8): Remove @sentry/tracing (#10625)**
+
+This package is no longer published. You can instead import directly from your SDK package (e.g. `@sentry/react` or
+`@sentry/node`).
+
+**- feat: Set required node version to >=14.8.0 for all packages (#10834)**
+
+The minimum required node version is now 14.8+. If you need support for older node versions, you can stay on the v7
+branch.
+
+**- Removed class-based integrations**
+
+We have removed most of the deprecated class-based integrations. Instead, you can use the functional styles:
+
+```js
+import * as Sentry from '@sentry/browser';
+// v7
+Sentry.init({
+  integrations: [new Sentry.BrowserTracing()],
+});
+// v8
+Sentry.init({
+  integrations: [new Sentry.browserTracingIntegration()],
+});
+```
+
+- ref: Remove `BrowserTracing` (#10653)
+- feat(v8/node): Remove LocalVariables class integration (#10558)
+- feat(v8/react): Delete react router exports (#10532)
+- feat(v8/vue): Remove all deprecated exports from vue (#10533)
+- feat(v8/wasm): Remove deprecated exports (#10552)
+
+**- feat(v8/browser): Remove XHR transport (#10703)**
+
+We have removed the XHR transport, and are instead using the fetch-based transport now by default. This means that if
+you are using Sentry in a browser environment without fetch, you'll need to either provide a fetch polyfill, or provide
+a custom transport to Sentry.
+
+**- feat(sveltekit): Update `@sentry/vite-plugin` to 2.x and adjust options API (#10813)**
+
+We have updated `@sentry/sveltekit` to use the latest version of `@sentry/vite-plugin`, which lead to changes in
+configuration options.
+
+### Other Changes
+
+- feat: Allow passing `null` to `withActiveSpan` (#10717)
+- feat: Implement new Async Context Strategy (#10647)
+- feat: Remove `hub` from global, `hub.run` & hub utilities (#10718)
+- feat: Update default trace propagation targets logic in the browser (#10621)
+- feat(browser): Export `getIsolationScope` and `getGlobalScope` (#10658)
+- feat(core): Add metric summaries to spans (#10554)
+- feat(core): Decouple metrics aggregation from client (#10628)
+- feat(core): Lookup client on current scope, not hub (#10635)
+- feat(core): Make `setXXX` methods set on isolation scope (#10678)
+- feat(core): Make custom tracing methods return spans & set default op (#10633)
+- feat(core): Make global `addBreadcrumb` write to the isolation scope instead of current scope (#10586)
+- feat(core): Remove health check transaction filters (#10818)
+- feat(core): Streamline custom hub creation for node-experimental (#10555)
+- feat(core): Update `addEventProcessor` to add to isolation scope (#10606)
+- feat(core): Update `Sentry.addBreadcrumb` to skip hub (#10601)
+- feat(core): Use global `TextEncoder` and `TextDecoder` (#10701)
+- feat(deps): bump @sentry/cli from 2.26.0 to 2.28.0 (#10496)
+- feat(deps): bump @sentry/cli from 2.28.0 to 2.28.5 (#10620)
+- feat(deps): bump @sentry/cli from 2.28.5 to 2.28.6 (#10727)
+- feat(integrations): Capture error arguments as exception regardless of level in `captureConsoleIntegration` (#10744)
+- feat(metrics): Remove metrics method from `BaseClient` (#10789)
+- feat(node): Remove unnecessary URL imports (#10860)
+- feat(react): Drop support for React 15 (#10115)
+- feat(remix): Add Vite dev-mode support to Express instrumentation. (#10784)
+- fix: Export session API (#10711)
+- fix(angular-ivy): Add `exports` field to `package.json` (#10569)
+- fix(angular): Ensure navigations always create a transaction (#10646)
+- fix(core): Add lost scope tests & fix update case (#10738)
+- fix(core): Fix scope capturing via `captureContext` function (#10735)
+- fix(feedback): Replay breadcrumb for feedback events was incorrect (#10536)
+- fix(nextjs): Remove `webpack://` prefix more broadly from source map `sources` field (#10642)
+- fix(node): import `worker_threads` and fix node v14 types (#10791)
+- fix(node): Record local variables with falsy values, `null` and `undefined` (#10821)
+- fix(stacktrace): Always use `?` for anonymous function name (#10732)
+- fix(sveltekit): Avoid capturing Http 4xx errors on the client (#10571)
+- fix(sveltekit): Ensure navigations and redirects always create a new transaction (#10656)
+- fix(sveltekit): Properly await sourcemaps flattening (#10602)
+- fix(types): Improve attachment type (#10832)
+- fx(node): Fix anr worker check (#10719)
+- ref: Cleanup browser profiling integration (#10766)
+- ref: Collect child spans references via non-enumerable on Span object (#10715)
+- ref: Make scope setters on hub only write to isolation scope (#10572)
+- ref: Store runtime on isolation scope (#10657)
+- ref(astro): Put request as SDK processing metadata instead of span data (#10840)
+- ref(core): Always use a (default) ACS (#10644)
+- ref(core): Make `on` and `emit` required on client (#10603)
+- ref(core): Make remaining client methods required (#10605)
+- ref(core): Rename `Span` class to `SentrySpan` (#10687)
+- ref(core): Restructure hub exports (#10639)
+- ref(core): Skip hub in top level `captureXXX` methods (#10688)
+- ref(core): Allow `number` as span `traceFlag` (#10855)
+- ref(core): Remove `status` field from Span (#10856)
+- ref(remix): Make `@remix-run/router` a dependency. (#10479)
+- ref(replay): Use `beforeAddBreadcrumb` hook instead of scope listener (#10600)
+- ref(sveltekit): Hard-pin Vite plugin version (#10843)
+
+### Other Deprecation Removals/Changes
+
+We have also removed or updated a variety of deprecated APIs.
+
+- feat(v8): Remove `extractTraceparentData` export (#10559)
+- feat(v8): Remove defaultIntegrations deprecated export (#10691)
+- feat(v8): Remove deprecated `span.isSuccess` method (#10699)
+- feat(v8): Remove deprecated `traceHeaders` method (#10776)
+- feat(v8): Remove deprecated addInstrumentationHandler (#10693)
+- feat(v8): Remove deprecated configureScope call (#10565)
+- feat(v8): Remove deprecated runWithAsyncContext API (#10780)
+- feat(v8): Remove deprecated spanStatusfromHttpCode export (#10563)
+- feat(v8): Remove deprecated trace and startActiveSpan methods (#10593)
+- feat(v8): Remove requestData deprecations (#10626)
+- feat(v8): Remove Severity enum (#10551)
+- feat(v8): Remove span.origin (#10753)
+- feat(v8): Remove span.toTraceparent method (#10698)
+- feat(v8): Remove usage of span.description and span.name (#10697)
+- feat(v8): Update eventFromUnknownInput to only use client (#10692)
+- feat(v8/astro): Remove deprecated exports from Astro SDK (#10611)
+- feat(v8/browser): Remove `_eventFromIncompleteOnError` usage (#10553)
+- feat(v8/browser): Remove XHR transport (#10703)
+- feat(v8/browser): Rename TryCatch integration to `browserApiErrorsIntegration` (#10755)
+- feat(v8/core): Remove deprecated setHttpStatus (#10774)
+- feat(v8/core): Remove deprecated updateWithContext method (#10800)
+- feat(v8/core): Remove getters for span.op (#10767)
+- feat(v8/core): Remove span.finish call (#10773)
+- feat(v8/core): Remove span.instrumenter and instrumenter option (#10769)
+- feat(v8/ember): Remove deprecated exports (#10535)
+- feat(v8/integrations): Remove deprecated exports (#10556)
+- feat(v8/node): Remove deepReadDirSync export (#10564)
+- feat(v8/node): Remove deprecated anr methods (#10562)
+- feat(v8/node): Remove getModuleFromFilename export (#10754)
+- ref: Make `setupOnce` optional in integrations (#10729)
+- ref: Migrate transaction source from metadata to attributes (#10674)
+- ref: Refactor remaining `makeMain` usage (#10713)
+- ref(astro): Remove deprecated Replay and BrowserTracing (#10768)
+- feat(core): Remove deprecated `scope.applyToEvent()` method (#10842)
+- ref(integrations): Remove offline integration (#9456)
+- ref(nextjs): Remove all deprecated API (#10549)
+- ref: Remove `lastEventId` (#10585)
+- ref: Remove `reuseExisting` option for ACS (#10645)
+- ref: Remove `tracingOrigins` options (#10614)
+- ref: Remove deprecated `showReportDialog` APIs (#10609)
+- ref: Remove usage of span tags (#10808)
+- ref: Remove user segment (#10575)
+
+## 7.103.0
+
+### Important Changes
+
+- **feat(core): Allow to pass `forceTransaction` to `startSpan()` APIs (#10819)**
+
+You can now pass `forceTransaction: true` to `startSpan()`, `startSpanManual()` and `startInactiveSpan()`. This allows
+you to start a span that you want to be a transaction, if possible. Under the hood, the SDK will connect this span to
+the running active span (if there is one), but still send the new span as a transaction to the Sentry backend, if
+possible, ensuring it shows up as a transaction throughout the system.
+
+Please note that setting this to `true` does not _guarantee_ that this will be sent as a transaction, but that the SDK
+will try to do so. You can enable this flag if this span is important to you and you want to ensure that you can see it
+in the Sentry UI.
+
+### Other Changes
+
+- fix: Make breadcrumbs option optional in WinterCGFetch integration (#10792)
+
+## 7.102.1
+
+- fix(performance): Fixes latest route name and source for interactions not updating properly on navigation (#10702)
+- fix(tracing): Guard against missing `window.location` (#10659)
+- ref: Make span types more robust (#10660)
+- ref(remix): Make `@remix-run/router` a dependency (v7) (#10779)
+
+## 7.102.0
+
+- fix: Export session API (#10712)
+- fix(core): Fix scope capturing via `captureContext` function (#10737)
+
+## 7.101.1
+
+In version 7.101.0 the `@sentry/hub` package was missing due to a publishing issue. This release contains the package
+again.
+
+- fix(nextjs): Remove `webpack://` prefix more broadly from source map `sources` field (#10641)
+
+## 7.101.0
+
+- feat: Export semantic attribute keys from SDK packages (#10637)
+- feat(core): Add metric summaries to spans (#10554)
+- feat(core): Deprecate the `Hub` constructor (#10584)
+- feat(core): Make custom tracing methods return spans & set default op (#10633)
+- feat(replay): Add `getReplay` utility function (#10510)
+- fix(angular-ivy): Add `exports` field to `package.json` (#10569)
+- fix(sveltekit): Avoid capturing Http 4xx errors on the client (#10571)
+- fix(sveltekit): Properly await sourcemaps flattening (#10602)
+
+## 7.100.1
+
+This release contains build fixes for profiling-node.
+
+- build(profiling-node): make sure debug build plugin is used #10534
+- build: Only run profiling e2e test if bindings have changed #10542
+- fix(feedback): Replay breadcrumb for feedback events was incorrect #10536
+
 ## 7.100.0
 
 ### Important Changes

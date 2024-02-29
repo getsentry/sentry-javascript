@@ -9,6 +9,9 @@ module.exports = {
   coverageDirectory: '<rootDir>/coverage',
   moduleFileExtensions: ['js', 'ts', 'tsx'],
   testMatch: ['<rootDir>/**/*.test.ts', '<rootDir>/**/*.test.tsx'],
+  moduleNameMapper: {
+    '^axios$': require.resolve('axios'),
+  },
   globals: {
     'ts-jest': {
       tsconfig: '<rootDir>/tsconfig.test.json',

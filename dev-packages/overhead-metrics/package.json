@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.0",
   "name": "@sentry-internal/overhead-metrics",
   "main": "index.js",
   "author": "Sentry",
@@ -19,7 +19,7 @@
   "dependencies": {
     "@octokit/rest": "^19.0.5",
     "@types/node": "^18.11.17",
-    "axios": "^1.2.2",
+    "axios": "^1.6.7",
     "extract-zip": "^2.0.1",
     "filesize": "^10.0.6",
     "fs-extra": "^11.1.0",

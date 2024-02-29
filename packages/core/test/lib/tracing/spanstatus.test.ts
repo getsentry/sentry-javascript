@@ -1,4 +1,4 @@
-import { Span, setHttpStatus, spanToJSON } from '../../../src/index';
+import { SentrySpan, setHttpStatus, spanToJSON } from '../../../src/index';
 
 describe('setHttpStatus', () => {
   it.each([
@@ -16,26 +16,24 @@ describe('setHttpStatus', () => {
     [504, 'deadline_exceeded'],
     [520, 'internal_error'],
   ])('applies the correct span status and http status code to the span (%s - $%s)', (code, status) => {
-    const span = new Span({ name: 'test' });
+    const span = new SentrySpan({ name: 'test' });
 
     setHttpStatus(span!, code);
 
-    const { status: spanStatus, data, tags } = spanToJSON(span!);
+    const { status: spanStatus, data } = spanToJSON(span!);
 
     expect(spanStatus).toBe(status);
     expect(data).toMatchObject({ 'http.response.status_code': code });
-    expect(tags).toMatchObject({ 'http.status_code': String(code) });
   });
 
   it("doesn't set the status for an unknown http status code", () => {
-    const span = new Span({ name: 'test' });
+    const span = new SentrySpan({ name: 'test' });
 
     setHttpStatus(span!, 600);
 
-    const { status: spanStatus, data, tags } = spanToJSON(span!);
+    const { status: spanStatus, data } = spanToJSON(span!);
 
     expect(spanStatus).toBeUndefined();
     expect(data).toMatchObject({ 'http.response.status_code': 600 });
-    expect(tags).toMatchObject({ 'http.status_code': '600' });
   });
 });

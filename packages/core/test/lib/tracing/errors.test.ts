@@ -1,9 +1,8 @@
-import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
+import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
 
-import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
 import { registerErrorInstrumentation } from '../../../src/tracing/errors';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const mockAddGlobalErrorInstrumentationHandler = jest.fn();
 const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
@@ -33,10 +32,10 @@ describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultBrowserClientOptions({ enableTracing: true });
-    const hub = new Hub(new BrowserClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
   });
 
   it('registers error instrumentation', () => {

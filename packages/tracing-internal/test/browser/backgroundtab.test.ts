@@ -1,27 +1,23 @@
-import { Hub, makeMain, spanToJSON, startSpan } from '@sentry/core';
+import { addTracingExtensions, getCurrentScope } from '@sentry/core';
+import { setCurrentClient, spanToJSON, startSpan } from '@sentry/core';
 import { JSDOM } from 'jsdom';
 
-import { addExtensionMethods } from '../../../tracing/src';
-import { conditionalTest, getDefaultBrowserClientOptions } from '../../../tracing/test/testutils';
 import { registerBackgroundTabDetection } from '../../src/browser/backgroundtab';
-import { TestClient } from '../utils/TestClient';
+import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
-conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
+describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
-  let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();
     // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
-    const options = getDefaultBrowserClientOptions({ tracesSampleRate: 1 });
-    hub = new Hub(new TestClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const options = getDefaultClientOptions({ tracesSampleRate: 1 });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
 
-    // If we do not add extension methods, invoking hub.startTransaction returns undefined
-    // eslint-disable-next-line deprecation/deprecation
-    addExtensionMethods();
+    addTracingExtensions();
 
     // @ts-expect-error need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {
@@ -31,8 +27,7 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
 
   afterEach(() => {
     events = {};
-    // eslint-disable-next-line deprecation/deprecation
-    hub.getScope().setSpan(undefined);
+    getCurrentScope().clear();
   });
 
   it('does not create an event listener if global document is undefined', () => {
@@ -55,13 +50,11 @@ conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
       global.document.hidden = true;
       events.visibilitychange();
 
-      const { status, timestamp } = spanToJSON(span!);
+      const { status, timestamp, data } = spanToJSON(span!);
 
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.status).toBe('cancelled');
+      expect(status).toBe('cancelled');
       expect(status).toBeDefined();
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.tags.visibilitychange).toBe('document.hidden');
+      expect(data!['sentry.cancellation_reason']).toBe('document.hidden');
       expect(timestamp).toBeDefined();
     });
   });

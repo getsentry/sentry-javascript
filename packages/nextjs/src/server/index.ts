@@ -1,11 +1,10 @@
-import { addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
+import type { NodeOptions } from '@sentry/node-experimental';
 import {
   Integrations as OriginalIntegrations,
-  getCurrentScope,
   getDefaultIntegrations,
   init as nodeInit,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { EventProcessor } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -13,12 +12,12 @@ import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
+import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
 import { Http } from './httpIntegration';
 import { OnUncaughtException } from './onUncaughtExceptionIntegration';
-import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 
 export { createReduxEnhancer } from '@sentry/react';
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 export const Integrations = {
@@ -27,7 +26,9 @@ export const Integrations = {
   OnUncaughtException,
 };
 
-export { rewriteFramesIntegration };
+const globalWithInjectedValues = global as typeof global & {
+  __rewriteFramesDistDir__?: string;
+};
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -64,12 +65,6 @@ export function showReportDialog(): void {
   return;
 }
 
-// TODO (v8): Remove this
-/**
- * @deprecated This constant will be removed in the next major update.
- */
-export const IS_BUILD = isBuild();
-
 const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
@@ -84,10 +79,16 @@ export function init(options: NodeOptions): void {
     ...getDefaultIntegrations(options).filter(
       integration => !['Http', 'OnUncaughtException'].includes(integration.name),
     ),
-    rewriteFramesIntegration(),
     new Http(),
     new OnUncaughtException(),
   ];
+
+  // This value is injected at build time, based on the output directory specified in the build config. Though a default
+  // is set there, we set it here as well, just in case something has gone wrong with the injection.
+  const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
+  if (distDirName) {
+    customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
+  }
 
   const opts = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
@@ -118,16 +119,15 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'node');
+  setTag('runtime', 'node');
   if (IS_VERCEL) {
-    scope.setTag('vercel', true);
+    setTag('vercel', true);
   }
 
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
@@ -137,20 +137,6 @@ function sdkAlreadyInitialized(): boolean {
   return !!getClient();
 }
 
-// TODO (v8): Remove this
-/**
- * @deprecated This constant will be removed in the next major update.
- */
-const deprecatedIsBuild = (): boolean => isBuild();
-// eslint-disable-next-line deprecation/deprecation
-export { deprecatedIsBuild as isBuild };
-
 export * from '../common';
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  withSentry,
-  // eslint-disable-next-line deprecation/deprecation
-  withSentryAPI,
-  wrapApiHandlerWithSentry,
-} from '../common/wrapApiHandlerWithSentry';
+export { wrapApiHandlerWithSentry } from '../common/wrapApiHandlerWithSentry';

@@ -1,13 +1,15 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getCurrentScope,
   getDynamicSamplingContextFromSpan,
   setHttpStatus,
   spanToTraceHeader,
+  withIsolationScope,
 } from '@sentry/core';
-import { getActiveTransaction, runWithAsyncContext, startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node';
+import { getActiveTransaction, startSpan } from '@sentry/core';
+import { captureException } from '@sentry/node-experimental';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
@@ -153,7 +155,7 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
     if (getActiveSpan()) {
       return instrumentHandle(input, options);
     }
-    return runWithAsyncContext(() => {
+    return withIsolationScope(() => {
       return instrumentHandle(input, options);
     });
   };
@@ -178,12 +180,12 @@ async function instrumentHandle(
         op: 'http.server',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
         },
         name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
         status: 'ok',
         ...traceparentData,
         metadata: {
-          source: event.route?.id ? 'route' : 'url',
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       },

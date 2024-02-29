@@ -69,17 +69,19 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
   req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
+  // TODO(v8): Remove this parameter in v8
+  _deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
+
+  // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
   // eslint-disable-next-line deprecation/deprecation
-  if (!transaction.metadata.source || transaction.metadata.source === 'url') {
+  if (!transaction.attributes['sentry.source'] || transaction.attributes['sentry.source'] === 'url') {
     // Attempt to grab a parameterized route off of the request
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     transaction.updateName(name);
-    // TODO: SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.setMetadata({ source });
+    // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
+    transaction.setAttribute('sentry.source', source);
   }
   transaction.setAttribute('url', req.originalUrl || req.url);
   if (req.baseUrl) {
@@ -87,7 +89,7 @@ export function addRequestDataToTransaction(
   }
   // TODO: We need to rewrite this to a flat format?
   // eslint-disable-next-line deprecation/deprecation
-  transaction.setData('query', extractQueryParams(req, deps));
+  transaction.setData('query', extractQueryParams(req));
 }
 
 /**
@@ -188,10 +190,9 @@ export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
-    deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
-  const { include = DEFAULT_REQUEST_INCLUDES, deps } = options || {};
+  const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requestData: { [key: string]: any } = {};
 
@@ -256,8 +257,7 @@ export function extractRequestData(
         // query string:
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        requestData.query_string = extractQueryParams(req, deps);
+        requestData.query_string = extractQueryParams(req);
         break;
       }
       case 'data': {
@@ -307,8 +307,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options && options.deps })
-      : extractRequestData(req, { deps: options && options.deps });
+      ? extractRequestData(req, { include: include.request })
+      : extractRequestData(req);
 
     event.request = {
       ...event.request,
@@ -349,10 +349,7 @@ export function addRequestDataToEvent(
   return event;
 }
 
-function extractQueryParams(
-  req: PolymorphicRequest,
-  deps?: InjectedNodeDeps,
-): string | Record<string, unknown> | undefined {
+function extractQueryParams(req: PolymorphicRequest): string | Record<string, unknown> | undefined {
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
@@ -369,13 +366,8 @@ function extractQueryParams(
   }
 
   try {
-    return (
-      req.query ||
-      (typeof URL !== 'undefined' && new URL(originalUrl).search.slice(1)) ||
-      // In Node 8, `URL` isn't in the global scope, so we have to use the built-in module from Node
-      (deps && deps.url && deps.url.parse(originalUrl).query) ||
-      undefined
-    );
+    const queryParams = req.query || new URL(originalUrl).search.slice(1);
+    return queryParams.length ? queryParams : undefined;
   } catch {
     return undefined;
   }

@@ -30,7 +30,7 @@ type PolymorphicRequestHeaders =
     };
 
 /**
- * Create and track fetch request spans for usage in combination with `addInstrumentationHandler`.
+ * Create and track fetch request spans for usage in combination with `addFetchInstrumentationHandler`.
  *
  * @returns Span if a span was created, otherwise void.
  */
@@ -145,8 +145,7 @@ export function addTracingHeadersToFetchRequest(
   const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
 
   const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-    dsc ||
-      (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client, scope)),
+    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
   );
 
   const headers =
