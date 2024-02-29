@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction } from '@sentry/core';
-import { getActiveSpan } from '@sentry/core';
+import { getActiveSpan, getClient, getCurrentScope } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -12,6 +12,7 @@ import {
 } from '@sentry/core';
 import type {
   Client,
+  Integration,
   IntegrationFn,
   StartSpanOptions,
   Transaction,
@@ -198,9 +199,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingInteractions();
   }
 
-  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+  const latestRoute: {
+    name: string | undefined;
+    context: TransactionContext | undefined;
+  } = {
     name: undefined,
-    source: undefined,
+    context: undefined,
   };
 
   /** Create routing idle transaction. */
@@ -248,7 +252,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           finalContext.metadata;
 
     latestRoute.name = finalContext.name;
-    latestRoute.source = getSource(finalContext);
+    latestRoute.context = finalContext;
 
     if (finalContext.sampled === false) {
       DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
@@ -462,7 +466,10 @@ export function getMetaContent(metaName: string): string | undefined {
 /** Start listener for interaction transactions */
 function registerInteractionListener(
   options: BrowserTracingOptions,
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: {
+    name: string | undefined;
+    context: TransactionContext | undefined;
+  },
 ): void {
   let inflightInteractionTransaction: IdleTransaction | undefined;
   const registerInteractionTransaction = (): void => {
@@ -497,7 +504,7 @@ function registerInteractionListener(
       op,
       trimEnd: true,
       data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.context ? getSource(latestRoute.context) : undefined || 'url',
       },
     };
 
@@ -528,9 +535,24 @@ const MAX_INTERACTIONS = 10;
 /** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
 function registerInpInteractionListener(
   interactionIdtoRouteNameMapping: InteractionRouteNameMapping,
-  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
+  latestRoute: {
+    name: string | undefined;
+    context: TransactionContext | undefined;
+  },
 ): void {
   addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    const client = getClient();
+    // We need to get the replay, user, and activeTransaction from the current scope
+    // so that we can associate replay id, profile id, and a user display to the span
+    const replay =
+      client !== undefined && client.getIntegrationByName !== undefined
+        ? (client.getIntegrationByName('Replay') as Integration & { getReplayId: () => string })
+        : undefined;
+    const replayId = replay !== undefined ? replay.getReplayId() : undefined;
+    // eslint-disable-next-line deprecation/deprecation
+    const activeTransaction = getActiveTransaction();
+    const currentScope = getCurrentScope();
+    const user = currentScope !== undefined ? currentScope.getUser() : undefined;
     for (const entry of entries) {
       if (isPerformanceEventTiming(entry)) {
         const duration = entry.duration;
@@ -546,12 +568,20 @@ function registerInpInteractionListener(
         if (minInteractionId === undefined || duration > interactionIdtoRouteNameMapping[minInteractionId].duration) {
           const interactionId = entry.interactionId;
           const routeName = latestRoute.name;
-          if (interactionId && routeName) {
+          const parentContext = latestRoute.context;
+          if (interactionId && routeName && parentContext) {
             if (minInteractionId && Object.keys(interactionIdtoRouteNameMapping).length >= MAX_INTERACTIONS) {
               // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
               delete interactionIdtoRouteNameMapping[minInteractionId];
             }
-            interactionIdtoRouteNameMapping[interactionId] = { routeName, duration };
+            interactionIdtoRouteNameMapping[interactionId] = {
+              routeName,
+              duration,
+              parentContext,
+              user,
+              activeTransaction,
+              replayId,
+            };
           }
         }
       }

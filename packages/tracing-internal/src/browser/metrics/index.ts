@@ -1,7 +1,14 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { Span, getActiveTransaction, getClient, setMeasurement } from '@sentry/core';
-import type { Measurements, SpanContext } from '@sentry/types';
+import {
+  Span,
+  getActiveTransaction,
+  getClient,
+  hasTracingEnabled,
+  isValidSampleRate,
+  setMeasurement,
+} from '@sentry/core';
+import type { ClientOptions, Measurements, SpanContext, TransactionContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
@@ -202,33 +209,57 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     if (!entry || !client) {
       return;
     }
-    const { release, environment } = client.getOptions();
+    const options = client.getOptions();
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
-    const routeName =
-      entry.interactionId !== undefined ? interactionIdtoRouteNameMapping[entry.interactionId].routeName : undefined;
+    const { routeName, parentContext, activeTransaction, user, replayId } =
+      entry.interactionId !== undefined
+        ? interactionIdtoRouteNameMapping[entry.interactionId]
+        : {
+            routeName: undefined,
+            parentContext: undefined,
+            activeTransaction: undefined,
+            user: undefined,
+            replayId: undefined,
+          };
+    const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
+    // eslint-disable-next-line deprecation/deprecation
+    const profileId = activeTransaction !== undefined ? activeTransaction.getProfileId() : undefined;
     const span = new Span({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
       op: 'ui.interaction.click',
       name: htmlTreeAsString(entry.target),
       attributes: {
-        release,
-        environment,
+        release: options.release,
+        environment: options.environment,
         transaction: routeName,
+        ...(userDisplay !== undefined && userDisplay !== '' ? { user: userDisplay } : {}),
+        ...(profileId !== undefined ? { profile_id: profileId } : {}),
+        ...(replayId !== undefined ? { replay_id: replayId } : {}),
       },
       exclusiveTime: metric.value,
       measurements: {
         inp: { value: metric.value, unit: 'millisecond' },
       },
     });
-    const envelope = span ? createSpanEnvelope([span]) : undefined;
-    const transport = client && client.getTransport();
-    if (transport && envelope) {
-      transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending interaction:', reason);
-      });
+
+    /** Check to see if the span should be sampled */
+    const sampleRate = getSampleRate(parentContext, options);
+    if (!sampleRate) {
+      return;
+    }
+
+    if (Math.random() < (sampleRate as number | boolean)) {
+      const envelope = span ? createSpanEnvelope([span]) : undefined;
+      const transport = client && client.getTransport();
+      if (transport && envelope) {
+        transport.send(envelope).then(null, reason => {
+          DEBUG_BUILD && logger.error('Error while sending interaction:', reason);
+        });
+      }
+      return;
     }
   });
 }
@@ -630,4 +661,36 @@ export function _addTtfbToMeasurements(
       };
     }
   }
+}
+
+/** Taken from @sentry/core sampling.ts */
+function getSampleRate(transactionContext: TransactionContext | undefined, options: ClientOptions): number | boolean {
+  if (!hasTracingEnabled(options)) {
+    return false;
+  }
+  let sampleRate;
+  if (transactionContext !== undefined && typeof options.tracesSampler === 'function') {
+    sampleRate = options.tracesSampler({
+      transactionContext,
+      name: transactionContext.name,
+      parentSampled: transactionContext.parentSampled,
+      attributes: {
+        // eslint-disable-next-line deprecation/deprecation
+        ...transactionContext.data,
+        ...transactionContext.attributes,
+      },
+      location: WINDOW.location,
+    });
+  } else if (transactionContext !== undefined && transactionContext.sampled !== undefined) {
+    sampleRate = transactionContext.sampled;
+  } else if (typeof options.tracesSampleRate !== 'undefined') {
+    sampleRate = options.tracesSampleRate;
+  } else {
+    sampleRate = 1;
+  }
+  if (!isValidSampleRate(sampleRate)) {
+    DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
+    return false;
+  }
+  return sampleRate;
 }

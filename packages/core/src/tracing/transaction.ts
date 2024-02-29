@@ -255,6 +255,16 @@ export class Transaction extends SpanClass implements TransactionInterface {
   }
 
   /**
+   * Get the profile id of the transaction.
+   */
+  public getProfileId(): string | undefined {
+    if (this._contexts !== undefined && this._contexts['profile'] !== undefined) {
+      return this._contexts['profile'].profile_id as string;
+    }
+    return undefined;
+  }
+
+  /**
    * Finish the transaction & prepare the event to send to Sentry.
    */
   protected _finishTransaction(endTimestamp?: number): TransactionEvent | undefined {
