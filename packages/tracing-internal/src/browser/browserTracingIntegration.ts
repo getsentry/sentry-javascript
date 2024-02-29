@@ -108,6 +108,13 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture INP web vitals as standalone spans .
+   *
+   * Default: false
+   */
+  enableInp: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -131,7 +138,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    */
   _experiments: Partial<{
     enableInteractions: boolean;
-    enableInp: boolean;
   }>;
 
   /**
@@ -147,6 +153,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
+  enableInp: false,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -188,7 +195,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
   const interactionIdtoRouteNameMapping: InteractionRouteNameMapping = {};
-  if (options._experiments.enableInp) {
+  if (options.enableInp) {
     startTrackingINP(interactionIdtoRouteNameMapping);
   }
 
@@ -403,7 +410,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         registerInteractionListener(options, latestRoute);
       }
 
-      if (_experiments.enableInp) {
+      if (options.enableInp) {
         registerInpInteractionListener(interactionIdtoRouteNameMapping, latestRoute);
       }
 
