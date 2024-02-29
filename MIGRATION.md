@@ -20,7 +20,7 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14+ for our CJS package, and Node 18.8+ for our ESM package. This applies to
+**Node.js**: We now official support Node 14.8+ for our CJS package, and Node 18.8+ for our ESM package. This applies to
 `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no longer
 test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
@@ -62,7 +62,7 @@ We've removed the following packages:
 For Browser SDKs you can import `BrowserTracing` from the SDK directly:
 
 ```js
-// Before
+// Before (v7)
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
 
@@ -72,7 +72,7 @@ Sentry.init({
   integrations: [new BrowserTracing()],
 });
 
-// After
+// After (v8)
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
@@ -86,7 +86,7 @@ If you were importing `@sentry/tracing` for the side effect, you can now use `Se
 tracing extensions to the SDK. `addTracingExtensions` replaces the `addExtensionMethods` method from `@sentry/tracing`.
 
 ```js
-// Before
+// Before (v7)
 import * as Sentry from '@sentry/browser';
 import '@sentry/tracing';
 
@@ -95,7 +95,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-// After
+// After (v8)
 import * as Sentry from '@sentry/browser';
 
 Sentry.addTracingExtensions();
@@ -103,14 +103,13 @@ Sentry.addTracingExtensions();
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
-  integrations: [new Sentry.BrowserTracing()],
 });
 ```
 
 For Node SDKs you no longer need the side effect import, you can remove all references to `@sentry/tracing`.
 
 ```js
-// Before
+// Before (v7)
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
 
@@ -119,7 +118,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-// After
+// Before (v8)
 const Sentry = require('@sentry/node');
 
 Sentry.init({
@@ -135,28 +134,28 @@ package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`. in add
 classes.
 
 ```js
-// before
+// Before (v7)
 import { RewriteFrames } from '@sentry/integrations';
 
-// after
+// After (v8)
 import { rewriteFramesIntegration } from '@sentry/browser';
 ```
 
 Integrations that are now exported from `@sentry/browser` (or framework-specific packages like `@sentry/react`):
 
-- httpClientIntegration (`HTTPClient`)
-- contextLinesIntegration (`ContextLines`)
-- reportingObserverIntegration (`ReportingObserver`)
+- `httpClientIntegration` (`HTTPClient`)
+- `contextLinesIntegration` (`ContextLines`)
+- `reportingObserverIntegration` (`ReportingObserver`)
 
 Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or framework-specific packages like
 `@sentry/react`):
 
-- captureConsoleIntegration (`CaptureConsole`)
-- debugIntegration (`Debug`)
-- extraErrorDataIntegration (`ExtraErrorData`)
-- rewriteFramesIntegration (`RewriteFrames`)
-- sessionTimingIntegration (`SessionTiming`)
-- dedupeIntegration (`Dedupe`) - _Note: enabled by default, not pluggable_
+- `captureConsoleIntegration` (`CaptureConsole`)
+- `debugIntegration` (`Debug`)
+- `extraErrorDataIntegration` (`ExtraErrorData`)
+- `rewriteFramesIntegration` (`RewriteFrames`)
+- `sessionTimingIntegration` (`SessionTiming`)
+- `dedupeIntegration` (`Dedupe`) - _Note: enabled by default, not pluggable_
 
 The `Transaction` integration has been removed from `@sentry/integrations`. There is no replacement API.
 
@@ -302,10 +301,10 @@ The `getIntegration()` and `getIntegrationById()` have been removed entirely, se
 [below](./MIGRATION.md#deprecate-getintegration-and-getintegrationbyid).
 
 ```js
-// before
+// Before (v7)
 const replay = Sentry.getIntegration(Replay);
 
-// after
+// After (v8)
 const replay = getClient().getIntegrationByName('Replay');
 ```
 
@@ -317,16 +316,19 @@ the behavior of the `tracePropagationTargets` option for Browser SDKs, see
 [below](./MIGRATION.md/#updated-behaviour-of-tracepropagationtargets-in-the-browser-http-tracing-headers--cors) for more
 details.
 
+For example for the Browser SDKs:
+
 ```ts
-// Before (Browser)
+// Before (v7)
 Sentry.init({
   dsn: '__DSN__',
-  integrations: [new Sentry.BrowserTracing({})],
+  integrations: [new Sentry.BrowserTracing({ tracingOrigins: ['localhost', 'example.com'] })],
 });
 
-// After
+// After (v8)
 Sentry.init({
   dsn: '__DSN__',
+  integrations: [Sentry.browserTracingIntegration()],
   tracePropagationTargets: ['localhost', 'example.com'],
 });
 ```
@@ -336,7 +338,7 @@ Sentry.init({
 The SDKs now support metrics features without any additional configuration.
 
 ```ts
-// before
+// Before (v7)
 // Server (Node/Deno/Bun)
 Sentry.init({
   dsn: '__DSN__',
@@ -345,13 +347,14 @@ Sentry.init({
   },
 });
 
+// Before (v7)
 // Browser
 Sentry.init({
   dsn: '__DSN__',
   integrations: [Sentry.metricsAggregatorIntegration()],
 });
 
-// after
+// After (v8)
 Sentry.init({
   dsn: '__DSN__',
 });
@@ -363,14 +366,14 @@ In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` ty
 this has been removed in v8. You should now use the `SeverityLevel` type directly.
 
 ```js
-// Before:
+// Before (v7)
 import { Severity, SeverityLevel } from '@sentry/types';
 
 const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
 
-// After
+// After (v8)
 import { SeverityLevel } from '@sentry/types';
 
 const levelA = "error" as SeverityLevel;
@@ -384,12 +387,12 @@ The top level `Sentry.configureScope` function has been removed. Instead, you sh
 to access and mutate the current scope.
 
 ```js
-// Before
+// Before (v7)
 Sentry.configureScope(scope => {
   scope.setTag('key', 'value');
 });
 
-// After
+// After (v8)
 Sentry.getCurrentScope().setTag('key', 'value');
 ```
 
@@ -403,10 +406,10 @@ Internally, this class is now called `SentrySpan`, and it is no longer meant to 
 In v8, we are removing the `spanStatusfromHttpCode` function in favor of `getSpanStatusFromHttpCode`.
 
 ```js
-// before
+// Before (v7)
 const spanStatus = spanStatusfromHttpCode(200);
 
-// after
+// After (v8)
 const spanStatus = getSpanStatusFromHttpCode(200);
 ```
 
@@ -415,13 +418,13 @@ const spanStatus = getSpanStatusFromHttpCode(200);
 In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
 
 ```js
-// before
+// Before (v7)
 addGlobalEventProcessor(event => {
   delete event.extra;
   return event;
 });
 
-// after
+// After (v8)
 addEventProcessor(event => {
   delete event.extra;
   return event;
@@ -661,7 +664,7 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration()],
 });
 
-// You still need to add the Trace Service like before!
+// You still need to add the TraceService like before!
 ```
 
 ### `@sentry/remix`
@@ -963,7 +966,6 @@ callback.
 
 ```js
 // Before
-
 Sentry.init({
   beforeSend(event, hint) {
     const lastCapturedEventId = Sentry.lastEventId();
