@@ -2,7 +2,7 @@ import { h, render } from 'preact';
 import { useState, useCallback, useEffect } from 'preact/hooks';
 import { useTakeScreenshot } from './useTakeScreenshot';
 import type { VNode } from 'preact';
-import { ScreenshotWidget } from './screenshotEditor';
+import { ScreenshotWidget } from './screenshotWidget';
 
 type Props = {
   croppingRef: HTMLDivElement;
