@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_MEASUREMENTS, Span, getActiveTransaction, getClient, setMeasurement } from '@sentry/core';
+import { Span, getActiveTransaction, getClient, setMeasurement } from '@sentry/core';
 import type { Measurements, SpanContext } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
@@ -214,13 +214,13 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
       op: 'ui.interaction.click',
       name: htmlTreeAsString(entry.target),
       attributes: {
-        [SEMANTIC_ATTRIBUTE_MEASUREMENTS]: {
-          inp: { value: metric.value, unit: 'millisecond' },
-        },
         release,
         environment,
         transaction: routeName,
-        exclusive_time: metric.value,
+      },
+      exclusiveTime: metric.value,
+      measurements: {
+        inp: { value: metric.value, unit: 'millisecond' },
       },
     });
     const envelope = span ? createSpanEnvelope([span]) : undefined;
