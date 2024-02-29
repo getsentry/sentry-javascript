@@ -21,11 +21,11 @@ interface PerformanceEntry {
   toJSON(): Record<string, unknown>;
 }
 interface PerformanceEventTiming extends PerformanceEntry {
-  processingStart: DOMHighResTimeStamp;
-  processingEnd: DOMHighResTimeStamp;
-  duration: DOMHighResTimeStamp;
+  processingStart: number;
+  processingEnd: number;
+  duration: number;
   cancelable?: boolean;
-  target?: Element;
+  target?: unknown | null;
   interactionId?: number;
 }
 
