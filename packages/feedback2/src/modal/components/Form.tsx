@@ -71,9 +71,15 @@ export function Form({
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
-  const [includeScreenshot, setIncludeScreeshot] = useState(false);
-
+  const [showScreenshotInput, setShowScreenshotInput] = useState(false);
   const ScreenshotInput = screenshotInput && screenshotInput.input;
+  const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
+
+  const [screenshotError, setScreenshotError] = useState<null | Error>(null);
+  const onScreenshotError = useCallback((error: Error) => {
+    setScreenshotError(error);
+    setShowScreenshotInput(false);
+  }, []);
 
   const hasAllRequiredFields = useCallback(
     (data: FeedbackFormData) => {
@@ -104,7 +110,7 @@ export function Form({
           return;
         }
         const formData = new FormData(e.target);
-        const attachment = await (screenshotInput && includeScreenshot ? screenshotInput.value() : undefined);
+        const attachment = await (includeScreenshotValue ? screenshotInput.value() : undefined);
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
@@ -131,7 +137,7 @@ export function Form({
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {ScreenshotInput && includeScreenshot ? <ScreenshotInput /> : null}
+      {includeScreenshotValue ? <ScreenshotInput onError={onScreenshotError} /> : null}
 
       <div class="form__right">
         <div class="form__top">
@@ -187,15 +193,18 @@ export function Form({
           {ScreenshotInput ? (
             <label for="screenshot" class="form__label">
               <span class="form__label__text">Screenshot</span>
+
               <button
                 class="btn btn--default"
                 type="button"
                 onClick={() => {
-                  setIncludeScreeshot(prev => !prev);
+                  setScreenshotError(null);
+                  setShowScreenshotInput(prev => !prev);
                 }}
               >
-                {includeScreenshot ? 'Remove' : 'Add'}
+                {showScreenshotInput ? 'Remove' : 'Add'}
               </button>
+              {screenshotError ? <div class="form__error-container">{screenshotError.message}</div> : null}
             </label>
           ) : null}
         </div>

@@ -66,10 +66,15 @@ export interface Dialog {
   el: HTMLElement;
 
   /**
+   * Insert the Dialog into the Shadow DOM.
    *
+   * The Dialog starts in the `closed` state where no inner HTML is rendered.
    */
   appendToDom: () => void;
 
+  /**
+   * Remove the dialog from the Shadow DOM
+   */
   removeFromDom: () => void;
 
   /**
@@ -87,7 +92,7 @@ export interface ScreenshotInput {
   /**
    * The preact component
    */
-  input: ComponentType;
+  input: ComponentType<{ onError: (error: Error) => void }>;
 
   /**
    * The image/screenshot bytes

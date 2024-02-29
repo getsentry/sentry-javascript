@@ -4,9 +4,19 @@ import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
 
+interface FactoryParams {
+  h: typeof hType;
+  canvas: HTMLCanvasElement;
+  dialog: Dialog;
+}
+
+interface Props {
+  onError: (error: Error) => void;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeInput(h: typeof hType, canvas: HTMLCanvasElement, dialog: Dialog): ComponentType {
-  return function ScreenshotToggle(): VNode {
+export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryParams): ComponentType<Props> {
+  return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -34,6 +44,10 @@ export function makeInput(h: typeof hType, canvas: HTMLCanvasElement, dialog: Di
       ),
       onAfterScreenshot: useCallback(() => {
         dialog.el.style.display = 'block';
+      }, []),
+      onError: useCallback(error => {
+        dialog.el.style.display = 'block';
+        onError(error);
       }, []),
     });
 

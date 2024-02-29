@@ -7,9 +7,10 @@ interface Props {
   onBeforeScreenshot: () => void;
   onScreenshot: (imageSource: HTMLVideoElement) => void;
   onAfterScreenshot: () => void;
+  onError: (error: Error) => void;
 }
 
-export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScreenshot }: Props): void => {
+export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScreenshot, onError }: Props): void => {
   useEffect(() => {
     const takeScreenshot = async (): Promise<void> => {
       onBeforeScreenshot();
@@ -38,9 +39,6 @@ export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScr
       onAfterScreenshot();
     };
 
-    takeScreenshot().catch(_error => {
-      console.log('some takeScreenshotError', error);
-      // TODO
-    });
+    takeScreenshot().catch(onError);
   }, []);
 };

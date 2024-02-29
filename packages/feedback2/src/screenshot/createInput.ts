@@ -2,7 +2,7 @@ import type { Attachment } from '@sentry/types';
 import type { h as hType } from 'preact';
 import { DOCUMENT } from '../constants';
 import type { Dialog, ScreenshotInput } from '../types';
-import { makeInput } from './components/ScreenshotInput';
+import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
 
 /**
  *
@@ -11,7 +11,7 @@ export function createInput(h: typeof hType, dialog: Dialog): ScreenshotInput {
   const canvas = DOCUMENT.createElement('canvas');
 
   return {
-    input: makeInput(h, canvas, dialog),
+    input: makeScreenshotEditorComponent({ h, canvas, dialog }),
 
     value: async () => {
       const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {
