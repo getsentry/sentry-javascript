@@ -522,6 +522,7 @@ function isPerformanceEventTiming(entry: PerformanceEntry): entry is Performance
   return 'duration' in entry;
 }
 
+/** We store up to 10 interaction candidates max to cap memory usage. This is the same cap as getINP from web-vitals */
 const MAX_INTERACTIONS = 10;
 
 /** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
