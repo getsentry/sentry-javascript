@@ -60,6 +60,7 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
   const [crop, setCrop] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
   const imageRef = useRef<HTMLCanvasElement>(null);
   const [image, setImage] = useState<HTMLCanvasElement | null>(screenshotImage);
+  const [corner, setCorner] = useState('topleft');
 
   useEffect(() => {
     const imageCanvas = imageRef.current;
@@ -124,25 +125,45 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
     }
   }
 
-  const handleMouseMove = useCallback((e: { offsetX: number; offsetY: number }) => {
-    console.log('move');
-    setRectStart({
-      x: Math.floor(e.offsetX / currentRatio.current),
-      y: Math.floor(e.offsetY / currentRatio.current),
-    });
+  const makeHandleMouseMove = useCallback((corner: string) => {
+    return function (e: MouseEvent) {
+      switch (corner) {
+        case 'topleft':
+          setRectStart({
+            x: Math.floor(e.offsetX / currentRatio.current),
+            y: Math.floor(e.offsetY / currentRatio.current),
+          });
+          break;
+        case 'topright':
+          setRectStart(prev => ({ ...prev, y: Math.floor(e.offsetY / currentRatio.current) }));
+          setRectEnd(prev => ({ ...prev, x: Math.floor(e.offsetX / currentRatio.current) }));
+          break;
+        case 'bottomleft':
+          setRectStart(prev => ({ ...prev, x: Math.floor(e.offsetX / currentRatio.current) }));
+          setRectEnd(prev => ({ ...prev, y: Math.floor(e.offsetY / currentRatio.current) }));
+          break;
+        case 'bottomright':
+          setRectEnd({
+            x: Math.floor(e.offsetX / currentRatio.current),
+            y: Math.floor(e.offsetY / currentRatio.current),
+          });
+          break;
+      }
+    };
   }, []);
 
-  const handleMouseUp = useCallback(() => {
-    console.log('up');
-    canvasRef.current?.removeEventListener('mousemove', handleMouseMove);
-    canvasRef.current?.removeEventListener('click', handleMouseUp);
-    setConfirmCrop(true);
-  }, []);
-
-  function onGrabButton() {
-    console.log('down');
+  function onGrabButton(e: Event, corner: string) {
     setConfirmCrop(false);
-    canvasRef.current?.addEventListener('click', handleMouseUp);
+    const handleMouseMove = makeHandleMouseMove(corner);
+    const handleMouseUp = () => {
+      canvasRef.current?.removeEventListener('mousemove', handleMouseMove);
+      canvasRef.current?.removeEventListener('mouseup', handleMouseUp);
+      e.target?.removeEventListener('mouseup', handleMouseUp);
+      setConfirmCrop(true);
+    };
+
+    canvasRef.current?.addEventListener('mouseup', handleMouseUp);
+    e.target?.addEventListener('mouseup', handleMouseUp);
     canvasRef.current?.addEventListener('mousemove', handleMouseMove);
   }
 
@@ -174,8 +195,12 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
     <div style="padding-right: 16px; position:relative;">
       <canvas ref={imageRef}></canvas>
       <canvas style={{ position: 'absolute' }} ref={canvasRef}></canvas>
-      <button
-        style={{ width: '32px', position: 'absolute', left: rectStart.x, top: rectStart.y }}
+      <CropCorner left={rectStart.x} top={rectStart.y} onGrabButton={onGrabButton} corner="topleft"></CropCorner>
+      <CropCorner left={rectEnd.x} top={rectStart.y} onGrabButton={onGrabButton} corner="topright"></CropCorner>
+      <CropCorner left={rectStart.x} top={rectEnd.y} onGrabButton={onGrabButton} corner="bottomleft"></CropCorner>
+      <CropCorner left={rectEnd.x} top={rectEnd.y} onGrabButton={onGrabButton} corner="bottomright"></CropCorner>
+      {/* <button
+        style={{ width: 30, height: 30, position: 'absolute', left: rectStart.x, top: rectStart.y }}
         onMouseDown={e => {
           e.preventDefault();
           onGrabButton();
@@ -184,10 +209,7 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
           e.preventDefault();
           handleMouseUp();
         }}
-      ></button>
-      <button style={{ position: 'absolute', left: rectStart.x, top: rectEnd.y }}></button>
-      <button style={{ position: 'absolute', left: rectEnd.x, top: rectStart.y }}></button>
-      <button style={{ position: 'absolute', left: rectEnd.x, top: rectEnd.y }}></button>
+      ></button> */}
       <div
         style={{
           position: 'absolute',
@@ -219,5 +241,31 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
         </button>
       </div>
     </div>
+  );
+}
+
+function CropCorner({
+  top,
+  left,
+  corner,
+  onGrabButton,
+}: {
+  top: number;
+  left: number;
+  corner: string;
+  onGrabButton: (e: Event, corner: string) => void;
+}): VNode {
+  return (
+    <button
+      style={{ width: 30, height: 30, position: 'absolute', top: top, left: left }}
+      onMouseDown={e => {
+        e.preventDefault();
+        onGrabButton(e, corner);
+      }}
+      onClick={e => {
+        e.preventDefault();
+        // handleMouseUp();
+      }}
+    ></button>
   );
 }
