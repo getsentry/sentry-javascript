@@ -26,6 +26,7 @@ interface PerformanceEventTiming extends PerformanceEntry {
   duration: DOMHighResTimeStamp;
   cancelable?: boolean;
   target?: Element;
+  interactionId?: number;
 }
 
 interface Metric {
