@@ -85,7 +85,6 @@ export {
   captureSession,
   endSession,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 export {
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,

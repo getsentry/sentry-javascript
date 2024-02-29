@@ -1,5 +1,6 @@
 import type { SentrySpan } from '@sentry/core';
 import {
+  SPAN_STATUS_ERROR,
   addBreadcrumb,
   defineIntegration,
   getActiveSpan,
@@ -278,7 +279,7 @@ export class Undici implements Integration {
 
     const span = request.__sentry_span__;
     if (span) {
-      span.setStatus('internal_error');
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       span.end();
     }
 

@@ -86,8 +86,6 @@ export {
   endSession,
 } from '@sentry/core';
 
-export type { SpanStatusType } from '@sentry/core';
-
 export { DenoClient } from './client';
 
 export {

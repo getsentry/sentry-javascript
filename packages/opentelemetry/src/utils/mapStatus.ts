@@ -1,12 +1,13 @@
 import { SpanStatusCode } from '@opentelemetry/api';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { SpanStatusType as SentryStatus } from '@sentry/core';
+import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
+import type { SpanStatus } from '@sentry/types';
 
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes, spanHasStatus } from './spanTypes';
 
 // canonicalCodesHTTPMap maps some HTTP codes to Sentry's span statuses. See possible mapping in https://develop.sentry.dev/sdk/event-payloads/span/
-const canonicalCodesHTTPMap: Record<string, SentryStatus> = {
+const canonicalCodesHTTPMap: Record<string, SpanStatus['message']> = {
   '400': 'failed_precondition',
   '401': 'unauthenticated',
   '403': 'permission_denied',
@@ -21,7 +22,7 @@ const canonicalCodesHTTPMap: Record<string, SentryStatus> = {
 } as const;
 
 // canonicalCodesGrpcMap maps some GRPC codes to Sentry's span statuses. See description in grpc documentation.
-const canonicalCodesGrpcMap: Record<string, SentryStatus> = {
+const canonicalCodesGrpcMap: Record<string, SpanStatus['message']> = {
   '1': 'cancelled',
   '2': 'unknown_error',
   '3': 'invalid_argument',
@@ -43,7 +44,7 @@ const canonicalCodesGrpcMap: Record<string, SentryStatus> = {
 /**
  * Get a Sentry span status from an otel span.
  */
-export function mapStatus(span: AbstractSpan): SentryStatus {
+export function mapStatus(span: AbstractSpan): SpanStatus {
   const attributes = spanHasAttributes(span) ? span.attributes : {};
   const status = spanHasStatus(span) ? span.status : undefined;
 
@@ -54,21 +55,21 @@ export function mapStatus(span: AbstractSpan): SentryStatus {
   if (code) {
     const sentryStatus = canonicalCodesHTTPMap[code];
     if (sentryStatus) {
-      return sentryStatus;
+      return { code: SPAN_STATUS_ERROR, message: sentryStatus };
     }
   }
 
   if (typeof grpcCode === 'string') {
     const sentryStatus = canonicalCodesGrpcMap[grpcCode];
     if (sentryStatus) {
-      return sentryStatus;
+      return { code: SPAN_STATUS_ERROR, message: sentryStatus };
     }
   }
 
   const statusCode = status && status.code;
   if (statusCode === SpanStatusCode.OK || statusCode === SpanStatusCode.UNSET) {
-    return 'ok';
+    return { code: SPAN_STATUS_OK };
   }
 
-  return 'unknown_error';
+  return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
 }

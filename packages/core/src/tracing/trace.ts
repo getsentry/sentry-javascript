@@ -10,6 +10,7 @@ import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import type { SentrySpan } from './sentrySpan';
+import { SPAN_STATUS_ERROR } from './spanstatus';
 import { addChildSpanToSpan, getActiveSpan, setCapturedScopesOnSpan } from './utils';
 
 /**
@@ -49,7 +50,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
         if (activeSpan) {
           const { status } = spanToJSON(activeSpan);
           if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         }
       },
@@ -102,7 +103,7 @@ export function startSpanManual<T>(
         if (activeSpan && activeSpan.isRecording()) {
           const { status } = spanToJSON(activeSpan);
           if (!status || status === 'ok') {
-            activeSpan.setStatus('internal_error');
+            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
           }
         }
       },
