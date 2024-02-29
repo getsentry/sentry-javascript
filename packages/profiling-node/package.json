@@ -68,10 +68,10 @@
     "node-abi": "^3.52.0"
   },
   "devDependencies": {
-    "@sentry/core": "7.93.0",
-    "@sentry/node": "7.93.0",
-    "@sentry/types": "7.93.0",
-    "@sentry/utils": "7.93.0",
+    "@sentry/core": "7.103.0",
+    "@sentry/node": "7.103.0",
+    "@sentry/types": "7.103.0",
+    "@sentry/utils": "7.103.0",
     "@types/node": "16.18.70",
     "@types/node-abi": "^3.0.0",
     "clang-format": "^1.8.0",
