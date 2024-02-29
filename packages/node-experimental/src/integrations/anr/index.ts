@@ -1,4 +1,3 @@
-import { URL } from 'url';
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';

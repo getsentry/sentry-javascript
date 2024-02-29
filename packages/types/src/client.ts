@@ -179,7 +179,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 
   // HOOKS
-  // TODO(v8): Make the hooks non-optional.
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**

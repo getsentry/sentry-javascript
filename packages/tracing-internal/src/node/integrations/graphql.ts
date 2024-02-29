@@ -1,4 +1,4 @@
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -48,7 +48,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
         // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan();
+        const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
         // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
