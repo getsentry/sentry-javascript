@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { Integration, Transaction, TransactionContext, User } from '@sentry/types';
+import type { Transaction, TransactionContext, User } from '@sentry/types';
 import type { FirstInputPolyfillCallback } from './types/polyfills';
 
 export * from './types/base';
