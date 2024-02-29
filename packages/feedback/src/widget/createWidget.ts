@@ -1,5 +1,4 @@
 import { getClient, getCurrentScope } from '@sentry/core';
-import { type replayIntegration } from '@sentry/replay';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
@@ -130,14 +129,10 @@ export function createWidget({
   /**
    * Internal handler when dialog is opened
    */
-  function handleOpenDialog({ includeReplay }: { includeReplay?: boolean } = {}): void {
-    if (!includeReplay) {
-      return;
-    }
-
+  function handleOpenDialog(): void {
     // Flush replay if integration exists
     const client = getClient();
-    const replay = client && client.getIntegrationByName<ReturnType<typeof replayIntegration>>('Replay');
+    const replay = client && client.getIntegrationByName('Replay') as {flush: () => Promise<void>};
     if (!replay) {
       return;
     }
@@ -178,7 +173,7 @@ export function createWidget({
         if (options.onFormOpen) {
           options.onFormOpen();
         }
-        handleOpenDialog({ includeReplay: options.includeReplay });
+        handleOpenDialog();
         return;
       }
 
@@ -231,7 +226,7 @@ export function createWidget({
       if (options.onFormOpen) {
         options.onFormOpen();
       }
-      handleOpenDialog({ includeReplay: options.includeReplay });
+      handleOpenDialog();
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);
