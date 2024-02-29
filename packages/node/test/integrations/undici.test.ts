@@ -150,7 +150,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       expect(spans.length).toBe(2);
 
       const span = spans[1];
-      expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+      expect(spanToJSON(span).status).toEqual('internal_error');
     });
   });
 

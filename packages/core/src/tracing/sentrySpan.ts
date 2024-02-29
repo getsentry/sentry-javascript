@@ -135,9 +135,6 @@ export class SentrySpan implements SpanInterface {
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
     }
-    if (spanContext.status) {
-      this._status = spanContext.status;
-    }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
@@ -258,24 +255,6 @@ export class SentrySpan implements SpanInterface {
    */
   public set endTimestamp(endTime: number | undefined) {
     this._endTime = endTime;
-  }
-
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `spanToJSON().status` instead to get the status.
-   */
-  public get status(): SpanStatusType | string | undefined {
-    return this._status;
-  }
-
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `.setStatus()` instead to set or update the status.
-   */
-  public set status(status: SpanStatusType | string | undefined) {
-    this._status = status;
   }
 
   /* eslint-enable @typescript-eslint/member-ordering */

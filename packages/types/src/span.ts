@@ -110,12 +110,6 @@ export interface SpanContext {
   op?: string | undefined;
 
   /**
-   * Completion status of the Span.
-   * See: {SpanStatusType} for possible values
-   */
-  status?: string | undefined;
-
-  /**
    * Parent Span ID
    */
   parentSpanId?: string | undefined;
@@ -230,15 +224,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   transaction?: Transaction;
-
-  /**
-   * Completion status of the Span.
-   *
-   * See: {SpanStatusType} for possible values
-   *
-   * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
-   */
-  status?: string | undefined;
 
   /**
    * Get context data for this span.

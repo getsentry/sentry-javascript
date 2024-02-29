@@ -77,7 +77,6 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
         },
         name: routeId ? routeId : event.url.pathname,
-        status: 'ok',
       };
 
       try {
@@ -144,7 +143,6 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
         },
         name: routeId ? routeId : event.url.pathname,
-        status: 'ok',
         metadata: {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
