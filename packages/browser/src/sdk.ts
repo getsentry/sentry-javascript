@@ -44,9 +44,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   ];
 }
 
-function applyDefaultOptions(options: BrowserOptions = {}): BrowserOptions {
+function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   const defaultOptions: BrowserOptions = {
-    defaultIntegrations: getDefaultIntegrations(options),
+    defaultIntegrations: getDefaultIntegrations(optionsArg),
     release:
       typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
         ? __SENTRY_RELEASE__
@@ -57,7 +57,7 @@ function applyDefaultOptions(options: BrowserOptions = {}): BrowserOptions {
     sendClientReports: true,
   };
 
-  return { ...defaultOptions, ...options };
+  return { ...defaultOptions, ...optionsArg };
 }
 
 function shouldShowBrowserExtensionError(): boolean {
