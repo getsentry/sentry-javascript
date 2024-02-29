@@ -669,7 +669,7 @@ function getSampleRate(transactionContext: TransactionContext | undefined, optio
       },
       location: WINDOW.location,
     });
-  } else if (transactionContext?.sampled !== undefined) {
+  } else if (transactionContext !== undefined && transactionContext.sampled !== undefined) {
     sampleRate = transactionContext.sampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
