@@ -152,6 +152,12 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
    */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
+
+  /**
+   * Get the profile id from the transaction
+   * @deprecated Use `toJSON()` or access the fields directly instead.
+   */
+  getProfileId(): string | undefined;
 }
 
 /**
