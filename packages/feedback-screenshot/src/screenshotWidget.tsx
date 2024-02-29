@@ -2,7 +2,6 @@ import type { VNode } from 'preact';
 import { useCallback, useEffect, useRef, useState } from 'preact/hooks';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { h } from 'preact';
-import { once } from 'events';
 
 // exporting a separate copy of `WINDOW` rather than exporting the one from `@sentry/browser`
 // prevents the browser package from being bundled in the CDN bundle, and avoids a
@@ -60,31 +59,43 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
   const [confirmCrop, setConfirmCrop] = useState(false);
   const [crop, setCrop] = useState<Rect>({ x: 0, y: 0, width: 0, height: 0 });
   const imageRef = useRef<HTMLCanvasElement>(null);
-  const renderSize = getCanvasRenderSize(screenshotImage?.width ?? 0, screenshotImage?.height ?? 0);
+  const [image, setImage] = useState<HTMLCanvasElement | null>(screenshotImage);
 
   useEffect(() => {
     const imageCanvas = imageRef.current;
     const ctx = imageCanvas?.getContext('2d');
     const img = new Image();
-    if (screenshotImage) {
-      img.src = screenshotImage.toDataURL();
-    }
-    img.onload = () => {
-      if (imageCanvas && ctx) {
-        imageCanvas.width = img.width;
-        imageCanvas.height = img.height;
-        setCanvasSize(imageCanvas);
-        ctx.drawImage(img, 0, 0);
+
+    if (image) {
+      img.src = image.toDataURL();
+      const renderSize = getCanvasRenderSize(image.width, image.height);
+
+      img.onload = () => {
+        if (imageCanvas && ctx) {
+          imageCanvas.width = img.width;
+          imageCanvas.height = img.height;
+          setCanvasSize(imageCanvas);
+          ctx.drawImage(img, 0, 0);
+        }
+      };
+
+      const canvas = canvasRef.current;
+      if (canvas) {
+        canvas.width = renderSize.width;
+        canvas.height = renderSize.height;
+        setRectStart({ x: 0, y: 0 });
+        setCanvasSize(canvas);
       }
-    };
-  }, [screenshotImage]);
+    }
+  }, [image]);
 
   function setCanvasSize(canvas: HTMLCanvasElement) {
-    if (screenshotImage) {
+    if (image) {
+      const renderSize = getCanvasRenderSize(image.width, image.height);
       canvas.style.width = `${renderSize.width}px`;
       canvas.style.height = `${renderSize.height}px`;
-      canvas.style.top = `${(WINDOW.innerHeight - renderSize.height) / 2}px`;
-      canvas.style.left = `${(WINDOW.innerWidth - renderSize.width) / 2}px`;
+      canvas.style.top = '0px';
+      canvas.style.left = '0px';
 
       setRectEnd({ x: renderSize.width, y: renderSize.height });
     }
@@ -135,17 +146,6 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
     canvasRef.current?.addEventListener('mousemove', handleMouseMove);
   }
 
-  // canvasRef.current?.addEventListener('mousedown', onGrabButton);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = renderSize.width;
-      canvas.height = renderSize.height;
-      setCanvasSize(canvas);
-    }
-  }, [screenshotImage]);
-
   useEffect(() => {
     refreshCanvas();
   }, [rectStart, rectEnd]);
@@ -154,6 +154,7 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
     const canvas = imageRef.current;
     if (!rect) {
       setScreenshotImage(canvas);
+      setImage(canvas);
       return;
     }
     // eslint-disable-next-line no-restricted-globals
@@ -166,7 +167,7 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
     }
 
     setScreenshotImage(cutoutCanvas);
-    screenshotImage = cutoutCanvas;
+    setImage(cutoutCanvas);
   }
 
   return (
@@ -187,21 +188,36 @@ export function ScreenshotWidget({ screenshotImage, setScreenshotImage }: Props)
       <button style={{ position: 'absolute', left: rectStart.x, top: rectEnd.y }}></button>
       <button style={{ position: 'absolute', left: rectEnd.x, top: rectStart.y }}></button>
       <button style={{ position: 'absolute', left: rectEnd.x, top: rectEnd.y }}></button>
-      <button
+      <div
         style={{
-          width: '100px',
-          height: '100px',
-          background: 'purple',
           position: 'absolute',
-          left: 0,
-          top: 0,
+          left: rectEnd.x,
+          top: rectEnd.y,
           display: confirmCrop ? 'inline' : 'none',
         }}
-        onClick={e => {
-          e.preventDefault();
-          submit(crop);
-        }}
-      ></button>
+      >
+        <button
+          onClick={e => {
+            e.preventDefault();
+            setRectStart({ x: 0, y: 0 });
+            setConfirmCrop(false);
+          }}
+        >
+          Cancel
+        </button>
+        <button
+          style={{
+            background: 'purple',
+          }}
+          onClick={e => {
+            e.preventDefault();
+            submit(crop);
+            setConfirmCrop(false);
+          }}
+        >
+          Submit
+        </button>
+      </div>
     </div>
   );
 }
