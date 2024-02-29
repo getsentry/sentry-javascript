@@ -1,4 +1,4 @@
-import type { ClientOptions, Options } from '@sentry/types';
+import type { ClientOptions, Options, TracePropagationTargets } from '@sentry/types';
 
 import type { DenoTransportOptions } from './transports';
 
