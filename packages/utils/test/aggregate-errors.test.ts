@@ -4,8 +4,17 @@ import { applyAggregateErrorsToEvent, createStackParser } from '../src/index';
 
 const stackParser = createStackParser([0, line => ({ filename: line })]);
 const exceptionFromError = (_stackParser: StackParser, ex: Error): Exception => {
-  return { value: ex.message, mechanism: { type: 'instrument', handled: true } };
+  return { value: ex.message, type: ex.name, mechanism: { type: 'instrument', handled: true } };
 };
+class FakeAggregateError extends Error {
+  public errors: Error[];
+
+  constructor(errors: Error[], message: string) {
+    super(message);
+    this.errors = errors;
+    this.name = 'AggregateError';
+  }
+}
 
 describe('applyAggregateErrorsToEvent()', () => {
   test('should not do anything if event does not contain an exception', () => {
@@ -57,6 +66,7 @@ describe('applyAggregateErrorsToEvent()', () => {
       exception: {
         values: [
           {
+            type: 'Error',
             value: 'Nested Error 2',
             mechanism: {
               exception_id: 2,
@@ -67,22 +77,22 @@ describe('applyAggregateErrorsToEvent()', () => {
             },
           },
           {
+            type: 'Error',
             value: 'Nested Error 1',
             mechanism: {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
           },
           {
+            type: 'Error',
             value: 'Root Error',
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
@@ -123,19 +133,21 @@ describe('applyAggregateErrorsToEvent()', () => {
 
     // Last exception in list should be the root exception
     expect(event.exception?.values?.[event.exception?.values.length - 1]).toStrictEqual({
+      type: 'Error',
       value: 'Root Error',
       mechanism: {
         exception_id: 0,
         handled: true,
-        is_exception_group: true,
         type: 'instrument',
       },
     });
   });
 
   test('should keep the original mechanism type for the root exception', () => {
-    const fakeAggregateError: ExtendedError = new Error('Root Error');
-    fakeAggregateError.errors = [new Error('Nested Error 1'), new Error('Nested Error 2')];
+    const fakeAggregateError = new FakeAggregateError(
+      [new Error('Nested Error 1'), new Error('Nested Error 2')],
+      'Root Error',
+    );
 
     const event: Event = { exception: { values: [exceptionFromError(stackParser, fakeAggregateError)] } };
     const eventHint: EventHint = { originalException: fakeAggregateError };
@@ -147,10 +159,12 @@ describe('applyAggregateErrorsToEvent()', () => {
   test('should recursively walk mixed errors (Aggregate errors and based on `key`)', () => {
     const chainedError: ExtendedError = new Error('Nested Error 3');
     chainedError.cause = new Error('Nested Error 4');
-    const fakeAggregateError2: ExtendedError = new Error('AggregateError2');
-    fakeAggregateError2.errors = [new Error('Nested Error 2'), chainedError];
-    const fakeAggregateError1: ExtendedError = new Error('AggregateError1');
-    fakeAggregateError1.errors = [new Error('Nested Error 1'), fakeAggregateError2];
+
+    const fakeAggregateError2 = new FakeAggregateError([new Error('Nested Error 2'), chainedError], 'AggregateError2');
+    const fakeAggregateError1 = new FakeAggregateError(
+      [new Error('Nested Error 1'), fakeAggregateError2],
+      'AggregateError1',
+    );
 
     const event: Event = { exception: { values: [exceptionFromError(stackParser, fakeAggregateError1)] } };
     const eventHint: EventHint = { originalException: fakeAggregateError1 };
@@ -167,17 +181,18 @@ describe('applyAggregateErrorsToEvent()', () => {
               source: 'cause',
               type: 'chained',
             },
+            type: 'Error',
             value: 'Nested Error 4',
           },
           {
             mechanism: {
               exception_id: 4,
               handled: true,
-              is_exception_group: true,
               parent_id: 2,
               source: 'errors[1]',
               type: 'chained',
             },
+            type: 'Error',
             value: 'Nested Error 3',
           },
           {
@@ -188,6 +203,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               source: 'errors[0]',
               type: 'chained',
             },
+            type: 'Error',
             value: 'Nested Error 2',
           },
           {
@@ -199,6 +215,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               source: 'errors[1]',
               type: 'chained',
             },
+            type: 'AggregateError',
             value: 'AggregateError2',
           },
           {
@@ -209,6 +226,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               source: 'errors[0]',
               type: 'chained',
             },
+            type: 'Error',
             value: 'Nested Error 1',
           },
           {
@@ -218,6 +236,7 @@ describe('applyAggregateErrorsToEvent()', () => {
               is_exception_group: true,
               type: 'instrument',
             },
+            type: 'AggregateError',
             value: 'AggregateError1',
           },
         ],
@@ -239,6 +258,7 @@ describe('applyAggregateErrorsToEvent()', () => {
       exception: {
         values: [
           {
+            type: 'Error',
             value: 'Nested Error 2',
             mechanism: {
               exception_id: 2,
@@ -249,22 +269,22 @@ describe('applyAggregateErrorsToEvent()', () => {
             },
           },
           {
+            type: 'Error',
             value: 'Nested Error 1',
             mechanism: {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
           },
           {
+            type: 'Error',
             value: 'Root Error',
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
@@ -287,6 +307,7 @@ describe('applyAggregateErrorsToEvent()', () => {
       exception: {
         values: [
           {
+            type: 'Error',
             value: 'Nested Error 2 ...',
             mechanism: {
               exception_id: 2,
@@ -297,22 +318,22 @@ describe('applyAggregateErrorsToEvent()', () => {
             },
           },
           {
+            type: 'Error',
             value: 'Nested Error 1 ...',
             mechanism: {
               exception_id: 1,
               handled: true,
               parent_id: 0,
-              is_exception_group: true,
               source: 'cause',
               type: 'chained',
             },
           },
           {
+            type: 'Error',
             value: 'Root Error with...',
             mechanism: {
               exception_id: 0,
               handled: true,
-              is_exception_group: true,
               type: 'instrument',
             },
           },
