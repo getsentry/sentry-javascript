@@ -50,18 +50,12 @@ describe('registerErrorHandlers()', () => {
     registerErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockErrorCallback({} as HandlerDataError);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockUnhandledRejectionCallback({});
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     transaction.end();
@@ -72,8 +66,6 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span!.status).toBe('internal_error');
       expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });
@@ -83,8 +75,6 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span!.status).toBe('internal_error');
       expect(spanToJSON(span!).status).toBe('internal_error');
     });
   });

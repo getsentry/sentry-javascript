@@ -176,7 +176,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     parentSampled,
     name: description,
     op,
-    status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
       ...dropUndefinedKeys({
@@ -189,6 +188,8 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     origin,
     sampled: true,
   });
+
+  transaction.setStatus(mapStatus(span));
 
   // We currently don't want to write this to the scope because it would mutate it.
   // In the future we will likely have some sort of transaction payload factory where we can pass this context in directly
@@ -237,11 +238,11 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     name: description,
     op,
     data: allData,
-    status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     spanId,
     origin,
   });
+  sentrySpan.setStatus(mapStatus(span));
 
   node.children.forEach(child => {
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);

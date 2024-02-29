@@ -232,12 +232,12 @@ describe('IdleTransaction', () => {
 
       // Regular SentrySpan - should not modified
       expect(spans[1].spanContext().spanId).toBe(regularSpan.spanContext().spanId);
-      expect(spans[1]['_endTime']).not.toBe(spanToJSON(transaction).timestamp);
+      expect(spanToJSON(spans[1]).timestamp).not.toBe(spanToJSON(transaction).timestamp);
 
       // Cancelled SentrySpan - has endtimestamp of transaction
       expect(spans[2].spanContext().spanId).toBe(cancelledSpan.spanContext().spanId);
-      expect(spans[2].status).toBe('cancelled');
-      expect(spans[2]['_endTime']).toBe(spanToJSON(transaction).timestamp);
+      expect(spanToJSON(spans[2]).status).toBe('cancelled');
+      expect(spanToJSON(spans[2]).timestamp).toBe(spanToJSON(transaction).timestamp);
     }
   });
 
@@ -415,22 +415,22 @@ describe('IdleTransaction', () => {
       const transaction = new IdleTransaction({ name: 'foo' }, getCurrentHub(), 20000);
       const mockFinish = jest.spyOn(transaction, 'end');
 
-      expect(transaction.status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(transaction).status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 1
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(transaction).status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 2
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(transaction).status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
 
       // Beat 3
       jest.advanceTimersByTime(TRACING_DEFAULTS.heartbeatInterval);
-      expect(transaction.status).not.toEqual('deadline_exceeded');
+      expect(spanToJSON(transaction).status).not.toEqual('deadline_exceeded');
       expect(mockFinish).toHaveBeenCalledTimes(0);
     });
 

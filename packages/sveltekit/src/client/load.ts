@@ -94,7 +94,6 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
           },
           name: routeId ? routeId : event.url.pathname,
-          status: 'ok',
         },
         () => handleCallbackErrors(() => wrappingTarget.apply(thisArg, [patchedEvent]), sendErrorToSentry),
       );
