@@ -42,7 +42,8 @@ export async function sendFeedbackRequest(
     }
 
     const feedbackEvent = await prepareFeedbackEvent({
-      scope,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      scope: scope as any,
       client,
       event: baseEvent,
     });

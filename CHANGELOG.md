@@ -4,6 +4,34 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.104.0
+
+### Important Changes
+
+- **feat(performance): create Interaction standalone spans on inp events (#10709)**
+
+This release adds support for the INP web vital. This is currently only supported for Saas Sentry, and product support
+is released with the upcoming `24.3.0` release of self-hosted.
+
+To opt-in to this feature, you can use the `enableInp` option in the `browserTracingIntegration`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      enableInp: true,
+    });
+  ]
+})
+```
+
+### Other Changes
+
+- feat(feedback): Flush replays when feedback form opens (#10567)
+- feat(profiling-node): Expose `nodeProfilingIntegration` (#10864)
+- fix(profiling-node): Fix dependencies to point to current versions (#10861)
+- fix(replay): Add `errorHandler` for replayCanvas integration (#10796)
+
 ## 7.103.0
 
 ### Important Changes
