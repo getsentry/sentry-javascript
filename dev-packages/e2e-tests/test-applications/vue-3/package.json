@@ -21,8 +21,8 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.41.1",
-    "@sentry/types": "^7.99.0",
-    "@sentry/utils": "^7.99.0",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "@tsconfig/node20": "^20.1.2",
     "@types/node": "^20.11.10",
     "@vitejs/plugin-vue": "^5.0.3",
