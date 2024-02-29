@@ -1,5 +1,6 @@
 import type { TraceContext } from './context';
 import type { Instrumenter } from './instrumenter';
+import type { Measurements } from './measurement';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { Transaction } from './transaction';
@@ -178,6 +179,16 @@ export interface SpanContext {
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin | undefined;
+
+  /**
+   * Exclusive time in milliseconds.
+   */
+  exclusiveTime?: number;
+
+  /**
+   * Measurements of the Span.
+   */
+  measurements?: Measurements;
 }
 
 /** Span holding trace_id, span_id */

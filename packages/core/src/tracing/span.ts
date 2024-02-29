@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
 import type {
   Instrumenter,
+  Measurements,
   Primitive,
   Span as SpanInterface,
   SpanAttributeValue,
@@ -115,6 +116,9 @@ export class Span implements SpanInterface {
   protected _endTime?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatusType | string | undefined;
+  protected _exclusiveTime?: number;
+
+  protected _measurements: Measurements;
 
   private _logMessage?: string;
 
@@ -159,6 +163,10 @@ export class Span implements SpanInterface {
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
+    if (spanContext.exclusiveTime) {
+      this._exclusiveTime = spanContext.exclusiveTime;
+    }
+    this._measurements = spanContext.measurements ? { ...spanContext.measurements } : {};
   }
 
   // This rule conflicts with another eslint rule :(
@@ -626,6 +634,8 @@ export class Span implements SpanInterface {
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
+      exclusive_time: this._exclusiveTime,
+      measurements: Object.keys(this._measurements).length > 0 ? this._measurements : undefined,
     });
   }
 
