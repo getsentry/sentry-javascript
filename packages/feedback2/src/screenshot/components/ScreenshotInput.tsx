@@ -1,13 +1,11 @@
 import type { ComponentType, VNode, h as hType } from 'preact';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useRef } from 'preact/hooks';
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function makeInput(h: typeof hType, canvas: HTMLCanvasElement, dialog: Dialog): ComponentType {
-  console.log('makeInput');
-
   return function ScreenshotToggle(): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 

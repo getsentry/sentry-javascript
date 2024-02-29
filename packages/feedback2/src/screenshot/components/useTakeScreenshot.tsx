@@ -19,9 +19,10 @@ export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScr
           height: WINDOW.innerHeight * WINDOW.devicePixelRatio,
         },
         audio: false,
+        // @ts-expect-error Experimental: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia#prefercurrenttab
         preferCurrentTab: true,
         surfaceSwitching: 'exclude',
-      } as any);
+      });
 
       await new Promise<void>((resolve, reject) => {
         const video = DOCUMENT.createElement('video');
