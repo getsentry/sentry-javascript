@@ -47,12 +47,5 @@
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "pnpm": {
-    "overrides": {
-      "@sentry/browser": "latest || *",
-      "@sentry/core": "latest || *",
-      "@sentry/utils": "latest || *"
-    }
   }
 }

@@ -32,11 +32,5 @@
     "vite": "^5.0.3",
     "wait-port": "1.0.4"
   },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/tracing": "file:../../tracing-shim"
-    }
-  },
   "type": "module"
 }
