@@ -27,8 +27,10 @@ Sentry.init({
 
 ### Other Changes
 
+- feat(feedback): Flush replays when feedback form opens (#10567)
 - feat(profiling-node): Expose `nodeProfilingIntegration` (#10864)
 - fix(profiling-node): Fix dependencies to point to current versions (#10861)
+- fix(replay): Add `errorHandler` for replayCanvas integration (#10796)
 
 ## 7.103.0
 
