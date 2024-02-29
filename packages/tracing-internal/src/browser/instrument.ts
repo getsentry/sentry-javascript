@@ -20,6 +20,13 @@ interface PerformanceEntry {
   readonly startTime: number;
   toJSON(): Record<string, unknown>;
 }
+interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: DOMHighResTimeStamp;
+  processingEnd: DOMHighResTimeStamp;
+  duration: DOMHighResTimeStamp;
+  cancelable?: boolean;
+  target?: Element;
+}
 
 interface Metric {
   /**
