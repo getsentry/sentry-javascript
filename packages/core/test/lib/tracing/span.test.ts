@@ -106,6 +106,9 @@ describe('span', () => {
       const span = new Span();
 
       /** @ts-expect-error this is invalid */
+      span.setAttribute('str', {});
+
+      /** @ts-expect-error this is invalid */
       span.setAttribute('str', null);
 
       /** @ts-expect-error this is invalid */
