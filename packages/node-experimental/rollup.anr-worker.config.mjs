@@ -6,7 +6,7 @@ function createAnrWorkerConfig(destDir, esm) {
     entrypoints: ['src/integrations/anr/worker.ts'],
     jsVersion: 'es6',
     licenseTitle: '@sentry/node',
-    outputFileBase: () => 'worker-script.js',
+    outputFileBase: () => (esm ? 'worker-script.mjs' : 'worker-script.js'),
     packageSpecificConfig: {
       output: {
         dir: destDir,

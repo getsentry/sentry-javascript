@@ -1,5 +1,6 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { PrismaInstrumentation } from '@prisma/instrumentation';
+// This is a cjs module, so have to import like this
+import * as prismaInstrumentation from '@prisma/instrumentation';
 import { defineIntegration } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
@@ -10,7 +11,7 @@ const _prismaIntegration = (() => {
       registerInstrumentations({
         instrumentations: [
           // does not have a hook to adjust spans & add origin
-          new PrismaInstrumentation({}),
+          new prismaInstrumentation.PrismaInstrumentation({}),
         ],
       });
     },

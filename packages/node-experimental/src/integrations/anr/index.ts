@@ -30,11 +30,6 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
-interface InspectorApi {
-  open: (port: number) => void;
-  url: () => string | undefined;
-}
-
 const INTEGRATION_NAME = 'Anr';
 
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
@@ -91,8 +86,7 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
   };
 
   if (options.captureStackTrace) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const inspector: InspectorApi = require('inspector');
+    const inspector = await import('inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }

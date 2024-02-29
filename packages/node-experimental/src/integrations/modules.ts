@@ -11,10 +11,13 @@ const _modulesIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
-      event.modules = {
-        ...event.modules,
-        ..._getModules(),
-      };
+      // If we're running in ESM mode, we don't have access to require
+      if (typeof require !== 'undefined') {
+        event.modules = {
+          ...event.modules,
+          ..._getModules(),
+        };
+      }
 
       return event;
     },
