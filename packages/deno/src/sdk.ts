@@ -1,11 +1,16 @@
-import { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { functionToStringIntegration, inboundFiltersIntegration, linkedErrorsIntegration } from '@sentry/core';
+import {
+  dedupeIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+} from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import type { Integration, Options, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { DenoClient } from './client';
+import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
@@ -21,14 +26,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     linkedErrorsIntegration(),
-    // From Browser
     dedupeIntegration(),
-    breadcrumbsIntegration({
-      dom: false,
-      history: false,
-      xhr: false,
-    }),
     // Deno Specific
+    breadcrumbsIntegration(),
     denoContextIntegration(),
     contextLinesIntegration(),
     normalizePathsIntegration(),

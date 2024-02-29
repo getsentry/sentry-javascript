@@ -95,7 +95,6 @@ export {
   init,
 } from './sdk';
 
-export { breadcrumbsIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 export { denoContextIntegration } from './integrations/context';
@@ -103,6 +102,7 @@ export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 
 import * as DenoIntegrations from './integrations';
 
