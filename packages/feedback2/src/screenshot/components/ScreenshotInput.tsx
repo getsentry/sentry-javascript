@@ -28,8 +28,8 @@ export function makeInput(h: typeof hType, canvas: HTMLCanvasElement, dialog: Di
           if (!context) {
             throw new Error('Could not get canvas context');
           }
-          // canvas.width = imageSource.videoWidth;
-          // canvas.height = imageSource.videoHeight;
+          canvas.width = imageSource.videoWidth;
+          canvas.height = imageSource.videoHeight;
           context.drawImage(imageSource, 0, 0);
         },
         [canvas],
@@ -42,7 +42,7 @@ export function makeInput(h: typeof hType, canvas: HTMLCanvasElement, dialog: Di
     return (
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
-        <div ref={canvasContainerRef} />
+        <div class="canvasContainer" ref={canvasContainerRef} />
       </div>
     );
   };
