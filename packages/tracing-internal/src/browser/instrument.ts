@@ -3,12 +3,13 @@ import { getFunctionName, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../common/debug-build';
 import { onCLS } from './web-vitals/getCLS';
 import { onFID } from './web-vitals/getFID';
+import { onINP } from './web-vitals/getINP';
 import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
 
 type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource';
 
-type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid';
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'inp';
 
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
@@ -18,6 +19,14 @@ interface PerformanceEntry {
   readonly name: string;
   readonly startTime: number;
   toJSON(): Record<string, unknown>;
+}
+interface PerformanceEventTiming extends PerformanceEntry {
+  processingStart: number;
+  processingEnd: number;
+  duration: number;
+  cancelable?: boolean;
+  target?: unknown | null;
+  interactionId?: number;
 }
 
 interface Metric {
@@ -86,6 +95,7 @@ const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 let _previousCls: Metric | undefined;
 let _previousFid: Metric | undefined;
 let _previousLcp: Metric | undefined;
+let _previousInp: Metric | undefined;
 
 /**
  * Add a callback that will be triggered when a CLS metric is available.
@@ -123,9 +133,19 @@ export function addFidInstrumentationHandler(callback: (data: { metric: Metric }
   return addMetricObserver('fid', callback, instrumentFid, _previousFid);
 }
 
+/**
+ * Add a callback that will be triggered when a INP metric is available.
+ * Returns a cleanup callback which can be called to remove the instrumentation handler.
+ */
+export function addInpInstrumentationHandler(
+  callback: (data: { metric: Omit<Metric, 'entries'> & { entries: PerformanceEventTiming[] } }) => void,
+): CleanupHandlerCallback {
+  return addMetricObserver('inp', callback, instrumentInp, _previousInp);
+}
+
 export function addPerformanceInstrumentationHandler(
   type: 'event',
-  callback: (data: { entries: (PerformanceEntry & { target?: unknown | null })[] }) => void,
+  callback: (data: { entries: ((PerformanceEntry & { target?: unknown | null }) | PerformanceEventTiming)[] }) => void,
 ): CleanupHandlerCallback;
 export function addPerformanceInstrumentationHandler(
   type: InstrumentHandlerTypePerformanceObserver,
@@ -196,6 +216,15 @@ function instrumentLcp(): StopListening {
       metric,
     });
     _previousLcp = metric;
+  });
+}
+
+function instrumentInp(): void {
+  return onINP(metric => {
+    triggerHandlers('inp', {
+      metric,
+    });
+    _previousInp = metric;
   });
 }
 

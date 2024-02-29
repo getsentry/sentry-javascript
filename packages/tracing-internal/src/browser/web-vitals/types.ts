@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import type { Transaction, TransactionContext, User } from '@sentry/types';
 import type { FirstInputPolyfillCallback } from './types/polyfills';
 
 export * from './types/base';
@@ -162,3 +163,14 @@ declare global {
     element?: Element;
   }
 }
+
+export type InteractionRouteNameMapping = {
+  [key: string]: {
+    routeName: string;
+    duration: number;
+    parentContext: TransactionContext;
+    user?: User;
+    activeTransaction?: Transaction;
+    replayId?: string;
+  };
+};

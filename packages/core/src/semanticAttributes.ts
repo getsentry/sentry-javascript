@@ -19,3 +19,8 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
  * Use this attribute to represent the origin of a span.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
+
+/**
+ * The id of the profile that this span occured in.
+ */
+export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'profile_id';

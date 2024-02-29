@@ -52,7 +52,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, browserTracingIntegration }',
     gzip: true,
-    limit: '35 KB',
+    limit: '36 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback) - Webpack (gzipped)',
