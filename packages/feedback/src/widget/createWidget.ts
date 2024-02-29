@@ -1,6 +1,6 @@
 import { getCurrentScope } from '@sentry/core';
-import type { Attachment } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import type { Attachment } from '@sentry/types';
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';

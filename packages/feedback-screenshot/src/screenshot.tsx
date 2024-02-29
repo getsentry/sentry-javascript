@@ -1,8 +1,8 @@
 import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { ScreenshotButton } from './screenshotButton';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import { h, render } from 'preact';
-import { ScreenshotButton } from './screenshotButton';
 
 interface FeedbackScreenshotOptions {
   buttonRef: HTMLDivElement;
