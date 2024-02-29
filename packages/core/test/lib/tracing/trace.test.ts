@@ -287,10 +287,7 @@ describe('startSpan', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
-
       expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.parentSpanId).toBe('parent-span-id');
     });
 
     expect(getCurrentScope()).toBe(initialScope);
@@ -565,8 +562,6 @@ describe('startSpanManual', () => {
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
       expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.parentSpanId).toBe('parent-span-id');
 
       finish();
 
@@ -789,8 +784,6 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(span?.parentSpanId).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 
     span?.end();

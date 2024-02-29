@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -319,7 +319,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentScope();
       const isolationScope = getIsolationScope();
-      const parentSpan = getActiveSpan();
+      const parentSpan = getActiveSpan() as SentrySpan;
 
       const data = getRequestSpanData(requestUrl, requestOptions);
 

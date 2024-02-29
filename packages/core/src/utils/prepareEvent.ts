@@ -332,8 +332,7 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
 
       if (data) {
         // This is a bit weird, as we generally have `Span` instances here, but to be safe we do not assume so
-        // eslint-disable-next-line deprecation/deprecation
-        span.data = normalize(data, depth, maxBreadth);
+        span.setAttributes(normalize(data, depth, maxBreadth));
       }
 
       return span;

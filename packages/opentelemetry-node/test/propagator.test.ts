@@ -7,6 +7,7 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
+import type { SentrySpan } from '@sentry/core';
 import { Transaction, addTracingExtensions, getCurrentHub, setCurrentClient } from '@sentry/core';
 import type { Client, TransactionContext } from '@sentry/types';
 
@@ -67,7 +68,7 @@ describe('SentryPropagator', () => {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { spanId, ...ctx } = transactionContext;
           // eslint-disable-next-line deprecation/deprecation
-          const span = transaction.startChild({ ...ctx, name: transactionContext.name });
+          const span = transaction.startChild({ ...ctx, name: transactionContext.name }) as SentrySpan;
           setSentrySpan(span.spanContext().spanId, span);
         }
       }

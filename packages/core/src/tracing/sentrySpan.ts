@@ -1,6 +1,6 @@
 import type {
   Primitive,
-  Span as SpanInterface,
+  Span,
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
@@ -62,7 +62,7 @@ export class SpanRecorder {
 /**
  * Span contains all data about a span
  */
-export class SentrySpan implements SpanInterface {
+export class SentrySpan implements Span {
   /**
    * Tags for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
@@ -277,7 +277,7 @@ export class SentrySpan implements SpanInterface {
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): SpanInterface {
+  ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
       parentSpanId: this._spanId,

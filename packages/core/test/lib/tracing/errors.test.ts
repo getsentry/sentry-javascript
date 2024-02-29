@@ -1,13 +1,14 @@
-import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
+import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
-import { registerErrorInstrumentation } from '../../../src/tracing/errors';
+import { _resetErrorsInstrumented, registerErrorInstrumentation } from '../../../src/tracing/errors';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const mockAddGlobalErrorInstrumentationHandler = jest.fn();
 const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
+
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
@@ -36,6 +37,7 @@ describe('registerErrorHandlers()', () => {
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();
+    _resetErrorsInstrumented();
   });
 
   it('registers error instrumentation', () => {

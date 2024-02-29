@@ -1,5 +1,5 @@
-import { captureCheckIn, getCurrentScope, setCurrentClient } from '@sentry/core';
 import type { Client, Integration, IntegrationFnResult } from '@sentry/types';
+import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
