@@ -132,7 +132,7 @@ export function createWidget({
   function handleOpenDialog(): void {
     // Flush replay if integration exists
     const client = getClient();
-    const replay = client && client.getIntegrationByName('Replay') as {flush: () => Promise<void>};
+    const replay = client && (client.getIntegrationByName('Replay') as { flush: () => Promise<void> });
     if (!replay) {
       return;
     }
