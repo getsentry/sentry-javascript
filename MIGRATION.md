@@ -504,14 +504,15 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 
 #### Removal of `trackHeaders` option for Astro middleware
 
-Instead of opting-in via the middleware config, you can configure if headers should be captured via `requestDataIntegration` options, which defaults to `true` but can be disabled like this:
+Instead of opting-in via the middleware config, you can configure if headers should be captured via
+`requestDataIntegration` options, which defaults to `true` but can be disabled like this:
 
 ```js
 Sentry.init({
   integrations: [
     Sentry.requestDataIntegration({
       include: {
-        headers: false
+        headers: false,
       },
     }),
   ],
@@ -574,7 +575,9 @@ Sentry was actually initialized, using `getClient()` will thus not work anymore.
 
 #### Removal of Client-Side health check transaction filters
 
-The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
+The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
+by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
+drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
 
 # Deprecations in 7.x
 
