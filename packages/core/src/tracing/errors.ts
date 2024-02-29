@@ -10,6 +10,11 @@ import { getActiveTransaction } from './utils';
 
 let errorsInstrumented = false;
 
+/**  Only exposed for testing */
+export function _resetErrorsInstrumented(): void {
+  errorsInstrumented = false;
+}
+
 /**
  * Configures global error listeners
  */

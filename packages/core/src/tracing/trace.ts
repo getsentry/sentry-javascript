@@ -1,7 +1,6 @@
 import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
-
 import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -10,6 +9,7 @@ import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import type { SentrySpan } from './sentrySpan';
 import { addChildSpanToSpan, getActiveSpan, setCapturedScopesOnSpan } from './utils';
 
 /**
@@ -30,7 +30,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
     // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+    const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -79,7 +79,7 @@ export function startSpanManual<T>(
     // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHub();
     // eslint-disable-next-line deprecation/deprecation
-    const parentSpan = scope.getSpan();
+    const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -130,8 +130,8 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   const hub = getCurrentHub();
   const parentSpan = context.scope
     ? // eslint-disable-next-line deprecation/deprecation
-      context.scope.getSpan()
-    : getActiveSpan();
+      (context.scope.getSpan() as SentrySpan | undefined)
+    : (getActiveSpan() as SentrySpan | undefined);
 
   const shouldSkipSpan = context.onlyIfParent && !parentSpan;
 
@@ -264,7 +264,7 @@ function createChildSpanOrTransaction(
     forceTransaction,
     scope,
   }: {
-    parentSpan: Span | undefined;
+    parentSpan: SentrySpan | undefined;
     spanContext: TransactionContext;
     forceTransaction?: boolean;
     scope: Scope;

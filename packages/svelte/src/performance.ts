@@ -3,7 +3,7 @@ import type { Span, Transaction } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
-import { getRootSpan } from '@sentry/core';
+import { getRootSpan, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import type { TrackComponentOptions } from './types';
 
@@ -77,11 +77,12 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     const parentSpan =
       initSpan && initSpan.isRecording() && getRootSpan(initSpan) === transaction ? initSpan : transaction;
 
-    // eslint-disable-next-line deprecation/deprecation
-    updateSpan = parentSpan.startChild({
-      op: UI_SVELTE_UPDATE,
-      name: componentName,
-      origin: 'auto.ui.svelte',
+    updateSpan = withActiveSpan(parentSpan, () => {
+      return startInactiveSpan({
+        op: UI_SVELTE_UPDATE,
+        name: componentName,
+        origin: 'auto.ui.svelte',
+      });
     });
   });
 

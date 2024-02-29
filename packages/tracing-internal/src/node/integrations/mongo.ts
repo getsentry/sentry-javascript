@@ -1,4 +1,4 @@
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import type { EventProcessor, SpanContext } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -174,7 +174,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
         // eslint-disable-next-line deprecation/deprecation
         const client = hub.getClient();
         // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan();
+        const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
         const sendDefaultPii = client?.getOptions().sendDefaultPii;
 

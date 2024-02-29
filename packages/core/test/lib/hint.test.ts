@@ -1,6 +1,6 @@
-import { captureEvent, getCurrentScope } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 
+import { captureEvent, getCurrentScope } from '../../src';
 import { initAndBind } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AddAttachmentTestIntegration } from '../mocks/integration';
