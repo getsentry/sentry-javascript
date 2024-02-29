@@ -543,12 +543,14 @@ function registerInpInteractionListener(
     const client = getClient();
     // We need to get the replay, user, and activeTransaction from the current scope
     // so that we can associate replay id, profile id, and a user display to the span
-    const replay = client?.getIntegrationByName?.('Replay') as
-      | (Integration & { getReplayId: () => string })
-      | undefined;
+    const replay =
+      client !== undefined && client.getIntegrationByName !== undefined
+        ? (client.getIntegrationByName('Replay') as Integration & { getReplayId: () => string })
+        : undefined;
     // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
-    const user = getCurrentScope()?.getUser();
+    const currentScope = getCurrentScope();
+    const user = currentScope !== undefined ? currentScope.getUser() : undefined;
     for (const entry of entries) {
       if (isPerformanceEventTiming(entry)) {
         const duration = entry.duration;

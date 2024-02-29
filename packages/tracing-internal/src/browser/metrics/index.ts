@@ -224,10 +224,10 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
             user: undefined,
             replay: undefined,
           };
+    const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
     // eslint-disable-next-line deprecation/deprecation
-    const userDisplay = user?.email || user?.id || user?.ip_address;
-    const profileId = activeTransaction?.getProfileId();
-    const replayId = replay?.getReplayId();
+    const profileId = activeTransaction !== undefined ? activeTransaction.getProfileId() : undefined;
+    const replayId = replay !== undefined ? replay.getReplayId() : undefined;
     const span = new Span({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
