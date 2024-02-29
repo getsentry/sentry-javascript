@@ -153,7 +153,6 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
-    instrumenter: 'otel',
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       defaultIntegrations: options.defaultIntegrations,

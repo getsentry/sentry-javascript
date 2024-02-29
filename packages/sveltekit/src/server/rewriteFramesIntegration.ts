@@ -1,5 +1,4 @@
-import { defineIntegration } from '@sentry/core';
-import { rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/integrations';
+import { defineIntegration, rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/core';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
 import { GLOBAL_OBJ, basename, escapeStringForRegex, join } from '@sentry/utils';
 import { WRAPPED_MODULE_SUFFIX } from '../vite/autoInstrument';

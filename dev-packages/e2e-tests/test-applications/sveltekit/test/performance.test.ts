@@ -22,9 +22,6 @@ test('sends a pageload transaction', async ({ page }) => {
         origin: 'auto.pageload.sveltekit',
       },
     },
-    tags: {
-      'routing.instrumentation': '@sentry/sveltekit',
-    },
   });
 });
 

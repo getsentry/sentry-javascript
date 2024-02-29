@@ -45,8 +45,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -73,6 +71,12 @@ export {
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -91,7 +95,7 @@ export {
   init,
 } from './sdk';
 
-export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
+export { breadcrumbsIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
 export { denoContextIntegration } from './integrations/context';

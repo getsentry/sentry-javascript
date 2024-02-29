@@ -205,13 +205,6 @@ export interface Hub {
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
 
   /**
-   * Returns all trace headers that are currently on the top scope.
-   *
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  traceHeaders(): { [key: string]: string };
-
-  /**
    * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
    *
    * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a

@@ -1,4 +1,3 @@
-import type { Instrumenter } from './instrumenter';
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { SpanAttributes, SpanOrigin, SpanTimeInput } from './span';
@@ -19,6 +18,13 @@ export interface StartSpanOptions extends TransactionContext {
 
   /** An op for the span. This is a categorization for spans. */
   op?: string;
+
+  /**
+   * If set to true, this span will be forced to be treated as a transaction in the Sentry UI, if possible and applicable.
+   * Note that it is up to the SDK to decide how exactly the span will be sent, which may change in future SDK versions.
+   * It is not guaranteed that a span started with this flag set to `true` will be sent as a transaction.
+   */
+  forceTransaction?: boolean;
 
   /**
    * The origin of the span - if it comes from auto instrumentation or manual instrumentation.
@@ -85,7 +91,6 @@ export interface StartSpanOptions extends TransactionContext {
   /**
    * @deprecated Use attributes instead.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: { [key: string]: any };
 
   /**
@@ -97,9 +102,4 @@ export interface StartSpanOptions extends TransactionContext {
    * @deprecated Use `span.end()` instead.
    */
   endTimestamp?: number;
-
-  /**
-   * @deprecated You cannot set the instrumenter manually anymore.
-   */
-  instrumenter?: Instrumenter;
 }

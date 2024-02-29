@@ -183,7 +183,6 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
         },
         name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
-        status: 'ok',
         ...traceparentData,
         metadata: {
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,

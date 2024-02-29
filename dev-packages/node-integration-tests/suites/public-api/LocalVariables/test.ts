@@ -16,6 +16,11 @@ const EXPECTED_LOCAL_VARIABLES_EVENT = {
                 arr: [1, '2', null],
                 obj: { name: 'some name', num: 5 },
                 ty: '<Some>',
+                bool: false,
+                num: 0,
+                str: '',
+                something: '<undefined>',
+                somethingElse: '<null>',
               },
             }),
             expect.objectContaining({

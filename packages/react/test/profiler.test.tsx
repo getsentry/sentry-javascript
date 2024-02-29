@@ -1,3 +1,4 @@
+import { SentrySpan } from '@sentry/core';
 import type { SpanContext } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
@@ -10,10 +11,7 @@ import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 const mockStartInactiveSpan = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
 const mockFinish = jest.fn();
 
-// @sent
-class MockSpan {
-  public constructor(public readonly ctx: SpanContext) {}
-
+class MockSpan extends SentrySpan {
   public end(): void {
     mockFinish();
   }

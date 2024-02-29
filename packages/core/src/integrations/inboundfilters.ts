@@ -8,16 +8,6 @@ import { convertIntegrationFnToClass, defineIntegration } from '../integration';
 // this is the result of a script being pulled in from an external domain and CORS.
 const DEFAULT_IGNORE_ERRORS = [/^Script error\.?$/, /^Javascript error: Script error\.? on line 0$/];
 
-const DEFAULT_IGNORE_TRANSACTIONS = [
-  /^.*\/healthcheck$/,
-  /^.*\/healthy$/,
-  /^.*\/live$/,
-  /^.*\/ready$/,
-  /^.*\/heartbeat$/,
-  /^.*\/health$/,
-  /^.*\/healthz$/,
-];
-
 /** Options for the InboundFilters integration */
 export interface InboundFiltersOptions {
   allowUrls: Array<string | RegExp>;
@@ -26,7 +16,6 @@ export interface InboundFiltersOptions {
   ignoreTransactions: Array<string | RegExp>;
   ignoreInternal: boolean;
   disableErrorDefaults: boolean;
-  disableTransactionDefaults: boolean;
 }
 
 const INTEGRATION_NAME = 'InboundFilters';
@@ -77,11 +66,7 @@ function _mergeOptions(
       ...(clientOptions.ignoreErrors || []),
       ...(internalOptions.disableErrorDefaults ? [] : DEFAULT_IGNORE_ERRORS),
     ],
-    ignoreTransactions: [
-      ...(internalOptions.ignoreTransactions || []),
-      ...(clientOptions.ignoreTransactions || []),
-      ...(internalOptions.disableTransactionDefaults ? [] : DEFAULT_IGNORE_TRANSACTIONS),
-    ],
+    ignoreTransactions: [...(internalOptions.ignoreTransactions || []), ...(clientOptions.ignoreTransactions || [])],
     ignoreInternal: internalOptions.ignoreInternal !== undefined ? internalOptions.ignoreInternal : true,
   };
 }
@@ -173,7 +158,6 @@ function _getPossibleEventMessages(event: Event): string[] {
   let lastException;
   try {
     // @ts-expect-error Try catching to save bundle size
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     lastException = event.exception.values[event.exception.values.length - 1];
   } catch (e) {
     // try catching to save bundle size checking existence of variables
@@ -198,7 +182,6 @@ function _getPossibleEventMessages(event: Event): string[] {
 function _isSentryError(event: Event): boolean {
   try {
     // @ts-expect-error can't be a sentry error if undefined
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     return event.exception.values[0].type === 'SentryError';
   } catch (e) {
     // ignore

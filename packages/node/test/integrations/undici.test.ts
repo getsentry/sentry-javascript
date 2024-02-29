@@ -150,11 +150,11 @@ conditionalTest({ min: 16 })('Undici integration', () => {
       expect(spans.length).toBe(2);
 
       const span = spans[1];
-      expect(span).toEqual(expect.objectContaining({ status: 'internal_error' }));
+      expect(spanToJSON(span).status).toEqual('internal_error');
     });
   });
 
-  it('creates a span for invalid looking urls xxx', async () => {
+  it('creates a span for invalid looking urls', async () => {
     await startSpan({ name: 'outer-span' }, async outerSpan => {
       try {
         // Intentionally add // to the url

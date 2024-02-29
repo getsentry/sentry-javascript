@@ -87,9 +87,18 @@ export function addRequestDataToTransaction(
   if (req.baseUrl) {
     transaction.setAttribute('baseUrl', req.baseUrl);
   }
-  // TODO: We need to rewrite this to a flat format?
-  // eslint-disable-next-line deprecation/deprecation
-  transaction.setData('query', extractQueryParams(req));
+
+  const query = extractQueryParams(req);
+  if (typeof query === 'string') {
+    transaction.setAttribute('query', query);
+  } else if (query) {
+    Object.keys(query).forEach(key => {
+      const val = query[key];
+      if (typeof val === 'string' || typeof val === 'number') {
+        transaction.setAttribute(`query.${key}`, val);
+      }
+    });
+  }
 }
 
 /**

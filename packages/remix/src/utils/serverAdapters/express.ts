@@ -1,8 +1,7 @@
 import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node-experimental';
-import type { Transaction } from '@sentry/types';
+import type { Hub, Transaction } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
-import { cwd } from 'process';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
@@ -15,17 +14,15 @@ import type {
   ExpressRequestHandler,
   ExpressResponse,
   GetLoadContextFunction,
-  ReactRouterDomPkg,
   ServerBuild,
+  ServerRoute,
 } from '../vendor/types';
-
-let pkg: ReactRouterDomPkg;
 
 function wrapExpressRequestHandler(
   origRequestHandler: ExpressRequestHandler,
-  build: ServerBuild,
+  build: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
 ): ExpressRequestHandler {
-  const routes = createRoutes(build.routes);
+  let routes: ServerRoute[];
 
   return async function (
     this: unknown,
@@ -33,18 +30,6 @@ function wrapExpressRequestHandler(
     res: ExpressResponse,
     next: ExpressNextFunction,
   ): Promise<void> {
-    if (!pkg) {
-      try {
-        pkg = await import('react-router-dom');
-      } catch (e) {
-        pkg = await import(`${cwd()}/node_modules/react-router-dom`);
-      } finally {
-        if (!pkg) {
-          DEBUG_BUILD && logger.error('Could not find `react-router-dom` package.');
-        }
-      }
-    }
-
     await withIsolationScope(async isolationScope => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       res.end = wrapEndMethod(res.end);
@@ -62,20 +47,61 @@ function wrapExpressRequestHandler(
 
       const url = new URL(request.url);
 
-      const [name, source] = getTransactionName(routes, url, pkg);
-      const transaction = startRequestHandlerTransaction(hub, name, source, {
-        headers: {
-          'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
-          baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
-        },
-        method: request.method,
-      });
-      // save a link to the transaction on the response, so that even if there's an error (landing us outside of
-      // the domain), we can still finish it (albeit possibly missing some scope data)
-      (res as AugmentedExpressResponse).__sentryTransaction = transaction;
-      return origRequestHandler.call(this, req, res, next);
+      // This is only meant to be used on development servers, so we don't need to worry about performance here
+      if (build && typeof build === 'function') {
+        const resolvedBuild = build();
+
+        if (resolvedBuild instanceof Promise) {
+          return resolvedBuild.then(resolved => {
+            routes = createRoutes(resolved.routes);
+
+            startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
+          });
+        } else {
+          routes = createRoutes(resolvedBuild.routes);
+
+          return startRequestHandlerTransactionWithRoutes.call(
+            this,
+            origRequestHandler,
+            routes,
+            req,
+            res,
+            next,
+            hub,
+            url,
+          );
+        }
+      } else {
+        routes = createRoutes(build.routes);
+      }
+
+      return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
     });
   };
+}
+
+function startRequestHandlerTransactionWithRoutes(
+  this: unknown,
+  origRequestHandler: ExpressRequestHandler,
+  routes: ServerRoute[],
+  req: ExpressRequest,
+  res: ExpressResponse,
+  next: ExpressNextFunction,
+  hub: Hub,
+  url: URL,
+): Transaction | undefined {
+  const [name, source] = getTransactionName(routes, url);
+  const transaction = startRequestHandlerTransaction(hub, name, source, {
+    headers: {
+      'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
+      baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
+    },
+    method: req.method,
+  });
+  // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+  // the domain), we can still finish it (albeit possibly missing some scope data)
+  (res as AugmentedExpressResponse).__sentryTransaction = transaction;
+  return origRequestHandler.call(this, req, res, next);
 }
 
 function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadContextFunction {
@@ -86,6 +112,34 @@ function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadCo
 
     return loadContext;
   };
+}
+
+// wrap build function which returns either a Promise or the build itself
+// This is currently only required for Vite development mode with HMR
+function wrapBuildFn(origBuildFn: () => Promise<ServerBuild> | ServerBuild): () => Promise<ServerBuild> | ServerBuild {
+  return async function (this: unknown, ...args: unknown[]) {
+    const resolvedBuild = origBuildFn.call(this, ...args);
+
+    if (resolvedBuild instanceof Promise) {
+      return resolvedBuild.then(resolved => {
+        return instrumentBuild(resolved, true);
+      });
+    }
+
+    return instrumentBuild(resolvedBuild, true);
+  };
+}
+
+// A wrapper around build if it's a Promise or a function that returns a Promise that calls instrumentServer on the resolved value
+// This is currently only required for Vite development mode with HMR
+function wrapBuild(
+  build: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
+): ServerBuild | (() => Promise<ServerBuild> | ServerBuild) {
+  if (typeof build === 'function') {
+    return wrapBuildFn(build);
+  }
+
+  return instrumentBuild(build, true);
 }
 
 /**
@@ -103,7 +157,7 @@ export function wrapExpressCreateRequestHandler(
 
     fill(options, 'getLoadContext', wrapGetLoadContext);
 
-    const newBuild = instrumentBuild(options.build, true);
+    const newBuild = wrapBuild(options.build);
     const requestHandler = origCreateRequestHandler.call(this, {
       ...options,
       build: newBuild,

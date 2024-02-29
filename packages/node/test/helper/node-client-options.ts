@@ -8,7 +8,6 @@ export function getDefaultNodeClientOptions(options: Partial<NodeClientOptions> 
     integrations: [],
     transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
     stackParser: () => [],
-    instrumenter: 'sentry',
     ...options,
   };
 }

@@ -1,13 +1,25 @@
-import type { Context, Span, SpanOptions, Tracer } from '@opentelemetry/api';
+import type { Context, Span, SpanContext, SpanOptions, Tracer } from '@opentelemetry/api';
+import { TraceFlags } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { SpanStatusCode, trace } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
-import { SDK_VERSION, getClient, getCurrentScope, handleCallbackErrors } from '@sentry/core';
+import { TraceState, suppressTracing } from '@opentelemetry/core';
+import {
+  SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getClient,
+  getCurrentScope,
+  handleCallbackErrors,
+} from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
+import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
+import { SENTRY_TRACE_STATE_DSC } from './constants';
 
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
+import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+import { getRootSpan } from './utils/getActiveSpan';
 import { setSpanMetadata } from './utils/spanData';
 
 /**
@@ -24,7 +36,7 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
 
   const { name } = options;
 
-  const activeCtx = getContext(options.scope);
+  const activeCtx = getContext(options.scope, options.forceTransaction);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -57,7 +69,7 @@ export function startSpanManual<T>(options: OpenTelemetrySpanContext, callback: 
 
   const { name } = options;
 
-  const activeCtx = getContext(options.scope);
+  const activeCtx = getContext(options.scope, options.forceTransaction);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -95,7 +107,7 @@ export function startInactiveSpan(options: OpenTelemetrySpanContext): Span {
 
   const { name } = options;
 
-  const activeCtx = getContext(options.scope);
+  const activeCtx = getContext(options.scope, options.forceTransaction);
   const shouldSkipSpan = options.onlyIfParent && !trace.getSpan(activeCtx);
   const ctx = shouldSkipSpan ? suppressTracing(activeCtx) : activeCtx;
 
@@ -132,15 +144,15 @@ function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanCont
   const { origin, op, source, metadata } = options;
 
   if (origin) {
-    span.setAttribute(InternalSentrySemanticAttributes.ORIGIN, origin);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
   }
 
   if (op) {
-    span.setAttribute(InternalSentrySemanticAttributes.OP, op);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
   }
 
   if (source) {
-    span.setAttribute(InternalSentrySemanticAttributes.SOURCE, source);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
 
   if (metadata) {
@@ -166,7 +178,50 @@ function ensureTimestampInMilliseconds(timestamp: number): number {
   return isMs ? timestamp * 1000 : timestamp;
 }
 
-function getContext(scope?: Scope): Context {
+function getContext(scope: Scope | undefined, forceTransaction: boolean | undefined): Context {
+  const ctx = getContextForScope(scope);
+
+  if (!forceTransaction) {
+    return ctx;
+  }
+
+  // Else we need to "fix" the context to have no parent span
+  const parentSpan = trace.getSpan(ctx);
+
+  // If there is no parent span, all good, nothing to do!
+  if (!parentSpan) {
+    return ctx;
+  }
+
+  // Else, we need to do two things:
+  // 1. Unset the parent span from the context, so we'll create a new root span
+  // 2. Ensure the propagation context is correct, so we'll continue from the parent span
+  const ctxWithoutSpan = trace.deleteSpan(ctx);
+
+  const { spanId, traceId, traceFlags } = parentSpan.spanContext();
+  // eslint-disable-next-line no-bitwise
+  const sampled = Boolean(traceFlags & TraceFlags.SAMPLED);
+
+  const rootSpan = getRootSpan(parentSpan);
+  const dsc = getDynamicSamplingContextFromSpan(rootSpan);
+  const dscString = dynamicSamplingContextToSentryBaggageHeader(dsc);
+
+  const traceState = dscString ? new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString) : undefined;
+
+  const spanContext: SpanContext = {
+    traceId,
+    spanId,
+    isRemote: true,
+    traceFlags: sampled ? TraceFlags.SAMPLED : TraceFlags.NONE,
+    traceState,
+  };
+
+  const ctxWithSpanContext = trace.setSpanContext(ctxWithoutSpan, spanContext);
+
+  return ctxWithSpanContext;
+}
+
+function getContextForScope(scope?: Scope): Context {
   if (scope) {
     const ctx = getContextFromScope(scope);
     if (ctx) {

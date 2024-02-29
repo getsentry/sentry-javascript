@@ -6,11 +6,11 @@ import {
   propagation,
   trace,
 } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
+import { TraceState, suppressTracing } from '@opentelemetry/core';
 import { addTracingExtensions, setCurrentClient } from '@sentry/core';
 import type { Client, PropagationContext } from '@sentry/types';
 
-import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER } from '../src/constants';
+import { SENTRY_BAGGAGE_HEADER, SENTRY_TRACE_HEADER, SENTRY_TRACE_STATE_DSC } from '../src/constants';
 import { SentryPropagator } from '../src/propagator';
 import { getPropagationContextFromContext, setPropagationContextOnContext } from '../src/utils/contextData';
 
@@ -73,6 +73,33 @@ describe('SentryPropagator', () => {
             'sentry-public_key=abc',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
             'sentry-transaction=sampled-transaction',
+            'sentry-sampled=true',
+          ],
+          'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
+        ],
+        [
+          'works with a DSC on the span trace state',
+          {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.SAMPLED,
+            traceState: new TraceState().set(
+              SENTRY_TRACE_STATE_DSC,
+              'sentry-transaction=other-transaction,sentry-environment=other,sentry-release=8.0.0,sentry-public_key=public,sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b,sentry-sampled=true',
+            ),
+          },
+          {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c94',
+            parentSpanId: '6e0c63257de34c93',
+            sampled: true,
+          },
+          [
+            'sentry-environment=other',
+            'sentry-release=8.0.0',
+            'sentry-public_key=public',
+            'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-transaction=other-transaction',
             'sentry-sampled=true',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',

@@ -8,7 +8,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node-experimental';
-import type { Client, Scope, Span } from '@sentry/types';
+import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
@@ -27,15 +27,6 @@ type MiddlewareOptions = {
    * @default false (recommended)
    */
   trackClientIp?: boolean;
-
-  /**
-   * If true, the headers from the request will be attached to the event by calling `setExtra`.
-   *
-   * Only set this to `true` if you're fine with collecting potentially personally identifiable information (PII).
-   *
-   * @default false (recommended)
-   */
-  trackHeaders?: boolean;
 };
 
 function sendErrorToSentry(e: unknown): unknown {
@@ -63,7 +54,6 @@ type AstroLocalsWithSentry = Record<string, unknown> & {
 export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseHandler = options => {
   const handlerOptions = {
     trackClientIp: false,
-    trackHeaders: false,
     ...options,
   };
 
@@ -100,13 +90,9 @@ async function instrumentRequest(
       baggage: headers.get('baggage'),
     },
     async () => {
-      const allHeaders: Record<string, string> = {};
-
-      if (options.trackHeaders) {
-        headers.forEach((value, key) => {
-          allHeaders[key] = value;
-        });
-      }
+      // We store this on the current scope, not isolation scope,
+      // because we may have multiple requests nested inside each other
+      getCurrentScope().setSDKProcessingMetadata({ request: ctx.request });
 
       if (options.trackClientIp) {
         getCurrentScope().setUser({ ip_address: ctx.clientAddress });
@@ -117,22 +103,27 @@ async function instrumentRequest(
         const source = interpolatedRoute ? 'route' : 'url';
         // storing res in a variable instead of directly returning is necessary to
         // invoke the catch block if next() throws
+
+        const attributes: SpanAttributes = {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          method,
+          url: stripUrlQueryAndFragment(ctx.url.href),
+        };
+
+        if (ctx.url.search) {
+          attributes['http.query'] = ctx.url.search;
+        }
+
+        if (ctx.url.hash) {
+          attributes['http.fragment'] = ctx.url.hash;
+        }
+
         const res = await startSpan(
           {
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.astro',
-            },
+            attributes,
             name: `${method} ${interpolatedRoute || ctx.url.pathname}`,
             op: 'http.server',
-            status: 'ok',
-            data: {
-              method,
-              url: stripUrlQueryAndFragment(ctx.url.href),
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-              ...(ctx.url.search && { 'http.query': ctx.url.search }),
-              ...(ctx.url.hash && { 'http.fragment': ctx.url.hash }),
-              ...(options.trackHeaders && { headers: allHeaders }),
-            },
           },
           async span => {
             const originalResponse = await next();

@@ -1,3 +1,5 @@
+import type { IntegrationFn } from '@sentry/types/src';
+
 export * from './exports';
 
 import { Integrations as CoreIntegrations } from '@sentry/core';
@@ -14,7 +16,7 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const INTEGRATIONS: Record<string, new (...args: any[]) => Integration> = {
+const INTEGRATIONS: Record<string, (new (...args: any[]) => Integration) | IntegrationFn> = {
   ...windowIntegrations,
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,

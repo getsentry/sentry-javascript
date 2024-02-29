@@ -62,9 +62,6 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           status: 'internal_error',
-          tags: {
-            'http.status_code': '500',
-          },
           data: {
             'http.response.status_code': 500,
           },
@@ -159,11 +156,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'ok',
-          tags: {
-            method: 'POST',
-            'http.status_code': '302',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 302,
           },
         },
@@ -178,11 +172,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'GET',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'GET',
             'http.response.status_code': 500,
           },
         },
@@ -231,11 +222,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
@@ -284,11 +272,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
@@ -337,11 +322,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
@@ -390,11 +372,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
@@ -443,11 +422,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },
@@ -496,11 +472,8 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
         trace: {
           op: 'http.server',
           status: 'internal_error',
-          tags: {
-            method: 'POST',
-            'http.status_code': '500',
-          },
           data: {
+            method: 'POST',
             'http.response.status_code': 500,
           },
         },

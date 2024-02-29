@@ -1,3 +1,4 @@
+import type { SentrySpan } from '@sentry/core';
 import {
   addBreadcrumb,
   defineIntegration,
@@ -183,7 +184,7 @@ export class Undici implements Integration {
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
     const isolationScope = getIsolationScope();
-    const parentSpan = getActiveSpan();
+    const parentSpan = getActiveSpan() as SentrySpan;
 
     const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
     if (span) {
@@ -320,7 +321,7 @@ function setHeadersOnRequest(
 }
 
 function createRequestSpan(
-  activeSpan: Span | undefined,
+  activeSpan: SentrySpan | undefined,
   request: RequestWithSentry,
   stringUrl: string,
 ): Span | undefined {

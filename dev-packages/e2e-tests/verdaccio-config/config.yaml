@@ -86,12 +86,6 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry/integrations':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
   '@sentry/nextjs':
     access: $all
     publish: $all
@@ -164,12 +158,6 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry/tracing':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
   '@sentry/types':
     access: $all
     publish: $all
@@ -195,12 +183,6 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/wasm':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
-  '@sentry/hub':
     access: $all
     publish: $all
     unpublish: $all

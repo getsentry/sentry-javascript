@@ -1,27 +1,10 @@
 import type { ClientOptions, CustomSamplingContext, Hub, TransactionContext } from '@sentry/types';
-import { logger } from '@sentry/utils';
 import { getMainCarrier } from '../asyncContext';
 
-import { DEBUG_BUILD } from '../debug-build';
-import { spanToTraceHeader } from '../utils/spanUtils';
 import { registerErrorInstrumentation } from './errors';
 import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
 import { Transaction } from './transaction';
-
-/** Returns all trace headers that are currently on the top scope. */
-function traceHeaders(this: Hub): { [key: string]: string } {
-  // eslint-disable-next-line deprecation/deprecation
-  const scope = this.getScope();
-  // eslint-disable-next-line deprecation/deprecation
-  const span = scope.getSpan();
-
-  return span
-    ? {
-        'sentry-trace': spanToTraceHeader(span),
-      }
-    : {};
-}
 
 /**
  * Creates a new transaction and adds a sampling decision if it doesn't yet have one.
@@ -46,20 +29,6 @@ function _startTransaction(
   // eslint-disable-next-line deprecation/deprecation
   const client = this.getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
-
-  const configInstrumenter = options.instrumenter || 'sentry';
-  const transactionInstrumenter = transactionContext.instrumenter || 'sentry';
-
-  if (configInstrumenter !== transactionInstrumenter) {
-    DEBUG_BUILD &&
-      logger.error(
-        `A transaction was started with instrumenter=\`${transactionInstrumenter}\`, but the SDK is configured with the \`${configInstrumenter}\` instrumenter.
-The transaction will not be sampled. Please use the ${configInstrumenter} instrumentation to start transactions.`,
-      );
-
-    // eslint-disable-next-line deprecation/deprecation
-    transactionContext.sampled = false;
-  }
 
   // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
@@ -141,9 +110,6 @@ export function addTracingExtensions(): void {
   carrier.__SENTRY__.extensions = carrier.__SENTRY__.extensions || {};
   if (!carrier.__SENTRY__.extensions.startTransaction) {
     carrier.__SENTRY__.extensions.startTransaction = _startTransaction;
-  }
-  if (!carrier.__SENTRY__.extensions.traceHeaders) {
-    carrier.__SENTRY__.extensions.traceHeaders = traceHeaders;
   }
 
   registerErrorInstrumentation();

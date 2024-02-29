@@ -361,14 +361,10 @@ describe('SentrySpanProcessor', () => {
     const transaction = getSpanForOtelSpan(otelSpan) as Transaction;
 
     // status is only set after end
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction?.status).toBe(undefined);
     expect(spanToJSON(transaction!).status).toBe(undefined);
 
     otelSpan.end();
 
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction?.status).toBe('ok');
     expect(spanToJSON(transaction!).status).toBe('ok');
   });
 
@@ -379,14 +375,10 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('SELECT * FROM users;', child => {
         const sentrySpan = getSpanForOtelSpan(child);
 
-        // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.status).toBe(undefined);
         expect(spanToJSON(sentrySpan!).status).toBe(undefined);
 
         child.end();
 
-        // eslint-disable-next-line deprecation/deprecation
-        expect(sentrySpan?.status).toBe('ok');
         expect(spanToJSON(sentrySpan!).status).toBe('ok');
 
         parentOtelSpan.end();
@@ -469,8 +461,6 @@ describe('SentrySpanProcessor', () => {
         }
 
         otelSpan.end();
-        // eslint-disable-next-line deprecation/deprecation
-        expect(transaction?.status).toBe(expected);
         expect(spanToJSON(transaction!).status).toBe(expected);
       },
     );
@@ -486,15 +476,11 @@ describe('SentrySpanProcessor', () => {
 
           child.updateName('new name');
 
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe(undefined);
           expect(sentrySpan && spanToJSON(sentrySpan).op).toBe(undefined);
           expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('SELECT * FROM users;');
 
           child.end();
 
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe(undefined);
           expect(sentrySpan && spanToJSON(sentrySpan).op).toBe(undefined);
           expect(sentrySpan ? spanToJSON(sentrySpan).description : undefined).toBe('new name');
 
@@ -514,8 +500,6 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('http.client');
           expect(spanToJSON(sentrySpan!).op).toBe('http.client');
 
           parentOtelSpan.end();
@@ -534,8 +518,6 @@ describe('SentrySpanProcessor', () => {
 
           child.end();
 
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('http.server');
           expect(spanToJSON(sentrySpan!).op).toBe('http.server');
 
           parentOtelSpan.end();
@@ -721,9 +703,6 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           const { description, op } = spanToJSON(sentrySpan!);
-
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('db');
           expect(op).toBe('db');
           expect(description).toBe('SELECT * FROM users');
 
@@ -744,9 +723,6 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           const { description, op } = spanToJSON(sentrySpan!);
-
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('db');
           expect(op).toBe('db');
           expect(description).toBe('fetch users from DB');
 
@@ -767,8 +743,6 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           const { op, description } = spanToJSON(sentrySpan!);
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('rpc');
           expect(op).toBe('rpc');
           expect(description).toBe('test operation');
 
@@ -789,9 +763,6 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           const { op, description } = spanToJSON(sentrySpan!);
-
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('message');
           expect(op).toBe('message');
           expect(description).toBe('test operation');
 
@@ -812,9 +783,6 @@ describe('SentrySpanProcessor', () => {
           child.end();
 
           const { op, description } = spanToJSON(sentrySpan!);
-
-          // eslint-disable-next-line deprecation/deprecation
-          expect(sentrySpan?.op).toBe('test faas trigger');
           expect(op).toBe('test faas trigger');
           expect(description).toBe('test operation');
 
@@ -832,10 +800,7 @@ describe('SentrySpanProcessor', () => {
         parentOtelSpan.setAttribute(SemanticAttributes.FAAS_TRIGGER, 'test faas trigger');
         parentOtelSpan.end();
 
-        // eslint-disable-next-line deprecation/deprecation
-        expect(transaction.op).toBe('test faas trigger');
         expect(spanToJSON(transaction).op).toBe('test faas trigger');
-
         expect(spanToJSON(transaction).description).toBe('test operation');
       });
     });

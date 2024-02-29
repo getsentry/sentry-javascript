@@ -25,9 +25,8 @@ import type {
 } from '@sentry/types';
 import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
-import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
-import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
+import type { SentrySpan } from './tracing/sentrySpan';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -35,8 +34,7 @@ import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 const DEFAULT_MAX_BREADCRUMBS = 100;
 
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be
- * called by the client before an event will be sent.
+ * Holds additional event information.
  */
 export class Scope implements ScopeInterface {
   /** Flag if notifying is happening. */
@@ -45,7 +43,7 @@ export class Scope implements ScopeInterface {
   /** Callback for client to receive scope changes. */
   protected _scopeListeners: Array<(scope: Scope) => void>;
 
-  /** Callback list that will be called after {@link applyToEvent}. */
+  /** Callback list that will be called during event processing. */
   protected _eventProcessors: EventProcessor[];
 
   /** Array of breadcrumbs. */
@@ -332,10 +330,15 @@ export class Scope implements ScopeInterface {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
     const span = this._span;
+
     // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
     // Also, this method will be removed anyway.
     // eslint-disable-next-line deprecation/deprecation
-    return span && span.transaction;
+    if (span && (span as SentrySpan).transaction) {
+      // eslint-disable-next-line deprecation/deprecation
+      return (span as SentrySpan).transaction;
+    }
+    return undefined;
   }
 
   /**
@@ -536,32 +539,6 @@ export class Scope implements ScopeInterface {
       transactionName: _transactionName,
       span: _span,
     };
-  }
-
-  /**
-   * Applies data from the scope to the event and runs all event processors on it.
-   *
-   * @param event Event
-   * @param hint Object containing additional information about the original exception, for use by the event processors.
-   * @hidden
-   * @deprecated Use `applyScopeDataToEvent()` directly
-   */
-  public applyToEvent(
-    event: Event,
-    hint: EventHint = {},
-    additionalEventProcessors: EventProcessor[] = [],
-  ): PromiseLike<Event | null> {
-    applyScopeDataToEvent(event, this.getScopeData());
-
-    // TODO (v8): Update this order to be: Global > Client > Scope
-    const eventProcessors: EventProcessor[] = [
-      ...additionalEventProcessors,
-      // eslint-disable-next-line deprecation/deprecation
-      ...getGlobalEventProcessors(),
-      ...this._eventProcessors,
-    ];
-
-    return notifyEventProcessors(eventProcessors, event, hint);
   }
 
   /**

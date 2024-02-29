@@ -1,4 +1,4 @@
-import { addTracingExtensions, getClient } from '@sentry/core';
+import { addTracingExtensions } from '@sentry/core';
 import type { GetStaticProps } from 'next';
 
 import { isBuild } from './utils/isBuild';
@@ -26,14 +26,10 @@ export function wrapGetStaticPropsWithSentry(
       addTracingExtensions();
 
       const errorWrappedGetStaticProps = withErrorInstrumentation(wrappingTarget);
-      const options = getClient()?.getOptions();
-
-      if (options?.instrumenter === 'sentry') {
-        return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
-          parameterizedRoute,
-          dataFetchingMethodName: 'getStaticProps',
-        });
-      }
+      return callDataFetcherTraced(errorWrappedGetStaticProps, args, {
+        parameterizedRoute,
+        dataFetchingMethodName: 'getStaticProps',
+      });
 
       return errorWrappedGetStaticProps.apply(thisArg, args);
     },

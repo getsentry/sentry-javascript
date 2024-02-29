@@ -77,8 +77,6 @@ export {
   functionToStringIntegration,
   createGetModuleFromFilename,
   metrics,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   consoleIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -100,3 +98,12 @@ export {
   endSession,
   withActiveSpan,
 } from '@sentry/node-experimental';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';

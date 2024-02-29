@@ -1,10 +1,13 @@
+import type { SpanContext } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
-import type { PropagationContext, TransactionEvent } from '@sentry/types';
+import type { Event, PropagationContext, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import { TraceState } from '@opentelemetry/core';
 import { spanToJSON } from '@sentry/core';
+import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
 import { setPropagationContextOnContext } from '../../src/utils/contextData';
@@ -14,13 +17,14 @@ import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 describe('Integration | Transactions', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+    jest.useRealTimers();
     cleanupOtel();
   });
 
   it('correctly creates transaction & spans', async () => {
     const beforeSendTransaction = jest.fn(() => null);
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction, debug: true });
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
     const client = getClient() as TestClientInterface;
 
@@ -73,6 +77,9 @@ describe('Integration | Transactions', () => {
           otel: {
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
             resource: {
               'service.name': 'opentelemetry-test',
@@ -89,6 +96,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'sentry.sample_rate': 1,
+              'test.outer': 'test value',
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -119,6 +128,7 @@ describe('Integration | Transactions', () => {
         tags: {
           'outer.tag': 'test value',
           'test.tag': 'test value',
+          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -238,6 +248,9 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value',
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
             },
           }),
           trace: {
@@ -246,6 +259,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'test.outer': 'test value',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -256,7 +271,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value' },
+        tags: { 'test.tag': 'test value', transaction: 'test name' },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -278,6 +293,7 @@ describe('Integration | Transactions', () => {
           otel: expect.objectContaining({
             attributes: {
               'test.outer': 'test value b',
+              'sentry.op': 'test op b',
             },
           }),
           trace: {
@@ -286,6 +302,8 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op b',
               'sentry.origin': 'manual',
               'sentry.source': 'custom',
+              'test.outer': 'test value b',
+              'sentry.sample_rate': 1,
             },
             op: 'test op b',
             span_id: expect.any(String),
@@ -296,7 +314,7 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b' },
+        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -353,7 +371,11 @@ describe('Integration | Transactions', () => {
       expect.objectContaining({
         contexts: expect.objectContaining({
           otel: expect.objectContaining({
-            attributes: {},
+            attributes: {
+              'sentry.op': 'test op',
+              'sentry.origin': 'auto.test',
+              'sentry.source': 'task',
+            },
           }),
           trace: {
             data: {
@@ -361,6 +383,7 @@ describe('Integration | Transactions', () => {
               'sentry.op': 'test op',
               'sentry.origin': 'auto.test',
               'sentry.source': 'task',
+              'sentry.sample_rate': 1,
             },
             op: 'test op',
             span_id: expect.any(String),
@@ -506,5 +529,69 @@ describe('Integration | Transactions', () => {
         `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
       ]),
     );
+  });
+
+  it('uses & inherits DSC on span trace state', async () => {
+    const transactionEvents: Event[] = [];
+    const beforeSendTransaction = jest.fn(event => {
+      transactionEvents.push(event);
+      return null;
+    });
+
+    const traceId = 'd4cda95b652f4a1592b449d5929fda1b';
+    const parentSpanId = '6e0c63257de34c92';
+
+    const dscString = `sentry-transaction=other-transaction,sentry-environment=other,sentry-release=8.0.0,sentry-public_key=public,sentry-trace_id=${traceId},sentry-sampled=true`;
+
+    const spanContext: SpanContext = {
+      traceId,
+      spanId: parentSpanId,
+      isRemote: true,
+      traceFlags: TraceFlags.SAMPLED,
+      traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
+    };
+
+    const propagationContext: PropagationContext = {
+      traceId,
+      parentSpanId,
+      spanId: '6e0c63257de34c93',
+      sampled: true,
+    };
+
+    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+
+    const client = getClient() as TestClientInterface;
+
+    // We simulate the correct context we'd normally get from the SentryPropagator
+    context.with(
+      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
+      () => {
+        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+          expect(span.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+
+          const subSpan = startInactiveSpan({ name: 'inner span 1' });
+
+          expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+
+          subSpan.end();
+
+          startSpan({ name: 'inner span 2' }, subSpan => {
+            expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+          });
+        });
+      },
+    );
+
+    await client.flush();
+
+    expect(transactionEvents).toHaveLength(1);
+    expect(transactionEvents[0]?.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
+      environment: 'other',
+      public_key: 'public',
+      release: '8.0.0',
+      sampled: 'true',
+      trace_id: traceId,
+      transaction: 'other-transaction',
+    });
   });
 });

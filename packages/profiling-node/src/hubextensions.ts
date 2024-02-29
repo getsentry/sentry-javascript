@@ -183,13 +183,12 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     }, maxProfileDurationMs);
 
     // We need to reference the original finish call to avoid creating an infinite loop
-    // eslint-disable-next-line deprecation/deprecation
-    const originalFinish = transaction.finish.bind(transaction);
+    const originalEnd = transaction.end.bind(transaction);
 
     // Wrap the transaction finish method to stop profiling and set the profile on the transaction.
-    function profilingWrappedTransactionFinish(): void {
+    function profilingWrappedTransactionEnd(): void {
       if (!profile_id) {
-        return originalFinish();
+        return originalEnd();
       }
 
       // We stop the handler first to ensure that the timeout is cleared and the profile is stopped.
@@ -207,11 +206,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       // @ts-expect-error profile is not part of metadata
       // eslint-disable-next-line deprecation/deprecation
       transaction.setMetadata({ profile });
-      return originalFinish();
+      return originalEnd();
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.finish = profilingWrappedTransactionFinish;
+    transaction.end = profilingWrappedTransactionEnd;
     return transaction;
   };
 }

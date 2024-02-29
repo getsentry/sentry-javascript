@@ -1,4 +1,3 @@
-/* eslint-disable deprecation/deprecation */
 import type { ClientOptions, DsnComponents } from '@sentry/types';
 import { makeDsn } from '@sentry/utils';
 

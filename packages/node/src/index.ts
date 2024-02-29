@@ -45,8 +45,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -117,6 +115,15 @@ export const Integrations = {
   ...NodeIntegrations,
   ...TracingIntegrations,
 };
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
 
 export { consoleIntegration } from './integrations/console';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';

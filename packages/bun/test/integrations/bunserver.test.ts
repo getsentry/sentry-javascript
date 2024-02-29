@@ -24,12 +24,9 @@ describe('Bun Serve Integration', () => {
 
   test('generates a transaction around a request', async () => {
     client.on('finishTransaction', transaction => {
-      expect(transaction.status).toBe('ok');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.tags).toEqual({
-        'http.status_code': '200',
-      });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).status).toBe('ok');
+      expect(spanToJSON(transaction).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('GET /');
     });
 
@@ -47,12 +44,9 @@ describe('Bun Serve Integration', () => {
 
   test('generates a post transaction', async () => {
     client.on('finishTransaction', transaction => {
-      expect(transaction.status).toBe('ok');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.tags).toEqual({
-        'http.status_code': '200',
-      });
-      expect(transaction.op).toEqual('http.server');
+      expect(spanToJSON(transaction).status).toBe('ok');
+      expect(spanToJSON(transaction).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(transaction).op).toEqual('http.server');
       expect(spanToJSON(transaction).description).toEqual('POST /');
     });
 

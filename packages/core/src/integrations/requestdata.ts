@@ -130,7 +130,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 export const requestDataIntegration = defineIntegration(_requestDataIntegration);
 
 /**
- * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/integrations`
+ * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/core`
  * so it can be used in cross-platform SDKs like `@sentry/nextjs`.
  * @deprecated Use `requestDataIntegration()` instead.
  */

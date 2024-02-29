@@ -48,7 +48,7 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -101,7 +101,6 @@ jobs:
               - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
-              - 'packages/integrations/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
@@ -268,17 +267,12 @@ jobs:
           needs.job_get_metadata.outputs.force_skip_cache == 'false'
         with:
           path: .nxcache
-          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
+          key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT || github.sha }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
-        # Under normal circumstances, using the git SHA as a cache key, there shouldn't ever be a cache hit on the built
-        # packages, and so `yarn build` should always run. This `if` check is therefore only there for testing CI issues
-        # where the built packages are beside the point. In that case, you can change `BUILD_CACHE_KEY` (at the top of
-        # this file) to a constant and skip rebuilding all of the packages each time CI runs.
-        if: steps.cache_built_packages.outputs.cache-hit == ''
         run: yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
@@ -424,7 +418,6 @@ jobs:
           name: ${{ github.sha }}
           path: |
             ${{ github.workspace }}/packages/browser/build/bundles/**
-            ${{ github.workspace }}/packages/integrations/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
@@ -715,6 +708,13 @@ jobs:
           PW_BUNDLE: ${{ matrix.bundle }}
         working-directory: dev-packages/browser-integration-tests
         run: yarn test:ci${{ matrix.project && format(' --project={0}', matrix.project) || '' }}${{ matrix.shard && format(' --shard={0}/{1}', matrix.shard, matrix.shards) || '' }}
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
+
 
   job_browser_loader_tests:
     name: Playwright Loader (${{ matrix.bundle }}) Tests
@@ -772,6 +772,12 @@ jobs:
         run: |
           cd dev-packages/browser-integration-tests
           yarn test:loader
+      - name: Upload Playwright Traces
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-traces
+          path: dev-packages/browser-integration-tests/test-results
 
   job_browser_integration_tests:
     name: Browser (${{ matrix.browser }}) Tests
@@ -1045,6 +1051,7 @@ jobs:
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',

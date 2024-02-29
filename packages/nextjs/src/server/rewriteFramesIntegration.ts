@@ -1,6 +1,5 @@
 import * as path from 'path';
-import { defineIntegration } from '@sentry/core';
-import { rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/integrations';
+import { defineIntegration, rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/core';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
 import { escapeStringForRegex } from '@sentry/utils';
 

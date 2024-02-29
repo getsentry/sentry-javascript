@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { Hub, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
@@ -162,16 +161,16 @@ export class IdleTransaction extends Transaction {
     this._finished = true;
     this.activities = {};
 
-    // eslint-disable-next-line deprecation/deprecation
-    if (this.op === 'ui.action.click') {
+    const op = spanToJSON(this).op;
+
+    if (op === 'ui.action.click') {
       this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
     // eslint-disable-next-line deprecation/deprecation
     if (this.spanRecorder) {
       DEBUG_BUILD &&
-        // eslint-disable-next-line deprecation/deprecation
-        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
+        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), op);
 
       for (const callback of this._beforeFinishCallbacks) {
         callback(this, endTimestampInS);

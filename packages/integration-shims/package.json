@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/integration-shims",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.0",
   "description": "Shims for integrations in Sentry SDK.",
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -39,11 +39,12 @@
     "url": "https://github.com/getsentry/sentry-javascript/issues"
   },
   "dependencies": {
-    "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry/core": "8.0.0-alpha.0",
+    "@sentry/types": "8.0.0-alpha.0",
+    "@sentry/utils": "8.0.0-alpha.0"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=14.8"
   },
   "volta": {
     "extends": "../../package.json"

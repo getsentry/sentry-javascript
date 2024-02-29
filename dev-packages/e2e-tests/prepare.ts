@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 /* eslint-disable no-console */
 import * as dotenv from 'dotenv';
 

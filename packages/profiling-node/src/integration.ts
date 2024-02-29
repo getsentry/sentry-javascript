@@ -140,7 +140,6 @@ export class ProfilingIntegration implements Integration {
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
           if (profileContext) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete profiledTransaction.contexts?.['profile'];
           }
 

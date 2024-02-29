@@ -243,6 +243,7 @@ describe('pagesRouterInstrumentation', () => {
           expect.objectContaining({
             name: expectedTransactionName,
             attributes: {
+              from: '/home',
               'sentry.op': 'navigation',
               'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
               'sentry.source': expectedTransactionSource,

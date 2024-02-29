@@ -1,7 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
 import { Readable } from 'stream';
-import { URL } from 'url';
 import { createGzip } from 'zlib';
 import { createTransport } from '@sentry/core';
 import type {

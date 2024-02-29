@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/browser';
-import { httpClientIntegration } from '@sentry/integrations';
+import { httpClientIntegration } from '@sentry/browser';
 
 window.Sentry = Sentry;
 

@@ -42,10 +42,20 @@ async function unrollObject(session: Session, objectId: string, name: string, va
 }
 
 function unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables): void {
-  if (prop?.value?.value) {
-    vars[prop.name] = prop.value.value;
-  } else if (prop?.value?.description && prop?.value?.type !== 'function') {
+  if (!prop.value) {
+    return;
+  }
+
+  if ('value' in prop.value) {
+    if (prop.value.value === undefined || prop.value.value === null) {
+      vars[prop.name] = `<${prop.value.value}>`;
+    } else {
+      vars[prop.name] = prop.value.value;
+    }
+  } else if ('description' in prop.value && prop.value.type !== 'function') {
     vars[prop.name] = `<${prop.value.description}>`;
+  } else if (prop.value.type === 'undefined') {
+    vars[prop.name] = '<undefined>';
   }
 }
 
@@ -63,7 +73,7 @@ async function getLocalVariables(session: Session, objectId: string): Promise<Va
     } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
       const id = prop.value.objectId;
       await unrollObject(session, id, prop.name, variables);
-    } else if (prop?.value?.value || prop?.value?.description) {
+    } else if (prop?.value) {
       unrollOther(prop, variables);
     }
   }

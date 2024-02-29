@@ -46,8 +46,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -75,6 +73,12 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
   parameterize,
   startSession,
   captureSession,
@@ -123,7 +127,6 @@ export { bunServerIntegration } from './integrations/bunserver';
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
   BunServer,
 };

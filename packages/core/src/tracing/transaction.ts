@@ -21,7 +21,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan, getSpanTree } from './trace';
+import { getCapturedScopesOnSpan, getSpanTree } from './utils';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
@@ -89,7 +89,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   // This sadly conflicts with the getter/setter ordering :(
-  /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
    * Get the metadata for this transaction.
@@ -200,19 +199,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
-   */
-  public updateWithContext(transactionContext: TransactionContext): this {
-    // eslint-disable-next-line deprecation/deprecation
-    super.updateWithContext(transactionContext);
-
-    this._name = transactionContext.name || '';
-    this._trimEnd = transactionContext.trimEnd;
-
-    return this;
-  }
-
-  /**
    * @inheritdoc
    *
    * @experimental
@@ -302,7 +288,9 @@ export class Transaction extends SentrySpan implements TransactionInterface {
         ...metadata,
         capturedSpanScope,
         capturedSpanIsolationScope,
-        dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        ...dropUndefinedKeys({
+          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        }),
       },
       _metrics_summary: getMetricSummaryJsonForSpan(this),
       ...(source && {
@@ -323,9 +311,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${this.op} transaction: ${this._name}.`);
-
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${spanToJSON(this).op} transaction: ${this._name}.`);
     return transaction;
   }
 }

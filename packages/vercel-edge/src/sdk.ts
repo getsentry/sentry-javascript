@@ -69,10 +69,6 @@ export function init(options: VercelEdgeOptions = {}): void {
     options.autoSessionTracking = true;
   }
 
-  if (options.instrumenter === undefined) {
-    options.instrumenter = 'sentry';
-  }
-
   const clientOptions: VercelEdgeClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || nodeStackParser),
