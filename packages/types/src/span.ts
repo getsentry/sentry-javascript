@@ -186,6 +186,11 @@ export interface SpanContext {
    * Exclusive time in milliseconds.
    */
   exclusiveTime?: number;
+
+  /**
+   * Measurements of the Span.
+   */
+  measurements?: Measurements;
 }
 
 /** Span holding trace_id, span_id */

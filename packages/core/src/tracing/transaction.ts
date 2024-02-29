@@ -3,7 +3,6 @@ import type {
   Contexts,
   DynamicSamplingContext,
   MeasurementUnit,
-  Measurements,
   SpanTimeInput,
   Transaction as TransactionInterface,
   TransactionContext,
@@ -31,8 +30,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
 
   protected _name: string;
 
-  private _measurements: Measurements;
-
   private _contexts: Contexts;
 
   private _trimEnd?: boolean | undefined;
@@ -53,7 +50,6 @@ export class Transaction extends SpanClass implements TransactionInterface {
    */
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
-    this._measurements = {};
     this._contexts = {};
 
     // eslint-disable-next-line deprecation/deprecation

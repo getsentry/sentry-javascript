@@ -18,11 +18,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import {
-  SEMANTIC_ATTRIBUTE_MEASUREMENTS,
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-} from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
@@ -122,6 +118,8 @@ export class Span implements SpanInterface {
   protected _status?: SpanStatusType | string | undefined;
   protected _exclusiveTime?: number;
 
+  protected _measurements: Measurements;
+
   private _logMessage?: string;
 
   /**
@@ -168,6 +166,7 @@ export class Span implements SpanInterface {
     if (spanContext.exclusiveTime) {
       this._exclusiveTime = spanContext.exclusiveTime;
     }
+    this._measurements = spanContext.measurements ? { ...spanContext.measurements } : {};
   }
 
   // This rule conflicts with another eslint rule :(
@@ -636,7 +635,7 @@ export class Span implements SpanInterface {
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
       exclusive_time: this._exclusiveTime,
-      measurements: this._attributes[SEMANTIC_ATTRIBUTE_MEASUREMENTS] as Measurements | undefined,
+      measurements: Object.keys(this._measurements).length > 0 ? this._measurements : undefined,
     });
   }
 
