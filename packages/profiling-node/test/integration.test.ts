@@ -43,10 +43,12 @@ describe('ProfilingIntegration', () => {
     jest.clearAllMocks();
   });
   it('has a name', () => {
+    // eslint-disable-next-line deprecation/deprecation
     expect(new ProfilingIntegration().name).toBe('ProfilingIntegration');
   });
 
   it('stores a reference to getCurrentHub', () => {
+    // eslint-disable-next-line deprecation/deprecation
     const integration = new ProfilingIntegration();
 
     const getCurrentHub = jest.fn().mockImplementation(() => {
@@ -66,6 +68,7 @@ describe('ProfilingIntegration', () => {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
         flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
       const getCurrentHub = jest.fn((): Hub => {
@@ -100,6 +103,7 @@ describe('ProfilingIntegration', () => {
 
     it('when Hub.getClient returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
       const getCurrentHub = jest.fn((): Hub => {
@@ -115,6 +119,7 @@ describe('ProfilingIntegration', () => {
     });
     it('when getDsn returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
       const getCurrentHub = jest.fn((): Hub => {
@@ -136,6 +141,7 @@ describe('ProfilingIntegration', () => {
     });
     it('when getTransport returns undefined', async () => {
       const logSpy = jest.spyOn(logger, 'log');
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
       const getCurrentHub = jest.fn((): Hub => {
@@ -165,6 +171,7 @@ describe('ProfilingIntegration', () => {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
         flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
       const getCurrentHub = jest.fn((): Hub => {
@@ -198,6 +205,7 @@ describe('ProfilingIntegration', () => {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
         flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
 
@@ -233,6 +241,7 @@ describe('ProfilingIntegration', () => {
         send: jest.fn().mockImplementation(() => Promise.resolve()),
         flush: jest.fn().mockImplementation(() => Promise.resolve()),
       };
+      // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
 
