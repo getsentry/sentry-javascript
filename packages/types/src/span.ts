@@ -58,8 +58,8 @@ export interface SpanJSON {
 }
 
 // These are aligned with OpenTelemetry trace flags
-type TraceFlagNone = 0x0;
-type TraceFlagSampled = 0x1;
+type TraceFlagNone = 0;
+type TraceFlagSampled = 1;
 export type TraceFlag = TraceFlagNone | TraceFlagSampled;
 
 export interface SpanContextData {
@@ -90,8 +90,9 @@ export interface SpanContextData {
    * sampled or not. When set, the least significant bit documents that the
    * caller may have recorded trace data. A caller who does not record trace
    * data out-of-band leaves this flag unset.
+   * We allow number here because otel also does, so we can't be stricter than them.
    */
-  traceFlags: TraceFlag;
+  traceFlags: TraceFlag | number;
 
   // Note: we do not have traceState here, but this is optional in OpenTelemetry anyhow
 }
