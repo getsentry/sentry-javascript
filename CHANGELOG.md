@@ -10,8 +10,8 @@
 
 - **feat(performance): create Interaction standalone spans on inp events (#10709)**
 
-This release adds support for the INP web vital. This is currently only supported for Saas Sentry, and product support is released with
-the upcoming `24.3.0` release of self-hosted.
+This release adds support for the INP web vital. This is currently only supported for Saas Sentry, and product support
+is released with the upcoming `24.3.0` release of self-hosted.
 
 To opt-in to this feature, you can use the `enableInp` option in the `browserTracingIntegration`:
 
