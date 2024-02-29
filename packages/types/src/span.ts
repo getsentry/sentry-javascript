@@ -22,15 +22,13 @@ export type SpanAttributeValue =
   | boolean
   | Array<null | undefined | string>
   | Array<null | undefined | number>
-  | Array<null | undefined | boolean>
-  | Measurements;
+  | Array<null | undefined | boolean>;
 
 export type SpanAttributes = Partial<{
   'sentry.origin': string;
   'sentry.op': string;
   'sentry.source': string;
   'sentry.sample_rate': number;
-  measurements: Measurements;
 }> &
   Record<string, SpanAttributeValue | undefined>;
 
@@ -181,6 +179,16 @@ export interface SpanContext {
    * The origin of the span, giving context about what created the span.
    */
   origin?: SpanOrigin | undefined;
+
+  /**
+   * Exclusive time in milliseconds.
+   */
+  exclusiveTime?: number;
+
+  /**
+   * Measurements of the Span.
+   */
+  measurements?: Measurements;
 }
 
 /** Span holding trace_id, span_id */

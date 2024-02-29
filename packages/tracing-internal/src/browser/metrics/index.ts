@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import type { IdleTransaction, Transaction } from '@sentry/core';
 import {
-  SEMANTIC_ATTRIBUTE_MEASUREMENTS,
   Span,
   getActiveTransaction,
   getClient,
@@ -222,15 +221,15 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
       op: 'ui.interaction.click',
-      name: entry.target?.nodeName,
+      name: htmlTreeAsString(entry.target),
       attributes: {
-        [SEMANTIC_ATTRIBUTE_MEASUREMENTS]: {
-          inp: { value: metric.value, unit: 'millisecond' },
-        },
         release: options.release,
         environment: options.environment,
         transaction: routeName,
-        exclusive_time: metric.value,
+      },
+      exclusiveTime: metric.value,
+      measurements: {
+        inp: { value: metric.value, unit: 'millisecond' },
       },
     });
 

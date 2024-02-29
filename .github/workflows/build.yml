@@ -1055,9 +1055,8 @@ jobs:
             'node-express-app',
             'create-react-app',
             'create-next-app',
-            # disabling remix e2e tests because of flakes
-            # 'create-remix-app',
-            # 'create-remix-app-v2',
+            'create-remix-app',
+            'create-remix-app-v2',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
