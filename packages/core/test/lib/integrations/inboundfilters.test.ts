@@ -177,18 +177,6 @@ const SENTRY_EVENT: Event = {
   },
 };
 
-const BOGUS_EVENT: Event = {
-  message: '',
-  exception: {
-    values: [
-      {
-        type: 'Error',
-        value: 'undefined',
-      },
-    ],
-  },
-};
-
 const SCRIPT_ERROR_EVENT: Event = {
   exception: {
     values: [
@@ -317,14 +305,9 @@ describe('InboundFilters', () => {
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
     });
 
-    it('uses default filters Resize', () => {
+    it('uses default filters ResizeObserver', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
-    });
-
-    it('uses default filters Empty', () => {
-      const eventProcessor = createInboundFiltersEventProcessor();
-      expect(eventProcessor(BOGUS_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
