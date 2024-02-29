@@ -547,6 +547,7 @@ function registerInpInteractionListener(
       client !== undefined && client.getIntegrationByName !== undefined
         ? (client.getIntegrationByName('Replay') as Integration & { getReplayId: () => string })
         : undefined;
+    const replayId = replay !== undefined ? replay.getReplayId() : undefined;
     // eslint-disable-next-line deprecation/deprecation
     const activeTransaction = getActiveTransaction();
     const currentScope = getCurrentScope();
@@ -578,7 +579,7 @@ function registerInpInteractionListener(
               parentContext,
               user,
               activeTransaction,
-              replay,
+              replayId,
             };
           }
         }

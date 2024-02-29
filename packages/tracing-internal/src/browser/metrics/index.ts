@@ -213,7 +213,7 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
-    const { routeName, parentContext, activeTransaction, user, replay } =
+    const { routeName, parentContext, activeTransaction, user, replayId } =
       entry.interactionId !== undefined
         ? interactionIdtoRouteNameMapping[entry.interactionId]
         : {
@@ -221,12 +221,11 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
             parentContext: undefined,
             activeTransaction: undefined,
             user: undefined,
-            replay: undefined,
+            replayId: undefined,
           };
     const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
     // eslint-disable-next-line deprecation/deprecation
     const profileId = activeTransaction !== undefined ? activeTransaction.getProfileId() : undefined;
-    const replayId = replay !== undefined ? replay.getReplayId() : undefined;
     const span = new Span({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,

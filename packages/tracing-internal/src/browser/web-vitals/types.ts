@@ -171,6 +171,6 @@ export type InteractionRouteNameMapping = {
     parentContext: TransactionContext;
     user?: User;
     activeTransaction?: Transaction;
-    replay?: Integration & { getReplayId: () => string };
+    replayId?: string;
   };
 };
