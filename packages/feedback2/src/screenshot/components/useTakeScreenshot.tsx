@@ -39,6 +39,7 @@ export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScr
     };
 
     takeScreenshot().catch(_error => {
+      console.log('some takeScreenshotError', error);
       // TODO
     });
   }, []);

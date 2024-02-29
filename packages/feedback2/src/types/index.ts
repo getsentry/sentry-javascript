@@ -85,11 +85,6 @@ export interface Dialog {
 
 export interface ScreenshotInput {
   /**
-   * The style element for this component
-   */
-  // style: HTMLStyleElement;
-
-  /**
    * The preact component
    */
   input: ComponentType;

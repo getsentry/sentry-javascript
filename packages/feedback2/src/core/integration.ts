@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
-import type { Integration, IntegrationClass, IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import { defineIntegration, getClient } from '@sentry/core';
+import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -275,11 +275,3 @@ export const _feedback2Integration = (({
 }) satisfies IntegrationFn;
 
 export const feedback2Integration = defineIntegration(_feedback2Integration);
-
-/**
- * @deprecated Use `feedback2ScreenshotIntegration()` instead
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Feedback2 = convertIntegrationFnToClass('Feedback2', feedback2Integration) as IntegrationClass<
-  Integration & PublicFeedback2Integration
->;
