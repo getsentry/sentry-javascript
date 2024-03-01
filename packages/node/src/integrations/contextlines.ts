@@ -1,6 +1,6 @@
 import { readFile } from 'fs';
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
@@ -47,15 +47,6 @@ const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
 }) satisfies IntegrationFn;
 
 export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
-
-/**
- * Add node modules / packages to the event.
- * @deprecated Use `contextLinesIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Promise<Event> }
-> & { new (options?: { frameContextLines?: number }): Integration };
 
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
   // keep a lookup map of which files we've already enqueued to read,
@@ -121,9 +112,6 @@ function addSourceContextToFrames(frames: StackFrame[], contextLines: number): v
     }
   }
 }
-
-// eslint-disable-next-line deprecation/deprecation
-export type ContextLines = typeof ContextLines;
 
 /**
  * Reads file contents and caches them in a global LRU cache.

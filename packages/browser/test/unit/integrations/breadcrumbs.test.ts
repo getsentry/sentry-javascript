@@ -1,6 +1,6 @@
 import * as SentryCore from '@sentry/core';
 
-import { Breadcrumbs, BrowserClient, flush } from '../../../src';
+import { BrowserClient, breadcrumbsIntegration, flush } from '../../../src';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 describe('Breadcrumbs', () => {
@@ -8,8 +8,7 @@ describe('Breadcrumbs', () => {
     const client = new BrowserClient({
       ...getDefaultBrowserClientOptions(),
       dsn: 'https://username@domain/123',
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new Breadcrumbs()],
+      integrations: [breadcrumbsIntegration()],
     });
 
     SentryCore.setCurrentClient(client);
