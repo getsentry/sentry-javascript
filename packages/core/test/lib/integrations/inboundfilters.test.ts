@@ -188,6 +188,17 @@ const SCRIPT_ERROR_EVENT: Event = {
   },
 };
 
+const RESIZEOBSERVER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'ResizeObserver loop completed with undelivered notifications.',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -292,6 +303,11 @@ describe('InboundFilters', () => {
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters ResizeObserver', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {

@@ -1,6 +1,5 @@
 import type { ClientRequest, IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'http';
 import type { RequestOptions as HTTPSRequestOptions } from 'https';
-import type { URL } from 'url';
 
 export type HTTPModuleRequestOptions = HTTPRequestOptions | HTTPSRequestOptions | string | URL;
 

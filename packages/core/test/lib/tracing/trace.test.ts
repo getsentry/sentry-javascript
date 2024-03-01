@@ -1,4 +1,4 @@
-import type { Event, Span as SpanType } from '@sentry/types';
+import type { Event, Span } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   addTracingExtensions,
@@ -7,6 +7,7 @@ import {
   getGlobalScope,
   getIsolationScope,
   setCurrentClient,
+  spanIsSampled,
   spanToJSON,
   withScope,
 } from '../../../src';
@@ -18,6 +19,7 @@ import {
   startSpan,
   startSpanManual,
 } from '../../../src/tracing';
+import { getSpanTree } from '../../../src/tracing/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -92,9 +94,9 @@ describe('startSpan', () => {
     });
 
     it('creates a transaction', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
@@ -103,16 +105,16 @@ describe('startSpan', () => {
       } catch (e) {
         //
       }
-      expect(ref).toBeDefined();
+      expect(_span).toBeDefined();
 
-      expect(spanToJSON(ref).description).toEqual('GET users/[id]');
-      expect(ref.status).toEqual(isError ? 'internal_error' : undefined);
+      expect(spanToJSON(_span!).description).toEqual('GET users/[id]');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
     it('allows traceparent information to be overriden', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan(
@@ -129,17 +131,17 @@ describe('startSpan', () => {
       } catch (e) {
         //
       }
-      expect(ref).toBeDefined();
+      expect(_span).toBeDefined();
 
-      expect(ref.sampled).toEqual(true);
-      expect(ref.traceId).toEqual('12345678901234567890123456789012');
-      expect(ref.parentSpanId).toEqual('1234567890123456');
+      expect(spanIsSampled(_span!)).toEqual(true);
+      expect(spanToJSON(_span!).trace_id).toEqual('12345678901234567890123456789012');
+      expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890123456');
     });
 
     it('allows for transaction to be mutated', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
@@ -152,13 +154,13 @@ describe('startSpan', () => {
         //
       }
 
-      expect(spanToJSON(ref).op).toEqual('http.server');
+      expect(spanToJSON(_span!).op).toEqual('http.server');
     });
 
     it('creates a span with correct description', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -170,16 +172,19 @@ describe('startSpan', () => {
         //
       }
 
-      expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(spanToJSON(ref.spanRecorder.spans[1]).description).toEqual('SELECT * from users');
-      expect(ref.spanRecorder.spans[1].parentSpanId).toEqual(ref.spanId);
-      expect(ref.spanRecorder.spans[1].status).toEqual(isError ? 'internal_error' : undefined);
+      expect(_span).toBeDefined();
+      const spans = getSpanTree(_span!);
+
+      expect(spans).toHaveLength(2);
+      expect(spanToJSON(spans[1]).description).toEqual('SELECT * from users');
+      expect(spanToJSON(spans[1]).parent_span_id).toEqual(_span!.spanContext().spanId);
+      expect(spanToJSON(spans[1]).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
     it('allows for span to be mutated', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -194,8 +199,11 @@ describe('startSpan', () => {
         //
       }
 
-      expect(ref.spanRecorder.spans).toHaveLength(2);
-      expect(spanToJSON(ref.spanRecorder.spans[1]).op).toEqual('db.query');
+      expect(_span).toBeDefined();
+      const spans = getSpanTree(_span!);
+
+      expect(spans).toHaveLength(2);
+      expect(spanToJSON(spans[1]).op).toEqual('db.query');
     });
 
     it.each([
@@ -204,9 +212,9 @@ describe('startSpan', () => {
       // attribute should take precedence over top level origin
       { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
     ])('correctly sets the span origin', async () => {
-      let ref: any = undefined;
+      let _span: Span | undefined = undefined;
       client.on('finishTransaction', transaction => {
-        ref = transaction;
+        _span = transaction;
       });
       try {
         await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
@@ -216,7 +224,8 @@ describe('startSpan', () => {
         //
       }
 
-      const jsonSpan = spanToJSON(ref);
+      expect(_span).toBeDefined();
+      const jsonSpan = spanToJSON(_span!);
       expect(jsonSpan).toEqual({
         data: {
           'sentry.origin': 'auto.http.browser',
@@ -278,10 +287,7 @@ describe('startSpan', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
-
       expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.parentSpanId).toBe('parent-span-id');
     });
 
     expect(getCurrentScope()).toBe(initialScope);
@@ -556,8 +562,6 @@ describe('startSpanManual', () => {
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
       expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span?.parentSpanId).toBe('parent-span-id');
 
       finish();
 
@@ -780,8 +784,6 @@ describe('startInactiveSpan', () => {
 
     expect(span).toBeDefined();
     expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(span?.parentSpanId).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 
     span?.end();
@@ -944,7 +946,7 @@ describe('startInactiveSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    let span: SpanType | undefined;
+    let span: Span | undefined;
 
     withScope(scope => {
       scope.setTag('scope', 1);

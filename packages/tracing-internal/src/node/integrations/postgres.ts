@@ -1,4 +1,4 @@
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
@@ -101,7 +101,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
         // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan();
+        const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
         const data: Record<string, string | number> = {
           'db.system': 'postgresql',

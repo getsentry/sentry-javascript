@@ -62,6 +62,8 @@ function ensureTimestampInSeconds(timestamp: number): number {
   return isMs ? timestamp / 1000 : timestamp;
 }
 
+type SpanWithToJSON = Span & { toJSON: () => SpanJSON };
+
 /**
  * Convert a span to a JSON representation.
  * Note that all fields returned here are optional and need to be guarded against.
@@ -69,7 +71,6 @@ function ensureTimestampInSeconds(timestamp: number): number {
  * Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
  * This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
  * And `spanToJSON` needs the Span class from `span.ts` to check here.
- * TODO v8: When we remove the deprecated stuff from `span.ts`, we can remove the circular dependency again.
  */
 export function spanToJSON(span: Span): Partial<SpanJSON> {
   if (spanIsSentrySpan(span)) {
@@ -77,11 +78,11 @@ export function spanToJSON(span: Span): Partial<SpanJSON> {
   }
 
   // Fallback: We also check for `.toJSON()` here...
-  // eslint-disable-next-line deprecation/deprecation
-  if (typeof span.toJSON === 'function') {
-    // eslint-disable-next-line deprecation/deprecation
-    return span.toJSON();
+  if (typeof (span as SpanWithToJSON).toJSON === 'function') {
+    return (span as SpanWithToJSON).toJSON();
   }
+
+  // TODO: Also handle OTEL spans here!
 
   return {};
 }

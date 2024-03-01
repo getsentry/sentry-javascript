@@ -37,7 +37,22 @@ export interface TransactionContext extends SpanContext {
 /**
  * Data pulled from a `sentry-trace` header
  */
-export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId' | 'parentSampled'>;
+export interface TraceparentData {
+  /**
+   * Trace ID
+   */
+  traceId?: string | undefined;
+
+  /**
+   * Parent Span ID
+   */
+  parentSpanId?: string | undefined;
+
+  /**
+   * If this transaction has a parent, the parent's sampling decision
+   */
+  parentSampled?: boolean | undefined;
+}
 
 /**
  * Transaction "Class", inherits Span only has `setName`
@@ -125,6 +140,14 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Sp
    * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
    */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
+
+  /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
+   */
+  startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
 }
 
 /**

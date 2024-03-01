@@ -27,14 +27,14 @@ npm install --save @sentry/node @sentry/profiling-node
 
 ```javascript
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
   tracesSampleRate: 1,
   profilesSampleRate: 1, // Set profiling sampling rate.
-  integrations: [new ProfilingIntegration()],
+  integrations: [nodeProfilingIntegration()],
 });
 ```
 

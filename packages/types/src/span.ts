@@ -1,7 +1,6 @@
-import type { TraceContext } from './context';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
-import type { Transaction, TransactionSource } from './transaction';
+import type { TransactionSource } from './transaction';
 
 type SpanOriginType = 'manual' | 'auto';
 type SpanOriginCategory = string; // e.g. http, db, ui, ....
@@ -58,8 +57,8 @@ export interface SpanJSON {
 }
 
 // These are aligned with OpenTelemetry trace flags
-type TraceFlagNone = 0x0;
-type TraceFlagSampled = 0x1;
+type TraceFlagNone = 0;
+type TraceFlagSampled = 1;
 export type TraceFlag = TraceFlagNone | TraceFlagSampled;
 
 export interface SpanContextData {
@@ -90,13 +89,17 @@ export interface SpanContextData {
    * sampled or not. When set, the least significant bit documents that the
    * caller may have recorded trace data. A caller who does not record trace
    * data out-of-band leaves this flag unset.
+   * We allow number here because otel also does, so we can't be stricter than them.
    */
-  traceFlags: TraceFlag;
+  traceFlags: TraceFlag | number;
 
   // Note: we do not have traceState here, but this is optional in OpenTelemetry anyhow
 }
 
-/** Interface holding all properties that can be set on a Span on creation. */
+/**
+ * Interface holding all properties that can be set on a Span on creation.
+ * This is only used for the legacy span/transaction creation and will go away in v8.
+ */
 export interface SpanContext {
   /**
    * Human-readable identifier for the span.
@@ -107,12 +110,6 @@ export interface SpanContext {
    * Operation of the Span.
    */
   op?: string | undefined;
-
-  /**
-   * Completion status of the Span.
-   * See: {SpanStatusType} for possible values
-   */
-  status?: string | undefined;
 
   /**
    * Parent Span ID
@@ -167,78 +164,10 @@ export interface SpanContext {
   origin?: SpanOrigin | undefined;
 }
 
-/** Span holding trace_id, span_id */
-export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'origin' | 'op'> {
-  /**
-   * The ID of the span.
-   * @deprecated Use `spanContext().spanId` instead.
-   */
-  spanId: string;
-
-  /**
-   * Parent Span ID
-   *
-   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
-   */
-  parentSpanId?: string | undefined;
-
-  /**
-   * The ID of the trace.
-   * @deprecated Use `spanContext().traceId` instead.
-   */
-  traceId: string;
-
-  /**
-   * Was this span chosen to be sent as part of the sample?
-   * @deprecated Use `isRecording()` instead.
-   */
-  sampled?: boolean | undefined;
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  startTimestamp: number;
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span ended.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  endTimestamp?: number | undefined;
-
-  /**
-   * Tags for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  tags: { [key: string]: Primitive };
-
-  /**
-   * Data for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  data: { [key: string]: any };
-
-  /**
-   * Attributes for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  attributes: SpanAttributes;
-
-  /**
-   * The transaction containing this span
-   * @deprecated Use top level `Sentry.getRootSpan()` instead
-   */
-  transaction?: Transaction;
-
-  /**
-   * Completion status of the Span.
-   *
-   * See: {SpanStatusType} for possible values
-   *
-   * @deprecated Use `.setStatus` to set or update and `spanToJSON()` to read the status.
-   */
-  status?: string | undefined;
-
+/**
+ * A generic Span which holds trace data.
+ */
+export interface Span {
   /**
    * Get context data for this span.
    * This includes the spanId & the traceId.
@@ -249,25 +178,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * End the current span.
    */
   end(endTimestamp?: SpanTimeInput): void;
-
-  /**
-   * Sets the tag attribute on the current span.
-   *
-   * Can also be used to unset a tag, by passing `undefined`.
-   *
-   * @param key Tag key
-   * @param value Tag value
-   * @deprecated Use `setAttribute()` instead.
-   */
-  setTag(key: string, value: Primitive): this;
-
-  /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
-   * @deprecated Use `setAttribute()` instead.
-   */
-  setData(key: string, value: any): this;
 
   /**
    * Set a single attribute on the span.
@@ -292,32 +202,6 @@ export interface Span extends Omit<SpanContext, 'name' | 'op' | 'status' | 'orig
    * Update the name of the span.
    */
   updateName(name: string): this;
-
-  /**
-   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
-   * Also the `sampled` decision will be inherited.
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
-
-  /**
-   * Returns the current span properties as a `SpanContext`.
-   * @deprecated Use `toJSON()` or access the fields directly instead.
-   */
-  toContext(): SpanContext;
-
-  /**
-   * Convert the object to JSON for w. spans array info only.
-   * @deprecated Use `spanToTraceContext()` util function instead.
-   */
-  getTraceContext(): TraceContext;
-
-  /**
-   * Convert the object to JSON.
-   * @deprecated Use `spanToJSON(span)` instead.
-   */
-  toJSON(): SpanJSON;
 
   /**
    * If this is span is actually recording data.

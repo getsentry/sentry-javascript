@@ -13,7 +13,6 @@
   },
   "files": ["index.mjs", "index.mjs.map", "index.d.ts"],
   "dependencies": {
-    "@sentry/browser": "8.0.0-alpha.0",
     "@sentry/core": "8.0.0-alpha.0",
     "@sentry/types": "8.0.0-alpha.0",
     "@sentry/utils": "8.0.0-alpha.0"

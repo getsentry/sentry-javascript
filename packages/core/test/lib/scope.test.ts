@@ -961,18 +961,16 @@ describe('withActiveSpan()', () => {
     });
   });
 
-  it('should create child spans when calling startSpan within the callback', done => {
-    expect.assertions(2);
+  it('should create child spans when calling startSpan within the callback', () => {
     const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
 
-    withActiveSpan(inactiveSpan!, () => {
-      startSpan({ name: 'child-span' }, childSpan => {
-        // eslint-disable-next-line deprecation/deprecation
-        expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
-        expect(spanToJSON(childSpan!).parent_span_id).toBe(inactiveSpan?.spanContext().spanId);
-        done();
+    const parentSpanId = withActiveSpan(inactiveSpan!, () => {
+      return startSpan({ name: 'child-span' }, childSpan => {
+        return spanToJSON(childSpan!).parent_span_id;
       });
     });
+
+    expect(parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
   });
 
   it('when `null` is passed, no span should be active within the callback', () => {
