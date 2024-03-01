@@ -67,6 +67,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   metricsDefault as metrics,
   functionToStringIntegration,
@@ -83,7 +84,6 @@ export {
   startSession,
   captureSession,
   endSession,
-  withActiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
