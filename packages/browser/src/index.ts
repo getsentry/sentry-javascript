@@ -70,6 +70,11 @@ export {
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
+  getActiveSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
