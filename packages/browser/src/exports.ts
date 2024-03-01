@@ -66,6 +66,7 @@ export {
   InboundFilters,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  dedupeIntegration,
   parameterize,
   startSession,
   captureSession,
@@ -108,11 +109,10 @@ export {
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
-export { dedupeIntegration } from './integrations/dedupe';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
 
 // eslint-disable-next-line deprecation/deprecation
-export { Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { Breadcrumbs, LinkedErrors, HttpContext } from './integrations';

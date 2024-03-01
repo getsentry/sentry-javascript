@@ -67,15 +67,12 @@ describe('spanToJSON', () => {
       op: 'test op',
       parentSpanId: '1234',
       spanId: '5678',
-      status: 'ok',
-      tags: {
-        foo: 'bar',
-      },
       traceId: 'abcd',
       origin: 'auto',
       startTimestamp: 123,
       endTimestamp: 456,
     });
+    span.setStatus('ok');
 
     expect(spanToJSON(span)).toEqual({
       description: 'test name',
@@ -83,9 +80,6 @@ describe('spanToJSON', () => {
       parent_span_id: '1234',
       span_id: '5678',
       status: 'ok',
-      tags: {
-        foo: 'bar',
-      },
       trace_id: 'abcd',
       origin: 'auto',
       start_timestamp: 123,

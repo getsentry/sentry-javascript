@@ -1,5 +1,5 @@
 /* eslint-disable deprecation/deprecation */
-import { BrowserTracing } from '@sentry-internal/tracing';
+import { browserTracingIntegration } from '@sentry-internal/tracing';
 import { Feedback, Replay, feedbackIntegration, replayIntegration } from '@sentry/browser';
 
 import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.replay.feedback';
@@ -7,11 +7,6 @@ import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.rep
 describe('index.bundle.tracing.replay.feedback', () => {
   it('has correct exports', () => {
     Object.keys(TracingReplayFeedbackBundle.Integrations).forEach(key => {
-      // Skip BrowserTracing because it doesn't have a static id field.
-      if (key === 'BrowserTracing') {
-        return;
-      }
-
       expect((TracingReplayFeedbackBundle.Integrations[key] as any).id).toStrictEqual(expect.any(String));
     });
 
@@ -19,8 +14,7 @@ describe('index.bundle.tracing.replay.feedback', () => {
     expect(TracingReplayFeedbackBundle.Replay).toBe(Replay);
     expect(TracingReplayFeedbackBundle.replayIntegration).toBe(replayIntegration);
 
-    expect(TracingReplayFeedbackBundle.Integrations.BrowserTracing).toBe(BrowserTracing);
-    expect(TracingReplayFeedbackBundle.BrowserTracing).toBe(BrowserTracing);
+    expect(TracingReplayFeedbackBundle.browserTracingIntegration).toBe(browserTracingIntegration);
 
     expect(TracingReplayFeedbackBundle.Feedback).toBe(Feedback);
     expect(TracingReplayFeedbackBundle.feedbackIntegration).toBe(feedbackIntegration);

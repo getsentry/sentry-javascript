@@ -47,7 +47,6 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     return {};
   }
 
-  // passing emit=false here to only emit later once the DSC is actually populated
   const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext

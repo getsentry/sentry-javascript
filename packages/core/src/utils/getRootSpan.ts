@@ -1,4 +1,5 @@
 import type { Span } from '@sentry/types';
+import type { SentrySpan } from './../tracing/sentrySpan';
 
 /**
  * Returns the root span of a given span.
@@ -11,5 +12,5 @@ import type { Span } from '@sentry/types';
 export function getRootSpan(span: Span): Span | undefined {
   // TODO (v8): Remove this check and just return span
   // eslint-disable-next-line deprecation/deprecation
-  return span.transaction;
+  return (span as SentrySpan).transaction ? (span as SentrySpan).transaction : undefined;
 }

@@ -113,7 +113,6 @@ describe('wrapLoadWithSentry', () => {
           },
           op: 'function.sveltekit.load',
           name: '/users/[id]',
-          status: 'ok',
         },
         expect.any(Function),
       );
@@ -141,7 +140,6 @@ describe('wrapLoadWithSentry', () => {
           },
           op: 'function.sveltekit.load',
           name: '/users/123',
-          status: 'ok',
         },
         expect.any(Function),
       );

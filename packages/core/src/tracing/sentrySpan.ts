@@ -1,7 +1,6 @@
 import type {
-  Instrumenter,
   Primitive,
-  Span as SpanInterface,
+  Span,
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
@@ -26,8 +25,7 @@ import {
   spanToTraceContext,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { setHttpStatus } from './spanstatus';
-import { addChildSpanToSpan } from './trace';
+import { addChildSpanToSpan } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -64,7 +62,7 @@ export class SpanRecorder {
 /**
  * Span contains all data about a span
  */
-export class SentrySpan implements SpanInterface {
+export class SentrySpan implements Span {
   /**
    * Tags for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
@@ -90,18 +88,6 @@ export class SentrySpan implements SpanInterface {
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
   public transaction?: Transaction;
-
-  /**
-   * The instrumenter that created this span.
-   *
-   * TODO (v8): This can probably be replaced by an `instanceOf` check of the span class.
-   *            the instrumenter can only be sentry or otel so we can check the span instance
-   *            to verify which one it is and remove this field entirely.
-   *
-   * @deprecated This field will be removed.
-   */
-  public instrumenter: Instrumenter;
-
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string | undefined;
@@ -132,8 +118,6 @@ export class SentrySpan implements SpanInterface {
     this.tags = spanContext.tags ? { ...spanContext.tags } : {};
     // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
-    // eslint-disable-next-line deprecation/deprecation
-    this.instrumenter = spanContext.instrumenter || 'sentry';
 
     this._attributes = {};
     this.setAttributes({
@@ -150,9 +134,6 @@ export class SentrySpan implements SpanInterface {
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
-    }
-    if (spanContext.status) {
-      this._status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
@@ -276,24 +257,6 @@ export class SentrySpan implements SpanInterface {
     this._endTime = endTime;
   }
 
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `spanToJSON().status` instead to get the status.
-   */
-  public get status(): SpanStatusType | string | undefined {
-    return this._status;
-  }
-
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `.setStatus()` instead to set or update the status.
-   */
-  public set status(status: SpanStatusType | string | undefined) {
-    this._status = status;
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -314,7 +277,7 @@ export class SentrySpan implements SpanInterface {
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): SpanInterface {
+  ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
       parentSpanId: this._spanId,
@@ -407,28 +370,10 @@ export class SentrySpan implements SpanInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use top-level `setHttpStatus()` instead.
-   */
-  public setHttpStatus(httpStatus: number): this {
-    setHttpStatus(this, httpStatus);
-    return this;
-  }
-
-  /**
-   * @inheritDoc
    */
   public updateName(name: string): this {
     this._name = name;
     return this;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `.end()` instead.
-   */
-  public finish(endTimestamp?: number): void {
-    return this.end(endTimestamp);
   }
 
   /** @inheritdoc */
@@ -473,29 +418,6 @@ export class SentrySpan implements SpanInterface {
       tags: this.tags,
       traceId: this._traceId,
     });
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Update the fields directly instead.
-   */
-  public updateWithContext(spanContext: SpanContext): this {
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = spanContext.data || {};
-    this._name = spanContext.name;
-    this._endTime = spanContext.endTimestamp;
-    this._attributes = { ...this._attributes, [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op };
-    this._parentSpanId = spanContext.parentSpanId;
-    this._sampled = spanContext.sampled;
-    this._spanId = spanContext.spanId || this._spanId;
-    this._startTime = spanContext.startTimestamp || this._startTime;
-    this._status = spanContext.status;
-    // eslint-disable-next-line deprecation/deprecation
-    this.tags = spanContext.tags || {};
-    this._traceId = spanContext.traceId || this._traceId;
-
-    return this;
   }
 
   /**

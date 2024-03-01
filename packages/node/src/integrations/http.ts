@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -185,12 +185,6 @@ export class Http implements Integration {
       return;
     }
 
-    // Do not auto-instrument for other instrumenter
-    if (clientOptions && clientOptions.instrumenter !== 'sentry') {
-      DEBUG_BUILD && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const shouldCreateSpanForRequest = _getShouldCreateSpanForRequest(shouldCreateSpans, this._tracing, clientOptions);
 
     // eslint-disable-next-line deprecation/deprecation
@@ -314,7 +308,6 @@ function _createWrappedRequestMethodFactory(
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
       const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
-      // eslint-disable-next-line deprecation/deprecation
       const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
       const client = getClient();
@@ -326,7 +319,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentScope();
       const isolationScope = getIsolationScope();
-      const parentSpan = getActiveSpan();
+      const parentSpan = getActiveSpan() as SentrySpan;
 
       const data = getRequestSpanData(requestUrl, requestOptions);
 

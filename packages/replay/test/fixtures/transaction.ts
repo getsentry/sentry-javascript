@@ -13,8 +13,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       trace: {
         op: 'navigation',
         span_id: 'b44b173b1c74a782',
-        tags: {
-          'routing.instrumentation': 'react-router-v3',
+        data: {
           from: '/organizations/:orgId/replays/',
           'ui.longTaskCount.grouped': '<=1',
           effectiveConnectionType: '4g',
@@ -67,9 +66,6 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
         span_id: '87497c337838d561',
         start_timestamp: 1668184224.7844,
         status: 'ok',
-        tags: {
-          'http.status_code': '200',
-        },
         timestamp: 1668184225.0802999,
         trace_id: '3e0ff8aff4dc4236a80b77a37ef66c7d',
       },
@@ -90,7 +86,7 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       },
     ], // }}}
     start_timestamp: 1668184224.447,
-    tags: {
+    data: {
       organization: '1',
       'organization.slug': 'sentry-emerging-tech',
       plan: 'am1_business_ent_auf',
@@ -98,7 +94,6 @@ export function Transaction(traceId?: string, obj?: Partial<Event>): any {
       'plan.max_members': 'null',
       'plan.total_members': '15',
       'plan.tier': 'am1',
-      'routing.instrumentation': 'react-router-v3',
       from: '/organizations/:orgId/replays/',
       'ui.longTaskCount.grouped': '<=1',
       effectiveConnectionType: '4g',

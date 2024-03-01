@@ -79,17 +79,17 @@ export class Feedback implements Integration {
   private _hasInsertedActorStyles: boolean;
 
   public constructor({
-    id = 'sentry-feedback',
-    showBranding = true,
     autoInject = true,
+    id = 'sentry-feedback',
+    isEmailRequired = false,
+    isNameRequired = false,
+    showBranding = true,
     showEmail = true,
     showName = true,
     useSentryUser = {
       email: 'email',
       name: 'username',
     },
-    isEmailRequired = false,
-    isNameRequired = false,
 
     themeDark,
     themeLight,
@@ -125,9 +125,9 @@ export class Feedback implements Integration {
     this._hasInsertedActorStyles = false;
 
     this.options = {
-      id,
-      showBranding,
       autoInject,
+      showBranding,
+      id,
       isEmailRequired,
       isNameRequired,
       showEmail,

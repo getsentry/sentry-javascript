@@ -196,7 +196,7 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
           op: 'function.remix.document_request',
           origin: 'auto.function.remix',
           name: spanToJSON(activeTransaction).description,
-          tags: {
+          attributes: {
             method: request.method,
             url: request.url,
           },
@@ -253,7 +253,7 @@ function makeWrappedDataFunction(
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
         name: id,
-        tags: {
+        attributes: {
           name,
         },
       });
@@ -412,8 +412,6 @@ export function startRequestHandlerTransaction(
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-    },
-    tags: {
       method: request.method,
     },
     ...traceparentData,

@@ -7,8 +7,10 @@ Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   tracesSampleRate: 1,
   integrations: [
-    new Sentry.BrowserTracing({
-      routingInstrumentation: Sentry.remixRouterInstrumentation(useEffect, useLocation, useMatches),
+    Sentry.browserTracingIntegration({
+      useEffect,
+      useLocation,
+      useMatches,
     }),
   ],
 });

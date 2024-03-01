@@ -12,7 +12,6 @@ test('should report a manually captured message.', async ({ page }) => {
   expect(messageEnvelope.message).toBe('Sentry Manually Captured Message');
 
   expect(pageloadEnvelope.contexts?.trace.op).toBe('pageload');
-  expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe('routes/capture-message');
 });

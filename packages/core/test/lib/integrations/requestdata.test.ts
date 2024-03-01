@@ -1,9 +1,8 @@
 import type { IncomingMessage } from 'http';
-import type { RequestDataIntegrationOptions } from '@sentry/core';
-import { setCurrentClient } from '@sentry/core';
-import { RequestData } from '@sentry/core';
 import type { Event, EventProcessor } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
+import type { RequestDataIntegrationOptions } from '../../../src';
+import { RequestData, setCurrentClient } from '../../../src';
 
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 

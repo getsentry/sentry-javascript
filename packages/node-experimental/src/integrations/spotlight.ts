@@ -1,5 +1,4 @@
 import * as http from 'http';
-import { URL } from 'url';
 import { defineIntegration } from '@sentry/core';
 import type { Client, Envelope, IntegrationFn } from '@sentry/types';
 import { logger, serializeEnvelope } from '@sentry/utils';

@@ -22,18 +22,12 @@ test('should capture spans for outgoing http requests', async () => {
         op: 'http.client',
         origin: 'auto.http.node.http',
         status: 'ok',
-        tags: {
-          'http.status_code': '200',
-        },
       },
       {
         description: 'GET http://match-this-url.com/api/v1',
         op: 'http.client',
         origin: 'auto.http.node.http',
         status: 'ok',
-        tags: {
-          'http.status_code': '200',
-        },
       },
     ],
   });

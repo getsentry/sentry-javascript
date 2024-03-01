@@ -23,6 +23,7 @@ function makeStaticTransport(): MockTransport {
 }
 
 function makeClientWithoutHooks(): [Sentry.NodeClient, MockTransport] {
+  // eslint-disable-next-line deprecation/deprecation
   const integration = new ProfilingIntegration();
   const transport = makeStaticTransport();
   const client = new Sentry.NodeClient({
@@ -88,8 +89,7 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
-      // eslint-disable-next-line deprecation/deprecation
-      transaction.finish();
+      transaction.end();
 
       await Sentry.flush(500);
       expect(findProfile(transport)).not.toBe(null);
@@ -108,10 +108,8 @@ describe('Sentry - Profiling', () => {
       const t2 = Sentry.startTransaction({ name: 'inner' });
       await wait(500);
 
-      // eslint-disable-next-line deprecation/deprecation
-      t2.finish();
-      // eslint-disable-next-line deprecation/deprecation
-      t1.finish();
+      t2.end();
+      t1.end();
 
       await Sentry.flush(500);
 
@@ -133,17 +131,15 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const t2 = Sentry.startTransaction({ name: 'same-title' });
       await wait(500);
-      // eslint-disable-next-line deprecation/deprecation
-      t2.finish();
-      // eslint-disable-next-line deprecation/deprecation
-      t1.finish();
+      t2.end();
+      t1.end();
 
       await Sentry.flush(500);
       expect(findAllProfiles(transport)).toHaveLength(2);
       expect(findProfile(transport)).not.toBe(null);
     });
 
-    it('does not crash if finish is called multiple times', async () => {
+    it('does not crash if end is called multiple times', async () => {
       const [client, transport] = makeClientWithoutHooks();
       // eslint-disable-next-line deprecation/deprecation
       const hub = Sentry.getCurrentHub();
@@ -153,10 +149,8 @@ describe('Sentry - Profiling', () => {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = Sentry.startTransaction({ name: 'title' });
       await wait(500);
-      // eslint-disable-next-line deprecation/deprecation
-      transaction.finish();
-      // eslint-disable-next-line deprecation/deprecation
-      transaction.finish();
+      transaction.end();
+      transaction.end();
 
       await Sentry.flush(500);
       expect(findAllProfiles(transport)).toHaveLength(1);

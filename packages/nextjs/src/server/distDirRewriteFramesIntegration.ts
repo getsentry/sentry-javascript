@@ -1,6 +1,5 @@
 import * as path from 'path';
-import { defineIntegration } from '@sentry/core';
-import { rewriteFramesIntegration } from '@sentry/integrations';
+import { defineIntegration, rewriteFramesIntegration } from '@sentry/core';
 import { escapeStringForRegex } from '@sentry/utils';
 
 export const distDirRewriteFramesIntegration = defineIntegration(({ distDirName }: { distDirName: string }) => {

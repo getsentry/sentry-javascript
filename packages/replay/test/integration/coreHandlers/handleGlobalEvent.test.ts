@@ -73,8 +73,9 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     const transaction = Transaction();
     const error = Error();
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
-      expect.objectContaining({
-        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      expect.not.objectContaining({
+        // no tags at all here by default
+        tags: expect.anything(),
       }),
     );
     expect(handleGlobalEventListener(replay)(error, {})).toEqual(
@@ -91,8 +92,9 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     replay['_isEnabled'] = false;
 
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
-      expect.objectContaining({
-        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      expect.not.objectContaining({
+        // no tags at all here by default
+        tags: expect.anything(),
       }),
     );
     expect(handleGlobalEventListener(replay)(error, {})).toEqual(
@@ -117,8 +119,9 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     });
 
     expect(handleGlobalEventListener(replay)(transaction, {})).toEqual(
-      expect.objectContaining({
-        tags: expect.not.objectContaining({ replayId: expect.anything() }),
+      expect.not.objectContaining({
+        // no tags at all here by default
+        tags: expect.anything(),
       }),
     );
     expect(handleGlobalEventListener(replay)(error, {})).toEqual(

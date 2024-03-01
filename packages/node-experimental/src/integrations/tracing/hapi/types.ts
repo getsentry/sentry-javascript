@@ -19,7 +19,6 @@
 //   https://github.com/DefinitelyTyped/DefinitelyTyped/blob/c73060bd14bb74a2f1906ccfc714d385863bc07d/types/boom/v4/index.d.ts
 
 import type * as stream from 'stream';
-import type * as url from 'url';
 
 interface Podium {
   new (events?: Events[]): Podium;
@@ -214,7 +213,7 @@ interface Request extends Podium {
   readonly path: string;
   response: ResponseObject | Boom | null;
   readonly route: RequestRoute;
-  readonly url: url.Url;
+  readonly url: URL;
 }
 
 interface ResponseObjectHeaderOptions {

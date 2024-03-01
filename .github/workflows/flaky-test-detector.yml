@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   flaky-detector:
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-20.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop

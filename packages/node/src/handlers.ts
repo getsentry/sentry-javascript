@@ -48,12 +48,7 @@ export function tracingHandler(): (
   ): void {
     const options = getClient()?.getOptions();
 
-    if (
-      !options ||
-      options.instrumenter !== 'sentry' ||
-      req.method?.toUpperCase() === 'OPTIONS' ||
-      req.method?.toUpperCase() === 'HEAD'
-    ) {
+    if (req.method?.toUpperCase() === 'OPTIONS' || req.method?.toUpperCase() === 'HEAD') {
       return next();
     }
 

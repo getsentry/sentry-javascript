@@ -74,9 +74,6 @@ targets:
   - name: npm
     id: '@sentry/wasm'
     includeNames: /^sentry-wasm-\d.*\.tgz$/
-  - name: npm
-    id: '@sentry/integrations'
-    includeNames: /^sentry-integrations-\d.*\.tgz$/
 
   ## 4. WinterCG Packages
   - name: npm
@@ -135,15 +132,7 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  ## 8. Deprecated packages we still release (but no packages depend on them anymore)
-  - name: npm
-    id: '@sentry/hub'
-    includeNames: /^sentry-hub-\d.*\.tgz$/
-  - name: npm
-    id: '@sentry/tracing'
-    includeNames: /^sentry-tracing-\d.*\.tgz$/
-
-  ## 9. Experimental packages
+  ## 8. Experimental packages
   - name: npm
     id: '@sentry/node-experimental'
     includeNames: /^sentry-node-experimental-\d.*\.tgz$/

@@ -49,13 +49,11 @@ export class TestClient extends BaseClient<TestClientOptions> {
     TestClient.instance = this;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
   public eventFromException(exception: any): PromiseLike<Event> {
     const event: Event = {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
             /* eslint-enable @typescript-eslint/no-unsafe-member-access */
@@ -86,7 +84,6 @@ export class TestClient extends BaseClient<TestClientOptions> {
       super.sendEvent(event, hint);
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     TestClient.sendEventCalled && TestClient.sendEventCalled(event);
   }
 

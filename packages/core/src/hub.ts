@@ -480,14 +480,6 @@ Sentry.init({...});
 
   /**
    * @inheritDoc
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  public traceHeaders(): { [key: string]: string } {
-    return this._callExtensionMethod<{ [key: string]: string }>('traceHeaders');
-  }
-
-  /**
-   * @inheritDoc
    *
    * @deprecated Use top level `captureSession` instead.
    */

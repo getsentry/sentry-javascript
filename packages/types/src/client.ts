@@ -8,7 +8,6 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
-import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
@@ -159,7 +158,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
@@ -180,15 +178,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 
-  /**
-   * Captures serialized metrics and sends them to Sentry.
-   *
-   * @experimental This API is experimental and might experience breaking changes
-   */
-  captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void;
-
   // HOOKS
-  // TODO(v8): Make the hooks non-optional.
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
@@ -254,12 +244,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span start for a page load.
+   * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
   on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span for a navigation.
+   * A hook for browser tracing integrations to trigger a span for a navigation.
    */
   on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
@@ -335,12 +325,12 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span start for a page load.
+   * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
   emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span for a navigation.
+   * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
   emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 

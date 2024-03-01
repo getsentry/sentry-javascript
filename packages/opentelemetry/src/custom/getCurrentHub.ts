@@ -76,11 +76,6 @@ export function getCurrentHub(): Hub {
       return getClient()?.getIntegration(integration) || null;
     },
 
-    traceHeaders(): { [key: string]: string } {
-      // TODO: Do we need this??
-      return {};
-    },
-
     startTransaction(
       _context: TransactionContext,
       _customSamplingContext?: CustomSamplingContext,

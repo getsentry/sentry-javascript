@@ -203,7 +203,6 @@ describe('wrapLoadWithSentry calls trace', () => {
         },
         op: 'function.sveltekit.load',
         name: '/users/[id]',
-        status: 'ok',
       },
       expect.any(Function),
     );
@@ -222,7 +221,6 @@ describe('wrapLoadWithSentry calls trace', () => {
         },
         op: 'function.sveltekit.load',
         name: '/users/123',
-        status: 'ok',
       },
       expect.any(Function),
     );
@@ -258,7 +256,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
-        status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
         data: {
           'http.method': 'GET',
@@ -291,7 +288,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         },
         op: 'function.sveltekit.server.load',
         name: '/users/[id]',
-        status: 'ok',
         metadata: {},
         data: {
           'http.method': 'GET',
@@ -316,7 +312,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         name: '/users/[id]',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
-        status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
         data: {
           'http.method': 'GET',
@@ -347,7 +342,6 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         name: '/users/123',
         parentSampled: true,
         parentSpanId: '1234567890abcdef',
-        status: 'ok',
         traceId: '1234567890abcdef1234567890abcdef',
         data: {
           'http.method': 'GET',

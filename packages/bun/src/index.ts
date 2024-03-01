@@ -46,8 +46,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  // eslint-disable-next-line deprecation/deprecation
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -69,17 +67,23 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   metricsDefault as metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
   parameterize,
   startSession,
   captureSession,
   endSession,
-  withActiveSpan,
 } from '@sentry/core';
 export type { SpanStatusType } from '@sentry/core';
 export {
@@ -123,7 +127,6 @@ export { bunServerIntegration } from './integrations/bunserver';
 const INTEGRATIONS = {
   // eslint-disable-next-line deprecation/deprecation
   ...CoreIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
   ...NodeIntegrations,
   BunServer,
 };

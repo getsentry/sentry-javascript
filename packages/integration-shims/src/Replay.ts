@@ -8,7 +8,7 @@ import { consoleSandbox } from '@sentry/utils';
  *
  * @deprecated Use `replayIntegration()` instead.
  */
-class ReplayShim implements Integration {
+export class ReplayShim implements Integration {
   /**
    * @inheritDoc
    */
@@ -56,10 +56,7 @@ class ReplayShim implements Integration {
  * It is needed in order for the CDN bundles to continue working when users add/remove replay
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-export function replayIntegration(_options: unknown): Integration {
+export function replayIntegrationShim(_options: unknown): Integration {
   // eslint-disable-next-line deprecation/deprecation
   return new ReplayShim({});
 }
-
-// eslint-disable-next-line deprecation/deprecation
-export { ReplayShim as Replay };
