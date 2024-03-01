@@ -23,6 +23,7 @@ function makeStaticTransport(): MockTransport {
 }
 
 function makeClientWithoutHooks(): [Sentry.NodeClient, MockTransport] {
+  // eslint-disable-next-line deprecation/deprecation
   const integration = new ProfilingIntegration();
   const transport = makeStaticTransport();
   const client = new Sentry.NodeClient({
