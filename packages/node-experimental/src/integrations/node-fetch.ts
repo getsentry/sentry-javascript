@@ -34,9 +34,10 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
     }
 
     try {
-      const pkg = await import('opentelemetry-instrumentation-fetch-node');
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { FetchInstrumentation } = require('opentelemetry-instrumentation-fetch-node');
       return [
-        new pkg.FetchInstrumentation({
+        new FetchInstrumentation({
           ignoreRequestHook: (request: { origin?: string }) => {
             const url = request.origin;
             return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
