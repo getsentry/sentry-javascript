@@ -90,6 +90,7 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   cron,
   parameterize,

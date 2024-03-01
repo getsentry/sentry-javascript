@@ -56,6 +56,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   SDK_VERSION,
   setContext,
