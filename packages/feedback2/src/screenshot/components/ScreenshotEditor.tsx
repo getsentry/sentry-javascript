@@ -38,7 +38,7 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
           }
           canvas.width = imageSource.videoWidth;
           canvas.height = imageSource.videoHeight;
-          context.drawImage(imageSource, 0, 0);
+          context.drawImage(imageSource, 0, 0, imageSource.videoWidth, imageSource.videoHeight);
         },
         [canvas],
       ),

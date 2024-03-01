@@ -15,7 +15,7 @@ export const _feedback2ScreenshotIntegration = (() => {
     name: INTEGRATION_NAME,
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createInput: createInput,
+    createInput,
   };
 }) satisfies IntegrationFn;
 

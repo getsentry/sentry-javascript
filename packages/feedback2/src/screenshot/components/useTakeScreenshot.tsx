@@ -16,19 +16,20 @@ export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScr
       onBeforeScreenshot();
       const stream = await NAVIGATOR.mediaDevices.getDisplayMedia({
         video: {
-          width: WINDOW.innerWidth * WINDOW.devicePixelRatio,
-          height: WINDOW.innerHeight * WINDOW.devicePixelRatio,
+          width: WINDOW.innerWidth,
+          height: WINDOW.innerHeight,
         },
         audio: false,
-        // @ts-expect-error Experimental: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia#prefercurrenttab
+        // @ts-expect-error experimental flags: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia#prefercurrenttab
+        monitorTypeSurfaces: 'exclude',
         preferCurrentTab: true,
+        selfBrowserSurface: 'include',
         surfaceSwitching: 'exclude',
       });
 
+      const video = DOCUMENT.createElement('video');
       await new Promise<void>((resolve, reject) => {
-        const video = DOCUMENT.createElement('video');
-        const videoTrack = stream.getVideoTracks()[0];
-        video.srcObject = new MediaStream([videoTrack]);
+        video.srcObject = stream;
         video.onloadedmetadata = () => {
           onScreenshot(video);
           stream.getTracks().forEach(track => track.stop());

@@ -25,6 +25,7 @@ import type {
   OverrideFeedbackConfiguration,
 } from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
+import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
@@ -148,6 +149,7 @@ export const _feedback2Integration = (({
     }
     const modalIntegration = client.getIntegrationByName<IFeedback2ModalIntegration>('Feedback2Modal');
     const screenshotIntegration = client.getIntegrationByName<IFeedback2ScreenshotIntegration>('Feedback2Screenshot');
+    const screenshotIsSupported = isScreenshotSupported();
 
     // START TEMP: Error messages
     if (!modalIntegration && showScreenshot && !screenshotIntegration) {
@@ -163,14 +165,15 @@ export const _feedback2Integration = (({
       // TODO: load modalIntegration
       throw new Error('Not implemented yet');
     }
-    if (showScreenshot && !screenshotIntegration) {
+
+    if (showScreenshot && !screenshotIntegration && screenshotIsSupported) {
       // TODO: load screenshotIntegration
       throw new Error('Not implemented yet');
     }
 
     return modalIntegration.createDialog({
       options,
-      screenshotIntegration,
+      screenshotIntegration: screenshotIsSupported ? screenshotIntegration : undefined,
       sendFeedback,
       shadow: _createShadow(options),
     });
