@@ -82,6 +82,7 @@ export {
   startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   parameterize,
   requestDataIntegration,

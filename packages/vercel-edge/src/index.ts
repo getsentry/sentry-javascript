@@ -80,6 +80,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   metrics,
   functionToStringIntegration,
