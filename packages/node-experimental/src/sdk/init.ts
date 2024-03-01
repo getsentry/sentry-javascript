@@ -28,7 +28,6 @@ import { contextLinesIntegration } from '../integrations/contextlines';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
-import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
 import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
 import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
 import { spotlightIntegration } from '../integrations/spotlight';
@@ -51,7 +50,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
@@ -61,7 +59,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     nodeContextIntegration(),
     modulesIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }
