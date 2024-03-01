@@ -7,6 +7,7 @@ import { CpuProfilerBindings } from '../src/cpu_profiler';
 import { ProfilingIntegration } from '../src/index';
 
 function makeClientWithoutHooks(): [Sentry.NodeClient, Transport] {
+  // eslint-disable-next-line deprecation/deprecation
   const integration = new ProfilingIntegration();
   const transport = Sentry.makeNodeTransport({
     url: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
@@ -41,6 +42,7 @@ function makeClientWithoutHooks(): [Sentry.NodeClient, Transport] {
 }
 
 function makeClientWithHooks(): [Sentry.NodeClient, Transport] {
+  // eslint-disable-next-line deprecation/deprecation
   const integration = new ProfilingIntegration();
   const client = new Sentry.NodeClient({
     stackParser: Sentry.defaultStackParser,

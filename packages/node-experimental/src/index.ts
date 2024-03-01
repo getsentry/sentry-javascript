@@ -40,9 +40,19 @@ export { cron } from './cron';
 
 export type { Span, NodeOptions } from './types';
 
-export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan, withActiveSpan } from '@sentry/opentelemetry';
+export {
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  getActiveSpan,
+  withActiveSpan,
+} from '@sentry/opentelemetry';
 
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
+export {
+  addRequestDataToEvent,
+  DEFAULT_USER_INCLUDES,
+  extractRequestData,
+} from '@sentry/utils';
 
 export {
   addBreadcrumb,
