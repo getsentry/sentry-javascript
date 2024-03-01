@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.105.0
+
+### Important Changes
+
+- **feat: Ensure `withActiveSpan` is exported everywhere (#10877)**
+
+You can use the `withActiveSpan` method to ensure a certain span is the active span in a given callback. This can be
+used to create a span as a child of a specific span with the `startSpan` API methods:
+
+```js
+const parentSpan = Sentry.startInactiveSpan({ name: 'parent' });
+if (parentSpan) {
+  withActiveSpan(parentSpan, () => {
+    // This will be a direct child of parentSpan
+    const childSpan = Sentry.startInactiveSpan({ name: 'child' });
+  });
+}
+```
+
 ## 7.104.0
 
 ### Important Changes
