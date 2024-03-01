@@ -66,6 +66,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   parameterize,
   functionToStringIntegration,
@@ -76,7 +77,6 @@ export {
   startSession,
   captureSession,
   endSession,
-  withActiveSpan,
 } from '@sentry/core';
 
 export {

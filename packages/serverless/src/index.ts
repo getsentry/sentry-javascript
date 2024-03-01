@@ -69,6 +69,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   parameterize,
   requestDataIntegration,
@@ -96,7 +97,6 @@ export {
   startSession,
   captureSession,
   endSession,
-  withActiveSpan,
 } from '@sentry/node-experimental';
 
 export {
