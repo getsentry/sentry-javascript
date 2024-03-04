@@ -124,7 +124,6 @@ describe('Integration | Transactions', () => {
         tags: {
           'outer.tag': 'test value',
           'test.tag': 'test value',
-          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -267,7 +266,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value', transaction: 'test name' },
+        tags: {
+          'test.tag': 'test value',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -310,7 +311,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
+        tags: {
+          'test.tag': 'test value b',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -417,7 +420,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value', transaction: 'test name' },
+        tags: {
+          'test.tag': 'test value',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name',
         type: 'transaction',
@@ -456,7 +461,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
+        tags: {
+          'test.tag': 'test value b',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         type: 'transaction',

@@ -162,9 +162,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryTransaction(transaction_2[2], {
@@ -178,9 +176,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -228,9 +224,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -278,9 +272,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -328,9 +320,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -378,9 +368,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -428,9 +416,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
@@ -478,9 +464,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {

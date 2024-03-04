@@ -178,9 +178,10 @@ function applySpanToEvent(event: Event, span: Span): void {
       dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
       ...event.sdkProcessingMetadata,
     };
+
     const transactionName = spanToJSON(rootSpan).description;
-    if (transactionName) {
-      event.tags = { transaction: transactionName, ...event.tags };
+    if (transactionName && !event.transaction) {
+      event.transaction = transactionName;
     }
   }
 }
