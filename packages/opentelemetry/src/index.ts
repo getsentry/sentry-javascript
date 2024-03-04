@@ -14,11 +14,7 @@ export {
   getSpanScopes,
 } from './utils/spanData';
 
-export {
-  getPropagationContextFromContext,
-  setPropagationContextOnContext,
-  getScopesFromContext,
-} from './utils/contextData';
+export { getScopesFromContext } from './utils/contextData';
 
 export {
   spanHasAttributes,
