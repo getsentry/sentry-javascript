@@ -270,7 +270,7 @@ describe('SentryBrowser', () => {
 
       expect(localBeforeSend).toHaveBeenCalledTimes(2);
     });
-    il;
+
     it('should use inboundfilter rules of bound client', async () => {
       const localBeforeSend = jest.fn();
       const options = getDefaultBrowserClientOptions({
