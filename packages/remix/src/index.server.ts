@@ -76,6 +76,7 @@ export {
   startSpan,
   startSpanManual,
   startInactiveSpan,
+  withActiveSpan,
   continueTrace,
   isInitialized,
   cron,

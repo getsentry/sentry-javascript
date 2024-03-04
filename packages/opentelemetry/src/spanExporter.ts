@@ -3,7 +3,7 @@ import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { Transaction } from '@sentry/core';
+import type { SentrySpan, Transaction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getCurrentHub,
 } from '@sentry/core';
-import type { Scope, Span as SentrySpan, SpanOrigin, TransactionSource } from '@sentry/types';
+import type { Scope, SpanOrigin, TransactionSource } from '@sentry/types';
 import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
 
@@ -176,7 +176,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     parentSampled,
     name: description,
     op,
-    status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     metadata: {
       ...dropUndefinedKeys({
@@ -190,6 +189,8 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
     sampled: true,
   });
 
+  transaction.setStatus(mapStatus(span));
+
   // We currently don't want to write this to the scope because it would mutate it.
   // In the future we will likely have some sort of transaction payload factory where we can pass this context in directly
   // eslint-disable-next-line deprecation/deprecation
@@ -199,14 +200,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   });
 
   if (capturedSpanScopes) {
-    // Ensure the `transaction` tag is correctly set on the transaction event
-    const scope = capturedSpanScopes.scope.clone();
-    scope.addEventProcessor(event => {
-      event.tags = { transaction: description, ...event.tags };
-      return event;
-    });
-
-    setCapturedScopesOnTransaction(transaction, scope, capturedSpanScopes.isolationScope);
+    setCapturedScopesOnTransaction(transaction, capturedSpanScopes.scope, capturedSpanScopes.isolationScope);
   }
 
   return transaction;
@@ -237,11 +231,11 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
     name: description,
     op,
     data: allData,
-    status: mapStatus(span),
     startTimestamp: convertOtelTimeToSeconds(span.startTime),
     spanId,
     origin,
-  });
+  }) as SentrySpan;
+  sentrySpan.setStatus(mapStatus(span));
 
   node.children.forEach(child => {
     createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);

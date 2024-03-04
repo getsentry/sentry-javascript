@@ -17,12 +17,6 @@
     "vitest": "^0.34.6",
     "@sentry/rollup-plugin": "2.14.2"
   },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/utils": "latest || *"
-    }
-  },
   "volta": {
     "extends": "../../package.json"
   }

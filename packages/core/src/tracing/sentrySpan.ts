@@ -1,6 +1,6 @@
 import type {
   Primitive,
-  Span as SpanInterface,
+  Span,
   SpanAttributeValue,
   SpanAttributes,
   SpanContext,
@@ -25,7 +25,7 @@ import {
   spanToTraceContext,
 } from '../utils/spanUtils';
 import type { SpanStatusType } from './spanstatus';
-import { addChildSpanToSpan } from './trace';
+import { addChildSpanToSpan } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -62,7 +62,7 @@ export class SpanRecorder {
 /**
  * Span contains all data about a span
  */
-export class SentrySpan implements SpanInterface {
+export class SentrySpan implements Span {
   /**
    * Tags for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
@@ -134,9 +134,6 @@ export class SentrySpan implements SpanInterface {
     // We want to include booleans as well here
     if ('sampled' in spanContext) {
       this._sampled = spanContext.sampled;
-    }
-    if (spanContext.status) {
-      this._status = spanContext.status;
     }
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
@@ -260,24 +257,6 @@ export class SentrySpan implements SpanInterface {
     this._endTime = endTime;
   }
 
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `spanToJSON().status` instead to get the status.
-   */
-  public get status(): SpanStatusType | string | undefined {
-    return this._status;
-  }
-
-  /**
-   * The status of the span.
-   *
-   * @deprecated Use `.setStatus()` instead to set or update the status.
-   */
-  public set status(status: SpanStatusType | string | undefined) {
-    this._status = status;
-  }
-
   /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
@@ -298,7 +277,7 @@ export class SentrySpan implements SpanInterface {
    */
   public startChild(
     spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): SpanInterface {
+  ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
       parentSpanId: this._spanId,

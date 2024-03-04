@@ -60,10 +60,6 @@ export {
   withScope,
   withIsolationScope,
   withActiveSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  FunctionToString,
-  // eslint-disable-next-line deprecation/deprecation
-  InboundFilters,
   functionToStringIntegration,
   inboundFiltersIntegration,
   dedupeIntegration,
@@ -113,6 +109,3 @@ export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
-
-// eslint-disable-next-line deprecation/deprecation
-export { Breadcrumbs, LinkedErrors, HttpContext } from './integrations';

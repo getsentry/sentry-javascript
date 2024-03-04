@@ -11,6 +11,7 @@ import {
   getClient,
   getCurrentScope,
   spanToJSON,
+  withScope,
 } from '@sentry/core';
 import type { Event, PropagationContext, Scope } from '@sentry/types';
 
@@ -369,9 +370,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
-      expect(outerTransaction?.tags).toEqual({
-        transaction: 'outer transaction',
-      });
+      expect(outerTransaction?.transaction).toEqual('outer transaction');
       expect(outerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',
@@ -397,9 +396,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
-      expect(innerTransaction?.tags).toEqual({
-        transaction: 'inner transaction',
-      });
+      expect(innerTransaction?.transaction).toEqual('inner transaction');
       expect(innerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',
@@ -615,9 +612,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
-      expect(outerTransaction?.tags).toEqual({
-        transaction: 'outer transaction',
-      });
+      expect(outerTransaction?.transaction).toEqual('outer transaction');
       expect(outerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',
@@ -643,9 +638,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(innerTransaction?.spans).toEqual([]);
-      expect(innerTransaction?.tags).toEqual({
-        transaction: 'inner transaction',
-      });
+      expect(innerTransaction?.transaction).toEqual('inner transaction');
       expect(innerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',
@@ -674,6 +667,44 @@ describe('trace', () => {
 
         expect(span).toBeInstanceOf(SpanClass);
       });
+    });
+
+    it('includes the scope at the time the span was started when finished', async () => {
+      const beforeSendTransaction = jest.fn(event => event);
+
+      const client = getClient()!;
+
+      client.getOptions().beforeSendTransaction = beforeSendTransaction;
+
+      let span: Span | undefined;
+
+      const scope = getCurrentScope();
+      scope.setTag('outer', 'foo');
+
+      withScope(scope => {
+        scope.setTag('scope', 1);
+        span = startInactiveSpan({ name: 'my-span' });
+        scope.setTag('scope_after_span', 2);
+      });
+
+      withScope(scope => {
+        scope.setTag('scope', 2);
+        span?.end();
+      });
+
+      await client.flush();
+
+      expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+      expect(beforeSendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tags: expect.objectContaining({
+            outer: 'foo',
+            scope: 1,
+            scope_after_span: 2,
+          }),
+        }),
+        expect.anything(),
+      );
     });
   });
 
@@ -852,9 +883,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(outerTransaction?.spans).toEqual([{ name: 'inner span', id: expect.any(String) }]);
-      expect(outerTransaction?.tags).toEqual({
-        transaction: 'outer transaction',
-      });
+      expect(outerTransaction?.transaction).toEqual('outer transaction');
       expect(outerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',
@@ -880,9 +909,7 @@ describe('trace', () => {
         status: 'ok',
       });
       expect(innerTransaction?.spans).toEqual([{ name: 'inner span 2', id: expect.any(String) }]);
-      expect(innerTransaction?.tags).toEqual({
-        transaction: 'inner transaction',
-      });
+      expect(innerTransaction?.transaction).toEqual('inner transaction');
       expect(innerTransaction?.sdkProcessingMetadata).toEqual({
         dynamicSamplingContext: {
           environment: 'production',

@@ -2,6 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { SpanKind, context, trace } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
 import type { Span as OtelSpan, SpanProcessor as OtelSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import type { SentrySpan } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -11,7 +12,7 @@ import {
   getClient,
   getCurrentHub,
 } from '@sentry/core';
-import type { DynamicSamplingContext, Span as SentrySpan, TraceparentData, TransactionContext } from '@sentry/types';
+import type { DynamicSamplingContext, TraceparentData, TransactionContext } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { SENTRY_DYNAMIC_SAMPLING_CONTEXT_KEY, SENTRY_TRACE_PARENT_CONTEXT_KEY } from './constants';
@@ -69,7 +70,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         name: otelSpan.name,
         startTimestamp: convertOtelTimeToSeconds(otelSpan.startTime),
         spanId: otelSpanId,
-      });
+      }) as SentrySpan;
 
       setSentrySpan(otelSpanId, sentryChildSpan);
     } else {
@@ -83,7 +84,7 @@ export class SentrySpanProcessor implements OtelSpanProcessor {
         spanId: otelSpanId,
       });
 
-      setSentrySpan(otelSpanId, transaction);
+      setSentrySpan(otelSpanId, transaction as unknown as SentrySpan);
     }
   }
 

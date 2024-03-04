@@ -2,7 +2,7 @@ import type { MeasurementUnit, Span } from '@sentry/types';
 import type { MetricSummary } from '@sentry/types';
 import type { Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { getActiveSpan } from '../tracing';
+import { getActiveSpan } from '../tracing/utils';
 import type { MetricType } from './types';
 
 /**

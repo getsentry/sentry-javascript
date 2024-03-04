@@ -1,9 +1,6 @@
 export * from './exports';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
 import { WINDOW } from './helpers';
-import * as BrowserIntegrations from './integrations';
 
 let windowIntegrations = {};
 
@@ -15,9 +12,6 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 const INTEGRATIONS = {
   ...windowIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
-  ...BrowserIntegrations,
 };
 
 // eslint-disable-next-line deprecation/deprecation

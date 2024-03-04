@@ -48,7 +48,7 @@ env:
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
-  BUILD_CACHE_KEY: ${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
   BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
@@ -83,7 +83,7 @@ jobs:
           echo "COMMIT_MESSAGE=$(git log -n 1 --pretty=format:%s $COMMIT_SHA)" >> $GITHUB_ENV
 
       - name: Determine changed packages
-        uses: dorny/paths-filter@v3.0.0
+        uses: dorny/paths-filter@v3.0.1
         id: changed
         with:
           filters: |
@@ -620,7 +620,7 @@ jobs:
     name: Playwright (${{ matrix.bundle }}${{ matrix.shard && format(' {0}/{1}', matrix.shard, matrix.shards) || ''}}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser_integration == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-20.04
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -783,7 +783,7 @@ jobs:
     name: Browser (${{ matrix.browser }}) Tests
     needs: [job_get_metadata, job_build]
     if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-20.04
     timeout-minutes: 20
     strategy:
       fail-fast: false

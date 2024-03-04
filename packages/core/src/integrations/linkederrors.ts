@@ -1,6 +1,6 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import { applyAggregateErrorsToEvent, exceptionFromError } from '@sentry/utils';
-import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+import { defineIntegration } from '../integration';
 
 interface LinkedErrorsOptions {
   key?: string;
@@ -35,12 +35,3 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
 }) satisfies IntegrationFn;
 
 export const linkedErrorsIntegration = defineIntegration(_linkedErrorsIntegration);
-
-/**
- * Adds SDK info to an event.
- * @deprecated Use `linkedErrorsIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration) as IntegrationClass<
-  Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }
-> & { new (options?: { key?: string; limit?: number }): Integration };

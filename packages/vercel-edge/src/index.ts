@@ -66,6 +66,7 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
   continueTrace,
   metrics,
   functionToStringIntegration,
@@ -85,15 +86,13 @@ export {
   init,
 } from './sdk';
 
-import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
+import { RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   WinterCGFetch,
   RequestData,
 };

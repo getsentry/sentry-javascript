@@ -1,5 +1,5 @@
+import type { SentrySpan } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
-import type { Span as SentrySpan } from '@sentry/types';
 
 interface SpanMapEntry {
   sentrySpan: SentrySpan;

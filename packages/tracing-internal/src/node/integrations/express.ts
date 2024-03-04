@@ -1,6 +1,7 @@
 /* eslint-disable max-lines */
+import type { Transaction } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import type { Integration, PolymorphicRequest, Transaction } from '@sentry/types';
+import type { Integration, PolymorphicRequest } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   extractPathForTransaction,

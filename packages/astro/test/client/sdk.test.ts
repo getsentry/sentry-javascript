@@ -78,7 +78,7 @@ describe('Sentry client SDK', () => {
           ...tracingOptions,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
+        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations || [];
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
@@ -93,7 +93,7 @@ describe('Sentry client SDK', () => {
           enableTracing: true,
         });
 
-        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations;
+        const integrationsToInit = browserInit.mock.calls[0][0]?.defaultIntegrations || [];
         const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing');
 
         expect(integrationsToInit).not.toContainEqual(expect.objectContaining({ name: 'BrowserTracing' }));
