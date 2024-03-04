@@ -2,6 +2,7 @@ import type { Integration } from '@sentry/types';
 
 import * as auto from '../../src/integrations/tracing';
 import { getClient } from '../../src/sdk/api';
+import type { NodeClient } from '../../src/sdk/client';
 import { init } from '../../src/sdk/init';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -118,5 +119,21 @@ describe('init()', () => {
         integrations: expect.arrayContaining([mockIntegrations[0], mockIntegrations[1], autoPerformanceIntegration]),
       }),
     );
+  });
+
+  it('sets up OpenTelemetry by default', () => {
+    init({ dsn: PUBLIC_DSN });
+
+    const client = getClient<NodeClient>();
+
+    expect(client.traceProvider).toBeDefined();
+  });
+
+  it('allows to opt-out of OpenTelemetry setup', () => {
+    init({ dsn: PUBLIC_DSN, skipOpenTelemetrySetup: true });
+
+    const client = getClient<NodeClient>();
+
+    expect(client.traceProvider).not.toBeDefined();
   });
 });

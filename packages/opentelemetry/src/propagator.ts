@@ -18,6 +18,7 @@ import {
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,
 } from './constants';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
+import { setIsSetup } from './utils/setupCheck';
 
 /** Get the Sentry propagation context from a span context. */
 export function getPropagationContextFromSpanContext(spanContext: SpanContext): PropagationContext {
@@ -41,6 +42,11 @@ export function getPropagationContextFromSpanContext(spanContext: SpanContext): 
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
  */
 export class SentryPropagator extends W3CBaggagePropagator {
+  public constructor() {
+    super();
+    setIsSetup('SentryPropagator');
+  }
+
   /**
    * @inheritDoc
    */
