@@ -126,9 +126,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryTransaction(transaction_2[2], {
@@ -142,9 +140,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
           },
         },
       },
-      tags: {
-        transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
-      },
+      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
     });
 
     assertSentryEvent(event[2], {
