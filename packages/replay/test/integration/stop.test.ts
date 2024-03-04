@@ -1,7 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
-import type { Replay } from '../../src';
 import { WINDOW } from '../../src/constants';
+import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
@@ -17,7 +17,6 @@ type MockRunFlush = jest.MockedFunction<ReplayContainer['_runFlush']>;
 
 describe('Integration | stop', () => {
   let replay: ReplayContainer;
-  // eslint-disable-next-line deprecation/deprecation
   let integration: Replay;
   const prevLocation = WINDOW.location;
 

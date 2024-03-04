@@ -48,8 +48,13 @@ export const replayIntegration = ((options?: ReplayConfiguration) => {
   return new Replay(options);
 }) satisfies IntegrationFn;
 
-// TODO: Rewrite this to be functional integration
-class Replay implements Integration {
+/**
+ * Replay integration
+ *
+ * TODO: Rewrite this to be functional integration
+ * Exported for tests.
+ */
+export class Replay implements Integration {
   /**
    * @inheritDoc
    */
@@ -127,7 +132,6 @@ class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
-    // eslint-disable-next-line deprecation/deprecation
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({
