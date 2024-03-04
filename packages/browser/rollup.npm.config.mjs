@@ -5,5 +5,4 @@ export default makeNPMConfigVariants(
     // packages with bundles have a different build directory structure
     hasBundles: true,
   }),
-  { emitMjs: false },
 );
