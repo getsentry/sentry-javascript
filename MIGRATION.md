@@ -272,6 +272,7 @@ Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggreg
 - [Removal of `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode`](./MIGRATION.md#removal-of-spanstatusfromhttpcode-in-favour-of-getspanstatusfromhttpcode)
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
 - [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
+- [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
 
 #### Deprecation of `Hub` and `getCurrentHub()`
 
@@ -437,7 +438,8 @@ The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecat
 
 #### Remove `void` from transport return types
 
-The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in the promise. This means that the `void` return type is no longer allowed.
+The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in
+the promise. This means that the `void` return type is no longer allowed.
 
 ```ts
 // Before (v7)
