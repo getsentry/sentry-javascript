@@ -1,4 +1,5 @@
 import type { Span, TimeInput } from '@opentelemetry/api';
+import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
@@ -13,11 +14,10 @@ import {
   spanToJSON,
   withScope,
 } from '@sentry/core';
-import type { Event, PropagationContext, Scope } from '@sentry/types';
+import type { Event, Scope } from '@sentry/types';
 
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
-import { setPropagationContextOnContext } from '../src/utils/contextData';
 import { getActiveSpan, getRootSpan } from '../src/utils/getActiveSpan';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { getSpanMetadata } from '../src/utils/spanData';
@@ -1077,25 +1077,15 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      sampled: true,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-    };
-
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        // This will def. be sampled because of the tracesSampleRate
-        startSpan({ name: 'outer' }, outerSpan => {
-          expect(outerSpan).toBeDefined();
-          expect(outerSpan.isRecording()).toBe(true);
-          expect(getSpanName(outerSpan)).toBe('outer');
-        });
-      },
-    );
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      // This will def. be sampled because of the tracesSampleRate
+      startSpan({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(outerSpan.isRecording()).toBe(true);
+        expect(getSpanName(outerSpan)).toBe('outer');
+      });
+    });
   });
 
   it('negative remote parent sampling takes precedence over tracesSampleRate', () => {
@@ -1114,24 +1104,14 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.NONE,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      sampled: false,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-    };
-
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        // This will def. be sampled because of the tracesSampleRate
-        startSpan({ name: 'outer' }, outerSpan => {
-          expect(outerSpan).toBeDefined();
-          expect(outerSpan.isRecording()).toBe(false);
-        });
-      },
-    );
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      // This will def. be sampled because of the tracesSampleRate
+      startSpan({ name: 'outer' }, outerSpan => {
+        expect(outerSpan).toBeDefined();
+        expect(outerSpan.isRecording()).toBe(false);
+      });
+    });
   });
 
   it('samples with a tracesSampler returning a boolean', () => {
@@ -1254,23 +1234,13 @@ describe('trace (sampling)', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      sampled: true,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-    };
-
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        // This will def. be sampled because of the tracesSampleRate
-        startSpan({ name: 'outer' }, outerSpan => {
-          expect(outerSpan.isRecording()).toBe(false);
-        });
-      },
-    );
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      // This will def. be sampled because of the tracesSampleRate
+      startSpan({ name: 'outer' }, outerSpan => {
+        expect(outerSpan.isRecording()).toBe(false);
+      });
+    });
 
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({

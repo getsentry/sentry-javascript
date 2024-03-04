@@ -1,6 +1,7 @@
 import { defineIntegration, getCurrentScope } from '@sentry/core';
 import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import * as inspector from 'inspector';
 import { Worker } from 'worker_threads';
 import { NODE_MAJOR, NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -85,7 +86,6 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
   };
 
   if (options.captureStackTrace) {
-    const inspector = await import('inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }

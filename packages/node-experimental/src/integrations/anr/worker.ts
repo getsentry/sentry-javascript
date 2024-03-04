@@ -21,7 +21,6 @@ import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';
 
 type VoidFunction = () => void;
-type InspectorSessionNodeV12 = InspectorSession & { connectToMainThread: VoidFunction };
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
@@ -139,7 +138,7 @@ let debuggerPause: VoidFunction | undefined;
 if (options.captureStackTrace) {
   log('Connecting to debugger');
 
-  const session = new InspectorSession() as InspectorSessionNodeV12;
+  const session = new InspectorSession();
   session.connectToMainThread();
 
   log('Connected to debugger');

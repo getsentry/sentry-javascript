@@ -1,8 +1,8 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
-import type { PropagationContext, TransactionEvent } from '@sentry/types';
+import { SentrySpanProcessor } from '@sentry/opentelemetry';
+import type { TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
@@ -488,37 +488,27 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-      sampled: true,
-    };
-
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        Sentry.startSpan(
-          {
-            op: 'test op',
-            name: 'test name',
-            origin: 'auto.test',
-            attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
-          },
-          () => {
-            const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-            subSpan.end();
+    context.with(trace.setSpanContext(context.active(), spanContext), () => {
+      Sentry.startSpan(
+        {
+          op: 'test op',
+          name: 'test name',
+          origin: 'auto.test',
+          attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
+        },
+        () => {
+          const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+          subSpan.end();
 
-            Sentry.startSpan({ name: 'inner span 2' }, () => {});
-          },
-        );
-      },
-    );
+          Sentry.startSpan({ name: 'inner span 2' }, () => {});
+        },
+      );
+    });
 
     await client.flush();
 
