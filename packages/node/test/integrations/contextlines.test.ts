@@ -1,23 +1,25 @@
 import * as fs from 'fs';
-import type { Event, Integration, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFnResult, StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import { ContextLines, resetFileContentCache } from '../../src/integrations/contextlines';
+import { contextLinesIntegration } from '../../src';
+import { resetFileContentCache } from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk';
 import { getError } from '../helper/error';
 
 describe('ContextLines', () => {
   let readFileSpy: jest.SpyInstance;
-  let contextLines: Integration & { processEvent: (event: Event) => Promise<Event> };
+  let contextLines: IntegrationFnResult;
 
   async function addContext(frames: StackFrame[]): Promise<void> {
-    await contextLines.processEvent({ exception: { values: [{ stacktrace: { frames } }] } });
+    await (contextLines as IntegrationFnResult & { processEvent: (event: Event) => Promise<Event> }).processEvent({
+      exception: { values: [{ stacktrace: { frames } }] },
+    });
   }
 
   beforeEach(() => {
     readFileSpy = jest.spyOn(fs, 'readFile');
-    // eslint-disable-next-line deprecation/deprecation
-    contextLines = new ContextLines();
+    contextLines = contextLinesIntegration();
     resetFileContentCache();
   });
 
@@ -100,7 +102,7 @@ describe('ContextLines', () => {
 
     test('parseStack with no context', async () => {
       // eslint-disable-next-line deprecation/deprecation
-      contextLines = new ContextLines({ frameContextLines: 0 });
+      contextLines = contextLinesIntegration({ frameContextLines: 0 });
 
       expect.assertions(1);
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
@@ -113,7 +115,7 @@ describe('ContextLines', () => {
   test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
     // eslint-disable-next-line deprecation/deprecation
-    contextLines = new ContextLines();
+    contextLines = contextLinesIntegration();
 
     readFileSpy.mockImplementation(() => {
       throw new Error("ENOENT: no such file or directory, open '/does/not/exist.js'");

@@ -1,4 +1,10 @@
-import { InboundFilters, SDK_VERSION, getGlobalScope, getIsolationScope, getReportDialogEndpoint } from '@sentry/core';
+import {
+  SDK_VERSION,
+  getGlobalScope,
+  getIsolationScope,
+  getReportDialogEndpoint,
+  inboundFiltersIntegration,
+} from '@sentry/core';
 import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
@@ -270,10 +276,7 @@ describe('SentryBrowser', () => {
       const options = getDefaultBrowserClientOptions({
         beforeSend: localBeforeSend,
         dsn,
-        integrations: [
-          // eslint-disable-next-line deprecation/deprecation
-          new InboundFilters({ ignoreErrors: ['capture'] }),
-        ],
+        integrations: [inboundFiltersIntegration({ ignoreErrors: ['capture'] })],
       });
       const client = new BrowserClient(options);
       setCurrentClient(client);
