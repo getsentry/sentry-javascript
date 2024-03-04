@@ -16,7 +16,6 @@
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
-    "@sentry/opentelemetry-node": "latest || *",
     "@sentry/replay": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
