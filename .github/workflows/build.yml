@@ -403,6 +403,12 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
+      - name: Extract Profiling Node Prebuilt Binaries
+        uses: actions/download-artifact@v3
+        with:
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+
       - name: Pack tarballs
         run: yarn build:tarball
 
