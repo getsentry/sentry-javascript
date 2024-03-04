@@ -19,6 +19,7 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/profiling-node',
   '@sentry/replay',
   '@sentry-internal/replay-canvas',
+  '@sentry-internal/replay-worker',
   '@sentry-internal/feedback',
   '@sentry/wasm',
   '@sentry/bun',
