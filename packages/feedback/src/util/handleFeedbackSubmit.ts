@@ -1,5 +1,5 @@
 import type { TransportMakeRequestResponse } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { logger, resolvedSyncPromise } from '@sentry/utils';
 
 import { FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { DEBUG_BUILD } from '../debug-build';
@@ -15,10 +15,10 @@ export async function handleFeedbackSubmit(
   dialog: DialogComponent | null,
   feedback: FeedbackFormData,
   options?: SendFeedbackOptions,
-): Promise<TransportMakeRequestResponse | void> {
+): Promise<TransportMakeRequestResponse> {
   if (!dialog) {
     // Not sure when this would happen
-    return;
+    return resolvedSyncPromise({});
   }
 
   const showFetchError = (): void => {
@@ -39,4 +39,6 @@ export async function handleFeedbackSubmit(
     DEBUG_BUILD && logger.error(err);
     showFetchError();
   }
+
+  return resolvedSyncPromise({});
 }

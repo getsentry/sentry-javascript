@@ -130,7 +130,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return Promise.resolve(true);
+      return Promise.resolve({ statusCode: 200 });
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 
@@ -180,7 +180,7 @@ describe('createWidget', () => {
     });
 
     (sendFeedbackRequest as jest.Mock).mockImplementation(() => {
-      return true;
+      return Promise.resolve({ statusCode: 200 });
     });
     widget.actor?.el?.dispatchEvent(new Event('click'));
 

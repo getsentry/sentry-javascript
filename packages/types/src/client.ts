@@ -215,7 +215,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for when an event has been sent.
    */
-  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
@@ -292,7 +292,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.

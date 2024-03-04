@@ -57,7 +57,7 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
     const transport = createTransport(options);
 
     return {
-      send: async (envelope: Envelope): Promise<void | TransportMakeRequestResponse> => {
+      send: async (envelope: Envelope): Promise<TransportMakeRequestResponse> => {
         const event = eventFromEnvelope(envelope, ['event', 'transaction', 'profile', 'replay_event']);
 
         if (event) {
@@ -101,7 +101,7 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
       return otherTransports[key];
     }
 
-    async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
+    async function send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
       function getEvent(types?: EnvelopeItemType[]): Event | undefined {
         const eventTypes: EnvelopeItemType[] = types && types.length ? types : ['event'];
         return eventFromEnvelope(envelope, eventTypes);

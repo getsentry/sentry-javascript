@@ -432,10 +432,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
-  public on(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
@@ -485,7 +482,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
@@ -518,16 +515,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> | void {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        return reason;
       });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
     }
+
+    DEBUG_BUILD && logger.error('Transport disabled');
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
