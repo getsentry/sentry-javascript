@@ -8,8 +8,8 @@ import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { getPropagationContextFromSpanContext } from './propagator';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
-import { getPropagationContextFromContext } from './utils/contextData';
 
 /**
  * A custom OTEL sampler that uses Sentry sampling rates to make it's decision
@@ -44,7 +44,7 @@ export class SentrySampler implements Sampler {
     // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
     if (parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
       if (parentContext.isRemote) {
-        parentSampled = getParentRemoteSampled(parentContext, context);
+        parentSampled = getParentRemoteSampled(parentContext);
         DEBUG_BUILD &&
           logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       } else {
@@ -178,10 +178,10 @@ function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-function getParentRemoteSampled(spanContext: SpanContext, context: Context): boolean | undefined {
+function getParentRemoteSampled(spanContext: SpanContext): boolean | undefined {
   const traceId = spanContext.traceId;
-  const traceparentData = getPropagationContextFromContext(context);
+  const traceparentData = getPropagationContextFromSpanContext(spanContext);
 
-  // Only inherit sample rate if `traceId` is the same
+  // Only inherit sampled if `traceId` is the same
   return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
 }

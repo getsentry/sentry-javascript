@@ -200,14 +200,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
   });
 
   if (capturedSpanScopes) {
-    // Ensure the `transaction` tag is correctly set on the transaction event
-    const scope = capturedSpanScopes.scope.clone();
-    scope.addEventProcessor(event => {
-      event.tags = { transaction: description, ...event.tags };
-      return event;
-    });
-
-    setCapturedScopesOnTransaction(transaction, scope, capturedSpanScopes.isolationScope);
+    setCapturedScopesOnTransaction(transaction, capturedSpanScopes.scope, capturedSpanScopes.isolationScope);
   }
 
   return transaction;

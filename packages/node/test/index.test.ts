@@ -1,5 +1,4 @@
 import {
-  LinkedErrors,
   SDK_VERSION,
   getGlobalScope,
   getIsolationScope,
@@ -11,7 +10,7 @@ import {
 import type { EventHint, Integration } from '@sentry/types';
 
 import type { Event } from '../src';
-import { contextLinesIntegration } from '../src';
+import { contextLinesIntegration, linkedErrorsIntegration } from '../src';
 import {
   NodeClient,
   addBreadcrumb,
@@ -24,7 +23,6 @@ import {
   init,
 } from '../src';
 import { setNodeAsyncContextStrategy } from '../src/async';
-import { ContextLines } from '../src/integrations';
 import { defaultStackParser, getDefaultIntegrations } from '../src/sdk';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
@@ -217,8 +215,7 @@ describe('SentryNode', () => {
       expect.assertions(15);
       const options = getDefaultNodeClientOptions({
         stackParser: defaultStackParser,
-        // eslint-disable-next-line deprecation/deprecation
-        integrations: [new ContextLines(), new LinkedErrors()],
+        integrations: [contextLinesIntegration(), linkedErrorsIntegration()],
         beforeSend: (event: Event) => {
           expect(event.exception).not.toBeUndefined();
           expect(event.exception!.values![1]).not.toBeUndefined();

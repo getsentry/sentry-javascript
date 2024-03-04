@@ -15,6 +15,14 @@ Sentry.Integrations.Replay = Replay;
 addTracingExtensions();
 
 export {
+  getActiveSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
+} from '@sentry/core';
+
+export {
   // eslint-disable-next-line deprecation/deprecation
   Feedback,
   // eslint-disable-next-line deprecation/deprecation

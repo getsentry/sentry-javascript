@@ -1,4 +1,4 @@
-import { getActiveSpan, getRootSpan } from '@sentry/core';
+import { SPAN_STATUS_ERROR, getActiveSpan, getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
@@ -34,7 +34,7 @@ export function registerBackgroundTabDetection(): void {
         // We should not set status if it is already set, this prevent important statuses like
         // error or data loss from being overwritten on transaction.
         if (!status) {
-          rootSpan.setStatus(cancelledStatus);
+          rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: cancelledStatus });
         }
 
         rootSpan.setAttribute('sentry.cancellation_reason', 'document.hidden');

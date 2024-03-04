@@ -1,7 +1,7 @@
 import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
-import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -33,8 +33,7 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new InboundFilters(options)],
+      integrations: [inboundFiltersIntegration(options)],
     }),
   );
 
@@ -188,6 +187,17 @@ const SCRIPT_ERROR_EVENT: Event = {
   },
 };
 
+const RESIZEOBSERVER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'ResizeObserver loop completed with undelivered notifications.',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -292,6 +302,11 @@ describe('InboundFilters', () => {
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters ResizeObserver', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {

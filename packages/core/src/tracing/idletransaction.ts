@@ -5,6 +5,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import type { SentrySpan } from './sentrySpan';
 import { SpanRecorder } from './sentrySpan';
+import { SPAN_STATUS_ERROR } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const TRACING_DEFAULTS = {
@@ -147,7 +148,7 @@ export class IdleTransaction extends Transaction {
 
     setTimeout(() => {
       if (!this._finished) {
-        this.setStatus('deadline_exceeded');
+        this.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[3];
         this.end();
       }
@@ -185,7 +186,7 @@ export class IdleTransaction extends Transaction {
 
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
         if (!spanToJSON(span).timestamp) {
-          span.setStatus('cancelled');
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
           span.end(endTimestampInS);
           DEBUG_BUILD &&
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
@@ -396,7 +397,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       if (this._autoFinishAllowed) {
         DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
-        this.setStatus('deadline_exceeded');
+        this.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
         this.end();
       }

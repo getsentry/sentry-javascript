@@ -86,8 +86,6 @@ export {
   endSession,
 } from '@sentry/core';
 
-export type { SpanStatusType } from '@sentry/core';
-
 export { DenoClient } from './client';
 
 export {
@@ -95,20 +93,16 @@ export {
   init,
 } from './sdk';
 
-export { breadcrumbsIntegration } from '@sentry/browser';
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 
 import * as DenoIntegrations from './integrations';
 
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...DenoIntegrations,
 };

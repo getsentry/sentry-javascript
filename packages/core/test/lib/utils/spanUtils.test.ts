@@ -1,5 +1,5 @@
 import { TRACEPARENT_REGEXP, timestampInSeconds } from '@sentry/utils';
-import { SentrySpan, spanToTraceHeader } from '../../../src';
+import { SPAN_STATUS_OK, SentrySpan, spanToTraceHeader } from '../../../src';
 import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../../../src/utils/spanUtils';
 
 describe('spanToTraceHeader', () => {
@@ -72,7 +72,7 @@ describe('spanToJSON', () => {
       startTimestamp: 123,
       endTimestamp: 456,
     });
-    span.setStatus('ok');
+    span.setStatus({ code: SPAN_STATUS_OK });
 
     expect(spanToJSON(span)).toEqual({
       description: 'test name',
