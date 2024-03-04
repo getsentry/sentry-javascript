@@ -4,11 +4,11 @@ import { Resource } from '@opentelemetry/resources';
 import type { Span as OtelSpan } from '@opentelemetry/sdk-trace-base';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticAttributes, SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import type { SpanStatusType } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { captureException, getCurrentScope, setCurrentClient } from '@sentry/core';
 import { SentrySpan, Transaction, addTracingExtensions, createTransport, spanToJSON } from '@sentry/core';
 import { NodeClient } from '@sentry/node-experimental';
+import type { SpanStatus } from '@sentry/types';
 import { resolvedSyncPromise } from '@sentry/utils';
 
 import { SentrySpanProcessor } from '../src/spanprocessor';
@@ -386,7 +386,7 @@ describe('SentrySpanProcessor', () => {
     });
   });
 
-  const statusTestTable: [number, undefined | number | string, undefined | string, SpanStatusType][] = [
+  const statusTestTable: [number, undefined | number | string, undefined | string, SpanStatus['message']][] = [
     [-1, undefined, undefined, 'unknown_error'],
     [3, undefined, undefined, 'unknown_error'],
     [0, undefined, undefined, 'ok'],

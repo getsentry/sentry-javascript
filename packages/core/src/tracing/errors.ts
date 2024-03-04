@@ -5,7 +5,7 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { SpanStatusType } from './spanstatus';
+import { SPAN_STATUS_ERROR } from './spanstatus';
 import { getActiveTransaction } from './utils';
 
 let errorsInstrumented = false;
@@ -35,9 +35,9 @@ function errorCallback(): void {
   // eslint-disable-next-line deprecation/deprecation
   const activeTransaction = getActiveTransaction();
   if (activeTransaction) {
-    const status: SpanStatusType = 'internal_error';
-    DEBUG_BUILD && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
-    activeTransaction.setStatus(status);
+    const message = 'internal_error';
+    DEBUG_BUILD && logger.log(`[Tracing] Transaction: ${message} -> Global error occured`);
+    activeTransaction.setStatus({ code: SPAN_STATUS_ERROR, message });
   }
 }
 

@@ -1,6 +1,13 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
-import { SDK_VERSION, captureException, defineIntegration, getActiveSpan, getRootSpan } from '@sentry/core';
+import {
+  SDK_VERSION,
+  SPAN_STATUS_ERROR,
+  captureException,
+  defineIntegration,
+  getActiveSpan,
+  getRootSpan,
+} from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -61,7 +68,7 @@ export const hapiErrorPlugin = {
       }
 
       if (rootSpan) {
-        rootSpan.setStatus('internal_error');
+        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         rootSpan.end();
       }
     });

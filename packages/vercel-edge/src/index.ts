@@ -78,7 +78,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';
 export {

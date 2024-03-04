@@ -80,7 +80,6 @@ export {
   ModuleMetadata,
   moduleMetadataIntegration,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
