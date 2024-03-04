@@ -55,7 +55,9 @@ const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-const chrome: StackLineParserFn = line => {
+// We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
+// See: https://github.com/getsentry/sentry-javascript/issues/6880
+const chromeStackParserFn: StackLineParserFn = line => {
   const parts = chromeRegex.exec(line);
 
   if (parts) {
@@ -82,7 +84,7 @@ const chrome: StackLineParserFn = line => {
   return;
 };
 
-export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chrome];
+export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeStackParserFn];
 
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js
