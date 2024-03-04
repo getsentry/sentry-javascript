@@ -226,7 +226,7 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
         console.warn('[Source Maps Plugin] Failed to upload source maps!');
         // eslint-disable-next-line no-console
         console.log(
-          '[Source Maps Plugin] Please make sure, you specified a valid Sentry auth token, as well as your org and project slugs.',
+          '[Source Maps Plugin] Please make sure you specified a valid Sentry auth token, as well as your org and project slugs.',
         );
         // eslint-disable-next-line no-console
         console.log(
