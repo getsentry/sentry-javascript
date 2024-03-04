@@ -521,6 +521,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
     this.emit('beforeEnvelope', envelope);
 
+    // TODO: just any change here...
+
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && logger.error('Error while sending event:', reason);
