@@ -45,10 +45,6 @@ export {
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
-  getActiveSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   continueTrace,
   SDK_VERSION,
   setContext,
@@ -59,7 +55,6 @@ export {
   setUser,
   withScope,
   withIsolationScope,
-  withActiveSpan,
   functionToStringIntegration,
   inboundFiltersIntegration,
   dedupeIntegration,

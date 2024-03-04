@@ -20,6 +20,14 @@ Sentry.Integrations.Replay = ReplayShim;
 addTracingExtensions();
 
 export {
+  getActiveSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
+} from '@sentry/core';
+
+export {
   // eslint-disable-next-line deprecation/deprecation
   FeedbackShim as Feedback,
   // eslint-disable-next-line deprecation/deprecation

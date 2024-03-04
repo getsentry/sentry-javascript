@@ -70,6 +70,11 @@ export {
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
+  getActiveSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
@@ -80,7 +85,6 @@ export {
   ModuleMetadata,
   moduleMetadataIntegration,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
 export { browserProfilingIntegration } from './profiling/integration';
