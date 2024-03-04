@@ -49,7 +49,7 @@ env:
     ${{ github.workspace }}/packages/utils/esm
 
   BUILD_CACHE_KEY: build-cache-${{ github.event.inputs.commit || github.sha }}
-  BUILD_PROFILING_NODE_CACHE_TARBALL_KEY: profiling-node-tarball-${{ github.event.inputs.commit || github.sha }}
+  BUILD_CACHE_TARBALL_KEY: tarball-${{ github.event.inputs.commit || github.sha }}
 
   # GH will use the first restore-key it finds that matches
   # So it will start by looking for one from the same branch, else take the newest one it can find elsewhere
@@ -402,15 +402,15 @@ jobs:
         uses: ./.github/actions/restore-cache
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Pack tarballs
-        # Profiling tarball is built separately as we assemble the precompiled binaries
-        run: yarn build:tarball --ignore @sentry/profiling-node
 
-      - name: Restore profiling tarball
-        uses: actions/cache/restore@v4
+      - name: Extract Profiling Node Prebuilt Binaries
+        uses: actions/download-artifact@v3
         with:
-          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
-          path: ${{ github.workspace }}/packages/*/*.tgz
+          name: profiling-node-binaries-${{ github.sha }}
+          path: ${{ github.workspace }}/packages/profiling-node/lib/
+
+      - name: Pack tarballs
+        run: yarn build:tarball
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
@@ -985,8 +985,6 @@ jobs:
           key: nx-Linux-${{ github.ref }}-${{ env.HEAD_COMMIT }}
           # On develop branch, we want to _store_ the cache (so it can be used by other branches), but never _restore_ from it
           restore-keys: ${{ env.NX_CACHE_RESTORE_KEYS }}
-      - name: Build tarballs
-        run: yarn build:tarball --ignore @sentry/profiling-node
 
       # Rebuild profiling by compiling TS and pull the precompiled binary artifacts
       - name: Build Profiling Node
@@ -1001,6 +999,7 @@ jobs:
         # https://github.com/actions/upload-artifact/issues/478
         if: |
           (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
+            (needs.job_get_metadata.outputs.is_release == 'true') ||
           (github.event_name != 'pull_request')
         uses: actions/download-artifact@v3
         with:
@@ -1008,14 +1007,14 @@ jobs:
           path: ${{ github.workspace }}/packages/profiling-node/lib/
 
       - name: Build Profiling tarball
-        run: yarn build:tarball --scope @sentry/profiling-node
+        run: yarn build:tarball
       # End rebuild profiling
 
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
@@ -1111,7 +1110,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
 
       - name: Get node version
         id: versions
@@ -1202,13 +1201,13 @@ jobs:
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
-      - name: Build Profiling tarball
-        run: yarn build:tarball --scope @sentry/profiling-node
+
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+          key: ${{ env.BUILD_CACHE_TARBALL_KEY }}
+          fail-on-cache-miss : true
 
       - name: Get node version
         id: versions
