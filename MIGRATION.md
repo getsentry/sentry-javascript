@@ -435,6 +435,22 @@ addEventProcessor(event => {
 
 The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
 
+#### Remove `void` from transport return types
+
+The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in the promise. This means that the `void` return type is no longer allowed.
+
+```ts
+// Before (v7)
+interface Transport {
+  send(event: Event): Promise<void | TransportMakeRequestResponse>;
+}
+
+// After (v8)
+interface Transport {
+  send(event: Event): Promise<TransportMakeRequestResponse>;
+}
+```
+
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
 
 Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`
