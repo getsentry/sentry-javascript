@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedEvent } from '@sentry/types';
+import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -16,7 +16,7 @@ sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath
   // To trigger FID
   await page.locator('#fid-btn').click();
 
-  const eventData = await getFirstSentryEnvelopeRequest<SerializedEvent>(page);
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.fid?.value).toBeDefined();

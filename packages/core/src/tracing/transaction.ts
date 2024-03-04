@@ -276,8 +276,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
         // We don't want to override trace context
         trace: spanToTraceContext(this),
       },
-      // TODO: Pass spans serialized via `spanToJSON()` here instead in v8.
-      spans: finishedSpans,
+      spans: finishedSpans.map(span => spanToJSON(span)),
       start_timestamp: this._startTime,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,

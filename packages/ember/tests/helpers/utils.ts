@@ -1,4 +1,3 @@
-import { spanToJSON } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 const defaultAssertOptions = {
@@ -68,16 +67,15 @@ export function assertSentryTransactions(
   // Also we ignore ui.long-task spans, as they are brittle and may or may not appear
   const filteredSpans = spans
     .filter(span => {
-      const op = spanToJSON(span).op;
+      const op = span.op;
       return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
     })
-    .map(s => {
-      const spanJson = spanToJSON(s);
+    .map(spanJson => {
       return `${spanJson.op} | ${spanJson.description}`;
     });
 
   assert.true(
-    spans.some(span => spanToJSON(span).op?.startsWith('ui.ember.runloop.')),
+    spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
     'it captures runloop spans',
   );
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');
