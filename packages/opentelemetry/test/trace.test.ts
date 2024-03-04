@@ -11,7 +11,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
-  spanToJSON,
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
@@ -337,7 +336,7 @@ describe('trace', () => {
       const normalizedTransactionEvents = transactionEvents.map(event => {
         return {
           ...event,
-          spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+          spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         };
       });
 
@@ -579,7 +578,7 @@ describe('trace', () => {
       const normalizedTransactionEvents = transactionEvents.map(event => {
         return {
           ...event,
-          spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+          spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         };
       });
 
@@ -850,7 +849,7 @@ describe('trace', () => {
       const normalizedTransactionEvents = transactionEvents.map(event => {
         return {
           ...event,
-          spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+          spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         };
       });
 
