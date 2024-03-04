@@ -42,6 +42,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
           scope,
         });
 
+    if (activeSpan) {
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
+    }
+
     return handleCallbackErrors(
       () => callback(activeSpan),
       () => {
@@ -90,6 +95,11 @@ export function startSpanManual<T>(
           forceTransaction: context.forceTransaction,
           scope,
         });
+
+    if (activeSpan) {
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(activeSpan);
+    }
 
     function finishAndSetSpan(): void {
       activeSpan && activeSpan.end();
@@ -141,16 +151,11 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
 
   const scope = context.scope || getCurrentScope();
 
-  // Even though we don't actually want to make this span active on the current scope,
-  // we need to make it active on a temporary scope that we use for event processing
-  // as otherwise, it won't pick the correct span for the event when processing it
-  const temporaryScope = scope.clone();
-
   return createChildSpanOrTransaction(hub, {
     parentSpan,
     spanContext,
     forceTransaction: context.forceTransaction,
-    scope: temporaryScope,
+    scope,
   });
 }
 
@@ -318,12 +323,6 @@ function createChildSpanOrTransaction(
       },
     });
   }
-
-  // We always set this as active span on the scope
-  // In the case of this being an inactive span, we ensure to pass a detached scope in here in the first place
-  // But by having this here, we can ensure that the lookup through `getCapturedScopesOnSpan` results in the correct scope & span combo
-  // eslint-disable-next-line deprecation/deprecation
-  scope.setSpan(span);
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
 

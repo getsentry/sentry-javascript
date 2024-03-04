@@ -28,8 +28,8 @@ export function setupEventContextTrace(client: Client): void {
 
     const rootSpan = getRootSpan(span);
     const transactionName = spanHasName(rootSpan) ? rootSpan.name : undefined;
-    if (transactionName) {
-      event.tags = { transaction: transactionName, ...event.tags };
+    if (transactionName && !event.transaction) {
+      event.transaction = transactionName;
     }
 
     return event;

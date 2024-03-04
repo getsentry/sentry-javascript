@@ -1,8 +1,8 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { getEventDescription, logger, stringMatchesSomePattern } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+import { defineIntegration } from '../integration';
 
 // "Script error." is hard coded into browsers for errors that it can't read.
 // this is the result of a script being pulled in from an external domain and CORS.
@@ -35,28 +35,6 @@ const _inboundFiltersIntegration = ((options: Partial<InboundFiltersOptions> = {
 }) satisfies IntegrationFn;
 
 export const inboundFiltersIntegration = defineIntegration(_inboundFiltersIntegration);
-
-/**
- * Inbound filters configurable by the user.
- * @deprecated Use `inboundFiltersIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const InboundFilters = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  inboundFiltersIntegration,
-) as IntegrationClass<Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }> & {
-  new (
-    options?: Partial<{
-      allowUrls: Array<string | RegExp>;
-      denyUrls: Array<string | RegExp>;
-      ignoreErrors: Array<string | RegExp>;
-      ignoreTransactions: Array<string | RegExp>;
-      ignoreInternal: boolean;
-      disableErrorDefaults: boolean;
-      disableTransactionDefaults: boolean;
-    }>,
-  ): Integration;
-};
 
 function _mergeOptions(
   internalOptions: Partial<InboundFiltersOptions> = {},
