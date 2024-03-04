@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "7.104.0",
+  "version": "7.105.0",
   "license": "MIT",
   "engines": {
     "node": ">=10"
@@ -29,9 +29,9 @@
   "dependencies": {
     "@hapi/hapi": "^20.3.0",
     "@prisma/client": "3.15.2",
-    "@sentry/node": "7.104.0",
-    "@sentry/tracing": "7.104.0",
-    "@sentry/types": "7.104.0",
+    "@sentry/node": "7.105.0",
+    "@sentry/tracing": "7.105.0",
+    "@sentry/types": "7.105.0",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
