@@ -4,6 +4,7 @@ import type { ClientOptions, Options } from '@sentry/types';
 
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { setOpenTelemetryContextAsyncContextStrategy } from '../../src/asyncContextStrategy';
+import { clearOpenTelemetrySetupCheck } from '../../src/utils/setupCheck';
 import { init as initTestClient } from './TestClient';
 import { initOtel } from './initOtel';
 
@@ -32,6 +33,7 @@ export function mockSdkInit(options?: Partial<ClientOptions>) {
 }
 
 export function cleanupOtel(_provider?: BasicTracerProvider): void {
+  clearOpenTelemetrySetupCheck();
   const provider = getProvider(_provider);
 
   if (!provider) {
