@@ -410,7 +410,8 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
-          path: ${{ github.workspace }}/packages/*/*.tgz
+          path: ${{ github.workspace }}/packages/profiling-node/*.tgz
+          fail-on-cache-miss: true
 
       - name: Archive artifacts
         uses: actions/upload-artifact@v4
@@ -1014,7 +1015,7 @@ jobs:
       - name: Stores tarballs in cache
         uses: actions/cache/save@v4
         with:
-          path: ${{ github.workspace }}/packages/*/*.tgz
+          path: ${{ github.workspace }}/packages/profiling-node/*.tgz
           key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
 
   job_e2e_tests:
@@ -1107,12 +1108,6 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
 
-      - name: Restore tarball cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ github.workspace }}/packages/*/*.tgz
-          key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
-
       - name: Get node version
         id: versions
         run: |
@@ -1202,13 +1197,13 @@ jobs:
         with:
           name: profiling-node-binaries-${{ github.sha }}
           path: ${{ github.workspace }}/packages/profiling-node/lib/
-      - name: Build Profiling tarball
-        run: yarn build:tarball --scope @sentry/profiling-node
+
       - name: Restore tarball cache
         uses: actions/cache/restore@v4
         with:
-          path: ${{ github.workspace }}/packages/*/*.tgz
+          path: ${{ github.workspace }}/packages/profiling-node/*.tgz
           key: ${{ env.BUILD_PROFILING_NODE_CACHE_TARBALL_KEY }}
+          fail-on-cache-miss : true
 
       - name: Get node version
         id: versions
