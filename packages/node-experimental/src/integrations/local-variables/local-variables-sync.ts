@@ -1,7 +1,8 @@
 import { convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
 import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
+import type { Debugger, InspectorNotification, Runtime } from 'inspector';
+import { Session } from 'inspector';
 
 import { NODE_MAJOR } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
@@ -78,22 +79,6 @@ class AsyncSession implements DebugSession {
 
   /** Throws if inspector API is not available */
   public constructor() {
-    /*
-    TODO: We really should get rid of this require statement below for a couple of reasons:
-    1. It makes the integration unusable in the SvelteKit SDK, as it's not possible to use `require`
-       in SvelteKit server code (at least not by default).
-    2. Throwing in a constructor is bad practice
-
-    More context for a future attempt to fix this:
-    We already tried replacing it with import but didn't get it to work because of async problems.
-    We still called import in the constructor but assigned to a promise which we "awaited" in
-    `configureAndConnect`. However, this broke the Node integration tests as no local variables
-    were reported any more. We probably missed a place where we need to await the promise, too.
-    */
-
-    // Node can be built without inspector support so this can throw
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Session } = require('inspector');
     this._session = new Session();
   }
 
