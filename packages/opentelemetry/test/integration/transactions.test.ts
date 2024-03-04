@@ -1,8 +1,9 @@
 import type { SpanContext } from '@opentelemetry/api';
+import { ROOT_CONTEXT } from '@opentelemetry/api';
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addBreadcrumb, getClient, setTag, withIsolationScope } from '@sentry/core';
-import type { Event, PropagationContext, TransactionEvent } from '@sentry/types';
+import type { Event, TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { TraceState } from '@opentelemetry/core';
@@ -10,7 +11,6 @@ import { spanToJSON } from '@sentry/core';
 import { SENTRY_TRACE_STATE_DSC } from '../../src/constants';
 import { SentrySpanProcessor } from '../../src/spanProcessor';
 import { startInactiveSpan, startSpan } from '../../src/trace';
-import { setPropagationContextOnContext } from '../../src/utils/contextData';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, getProvider, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -128,7 +128,6 @@ describe('Integration | Transactions', () => {
         tags: {
           'outer.tag': 'test value',
           'test.tag': 'test value',
-          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -271,7 +270,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value', transaction: 'test name' },
+        tags: {
+          'test.tag': 'test value',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -314,7 +315,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
+        tags: {
+          'test.tag': 'test value b',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -340,29 +343,19 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-      sampled: true,
-    };
-
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
     const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, () => {
-          const subSpan = startInactiveSpan({ name: 'inner span 1' });
-          subSpan.end();
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, () => {
+        const subSpan = startInactiveSpan({ name: 'inner span 1' });
+        subSpan.end();
 
-          startSpan({ name: 'inner span 2' }, () => {});
-        });
-      },
-    );
+        startSpan({ name: 'inner span 2' }, () => {});
+      });
+    });
 
     await client.flush();
 
@@ -551,36 +544,26 @@ describe('Integration | Transactions', () => {
       traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-      sampled: true,
-    };
-
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
     const client = getClient() as TestClientInterface;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-          expect(span.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+    context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
+      startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
+        expect(span.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
 
-          const subSpan = startInactiveSpan({ name: 'inner span 1' });
+        const subSpan = startInactiveSpan({ name: 'inner span 1' });
 
+        expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
+
+        subSpan.end();
+
+        startSpan({ name: 'inner span 2' }, subSpan => {
           expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
-
-          subSpan.end();
-
-          startSpan({ name: 'inner span 2' }, subSpan => {
-            expect(subSpan.spanContext().traceState?.get(SENTRY_TRACE_STATE_DSC)).toEqual(dscString);
-          });
         });
-      },
-    );
+      });
+    });
 
     await client.flush();
 

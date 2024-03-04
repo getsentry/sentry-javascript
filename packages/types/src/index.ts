@@ -100,6 +100,7 @@ export type {
   TraceFlag,
   MetricSummary,
 } from './span';
+export type { SpanStatus } from './spanStatus';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { PropagationContext, TracePropagationTargets } from './tracing';

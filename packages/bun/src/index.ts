@@ -85,7 +85,6 @@ export {
   captureSession,
   endSession,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 export {
   DEFAULT_USER_INCLUDES,
   autoDiscoverNodePerformanceMonitoringIntegrations,
@@ -119,14 +118,11 @@ export {
   init,
 } from './sdk';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
 import { Integrations as NodeIntegrations } from '@sentry/node-experimental';
 import { BunServer } from './integrations/bunserver';
 export { bunServerIntegration } from './integrations/bunserver';
 
 const INTEGRATIONS = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...NodeIntegrations,
   BunServer,
 };

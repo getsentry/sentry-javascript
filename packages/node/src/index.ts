@@ -86,8 +86,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
-export type { SpanStatusType } from '@sentry/core';
-
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
@@ -102,16 +100,12 @@ export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from
 
 export { createGetModuleFromFilename } from './module';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
 import * as TracingIntegrations from './tracing/integrations';
 
 // TODO: Deprecate this once we migrated tracing integrations
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,
 };

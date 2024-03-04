@@ -1,5 +1,6 @@
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
+import type { SpanStatus } from './spanStatus';
 import type { TransactionSource } from './transaction';
 
 type SpanOriginType = 'manual' | 'auto';
@@ -192,11 +193,9 @@ export interface Span {
   setAttributes(attributes: SpanAttributes): void;
 
   /**
-   * Sets the status attribute on the current span
-   * See: {@sentry/core SpanStatusType} for possible values
-   * @param status http code used to set the status
+   * Sets the status attribute on the current span.
    */
-  setStatus(status: string): this;
+  setStatus(status: SpanStatus): this;
 
   /**
    * Update the name of the span.

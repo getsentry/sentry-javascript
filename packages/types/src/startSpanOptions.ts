@@ -54,11 +54,6 @@ export interface StartSpanOptions extends TransactionContext {
   metadata?: Partial<TransactionMetadata>;
 
   /**
-   * @deprecated Use `span.setStatus()` instead.
-   */
-  status?: string;
-
-  /**
    * @deprecated Use `scope` instead.
    */
   parentSpanId?: string;
