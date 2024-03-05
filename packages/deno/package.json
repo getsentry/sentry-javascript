@@ -1,6 +1,6 @@
 {
   "name": "@sentry/deno",
-  "version": "8.0.0-alpha.0",
+  "version": "8.0.0-alpha.2",
   "description": "Official Sentry SDK for Deno",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/deno",
@@ -11,11 +11,15 @@
   "publishConfig": {
     "access": "public"
   },
-  "files": ["index.mjs", "index.mjs.map", "index.d.ts"],
+  "files": [
+    "index.mjs",
+    "index.mjs.map",
+    "index.d.ts"
+  ],
   "dependencies": {
-    "@sentry/core": "8.0.0-alpha.0",
-    "@sentry/types": "8.0.0-alpha.0",
-    "@sentry/utils": "8.0.0-alpha.0"
+    "@sentry/core": "8.0.0-alpha.2",
+    "@sentry/types": "8.0.0-alpha.2",
+    "@sentry/utils": "8.0.0-alpha.2"
   },
   "devDependencies": {
     "@rollup/plugin-typescript": "^11.1.5",
@@ -60,10 +64,14 @@
   "nx": {
     "targets": {
       "build:transpile": {
-        "outputs": ["{projectRoot}/build"]
+        "outputs": [
+          "{projectRoot}/build"
+        ]
       },
       "build:types": {
-        "outputs": ["{projectRoot}/build-types"]
+        "outputs": [
+          "{projectRoot}/build-types"
+        ]
       }
     }
   }
