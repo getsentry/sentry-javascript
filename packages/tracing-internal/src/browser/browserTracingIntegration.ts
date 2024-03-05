@@ -1,4 +1,5 @@
 import type { IdleTransaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { getActiveSpan } from '@sentry/core';
 import { getCurrentHub } from '@sentry/core';
 import {
@@ -232,7 +233,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       };
     }
 
-    const finalContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
+    const finalContext: TransactionContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
 
     // If `beforeStartSpan` set a custom name, record that fact
     finalContext.attributes =
@@ -323,10 +324,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const context: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
-          startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-          origin: 'auto.pageload.browser',
+          startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
           },
         };
         startBrowserTracingPageLoadSpan(client, context);
@@ -352,9 +353,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             startingUrl = undefined;
             const context: StartSpanOptions = {
               name: WINDOW.location.pathname,
-              origin: 'auto.navigation.browser',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
               },
             };
 
