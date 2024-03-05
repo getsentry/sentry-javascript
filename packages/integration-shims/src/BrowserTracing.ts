@@ -9,7 +9,7 @@ import { consoleSandbox } from '@sentry/utils';
 export const browserTracingIntegrationShim = defineIntegration((_options?: unknown) => {
   consoleSandbox(() => {
     // eslint-disable-next-line no-console
-    console.warn('You are using new BrowserTracing() even though this bundle does not include tracing.');
+    console.warn('You are using browserTracingIntegration() even though this bundle does not include tracing.');
   });
 
   return {
