@@ -29,7 +29,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "8.0.0-alpha.2",
     "@sentry/core": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2"

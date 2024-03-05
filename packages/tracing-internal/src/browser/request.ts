@@ -10,6 +10,7 @@ import {
   spanToJSON,
   spanToTraceHeader,
   startInactiveSpan,
+  instrumentFetchRequest
 } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
@@ -23,7 +24,6 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 import { WINDOW } from './types';
 

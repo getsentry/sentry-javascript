@@ -1,10 +1,10 @@
-import { instrumentFetchRequest } from '@sentry-internal/tracing';
 import {
   addBreadcrumb,
   convertIntegrationFnToClass,
   defineIntegration,
   getClient,
   isSentryRequestUrl,
+  instrumentFetchRequest
 } from '@sentry/core';
 import type {
   Client,
