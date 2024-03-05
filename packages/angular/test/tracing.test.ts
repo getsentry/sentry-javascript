@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -13,7 +13,7 @@ const defaultStartTransaction = (ctx: any) => {
     ...ctx,
     updateName: jest.fn(name => (transaction.name = name)),
     setAttribute: jest.fn(),
-    toJSON: () => ({
+    getSpanJSON: () => ({
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         ...ctx.data,
@@ -117,7 +117,7 @@ describe('Angular Tracing', () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
-          toJSON: () => ({
+          getSpanJSON: () => ({
             data: {
               ...ctx.data,
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -154,7 +154,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
-      expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
+      expect(spanToJSON(transaction).data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
     });

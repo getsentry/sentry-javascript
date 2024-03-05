@@ -288,7 +288,7 @@ describe('instrumentVueRouter()', () => {
         setAttribute: jest.fn(),
         setAttributes: jest.fn(),
         name: '',
-        toJSON: () => ({
+        getSpanJSON: () => ({
           op: 'pageload',
           data: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
