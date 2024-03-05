@@ -68,25 +68,15 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
             (res as any).__sentry_transaction = span;
           }
-
-          // eslint-disable-next-line @typescript-eslint/unbound-method
-          const _end = res.end;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
+          res.once('finish', (): void => {
             if (span) {
               setHttpStatus(span, res.statusCode);
               span.end();
             }
-
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            flush(flushTimeout)
-              .then(null, e => {
-                DEBUG_BUILD && logger.error(e);
-              })
-              .then(() => {
-                _end.call(this, chunk, encoding, cb);
-              });
-          };
+            void flush(options.flushTimeout).then(null, (e: unknown) => {
+              DEBUG_BUILD && logger.error(e);
+            });
+          });
 
           return handleCallbackErrors(
             () => fn(req, res),
