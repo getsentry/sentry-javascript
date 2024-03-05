@@ -57,7 +57,7 @@ describe('Server init()', () => {
   });
 
   it('has both node and tracing integrations', () => {
-    expect(Integrations.Apollo).not.toBeUndefined();
+    expect(Integrations.Express).not.toBeUndefined();
     expect(Integrations.Http).not.toBeUndefined();
   });
 });
