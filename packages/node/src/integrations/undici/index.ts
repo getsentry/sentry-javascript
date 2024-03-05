@@ -308,8 +308,13 @@ function setHeadersOnRequest(
   sentryTrace: string,
   sentryBaggageHeader: string | undefined,
 ): void {
-  const headerLines = request.headers.split('\r\n');
-  const hasSentryHeaders = headerLines.some(headerLine => headerLine.startsWith('sentry-trace:'));
+  let hasSentryHeaders: boolean;
+  if (Array.isArray(request.headers)) {
+    hasSentryHeaders = request.headers.some(headerLine => headerLine === 'sentry-trace');
+  } else {
+    const headerLines = request.headers.split('\r\n');
+    hasSentryHeaders = headerLines.some(headerLine => headerLine.startsWith('sentry-trace:'));
+  }
 
   if (hasSentryHeaders) {
     return;
