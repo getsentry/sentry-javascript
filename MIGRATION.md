@@ -254,6 +254,7 @@ We now support the following integrations out of the box:
 - [Browser SDK](./MIGRATION.md#browser-sdk-browser-react-vue-angular-ember-etc)
 - [Server-side SDKs (Node, Deno, Bun)](./MIGRATION.md#server-side-sdks-node-deno-bun-etc)
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
+- [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 
 ### General
@@ -542,8 +543,8 @@ Sentry.init({
 #### Breaking `sentrySvelteKit()` changes
 
 We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
-change, resolving uploaded source maps should work out of the box much more often than before (read more about this
-[here](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
+change, resolving uploaded source maps should work out of the box much more often than before
+([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
 
 To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
 the `sourceMapsUploadOptions` to remove the hard dependency on the API of the plugin. While you previously could specify
@@ -606,8 +607,8 @@ sentrySvelteKit({
 }),
 ```
 
-Please note, that we DO NOT guarantee stability of `unstable_vitePluginOptions`. They can be removed or updated at any
-time, including breaking changes within the same major version of the SDK.
+Important: we DO NOT guarantee stability of `unstable_vitePluginOptions`. They can be removed or updated at any time,
+including breaking changes within the same major version of the SDK.
 
 ## 5. Behaviour Changes
 
