@@ -100,6 +100,11 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  addIntegration,
 } from '@sentry/core';
 
 export type {
