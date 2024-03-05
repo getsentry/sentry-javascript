@@ -75,6 +75,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getSpanDescendants,
   setMeasurement,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,

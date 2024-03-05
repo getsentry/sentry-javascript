@@ -19,7 +19,7 @@ import {
   startSpan,
   startSpanManual,
 } from '../../../src/tracing';
-import { getSpanTree } from '../../../src/tracing/utils';
+import { getSpanDescendants } from '../../../src/tracing/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -173,7 +173,7 @@ describe('startSpan', () => {
       }
 
       expect(_span).toBeDefined();
-      const spans = getSpanTree(_span!);
+      const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]).description).toEqual('SELECT * from users');
@@ -200,7 +200,7 @@ describe('startSpan', () => {
       }
 
       expect(_span).toBeDefined();
-      const spans = getSpanTree(_span!);
+      const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]).op).toEqual('db.query');

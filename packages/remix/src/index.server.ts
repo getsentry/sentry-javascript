@@ -77,6 +77,7 @@ export {
   startSpanManual,
   startInactiveSpan,
   withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   isInitialized,
   cron,

@@ -86,6 +86,7 @@ export {
   Scope,
   setMeasurement,
   continueTrace,
+  getSpanDescendants,
   parameterize,
   getCurrentScope,
   getIsolationScope,

@@ -20,6 +20,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getSpanDescendants,
 } from '@sentry/core';
 
 export {
