@@ -30,7 +30,7 @@ sentryTest(
 
     expect(requestCount).toBe(0);
     expect(consoleMessages).toEqual([
-      'You are using new BrowserTracing() even though this bundle does not include tracing.',
+      'You are using browserTracingIntegration() even though this bundle does not include tracing.',
     ]);
   },
 );
