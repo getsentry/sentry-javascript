@@ -3,7 +3,6 @@ import type {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
-  NextConfigObjectWithSentry,
   WebpackConfigObject,
 } from '../../src/config/types';
 
@@ -26,7 +25,7 @@ export const userNextConfig: NextConfigObject = {
 };
 
 /** Mocks of the arguments passed to `withSentryConfig` */
-export const exportedNextConfig = userNextConfig as NextConfigObjectWithSentry;
+export const exportedNextConfig = userNextConfig;
 export const userSentryWebpackPluginConfig = { org: 'squirrelChasers', project: 'simulator' };
 process.env.SENTRY_AUTH_TOKEN = 'dogsarebadatkeepingsecrets';
 process.env.SENTRY_RELEASE = 'doGsaREgReaT';
