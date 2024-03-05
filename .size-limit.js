@@ -154,7 +154,7 @@ module.exports = [
   {
     name: '@sentry/nextjs Client (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/nextjs/build/esm/client/index.js',
-    import: '{ init, browserTracingIntegration, Replay }',
+    import: '{ init, browserTracingIntegration, replayIntegration }',
     gzip: true,
     limit: '110 KB',
   },
