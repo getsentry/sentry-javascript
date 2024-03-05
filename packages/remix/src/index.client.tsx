@@ -2,9 +2,7 @@ import { applySdkMetadata, setTag } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from './utils/remixOptions';
 export { captureRemixErrorBoundaryError } from './client/errors';
-export {
-  withSentry,
-} from './client/performance';
+export { withSentry } from './client/performance';
 
 export { browserTracingIntegration } from './client/browserTracingIntegration';
 
