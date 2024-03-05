@@ -21,11 +21,11 @@ import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstatus';
 import { addChildSpanToSpan } from './utils';
 
 /**
@@ -499,16 +499,4 @@ export class SentrySpan implements Span {
 
     return hasData ? data : attributes;
   }
-}
-
-function getStatusMessage(status: SpanStatus | undefined): string | undefined {
-  if (!status || status.code === SPAN_STATUS_UNSET) {
-    return undefined;
-  }
-
-  if (status.code === SPAN_STATUS_OK) {
-    return 'ok';
-  }
-
-  return status.message || 'unknown_error';
 }

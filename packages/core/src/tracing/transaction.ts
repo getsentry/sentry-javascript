@@ -5,6 +5,7 @@ import type {
   Hub,
   MeasurementUnit,
   Measurements,
+  SpanJSON,
   SpanTimeInput,
   Transaction as TransactionInterface,
   TransactionContext,
@@ -253,8 +254,8 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       return undefined;
     }
 
-    // We only want to include finished spans in the event
-    const finishedSpans = getSpanTree(this).filter(span => span !== this && spanToJSON(span).timestamp);
+    // The transaction span itself should be filtered out
+    const finishedSpans = getSpanTree(this).filter(span => span !== this);
 
     if (this._trimEnd && finishedSpans.length > 0) {
       const endTimes = finishedSpans.map(span => spanToJSON(span).timestamp).filter(Boolean) as number[];
@@ -262,6 +263,13 @@ export class Transaction extends SentrySpan implements TransactionInterface {
         return prev > current ? prev : current;
       });
     }
+
+    // We want to filter out any incomplete SpanJSON objects
+    function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
+      return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
+    }
+
+    const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
@@ -276,7 +284,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
         // We don't want to override trace context
         trace: spanToTraceContext(this),
       },
-      spans: finishedSpans.map(span => spanToJSON(span)),
+      spans,
       start_timestamp: this._startTime,
       // eslint-disable-next-line deprecation/deprecation
       tags: this.tags,
