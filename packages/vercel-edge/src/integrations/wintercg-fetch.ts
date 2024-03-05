@@ -3,8 +3,8 @@ import {
   convertIntegrationFnToClass,
   defineIntegration,
   getClient,
+  instrumentFetchRequest,
   isSentryRequestUrl,
-  instrumentFetchRequest
 } from '@sentry/core';
 import type {
   Client,

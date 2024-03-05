@@ -6,11 +6,11 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   hasTracingEnabled,
+  instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
   startInactiveSpan,
-  instrumentFetchRequest
 } from '@sentry/core';
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {

@@ -7,7 +7,13 @@ import {
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
-import { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan, setHttpStatus, SPAN_STATUS_ERROR, startInactiveSpan } from './tracing';
+import {
+  SPAN_STATUS_ERROR,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  setHttpStatus,
+  startInactiveSpan,
+} from './tracing';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
 import { spanToTraceHeader } from './utils/spanUtils';
 
