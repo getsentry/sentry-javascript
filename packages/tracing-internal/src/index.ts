@@ -1,14 +1,6 @@
 export * from './exports';
 
-export {
-  Apollo,
-  Express,
-  GraphQL,
-  Mongo,
-  Mysql,
-  Postgres,
-  Prisma,
-} from './node';
+export { Express } from './node/integrations/express';
 
 export {
   browserTracingIntegration,

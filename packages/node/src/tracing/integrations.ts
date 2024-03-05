@@ -1,1 +1,1 @@
-export { Apollo, Express, GraphQL, Mongo, Mysql, Postgres, Prisma } from '@sentry-internal/tracing';
+export { Express } from '@sentry-internal/tracing';
