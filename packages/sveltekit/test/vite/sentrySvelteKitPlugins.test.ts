@@ -113,6 +113,32 @@ describe('sentrySvelteKit()', () => {
     });
   });
 
+  it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {
+    const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
+    await getSentrySvelteKitPlugins({
+      debug: true,
+      sourceMapsUploadOptions: {
+        sourcemaps: {
+          assets: ['foo/*.js'],
+          ignore: ['bar/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
+        },
+      },
+      autoInstrument: false,
+      adapter: 'vercel',
+    });
+
+    expect(makePluginSpy).toHaveBeenCalledWith({
+      debug: true,
+      sourcemaps: {
+        assets: ['foo/*.js'],
+        ignore: ['bar/*.js'],
+        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
+      adapter: 'vercel',
+    });
+  });
+
   it('passes user-specified options to the auto instrument plugin', async () => {
     const makePluginSpy = vi.spyOn(autoInstrument, 'makeAutoInstrumentationPlugin');
     const plugins = await getSentrySvelteKitPlugins({

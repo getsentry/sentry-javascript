@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 
+import { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
@@ -114,6 +115,21 @@ type SourceMapsUploadOptions = {
        */
       inject?: boolean;
     };
+
+    /**
+     * Options to further customize the Sentry Vite Plugin (@sentry/vite-plugin) behavior directly.
+     * Options specified in this object take precedence over the options specified in
+     * the `sourcemaps` and `release` objects.
+     *
+     * @see https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options which lists all available options.
+     *
+     * Warning: Options within this object are subject to change at any time.
+     * We DO NOT guarantee semantic versioning for these options, meaning breaking
+     * changes can occur at any time within a major SDK version.
+     *
+     * Furthermore, some options are untested with SvelteKit specifically. Use with caution.
+     */
+    unstable_vitePluginOptions?: Partial<SentryVitePluginOptions>;
   };
 };
 
@@ -196,10 +212,22 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   }
 
   if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
-    const sourceMapsUploadOptions = mergedOptions.sourceMapsUploadOptions;
+    const { unstable_vitePluginOptions, ...sourceMapsUploadOptions } = mergedOptions.sourceMapsUploadOptions || {};
 
     const sentryVitePlugins = await makeCustomSentryVitePlugins({
       ...sourceMapsUploadOptions,
+
+      ...unstable_vitePluginOptions,
+
+      sourcemaps: {
+        ...sourceMapsUploadOptions?.sourcemaps,
+        ...unstable_vitePluginOptions?.sourcemaps,
+      },
+
+      release: {
+        ...sourceMapsUploadOptions?.release,
+        ...unstable_vitePluginOptions?.release,
+      },
 
       adapter: mergedOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
