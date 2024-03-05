@@ -118,7 +118,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-// Before (v8)
+// After (v8)
 const Sentry = require('@sentry/node');
 
 Sentry.init({
