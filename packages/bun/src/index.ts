@@ -87,7 +87,6 @@ export {
 } from '@sentry/core';
 export {
   DEFAULT_USER_INCLUDES,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   cron,
   createGetModuleFromFilename,
   defaultStackParser,

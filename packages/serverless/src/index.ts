@@ -19,7 +19,6 @@ export {
   addGlobalEventProcessor,
   addEventProcessor,
   addIntegration,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   captureEvent,
   captureException,
   captureMessage,

@@ -226,6 +226,22 @@ To accomodate these changes, we're removed the following APIs:
 We've also removed a variety of [top level fields](./MIGRATION.md#deprecated-fields-on-span-and-transaction) on the
 `span` class.
 
+If you were using `autoDiscoverNodePerformanceMonitoringIntegrations` in `@sentry/node` or related SDKs, you can remove
+it. We now automatically do this when you call `Sentry.init()`.
+
+```js
+// Before (v7)
+Sentry.init({
+  dsn: '__DSN__',
+  integrations: [...Sentry.autoDiscoverNodePerformanceMonitoringIntegrations()],
+});
+
+// After (v8)
+Sentry.init({
+  dsn: '__DSN__',
+}
+```
+
 ### Performance Monitoring Integrations
 
 As we added support for OpenTelemetry, we have expanded the automatic instrumentation for our Node.js SDK. We are adding

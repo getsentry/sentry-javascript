@@ -8,9 +8,7 @@ export {
   Mysql,
   Postgres,
   Prisma,
-  lazyLoadedNodePerformanceMonitoringIntegrations,
 } from './node';
-export type { LazyLoadedIntegration } from './node';
 
 export {
   browserTracingIntegration,

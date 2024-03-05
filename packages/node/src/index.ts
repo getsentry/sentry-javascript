@@ -86,8 +86,6 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
 } from '@sentry/core';
 
-export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
-
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {

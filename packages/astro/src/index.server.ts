@@ -37,7 +37,6 @@ export {
   setHttpStatus,
   withScope,
   withIsolationScope,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
