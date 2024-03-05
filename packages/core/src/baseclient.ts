@@ -430,6 +430,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'spanEnd', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
@@ -484,6 +487,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(hook: 'spanEnd', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;

@@ -207,6 +207,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'spanEnd', callback: (span: Span) => void): void;
 
   /**
+   * Register a callback for when an idle span is allowed to auto-finish.
+   */
+  on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+
+  /**
    * Register a callback for transaction start and finish.
    */
   on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -287,6 +292,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whener a span ends. */
   emit(hook: 'spanEnd', span: Span): void;
+
+  /**
+   * Fire a hook indicating that an idle span is allowed to auto finish.
+   */
+  emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
