@@ -3,8 +3,6 @@ import { init as reactInit } from '@sentry/react';
 import type { RemixOptions } from './utils/remixOptions';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  remixRouterInstrumentation,
   withSentry,
 } from './client/performance';
 
