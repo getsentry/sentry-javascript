@@ -500,6 +500,45 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `IS_BUILD`
 - `isBuild`
 
+#### Removal of the `sentry` property in your Next.js options (next.config.js)
+
+With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
+property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
+
+```ts
+// OLD
+const nextConfig = {
+  // Your Next.js options...
+
+  sentry: {
+    // Your Sentry SDK options...
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+});
+
+// NEW
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // Your Sentry Webpack Plugin Options...
+  },
+  {
+    // Your Sentry SDK options...
+  },
+);
+```
+
+The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
+reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
+have code completion.
+
 ### Astro SDK
 
 #### Removal of `trackHeaders` option for Astro middleware
@@ -578,47 +617,6 @@ Sentry was actually initialized, using `getClient()` will thus not work anymore.
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
 by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
 drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
-
-## Next.js SDK Changes
-
-### Removal of the `sentry` property in your Next.js options
-
-With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
-property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
-
-```ts
-// OLD
-const nextConfig = {
-  // Your Next.js options...
-
-  sentry: {
-    // Your Sentry SDK options...
-  },
-};
-
-module.exports = withSentryConfig(nextConfig, {
-  // Your Sentry Webpack Plugin Options...
-});
-
-// NEW
-const nextConfig = {
-  // Your Next.js options...
-};
-
-module.exports = withSentryConfig(
-  nextConfig,
-  {
-    // Your Sentry Webpack Plugin Options...
-  },
-  {
-    // Your Sentry SDK options...
-  },
-);
-```
-
-The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
-reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
-have code completion.
 
 # Deprecations in 7.x
 
