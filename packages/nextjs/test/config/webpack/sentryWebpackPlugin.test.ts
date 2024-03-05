@@ -3,7 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
 
-import type { BuildContext, ExportedNextConfig } from '../../../src/config/types';
+import type { BuildContext, ExportedNextConfig, SentryBuildtimeOptions } from '../../../src/config/types';
 import { getUserConfigFile, getWebpackPluginOptions } from '../../../src/config/webpack';
 import {
   clientBuildContext,
@@ -83,13 +83,14 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
-      const exportedNextConfigWithWidening = { ...exportedNextConfig, sentry: { widenClientFileUpload: true } };
+      const exportedNextConfigWithWidening = { ...exportedNextConfig };
       const buildContext = getBuildContext('client', exportedNextConfigWithWidening);
 
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigWithWidening,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: buildContext,
+        sentryBuildTimeOptions: { widenClientFileUpload: true },
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -180,11 +181,12 @@ describe('Sentry webpack plugin config', () => {
     });
 
     it('has the correct value when building client bundles using `widenClientFileUpload` option', async () => {
-      const exportedNextConfigWithWidening = { ...exportedNextConfig, sentry: { widenClientFileUpload: true } };
+      const exportedNextConfigWithWidening = { ...exportedNextConfig };
       const finalWebpackConfig = await materializeFinalWebpackConfig({
         exportedNextConfig: exportedNextConfigWithWidening,
         incomingWebpackConfig: clientWebpackConfig,
         incomingWebpackBuildContext: getBuildContext('client', exportedNextConfigWithWidening),
+        sentryBuildTimeOptions: { widenClientFileUpload: true },
       });
 
       const sentryWebpackPluginInstance = findWebpackPlugin(
@@ -219,8 +221,8 @@ describe('Sentry webpack plugin config', () => {
         'obeys `disableClientWebpackPlugin = true`',
         {
           ...exportedNextConfig,
-          sentry: { disableClientWebpackPlugin: true },
         },
+        { disableClientWebpackPlugin: true },
         {},
         true,
         false,
@@ -230,8 +232,8 @@ describe('Sentry webpack plugin config', () => {
         'obeys `disableServerWebpackPlugin = true`',
         {
           ...exportedNextConfig,
-          sentry: { disableServerWebpackPlugin: true },
         },
+        { disableServerWebpackPlugin: true },
         {},
         false,
         true,
@@ -241,6 +243,7 @@ describe('Sentry webpack plugin config', () => {
       async (
         _testName: string,
         exportedNextConfig: ExportedNextConfig,
+        buildTimeOptions: SentryBuildtimeOptions,
         extraEnvValues: Record<string, string>,
         shouldFindServerPlugin: boolean,
         shouldFindClientPlugin: boolean,
@@ -254,6 +257,7 @@ describe('Sentry webpack plugin config', () => {
           userSentryWebpackPluginConfig,
           incomingWebpackConfig: serverWebpackConfig,
           incomingWebpackBuildContext: serverBuildContext,
+          sentryBuildTimeOptions: buildTimeOptions,
         });
 
         const clientFinalWebpackConfig = await materializeFinalWebpackConfig({
@@ -261,6 +265,7 @@ describe('Sentry webpack plugin config', () => {
           userSentryWebpackPluginConfig,
           incomingWebpackConfig: clientWebpackConfig,
           incomingWebpackBuildContext: clientBuildContext,
+          sentryBuildTimeOptions: buildTimeOptions,
         });
 
         const genericSentryWebpackPluginInstance = expect.any(SentryWebpackPlugin);
