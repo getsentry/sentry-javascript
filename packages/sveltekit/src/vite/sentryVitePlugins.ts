@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite';
 
-import { SentryVitePluginOptions } from '@sentry/vite-plugin';
+import type { SentryVitePluginOptions } from '@sentry/vite-plugin';
 import type { AutoInstrumentSelection } from './autoInstrument';
 import { makeAutoInstrumentationPlugin } from './autoInstrument';
 import type { SupportedSvelteKitAdapters } from './detectAdapter';
@@ -214,25 +214,32 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
   if (mergedOptions.autoUploadSourceMaps && process.env.NODE_ENV !== 'development') {
     const { unstable_vitePluginOptions, ...sourceMapsUploadOptions } = mergedOptions.sourceMapsUploadOptions || {};
 
-    const sentryVitePlugins = await makeCustomSentryVitePlugins({
+    const sentryVitePluginsOptions = {
       ...sourceMapsUploadOptions,
 
       ...unstable_vitePluginOptions,
 
-      sourcemaps: {
-        ...sourceMapsUploadOptions?.sourcemaps,
-        ...unstable_vitePluginOptions?.sourcemaps,
-      },
-
-      release: {
-        ...sourceMapsUploadOptions?.release,
-        ...unstable_vitePluginOptions?.release,
-      },
-
       adapter: mergedOptions.adapter,
       // override the plugin's debug flag with the one from the top-level options
       debug: mergedOptions.debug,
-    });
+    };
+
+    if (sentryVitePluginsOptions.sourcemaps) {
+      sentryVitePluginsOptions.sourcemaps = {
+        ...sourceMapsUploadOptions?.sourcemaps,
+        ...unstable_vitePluginOptions?.sourcemaps,
+      };
+    }
+
+    if (sentryVitePluginsOptions.release) {
+      sentryVitePluginsOptions.release = {
+        ...sourceMapsUploadOptions?.release,
+        ...unstable_vitePluginOptions?.release,
+      };
+    }
+
+    const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions);
+
     sentryPlugins.push(...sentryVitePlugins);
   }
 

@@ -118,10 +118,30 @@ describe('sentrySvelteKit()', () => {
     await getSentrySvelteKitPlugins({
       debug: true,
       sourceMapsUploadOptions: {
+        org: 'my-org',
         sourcemaps: {
-          assets: ['foo/*.js'],
-          ignore: ['bar/*.js'],
+          assets: ['nope/*.js'],
           filesToDeleteAfterUpload: ['baz/*.js'],
+        },
+        release: {
+          inject: false,
+          name: '2.0.0',
+        },
+        unstable_vitePluginOptions: {
+          org: 'other-org',
+          sourcemaps: {
+            assets: ['foo/*.js'],
+            ignore: ['bar/*.js'],
+          },
+          release: {
+            name: '3.0.0',
+            setCommits: {
+              auto: true,
+            },
+          },
+          headers: {
+            'X-My-Header': 'foo',
+          },
         },
       },
       autoInstrument: false,
@@ -130,10 +150,21 @@ describe('sentrySvelteKit()', () => {
 
     expect(makePluginSpy).toHaveBeenCalledWith({
       debug: true,
+      org: 'other-org',
       sourcemaps: {
         assets: ['foo/*.js'],
         ignore: ['bar/*.js'],
         filesToDeleteAfterUpload: ['baz/*.js'],
+      },
+      release: {
+        inject: false,
+        name: '3.0.0',
+        setCommits: {
+          auto: true,
+        },
+      },
+      headers: {
+        'X-My-Header': 'foo',
       },
       adapter: 'vercel',
     });
