@@ -127,7 +127,7 @@ describe('sentrySvelteKit()', () => {
           inject: false,
           name: '2.0.0',
         },
-        unstable_vitePluginOptions: {
+        unstable_sentryVitePluginOptions: {
           org: 'other-org',
           sourcemaps: {
             assets: ['foo/*.js'],

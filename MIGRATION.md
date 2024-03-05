@@ -587,7 +587,7 @@ sentrySvelteKit({
 
 In the future, we might add additional [options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options)
 from the Vite plugin but if you would like to specify some of them directly, you can do this by passing in an
-`unstable_vitePluginOptions` object:
+`unstable_sentryVitePluginOptions` object:
 
 ```js
 sentrySvelteKit({
@@ -596,7 +596,7 @@ sentrySvelteKit({
     release: {
 	    name: '1.0.1',
     },
-    unstable_vitePluginOptions: {
+    unstable_sentryVitePluginOptions: {
       release: {
         setCommits: {
           auto: true
@@ -607,8 +607,8 @@ sentrySvelteKit({
 }),
 ```
 
-Important: we DO NOT guarantee stability of `unstable_vitePluginOptions`. They can be removed or updated at any time,
-including breaking changes within the same major version of the SDK.
+Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
+time, including breaking changes within the same major version of the SDK.
 
 ## 5. Behaviour Changes
 
