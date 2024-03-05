@@ -37,13 +37,13 @@ export class IsolatedPromiseBuffer {
   /**
    * @inheritdoc
    */
-  public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<void> {
+  public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<TransportMakeRequestResponse> {
     if (this._taskProducers.length >= this._bufferSize) {
       return Promise.reject(new SentryError('Not adding Promise because buffer limit was reached.'));
     }
 
     this._taskProducers.push(taskProducer);
-    return Promise.resolve();
+    return Promise.resolve({});
   }
 
   /**

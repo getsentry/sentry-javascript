@@ -109,7 +109,7 @@ export function createWidget({
     const result = await handleFeedbackSubmit(dialog, feedback);
 
     // Error submitting feedback
-    if (!result) {
+    if (!result || Object.keys(result).length === 0) {
       if (options.onSubmitError) {
         options.onSubmitError();
       }

@@ -1,8 +1,8 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
-import { SentrySpanProcessor, setPropagationContextOnContext } from '@sentry/opentelemetry';
-import type { PropagationContext, TransactionEvent } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SentrySpanProcessor } from '@sentry/opentelemetry';
+import type { TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import * as Sentry from '../../src';
@@ -124,7 +124,6 @@ describe('Integration | Transactions', () => {
         tags: {
           'outer.tag': 'test value',
           'test.tag': 'test value',
-          transaction: 'test name',
         },
         timestamp: expect.any(Number),
         transaction: 'test name',
@@ -142,7 +141,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => spanToJSON(span))).toEqual([
+    expect(spans).toEqual([
       {
         data: {
           'otel.kind': 'INTERNAL',
@@ -267,7 +266,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value', transaction: 'test name' },
+        tags: {
+          'test.tag': 'test value',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name',
         transaction_info: { source: 'task' },
@@ -310,7 +311,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
+        tags: {
+          'test.tag': 'test value b',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         transaction_info: { source: 'custom' },
@@ -417,7 +420,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value', transaction: 'test name' },
+        tags: {
+          'test.tag': 'test value',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name',
         type: 'transaction',
@@ -456,7 +461,9 @@ describe('Integration | Transactions', () => {
         }),
         spans: [expect.any(Object), expect.any(Object)],
         start_timestamp: expect.any(Number),
-        tags: { 'test.tag': 'test value b', transaction: 'test name b' },
+        tags: {
+          'test.tag': 'test value b',
+        },
         timestamp: expect.any(Number),
         transaction: 'test name b',
         type: 'transaction',
@@ -481,37 +488,27 @@ describe('Integration | Transactions', () => {
       traceFlags: TraceFlags.SAMPLED,
     };
 
-    const propagationContext: PropagationContext = {
-      traceId,
-      parentSpanId,
-      spanId: '6e0c63257de34c93',
-      sampled: true,
-    };
-
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
     const client = Sentry.getClient()!;
 
     // We simulate the correct context we'd normally get from the SentryPropagator
-    context.with(
-      trace.setSpanContext(setPropagationContextOnContext(context.active(), propagationContext), spanContext),
-      () => {
-        Sentry.startSpan(
-          {
-            op: 'test op',
-            name: 'test name',
-            origin: 'auto.test',
-            attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
-          },
-          () => {
-            const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-            subSpan.end();
+    context.with(trace.setSpanContext(context.active(), spanContext), () => {
+      Sentry.startSpan(
+        {
+          op: 'test op',
+          name: 'test name',
+          origin: 'auto.test',
+          attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
+        },
+        () => {
+          const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+          subSpan.end();
 
-            Sentry.startSpan({ name: 'inner span 2' }, () => {});
-          },
-        );
-      },
-    );
+          Sentry.startSpan({ name: 'inner span 2' }, () => {});
+        },
+      );
+    });
 
     await client.flush();
 
@@ -562,7 +559,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => spanToJSON(span))).toEqual([
+    expect(spans).toEqual([
       {
         data: {
           'otel.kind': 'INTERNAL',

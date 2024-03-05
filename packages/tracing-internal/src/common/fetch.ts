@@ -1,5 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SPAN_STATUS_ERROR,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -66,7 +67,7 @@ export function instrumentFetchRequest(
           }
         }
       } else if (handlerData.error) {
-        span.setStatus('internal_error');
+        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       }
       span.end();
 

@@ -1,30 +1,10 @@
 import type { Context } from '@opentelemetry/api';
-import type { Hub, PropagationContext, Scope } from '@sentry/types';
+import type { Hub, Scope } from '@sentry/types';
 
-import {
-  SENTRY_HUB_CONTEXT_KEY,
-  SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY,
-  SENTRY_SCOPES_CONTEXT_KEY,
-} from '../constants';
+import { SENTRY_HUB_CONTEXT_KEY, SENTRY_SCOPES_CONTEXT_KEY } from '../constants';
 import type { CurrentScopes } from '../types';
 
 const SCOPE_CONTEXT_MAP = new WeakMap<Scope, Context>();
-
-/**
- * Try to get the Propagation Context from the given OTEL context.
- * This requires the SentryPropagator to be registered.
- */
-export function getPropagationContextFromContext(context: Context): PropagationContext | undefined {
-  return context.getValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY) as PropagationContext | undefined;
-}
-
-/**
- * Set a Propagation Context on an OTEL context..
- * This will return a forked context with the Propagation Context set.
- */
-export function setPropagationContextOnContext(context: Context, propagationContext: PropagationContext): Context {
-  return context.setValue(SENTRY_PROPAGATION_CONTEXT_CONTEXT_KEY, propagationContext);
-}
 
 /**
  * Try to get the Hub from the given OTEL context.

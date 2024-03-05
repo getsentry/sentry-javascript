@@ -4,6 +4,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.2
+
+This alpha release fixes a build problem that prevented 8.0.0-alpha.1 from being properly released.
+
+### Important Changes
+
+- **feat: Remove `@sentry/opentelemetry-node` package (#10906)**
+
+The `@sentry/opentelemetry-node` package has been removed. Instead, you can either use `@sentry/node` with built-in
+OpenTelemetry support, or use `@sentry/opentelemetry` to manually connect Sentry with OpenTelemetry.
+
+### Removal/Refactoring of deprecated functionality
+
+- ref: Refactor some deprecated `startSpan` options (#10825)
+- feat(v8/core): remove void from transport return (#10794)
+- ref(integrations): Delete deprecated class integrations (#10887)
+
+### Other Changes
+
+- feat(core): Use serialized spans in transaction event (#10912)
+- feat(deps): bump @sentry/cli from 2.28.6 to 2.29.1 (#10908)
+- feat(node): Allow to configure `skipOpenTelemetrySetup` (#10907)
+- feat(esm): Import rather than require `inspector` (#10910)
+- fix(browser): Don't use chrome variable name (#10874)
+- chore(sveltekit): Fix punctuation in a console.log (#10895)
+- fix(opentelemetry): Ensure DSC propagation works correctly (#10904)
+- feat(browser): Exclude span exports from non-performance CDN bundles (#10879)
+- ref: Refactor span status handling to be OTEL compatible (#10871)
+- feat(core): Fix span scope handling & transaction setting (#10886)
+- ref(ember): Avoid namespace import to hopefully resolve minification issue (#10885)
+
+Work in this release contributed by @harish-talview & @bfontaine. Thank you for your contributions!
+
 ## 8.0.0-alpha.1
 
 This is the first Alpha release of the v8 cycle, which includes a variety of breaking changes.

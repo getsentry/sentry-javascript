@@ -113,7 +113,7 @@ export function makeOfflineTransport<TO>(
       retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
     }
 
-    async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
+    async function send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
       try {
         const result = await transport.send(envelope);
 

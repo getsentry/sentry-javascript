@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedEvent } from '@sentry/types';
+import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -21,7 +21,7 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
   // If we are on FF or webkit:
   // 1st envelope contains CORS error
   // 2nd envelope contains the tracing data we want to check here
-  const envelopes = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 2, { url, timeout: 10000 });
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
   const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
 
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');

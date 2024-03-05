@@ -56,9 +56,6 @@ jobs:
               "@sentry.node": {
                 "label": "Package: Node"
               },
-              "@sentry.opentelemetry-node": {
-                "label": "Package: otel-node"
-              },
               "@sentry.react": {
                 "label": "Package: react"
               },

@@ -215,7 +215,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for when an event has been sent.
    */
-  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
@@ -226,12 +226,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
   on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /**
-   * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * The option argument may be mutated to drop the span.
-   */
-  on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
    * Register a callback when a Feedback event has been prepared.
@@ -298,7 +292,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
@@ -309,13 +303,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
   emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
-
-  /**
-   * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * Expects the OTEL span & as second argument, and an option object as third argument.
-   * The option argument may be mutated to drop the span.
-   */
-  emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /**
    * Fire a hook event for after preparing a feedback event. Events to be given

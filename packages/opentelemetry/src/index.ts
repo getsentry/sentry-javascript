@@ -14,11 +14,7 @@ export {
   getSpanScopes,
 } from './utils/spanData';
 
-export {
-  getPropagationContextFromContext,
-  setPropagationContextOnContext,
-  getScopesFromContext,
-} from './utils/contextData';
+export { getScopesFromContext } from './utils/contextData';
 
 export {
   spanHasAttributes,
@@ -46,6 +42,8 @@ export { wrapContextManagerClass } from './contextManager';
 export { SentryPropagator } from './propagator';
 export { SentrySpanProcessor } from './spanProcessor';
 export { SentrySampler } from './sampler';
+
+export { openTelemetrySetupCheck } from './utils/setupCheck';
 
 // Legacy
 export { getClient } from '@sentry/core';

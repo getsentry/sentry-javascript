@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedEvent } from '@sentry/types';
+import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -10,7 +10,7 @@ sentryTest('should report a transaction in an envelope', async ({ getLocalTestPa
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  const transaction = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
+  const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   expect(transaction.transaction).toBe('root_span');
   expect(transaction.spans).toBeDefined();
@@ -22,7 +22,7 @@ sentryTest('should report finished spans as children of the root span', async ({
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  const transaction = await getFirstSentryEnvelopeRequest<SerializedEvent>(page, url);
+  const transaction = await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   const rootSpanId = transaction?.contexts?.trace?.span_id;
 

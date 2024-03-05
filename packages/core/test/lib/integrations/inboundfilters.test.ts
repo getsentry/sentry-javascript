@@ -1,7 +1,7 @@
 import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
-import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -33,8 +33,7 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new InboundFilters(options)],
+      integrations: [inboundFiltersIntegration(options)],
     }),
   );
 

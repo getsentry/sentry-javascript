@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event, Span, SpanContext, Transaction } from '@sentry/types';
+import type { Event, SpanContext, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -9,8 +9,8 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-type TransactionJSON = ReturnType<Transaction['toJSON']> & {
-  spans: ReturnType<Span['toJSON']>[];
+type TransactionJSON = SpanJSON & {
+  spans: SpanJSON[];
   contexts: SpanContext;
   platform: string;
   type: string;

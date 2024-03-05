@@ -6,7 +6,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as util from 'util';
 import * as zlib from 'zlib';
-import type { Envelope, EnvelopeItem, SerializedEvent } from '@sentry/types';
+import type { Envelope, EnvelopeItem, Event } from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 
 const readFile = util.promisify(fs.readFile);
@@ -210,13 +210,13 @@ export function waitForEnvelopeItem(
 
 export function waitForError(
   proxyServerName: string,
-  callback: (transactionEvent: SerializedEvent) => Promise<boolean> | boolean,
-): Promise<SerializedEvent> {
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as SerializedEvent))) {
-        resolve(envelopeItemBody as SerializedEvent);
+      if (envelopeItemHeader.type === 'event' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
         return true;
       }
       return false;
@@ -226,13 +226,13 @@ export function waitForError(
 
 export function waitForTransaction(
   proxyServerName: string,
-  callback: (transactionEvent: SerializedEvent) => Promise<boolean> | boolean,
-): Promise<SerializedEvent> {
+  callback: (transactionEvent: Event) => Promise<boolean> | boolean,
+): Promise<Event> {
   return new Promise((resolve, reject) => {
     waitForEnvelopeItem(proxyServerName, async envelopeItem => {
       const [envelopeItemHeader, envelopeItemBody] = envelopeItem;
-      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as SerializedEvent))) {
-        resolve(envelopeItemBody as SerializedEvent);
+      if (envelopeItemHeader.type === 'transaction' && (await callback(envelopeItemBody as Event))) {
+        resolve(envelopeItemBody as Event);
         return true;
       }
       return false;

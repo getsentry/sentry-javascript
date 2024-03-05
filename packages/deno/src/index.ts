@@ -86,16 +86,12 @@ export {
   endSession,
 } from '@sentry/core';
 
-export type { SpanStatusType } from '@sentry/core';
-
 export { DenoClient } from './client';
 
 export {
   getDefaultIntegrations,
   init,
 } from './sdk';
-
-import { Integrations as CoreIntegrations } from '@sentry/core';
 
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
@@ -108,7 +104,5 @@ import * as DenoIntegrations from './integrations';
 
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...DenoIntegrations,
 };

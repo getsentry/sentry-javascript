@@ -64,6 +64,16 @@ export interface BaseNodeOptions {
    */
   spotlight?: boolean | string;
 
+  /**
+   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * In this case, you _have_ to ensure to set it up correctly yourself, including:
+   * * The `SentrySpanProcessor`
+   * * The `SentryPropagator`
+   * * The `SentryContextManager`
+   * * The `SentrySampler`
+   */
+  skipOpenTelemetrySetup?: boolean;
+
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

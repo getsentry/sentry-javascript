@@ -1,5 +1,6 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src';
+import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
 describe('span', () => {
@@ -42,7 +43,7 @@ describe('span', () => {
   describe('status', () => {
     test('setStatus', () => {
       const span = new SentrySpan({});
-      span.setStatus('permission_denied');
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'permission_denied' });
       expect(spanToTraceContext(span).status).toBe('permission_denied');
     });
   });

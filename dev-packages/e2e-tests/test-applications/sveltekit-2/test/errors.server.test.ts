@@ -60,9 +60,6 @@ test.describe('server-side errors', () => {
       }),
     );
 
-    expect(errorEvent.tags).toMatchObject({
-      runtime: 'node',
-      transaction: 'GET /server-route-error',
-    });
+    expect(errorEvent.transaction).toEqual('GET /server-route-error');
   });
 });
