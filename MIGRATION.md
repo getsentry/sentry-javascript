@@ -12,8 +12,6 @@ The main goal of version 8 is to improve our performance monitoring APIs, integr
 version is breaking because we removed deprecated APIs, restructured npm package contents, and introduced new
 dependencies on OpenTelemetry. Below we will outline the steps you need to take to tackle to deprecated methods.
 
-## Removal of Client-Side health check transaction filters
-
 Before updating to `8.x` of the SDK, we recommend upgrading to the latest version of `7.x`. You can then follow
 [these steps](./MIGRATION.md#deprecations-in-7x) remove deprecated methods in `7.x` before upgrading to `8.x`.
 
