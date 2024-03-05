@@ -46,7 +46,7 @@
   },
   "dependencies": {
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.28.6",
+    "@sentry/cli": "^2.29.1",
     "@sentry/core": "8.0.0-alpha.0",
     "@sentry/node-experimental": "8.0.0-alpha.0",
     "@sentry/react": "8.0.0-alpha.0",

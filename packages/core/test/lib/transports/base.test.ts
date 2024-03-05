@@ -35,7 +35,7 @@ const transportOptions = {
 
 describe('createTransport', () => {
   it('flushes the buffer', async () => {
-    const mockBuffer: PromiseBuffer<void> = {
+    const mockBuffer: PromiseBuffer<TransportMakeRequestResponse> = {
       $: [],
       add: jest.fn(),
       drain: jest.fn(),

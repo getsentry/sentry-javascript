@@ -324,7 +324,7 @@ describe('startSpan', () => {
     const normalizedTransactionEvents = transactionEvents.map(event => {
       return {
         ...event,
-        spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+        spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         sdkProcessingMetadata: {
           dynamicSamplingContext: event.sdkProcessingMetadata?.dynamicSamplingContext,
         },
@@ -603,7 +603,7 @@ describe('startSpanManual', () => {
     const normalizedTransactionEvents = transactionEvents.map(event => {
       return {
         ...event,
-        spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+        spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         sdkProcessingMetadata: {
           dynamicSamplingContext: event.sdkProcessingMetadata?.dynamicSamplingContext,
         },
@@ -810,7 +810,7 @@ describe('startInactiveSpan', () => {
     const normalizedTransactionEvents = transactionEvents.map(event => {
       return {
         ...event,
-        spans: event.spans?.map(span => ({ name: spanToJSON(span).description, id: span.spanContext().spanId })),
+        spans: event.spans?.map(span => ({ name: span.description, id: span.span_id })),
         sdkProcessingMetadata: {
           dynamicSamplingContext: event.sdkProcessingMetadata?.dynamicSamplingContext,
         },

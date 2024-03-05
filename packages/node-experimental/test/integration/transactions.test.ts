@@ -1,6 +1,6 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -141,7 +141,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => spanToJSON(span))).toEqual([
+    expect(spans).toEqual([
       {
         data: {
           'otel.kind': 'INTERNAL',
@@ -559,7 +559,7 @@ describe('Integration | Transactions', () => {
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
-    expect(spans.map(span => spanToJSON(span))).toEqual([
+    expect(spans).toEqual([
       {
         data: {
           'otel.kind': 'INTERNAL',

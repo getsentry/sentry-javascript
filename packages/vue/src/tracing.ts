@@ -1,4 +1,4 @@
-import { getActiveSpan, startInactiveSpan } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/browser';
 import type { Span } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
@@ -75,7 +75,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               startInactiveSpan({
                 name: 'Application Render',
                 op: `${VUE_OP}.render`,
-                origin: 'auto.ui.vue',
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                },
               });
           }
         }
@@ -109,7 +111,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             this.$_sentrySpans[operation] = startInactiveSpan({
               name: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,
-              origin: 'auto.ui.vue',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
             });
           }
         } else {

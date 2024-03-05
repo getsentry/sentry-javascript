@@ -11,7 +11,7 @@ import {
   requestDataIntegration,
   startSession,
 } from '@sentry/core';
-import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
@@ -114,8 +114,36 @@ export function init(options: NodeOptions | undefined = {}): void {
     );
   }
 
-  // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration
-  initOtel();
+  // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
+  // There is no way to use this SDK without OpenTelemetry!
+  if (!options.skipOpenTelemetrySetup) {
+    initOtel();
+  }
+
+  validateOpenTelemetrySetup();
+}
+
+function validateOpenTelemetrySetup(): void {
+  if (!DEBUG_BUILD) {
+    return;
+  }
+
+  const setup = openTelemetrySetupCheck();
+
+  const required = ['SentrySpanProcessor', 'SentryContextManager', 'SentryPropagator'] as const;
+  for (const k of required) {
+    if (!setup.includes(k)) {
+      logger.error(
+        `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
+      );
+    }
+  }
+
+  if (!setup.includes('SentrySampler')) {
+    logger.warn(
+      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected.',
+    );
+  }
 }
 
 function getClientOptions(options: NodeOptions): NodeClientOptions {
