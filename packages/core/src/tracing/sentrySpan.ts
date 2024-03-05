@@ -13,6 +13,7 @@ import type {
   Transaction,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { getClient } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
@@ -277,7 +278,7 @@ export class SentrySpan implements Span {
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startChild(
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
+    spanContext: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>> = {},
   ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
@@ -313,6 +314,15 @@ export class SentrySpan implements Span {
       const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
       logger.log(logMessage);
       this._logMessage = logMessage;
+    }
+
+    const client = getClient();
+    if (client) {
+      client.emit('spanStart', childSpan);
+      // If it has an endTimestamp, it's already ended
+      if (spanContext.endTimestamp) {
+        client.emit('spanEnd', childSpan);
+      }
     }
 
     return childSpan;
@@ -397,6 +407,8 @@ export class SentrySpan implements Span {
     }
 
     this._endTime = spanTimeInputToSeconds(endTimestamp);
+
+    this._onSpanEnded();
   }
 
   /**
@@ -498,5 +510,13 @@ export class SentrySpan implements Span {
     }
 
     return hasData ? data : attributes;
+  }
+
+  /** Emit `spanEnd` when the span is ended. */
+  private _onSpanEnded(): void {
+    const client = getClient();
+    if (client) {
+      client.emit('spanEnd', this);
+    }
   }
 }
