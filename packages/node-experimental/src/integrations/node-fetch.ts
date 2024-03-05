@@ -27,7 +27,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
-  async function getInstrumentation(): Promise<[Instrumentation] | void> {
+  function getInstrumentation(): [Instrumentation] | void {
     // Only add NodeFetch if Node >= 16, as previous versions do not support it
     if (NODE_MAJOR < 16) {
       return;
@@ -42,6 +42,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
             const url = request.origin;
             return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
           },
+
           onRequest: ({ span }: { span: Span }) => {
             _updateSpan(span);
 
@@ -49,8 +50,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
               _addRequestBreadcrumb(span);
             }
           },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any),
+        }),
       ];
     } catch (error) {
       // Could not load instrumentation
@@ -60,14 +60,13 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch',
     setupOnce() {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      getInstrumentation().then(instrumentations => {
-        if (instrumentations) {
-          registerInstrumentations({
-            instrumentations,
-          });
-        }
-      });
+      const instrumentations = getInstrumentation();
+
+      if (instrumentations) {
+        registerInstrumentations({
+          instrumentations,
+        });
+      }
     },
   };
 }) satisfies IntegrationFn;

@@ -42,6 +42,12 @@ let showedHiddenSourceMapsWarningMsg = false;
 let showedMissingCliBinaryWarningMsg = false;
 let showedMissingGlobalErrorWarningMsg = false;
 
+const ext = typeof require === 'undefined' ? 'mjs' : 'js';
+
+const sdkMultiplexerLoader = path.resolve(__dirname, 'loaders', `sdkMultiplexerLoader.${ext}`);
+const wrappingLoader = path.resolve(__dirname, 'loaders', `wrappingLoader.${ext}`);
+const valueInjectionLoader = path.resolve(__dirname, 'loaders', `valueInjectionLoader.${ext}`);
+
 // TODO: merge default SentryWebpackPlugin ignore with their SentryWebpackPlugin ignore or ignoreFile
 // TODO: merge default SentryWebpackPlugin include with their SentryWebpackPlugin include
 // TODO: drop merged keys from override check? `includeDefaults` option?
@@ -92,7 +98,7 @@ export function constructWebpackConfigFunction(
       test: /node_modules[/\\]@sentry[/\\]nextjs/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
+          loader: sdkMultiplexerLoader,
           options: {
             importTarget: RUNTIME_TO_SDK_ENTRYPOINT_MAP[runtime],
           },
@@ -210,7 +216,7 @@ export function constructWebpackConfigFunction(
         test: isPageResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: wrappingLoader,
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'page',
@@ -248,7 +254,7 @@ export function constructWebpackConfigFunction(
         test: isApiRouteResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: wrappingLoader,
             options: {
               ...staticWrappingLoaderOptions,
               vercelCronsConfig,
@@ -264,7 +270,7 @@ export function constructWebpackConfigFunction(
           test: isMiddlewareResource,
           use: [
             {
-              loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+              loader: wrappingLoader,
               options: {
                 ...staticWrappingLoaderOptions,
                 wrappingTargetKind: 'middleware',
@@ -281,7 +287,7 @@ export function constructWebpackConfigFunction(
         test: isServerComponentResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: wrappingLoader,
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'server-component',
@@ -295,7 +301,7 @@ export function constructWebpackConfigFunction(
         test: isRouteHandlerResource,
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: wrappingLoader,
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'route-handler',
@@ -319,7 +325,7 @@ export function constructWebpackConfigFunction(
         },
         use: [
           {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
+            loader: wrappingLoader,
             options: {
               ...staticWrappingLoaderOptions,
               wrappingTargetKind: 'sentry-init',
@@ -1011,7 +1017,7 @@ function addValueInjectionLoader(
       test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          loader: valueInjectionLoader,
           options: {
             values: serverValues,
           },
@@ -1022,7 +1028,7 @@ function addValueInjectionLoader(
       test: /sentry\.client\.config\.(jsx?|tsx?)/,
       use: [
         {
-          loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
+          loader: valueInjectionLoader,
           options: {
             values: clientValues,
           },

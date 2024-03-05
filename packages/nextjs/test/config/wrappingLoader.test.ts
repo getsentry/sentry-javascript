@@ -4,44 +4,44 @@ import * as path from 'path';
 const originalReadfileSync = fs.readFileSync;
 
 jest.spyOn(fs, 'readFileSync').mockImplementation((filePath, options) => {
-  if (filePath.toString().endsWith('/config/templates/apiWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/apiWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/apiWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/apiWrapperTemplate.mjs'),
       options,
     );
   }
 
-  if (filePath.toString().endsWith('/config/templates/pageWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/pageWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/pageWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/pageWrapperTemplate.mjs'),
       options,
     );
   }
 
-  if (filePath.toString().endsWith('/config/templates/middlewareWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/middlewareWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/middlewareWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/middlewareWrapperTemplate.mjs'),
       options,
     );
   }
 
-  if (filePath.toString().endsWith('/config/templates/sentryInitWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/sentryInitWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/sentryInitWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/sentryInitWrapperTemplate.mjs'),
       options,
     );
   }
 
-  if (filePath.toString().endsWith('/config/templates/serverComponentWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/serverComponentWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/serverComponentWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/serverComponentWrapperTemplate.mjs'),
       options,
     );
   }
 
-  if (filePath.toString().endsWith('/config/templates/routeHandlerWrapperTemplate.js')) {
+  if (filePath.toString().endsWith('/config/templates/routeHandlerWrapperTemplate.mjs')) {
     return originalReadfileSync(
-      path.join(__dirname, '../../build/cjs/config/templates/routeHandlerWrapperTemplate.js'),
+      path.join(__dirname, '../../build/esm/config/templates/routeHandlerWrapperTemplate.mjs'),
       options,
     );
   }

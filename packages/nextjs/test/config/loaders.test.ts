@@ -219,7 +219,7 @@ describe('webpack loaders', () => {
         if (expectedWrappingTargetKind) {
           expect(loaderApplications).toContainEqual(
             expect.objectContaining({
-              loader: expect.stringMatching(/wrappingLoader\.js$/),
+              loader: expect.stringMatching(/wrappingLoader\.m?js$/),
               options: expect.objectContaining({
                 wrappingTargetKind: expectedWrappingTargetKind,
               }),
@@ -228,7 +228,7 @@ describe('webpack loaders', () => {
         } else {
           expect(loaderApplications).not.toContainEqual(
             expect.objectContaining({
-              loader: expect.stringMatching(/wrappingLoader\.js$/),
+              loader: expect.stringMatching(/wrappingLoader\.m?js$/),
             }),
           );
         }
