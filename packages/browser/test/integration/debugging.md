@@ -15,9 +15,6 @@ These tests are hard to debug, because the testing system is somewhat complex, s
 - Repo-level `rollup/bundleHelpers.js`:
   - Comment out all bundle variants except whichever one `run.js` is turning into `artifacts/sdk.js`.
 
-- Browser-package-level `rollup.bundle.config.mjs`:
-  - Build only one of `es5` and `es6`.
-
 - Run `build:bundle:watch` in a separate terminal tab, so that when you add `console.log`s to the SDK, they get picked up.
 
 - Don't bother trying to copy one of our standard VSCode debug profiles, because it won't work, except to debug the testing system itself. (It will pause the node process running the tests, not the headless browser in which the tests themselves run.)

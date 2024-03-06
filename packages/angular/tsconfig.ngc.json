@@ -5,8 +5,8 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es2015",
-    "lib": ["dom", "es2015"],
+    "target": "es2017",
+    "lib": ["dom", "es2017"],
     "baseUrl": "./"
   },
   "angularCompilerOptions": {
