@@ -311,8 +311,8 @@ const replay = getClient().getIntegrationByName('Replay');
 
 #### `framesToPop` applies to parsed frames
 
-Error with `framesToPop` property will have the specified number of frames removed from the top of the stack.
-This changes compared to the v7 where the property `framesToPop` was used to remove top n lines from the stack string.
+Error with `framesToPop` property will have the specified number of frames removed from the top of the stack. This
+changes compared to the v7 where the property `framesToPop` was used to remove top n lines from the stack string.
 
 #### `tracingOrigins` has been replaced by `tracePropagationTargets`
 
