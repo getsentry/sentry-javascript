@@ -11,7 +11,6 @@ import {
 import { getActiveTransaction, startSpan } from '@sentry/core';
 import { captureException } from '@sentry/node-experimental';
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
@@ -188,13 +187,11 @@ async function instrumentHandle(
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
       },
-      async (span?: Span) => {
+      async span => {
         const res = await resolve(event, {
           transformPageChunk: addSentryCodeToPage(options),
         });
-        if (span) {
-          setHttpStatus(span, res.status);
-        }
+        setHttpStatus(span, res.status);
         return res;
       },
     );

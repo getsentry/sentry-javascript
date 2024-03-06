@@ -39,11 +39,9 @@ export function autoEndSpanOnResponseEnd(span: Span, res: ServerResponse): void 
 }
 
 /** Finish the given response's span and set HTTP status data */
-export function finishSpan(span: Span | undefined, res: ServerResponse): void {
-  if (span) {
-    setHttpStatus(span, res.statusCode);
-    span.end();
-  }
+export function finishSpan(span: Span, res: ServerResponse): void {
+  setHttpStatus(span, res.statusCode);
+  span.end();
 }
 
 /** Flush the event queue to ensure that events get sent to Sentry before the response is finished and the lambda ends */

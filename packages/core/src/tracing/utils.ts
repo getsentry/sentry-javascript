@@ -31,54 +31,6 @@ export function getActiveSpan(): Span | undefined {
   return getCurrentScope().getSpan();
 }
 
-const CHILD_SPANS_FIELD = '_sentryChildSpans';
-
-type SpanWithPotentialChildren = Span & {
-  [CHILD_SPANS_FIELD]?: Set<Span>;
-};
-
-/**
- * Adds an opaque child span reference to a span.
- */
-export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
-  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
-    span[CHILD_SPANS_FIELD].add(childSpan);
-  } else {
-    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
-  }
-}
-
-/** This is only used internally by Idle Spans. */
-export function removeChildSpanFromSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
-  if (span[CHILD_SPANS_FIELD]) {
-    span[CHILD_SPANS_FIELD].delete(childSpan);
-  }
-}
-
-/**
- * Returns an array of the given span and all of its descendants.
- */
-export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
-  const resultSet = new Set<Span>();
-
-  function addSpanChildren(span: SpanWithPotentialChildren): void {
-    // This exit condition is required to not infinitely loop in case of a circular dependency.
-    if (resultSet.has(span)) {
-      return;
-    } else {
-      resultSet.add(span);
-      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
-      for (const childSpan of childSpans) {
-        addSpanChildren(childSpan);
-      }
-    }
-  }
-
-  addSpanChildren(span);
-
-  return Array.from(resultSet);
-}
-
 const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 

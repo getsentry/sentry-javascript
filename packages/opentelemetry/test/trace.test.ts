@@ -535,18 +535,17 @@ describe('trace', () => {
       const initialScope = getCurrentScope();
 
       let manualScope: Scope;
-      let parentSpan: Span;
 
-      startSpanManual({ name: 'detached' }, span => {
-        parentSpan = span;
+      const parentSpan = startSpanManual({ name: 'detached' }, span => {
         manualScope = getCurrentScope();
         manualScope.setTag('manual', 'tag');
+        return span;
       });
 
       getCurrentScope().setTag('outer', 'tag');
 
       const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope! });
-      expect(getSpanParentSpanId(span)).toBe(parentSpan!.spanContext().spanId);
+      expect(getSpanParentSpanId(span)).toBe(parentSpan.spanContext().spanId);
 
       expect(getCurrentScope()).toBe(initialScope);
       expect(getActiveSpan()).toBe(undefined);
@@ -675,7 +674,7 @@ describe('trace', () => {
 
       client.getOptions().beforeSendTransaction = beforeSendTransaction;
 
-      let span: Span | undefined;
+      let span: Span;
 
       const scope = getCurrentScope();
       scope.setTag('outer', 'foo');
@@ -688,7 +687,7 @@ describe('trace', () => {
 
       withScope(scope => {
         scope.setTag('scope', 2);
-        span?.end();
+        span.end();
       });
 
       await client.flush();
@@ -835,13 +834,13 @@ describe('trace', () => {
           startSpanManual({ name: 'inner transaction', forceTransaction: true }, span => {
             startSpanManual({ name: 'inner span 2' }, span => {
               // all good
-              span?.end();
+              span.end();
             });
-            span?.end();
+            span.end();
           });
-          span?.end();
+          span.end();
         });
-        span?.end();
+        span.end();
       });
 
       await client.flush();

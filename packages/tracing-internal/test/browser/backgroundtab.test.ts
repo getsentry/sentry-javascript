@@ -50,7 +50,7 @@ describe('registerBackgroundTabDetection', () => {
       global.document.hidden = true;
       events.visibilitychange();
 
-      const { status, timestamp, data } = spanToJSON(span!);
+      const { status, timestamp, data } = spanToJSON(span);
 
       expect(status).toBe('cancelled');
       expect(status).toBeDefined();
