@@ -24,7 +24,7 @@ type MetricsAggregatorConstructor = {
 };
 
 /**
- * Global metrics aggregators instances oper Client.
+ * Global metrics aggregator instance per Client.
  */
 let globalMetricsAggregators: Map<Client, MetricsAggregatorInterface> | undefined;
 
