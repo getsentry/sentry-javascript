@@ -1,5 +1,5 @@
-import { Hub, captureCheckIn, makeMain, setCurrentClient } from '@sentry/core';
 import type { Client, Integration, IntegrationFnResult } from '@sentry/types';
+import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
 
 import { installedIntegrations } from '../../src/integration';
 import { initAndBind } from '../../src/sdk';
@@ -86,13 +86,6 @@ describe('SDK', () => {
 });
 
 describe('captureCheckIn', () => {
-  afterEach(function () {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub();
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
-  });
-
   it('returns an id when client is defined', () => {
     const client = {
       captureCheckIn: () => 'some-id-wasd-1234',
@@ -103,6 +96,7 @@ describe('captureCheckIn', () => {
   });
 
   it('returns an id when client is undefined', () => {
+    getCurrentScope().setClient(undefined);
     expect(captureCheckIn({ monitorSlug: 'gogogo', status: 'in_progress' })).toStrictEqual(expect.any(String));
   });
 });

@@ -1,35 +1,14 @@
 import { navigating, page } from '$app/stores';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import {
-  BrowserTracing as OriginalBrowserTracing,
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
-  getActiveSpan,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
 } from '@sentry/svelte';
 import type { Client, Integration, Span } from '@sentry/types';
-import { svelteKitRoutingInstrumentation } from './router';
-
-/**
- * A custom BrowserTracing integration for Sveltekit.
- *
- * @deprecated use `browserTracingIntegration()` instead. The new `browserTracingIntegration()`
- * includes SvelteKit-specific routing instrumentation out of the box. Therefore there's no need
- * to pass in `svelteKitRoutingInstrumentation` anymore.
- */
-// eslint-disable-next-line deprecation/deprecation
-export class BrowserTracing extends OriginalBrowserTracing {
-  // eslint-disable-next-line deprecation/deprecation
-  public constructor(options?: ConstructorParameters<typeof OriginalBrowserTracing>[0]) {
-    super({
-      // eslint-disable-next-line deprecation/deprecation
-      routingInstrumentation: svelteKitRoutingInstrumentation,
-      ...options,
-    });
-  }
-}
+import { dropUndefinedKeys } from '@sentry/utils';
 
 /**
  * A custom `BrowserTracing` integration for SvelteKit.
@@ -64,20 +43,17 @@ export function browserTracingIntegration(
 function _instrumentPageload(client: Client): void {
   const initialPath = WINDOW && WINDOW.location && WINDOW.location.pathname;
 
-  startBrowserTracingPageLoadSpan(client, {
+  const pageloadSpan = startBrowserTracingPageLoadSpan(client, {
     name: initialPath,
     op: 'pageload',
-    description: initialPath,
-    tags: {
-      'routing.instrumentation': '@sentry/sveltekit',
-    },
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.sveltekit',
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   });
-
-  const pageloadSpan = getActiveSpan();
+  if (!pageloadSpan) {
+    return;
+  }
 
   page.subscribe(page => {
     if (!page) {
@@ -86,7 +62,7 @@ function _instrumentPageload(client: Client): void {
 
     const routeId = page.route && page.route.id;
 
-    if (pageloadSpan && routeId) {
+    if (routeId) {
       pageloadSpan.updateName(routeId);
       pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     }
@@ -98,7 +74,6 @@ function _instrumentPageload(client: Client): void {
  */
 function _instrumentNavigations(client: Client): void {
   let routingSpan: Span | undefined;
-  let activeSpan: Span | undefined;
 
   navigating.subscribe(navigation => {
     if (!navigation) {
@@ -129,36 +104,42 @@ function _instrumentNavigations(client: Client): void {
     const parameterizedRouteOrigin = from && from.route.id;
     const parameterizedRouteDestination = to && to.route.id;
 
-    activeSpan = getActiveSpan();
-
-    if (!activeSpan) {
-      startBrowserTracingNavigationSpan(client, {
-        name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
-        op: 'navigation',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
-        },
-        tags: {
-          'routing.instrumentation': '@sentry/sveltekit',
-        },
-      });
-      activeSpan = getActiveSpan();
+    if (routingSpan) {
+      // If a routing span is still open from a previous navigation, we finish it.
+      // This is important for e.g. redirects when a new navigation root span finishes
+      // the first root span. If we don't `.end()` the previous span, it will get
+      // status 'cancelled' which isn't entirely correct.
+      routingSpan.end();
     }
 
-    if (activeSpan) {
-      if (routingSpan) {
-        // If a routing span is still open from a previous navigation, we finish it.
-        routingSpan.end();
-      }
-      routingSpan = startInactiveSpan({
-        op: 'ui.sveltekit.routing',
-        name: 'SvelteKit Route Change',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
-        },
-      });
-      activeSpan.setAttribute('sentry.sveltekit.navigation.from', parameterizedRouteOrigin || undefined);
-    }
+    const navigationInfo = dropUndefinedKeys({
+      //  `navigation.type` denotes the origin of the navigation. e.g.:
+      //   - link (clicking on a link)
+      //   - goto (programmatic via goto() or redirect())
+      //   - popstate (back/forward navigation)
+      'sentry.sveltekit.navigation.type': navigation.type,
+      'sentry.sveltekit.navigation.from': parameterizedRouteOrigin || undefined,
+      'sentry.sveltekit.navigation.to': parameterizedRouteDestination || undefined,
+    });
+
+    startBrowserTracingNavigationSpan(client, {
+      name: parameterizedRouteDestination || rawRouteDestination || 'unknown',
+      op: 'navigation',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.sveltekit',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: parameterizedRouteDestination ? 'route' : 'url',
+        ...navigationInfo,
+      },
+    });
+
+    routingSpan = startInactiveSpan({
+      op: 'ui.sveltekit.routing',
+      name: 'SvelteKit Route Change',
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.sveltekit',
+        ...navigationInfo,
+      },
+      onlyIfParent: true,
+    });
   });
 }

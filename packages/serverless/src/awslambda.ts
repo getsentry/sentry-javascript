@@ -2,21 +2,20 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions, Scope } from '@sentry/node';
-import { SDK_VERSION } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { SDK_VERSION } from '@sentry/node-experimental';
 import {
   captureException,
   captureMessage,
   continueTrace,
-  defaultIntegrations as nodeDefaultIntegrations,
   flush,
   getCurrentScope,
   getDefaultIntegrations as getNodeDefaultIntegrations,
   init as initNode,
   startSpanManual,
   withScope,
-} from '@sentry/node';
-import type { Integration, Options, SdkMetadata, Span } from '@sentry/types';
+} from '@sentry/node-experimental';
+import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
@@ -27,7 +26,7 @@ import { awsServicesIntegration } from './awsservices';
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
 
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 
 const { isPromise } = types;
 
@@ -65,13 +64,6 @@ export interface WrapperOptions {
    */
   startTrace: boolean;
 }
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations: Integration[] = [
-  // eslint-disable-next-line deprecation/deprecation
-  ...nodeDefaultIntegrations,
-  awsServicesIntegration({ optional: true }),
-];
 
 /** Get the default integrations for the AWSLambda SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {

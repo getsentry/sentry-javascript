@@ -44,7 +44,7 @@ type VueBrowserTracingIntegrationOptions = Parameters<typeof originalBrowserTrac
 };
 
 /**
- * A custom BrowserTracing integration for Vue.
+ * A custom browser tracing integrations for Vue.
  */
 export function browserTracingIntegration(options: VueBrowserTracingIntegrationOptions = {}): Integration {
   // If router is not passed, we just use the normal implementation

@@ -2,7 +2,7 @@ import { getCurrentScope, setGlobalScope } from '@sentry/core';
 import { getClient, getSpanScopes } from '@sentry/opentelemetry';
 
 import * as Sentry from '../../src/';
-import type { NodeExperimentalClient } from '../../src/types';
+import type { NodeClient } from '../../src/sdk/client';
 import { cleanupOtel, mockSdkInit, resetGlobals } from '../helpers/mockSdkInit';
 
 describe('Integration | Scope', () => {
@@ -20,7 +20,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
 
       const rootScope = getCurrentScope();
 
@@ -56,23 +56,34 @@ describe('Integration | Scope', () => {
       await client.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
+
+      if (spanId) {
+        expect(beforeSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            contexts: expect.objectContaining({
+              trace: {
+                span_id: spanId,
+                trace_id: traceId,
+              },
+            }),
+          }),
+          {
+            event_id: expect.any(String),
+            originalException: error,
+            syntheticException: expect.any(Error),
+          },
+        );
+      }
+
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: spanId
-              ? {
-                  span_id: spanId,
-                  trace_id: traceId,
-                  parent_span_id: undefined,
-                }
-              : expect.any(Object),
-          }),
           tags: {
             tag1: 'val1',
             tag2: 'val2',
             tag3: 'val3',
             tag4: 'val4',
           },
+          ...(enableTracing ? { transaction: 'outer' } : {}),
         }),
         {
           event_id: expect.any(String),
@@ -88,7 +99,12 @@ describe('Integration | Scope', () => {
           expect.objectContaining({
             contexts: expect.objectContaining({
               trace: {
-                data: { 'otel.kind': 'INTERNAL', 'sentry.origin': 'manual' },
+                data: {
+                  'otel.kind': 'INTERNAL',
+                  'sentry.origin': 'manual',
+                  'sentry.source': 'custom',
+                  'sentry.sample_rate': 1,
+                },
                 span_id: spanId,
                 status: 'ok',
                 trace_id: traceId,
@@ -121,7 +137,7 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      const client = getClient() as NodeExperimentalClient;
+      const client = getClient() as NodeClient;
       const rootScope = getCurrentScope();
 
       const error1 = new Error('test error 1');
@@ -187,6 +203,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3a',
             tag4: 'val4a',
           },
+          ...(enableTracing ? { transaction: 'outer' } : {}),
         }),
         {
           event_id: expect.any(String),
@@ -212,6 +229,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3b',
             tag4: 'val4b',
           },
+          ...(enableTracing ? { transaction: 'outer' } : {}),
         }),
         {
           event_id: expect.any(String),
@@ -457,7 +475,7 @@ describe('Integration | Scope', () => {
 
       // client is attached to current scope
       expect(currentScope.getClient()).toBeDefined();
-      // current scope remains intact
+
       expect(Sentry.getCurrentScope()).toBe(currentScope);
       expect(currentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
     });

@@ -1,3 +1,4 @@
+import { SentrySpan } from '@sentry/core';
 import type { SpanContext } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
@@ -10,10 +11,7 @@ import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 const mockStartInactiveSpan = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
 const mockFinish = jest.fn();
 
-// @sent
-class MockSpan {
-  public constructor(public readonly ctx: SpanContext) {}
-
+class MockSpan extends SentrySpan {
   public end(): void {
     mockFinish();
   }
@@ -76,8 +74,10 @@ describe('withProfiler', () => {
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
         op: REACT_MOUNT_OP,
-        origin: 'auto.ui.react.profiler',
-        attributes: { 'ui.component_name': 'unknown' },
+        attributes: {
+          'sentry.origin': 'auto.ui.react.profiler',
+          'ui.component_name': 'unknown',
+        },
       });
     });
   });
@@ -95,9 +95,11 @@ describe('withProfiler', () => {
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
         op: REACT_RENDER_OP,
-        origin: 'auto.ui.react.profiler',
-        startTimestamp: undefined,
-        attributes: { 'ui.component_name': 'unknown' },
+        startTime: undefined,
+        attributes: {
+          'sentry.origin': 'auto.ui.react.profiler',
+          'ui.component_name': 'unknown',
+        },
       });
       expect(mockFinish).toHaveBeenCalledTimes(2);
     });
@@ -125,24 +127,30 @@ describe('withProfiler', () => {
       rerender(<ProfiledComponent num={1} />);
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(2);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
-        attributes: { 'ui.react.changed_props': ['num'], 'ui.component_name': 'unknown' },
+        attributes: {
+          'sentry.origin': 'auto.ui.react.profiler',
+          'ui.react.changed_props': ['num'],
+          'ui.component_name': 'unknown',
+        },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
         op: REACT_UPDATE_OP,
-        origin: 'auto.ui.react.profiler',
-        startTimestamp: expect.any(Number),
+        startTime: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(2);
       // New props yet again
       rerender(<ProfiledComponent num={2} />);
       expect(mockStartInactiveSpan).toHaveBeenCalledTimes(3);
       expect(mockStartInactiveSpan).toHaveBeenLastCalledWith({
-        attributes: { 'ui.react.changed_props': ['num'], 'ui.component_name': 'unknown' },
+        attributes: {
+          'sentry.origin': 'auto.ui.react.profiler',
+          'ui.react.changed_props': ['num'],
+          'ui.component_name': 'unknown',
+        },
         name: `<${UNKNOWN_COMPONENT}>`,
         onlyIfParent: true,
         op: REACT_UPDATE_OP,
-        origin: 'auto.ui.react.profiler',
-        startTimestamp: expect.any(Number),
+        startTime: expect.any(Number),
       });
       expect(mockFinish).toHaveBeenCalledTimes(3);
 
@@ -181,8 +189,10 @@ describe('useProfiler()', () => {
         name: '<Example>',
         onlyIfParent: true,
         op: REACT_MOUNT_OP,
-        origin: 'auto.ui.react.profiler',
-        attributes: { 'ui.component_name': 'Example' },
+        attributes: {
+          'ui.component_name': 'Example',
+          'sentry.origin': 'auto.ui.react.profiler',
+        },
       });
     });
   });
@@ -206,8 +216,10 @@ describe('useProfiler()', () => {
           name: '<Example>',
           onlyIfParent: true,
           op: REACT_RENDER_OP,
-          origin: 'auto.ui.react.profiler',
-          attributes: { 'ui.component_name': 'Example' },
+          attributes: {
+            'sentry.origin': 'auto.ui.react.profiler',
+            'ui.component_name': 'Example',
+          },
         }),
       );
     });

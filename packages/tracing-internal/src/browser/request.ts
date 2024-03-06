@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
@@ -7,6 +6,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   hasTracingEnabled,
+  instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
@@ -24,10 +24,8 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
-
-export const DEFAULT_TRACE_PROPAGATION_TARGETS = ['localhost', /^\/(?!\/)/];
+import { WINDOW } from './types';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {
@@ -35,9 +33,30 @@ export interface RequestInstrumentationOptions {
    * List of strings and/or Regular Expressions used to determine which outgoing requests will have `sentry-trace` and `baggage`
    * headers attached.
    *
-   * Default: ['localhost', /^\//]
+   * **Default:** If this option is not provided, tracing headers will be attached to all outgoing requests.
+   * If you are using a browser SDK, by default, tracing headers will only be attached to outgoing requests to the same origin.
+   *
+   * **Disclaimer:** Carelessly setting this option in browser environments may result into CORS errors!
+   * Only attach tracing headers to requests to the same origin, or to requests to services you can control CORS headers of.
+   * Cross-origin requests, meaning requests to a different domain, for example a request to `https://api.example.com/` while you're on `https://example.com/`, take special care.
+   * If you are attaching headers to cross-origin requests, make sure the backend handling the request returns a `"Access-Control-Allow-Headers: sentry-trace, baggage"` header to ensure your requests aren't blocked.
+   *
+   * If you provide a `tracePropagationTargets` array, the entries you provide will be matched against the entire URL of the outgoing request.
+   * If you are using a browser SDK, the entries will also be matched against the pathname of the outgoing requests.
+   * This is so you can have matchers for relative requests, for example, `/^\/api/` if you want to trace requests to your `/api` routes on the same domain.
+   *
+   * If any of the two match any of the provided values, tracing headers will be attached to the outgoing request.
+   * Both, the string values, and the RegExes you provide in the array will match if they partially match the URL or pathname.
+   *
+   * Examples:
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://same-origin.com/api/posts`:
+   *   - Tracing headers will be attached because the request is sent to the same origin and the regex matches the pathname "/api/posts".
+   * - `tracePropagationTargets: [/^\/api/]` and request to `https://different-origin.com/api/posts`:
+   *   - Tracing headers will not be attached because the pathname will only be compared when the request target lives on the same origin.
+   * - `tracePropagationTargets: [/^\/api/, 'https://external-api.com']` and request to `https://external-api.com/v1/data`:
+   *   - Tracing headers will be attached because the request URL matches the string `'https://external-api.com'`.
    */
-  tracePropagationTargets: Array<string | RegExp>;
+  tracePropagationTargets?: Array<string | RegExp>;
 
   /**
    * Flag to disable patching all together for fetch requests.
@@ -73,7 +92,6 @@ export const defaultRequestInstrumentationOptions: RequestInstrumentationOptions
   traceFetch: true,
   traceXHR: true,
   enableHTTPTimings: true,
-  tracePropagationTargets: DEFAULT_TRACE_PROPAGATION_TARGETS,
 };
 
 /** Registers span creators for xhr and fetch requests  */
@@ -207,11 +225,48 @@ function resourceTimingEntryToSpanData(resourceTiming: PerformanceResourceTiming
 
 /**
  * A function that determines whether to attach tracing headers to a request.
- * This was extracted from `instrumentOutgoingRequests` to make it easier to test shouldAttachHeaders.
- * We only export this fuction for testing purposes.
+ * We only export this function for testing purposes.
  */
-export function shouldAttachHeaders(url: string, tracePropagationTargets: (string | RegExp)[] | undefined): boolean {
-  return stringMatchesSomePattern(url, tracePropagationTargets || DEFAULT_TRACE_PROPAGATION_TARGETS);
+export function shouldAttachHeaders(
+  targetUrl: string,
+  tracePropagationTargets: (string | RegExp)[] | undefined,
+): boolean {
+  // window.location.href not being defined is an edge case in the browser but we need to handle it.
+  // Potentially dangerous situations where it may not be defined: Browser Extensions, Web Workers, patching of the location obj
+  const href: string | undefined = WINDOW.location && WINDOW.location.href;
+
+  if (!href) {
+    // If there is no window.location.origin, we default to only attaching tracing headers to relative requests, i.e. ones that start with `/`
+    // BIG DISCLAIMER: Users can call URLs with a double slash (fetch("//example.com/api")), this is a shorthand for "send to the same protocol",
+    // so we need a to exclude those requests, because they might be cross origin.
+    const isRelativeSameOriginRequest = !!targetUrl.match(/^\/(?!\/)/);
+    if (!tracePropagationTargets) {
+      return isRelativeSameOriginRequest;
+    } else {
+      return stringMatchesSomePattern(targetUrl, tracePropagationTargets);
+    }
+  } else {
+    let resolvedUrl;
+    let currentOrigin;
+
+    // URL parsing may fail, we default to not attaching trace headers in that case.
+    try {
+      resolvedUrl = new URL(targetUrl, href);
+      currentOrigin = new URL(href).origin;
+    } catch (e) {
+      return false;
+    }
+
+    const isSameOriginRequest = resolvedUrl.origin === currentOrigin;
+    if (!tracePropagationTargets) {
+      return isSameOriginRequest;
+    } else {
+      return (
+        stringMatchesSomePattern(resolvedUrl.toString(), tracePropagationTargets) ||
+        (isSameOriginRequest && stringMatchesSomePattern(resolvedUrl.pathname, tracePropagationTargets))
+      );
+    }
+  }
 }
 
 /**
@@ -219,7 +274,6 @@ export function shouldAttachHeaders(url: string, tracePropagationTargets: (strin
  *
  * @returns Span if a span was created, otherwise void.
  */
-// eslint-disable-next-line complexity
 export function xhrCallback(
   handlerData: HandlerDataXhr,
   shouldCreateSpan: (url: string) => boolean,

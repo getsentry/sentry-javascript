@@ -1,6 +1,11 @@
 /* eslint-disable @sentry-internal/sdk/no-optional-chaining */
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getCurrentScope, startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getCurrentScope,
+  startSpan,
+} from '@sentry/core';
+import { captureException } from '@sentry/node-experimental';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
@@ -69,12 +74,9 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
         op: 'function.sveltekit.load',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
         },
         name: routeId ? routeId : event.url.pathname,
-        status: 'ok',
-        metadata: {
-          source: routeId ? 'route' : 'url',
-        },
       };
 
       try {
@@ -138,11 +140,10 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
         op: 'function.sveltekit.server.load',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
         },
         name: routeId ? routeId : event.url.pathname,
-        status: 'ok',
         metadata: {
-          source: routeId ? 'route' : 'url',
           dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
         },
         data: {

@@ -6,6 +6,7 @@ import type {
   EntryPropertyFunction,
   ExportedNextConfig,
   NextConfigObject,
+  SentryBuildtimeOptions,
   SentryWebpackPluginOptions,
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
@@ -28,8 +29,9 @@ export function materializeFinalNextConfig(
   exportedNextConfig: ExportedNextConfig,
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>,
   runtimePhase?: string,
+  sentryBuildTimeOptions?: SentryBuildtimeOptions,
 ): NextConfigObject {
-  const sentrifiedConfig = withSentryConfig(exportedNextConfig, userSentryWebpackPluginConfig);
+  const sentrifiedConfig = withSentryConfig(exportedNextConfig, userSentryWebpackPluginConfig, sentryBuildTimeOptions);
   let finalConfigValues = sentrifiedConfig;
 
   if (typeof sentrifiedConfig === 'function') {
@@ -59,6 +61,7 @@ export async function materializeFinalWebpackConfig(options: {
   userSentryWebpackPluginConfig?: Partial<SentryWebpackPluginOptions>;
   incomingWebpackConfig: WebpackConfigObject;
   incomingWebpackBuildContext: BuildContext;
+  sentryBuildTimeOptions?: SentryBuildtimeOptions;
 }): Promise<WebpackConfigObjectWithModuleRules> {
   const { exportedNextConfig, userSentryWebpackPluginConfig, incomingWebpackConfig, incomingWebpackBuildContext } =
     options;
@@ -69,15 +72,11 @@ export async function materializeFinalWebpackConfig(options: {
       ? await exportedNextConfig('phase-production-build', defaultsObject)
       : exportedNextConfig;
 
-  // extract the `sentry` property as we do in `withSentryConfig`
-  const { sentry: sentryConfig } = materializedUserNextConfig;
-  delete materializedUserNextConfig.sentry;
-
   // get the webpack config function we'd normally pass back to next
   const webpackConfigFunction = constructWebpackConfigFunction(
     materializedUserNextConfig,
     userSentryWebpackPluginConfig,
-    sentryConfig,
+    options.sentryBuildTimeOptions ?? {},
   );
 
   // call it to get concrete values for comparison

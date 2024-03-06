@@ -82,7 +82,7 @@ const span = Sentry.startInactiveSpan({ description: 'non-active span' });
 
 doSomethingSlow();
 
-span.finish();
+span.end();
 ```
 
 Finally you can also get the currently active span, if you need to do more with it:
@@ -109,8 +109,11 @@ There is experimental support for running OpenTelemetry with ESM (`"type": "modu
 node --experimental-loader=@opentelemetry/instrumentation/hook.mjs ./app.js
 ```
 
+You'll need to install `@opentelemetry/instrumentation` in your app to ensure this works.
+
 See [OpenTelemetry Instrumentation Docs](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation#instrumentation-for-es-modules-in-nodejs-experimental) for details on this -
 but note that this is a) experimental, and b) does not work with all integrations.
+
 
 ## Available (Performance) Integrations
 

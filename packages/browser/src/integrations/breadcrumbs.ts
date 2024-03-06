@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import { addBreadcrumb, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,
   Event as SentryEvent,
@@ -8,8 +8,6 @@ import type {
   HandlerDataFetch,
   HandlerDataHistory,
   HandlerDataXhr,
-  Integration,
-  IntegrationClass,
   IntegrationFn,
 } from '@sentry/types';
 import type {
@@ -70,8 +68,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.console) {
         addConsoleInstrumentationHandler(_getConsoleBreadcrumbHandler(client));
@@ -96,32 +92,6 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 }) satisfies IntegrationFn;
 
 export const breadcrumbsIntegration = defineIntegration(_breadcrumbsIntegration);
-
-/**
- * Default Breadcrumbs instrumentations
- *
- * @deprecated Use `breadcrumbsIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Breadcrumbs = convertIntegrationFnToClass(INTEGRATION_NAME, breadcrumbsIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
-> & {
-  new (
-    options?: Partial<{
-      console: boolean;
-      dom:
-        | boolean
-        | {
-            serializeAttribute?: string | string[];
-            maxStringLength?: number;
-          };
-      fetch: boolean;
-      history: boolean;
-      sentry: boolean;
-      xhr: boolean;
-    }>,
-  ): Integration;
-};
 
 /**
  * Adds a breadcrumb for Sentry events or transactions if this option is enabled.

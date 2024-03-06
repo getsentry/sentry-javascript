@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -46,7 +45,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -68,22 +66,32 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   parameterize,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/core';
+
 export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
 
 export { NodeClient } from './client';
 export { makeNodeTransport } from './transports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
   defaultStackParser,
@@ -91,14 +99,7 @@ export {
 } from './sdk';
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
-import { createGetModuleFromFilename } from './module';
-/**
- * @deprecated use `createGetModuleFromFilename` instead.
- */
-export const getModuleFromFilename = createGetModuleFromFilename();
-export { createGetModuleFromFilename };
-
-import { Integrations as CoreIntegrations } from '@sentry/core';
+export { createGetModuleFromFilename } from './module';
 
 import * as Handlers from './handlers';
 import * as NodeIntegrations from './integrations';
@@ -106,11 +107,18 @@ import * as TracingIntegrations from './tracing/integrations';
 
 // TODO: Deprecate this once we migrated tracing integrations
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...NodeIntegrations,
   ...TracingIntegrations,
 };
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
 
 export { consoleIntegration } from './integrations/console';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';

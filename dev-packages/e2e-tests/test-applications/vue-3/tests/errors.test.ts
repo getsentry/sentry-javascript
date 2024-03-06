@@ -3,7 +3,7 @@ import { waitForError } from '../event-proxy-server';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('vue-3', async errorEvent => {
-    return !errorEvent?.transaction;
+    return !errorEvent.type;
   });
 
   await page.goto(`/`);

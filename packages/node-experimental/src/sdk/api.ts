@@ -1,155 +1,68 @@
 // PUBLIC APIS
 
-import type { Span } from '@opentelemetry/api';
-import { context, trace } from '@opentelemetry/api';
-import type {
-  CaptureContext,
-  Event,
-  EventHint,
-  EventProcessor,
-  Extra,
-  Extras,
-  Primitive,
-  Scope,
-  SeverityLevel,
-  User,
-} from '@sentry/types';
-import { getContextFromScope, getScopesFromContext, setScopesOnContext } from '../utils/contextData';
+import { getCurrentScope } from '@sentry/core';
+import type { Client, StackParser } from '@sentry/types';
+import type { Hub } from '@sentry/types';
+import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
+import { createGetModuleFromFilename } from '../utils/module';
 
-import type { ExclusiveEventHintOrCaptureContext } from '../utils/prepareEvent';
-import { parseEventHintOrCaptureContext } from '../utils/prepareEvent';
-import { getClient, getCurrentScope, getIsolationScope } from './scope';
+/** Get the currently active client. */
+export function getClient<C extends Client>(): C {
+  const currentScope = getCurrentScope();
 
-export { getCurrentScope, getIsolationScope, getClient };
-export { setCurrentScope, setIsolationScope } from './scope';
-
-/**
- * Creates a new scope with and executes the given operation within.
- * The scope is automatically removed once the operation
- * finishes or throws.
- *
- * This is essentially a convenience function for:
- *
- *     pushScope();
- *     callback();
- *     popScope();
- */
-export function withScope<T>(callback: (scope: Scope) => T): T;
-/**
- * Set the given scope as the active scope in the callback.
- */
-export function withScope<T>(scope: Scope | undefined, callback: (scope: Scope) => T): T;
-/**
- * Either creates a new active scope, or sets the given scope as active scope in the given callback.
- */
-export function withScope<T>(
-  ...rest: [callback: (scope: Scope) => T] | [scope: Scope | undefined, callback: (scope: Scope) => T]
-): T {
-  // If a scope is defined, we want to make this the active scope instead of the default one
-  if (rest.length === 2) {
-    const [scope, callback] = rest;
-    if (!scope) {
-      return context.with(context.active(), () => callback(getCurrentScope()));
-    }
-
-    const ctx = getContextFromScope(scope);
-    return context.with(ctx || context.active(), () => callback(getCurrentScope()));
+  const client = currentScope.getClient();
+  if (client) {
+    return client as C;
   }
 
-  const callback = rest[0];
-  return context.with(context.active(), () => callback(getCurrentScope()));
+  // TODO otherwise ensure we use a noop client
+  return {} as C;
 }
 
 /**
- * Forks the current scope and sets the provided span as active span in the context of the provided callback.
+ * Returns a release dynamically from environment variables.
+ */
+export function getSentryRelease(fallback?: string): string | undefined {
+  // Always read first as Sentry takes this as precedence
+  if (process.env.SENTRY_RELEASE) {
+    return process.env.SENTRY_RELEASE;
+  }
+
+  // This supports the variable that sentry-webpack-plugin injects
+  if (GLOBAL_OBJ.SENTRY_RELEASE && GLOBAL_OBJ.SENTRY_RELEASE.id) {
+    return GLOBAL_OBJ.SENTRY_RELEASE.id;
+  }
+
+  return (
+    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
+    process.env.GITHUB_SHA ||
+    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
+    process.env.COMMIT_REF ||
+    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.VERCEL_GITHUB_COMMIT_SHA ||
+    process.env.VERCEL_GITLAB_COMMIT_SHA ||
+    process.env.VERCEL_BITBUCKET_COMMIT_SHA ||
+    // Zeit (now known as Vercel)
+    process.env.ZEIT_GITHUB_COMMIT_SHA ||
+    process.env.ZEIT_GITLAB_COMMIT_SHA ||
+    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
+    // Cloudflare Pages - https://developers.cloudflare.com/pages/platform/build-configuration/#environment-variables
+    process.env.CF_PAGES_COMMIT_SHA ||
+    fallback
+  );
+}
+
+/** Node.js stack parser */
+export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
+
+/**
+ * This method is a noop and only here to ensure vite-plugin v0.6.0 (which is used by Sveltekit) still works,
+ * as that uses this.
  *
- * @param span Spans started in the context of the provided callback will be children of this span.
- * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
- * @returns the value returned from the provided callback function.
+ * @deprecated This will be removed before v8 is finalized.
  */
-export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T {
-  const newContextWithActiveSpan = trace.setSpan(context.active(), span);
-  return context.with(newContextWithActiveSpan, () => callback(getCurrentScope()));
-}
-
-/**
- * For a new isolation scope from the current isolation scope,
- * and make it the current isolation scope in the given callback.
- */
-export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-  const ctx = context.active();
-  const currentScopes = getScopesFromContext(ctx);
-  const scopes = currentScopes
-    ? { ...currentScopes }
-    : {
-        scope: getCurrentScope(),
-        isolationScope: getIsolationScope(),
-      };
-
-  scopes.isolationScope = scopes.isolationScope.clone();
-
-  return context.with(setScopesOnContext(ctx, scopes), () => {
-    return callback(getIsolationScope());
-  });
-}
-
-/** Record an exception and send it to Sentry. */
-export function captureException(exception: unknown, hint?: ExclusiveEventHintOrCaptureContext): string {
-  return getCurrentScope().captureException(exception, parseEventHintOrCaptureContext(hint));
-}
-
-/** Record a message and send it to Sentry. */
-export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
-  // This is necessary to provide explicit scopes upgrade, without changing the original
-  // arity of the `captureMessage(message, level)` method.
-  const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
-
-  return getCurrentScope().captureMessage(message, level, context);
-}
-
-/** Capture a generic event and send it to Sentry. */
-export function captureEvent(event: Event, hint?: EventHint): string {
-  return getCurrentScope().captureEvent(event, hint);
-}
-
-/**
- * Add an event processor to the current isolation scope.
- */
-export function addEventProcessor(eventProcessor: EventProcessor): void {
-  getIsolationScope().addEventProcessor(eventProcessor);
-}
-
-/** Set the user for the current isolation scope. */
-export function setUser(user: User | null): void {
-  getIsolationScope().setUser(user);
-}
-
-/** Set tags for the current isolation scope. */
-export function setTags(tags: { [key: string]: Primitive }): void {
-  getIsolationScope().setTags(tags);
-}
-
-/** Set a single tag user for the current isolation scope. */
-export function setTag(key: string, value: Primitive): void {
-  getIsolationScope().setTag(key, value);
-}
-
-/** Set extra data for the current isolation scope. */
-export function setExtra(key: string, extra: Extra): void {
-  getIsolationScope().setExtra(key, extra);
-}
-
-/** Set multiple extra data for the current isolation scope. */
-export function setExtras(extras: Extras): void {
-  getIsolationScope().setExtras(extras);
-}
-
-/** Set context data for the current isolation scope. */
-export function setContext(
-  name: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  context: { [key: string]: any } | null,
-): void {
-  getIsolationScope().setContext(name, context);
+export function makeMain(hub: Hub): Hub {
+  // noop
+  return hub;
 }

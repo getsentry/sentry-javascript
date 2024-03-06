@@ -1,5 +1,6 @@
 import { createEventEnvelope, getClient, withScope } from '@sentry/core';
 import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
+import { resolvedSyncPromise } from '@sentry/utils';
 
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
 import type { SendFeedbackData, SendFeedbackOptions } from '../types';
@@ -11,13 +12,13 @@ import { prepareFeedbackEvent } from './prepareFeedbackEvent';
 export async function sendFeedbackRequest(
   { feedback: { message, email, name, source, url } }: SendFeedbackData,
   { includeReplay = true }: SendFeedbackOptions = {},
-): Promise<void | TransportMakeRequestResponse> {
+): Promise<TransportMakeRequestResponse> {
   const client = getClient();
   const transport = client && client.getTransport();
   const dsn = client && client.getDsn();
 
   if (!client || !transport || !dsn) {
-    return;
+    return resolvedSyncPromise({});
   }
 
   const baseEvent: FeedbackEvent = {
@@ -48,14 +49,14 @@ export async function sendFeedbackRequest(
     });
 
     if (!feedbackEvent) {
-      return;
+      return resolvedSyncPromise({});
     }
 
     client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
 
     const envelope = createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel);
 
-    let response: void | TransportMakeRequestResponse;
+    let response: TransportMakeRequestResponse;
 
     try {
       response = await transport.send(envelope);
@@ -70,11 +71,6 @@ export async function sendFeedbackRequest(
         // nothing to do
       }
       throw error;
-    }
-
-    // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-    if (!response) {
-      return;
     }
 
     // Require valid status codes, otherwise can assume feedback was not sent successfully

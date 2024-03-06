@@ -1,10 +1,10 @@
-import { convertIntegrationFnToClass, defineIntegration, getCurrentScope } from '@sentry/core';
-import type { Client, EventEnvelope, Integration, IntegrationClass, IntegrationFn, Transaction } from '@sentry/types';
+import { defineIntegration, getCurrentScope } from '@sentry/core';
+import type { EventEnvelope, IntegrationFn, Transaction } from '@sentry/types';
 import type { Profile } from '@sentry/types/src/profiling';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { startProfileForTransaction } from './hubextensions';
+import { startProfileForTransaction } from './startProfileForTransaction';
 import type { ProfiledEvent } from './utils';
 import {
   addProfilesToEnvelope,
@@ -22,7 +22,6 @@ const _browserProfilingIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       const scope = getCurrentScope();
 
@@ -98,22 +97,3 @@ const _browserProfilingIntegration = (() => {
 }) satisfies IntegrationFn;
 
 export const browserProfilingIntegration = defineIntegration(_browserProfilingIntegration);
-
-/**
- * Browser profiling integration. Stores any event that has contexts["profile"]["profile_id"]
- * This exists because we do not want to await async profiler.stop calls as transaction.finish is called
- * in a synchronous context. Instead, we handle sending the profile async from the promise callback and
- * rely on being able to pull the event from the cache when we need to construct the envelope. This makes the
- * integration less reliable as we might be dropping profiles when the cache is full.
- *
- * @experimental
- * @deprecated Use `browserProfilingIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const BrowserProfilingIntegration = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  browserProfilingIntegration,
-) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type BrowserProfilingIntegration = typeof BrowserProfilingIntegration;

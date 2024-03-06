@@ -6,14 +6,20 @@ import type RouterService from '@ember/routing/router-service';
 import { _backburner, run, scheduleOnce } from '@ember/runloop';
 import type { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
-import * as Sentry from '@sentry/browser';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
 
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { BrowserClient } from '..';
-import { getActiveSpan, startInactiveSpan } from '..';
+import type { BrowserClient } from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+  startInactiveSpan,
+} from '@sentry/browser';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig(): EmberSentryConfig {
@@ -103,7 +109,7 @@ export function _instrumentEmberRouter(
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
   const url = getLocationURL(location);
 
-  const client = Sentry.getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
   if (!client) {
     return;
@@ -111,16 +117,13 @@ export function _instrumentEmberRouter(
 
   if (url && browserTracingOptions.instrumentPageLoad !== false) {
     const routeInfo = routerService.recognize(url);
-    activeRootSpan = Sentry.startBrowserTracingPageLoadSpan(client, {
+    activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
       origin: 'auto.pageload.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-      tags: {
         url,
         toRoute: routeInfo.name,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
   }
@@ -141,16 +144,13 @@ export function _instrumentEmberRouter(
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
     activeRootSpan?.end();
 
-    activeRootSpan = Sentry.startBrowserTracingNavigationSpan(client, {
+    activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
       origin: 'auto.navigation.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      },
-      tags: {
         fromRoute,
         toRoute,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
 
@@ -422,7 +422,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     instrumentPageLoad: false,
   });
 
-  const client = Sentry.getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
   const isAlreadyInitialized = macroCondition(isTesting()) ? !!client?.getIntegrationByName('BrowserTracing') : false;
 

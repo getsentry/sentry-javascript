@@ -97,10 +97,6 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   return nextDataTagInfo;
 }
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'next-pages-router',
-} as const;
-
 /**
  * Instruments the Next.js pages router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -123,7 +119,6 @@ export function pagesRouterInstrumentation(
     const client = getClient();
     startPageloadSpanCallback({
       name: prevLocationName,
-      tags: DEFAULT_TAGS,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       traceId,
@@ -159,11 +154,8 @@ export function pagesRouterInstrumentation(
 
       startNavigationSpanCallback({
         name: newLocation,
-        tags: {
-          ...DEFAULT_TAGS,
-          from: prevLocationName,
-        },
         attributes: {
+          from: prevLocationName,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,

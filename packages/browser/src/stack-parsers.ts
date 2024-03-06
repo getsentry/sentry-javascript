@@ -24,10 +24,7 @@
 // OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 import type { StackFrame, StackLineParser, StackLineParserFn } from '@sentry/types';
-import { createStackParser } from '@sentry/utils';
-
-// global reference to slice
-const UNKNOWN_FUNCTION = '?';
+import { UNKNOWN_FUNCTION, createStackParser } from '@sentry/utils';
 
 const OPERA10_PRIORITY = 10;
 const OPERA11_PRIORITY = 20;
@@ -38,7 +35,7 @@ const GECKO_PRIORITY = 50;
 function createFrame(filename: string, func: string, lineno?: number, colno?: number): StackFrame {
   const frame: StackFrame = {
     filename,
-    function: func,
+    function: func === '<anonymous>' ? UNKNOWN_FUNCTION : func,
     in_app: true, // All browser frames are considered in_app
   };
 
@@ -58,7 +55,9 @@ const chromeRegex =
   /^\s*at (?:(.+?\)(?: \[.+\])?|.*?) ?\((?:address at )?)?(?:async )?((?:<anonymous>|[-a-z]+:|.*bundle|\/)?.*?)(?::(\d+))?(?::(\d+))?\)?\s*$/i;
 const chromeEvalRegex = /\((\S*)(?::(\d+))(?::(\d+))\)/;
 
-const chrome: StackLineParserFn = line => {
+// We cannot call this variable `chrome` because it can conflict with global `chrome` variable in certain environments
+// See: https://github.com/getsentry/sentry-javascript/issues/6880
+const chromeStackParserFn: StackLineParserFn = line => {
   const parts = chromeRegex.exec(line);
 
   if (parts) {
@@ -85,7 +84,7 @@ const chrome: StackLineParserFn = line => {
   return;
 };
 
-export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chrome];
+export const chromeStackLineParser: StackLineParser = [CHROME_PRIORITY, chromeStackParserFn];
 
 // gecko regex: `(?:bundle|\d+\.js)`: `bundle` is for react native, `\d+\.js` also but specifically for ram bundles because it
 // generates filenames without a prefix like `file://` the filenames in the stacktrace are just 42.js

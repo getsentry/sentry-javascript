@@ -1,12 +1,17 @@
-import { endSession, getIntegrationsToSetup, hasTracingEnabled, startSession } from '@sentry/core';
 import {
-  defaultIntegrations as defaultNodeIntegrations,
-  defaultStackParser,
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  getSentryRelease,
-  makeNodeTransport,
-  spotlightIntegration,
-} from '@sentry/node';
+  endSession,
+  functionToStringIntegration,
+  getClient,
+  getCurrentScope,
+  getIntegrationsToSetup,
+  getIsolationScope,
+  hasTracingEnabled,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  requestDataIntegration,
+  startSession,
+} from '@sentry/core';
+import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   consoleSandbox,
@@ -16,32 +21,45 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
+import { consoleIntegration } from '../integrations/console';
+import { nodeContextIntegration } from '../integrations/context';
+import { contextLinesIntegration } from '../integrations/contextlines';
 
-import { getAutoPerformanceIntegrations } from '../integrations/getAutoPerformanceIntegrations';
 import { httpIntegration } from '../integrations/http';
+import { localVariablesIntegration } from '../integrations/local-variables';
+import { modulesIntegration } from '../integrations/modules';
 import { nativeNodeFetchIntegration } from '../integrations/node-fetch';
-import { setOpenTelemetryContextAsyncContextStrategy } from '../otel/asyncContextStrategy';
-import type { NodeExperimentalClientOptions, NodeExperimentalOptions } from '../types';
-import { getClient, getCurrentScope, getIsolationScope } from './api';
-import { NodeExperimentalClient } from './client';
-import { getGlobalCarrier } from './globals';
-import { setLegacyHubOnCarrier } from './hub';
+import { onUncaughtExceptionIntegration } from '../integrations/onuncaughtexception';
+import { onUnhandledRejectionIntegration } from '../integrations/onunhandledrejection';
+import { spotlightIntegration } from '../integrations/spotlight';
+import { getAutoPerformanceIntegrations } from '../integrations/tracing';
+import { makeNodeTransport } from '../transports';
+import type { NodeClientOptions, NodeOptions } from '../types';
+import { defaultStackParser, getSentryRelease } from './api';
+import { NodeClient } from './client';
 import { initOtel } from './initOtel';
-
-const ignoredDefaultIntegrations = ['Http', 'Undici'];
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations: Integration[] = [
-  // eslint-disable-next-line deprecation/deprecation
-  ...defaultNodeIntegrations.filter(i => !ignoredDefaultIntegrations.includes(i.name)),
-  httpIntegration(),
-  nativeNodeFetchIntegration(),
-];
 
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
+  // TODO
   return [
-    ...getDefaultNodeIntegrations(options).filter(i => !ignoredDefaultIntegrations.includes(i.name)),
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    requestDataIntegration(),
+    // Native Wrappers
+    consoleIntegration(),
+    httpIntegration(),
+    nativeNodeFetchIntegration(),
+    // Global Handlers
+    onUncaughtExceptionIntegration(),
+    onUnhandledRejectionIntegration(),
+    // Event Info
+    contextLinesIntegration(),
+    localVariablesIntegration(),
+    nodeContextIntegration(),
+    modulesIntegration(),
     httpIntegration(),
     nativeNodeFetchIntegration(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
@@ -51,7 +69,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
 /**
  * Initialize Sentry for Node.
  */
-export function init(options: NodeExperimentalOptions | undefined = {}): void {
+export function init(options: NodeOptions | undefined = {}): void {
   const clientOptions = getClientOptions(options);
 
   if (clientOptions.debug === true) {
@@ -66,10 +84,12 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
     }
   }
 
+  setOpenTelemetryContextAsyncContextStrategy();
+
   const scope = getCurrentScope();
   scope.update(options.initialScope);
 
-  const client = new NodeExperimentalClient(clientOptions);
+  const client = new NodeClient(clientOptions);
   // The client is on the current scope, from where it generally is inherited
   getCurrentScope().setClient(client);
 
@@ -84,8 +104,6 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
   updateScopeFromEnvVariables();
 
   if (options.spotlight) {
-    const client = getClient();
-
     // force integrations to be setup even if no DSN was set
     // If they have already been added before, they will be ignored anyhow
     const integrations = client.getOptions().integrations;
@@ -99,15 +117,39 @@ export function init(options: NodeExperimentalOptions | undefined = {}): void {
     );
   }
 
-  // Always init Otel, even if tracing is disabled, because we need it for trace propagation & the HTTP integration
-  initOtel();
-  setOpenTelemetryContextAsyncContextStrategy();
+  // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
+  // There is no way to use this SDK without OpenTelemetry!
+  if (!options.skipOpenTelemetrySetup) {
+    initOtel();
+  }
+
+  validateOpenTelemetrySetup();
 }
 
-function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalClientOptions {
-  const carrier = getGlobalCarrier();
-  setLegacyHubOnCarrier(carrier);
+function validateOpenTelemetrySetup(): void {
+  if (!DEBUG_BUILD) {
+    return;
+  }
 
+  const setup = openTelemetrySetupCheck();
+
+  const required = ['SentrySpanProcessor', 'SentryContextManager', 'SentryPropagator'] as const;
+  for (const k of required) {
+    if (!setup.includes(k)) {
+      logger.error(
+        `You have to set up the ${k}. Without this, the OpenTelemetry & Sentry integration will not work properly.`,
+      );
+    }
+  }
+
+  if (!setup.includes('SentrySampler')) {
+    logger.warn(
+      'You have to set up the SentrySampler. Without this, the OpenTelemetry & Sentry integration may still work, but sample rates set for the Sentry SDK will not be respected.',
+    );
+  }
+}
+
+function getClientOptions(options: NodeOptions): NodeClientOptions {
   if (options.defaultIntegrations === undefined) {
     options.defaultIntegrations = getDefaultIntegrations(options);
   }
@@ -135,11 +177,10 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
     tracesSampleRate,
   });
 
-  const clientOptions: NodeExperimentalClientOptions = {
+  const clientOptions: NodeClientOptions = {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
-    instrumenter: 'otel',
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       defaultIntegrations: options.defaultIntegrations,
@@ -150,7 +191,7 @@ function getClientOptions(options: NodeExperimentalOptions): NodeExperimentalCli
   return clientOptions;
 }
 
-function getRelease(release: NodeExperimentalOptions['release']): string | undefined {
+function getRelease(release: NodeOptions['release']): string | undefined {
   if (release !== undefined) {
     return release;
   }
@@ -163,7 +204,7 @@ function getRelease(release: NodeExperimentalOptions['release']): string | undef
   return undefined;
 }
 
-function getTracesSampleRate(tracesSampleRate: NodeExperimentalOptions['tracesSampleRate']): number | undefined {
+function getTracesSampleRate(tracesSampleRate: NodeOptions['tracesSampleRate']): number | undefined {
   if (tracesSampleRate !== undefined) {
     return tracesSampleRate;
   }
@@ -197,6 +238,11 @@ function updateScopeFromEnvVariables(): void {
  * Enable automatic Session Tracking for the node process.
  */
 function startSessionTracking(): void {
+  const client = getClient<NodeClient>();
+  if (client && client.getOptions().autoSessionTracking) {
+    client.initSessionFlusher();
+  }
+
   startSession();
 
   // Emitted in the case of healthy sessions, error of `mechanism.handled: true` and unhandledrejections because

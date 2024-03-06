@@ -1,12 +1,11 @@
-/* eslint-disable max-lines */
-import type { SpanTimeInput, TransactionContext } from '@sentry/types';
+import type { Hub, SpanTimeInput, TransactionContext } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { Hub } from '../hub';
 import { spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
-import type { Span } from './span';
-import { SpanRecorder } from './span';
+import type { SentrySpan } from './sentrySpan';
+import { SpanRecorder } from './sentrySpan';
+import { SPAN_STATUS_ERROR } from './spanstatus';
 import { Transaction } from './transaction';
 
 export const TRACING_DEFAULTS = {
@@ -42,7 +41,7 @@ export class IdleTransactionSpanRecorder extends SpanRecorder {
   /**
    * @inheritDoc
    */
-  public add(span: Span): void {
+  public add(span: SentrySpan): void {
     // We should make sure we do not push and pop activities for
     // the transaction that this span recorder belongs to.
     if (span.spanContext().spanId !== this.transactionSpanId) {
@@ -149,7 +148,7 @@ export class IdleTransaction extends Transaction {
 
     setTimeout(() => {
       if (!this._finished) {
-        this.setStatus('deadline_exceeded');
+        this.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[3];
         this.end();
       }
@@ -163,23 +162,23 @@ export class IdleTransaction extends Transaction {
     this._finished = true;
     this.activities = {};
 
-    // eslint-disable-next-line deprecation/deprecation
-    if (this.op === 'ui.action.click') {
+    const op = spanToJSON(this).op;
+
+    if (op === 'ui.action.click') {
       this.setAttribute(FINISH_REASON_TAG, this._finishReason);
     }
 
     // eslint-disable-next-line deprecation/deprecation
     if (this.spanRecorder) {
       DEBUG_BUILD &&
-        // eslint-disable-next-line deprecation/deprecation
-        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), this.op);
+        logger.log('[Tracing] finishing IdleTransaction', new Date(endTimestampInS * 1000).toISOString(), op);
 
       for (const callback of this._beforeFinishCallbacks) {
         callback(this, endTimestampInS);
       }
 
       // eslint-disable-next-line deprecation/deprecation
-      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: Span) => {
+      this.spanRecorder.spans = this.spanRecorder.spans.filter((span: SentrySpan) => {
         // If we are dealing with the transaction itself, we just return it
         if (span.spanContext().spanId === this.spanContext().spanId) {
           return true;
@@ -187,7 +186,7 @@ export class IdleTransaction extends Transaction {
 
         // We cancel all pending spans with status "cancelled" to indicate the idle transaction was finished early
         if (!spanToJSON(span).timestamp) {
-          span.setStatus('cancelled');
+          span.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
           span.end(endTimestampInS);
           DEBUG_BUILD &&
             logger.log('[Tracing] cancelling span since transaction ended early', JSON.stringify(span, undefined, 2));
@@ -398,7 +397,7 @@ export class IdleTransaction extends Transaction {
     if (this._heartbeatCounter >= 3) {
       if (this._autoFinishAllowed) {
         DEBUG_BUILD && logger.log('[Tracing] Transaction finished because of no change for 3 heart beats');
-        this.setStatus('deadline_exceeded');
+        this.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
         this._finishReason = IDLE_TRANSACTION_FINISH_REASONS[0];
         this.end();
       }

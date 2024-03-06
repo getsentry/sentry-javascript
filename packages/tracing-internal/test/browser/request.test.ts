@@ -2,6 +2,7 @@
 import * as utils from '@sentry/utils';
 
 import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/browser/request';
+import { WINDOW } from '../../src/browser/types';
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the jest environment (even with an
@@ -107,23 +108,262 @@ describe('shouldAttachHeaders', () => {
     });
   });
 
-  describe('should fall back to defaults if no options are specified', () => {
+  describe('with no defined `tracePropagationTargets`', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
+      WINDOW.location = new URL('https://my-origin.com');
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
     it.each([
-      '/api/test',
-      'http://localhost:3000/test',
-      'http://somewhere.com/test/localhost/123',
-      'http://somewhere.com/test?url=localhost:3000&test=123',
-      '//localhost:3000/test',
+      'https://my-origin.com',
+      'https://my-origin.com/test',
       '/',
-    ])('return `true` for urls matching defaults (%s)', url => {
+      '/api/test',
+      '//my-origin.com/',
+      '//my-origin.com/test',
+      'foobar', // this is a relative request
+      'not-my-origin.com', // this is a relative request
+      'not-my-origin.com/api/test', // this is a relative request
+    ])('should return `true` for same-origin URLs (%s)', url => {
       expect(shouldAttachHeaders(url, undefined)).toBe(true);
     });
 
-    it.each(['notmydoman/api/test', 'example.com', '//example.com'])(
-      'return `false` for urls not matching defaults (%s)',
-      url => {
-        expect(shouldAttachHeaders(url, undefined)).toBe(false);
+    it.each([
+      'http://my-origin.com', // wrong protocol
+      'http://my-origin.com/api', // wrong protocol
+      'http://localhost:3000',
+      '//not-my-origin.com/test',
+      'https://somewhere.com/test/localhost/123',
+      'https://somewhere.com/test?url=https://my-origin.com',
+      '//example.com',
+    ])('should return `false` for cross-origin URLs (%s)', url => {
+      expect(shouldAttachHeaders(url, undefined)).toBe(false);
+    });
+  });
+
+  describe('with `tracePropagationTargets`', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
+      WINDOW.location = new URL('https://my-origin.com/api/my-route');
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
+    it.each([
+      ['https://my-origin.com', /^\//, true], // pathname defaults to "/"
+      ['https://my-origin.com/', /^\//, true],
+      ['https://not-my-origin.com', /^\//, false], // pathname does not match in isolation for cross origin
+      ['https://not-my-origin.com/', /^\//, false], // pathname does not match in isolation for cross origin
+
+      ['http://my-origin.com/', /^\//, false], // different protocol than origin
+
+      ['//my-origin.com', /^\//, true], // pathname defaults to "/"
+      ['//my-origin.com/', /^\//, true], // matches pathname
+      ['//not-my-origin.com', /^\//, false],
+      ['//not-my-origin.com/', /^\//, false], // different origin should not match pathname
+
+      ['//my-origin.com', /^https:/, true],
+      ['//not-my-origin.com', /^https:/, true],
+      ['//my-origin.com', /^http:/, false],
+      ['//not-my-origin.com', /^http:/, false],
+
+      ['https://my-origin.com/api', /^\/api/, true],
+      ['https://not-my-origin.com/api', /^\/api/, false], // different origin should not match pathname in isolation
+
+      ['https://my-origin.com/api', /api/, true],
+      ['https://not-my-origin.com/api', /api/, true],
+
+      ['/api', /^\/api/, true], // matches pathname
+      ['/api', /\/\/my-origin\.com\/api/, true], // matches full url
+      ['foobar', /\/foobar/, true], // matches full url
+      ['foobar', /^\/api\/foobar/, true], // full url match
+      ['some-url.com', /\/some-url\.com/, true],
+      ['some-url.com', /^\/some-url\.com/, false], // does not match pathname or full url
+      ['some-url.com', /^\/api\/some-url\.com/, true], // matches pathname
+
+      ['/api', /^http:/, false],
+      ['foobar', /^http:/, false],
+      ['some-url.com', /^http:/, false],
+      ['/api', /^https:/, true],
+      ['foobar', /^https:/, true],
+      ['some-url.com', /^https:/, true],
+
+      ['https://my-origin.com', 'my-origin', true],
+      ['https://not-my-origin.com', 'my-origin', true],
+      ['https://my-origin.com', 'not-my-origin', false],
+      ['https://not-my-origin.com', 'not-my-origin', true],
+
+      ['https://my-origin.com', 'https', true],
+      ['https://my-origin.com', 'http', true], // partially matches https
+      ['//my-origin.com', 'https', true],
+      ['//my-origin.com', 'http', true], // partially matches https
+
+      ['/api', '/api', true],
+      ['api', '/api', true], // full url match
+      ['https://not-my-origin.com/api', 'api', true],
+      ['https://my-origin.com?my-query', 'my-query', true],
+      ['https://not-my-origin.com?my-query', 'my-query', true],
+    ])(
+      'for url %p and tracePropagationTarget %p on page "https://my-origin.com/api/my-route" should return %p',
+      (url, matcher, result) => {
+        expect(shouldAttachHeaders(url, [matcher])).toBe(result);
       },
     );
+  });
+
+  it.each([
+    'https://my-origin.com',
+    'https://my-origin.com/',
+    'https://not-my-origin.com',
+    'https://not-my-origin.com/',
+    'http://my-origin.com/',
+    '//my-origin.com',
+    '//my-origin.com/',
+    '//not-my-origin.com',
+    '//not-my-origin.com/',
+    '//my-origin.com',
+    '//not-my-origin.com',
+    '//my-origin.com',
+    '//not-my-origin.com',
+    'https://my-origin.com/api',
+    'https://not-my-origin.com/api',
+    'https://my-origin.com/api',
+    'https://not-my-origin.com/api',
+    '/api',
+    '/api',
+    'foobar',
+    'foobar',
+    'some-url.com',
+    'some-url.com',
+    'some-url.com',
+    '/api',
+    'foobar',
+    'some-url.com',
+    '/api',
+    'foobar',
+    'some-url.com',
+    'https://my-origin.com',
+    'https://not-my-origin.com',
+    'https://my-origin.com',
+    'https://not-my-origin.com',
+    'https://my-origin.com',
+    'https://my-origin.com',
+    '//my-origin.com',
+    '//my-origin.com',
+    '/api',
+    'api',
+    'https://not-my-origin.com/api',
+    'https://my-origin.com?my-query',
+    'https://not-my-origin.com?my-query',
+  ])('should return false for everything if tracePropagationTargets are empty (%p)', url => {
+    expect(shouldAttachHeaders(url, [])).toBe(false);
+  });
+
+  describe('when window.location.href is not available', () => {
+    let originalWindowLocation: Location;
+
+    beforeAll(() => {
+      originalWindowLocation = WINDOW.location;
+      // @ts-expect-error We need to simulate an edge-case
+      WINDOW.location = undefined;
+    });
+
+    afterAll(() => {
+      WINDOW.location = originalWindowLocation;
+    });
+
+    describe('with no defined `tracePropagationTargets`', () => {
+      it.each([
+        ['https://my-origin.com', false],
+        ['https://my-origin.com/test', false],
+        ['/', true],
+        ['/api/test', true],
+        ['//my-origin.com/', false],
+        ['//my-origin.com/test', false],
+        ['//not-my-origin.com/test', false],
+        ['foobar', false],
+        ['not-my-origin.com', false],
+        ['not-my-origin.com/api/test', false],
+        ['http://my-origin.com', false],
+        ['http://my-origin.com/api', false],
+        ['http://localhost:3000', false],
+        ['https://somewhere.com/test/localhost/123', false],
+        ['https://somewhere.com/test?url=https://my-origin.com', false],
+      ])('for URL %p should return %p', (url, expectedResult) => {
+        expect(shouldAttachHeaders(url, undefined)).toBe(expectedResult);
+      });
+    });
+
+    // Here we should only quite literally match the provided urls
+    it.each([
+      ['https://my-origin.com', /^\//, false],
+      ['https://my-origin.com/', /^\//, false],
+      ['https://not-my-origin.com', /^\//, false],
+      ['https://not-my-origin.com/', /^\//, false],
+
+      ['http://my-origin.com/', /^\//, false],
+
+      // It is arguably bad that these match, at the same time, these targets are very unusual in environments without location.
+      ['//my-origin.com', /^\//, true],
+      ['//my-origin.com/', /^\//, true],
+      ['//not-my-origin.com', /^\//, true],
+      ['//not-my-origin.com/', /^\//, true],
+
+      ['//my-origin.com', /^https:/, false],
+      ['//not-my-origin.com', /^https:/, false],
+      ['//my-origin.com', /^http:/, false],
+      ['//not-my-origin.com', /^http:/, false],
+
+      ['https://my-origin.com/api', /^\/api/, false],
+      ['https://not-my-origin.com/api', /^\/api/, false],
+
+      ['https://my-origin.com/api', /api/, true],
+      ['https://not-my-origin.com/api', /api/, true],
+
+      ['/api', /^\/api/, true],
+      ['/api', /\/\/my-origin\.com\/api/, false],
+      ['foobar', /\/foobar/, false],
+      ['foobar', /^\/api\/foobar/, false],
+      ['some-url.com', /\/some-url\.com/, false],
+      ['some-url.com', /^\/some-url\.com/, false],
+      ['some-url.com', /^\/api\/some-url\.com/, false],
+
+      ['/api', /^http:/, false],
+      ['foobar', /^http:/, false],
+      ['some-url.com', /^http:/, false],
+      ['/api', /^https:/, false],
+      ['foobar', /^https:/, false],
+      ['some-url.com', /^https:/, false],
+
+      ['https://my-origin.com', 'my-origin', true],
+      ['https://not-my-origin.com', 'my-origin', true],
+      ['https://my-origin.com', 'not-my-origin', false],
+      ['https://not-my-origin.com', 'not-my-origin', true],
+
+      ['https://my-origin.com', 'https', true],
+      ['https://my-origin.com', 'http', true],
+      ['//my-origin.com', 'https', false],
+      ['//my-origin.com', 'http', false],
+
+      ['/api', '/api', true],
+      ['api', '/api', false],
+      ['https://not-my-origin.com/api', 'api', true],
+      ['https://my-origin.com?my-query', 'my-query', true],
+      ['https://not-my-origin.com?my-query', 'my-query', true],
+    ])('for url %p and tracePropagationTarget %p should return %p', (url, matcher, result) => {
+      expect(shouldAttachHeaders(url, [matcher])).toBe(result);
+    });
   });
 });

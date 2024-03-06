@@ -1,34 +1,16 @@
 // This is exported so the loader does not fail when switching off Replay/Tracing
 import {
-  BrowserTracing,
-  Feedback,
-  Replay,
-  addTracingExtensions,
-  browserTracingIntegration,
-  feedbackIntegration,
-  replayIntegration,
+  addTracingExtensionsShim,
+  browserTracingIntegrationShim,
+  feedbackIntegrationShim,
+  replayIntegrationShim,
 } from '@sentry-internal/integration-shims';
-
-import * as Sentry from './index.bundle.base';
-
-// TODO (v8): Remove this as it was only needed for backwards compatibility
-// eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.Replay = Replay;
-
-// eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.BrowserTracing = BrowserTracing;
 
 export * from './index.bundle.base';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
-  addTracingExtensions,
-  // eslint-disable-next-line deprecation/deprecation
-  Replay,
-  // eslint-disable-next-line deprecation/deprecation
-  Feedback,
-  browserTracingIntegration,
-  feedbackIntegration,
-  replayIntegration,
+  addTracingExtensionsShim as addTracingExtensions,
+  browserTracingIntegrationShim as browserTracingIntegration,
+  feedbackIntegrationShim as feedbackIntegration,
+  replayIntegrationShim as replayIntegration,
 };
 // Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle

@@ -15,13 +15,7 @@
   "devDependencies": {
     "rollup": "^4.0.2",
     "vitest": "^0.34.6",
-    "@sentry/rollup-plugin": "2.8.0"
-  },
-  "pnpm": {
-    "overrides": {
-      "@sentry/node": "latest || *",
-      "@sentry/utils": "latest || *"
-    }
+    "@sentry/rollup-plugin": "2.14.2"
   },
   "volta": {
     "extends": "../../package.json"

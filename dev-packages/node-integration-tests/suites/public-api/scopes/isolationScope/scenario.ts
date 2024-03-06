@@ -21,7 +21,7 @@ Sentry.withScope(scope => {
   Sentry.captureMessage('inner');
 });
 
-Sentry.runWithAsyncContext(() => {
+Sentry.withIsolationScope(() => {
   Sentry.getIsolationScope().setExtra('ff', 'ff');
   Sentry.getCurrentScope().setExtra('gg', 'gg');
   Sentry.captureMessage('inner_async_context');

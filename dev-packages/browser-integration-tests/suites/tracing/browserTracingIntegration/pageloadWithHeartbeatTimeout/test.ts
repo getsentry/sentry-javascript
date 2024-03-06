@@ -20,7 +20,6 @@ sentryTest(
 
     expect(eventData.contexts?.trace?.op).toBe('pageload');
     expect(
-      // eslint-disable-next-line deprecation/deprecation
       eventData.spans?.find(span => span.description === 'pageload-child-span' && span.status === 'cancelled'),
     ).toBeDefined();
   },

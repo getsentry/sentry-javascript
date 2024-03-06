@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-worker",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.2",
   "description": "Worker for @sentry/replay",
   "main": "build/npm/esm/index.js",
   "module": "build/npm/esm/index.js",
@@ -52,7 +52,7 @@
     "fflate": "0.8.1"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=14.8"
   },
   "volta": {
     "extends": "../../package.json"

@@ -8,7 +8,6 @@ import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
 import type { Integration, IntegrationClass } from './integration';
-import type { MetricBucketItem } from './metrics';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
@@ -159,7 +158,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
@@ -180,15 +178,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   recordDroppedEvent(reason: EventDropReason, dataCategory: DataCategory, event?: Event): void;
 
-  /**
-   * Captures serialized metrics and sends them to Sentry.
-   *
-   * @experimental This API is experimental and might experience breaking changes
-   */
-  captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void;
-
   // HOOKS
-  // TODO(v8): Make the hooks non-optional.
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
@@ -225,7 +215,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for when an event has been sent.
    */
-  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
@@ -238,12 +228,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
 
   /**
-   * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * The option argument may be mutated to drop the span.
-   */
-  on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
-
-  /**
    * Register a callback when a Feedback event has been prepared.
    * This should be used to mutate the event. The options argument can hint
    * about what kind of mutation it expects.
@@ -254,14 +238,24 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   ): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span start for a page load.
+   * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
   on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
 
   /**
-   * A hook for BrowserTracing to trigger a span for a navigation.
+   * A hook for browser tracing integrations to trigger a span for a navigation.
    */
   on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
+
+  /**
+   * A hook that is called when the client is flushing
+   */
+  on(hook: 'flush', callback: () => void): void;
+
+  /**
+   * A hook that is called when the client is closing
+   */
+  on(hook: 'close', callback: () => void): void;
 
   /**
    * Fire a hook event for transaction start.
@@ -298,7 +292,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
@@ -311,13 +305,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
 
   /**
-   * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * Expects the OTEL span & as second argument, and an option object as third argument.
-   * The option argument may be mutated to drop the span.
-   */
-  emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
-
-  /**
    * Fire a hook event for after preparing a feedback event. Events to be given
    * a feedback event as the second argument, and an optional options object as
    * third argument.
@@ -325,14 +312,24 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay?: boolean }): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span start for a page load.
+   * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
   emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
 
   /**
-   * Emit a hook event for BrowserTracing to trigger a span for a navigation.
+   * Emit a hook event for browser tracing integrations to trigger a span for a navigation.
    */
   emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
+
+  /**
+   * Emit a hook event for client flush
+   */
+  emit(hook: 'flush'): void;
+
+  /**
+   * Emit a hook event for client close
+   */
+  emit(hook: 'close'): void;
 
   /* eslint-enable @typescript-eslint/unified-signatures */
 }

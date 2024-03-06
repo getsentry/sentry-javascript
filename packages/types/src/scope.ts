@@ -46,7 +46,7 @@ export interface ScopeData {
 }
 
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
+ * Holds additional event information.
  */
 export interface Scope {
   /**
@@ -59,9 +59,9 @@ export interface Scope {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
-  /** Add new event processor that will be called after {@link applyToEvent}. */
+  /** Add new event processor that will be called during event processing. */
   addEventProcessor(callback: EventProcessor): this;
 
   /** Get the data of this scope, which is applied to an event during processing. */

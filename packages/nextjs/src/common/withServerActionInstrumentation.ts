@@ -1,4 +1,4 @@
-import { getIsolationScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, SPAN_STATUS_ERROR, getIsolationScope } from '@sentry/core';
 import {
   addTracingExtensions,
   captureException,
@@ -94,19 +94,19 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
             {
               op: 'function.server_action',
               name: `serverAction/${serverActionName}`,
-              metadata: {
-                source: 'route',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               },
             },
             async span => {
               const result = await handleCallbackErrors(callback, error => {
                 if (isNotFoundNavigationError(error)) {
                   // We don't want to report "not-found"s
-                  span?.setStatus('not_found');
+                  span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
                 } else if (isRedirectNavigationError(error)) {
                   // Don't do anything for redirects
                 } else {
-                  span?.setStatus('internal_error');
+                  span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   captureException(error, {
                     mechanism: {
                       handled: false,

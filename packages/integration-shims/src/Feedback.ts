@@ -1,84 +1,37 @@
 import type { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
+import { FAKE_FUNCTION } from './common';
 
-/**
- * This is a shim for the Feedback integration.
- * It is needed in order for the CDN bundles to continue working when users add/remove feedback
- * from it, without changing their config. This is necessary for the loader mechanism.
- *
- * @deprecated Use `feedbackIntegration()` instead.
- */
-class FeedbackShim implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public static id: string = 'Feedback';
+const FEEDBACK_INTEGRATION_METHODS = [
+  'openDialog',
+  'closeDialog',
+  'attachTo',
+  'createWidget',
+  'removeWidget',
+  'getWidget',
+  'remove',
+] as const;
 
-  /**
-   * @inheritDoc
-   */
-  public name: string;
+type FeedbackSpecificMethods = Record<(typeof FEEDBACK_INTEGRATION_METHODS)[number], () => void>;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public constructor(_options: any) {
-    // eslint-disable-next-line deprecation/deprecation
-    this.name = FeedbackShim.id;
-
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn('You are using new Feedback() even though this bundle does not include Feedback.');
-    });
-  }
-
-  /** jsdoc */
-  public setupOnce(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public openDialog(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public closeDialog(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public attachTo(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public createWidget(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public removeWidget(): void {
-    // noop
-  }
-
-  /** jsdoc */
-  public getWidget(): void {
-    // noop
-  }
-  /** jsdoc */
-  public remove(): void {
-    // noop
-  }
-}
+interface FeedbackIntegration extends Integration, FeedbackSpecificMethods {}
 
 /**
  * This is a shim for the Feedback integration.
  * It is needed in order for the CDN bundles to continue working when users add/remove feedback
  * from it, without changing their config. This is necessary for the loader mechanism.
  */
-export function feedbackIntegration(_options: unknown): Integration {
-  // eslint-disable-next-line deprecation/deprecation
-  return new FeedbackShim({});
-}
+export function feedbackIntegrationShim(_options: unknown): FeedbackIntegration {
+  consoleSandbox(() => {
+    // eslint-disable-next-line no-console
+    console.warn('You are using feedbackIntegration() even though this bundle does not include feedback.');
+  });
 
-// eslint-disable-next-line deprecation/deprecation
-export { FeedbackShim as Feedback };
+  return {
+    name: 'Feedback',
+    ...(FEEDBACK_INTEGRATION_METHODS.reduce((acc, method) => {
+      acc[method] = FAKE_FUNCTION;
+      return acc;
+    }, {} as FeedbackSpecificMethods) as FeedbackSpecificMethods),
+  };
+}

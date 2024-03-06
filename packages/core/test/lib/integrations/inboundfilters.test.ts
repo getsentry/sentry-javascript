@@ -1,7 +1,7 @@
 import type { Event, EventProcessor } from '@sentry/types';
 
 import type { InboundFiltersOptions } from '../../../src/integrations/inboundfilters';
-import { InboundFilters } from '../../../src/integrations/inboundfilters';
+import { inboundFiltersIntegration } from '../../../src/integrations/inboundfilters';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const PUBLIC_DSN = 'https://username@domain/123';
@@ -33,8 +33,7 @@ function createInboundFiltersEventProcessor(
       dsn: PUBLIC_DSN,
       ...clientOptions,
       defaultIntegrations: false,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new InboundFilters(options)],
+      integrations: [inboundFiltersIntegration(options)],
     }),
   );
 
@@ -188,6 +187,17 @@ const SCRIPT_ERROR_EVENT: Event = {
   },
 };
 
+const RESIZEOBSERVER_EVENT: Event = {
+  exception: {
+    values: [
+      {
+        type: 'Error',
+        value: 'ResizeObserver loop completed with undelivered notifications.',
+      },
+    ],
+  },
+};
+
 const MALFORMED_EVENT: Event = {
   exception: {
     values: [
@@ -213,21 +223,6 @@ const TRANSACTION_EVENT_2: Event = {
 
 const TRANSACTION_EVENT_3: Event = {
   transaction: 'other name',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH: Event = {
-  transaction: 'GET /health',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH_2: Event = {
-  transaction: 'GET /healthy',
-  type: 'transaction',
-};
-
-const TRANSACTION_EVENT_HEALTH_3: Event = {
-  transaction: 'GET /live',
   type: 'transaction',
 };
 
@@ -307,6 +302,11 @@ describe('InboundFilters', () => {
     it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
+    });
+
+    it('uses default filters ResizeObserver', () => {
+      const eventProcessor = createInboundFiltersEventProcessor();
+      expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
@@ -408,39 +408,12 @@ describe('InboundFilters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
       expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
     });
 
     it('disable default error filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor({ disableErrorDefaults: true });
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(SCRIPT_ERROR_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(null);
     });
-
-    it('disable default transaction filters', () => {
-      const eventProcessor = createInboundFiltersEventProcessor({ disableTransactionDefaults: true });
-      expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
-      expect(eventProcessor(TRANSACTION_EVENT, {})).toBe(TRANSACTION_EVENT);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH, {})).toBe(TRANSACTION_EVENT_HEALTH);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_2, {})).toBe(TRANSACTION_EVENT_HEALTH_2);
-      expect(eventProcessor(TRANSACTION_EVENT_HEALTH_3, {})).toBe(TRANSACTION_EVENT_HEALTH_3);
-    });
-
-    it.each(['/delivery', '/already', '/healthysnacks'])(
-      "doesn't filter out transactions that have similar names to health check ones (%s)",
-      transaction => {
-        const eventProcessor = createInboundFiltersEventProcessor();
-        const evt: Event = {
-          transaction,
-          type: 'transaction',
-        };
-        expect(eventProcessor(evt, {})).toBe(evt);
-      },
-    );
   });
 
   describe('denyUrls/allowUrls', () => {

@@ -57,6 +57,7 @@ function aggregateExceptionsFromError(
 
   let newExceptions = [...prevExceptions];
 
+  // Recursively call this function in order to walk down a chain of errors
   if (isInstanceOf(error[key], Error)) {
     applyExceptionGroupFieldsForParentException(exception, exceptionId);
     const newException = exceptionFromErrorImplementation(parser, error[key]);
@@ -106,7 +107,7 @@ function applyExceptionGroupFieldsForParentException(exception: Exception, excep
 
   exception.mechanism = {
     ...exception.mechanism,
-    is_exception_group: true,
+    ...(exception.type === 'AggregateError' && { is_exception_group: true }),
     exception_id: exceptionId,
   };
 }

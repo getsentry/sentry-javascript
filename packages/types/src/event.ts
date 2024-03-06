@@ -11,7 +11,7 @@ import type { Request } from './request';
 import type { CaptureContext } from './scope';
 import type { SdkInfo } from './sdkinfo';
 import type { SeverityLevel } from './severity';
-import type { MetricSummary, Span, SpanJSON } from './span';
+import type { MetricSummary, SpanJSON } from './span';
 import type { Thread } from './thread';
 import type { TransactionSource } from './transaction';
 import type { User } from './user';
@@ -47,7 +47,7 @@ export interface Event {
   extra?: Extras;
   user?: User;
   type?: EventType;
-  spans?: Span[];
+  spans?: SpanJSON[];
   measurements?: Measurements;
   debug_meta?: DebugMeta;
   // A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get sent to Sentry
@@ -85,15 +85,4 @@ export interface EventHint {
   attachments?: Attachment[];
   data?: any;
   integrations?: string[];
-}
-
-/**
- * Represents the event that's sent in an event envelope, omitting interfaces that are no longer representative after
- * event serialization.
- */
-export interface SerializedEvent extends Omit<Event, 'spans'> {
-  /**
-   * POJO objects of spans belonging to this event.
-   */
-  spans?: SpanJSON[];
 }

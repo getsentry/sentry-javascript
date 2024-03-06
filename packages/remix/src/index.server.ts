@@ -1,7 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
-import { getClient } from '@sentry/node';
-import { getCurrentScope, init as nodeInit } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node-experimental';
+import { getClient, init as nodeInit, setTag } from '@sentry/node-experimental';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
@@ -24,7 +23,6 @@ export {
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -52,8 +50,6 @@ export {
   withIsolationScope,
   autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,
@@ -80,20 +76,23 @@ export {
   startSpan,
   startSpanManual,
   startInactiveSpan,
+  withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   isInitialized,
   cron,
   parameterize,
   metrics,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   hapiErrorPlugin,
-  runWithAsyncContext,
-} from '@sentry/node';
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/node-experimental';
 
 // Keeping the `*` exports for backwards compatibility and types
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 
 export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
@@ -123,5 +122,5 @@ export function init(options: RemixOptions): void {
 
   nodeInit(options as NodeOptions);
 
-  getCurrentScope().setTag('runtime', 'node');
+  setTag('runtime', 'node');
 }

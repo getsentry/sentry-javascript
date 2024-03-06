@@ -1,6 +1,17 @@
-import type { Span, SpanJSON, SpanTimeInput, TraceContext } from '@sentry/types';
+import type {
+  Span,
+  SpanAttributes,
+  SpanJSON,
+  SpanOrigin,
+  SpanStatus,
+  SpanTimeInput,
+  TraceContext,
+} from '@sentry/types';
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
-import type { Span as SpanClass } from '../tracing/span';
+import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing';
+import type { SentrySpan } from '../tracing/sentrySpan';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -69,29 +80,66 @@ function ensureTimestampInSeconds(timestamp: number): number {
  * Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
  * This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
  * And `spanToJSON` needs the Span class from `span.ts` to check here.
- * TODO v8: When we remove the deprecated stuff from `span.ts`, we can remove the circular dependency again.
  */
 export function spanToJSON(span: Span): Partial<SpanJSON> {
-  if (spanIsSpanClass(span)) {
+  if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
   }
 
-  // Fallback: We also check for `.toJSON()` here...
-  // eslint-disable-next-line deprecation/deprecation
-  if (typeof span.toJSON === 'function') {
-    // eslint-disable-next-line deprecation/deprecation
-    return span.toJSON();
-  }
+  try {
+    const { spanId: span_id, traceId: trace_id } = span.spanContext();
 
-  return {};
+    // Handle a span from @opentelemetry/sdk-base-trace's `Span` class
+    if (spanIsOpenTelemetrySdkTraceBaseSpan(span)) {
+      const { attributes, startTime, name, endTime, parentSpanId, status } = span;
+
+      return dropUndefinedKeys({
+        span_id,
+        trace_id,
+        data: attributes,
+        description: name,
+        parent_span_id: parentSpanId,
+        start_timestamp: spanTimeInputToSeconds(startTime),
+        // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+        timestamp: spanTimeInputToSeconds(endTime) || undefined,
+        status: getStatusMessage(status),
+        op: attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
+        origin: attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
+        _metrics_summary: getMetricSummaryJsonForSpan(span),
+      });
+    }
+
+    // Finally, at least we have `spanContext()`....
+    return {
+      span_id,
+      trace_id,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function spanIsOpenTelemetrySdkTraceBaseSpan(span: Span): span is OpenTelemetrySdkTraceBaseSpan {
+  const castSpan = span as OpenTelemetrySdkTraceBaseSpan;
+  return !!castSpan.attributes && !!castSpan.startTime && !!castSpan.name && !!castSpan.endTime && !!castSpan.status;
+}
+
+/** Exported only for tests. */
+export interface OpenTelemetrySdkTraceBaseSpan extends Span {
+  attributes: SpanAttributes;
+  startTime: SpanTimeInput;
+  name: string;
+  status: SpanStatus;
+  endTime: SpanTimeInput;
+  parentSpanId?: string;
 }
 
 /**
  * Sadly, due to circular dependency checks we cannot actually import the Span class here and check for instanceof.
  * :( So instead we approximate this by checking if it has the `getSpanJSON` method.
  */
-function spanIsSpanClass(span: Span): span is SpanClass {
-  return typeof (span as SpanClass).getSpanJSON === 'function';
+function spanIsSentrySpan(span: Span): span is SentrySpan {
+  return typeof (span as SentrySpan).getSpanJSON === 'function';
 }
 
 /**
@@ -106,4 +154,17 @@ export function spanIsSampled(span: Span): boolean {
   const { traceFlags } = span.spanContext();
   // eslint-disable-next-line no-bitwise
   return Boolean(traceFlags & TRACE_FLAG_SAMPLED);
+}
+
+/** Get the status message to use for a JSON representation of a span. */
+export function getStatusMessage(status: SpanStatus | undefined): string | undefined {
+  if (!status || status.code === SPAN_STATUS_UNSET) {
+    return undefined;
+  }
+
+  if (status.code === SPAN_STATUS_OK) {
+    return 'ok';
+  }
+
+  return status.message || 'unknown_error';
 }

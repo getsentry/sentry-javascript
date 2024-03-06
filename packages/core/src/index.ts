@@ -1,5 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { AsyncContextStrategy, Carrier, Layer, RunWithAsyncContextOptions } from './hub';
+export type { Layer } from './hub';
+export type { AsyncContextStrategy, Carrier } from './asyncContext';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -24,11 +25,7 @@ export {
   setTag,
   setTags,
   setUser,
-  withScope,
-  withIsolationScope,
-  getClient,
   isInitialized,
-  getCurrentScope,
   startSession,
   endSession,
   captureSession,
@@ -38,20 +35,29 @@ export {
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  getIsolationScope,
-  getHubFromCarrier,
   Hub,
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
-  getMainCarrier,
-  runWithAsyncContext,
-  setHubOnCarrier,
-  ensureHubOnCarrier,
-  setAsyncContextStrategy,
+  getGlobalHub,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './hub';
+export {
+  getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
+  setGlobalScope,
+  withScope,
+  withIsolationScope,
+  getClient,
+} from './currentScopes';
+export {
+  getMainCarrier,
+  setAsyncContextStrategy,
+} from './asyncContext';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
-export { Scope, getGlobalScope, setGlobalScope } from './scope';
+export { Scope } from './scope';
 export {
   notifyEventProcessors,
   // eslint-disable-next-line deprecation/deprecation
@@ -91,21 +97,20 @@ export { DEFAULT_ENVIRONMENT } from './constants';
 /* eslint-disable deprecation/deprecation */
 export { ModuleMetadata } from './integrations/metadata';
 export { RequestData } from './integrations/requestdata';
-export { InboundFilters } from './integrations/inboundfilters';
-export { FunctionToString } from './integrations/functiontostring';
-export { LinkedErrors } from './integrations/linkederrors';
 export { addBreadcrumb } from './breadcrumbs';
-/* eslint-enable deprecation/deprecation */
-import * as INTEGRATIONS from './integrations';
 export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/inboundfilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { moduleMetadataIntegration } from './integrations/metadata';
 export { requestDataIntegration } from './integrations/requestdata';
+export { captureConsoleIntegration } from './integrations/captureconsole';
+export { debugIntegration } from './integrations/debug';
+export { dedupeIntegration } from './integrations/dedupe';
+export { extraErrorDataIntegration } from './integrations/extraerrordata';
+export { rewriteFramesIntegration } from './integrations/rewriteframes';
+export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { metrics } from './metrics/exports';
-
-/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
-const Integrations = INTEGRATIONS;
-
-// eslint-disable-next-line deprecation/deprecation
-export { Integrations };
+export type { MetricData } from './metrics/exports';
+export { metricsDefault } from './metrics/exports-default';
+export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
+export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';

@@ -16,7 +16,6 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  // eslint-disable-next-line deprecation/deprecation
   const uiSpans = eventData.spans?.filter(({ op }) => op?.startsWith('ui'));
 
   expect(uiSpans?.length).toBeGreaterThan(0);
@@ -29,8 +28,8 @@ sentryTest('should capture long task.', async ({ browserName, getLocalTestPath, 
       parent_span_id: eventData.contexts?.trace?.span_id,
     }),
   );
-  const start = (firstUISpan as Event)['start_timestamp'] ?? 0;
-  const end = (firstUISpan as Event)['timestamp'] ?? 0;
+  const start = firstUISpan.start_timestamp ?? 0;
+  const end = firstUISpan.timestamp ?? 0;
   const duration = end - start;
 
   expect(duration).toBeGreaterThanOrEqual(0.1);

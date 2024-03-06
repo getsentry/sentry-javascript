@@ -34,7 +34,6 @@ export {
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -46,7 +45,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
-  runWithAsyncContext,
   Scope,
   // eslint-disable-next-line deprecation/deprecation
   startTransaction,
@@ -68,37 +66,43 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
-  metrics,
+  metricsDefault as metrics,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   functionToStringIntegration,
   requestDataIntegration,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 
 export { DenoClient } from './client';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   init,
 } from './sdk';
-
-export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
-import { Integrations as CoreIntegrations } from '@sentry/core';
 
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';
 export { contextLinesIntegration } from './integrations/contextlines';
 export { denoCronIntegration } from './integrations/deno-cron';
+export { breadcrumbsIntegration } from './integrations/breadcrumbs';
 
 import * as DenoIntegrations from './integrations';
 
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
   ...DenoIntegrations,
 };

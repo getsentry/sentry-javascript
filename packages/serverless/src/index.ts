@@ -7,7 +7,7 @@ export { AWSLambda, GCPFunction };
 export { AWSServices, awsServicesIntegration } from './awsservices';
 
 // TODO(v8): We have to explicitly export these because of the namespace exports
-// above. This is because just doing `export * from '@sentry/node'` will not
+// above. This is because just doing `export * from '@sentry/node-experimental'` will not
 // work with Node native esm while we also have namespace exports in a package.
 // What we should do is get rid of the namespace exports.
 export {
@@ -35,7 +35,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  getHubFromCarrier,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   // eslint-disable-next-line deprecation/deprecation
@@ -54,8 +53,6 @@ export {
   NodeClient,
   makeNodeTransport,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
   flush,
@@ -72,17 +69,16 @@ export {
   startSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   parameterize,
   requestDataIntegration,
   linkedErrorsIntegration,
   inboundFiltersIntegration,
   functionToStringIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
   createGetModuleFromFilename,
   metrics,
-  runWithAsyncContext,
   consoleIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -95,4 +91,20 @@ export {
   httpIntegration,
   nativeNodeFetchintegration,
   spotlightIntegration,
-} from '@sentry/node';
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  startSession,
+  captureSession,
+  endSession,
+} from '@sentry/node-experimental';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';

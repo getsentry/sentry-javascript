@@ -1,4 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getRootSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getRootSpan,
+} from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
 import {
@@ -43,10 +48,6 @@ export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof or
   useMatches?: UseMatches;
 };
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'remix-router',
-} as const;
-
 let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
@@ -76,10 +77,9 @@ export function startPageloadSpan(): void {
   const spanContext: StartSpanOptions = {
     name: initPathName,
     op: 'pageload',
-    origin: 'auto.pageload.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
 
@@ -101,10 +101,9 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
   const spanContext: StartSpanOptions = {
     name: matches[matches.length - 1].id,
     op: 'navigation',
-    origin: 'auto.navigation.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'route',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
 

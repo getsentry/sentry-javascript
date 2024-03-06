@@ -1,4 +1,6 @@
+import type { SentrySpan } from '@sentry/core';
 import {
+  SPAN_STATUS_ERROR,
   addBreadcrumb,
   defineIntegration,
   getActiveSpan,
@@ -183,7 +185,7 @@ export class Undici implements Integration {
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
     const isolationScope = getIsolationScope();
-    const parentSpan = getActiveSpan();
+    const parentSpan = getActiveSpan() as SentrySpan;
 
     const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
     if (span) {
@@ -277,7 +279,7 @@ export class Undici implements Integration {
 
     const span = request.__sentry_span__;
     if (span) {
-      span.setStatus('internal_error');
+      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
       span.end();
     }
 
@@ -320,7 +322,7 @@ function setHeadersOnRequest(
 }
 
 function createRequestSpan(
-  activeSpan: Span | undefined,
+  activeSpan: SentrySpan | undefined,
   request: RequestWithSentry,
   stringUrl: string,
 ): Span | undefined {
@@ -340,7 +342,7 @@ function createRequestSpan(
   return activeSpan?.startChild({
     op: 'http.client',
     origin: 'auto.http.node.undici',
-    description: `${method} ${getSanitizedUrlString(url)}`,
+    name: `${method} ${getSanitizedUrlString(url)}`,
     data,
   });
 }

@@ -38,8 +38,8 @@ export function supportsHistory(): boolean {
   // borrowed from: https://github.com/angular/angular.js/pull/13945/files
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const chrome = (WINDOW as any).chrome;
-  const isChromePackagedApp = chrome && chrome.app && chrome.app.runtime;
+  const chromeVar = (WINDOW as any).chrome;
+  const isChromePackagedApp = chromeVar && chromeVar.app && chromeVar.app.runtime;
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
   const hasHistoryApi = 'history' in WINDOW && !!WINDOW.history.pushState && !!WINDOW.history.replaceState;
 

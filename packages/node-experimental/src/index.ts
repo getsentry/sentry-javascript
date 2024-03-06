@@ -1,37 +1,76 @@
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
-import * as NodeExperimentalIntegrations from './integrations';
-export { expressIntegration } from './integrations/express';
-export { fastifyIntegration } from './integrations/fastify';
-export { graphqlIntegration } from './integrations/graphql';
 export { httpIntegration } from './integrations/http';
-export { mongoIntegration } from './integrations/mongo';
-export { mongooseIntegration } from './integrations/mongoose';
-export { mysqlIntegration } from './integrations/mysql';
-export { mysql2Integration } from './integrations/mysql2';
-export { nestIntegration } from './integrations/nest';
 export { nativeNodeFetchIntegration } from './integrations/node-fetch';
-export { postgresIntegration } from './integrations/postgres';
-export { prismaIntegration } from './integrations/prisma';
 
-/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
-export const Integrations = {
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
-  ...NodeExperimentalIntegrations,
-};
+export { consoleIntegration } from './integrations/console';
+export { nodeContextIntegration } from './integrations/context';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { localVariablesIntegration } from './integrations/local-variables';
+export { modulesIntegration } from './integrations/modules';
+export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { anrIntegration } from './integrations/anr';
 
-export { init } from './sdk/init';
-export { getAutoPerformanceIntegrations } from './integrations/getAutoPerformanceIntegrations';
-export * as Handlers from './sdk/handlers';
-export type { Span } from './types';
+export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { fastifyIntegration } from './integrations/tracing/fastify';
+export { graphqlIntegration } from './integrations/tracing/graphql';
+export { mongoIntegration } from './integrations/tracing/mongo';
+export { mongooseIntegration } from './integrations/tracing/mongoose';
+export { mysqlIntegration } from './integrations/tracing/mysql';
+export { mysql2Integration } from './integrations/tracing/mysql2';
+export { nestIntegration } from './integrations/tracing/nest';
+export { postgresIntegration } from './integrations/tracing/postgres';
+export { prismaIntegration } from './integrations/tracing/prisma';
+export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 
-export { startSpan, startSpanManual, startInactiveSpan, getActiveSpan } from '@sentry/opentelemetry';
+export { init, getDefaultIntegrations } from './sdk/init';
+export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export {
   getClient,
-  captureException,
-  captureEvent,
-  captureMessage,
+  getSentryRelease,
+  defaultStackParser,
+  // eslint-disable-next-line deprecation/deprecation
+  makeMain,
+} from './sdk/api';
+export { createGetModuleFromFilename } from './utils/module';
+export { makeNodeTransport } from './transports';
+export { NodeClient } from './sdk/client';
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHub } from './sdk/hub';
+export { cron } from './cron';
+
+export type { Span, NodeOptions } from './types';
+
+export {
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  getActiveSpan,
+  withActiveSpan,
+} from '@sentry/opentelemetry';
+
+export {
+  addRequestDataToEvent,
+  DEFAULT_USER_INCLUDES,
+  extractRequestData,
+} from '@sentry/utils';
+
+export {
+  addBreadcrumb,
+  isInitialized,
+  getGlobalScope,
+  close,
+  createTransport,
+  flush,
+  Hub,
+  SDK_VERSION,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
+  captureCheckIn,
+  withMonitor,
+  requestDataIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
   addEventProcessor,
   setContext,
   setExtra,
@@ -39,57 +78,37 @@ export {
   setTag,
   setTags,
   setUser,
-  withScope,
-  withIsolationScope,
-  withActiveSpan,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  Scope,
+  setMeasurement,
+  continueTrace,
+  getSpanDescendants,
+  parameterize,
   getCurrentScope,
   getIsolationScope,
-  setIsolationScope,
-  setCurrentScope,
-} from './sdk/api';
-export { getCurrentHub, makeMain } from './sdk/hub';
-
-export {
-  addBreadcrumb,
-  isInitialized,
-  makeNodeTransport,
-  defaultStackParser,
-  getSentryRelease,
-  getGlobalScope,
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
-  // eslint-disable-next-line deprecation/deprecation
-  getModuleFromFilename,
-  createGetModuleFromFilename,
-  close,
-  createTransport,
-  flush,
-  Hub,
-  runWithAsyncContext,
-  SDK_VERSION,
-  getSpanStatusFromHttpCode,
-  setHttpStatus,
-  captureCheckIn,
-  withMonitor,
-  hapiErrorPlugin,
-  consoleIntegration,
-  onUncaughtExceptionIntegration,
-  onUnhandledRejectionIntegration,
-  modulesIntegration,
-  contextLinesIntegration,
-  nodeContextIntegration,
-  localVariablesIntegration,
-  requestDataIntegration,
-  functionToStringIntegration,
-  inboundFiltersIntegration,
-  linkedErrorsIntegration,
-} from '@sentry/node';
+  withScope,
+  withIsolationScope,
+  captureException,
+  captureEvent,
+  captureMessage,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  addIntegration,
+} from '@sentry/core';
 
 export type {
-  SpanStatusType,
-  TransactionNamingScheme,
-  AddRequestDataToEventOptions,
   Breadcrumb,
   BreadcrumbHint,
   PolymorphicRequest,
@@ -103,5 +122,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
+  Transaction,
   User,
-} from '@sentry/node';
+} from '@sentry/types';

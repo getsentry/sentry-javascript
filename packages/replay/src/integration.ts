@@ -30,14 +30,29 @@ let _initialized = false;
 type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
   Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
 
+/**
+ * Sentry integration for [Session Replay](https://sentry.io/for/session-replay/).
+ *
+ * See the [Replay documentation](https://docs.sentry.io/platforms/javascript/guides/session-replay/) for more information.
+ *
+ * @example
+ *
+ * ```
+ * Sentry.init({
+ *   dsn: '__DSN__',
+ *   integrations: [Sentry.replayIntegration()],
+ * });
+ * ```
+ */
 export const replayIntegration = ((options?: ReplayConfiguration) => {
-  // eslint-disable-next-line deprecation/deprecation
   return new Replay(options);
 }) satisfies IntegrationFn;
 
 /**
- * The main replay integration class, to be passed to `init({  integrations: [] })`.
- * @deprecated Use `replayIntegration()` instead.
+ * Replay integration
+ *
+ * TODO: Rewrite this to be functional integration
+ * Exported for tests.
  */
 export class Replay implements Integration {
   /**
@@ -117,7 +132,6 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
-    // eslint-disable-next-line deprecation/deprecation
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({

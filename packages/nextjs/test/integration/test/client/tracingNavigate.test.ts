@@ -31,7 +31,7 @@ test('should report navigation transactions', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        tags: {
+        data: {
           from: '/[id]/withInitialProps',
         },
       },
@@ -51,7 +51,7 @@ test('should report navigation transactions', async ({ page }) => {
     contexts: {
       trace: {
         op: 'navigation',
-        tags: {
+        data: {
           from: '/[id]/withServerSideProps',
         },
       },

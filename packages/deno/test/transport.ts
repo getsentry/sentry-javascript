@@ -13,7 +13,7 @@ export function makeTestTransport(callback: (envelope: sentryTypes.Envelope) => 
     async function doCallback(
       request: sentryTypes.TransportRequest,
     ): Promise<sentryTypes.TransportMakeRequestResponse> {
-      await callback(sentryUtils.parseEnvelope(request.body, new TextEncoder(), new TextDecoder()));
+      await callback(sentryUtils.parseEnvelope(request.body));
 
       return Promise.resolve({
         statusCode: 200,

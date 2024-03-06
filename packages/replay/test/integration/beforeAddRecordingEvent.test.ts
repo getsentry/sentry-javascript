@@ -2,7 +2,7 @@ import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import * as SentryUtils from '@sentry/utils';
 
-import type { Replay } from '../../src';
+import type { Replay } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
@@ -23,7 +23,6 @@ type MockTransportSend = jest.MockedFunction<Transport['send']>;
 
 describe('Integration | beforeAddRecordingEvent', () => {
   let replay: ReplayContainer;
-  // eslint-disable-next-line deprecation/deprecation
   let integration: Replay;
   let mockTransportSend: MockTransportSend;
   let mockSendReplayRequest: jest.SpyInstance<any>;

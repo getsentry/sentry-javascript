@@ -8,8 +8,9 @@ import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { getPropagationContextFromSpanContext } from './propagator';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
-import { getPropagationContextFromContext } from './utils/contextData';
+import { setIsSetup } from './utils/setupCheck';
 
 /**
  * A custom OTEL sampler that uses Sentry sampling rates to make it's decision
@@ -19,6 +20,7 @@ export class SentrySampler implements Sampler {
 
   public constructor(client: Client) {
     this._client = client;
+    setIsSetup('SentrySampler');
   }
 
   /** @inheritDoc */
@@ -44,7 +46,7 @@ export class SentrySampler implements Sampler {
     // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
     if (parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
       if (parentContext.isRemote) {
-        parentSampled = getParentRemoteSampled(parentContext, context);
+        parentSampled = getParentRemoteSampled(parentContext);
         DEBUG_BUILD &&
           logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       } else {
@@ -159,7 +161,6 @@ function getSampleRate(
  */
 function isValidSampleRate(rate: unknown): boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     DEBUG_BUILD &&
       logger.warn(
@@ -179,10 +180,10 @@ function isValidSampleRate(rate: unknown): boolean {
   return true;
 }
 
-function getParentRemoteSampled(spanContext: SpanContext, context: Context): boolean | undefined {
+function getParentRemoteSampled(spanContext: SpanContext): boolean | undefined {
   const traceId = spanContext.traceId;
-  const traceparentData = getPropagationContextFromContext(context);
+  const traceparentData = getPropagationContextFromSpanContext(spanContext);
 
-  // Only inherit sample rate if `traceId` is the same
+  // Only inherit sampled if `traceId` is the same
   return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
 }

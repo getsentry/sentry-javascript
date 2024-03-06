@@ -223,8 +223,8 @@
         replaysOnErrorSampleRate: 1.0,
         enableTracing: true,
         integrations: [
-          new Sentry.Integrations.BrowserTracing(),
-          new Sentry.Integrations.Replay({
+          Sentry.browserTracingIntegration(),
+          Sentry.replayIntegration({
             useCompression: true,
             flushMinDelay: 2000,
             flushMaxDelay: 2000,

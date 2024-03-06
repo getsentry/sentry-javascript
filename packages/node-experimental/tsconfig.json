@@ -4,6 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    // package-specific options
+    "lib": ["es6"]
   }
 }

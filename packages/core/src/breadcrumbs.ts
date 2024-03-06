@@ -1,7 +1,6 @@
 import type { Breadcrumb, BreadcrumbHint } from '@sentry/types';
 import { consoleSandbox, dateTimestampInSeconds } from '@sentry/utils';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
+import { getClient, getIsolationScope } from './currentScopes';
 
 /**
  * Default maximum number of breadcrumbs added to an event. Can be overwritten

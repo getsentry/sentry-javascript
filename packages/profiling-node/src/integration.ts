@@ -1,5 +1,14 @@
-import type { NodeClient } from '@sentry/node';
-import type { Event, EventProcessor, Hub, Integration, Transaction } from '@sentry/types';
+import { spanToJSON } from '@sentry/core';
+import type { NodeClient } from '@sentry/node-experimental';
+import type {
+  Event,
+  EventProcessor,
+  Hub,
+  Integration,
+  IntegrationFn,
+  IntegrationFnResult,
+  Transaction,
+} from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 
@@ -39,6 +48,8 @@ function addToProfileQueue(profile: RawThreadCpuProfile): void {
  * and inspect each event to see if it is a transaction event and if that transaction event
  * contains a profile on it's metadata. If that is the case, we create a profiling event envelope
  * and delete the profile from the transaction metadata.
+ *
+ * @deprecated Use `nodeProfilingIntegration` instead.
  */
 export class ProfilingIntegration implements Integration {
   /**
@@ -79,8 +90,10 @@ export class ProfilingIntegration implements Integration {
           // Enqueue a timeout to prevent profiles from running over max duration.
           PROFILE_TIMEOUTS[profile_id] = global.setTimeout(() => {
             DEBUG_BUILD &&
-              // eslint-disable-next-line deprecation/deprecation
-              logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
+              logger.log(
+                '[Profiling] max profile duration elapsed, stopping profiling for:',
+                spanToJSON(transaction).description,
+              );
 
             const profile = stopTransactionProfile(transaction, profile_id);
             if (profile) {
@@ -137,7 +150,6 @@ export class ProfilingIntegration implements Integration {
 
           // Remove the profile from the transaction context before sending, relay will take care of the rest.
           if (profileContext) {
-            // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete profiledTransaction.contexts?.['profile'];
           }
 
@@ -243,3 +255,14 @@ export class ProfilingIntegration implements Integration {
     return maybeRemoveProfileFromSdkMetadata(event);
   }
 }
+
+/**
+ * We need this integration in order to send data to Sentry. We hook into the event processor
+ * and inspect each event to see if it is a transaction event and if that transaction event
+ * contains a profile on it's metadata. If that is the case, we create a profiling event envelope
+ * and delete the profile from the transaction metadata.
+ */
+export const nodeProfilingIntegration = (() => {
+  // eslint-disable-next-line deprecation/deprecation
+  return new ProfilingIntegration() as unknown as IntegrationFnResult;
+}) satisfies IntegrationFn;

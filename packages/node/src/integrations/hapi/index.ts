@@ -1,5 +1,6 @@
 import {
   SDK_VERSION,
+  SPAN_STATUS_ERROR,
   captureException,
   continueTrace,
   convertIntegrationFnToClass,
@@ -58,7 +59,7 @@ export const hapiErrorPlugin = {
       }
 
       if (transaction) {
-        transaction.setStatus('internal_error');
+        transaction.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         transaction.end();
       }
     });
@@ -83,8 +84,7 @@ export const hapiTracingPlugin = {
           return startTransaction({
             ...transactionContext,
             op: 'hapi.request',
-            name: request.route.path,
-            description: `${request.route.method} ${request.path}`,
+            name: `${request.route.method} ${request.path}`,
           });
         },
       );

@@ -9,10 +9,10 @@ import type {
   Options,
 } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
+import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
 import { addGlobalEventProcessor } from './eventProcessors';
-import { getClient } from './exports';
 import { getCurrentHub } from './hub';
 
 declare module '@sentry/types' {
@@ -129,7 +129,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
-  if (installedIntegrations.indexOf(integration.name) === -1) {
+  if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
     // eslint-disable-next-line deprecation/deprecation
     integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
     installedIntegrations.push(integration.name);

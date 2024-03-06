@@ -1,5 +1,6 @@
-import type { Carrier, Hub, RunWithAsyncContextOptions } from '@sentry/core';
-import { ensureHubOnCarrier, getHubFromCarrier, setAsyncContextStrategy } from '@sentry/core';
+import { Hub as HubClass, getGlobalHub } from '@sentry/core';
+import { setAsyncContextStrategy } from '@sentry/core';
+import type { Hub, Scope } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -31,31 +32,81 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     asyncStorage = new MaybeGlobalAsyncLocalStorage();
   }
 
-  function getCurrentHub(): Hub | undefined {
+  function getCurrentAsyncStorageHub(): Hub | undefined {
     return asyncStorage.getStore();
   }
 
-  function createNewHub(parent: Hub | undefined): Hub {
-    const carrier: Carrier = {};
-    ensureHubOnCarrier(carrier, parent);
-    return getHubFromCarrier(carrier);
+  function getCurrentHub(): Hub {
+    return getCurrentAsyncStorageHub() || getGlobalHub();
   }
 
-  function runWithAsyncContext<T>(callback: () => T, options: RunWithAsyncContextOptions): T {
-    const existingHub = getCurrentHub();
+  function withScope<T>(callback: (scope: Scope) => T): T {
+    const parentHub = getCurrentHub();
 
-    if (existingHub && options?.reuseExisting) {
-      // We're already in an async context, so we don't need to create a new one
-      // just call the callback with the current hub
-      return callback();
-    }
-
-    const newHub = createNewHub(existingHub);
+    /* eslint-disable deprecation/deprecation */
+    const client = parentHub.getClient();
+    const scope = parentHub.getScope().clone();
+    const isolationScope = parentHub.getIsolationScope();
+    const newHub = new HubClass(client, scope, isolationScope);
+    /* eslint-enable deprecation/deprecation */
 
     return asyncStorage.run(newHub, () => {
-      return callback();
+      return callback(scope);
     });
   }
 
-  setAsyncContextStrategy({ getCurrentHub, runWithAsyncContext });
+  function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
+    const parentHub = getCurrentHub();
+
+    /* eslint-disable deprecation/deprecation */
+    const client = parentHub.getClient();
+    const isolationScope = parentHub.getIsolationScope();
+    const newHub = new HubClass(client, scope, isolationScope);
+    /* eslint-enable deprecation/deprecation */
+
+    return asyncStorage.run(newHub, () => {
+      return callback(scope);
+    });
+  }
+
+  function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
+    const parentHub = getCurrentHub();
+
+    /* eslint-disable deprecation/deprecation */
+    const client = parentHub.getClient();
+    const scope = parentHub.getScope().clone();
+    const isolationScope = parentHub.getIsolationScope().clone();
+    const newHub = new HubClass(client, scope, isolationScope);
+    /* eslint-enable deprecation/deprecation */
+
+    return asyncStorage.run(newHub, () => {
+      return callback(isolationScope);
+    });
+  }
+
+  function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
+    const parentHub = getCurrentHub();
+
+    /* eslint-disable deprecation/deprecation */
+    const client = parentHub.getClient();
+    const scope = parentHub.getScope().clone();
+    const newHub = new HubClass(client, scope, isolationScope);
+    /* eslint-enable deprecation/deprecation */
+
+    return asyncStorage.run(newHub, () => {
+      return callback(isolationScope);
+    });
+  }
+
+  setAsyncContextStrategy({
+    getCurrentHub,
+    withScope,
+    withSetScope,
+    withIsolationScope,
+    withSetIsolationScope,
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope: () => getCurrentHub().getScope(),
+    // eslint-disable-next-line deprecation/deprecation
+    getIsolationScope: () => getCurrentHub().getIsolationScope(),
+  });
 }

@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   flaky-detector:
-    runs-on: ubuntu-20.04-large-js
+    runs-on: ubuntu-20.04
     timeout-minutes: 60
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
@@ -71,7 +71,7 @@ jobs:
         run: npx playwright install-deps
 
       - name: Determine changed tests
-        uses: dorny/paths-filter@v3.0.0
+        uses: dorny/paths-filter@v3.0.1
         id: changed
         with:
           list-files: json

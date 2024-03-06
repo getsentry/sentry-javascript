@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import {
   endSession,
   functionToStringIntegration,
@@ -38,27 +37,6 @@ import { createGetModuleFromFilename } from './module';
 import { makeNodeTransport } from './transports';
 import type { NodeClientOptions, NodeOptions } from './types';
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  // Common
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  linkedErrorsIntegration(),
-  requestDataIntegration(),
-  // Native Wrappers
-  consoleIntegration(),
-  httpIntegration(),
-  nativeNodeFetchintegration(),
-  // Global Handlers
-  onUncaughtExceptionIntegration(),
-  onUnhandledRejectionIntegration(),
-  // Event Info
-  contextLinesIntegration(),
-  localVariablesIntegration(),
-  nodeContextIntegration(),
-  modulesIntegration(),
-];
-
 /** Get the default integrations for the Node SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   const carrier = getMainCarrier();
@@ -66,8 +44,23 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
   const autoloadedIntegrations = carrier.__SENTRY__?.integrations || [];
 
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    requestDataIntegration(),
+    // Native Wrappers
+    consoleIntegration(),
+    httpIntegration(),
+    nativeNodeFetchintegration(),
+    // Global Handlers
+    onUncaughtExceptionIntegration(),
+    onUnhandledRejectionIntegration(),
+    // Event Info
+    contextLinesIntegration(),
+    localVariablesIntegration(),
+    nodeContextIntegration(),
+    modulesIntegration(),
     ...autoloadedIntegrations,
   ];
 }
@@ -152,10 +145,6 @@ export function init(options: NodeOptions = {}): void {
 
   if (options.autoSessionTracking === undefined && options.dsn !== undefined) {
     options.autoSessionTracking = true;
-  }
-
-  if (options.instrumenter === undefined) {
-    options.instrumenter = 'sentry';
   }
 
   // TODO(v7): Refactor this to reduce the logic above

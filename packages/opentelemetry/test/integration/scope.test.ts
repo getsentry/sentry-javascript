@@ -64,22 +64,34 @@ describe('Integration | Scope', () => {
       await client.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
+
+      if (spanId) {
+        expect(beforeSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            contexts: {
+              trace: {
+                span_id: spanId,
+                trace_id: traceId,
+              },
+            },
+          }),
+          {
+            event_id: expect.any(String),
+            originalException: error,
+            syntheticException: expect.any(Error),
+          },
+        );
+      }
+
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: spanId
-              ? {
-                  span_id: spanId,
-                  trace_id: traceId,
-                }
-              : expect.any(Object),
-          }),
           tags: {
             tag1: 'val1',
             tag2: 'val2',
             tag3: 'val3',
             tag4: 'val4',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -98,6 +110,8 @@ describe('Integration | Scope', () => {
                 data: {
                   'otel.kind': 'INTERNAL',
                   'sentry.origin': 'manual',
+                  'sentry.source': 'custom',
+                  'sentry.sample_rate': 1,
                 },
                 span_id: spanId,
                 status: 'ok',
@@ -105,7 +119,6 @@ describe('Integration | Scope', () => {
                 origin: 'manual',
               },
             }),
-
             spans: [],
             start_timestamp: expect.any(Number),
             tags: {
@@ -207,6 +220,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3a',
             tag4: 'val4a',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -232,6 +246,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3b',
             tag4: 'val4b',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -331,6 +346,7 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -358,6 +374,7 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2b',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),

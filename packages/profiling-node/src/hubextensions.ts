@@ -1,5 +1,5 @@
-import { getMainCarrier } from '@sentry/core';
-import type { NodeClient } from '@sentry/node';
+import { getMainCarrier, spanToJSON } from '@sentry/core';
+import type { NodeClient } from '@sentry/node-experimental';
 import type { CustomSamplingContext, Hub, Transaction, TransactionContext } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
@@ -89,9 +89,7 @@ export function maybeProfileTransaction(
 
   const profile_id = uuid4();
   CpuProfilerBindings.startProfiling(profile_id);
-  DEBUG_BUILD &&
-    // eslint-disable-next-line deprecation/deprecation
-    logger.log(`[Profiling] started profiling transaction: ${transaction.name}`);
+  DEBUG_BUILD && logger.log(`[Profiling] started profiling transaction: ${spanToJSON(transaction).description}`);
 
   // set transaction context - do this regardless if profiling fails down the line
   // so that we can still see the profile_id in the transaction context
@@ -115,16 +113,13 @@ export function stopTransactionProfile(
 
   const profile = CpuProfilerBindings.stopProfiling(profile_id);
 
-  DEBUG_BUILD &&
-    // eslint-disable-next-line deprecation/deprecation
-    logger.log(`[Profiling] stopped profiling of transaction: ${transaction.name}`);
+  DEBUG_BUILD && logger.log(`[Profiling] stopped profiling of transaction: ${spanToJSON(transaction).description}`);
 
   // In case of an overlapping transaction, stopProfiling may return null and silently ignore the overlapping profile.
   if (!profile) {
     DEBUG_BUILD &&
       logger.log(
-        // eslint-disable-next-line deprecation/deprecation
-        `[Profiling] profiler returned null profile for: ${transaction.name}`,
+        `[Profiling] profiler returned null profile for: ${spanToJSON(transaction).description}`,
         'this may indicate an overlapping transaction or a call to stopProfiling with a profile title that was never started',
       );
     return null;
@@ -179,20 +174,21 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
     // Enqueue a timeout to prevent profiles from running over max duration.
     let maxDurationTimeoutID: NodeJS.Timeout | void = global.setTimeout(() => {
       DEBUG_BUILD &&
-        // eslint-disable-next-line deprecation/deprecation
-        logger.log('[Profiling] max profile duration elapsed, stopping profiling for:', transaction.name);
+        logger.log(
+          '[Profiling] max profile duration elapsed, stopping profiling for:',
+          spanToJSON(transaction).description,
+        );
 
       profile = stopTransactionProfile(transaction, profile_id);
     }, maxProfileDurationMs);
 
     // We need to reference the original finish call to avoid creating an infinite loop
-    // eslint-disable-next-line deprecation/deprecation
-    const originalFinish = transaction.finish.bind(transaction);
+    const originalEnd = transaction.end.bind(transaction);
 
     // Wrap the transaction finish method to stop profiling and set the profile on the transaction.
-    function profilingWrappedTransactionFinish(): void {
+    function profilingWrappedTransactionEnd(): void {
       if (!profile_id) {
-        return originalFinish();
+        return originalEnd();
       }
 
       // We stop the handler first to ensure that the timeout is cleared and the profile is stopped.
@@ -210,11 +206,10 @@ export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: S
       // @ts-expect-error profile is not part of metadata
       // eslint-disable-next-line deprecation/deprecation
       transaction.setMetadata({ profile });
-      return originalFinish();
+      return originalEnd();
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.finish = profilingWrappedTransactionFinish;
+    transaction.end = profilingWrappedTransactionEnd;
     return transaction;
   };
 }

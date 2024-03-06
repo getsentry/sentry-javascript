@@ -1,9 +1,8 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getCurrentHub, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { addNonEnumerableProperty, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type PrismaAction =
   | 'findUnique'
@@ -92,11 +91,6 @@ export class Prisma implements Integration {
       }
 
       options.client.$use((params, next: (params: PrismaMiddlewareParams) => Promise<unknown>) => {
-        // eslint-disable-next-line deprecation/deprecation
-        if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-          return next(params);
-        }
-
         const action = params.action;
         const model = params.model;
 
@@ -107,8 +101,9 @@ export class Prisma implements Integration {
             op: 'db.prisma',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.prisma',
+              ...clientData,
+              'db.operation': action,
             },
-            data: { ...clientData, 'db.operation': action },
           },
           () => next(params),
         );

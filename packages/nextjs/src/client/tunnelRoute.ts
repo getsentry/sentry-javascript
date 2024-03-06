@@ -1,9 +1,9 @@
 import type { BrowserOptions } from '@sentry/react';
-import { dsnFromString, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __sentryRewritesTunnelPath__?: string;
 };
 

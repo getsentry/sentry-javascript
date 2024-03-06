@@ -1,6 +1,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_OK,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -70,7 +71,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
               if (handlerResult instanceof Response) {
                 setHttpStatus(span, handlerResult.status);
               } else {
-                span.setStatus('ok');
+                span.setStatus({ code: SPAN_STATUS_OK });
               }
             }
 
