@@ -1,3 +1,10 @@
+export type AttachmentType =
+  | 'event.attachment'
+  | 'event.minidump'
+  | 'event.applecrashreport'
+  | 'unreal.context'
+  | 'unreal.logs';
+
 /**
  * An attachment to an event. This is used to upload arbitrary data to Sentry.
  *
@@ -23,5 +30,5 @@ export interface Attachment {
   /**
    * The type of the attachment. Defaults to `event.attachment` if not specified.
    */
-  attachmentType?: 'event.attachment' | 'event.minidump' | 'event.applecrashreport' | 'unreal.context' | 'unreal.logs';
+  attachmentType?: AttachmentType;
 }
