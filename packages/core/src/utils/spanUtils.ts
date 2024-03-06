@@ -10,8 +10,8 @@ import type {
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing';
 import type { SentrySpan } from '../tracing/sentrySpan';
+import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;

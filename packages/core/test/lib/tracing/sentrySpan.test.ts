@@ -1,9 +1,9 @@
 import { timestampInSeconds } from '@sentry/utils';
-import { SentrySpan } from '../../../src';
+import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
-describe('span', () => {
+describe('SentrySpan', () => {
   describe('name', () => {
     it('works with name', () => {
       const span = new SentrySpan({ name: 'span name' });

@@ -5,6 +5,7 @@ import { getCurrentScope } from '../currentScopes';
 
 import type { Hub } from '../hub';
 import { getCurrentHub } from '../hub';
+import { spanIsSampled } from '../utils/spanUtils';
 
 /**
  * Grabs active transaction off scope.
@@ -65,7 +66,8 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
     // This exit condition is required to not infinitely loop in case of a circular dependency.
     if (resultSet.has(span)) {
       return;
-    } else {
+      // We want to ignore unsampled spans (e.g. non recording spans)
+    } else if (spanIsSampled(span)) {
       resultSet.add(span);
       const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
       for (const childSpan of childSpans) {

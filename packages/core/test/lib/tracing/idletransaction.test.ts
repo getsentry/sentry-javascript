@@ -170,10 +170,10 @@ describe('IdleTransaction', () => {
     startSpanManual({ name: 'inner1' }, span => {
       const childSpan = startInactiveSpan({ name: 'inner2' })!;
       expect(transaction.activities).toMatchObject({
-        [span!.spanContext().spanId]: true,
+        [span.spanContext().spanId]: true,
         [childSpan.spanContext().spanId]: true,
       });
-      span?.end();
+      span.end();
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
 
       expect(mockFinish).toHaveBeenCalledTimes(0);

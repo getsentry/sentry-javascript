@@ -1,5 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -320,12 +321,10 @@ export function xhrCallback(
         },
         op: 'http.client',
       })
-    : undefined;
+    : new SentryNonRecordingSpan();
 
-  if (span) {
-    xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
-    spans[xhr.__sentry_xhr_span_id__] = span;
-  }
+  xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
+  spans[xhr.__sentry_xhr_span_id__] = span;
 
   const client = getClient();
 

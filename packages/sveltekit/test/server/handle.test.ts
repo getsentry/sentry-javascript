@@ -215,7 +215,7 @@ describe('handleSentry', () => {
         //
       }
 
-      expect(_span!).toBeDefined();
+      expect(_span).toBeDefined();
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);

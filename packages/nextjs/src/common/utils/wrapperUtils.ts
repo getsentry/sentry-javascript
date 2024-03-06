@@ -128,15 +128,15 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
               },
             },
             async dataFetcherSpan => {
-              dataFetcherSpan?.setStatus({ code: SPAN_STATUS_OK });
+              dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
               try {
                 return await origDataFetcher.apply(this, args);
               } catch (e) {
-                dataFetcherSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 throw e;
               } finally {
-                dataFetcherSpan?.end();
+                dataFetcherSpan.end();
                 if (!platformSupportsStreaming()) {
                   await flushQueue();
                 }
@@ -182,16 +182,16 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
       },
     },
     async dataFetcherSpan => {
-      dataFetcherSpan?.setStatus({ code: SPAN_STATUS_OK });
+      dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
 
       try {
         return await origFunction(...origFunctionArgs);
       } catch (e) {
-        dataFetcherSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         captureException(e, { mechanism: { handled: false } });
         throw e;
       } finally {
-        dataFetcherSpan?.end();
+        dataFetcherSpan.end();
         if (!platformSupportsStreaming()) {
           await flushQueue();
         }
