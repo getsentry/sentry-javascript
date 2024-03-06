@@ -40,7 +40,7 @@ import { NodeClient } from './client';
 import { initOtel } from './initOtel';
 
 function getCjsOnlyIntegrations(isCjs = typeof require !== 'undefined'): Integration[] {
-  return isCjs ? [nativeNodeFetchIntegration(), modulesIntegration()] : [];
+  return isCjs ? [modulesIntegration()] : [];
 }
 
 /** Get the default integrations for the Node Experimental SDK. */
@@ -55,6 +55,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
+    nativeNodeFetchIntegration(),
     // Global Handlers
     onUncaughtExceptionIntegration(),
     onUnhandledRejectionIntegration(),
