@@ -24,9 +24,9 @@ type MetricsAggregatorConstructor = {
 };
 
 /**
- * Global metrics aggregator instance per Client.
+ * A metrics aggregator instance per Client.
  */
-let globalMetricsAggregators: Map<Client, MetricsAggregatorInterface> | undefined;
+let globalMetricsAggregators: WeakMap<Client, MetricsAggregatorInterface> | undefined;
 
 /**
  * Gets the metrics aggregator for a given client.
@@ -38,7 +38,7 @@ function getMetricsAggregatorForClient(
   Aggregator: MetricsAggregatorConstructor,
 ): MetricsAggregatorInterface {
   if (!globalMetricsAggregators) {
-    globalMetricsAggregators = new Map();
+    globalMetricsAggregators = new WeakMap();
   }
 
   const aggregator = globalMetricsAggregators.get(client);
