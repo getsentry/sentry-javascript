@@ -67,6 +67,9 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
   public onStart(span: Span, parentContext: Context): void {
     onSpanStart(span, parentContext);
 
+    // TODO (v8): Trigger client `spanStart` & `spanEnd` in here,
+    // once we decoupled opentelemetry from SentrySpan
+
     DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
 
     return super.onStart(span, parentContext);

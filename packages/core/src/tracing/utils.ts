@@ -48,6 +48,13 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
   }
 }
 
+/** This is only used internally by Idle Spans. */
+export function removeChildSpanFromSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  if (span[CHILD_SPANS_FIELD]) {
+    span[CHILD_SPANS_FIELD].delete(childSpan);
+  }
+}
+
 /**
  * Returns an array of the given span and all of its descendants.
  */
