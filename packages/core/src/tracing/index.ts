@@ -4,7 +4,7 @@ export type { BeforeFinishCallback } from './idletransaction';
 export { SentrySpan } from './sentrySpan';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
-export { getActiveTransaction, getActiveSpan } from './utils';
+export { getActiveTransaction, getActiveSpan, getSpanDescendants } from './utils';
 export {
   setHttpStatus,
   getSpanStatusFromHttpCode,

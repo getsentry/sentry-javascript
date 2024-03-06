@@ -12,6 +12,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getSpanDescendants,
 } from '@sentry/core';
 
 export { feedbackIntegration, replayIntegration, browserTracingIntegration, addTracingExtensions };

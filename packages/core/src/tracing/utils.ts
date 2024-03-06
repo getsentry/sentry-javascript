@@ -49,9 +49,9 @@ export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: S
 }
 
 /**
- * Obtains the entire span tree, meaning a span + all of its descendants for a particular span.
+ * Returns an array of the given span and all of its descendants.
  */
-export function getSpanTree(span: SpanWithPotentialChildren): Span[] {
+export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
   const resultSet = new Set<Span>();
 
   function addSpanChildren(span: SpanWithPotentialChildren): void {

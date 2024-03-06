@@ -68,6 +68,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   metricsDefault as metrics,
   functionToStringIntegration,

@@ -22,7 +22,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan, getSpanTree } from './utils';
+import { getCapturedScopesOnSpan, getSpanDescendants } from './utils';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
@@ -255,7 +255,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     }
 
     // The transaction span itself should be filtered out
-    const finishedSpans = getSpanTree(this).filter(span => span !== this);
+    const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
 
     if (this._trimEnd && finishedSpans.length > 0) {
       const endTimes = finishedSpans.map(span => spanToJSON(span).timestamp).filter(Boolean) as number[];
