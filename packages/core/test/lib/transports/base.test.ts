@@ -22,7 +22,7 @@ const ATTACHMENT_ENVELOPE = createEnvelope<EventEnvelope>(
         length: 20,
         filename: 'test-file.txt',
         content_type: 'text/plain',
-        attachment_type: 'text',
+        attachment_type: 'event.attachment',
       },
       'attachment content',
     ] as AttachmentItem,
