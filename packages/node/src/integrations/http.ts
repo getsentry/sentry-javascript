@@ -138,8 +138,10 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /**
- * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
- * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ * The http module integration instruments Node's internal http module.
+ * It creates breadcrumbs for outgoing HTTP requests.
+ * It also creates spans for outgoing HTTP requests, which can be attached to a manually created transaction.
+ * It does not automatically create a transaction for each outgoing HTTP request.
  *
  * @deprecated Use `httpIntegration()` instead.
  */
