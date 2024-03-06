@@ -19,7 +19,7 @@ import {
   startSpan,
   startSpanManual,
 } from '../../../src/tracing';
-import { getSpanTree } from '../../../src/tracing/utils';
+import { getSpanDescendants } from '../../../src/tracing/utils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -173,7 +173,7 @@ describe('startSpan', () => {
       }
 
       expect(_span).toBeDefined();
-      const spans = getSpanTree(_span!);
+      const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]).description).toEqual('SELECT * from users');
@@ -200,7 +200,7 @@ describe('startSpan', () => {
       }
 
       expect(_span).toBeDefined();
-      const spans = getSpanTree(_span!);
+      const spans = getSpanDescendants(_span!);
 
       expect(spans).toHaveLength(2);
       expect(spanToJSON(spans[1]).op).toEqual('db.query');
@@ -1166,5 +1166,56 @@ describe('continueTrace', () => {
     });
 
     expect(ctx).toEqual(expectedContext);
+  });
+});
+
+describe('span hooks', () => {
+  beforeEach(() => {
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('correctly emits span hooks', () => {
+    const startedSpans: string[] = [];
+    const endedSpans: string[] = [];
+
+    client.on('spanStart', span => {
+      startedSpans.push(spanToJSON(span).description || '');
+    });
+
+    client.on('spanEnd', span => {
+      endedSpans.push(spanToJSON(span).description || '');
+    });
+
+    startSpan({ name: 'span1' }, () => {
+      startSpan({ name: 'span2' }, () => {
+        const span = startInactiveSpan({ name: 'span3' });
+
+        startSpanManual({ name: 'span5' }, span => {
+          startInactiveSpan({ name: 'span4' });
+          span?.end();
+        });
+
+        span?.end();
+      });
+    });
+
+    expect(startedSpans).toHaveLength(5);
+    expect(endedSpans).toHaveLength(4);
+
+    expect(startedSpans).toEqual(['span1', 'span2', 'span3', 'span5', 'span4']);
+    expect(endedSpans).toEqual(['span5', 'span3', 'span2', 'span1']);
   });
 });

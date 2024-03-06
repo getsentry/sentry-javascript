@@ -1,15 +1,5 @@
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  FeedbackShim,
-  feedbackIntegrationShim,
-} from './Feedback';
-
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  ReplayShim,
-  replayIntegrationShim,
-} from './Replay';
-
+export { feedbackIntegrationShim } from './Feedback';
+export { replayIntegrationShim } from './Replay';
 export {
   browserTracingIntegrationShim,
   addTracingExtensionsShim,

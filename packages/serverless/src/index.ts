@@ -70,6 +70,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   parameterize,
   requestDataIntegration,

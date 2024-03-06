@@ -14,6 +14,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
+import type { Span } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
@@ -194,6 +195,23 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
+   * Register a callback for whenever a span is started.
+   * Receives the span as argument.
+   */
+  on(hook: 'spanStart', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback for whenever a span is ended.
+   * Receives the span as argument.
+   */
+  on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback for when an idle span is allowed to auto-finish.
+   */
+  on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+
+  /**
    * Register a callback for transaction start and finish.
    */
   on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -268,6 +286,17 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Expects to be given a transaction as the second argument.
    */
   emit(hook: 'finishTransaction', transaction: Transaction): void;
+
+  /** Fire a hook whener a span starts. */
+  emit(hook: 'spanStart', span: Span): void;
+
+  /** Fire a hook whener a span ends. */
+  emit(hook: 'spanEnd', span: Span): void;
+
+  /**
+   * Fire a hook indicating that an idle span is allowed to auto finish.
+   */
+  emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the

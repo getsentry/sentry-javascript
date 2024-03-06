@@ -6,6 +6,7 @@ import {
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   hasTracingEnabled,
+  instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
@@ -23,7 +24,6 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 import { WINDOW } from './types';
 

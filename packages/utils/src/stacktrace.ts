@@ -16,11 +16,11 @@ const STRIP_FRAME_REGEXP = /captureMessage|captureException/;
 export function createStackParser(...parsers: StackLineParser[]): StackParser {
   const sortedParsers = parsers.sort((a, b) => a[0] - b[0]).map(p => p[1]);
 
-  return (stack: string, skipFirst: number = 0): StackFrame[] => {
+  return (stack: string, skipFirstLines: number = 0, framesToPop: number = 0): StackFrame[] => {
     const frames: StackFrame[] = [];
     const lines = stack.split('\n');
 
-    for (let i = skipFirst; i < lines.length; i++) {
+    for (let i = skipFirstLines; i < lines.length; i++) {
       const line = lines[i];
       // Ignore lines over 1kb as they are unlikely to be stack frames.
       // Many of the regular expressions use backtracking which results in run time that increases exponentially with
@@ -49,12 +49,12 @@ export function createStackParser(...parsers: StackLineParser[]): StackParser {
         }
       }
 
-      if (frames.length >= STACKTRACE_FRAME_LIMIT) {
+      if (frames.length >= STACKTRACE_FRAME_LIMIT + framesToPop) {
         break;
       }
     }
 
-    return stripSentryFramesAndReverse(frames);
+    return stripSentryFramesAndReverse(frames.slice(framesToPop));
   };
 }
 

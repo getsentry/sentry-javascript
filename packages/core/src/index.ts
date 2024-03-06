@@ -113,3 +113,4 @@ export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
+export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';

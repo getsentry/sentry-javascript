@@ -106,10 +106,11 @@ export function parseStackFrames(
   // reliably in other circumstances.
   const stacktrace = ex.stacktrace || ex.stack || '';
 
-  const popSize = getPopSize(ex);
+  const skipLines = getSkipFirstStackStringLines(ex);
+  const framesToPop = getPopFirstTopFrames(ex);
 
   try {
-    return stackParser(stacktrace, popSize);
+    return stackParser(stacktrace, skipLines, framesToPop);
   } catch (e) {
     // no-empty
   }
@@ -120,15 +121,30 @@ export function parseStackFrames(
 // Based on our own mapping pattern - https://github.com/getsentry/sentry/blob/9f08305e09866c8bd6d0c24f5b0aabdd7dd6c59c/src/sentry/lang/javascript/errormapping.py#L83-L108
 const reactMinifiedRegexp = /Minified React error #\d+;/i;
 
-function getPopSize(ex: Error & { framesToPop?: number }): number {
-  if (ex) {
-    if (typeof ex.framesToPop === 'number') {
-      return ex.framesToPop;
-    }
+/**
+ * Certain known React errors contain links that would be falsely
+ * parsed as frames. This function check for these errors and
+ * returns number of the stack string lines to skip.
+ */
+function getSkipFirstStackStringLines(ex: Error): number {
+  if (ex && reactMinifiedRegexp.test(ex.message)) {
+    return 1;
+  }
 
-    if (reactMinifiedRegexp.test(ex.message)) {
-      return 1;
-    }
+  return 0;
+}
+
+/**
+ * If error has `framesToPop` property, it means that the
+ * creator tells us the first x frames will be useless
+ * and should be discarded. Typically error from wrapper function
+ * which don't point to the actual location in the developer's code.
+ *
+ * Example: https://github.com/zertosh/invariant/blob/master/invariant.js#L46
+ */
+function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
+  if (typeof ex.framesToPop === 'number') {
+    return ex.framesToPop;
   }
 
   return 0;

@@ -1,16 +1,3 @@
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SPAN_STATUS_ERROR,
-  getClient,
-  getCurrentScope,
-  getDynamicSamplingContextFromClient,
-  getDynamicSamplingContextFromSpan,
-  getIsolationScope,
-  hasTracingEnabled,
-  setHttpStatus,
-  spanToTraceHeader,
-  startInactiveSpan,
-} from '@sentry/core';
 import type { Client, HandlerDataFetch, Scope, Span, SpanOrigin } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
@@ -18,6 +5,17 @@ import {
   generateSentryTraceHeader,
   isInstanceOf,
 } from '@sentry/utils';
+import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import {
+  SPAN_STATUS_ERROR,
+  getDynamicSamplingContextFromClient,
+  getDynamicSamplingContextFromSpan,
+  setHttpStatus,
+  startInactiveSpan,
+} from './tracing';
+import { hasTracingEnabled } from './utils/hasTracingEnabled';
+import { spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -110,7 +108,6 @@ export function instrumentFetchRequest(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     options.headers = addTracingHeadersToFetchRequest(request, client, scope, options, span);
   }
 

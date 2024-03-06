@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Replay } from '@sentry/replay';
+import type { replayIntegration as actualReplayIntegration } from '@sentry/replay';
 import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
@@ -58,8 +58,9 @@ sentryTest(
 
     expect(
       await page.evaluate(() => {
-        const replayIntegration = (window as unknown as Window & { Replay: { _replay: ReplayContainer } }).Replay;
-        const replay = replayIntegration._replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
+        const replay = replayIntegration['_replay'];
         return replay.isEnabled();
       }),
     ).toBe(false);
@@ -67,10 +68,9 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
-        // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-        // @ts-expect-error private
-        const replay = replayIntegration._replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
+        const replay = replayIntegration['_replay'];
         replayIntegration.startBuffering();
         return replay.isEnabled();
       }),
@@ -88,8 +88,8 @@ sentryTest(
     const [req0] = await Promise.all([
       reqPromise0,
       page.evaluate(async () => {
-        // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
         await replayIntegration.flush();
       }),
     ]);
@@ -212,10 +212,9 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
-        // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
-        // @ts-expect-error private
-        const replay = replayIntegration._replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
+        const replay = replayIntegration['_replay'];
         replayIntegration.startBuffering();
         return replay.isEnabled();
       }),
@@ -233,8 +232,8 @@ sentryTest(
     const [req0] = await Promise.all([
       reqPromise0,
       page.evaluate(async () => {
-        // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
         await replayIntegration.flush({ continueRecording: false });
       }),
     ]);
@@ -328,8 +327,8 @@ sentryTest(
     // Start buffering and assert that it is enabled
     expect(
       await page.evaluate(() => {
-        // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+          .Replay;
         const replay = replayIntegration['_replay'];
         replayIntegration.startBuffering();
         return replay.isEnabled();
@@ -347,8 +346,8 @@ sentryTest(
     expect(errorEvent0.tags?.replayId).toBeUndefined();
 
     await page.evaluate(async () => {
-      // eslint-disable-next-line deprecation/deprecation
-      const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+      const replayIntegration = (window as unknown as Window & { Replay: ReturnType<typeof actualReplayIntegration> })
+        .Replay;
       replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
     });
 

@@ -48,6 +48,7 @@ function _startTransaction(
   }
   if (client) {
     client.emit('startTransaction', transaction);
+    client.emit('spanStart', transaction);
   }
   return transaction;
 }
@@ -95,6 +96,7 @@ export function startIdleTransaction(
   }
   if (client) {
     client.emit('startTransaction', transaction);
+    client.emit('spanStart', transaction);
   }
   return transaction;
 }
