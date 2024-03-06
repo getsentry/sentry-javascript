@@ -31,7 +31,7 @@
         dsn: 'https://d16ae2d36f9249849c7964e9a3a8a608@o447951.ingest.sentry.io/5429213',
         replaysSessionSampleRate: 1.0,
         replaysOnErrorSampleRate: 1.0,
-        integrations: [new Sentry.Integrations.Replay({})],
+        integrations: [Sentry.replayIntegration({})],
       });
     </script>
   </head>

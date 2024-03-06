@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/browser';
 
 window.Sentry = Sentry;
-window.Replay = new Sentry.Replay({
+window.Replay = Sentry.replayIntegration({
   flushMinDelay: 50,
   flushMaxDelay: 50,
   minReplayDuration: 0,
@@ -14,5 +14,5 @@ Sentry.init({
   replaysOnErrorSampleRate: 0.0,
   debug: true,
 
-  integrations: [window.Replay, new Sentry.ReplayCanvas()],
+  integrations: [window.Replay, Sentry.replayCanvasIntegration()],
 });

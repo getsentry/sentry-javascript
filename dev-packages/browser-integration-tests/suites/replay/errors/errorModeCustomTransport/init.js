@@ -5,16 +5,19 @@ window.Replay = Sentry.replayIntegration({
   flushMinDelay: 200,
   flushMaxDelay: 200,
   minReplayDuration: 0,
-  useCompression: false,
-  blockAllMedia: false,
-  block: ['link[rel="icon"]', 'video', '.nested-hide'],
 });
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
-  sampleRate: 0,
-  replaysSessionSampleRate: 1.0,
-  replaysOnErrorSampleRate: 0.0,
-
+  sampleRate: 1,
+  replaysSessionSampleRate: 0.0,
+  replaysOnErrorSampleRate: 1.0,
   integrations: [window.Replay],
+  transport: options => {
+    const transport = new Sentry.makeFetchTransport(options);
+
+    delete transport.send.__sentry__baseTransport__;
+
+    return transport;
+  },
 });

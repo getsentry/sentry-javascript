@@ -18,7 +18,7 @@ Sentry.init({
       useLocation,
       useMatches,
     }),
-    new Sentry.Replay(),
+    Sentry.replayIntegration(),
   ],
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!

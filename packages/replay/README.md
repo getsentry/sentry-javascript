@@ -42,7 +42,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   integrations: [
-    new Sentry.Replay({
+    Sentry.replayIntegration({
       // Additional SDK configuration goes in here, for example:
       maskAllText: true,
       blockAllMedia: true
@@ -73,7 +73,7 @@ const { Replay } = await import('@sentry/browser');
 const client = Sentry.getCurrentHub().getClient<BrowserClient>();
 
 // Client can be undefined
-client?.addIntegration(new Replay());
+client?.addIntegration(Sentry.replayIntegration());
 ```
 
 ### Identifying Users
@@ -94,7 +94,7 @@ Replay recording only starts when it is included in the `integrations` array whe
 import * as Sentry from "@sentry/react";
 import { BrowserClient } from "@sentry/browser";
 
-const replay = new Replay();
+const replay = Sentry.replayIntegration();
 
 Sentry.init({
   integrations: [replay]
@@ -184,7 +184,7 @@ The following options can be configured on the root level of your browser-based 
 
 ### General Integration Configuration
 
-The following options can be configured as options to the integration, in `new Replay({})`:
+The following options can be configured as options to the integration, in `Sentry.replayIntegration({})`:
 
 | key                 | type    | default | description                                                                                                                                                                                                                     |
 | ------------------- | ------- | ------- | -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------   |
@@ -193,7 +193,7 @@ The following options can be configured as options to the integration, in `new R
 
 ### Privacy Configuration
 
-The following options can be configured as options to the integration, in `new Replay({})`:
+The following options can be configured as options to the integration, in `Sentry.replayIntegration({})`:
 
 | key              | type                     | default                                 | description                                                                                                                                  |
 | ---------------- | ------------------------ | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
