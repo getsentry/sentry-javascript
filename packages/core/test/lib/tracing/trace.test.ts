@@ -20,7 +20,7 @@ import {
   startSpanManual,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { getSpanDescendants } from '../../../src/tracing/utils';
+import { getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {

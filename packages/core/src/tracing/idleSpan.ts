@@ -4,11 +4,11 @@ import { getClient, getCurrentScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanToJSON } from '../utils/spanUtils';
+import { getSpanDescendants, removeChildSpanFromSpan, spanToJSON } from '../utils/spanUtils';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan, getSpanDescendants, removeChildSpanFromSpan } from './utils';
+import { getActiveSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,

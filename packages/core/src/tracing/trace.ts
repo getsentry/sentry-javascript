@@ -7,12 +7,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { addChildSpanToSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { addChildSpanToSpan, getActiveSpan, setCapturedScopesOnSpan } from './utils';
+import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

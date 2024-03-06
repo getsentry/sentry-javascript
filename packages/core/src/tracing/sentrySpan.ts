@@ -22,12 +22,12 @@ import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  addChildSpanToSpan,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
-import { addChildSpanToSpan } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
