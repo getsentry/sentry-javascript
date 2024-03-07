@@ -75,7 +75,7 @@ describe('Integration | Transactions', () => {
               'sentry.source': 'task',
             },
             resource: {
-              'service.name': 'node-experimental',
+              'service.name': 'node',
               'service.namespace': 'sentry',
               'service.version': expect.any(String),
               'telemetry.sdk.language': 'nodejs',
