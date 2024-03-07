@@ -82,8 +82,8 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
         ctx.clearRect(rect.x - canvas.offsetLeft, rect.y - canvas.offsetTop, rect.width, rect.height);
 
         // draw selection border
-        ctx.strokeStyle = '#ff0000';
-        ctx.lineWidth = 4;
+        ctx.strokeStyle = 'purple';
+        ctx.lineWidth = 3;
         ctx.strokeRect(rect.x - canvas.offsetLeft, rect.y - canvas.offsetTop, rect.width, rect.height);
       }
     }
@@ -193,40 +193,37 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
         <div class="canvasContainer" ref={canvasContainerRef}>
           <canvas style={{ position: 'absolute' }} ref={cropperRef}></canvas>
           <CropCorner
-            left={rectStart.x}
-            top={rectStart.y}
+            left={rectStart.x - 3}
+            top={rectStart.y - 3}
             onGrabButton={onGrabButton}
             corner="topleft"
-            borderWidth="5px 0px 0px 5px"
           ></CropCorner>
           <CropCorner
-            left={rectEnd.x - 30}
-            top={rectStart.y}
+            left={rectEnd.x - 30 + 3}
+            top={rectStart.y - 3}
             onGrabButton={onGrabButton}
             corner="topright"
-            borderWidth="5px 5px 0px 0px"
           ></CropCorner>
           <CropCorner
-            left={rectStart.x}
-            top={rectEnd.y - 30}
+            left={rectStart.x - 3}
+            top={rectEnd.y - 30 + 3}
             onGrabButton={onGrabButton}
             corner="bottomleft"
-            borderWidth="0px 0px 5px 5px"
           ></CropCorner>
           <CropCorner
-            left={rectEnd.x - 30}
-            top={rectEnd.y - 30}
+            left={rectEnd.x - 30 + 3}
+            top={rectEnd.y - 30 + 3}
             onGrabButton={onGrabButton}
             corner="bottomright"
-            borderWidth="0px 5px 5px 0px"
           ></CropCorner>
           <div
             style={{
               position: 'absolute',
-              left: rectEnd.x,
-              top: rectEnd.y,
-              display: confirmCrop ? 'inline' : 'none',
+              left: rectEnd.x - 191,
+              top: rectEnd.y + 8,
+              display: confirmCrop ? 'flex' : 'none',
             }}
+            class="crop-btn-group"
           >
             <button
               onClick={e => {
@@ -235,20 +232,19 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
                 setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
                 setConfirmCrop(false);
               }}
+              class="btn btn--default"
             >
               Cancel
             </button>
             <button
-              style={{
-                background: 'purple',
-              }}
               onClick={e => {
                 e.preventDefault();
                 submit();
                 setConfirmCrop(false);
               }}
+              class="btn btn--primary"
             >
-              Submit
+              Confirm
             </button>
           </div>
         </div>
@@ -261,13 +257,11 @@ function CropCorner({
   top,
   left,
   corner,
-  borderWidth,
   onGrabButton,
 }: {
   top: number;
   left: number;
   corner: string;
-  borderWidth: string;
   onGrabButton: (e: Event, corner: string) => void;
 }): VNode {
   return (
@@ -279,7 +273,11 @@ function CropCorner({
         top: top,
         left: left,
         background: 'none',
-        borderWidth: borderWidth,
+        borderTop: corner === 'topleft' || corner === 'topright' ? 'solid purple' : 'none',
+        borderLeft: corner === 'topleft' || corner === 'bottomleft' ? 'solid purple' : 'none',
+        borderRight: corner === 'topright' || corner === 'bottomright' ? 'solid purple' : 'none',
+        borderBottom: corner === 'bottomleft' || corner === 'bottomright' ? 'solid purple' : 'none',
+        borderWidth: '3px',
       }}
       onMouseDown={e => {
         e.preventDefault();

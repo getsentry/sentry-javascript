@@ -46,6 +46,14 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   width: 0; /* reasons... */
   align-self: center;
 }
+
+.crop-btn-group {
+  padding: 8px;
+  gap: 8px;
+  border-radius: var(--form-content-border-radius);
+  background-color: var(--background);
+  width: 175px;
+}
 `;
 
   return style;
