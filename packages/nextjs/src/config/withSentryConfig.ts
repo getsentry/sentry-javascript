@@ -96,7 +96,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
   // This function doesn't take any arguments at the time of writing but we future-proof
   // here in case Next.js ever decides to pass some
   userNextConfig.rewrites = async (...args: unknown[]) => {
-    const injectedRewrite = {
+    const tunnelRouteRewrite = {
       // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]`
       // Nextjs will automatically convert `source` into a regex for us
       source: `${tunnelPath}(/?)`,
@@ -115,19 +115,43 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       destination: 'https://o:orgid.ingest.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
+    const tunnelRouteRewriteWithRegion = {
+      // Matched rewrite routes will look like the following: `[tunnelPath]?o=[orgid]&p=[projectid]?r=[region]`
+      // Nextjs will automatically convert `source` into a regex for us
+      source: `${tunnelPath}(/?)`,
+      has: [
+        {
+          type: 'query',
+          key: 'o', // short for orgId - we keep it short so matching is harder for ad-blockers
+          value: '(?<orgid>\\d*)',
+        },
+        {
+          type: 'query',
+          key: 'p', // short for projectId - we keep it short so matching is harder for ad-blockers
+          value: '(?<projectid>\\d*)',
+        },
+        {
+          type: 'query',
+          key: 'r', // short for region - we keep it short so matching is harder for ad-blockers
+          value: '(?<region>\\[a-z\\]{2})',
+        },
+      ],
+      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
+    };
+
     if (typeof originalRewrites !== 'function') {
-      return [injectedRewrite];
+      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
     }
 
     // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
-      return [injectedRewrite, ...originalRewritesResult];
+      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...originalRewritesResult];
     } else {
       return {
         ...originalRewritesResult,
-        beforeFiles: [injectedRewrite, ...(originalRewritesResult.beforeFiles || [])],
+        beforeFiles: [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
   };
