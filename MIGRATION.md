@@ -20,9 +20,9 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.8+ for our CJS package, and Node 18.8+ for our ESM package. This applies to
-`@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no longer
-test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
+to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
+longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2017+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -968,10 +968,6 @@ instead now.
 
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
 automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
-
-## Deprecate `scope.setTransactionName()`
-
-Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
 
 ## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
 

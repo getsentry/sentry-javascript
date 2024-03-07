@@ -15,7 +15,6 @@ import { __PRIVATE__wrapStartTransactionWithProfiling } from '../src/hubextensio
 function makeTransactionMock(options = {}): Transaction {
   return {
     metadata: {},
-    tags: {},
     sampled: true,
     contexts: {},
     startChild: () => ({ end: () => void 0 }),
@@ -28,10 +27,6 @@ function makeTransactionMock(options = {}): Transaction {
     setContext(this: Transaction, key: string, context: Context) {
       // @ts-expect-error - contexts is private
       this.contexts[key] = context;
-    },
-    setTag(this: Transaction, key: string, value: any) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.tags[key] = value;
     },
     setMetadata(this: Transaction, metadata: Partial<TransactionMetadata>) {
       // eslint-disable-next-line deprecation/deprecation

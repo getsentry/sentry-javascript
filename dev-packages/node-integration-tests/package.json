@@ -3,7 +3,7 @@
   "version": "8.0.0-alpha.2",
   "license": "MIT",
   "engines": {
-    "node": ">=14.8"
+    "node": ">=14.18"
   },
   "private": true,
   "main": "build/cjs/index.js",

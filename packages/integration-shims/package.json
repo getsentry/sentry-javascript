@@ -57,7 +57,7 @@
     "@sentry/utils": "8.0.0-alpha.2"
   },
   "engines": {
-    "node": ">=14.8"
+    "node": ">=14.18"
   },
   "volta": {
     "extends": "../../package.json"
