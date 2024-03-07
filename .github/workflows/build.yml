@@ -1057,6 +1057,7 @@ jobs:
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'nextjs-app-dir',
             'nextjs-14',
