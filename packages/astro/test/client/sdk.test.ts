@@ -1,11 +1,15 @@
 import type { BrowserClient } from '@sentry/browser';
-import { getActiveSpan } from '@sentry/browser';
-import { browserTracingIntegration } from '@sentry/browser';
+import {
+  browserTracingIntegration,
+  getActiveSpan,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+} from '@sentry/browser';
 import * as SentryBrowser from '@sentry/browser';
 import { SDK_VERSION, getClient } from '@sentry/browser';
 import { vi } from 'vitest';
 
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import { init } from '../../../astro/src/client/sdk';
 
 const browserInit = vi.spyOn(SentryBrowser, 'init');
