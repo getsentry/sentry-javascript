@@ -5,7 +5,7 @@ import { vi } from 'vitest';
 
 import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
 
-const TRACE_FLAG_SAMPLED = 0x1;
+const TRACE_FLAG_SAMPLED = 1;
 
 const mockedSpan = new SentrySpan({
   traceId: '12345678901234567890123456789012',

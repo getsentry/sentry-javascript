@@ -1,5 +1,5 @@
 // Node SDK exports
-// Unfortunately, we cannot `export * from '@sentry/node-experimental'` because in prod builds,
+// Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 
@@ -37,7 +37,6 @@ export {
   setHttpStatus,
   withScope,
   withIsolationScope,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
@@ -47,7 +46,6 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  Integrations,
   consoleIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -59,7 +57,6 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  Handlers,
   setMeasurement,
   getActiveSpan,
   startSpan,
@@ -74,10 +71,24 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node-experimental';
+  expressIntegration,
+  expressErrorHandler,
+  setupExpressErrorHandler,
+  fastifyIntegration,
+  graphqlIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  nestIntegration,
+  postgresIntegration,
+  prismaIntegration,
+  hapiIntegration,
+  setupHapiErrorHandler,
+} from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
-export * from '@sentry/node-experimental';
+export * from '@sentry/node';
 
 export { init } from './server/sdk';
 
