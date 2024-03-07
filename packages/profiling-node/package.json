@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "7.105.0",
+  "version": "7.106.0",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
@@ -68,10 +68,10 @@
     "node-abi": "^3.52.0"
   },
   "devDependencies": {
-    "@sentry/core": "7.105.0",
-    "@sentry/node": "7.105.0",
-    "@sentry/types": "7.105.0",
-    "@sentry/utils": "7.105.0",
+    "@sentry/core": "7.106.0",
+    "@sentry/node": "7.106.0",
+    "@sentry/types": "7.106.0",
+    "@sentry/utils": "7.106.0",
     "@types/node": "16.18.70",
     "@types/node-abi": "^3.0.0",
     "clang-format": "^1.8.0",
