@@ -279,11 +279,14 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const sentryTrace = getMetaContent('sentry-trace');
         const baggage = getMetaContent('baggage');
 
-        const scope = getCurrentScope();
-
         // Continue trace updates the _current_ scope, but we want to break out of it again...
+        // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
+        // but afterwards, we want to reset it to avoid this also applying to other spans
+        const scope = getCurrentScope();
+        const propagationContextBefore = scope.getPropagationContext();
+
         activeSpan = continueTrace({ sentryTrace, baggage }, () => {
-          // Ensure we are on the original current scope again
+          // Ensure we are on the original current scope again, so the span is set as active on it
           return withScope(scope, () => {
             return _createRouteSpan(client, {
               op: 'pageload',
@@ -291,6 +294,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             });
           });
         });
+
+        scope.setPropagationContext(propagationContextBefore);
       });
 
       if (options.instrumentPageLoad && WINDOW.location) {
