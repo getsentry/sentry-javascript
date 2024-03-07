@@ -37,11 +37,12 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 }
 
 .canvasContainer {
-  flex: 1 0 auto;
-  display: contents;
+  display: grid;
+  grid-template: 1fr / 1fr;
 }
 
-.canvasContainer canvas {
+.canvasContainer > * {
+  grid-area: 1 / 1;
   flex: 1 0 auto;
   width: 0; /* reasons... */
   align-self: center;
