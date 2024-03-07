@@ -1,14 +1,15 @@
-import type { Span, StartSpanOptions } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { getSpanDescendants, removeChildSpanFromSpan, spanToJSON } from '../utils/spanUtils';
+import { getSpanDescendants, removeChildSpanFromSpan, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan } from './utils';
+import { getActiveSpan, getCapturedScopesOnSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -108,6 +109,20 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
+  function _endSpan(timestamp: number = timestampInSeconds()): void {
+    // Ensure we end with the last span timestamp, if possible
+    const spans = getSpanDescendants(span).filter(child => child !== span);
+
+    const latestEndTimestamp = spans.length ? Math.max(...spans.map(span => spanToJSON(span).timestamp || 0)) : 0;
+
+    // If the timestamp is smaller than the latest end timestamp of a span, we still want to use it
+    const endTimestamp = latestEndTimestamp
+      ? Math.min(spanTimeInputToSeconds(timestamp), latestEndTimestamp)
+      : timestamp;
+
+    span.end(endTimestamp);
+  }
+
   /**
    * Cancels the existing idle timeout, if there is one.
    */
@@ -136,7 +151,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && activities.size === 0 && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_IDLE_TIMEOUT;
-        span.end(endTimestamp);
+        _endSpan(endTimestamp);
       }
     }, idleTimeout);
   }
@@ -149,7 +164,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
-        span.end(endTimestamp);
+        _endSpan(endTimestamp);
       }
     }, childSpanTimeout);
   }
@@ -190,7 +205,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
   }
 
-  function endIdleSpan(): void {
+  function onIdleSpanEnded(): void {
     _finished = true;
     activities.clear();
 
@@ -209,9 +224,25 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       return;
     }
 
-    const attributes = spanJSON.data || {};
-    if (spanJSON.op === 'ui.action.click' && !attributes[FINISH_REASON_TAG]) {
-      span.setAttribute(FINISH_REASON_TAG, _finishReason);
+    const attributes: SpanAttributes = spanJSON.data || {};
+    if (spanJSON.op === 'ui.action.click' && !attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
+    }
+
+    // Save finish reason as tag, in addition to attribute, to maintain backwards compatibility
+    const scopes = getCapturedScopesOnSpan(span);
+
+    // Make sure to fetch up-to-date data here, as it may have been updated above
+    const finalAttributes: SpanAttributes = spanToJSON(span).data || {};
+    const finalFinishReason = finalAttributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON];
+    if (scopes.scope && typeof finalFinishReason === 'string') {
+      // We only want to add the tag to the transaction event itself
+      scopes.scope.addEventProcessor(event => {
+        if (event.type === 'transaction') {
+          event.tags = { ...event.tags, [FINISH_REASON_TAG]: finalFinishReason };
+        }
+        return event;
+      });
     }
 
     DEBUG_BUILD &&
@@ -279,7 +310,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _popActivity(endedSpan.spanContext().spanId);
 
     if (endedSpan === span) {
-      endIdleSpan();
+      onIdleSpanEnded();
     }
   });
 
@@ -303,7 +334,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     if (!_finished) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
       _finishReason = FINISH_REASON_FINAL_TIMEOUT;
-      span.end();
+      _endSpan();
     }
   }, finalTimeout);
 

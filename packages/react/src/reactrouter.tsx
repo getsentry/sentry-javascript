@@ -12,7 +12,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Integration, Span, StartSpanOptions, Transaction, TransactionSource } from '@sentry/types';
+import type { Integration, Span, StartSpanOptions, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
@@ -42,8 +42,6 @@ interface ReactRouterOptions {
   routes?: RouteConfig[];
   matchPath?: MatchPath;
 }
-
-let activeTransaction: Transaction | undefined;
 
 /**
  * A browser tracing integration that uses React Router v4 to instrument navigations.
@@ -168,7 +166,7 @@ function createReactRouterInstrumentation(
 
     if (startTransactionOnPageLoad && initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
-      activeTransaction = customStartTransaction({
+      customStartTransaction({
         name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -181,12 +179,8 @@ function createReactRouterInstrumentation(
     if (startTransactionOnLocationChange && history.listen) {
       history.listen((location, action) => {
         if (action && (action === 'PUSH' || action === 'POP')) {
-          if (activeTransaction) {
-            activeTransaction.end();
-          }
-
           const [name, source] = normalizeTransactionName(location.pathname);
-          activeTransaction = customStartTransaction({
+          customStartTransaction({
             name,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
@@ -263,11 +257,6 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access */
 
 function getActiveRootSpan(): Span | undefined {
-  // Legacy behavior for "old" react router instrumentation
-  if (activeTransaction) {
-    return activeTransaction;
-  }
-
   const span = getActiveSpan();
   const rootSpan = span ? getRootSpan(span) : undefined;
 

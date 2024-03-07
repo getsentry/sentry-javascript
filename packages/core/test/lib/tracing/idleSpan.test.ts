@@ -2,6 +2,7 @@ import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 import type { Event, Span } from '@sentry/types';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SentryNonRecordingSpan,
   SentrySpan,
   addTracingExtensions,
@@ -275,6 +276,53 @@ describe('startIdleSpan', () => {
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
 
+  it('sets finish reason when span ends', () => {
+    let transaction: Event | undefined;
+    const beforeSendTransaction = jest.fn(event => {
+      transaction = event;
+      return null;
+    });
+    const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, beforeSendTransaction });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // This is only set when op === 'ui.action.click'
+    startIdleSpan({ name: 'foo', op: 'ui.action.click' });
+    startSpan({ name: 'inner' }, () => {});
+    jest.runOnlyPendingTimers();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
+      'idleTimeout',
+    );
+    expect(transaction?.tags?.finishReason).toEqual('idleTimeout');
+  });
+
+  it('uses finish reason set outside when span ends', () => {
+    let transaction: Event | undefined;
+    const beforeSendTransaction = jest.fn(event => {
+      transaction = event;
+      return null;
+    });
+    const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, beforeSendTransaction });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // This is only set when op === 'ui.action.click'
+    const span = startIdleSpan({ name: 'foo', op: 'ui.action.click' });
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
+    startSpan({ name: 'inner' }, () => {});
+    jest.runOnlyPendingTimers();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
+      'custom reason',
+    );
+    expect(transaction?.tags?.finishReason).toEqual('custom reason');
+  });
+
   describe('idleTimeout', () => {
     it('finishes if no activities are added to the idle span', () => {
       const idleSpan = startIdleSpan({ name: 'idle span' });
@@ -447,6 +495,49 @@ describe('startIdleSpan', () => {
       // This doesn't affect us!
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
       expect(spanToJSON(idleSpan).timestamp).toBeUndefined();
+    });
+  });
+
+  describe('trim end timestamp', () => {
+    it('trims end to highest child span end', () => {
+      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 });
+      expect(idleSpan).toBeDefined();
+
+      const span1 = startInactiveSpan({ name: 'span1', startTime: 1001 });
+      span1?.end(1005);
+
+      const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
+      span2?.end(1100);
+
+      const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
+      span3?.end(1060);
+
+      expect(getActiveSpan()).toBe(idleSpan);
+
+      jest.runAllTimers();
+
+      expect(spanToJSON(idleSpan!).timestamp).toBe(1100);
+    });
+
+    it('keeps lower span endTime than highest child span end', () => {
+      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 });
+      expect(idleSpan).toBeDefined();
+
+      const span1 = startInactiveSpan({ name: 'span1', startTime: 999_999_999 });
+      span1?.end(1005);
+
+      const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
+      span2?.end(1100);
+
+      const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
+      span3?.end(1060);
+
+      expect(getActiveSpan()).toBe(idleSpan);
+
+      jest.runAllTimers();
+
+      expect(spanToJSON(idleSpan!).timestamp).toBeLessThan(999_999_999);
+      expect(spanToJSON(idleSpan!).timestamp).toBeGreaterThan(1060);
     });
   });
 });
