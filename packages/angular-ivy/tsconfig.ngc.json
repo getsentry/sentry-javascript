@@ -5,7 +5,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es2015",
+    "target": "es2017",
     "lib": ["dom", "es2018"],
     "baseUrl": "./"
   },
