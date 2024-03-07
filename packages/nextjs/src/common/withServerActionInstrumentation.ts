@@ -102,11 +102,11 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
               const result = await handleCallbackErrors(callback, error => {
                 if (isNotFoundNavigationError(error)) {
                   // We don't want to report "not-found"s
-                  span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
                 } else if (isRedirectNavigationError(error)) {
                   // Don't do anything for redirects
                 } else {
-                  span?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   captureException(error, {
                     mechanism: {
                       handled: false,

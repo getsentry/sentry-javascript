@@ -240,7 +240,7 @@ conditionalTest({ min: 16 })('Undici integration', () => {
         expect(spans.length).toBe(2);
         const span = spans[1];
 
-        expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span!));
+        expect(requestHeaders['sentry-trace']).toEqual(spanToTraceHeader(span));
         expect(requestHeaders['baggage']).toEqual(
           `sentry-environment=production,sentry-public_key=0,sentry-trace_id=${
             span.spanContext().traceId

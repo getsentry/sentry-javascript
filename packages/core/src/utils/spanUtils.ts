@@ -10,8 +10,8 @@ import type {
 import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing';
 import type { SentrySpan } from '../tracing/sentrySpan';
+import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -22,7 +22,7 @@ export const TRACE_FLAG_SAMPLED = 0x1;
  */
 export function spanToTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, tags, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
 
   return dropUndefinedKeys({
     data,
@@ -30,7 +30,6 @@ export function spanToTraceContext(span: Span): TraceContext {
     parent_span_id,
     span_id,
     status,
-    tags,
     trace_id,
     origin,
   });
@@ -167,4 +166,53 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
   }
 
   return status.message || 'unknown_error';
+}
+
+const CHILD_SPANS_FIELD = '_sentryChildSpans';
+
+type SpanWithPotentialChildren = Span & {
+  [CHILD_SPANS_FIELD]?: Set<Span>;
+};
+
+/**
+ * Adds an opaque child span reference to a span.
+ */
+export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
+    span[CHILD_SPANS_FIELD].add(childSpan);
+  } else {
+    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+  }
+}
+
+/** This is only used internally by Idle Spans. */
+export function removeChildSpanFromSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  if (span[CHILD_SPANS_FIELD]) {
+    span[CHILD_SPANS_FIELD].delete(childSpan);
+  }
+}
+
+/**
+ * Returns an array of the given span and all of its descendants.
+ */
+export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
+  const resultSet = new Set<Span>();
+
+  function addSpanChildren(span: SpanWithPotentialChildren): void {
+    // This exit condition is required to not infinitely loop in case of a circular dependency.
+    if (resultSet.has(span)) {
+      return;
+      // We want to ignore unsampled spans (e.g. non recording spans)
+    } else if (spanIsSampled(span)) {
+      resultSet.add(span);
+      const childSpans = span[CHILD_SPANS_FIELD] ? Array.from(span[CHILD_SPANS_FIELD]) : [];
+      for (const childSpan of childSpans) {
+        addSpanChildren(childSpan);
+      }
+    }
+  }
+
+  addSpanChildren(span);
+
+  return Array.from(resultSet);
 }

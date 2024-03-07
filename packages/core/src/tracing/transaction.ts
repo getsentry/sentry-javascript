@@ -19,10 +19,10 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import { spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
+import { getSpanDescendants, spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan, SpanRecorder } from './sentrySpan';
-import { getCapturedScopesOnSpan, getSpanDescendants } from './utils';
+import { getCapturedScopesOnSpan } from './utils';
 
 /** JSDoc */
 export class Transaction extends SentrySpan implements TransactionInterface {
@@ -286,8 +286,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       },
       spans,
       start_timestamp: this._startTime,
-      // eslint-disable-next-line deprecation/deprecation
-      tags: this.tags,
       timestamp: this._endTime,
       transaction: this._name,
       type: 'transaction',

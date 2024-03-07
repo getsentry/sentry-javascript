@@ -75,7 +75,7 @@ describe('Integration | Transactions', () => {
               'sentry.source': 'task',
             },
             resource: {
-              'service.name': 'node-experimental',
+              'service.name': 'node',
               'service.namespace': 'sentry',
               'service.version': expect.any(String),
               'telemetry.sdk.language': 'nodejs',
@@ -623,7 +623,7 @@ describe('Integration | Transactions', () => {
 
     void Sentry.startSpan({ name: 'test name' }, async () => {
       const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-      innerSpan1Id = subSpan?.spanContext().spanId;
+      innerSpan1Id = subSpan.spanContext().spanId;
       subSpan.end();
 
       Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {

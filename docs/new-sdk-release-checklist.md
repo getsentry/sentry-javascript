@@ -59,9 +59,6 @@ differ slightly for other SDKs depending on how they are structured and how they
   - **This is especially important, if you're adding new CDN bundles!**
   - Tarballs (\*.tgz archives) should work OOTB
 
-- [ ] Make sure it is added to `bundlePlugins.ts:makeTSPlugin` as `paths`, otherwise it will not be ES5 transpiled
-      correctly for CDN builds.
-
 - [ ] Make sure it is added to the
       [Verdaccio config](https://github.com/getsentry/sentry-javascript/blob/develop/dev-packages/e2e-tests/verdaccio-config/config.yaml)
       for the E2E tests

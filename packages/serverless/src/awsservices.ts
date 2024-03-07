@@ -64,10 +64,10 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
-    let span: Span | undefined;
     const req = orig.call(this, operation, params);
 
     if (SETUP_CLIENTS.has(getClient() as Client)) {
+      let span: Span | undefined;
       req.on('afterBuild', () => {
         span = startInactiveSpan({
           name: describe(this, operation, params),
@@ -79,9 +79,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
         });
       });
       req.on('complete', () => {
-        if (span) {
-          span.end();
-        }
+        span?.end();
       });
     }
 

@@ -1,11 +1,5 @@
-import type {
-  ClientOptions,
-  MeasurementUnit,
-  MetricsAggregator as MetricsAggregatorBase,
-  Primitive,
-} from '@sentry/types';
+import type { Client, MeasurementUnit, MetricsAggregator as MetricsAggregatorBase, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import type { BaseClient } from '../baseclient';
 import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
@@ -40,7 +34,7 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // Force flush is used on either shutdown, flush() or when we exceed the max weight.
   private _forceFlush: boolean;
 
-  public constructor(private readonly _client: BaseClient<ClientOptions>) {
+  public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
     this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);

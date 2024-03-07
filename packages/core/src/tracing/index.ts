@@ -2,9 +2,10 @@ export { startIdleTransaction, addTracingExtensions } from './hubextensions';
 export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
 export type { BeforeFinishCallback } from './idletransaction';
 export { SentrySpan } from './sentrySpan';
+export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
-export { getActiveTransaction, getActiveSpan, getSpanDescendants } from './utils';
+export { getActiveTransaction, getActiveSpan } from './utils';
 export {
   setHttpStatus,
   getSpanStatusFromHttpCode,

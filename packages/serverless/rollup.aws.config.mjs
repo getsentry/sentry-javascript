@@ -7,7 +7,6 @@ export default [
       // this automatically sets it to be CJS
       bundleType: 'node',
       entrypoints: ['src/index.awslambda.ts'],
-      jsVersion: 'es6',
       licenseTitle: '@sentry/serverless',
       outputFileBase: () => 'index',
       packageSpecificConfig: {

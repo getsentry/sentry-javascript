@@ -90,6 +90,7 @@ export {
   spanToJSON,
   spanIsSampled,
   spanToTraceContext,
+  getSpanDescendants,
 } from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';

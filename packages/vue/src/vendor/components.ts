@@ -32,9 +32,7 @@ const ROOT_COMPONENT_NAME = '<Root>';
 const ANONYMOUS_COMPONENT_NAME = '<Anonymous>';
 
 const repeat = (str: string, n: number): string => {
-  // string.repeat() is not supported by IE11, we fall back to just using the string in that case
-  // eslint-disable-next-line @sentry-internal/sdk/no-unsupported-es6-methods
-  return str.repeat ? str.repeat(n) : str;
+  return str.repeat(n);
 };
 
 export const formatComponentName = (vm?: ViewModel, includeFile?: boolean): string => {
