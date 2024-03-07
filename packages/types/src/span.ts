@@ -50,7 +50,6 @@ export interface SpanJSON {
   span_id: string;
   start_timestamp: number;
   status?: string;
-  tags?: { [key: string]: Primitive };
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
@@ -131,12 +130,6 @@ export interface SpanContext {
    * Trace ID
    */
   traceId?: string | undefined;
-
-  /**
-   * Tags of the Span.
-   * @deprecated Pass `attributes` instead.
-   */
-  tags?: { [key: string]: Primitive };
 
   /**
    * Data of the Span.
