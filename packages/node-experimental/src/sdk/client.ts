@@ -19,7 +19,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       serverName: options.serverName || global.process.env.SENTRY_NAME || os.hostname(),
     };
 
-    applySdkMetadata(clientOptions, 'node-experimental');
+    applySdkMetadata(clientOptions, 'node');
 
     super(clientOptions);
   }
@@ -30,7 +30,7 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
       return this._tracer;
     }
 
-    const name = '@sentry/node-experimental';
+    const name = '@sentry/node';
     const version = SDK_VERSION;
     const tracer = trace.getTracer(name, version);
     this._tracer = tracer;

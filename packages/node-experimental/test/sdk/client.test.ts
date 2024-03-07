@@ -43,10 +43,10 @@ describe('NodeClient', () => {
       stackParser: options.stackParser,
       _metadata: {
         sdk: {
-          name: 'sentry.javascript.node-experimental',
+          name: 'sentry.javascript.node',
           packages: [
             {
-              name: 'npm:@sentry/node-experimental',
+              name: 'npm:@sentry/node',
               version: SDK_VERSION,
             },
           ],
