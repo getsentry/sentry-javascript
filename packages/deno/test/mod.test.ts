@@ -3,14 +3,14 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { DenoClient, Hub, Scope, getDefaultIntegrations } from '../build/index.mjs';
+import { DenoClient, getDefaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
 function getTestClient(
   callback: (event?: sentryTypes.Event) => void,
   integrations: sentryTypes.Integration[] = [],
-): [Hub, DenoClient] {
+): DenoClient {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',
     debug: true,
@@ -21,11 +21,7 @@ function getTestClient(
     }),
   });
 
-  const scope = new Scope();
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = new Hub(client, scope);
-
-  return [hub, client];
+  return client;
 }
 
 function delay(time: number): Promise<void> {
@@ -36,7 +32,7 @@ function delay(time: number): Promise<void> {
 
 Deno.test('captureException', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [, client] = getTestClient(event => {
+  const client = getTestClient(event => {
     ev = event;
   });
 
@@ -52,7 +48,7 @@ Deno.test('captureException', async t => {
 
 Deno.test('captureMessage', async t => {
   let ev: sentryTypes.Event | undefined;
-  const [, client] = getTestClient(event => {
+  const client = getTestClient(event => {
     ev = event;
   });
 
