@@ -286,8 +286,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       },
       spans,
       start_timestamp: this._startTime,
-      // eslint-disable-next-line deprecation/deprecation
-      tags: this.tags,
       timestamp: this._endTime,
       transaction: this._name,
       type: 'transaction',
