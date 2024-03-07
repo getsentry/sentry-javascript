@@ -8,6 +8,7 @@
 
 - feat(nextjs): Support Hybrid Cloud DSNs with `tunnelRoute` option (#10958)
 - feat(remix): Add Vite dev-mode support to Express instrumentation (#10811)
+- fix(core): Undeprecate `setTransactionName`
 - fix(browser): Don't use chrome variable name (#10874)
 - fix(nextjs): Client code should not use Node `global` (#10925)
 - fix(node): support undici headers as strings or arrays (#10938)
