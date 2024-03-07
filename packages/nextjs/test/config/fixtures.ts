@@ -99,8 +99,6 @@ export function getBuildContext(
       ...materializedNextConfig,
     } as NextConfigObject,
     webpack: { version: webpackVersion, DefinePlugin: class {} as any },
-    defaultLoaders: true,
-    totalPages: 2,
     isServer: buildTarget === 'server' || buildTarget === 'edge',
     nextRuntime: ({ server: 'nodejs', client: undefined, edge: 'edge' } as const)[buildTarget],
   };

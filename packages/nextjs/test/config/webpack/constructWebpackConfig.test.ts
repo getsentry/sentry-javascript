@@ -58,8 +58,11 @@ describe('constructWebpackConfigFunction()', () => {
           }) as any,
       },
       undefined,
-      undefined,
-      { disableServerWebpackPlugin: true },
+      {
+        sourcemaps: {
+          disable: true,
+        },
+      },
     );
 
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
