@@ -51,7 +51,6 @@ function recordInitSpan(componentName: string): Span | undefined {
   });
 
   onMount(() => {
-    if (!initSpan) return;
     initSpan.end();
   });
 
