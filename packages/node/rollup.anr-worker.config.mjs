@@ -4,7 +4,6 @@ function createAnrWorkerConfig(destDir, esm) {
   return makeBaseBundleConfig({
     bundleType: 'node-worker',
     entrypoints: ['src/integrations/anr/worker.ts'],
-    jsVersion: 'es6',
     licenseTitle: '@sentry/node',
     outputFileBase: () => 'worker-script.js',
     packageSpecificConfig: {

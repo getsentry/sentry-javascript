@@ -1,9 +1,10 @@
-import * as fs from 'fs';
+import { promises } from 'fs';
 import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
 import { _contextLinesIntegration, resetFileContentCache } from '../../src/integrations/contextlines';
 import { defaultStackParser } from '../../src/sdk/api';
+import { getError } from '../helpers/error';
 
 jest.mock('fs', () => {
   const actual = jest.requireActual('fs');
@@ -17,7 +18,7 @@ jest.mock('fs', () => {
 });
 
 describe('ContextLines', () => {
-  const readFileSpy = fs.promises.readFile as unknown as jest.SpyInstance;
+  const readFileSpy = promises.readFile as unknown as jest.SpyInstance;
   let contextLines: ReturnType<typeof _contextLinesIntegration>;
 
   async function addContext(frames: StackFrame[]): Promise<void> {
@@ -144,7 +145,3 @@ describe('ContextLines', () => {
     expect(readFileSpy).toHaveBeenCalledTimes(1);
   });
 });
-
-function getError(): Error {
-  return new Error('mock error');
-}
