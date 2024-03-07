@@ -206,7 +206,7 @@ export class Http implements Integration {
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
     if (NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const httpsModule = require('https');
+      const httpsModule = require('node:https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
         httpsModule,
         this._breadcrumbs,

@@ -141,6 +141,8 @@ export function requestHandler(
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore I've only updated the node types and this package will soon be removed
       res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         void flush(options.flushTimeout)
           .then(() => {
