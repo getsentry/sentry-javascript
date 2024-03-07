@@ -1,20 +1,24 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
 // This tests asserts that the pageload span will finish itself after the child span timeout if it
 // has a child span without adding any additional ones or finishing any of them finishing. All of the child spans that
 // are still running should have the status "cancelled".
-sentryTest('should send a pageload span terminated via child span timeout', async ({ getLocalTestPath, page }) => {
+sentryTest('should send a pageload span terminated via child span timeout', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const req = await waitForTransactionRequestOnUrl(page, url);
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const eventData = envelopeRequestParser(req);
 
   expect(eventData.contexts?.trace?.op).toBe('pageload');
   expect(eventData.spans?.length).toBeGreaterThanOrEqual(1);
