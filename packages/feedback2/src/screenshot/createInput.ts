@@ -8,14 +8,14 @@ import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
  *
  */
 export function createInput(h: typeof hType, dialog: Dialog): ScreenshotInput {
-  const canvas = DOCUMENT.createElement('canvas');
+  const imageBuffer = DOCUMENT.createElement('canvas');
 
   return {
-    input: makeScreenshotEditorComponent({ h, canvas, dialog }),
+    input: makeScreenshotEditorComponent({ h, imageBuffer, dialog }),
 
     value: async () => {
       const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {
-        canvas.toBlob(resolve, 'image/png');
+        imageBuffer.toBlob(resolve, 'image/png');
       });
       if (blob) {
         const data = new Uint8Array(await blob.arrayBuffer());

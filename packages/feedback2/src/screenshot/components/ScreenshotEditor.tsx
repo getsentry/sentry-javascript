@@ -1,15 +1,15 @@
 import type { ComponentType, VNode, h as hType } from 'preact';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { h } from 'preact';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { DOCUMENT, WINDOW } from '../../constants';
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
-import { DOCUMENT, WINDOW } from '../../constants';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { h } from 'preact';
 
 interface FactoryParams {
   h: typeof hType;
-  canvas: HTMLCanvasElement;
+  imageBuffer: HTMLCanvasElement;
   dialog: Dialog;
 }
 
@@ -39,7 +39,7 @@ const constructRect = (start: Point, end: Point): Rect => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryParams): ComponentType<Props> {
+export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: FactoryParams): ComponentType<Props> {
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
     const canvasContainerRef = useRef<HTMLDivElement>(null);
@@ -50,21 +50,24 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
 
     useEffect(() => {
       const container = canvasContainerRef.current;
-      container && container.appendChild(canvas);
+      container && container.appendChild(imageBuffer);
 
       resizeCropper();
-    }, [canvas]);
+    }, [imageBuffer]);
 
     function resizeCropper() {
-      setRectStart({ x: canvas.offsetLeft, y: canvas.offsetTop });
-      setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
+      setRectStart({ x: imageBuffer.offsetLeft, y: imageBuffer.offsetTop });
+      setRectEnd({
+        x: imageBuffer.offsetLeft + imageBuffer.offsetWidth,
+        y: imageBuffer.offsetTop + imageBuffer.offsetHeight,
+      });
 
       const cropper = cropperRef.current;
       if (cropper) {
-        cropper!.width = canvas.offsetWidth;
-        cropper!.height = canvas.offsetHeight;
-        cropper!.style.width = `${canvas.offsetWidth}px`;
-        cropper!.style.height = `${canvas.offsetHeight}px`;
+        cropper!.width = imageBuffer.offsetWidth;
+        cropper!.height = imageBuffer.offsetHeight;
+        cropper!.style.width = `${imageBuffer.offsetWidth}px`;
+        cropper!.style.height = `${imageBuffer.offsetHeight}px`;
       }
     }
 
@@ -78,13 +81,13 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
 
         // draw gray overlay around the selection
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
-        ctx.clearRect(rect.x - canvas.offsetLeft, rect.y - canvas.offsetTop, rect.width, rect.height);
+        ctx.fillRect(0, 0, imageBuffer.offsetWidth, imageBuffer.offsetHeight);
+        ctx.clearRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
 
         // draw selection border
         ctx.strokeStyle = 'purple';
         ctx.lineWidth = 3;
-        ctx.strokeRect(rect.x - canvas.offsetLeft, rect.y - canvas.offsetTop, rect.width, rect.height);
+        ctx.strokeRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
       }
     }
 
@@ -93,22 +96,22 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
         switch (corner) {
           case 'topleft':
             setRectStart({
-              x: canvas.offsetLeft + Math.floor(e.offsetX),
-              y: canvas.offsetTop + Math.floor(e.offsetY),
+              x: imageBuffer.offsetLeft + Math.floor(e.offsetX),
+              y: imageBuffer.offsetTop + Math.floor(e.offsetY),
             });
             break;
           case 'topright':
-            setRectStart(prev => ({ ...prev, y: canvas.offsetTop + Math.floor(e.offsetY) }));
-            setRectEnd(prev => ({ ...prev, x: canvas.offsetLeft + Math.floor(e.offsetX) }));
+            setRectStart(prev => ({ ...prev, y: imageBuffer.offsetTop + Math.floor(e.offsetY) }));
+            setRectEnd(prev => ({ ...prev, x: imageBuffer.offsetLeft + Math.floor(e.offsetX) }));
             break;
           case 'bottomleft':
-            setRectStart(prev => ({ ...prev, x: canvas.offsetLeft + Math.floor(e.offsetX) }));
-            setRectEnd(prev => ({ ...prev, y: canvas.offsetTop + Math.floor(e.offsetY) }));
+            setRectStart(prev => ({ ...prev, x: imageBuffer.offsetLeft + Math.floor(e.offsetX) }));
+            setRectEnd(prev => ({ ...prev, y: imageBuffer.offsetTop + Math.floor(e.offsetY) }));
             break;
           case 'bottomright':
             setRectEnd({
-              x: canvas.offsetLeft + Math.floor(e.offsetX),
-              y: canvas.offsetTop + Math.floor(e.offsetY),
+              x: imageBuffer.offsetLeft + Math.floor(e.offsetX),
+              y: imageBuffer.offsetTop + Math.floor(e.offsetY),
             });
             break;
         }
@@ -119,14 +122,14 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
       setConfirmCrop(false);
       const handleMouseMove = makeHandleMouseMove(corner);
       const handleMouseUp = () => {
-        canvas?.removeEventListener('mousemove', handleMouseMove);
+        imageBuffer?.removeEventListener('mousemove', handleMouseMove);
         cropperRef.current?.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT?.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
       };
 
       DOCUMENT?.addEventListener('mouseup', handleMouseUp);
-      canvas?.addEventListener('mousemove', handleMouseMove);
+      imageBuffer?.addEventListener('mousemove', handleMouseMove);
       cropperRef.current?.addEventListener('mousemove', handleMouseMove);
     }
 
@@ -142,13 +145,13 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
       cutoutCanvas.height = rect.height;
 
       const cutoutCtx = cutoutCanvas.getContext('2d');
-      if (cutoutCtx && canvas) {
+      if (cutoutCtx && imageBuffer) {
         cutoutCtx.drawImage(
-          canvas,
-          ((rect.x - canvas.offsetLeft) / canvas.offsetWidth) * canvas.width,
-          ((rect.y - canvas.offsetTop) / canvas.offsetHeight) * canvas.height,
-          (rect.width / canvas.offsetWidth) * canvas.width,
-          (rect.height / canvas.offsetHeight) * canvas.height,
+          imageBuffer,
+          ((rect.x - imageBuffer.offsetLeft) / imageBuffer.offsetWidth) * imageBuffer.width,
+          ((rect.y - imageBuffer.offsetTop) / imageBuffer.offsetHeight) * imageBuffer.height,
+          (rect.width / imageBuffer.offsetWidth) * imageBuffer.width,
+          (rect.height / imageBuffer.offsetHeight) * imageBuffer.height,
           0,
           0,
           rect.width,
@@ -156,9 +159,9 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
         );
       }
       const container = canvasContainerRef.current;
-      container && container.removeChild(canvas);
+      container && container.removeChild(imageBuffer);
       // eslint-disable-next-line no-param-reassign
-      canvas = cutoutCanvas;
+      imageBuffer = cutoutCanvas;
     }
 
     useTakeScreenshot({
@@ -167,15 +170,15 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
       }, []),
       onScreenshot: useCallback(
         (imageSource: HTMLVideoElement) => {
-          const context = canvas.getContext('2d');
+          const context = imageBuffer.getContext('2d');
           if (!context) {
             throw new Error('Could not get canvas context');
           }
-          canvas.width = imageSource.videoWidth;
-          canvas.height = imageSource.videoHeight;
+          imageBuffer.width = imageSource.videoWidth;
+          imageBuffer.height = imageSource.videoHeight;
           context.drawImage(imageSource, 0, 0, imageSource.videoWidth, imageSource.videoHeight);
         },
-        [canvas],
+        [imageBuffer],
       ),
       onAfterScreenshot: useCallback(() => {
         dialog.el.style.display = 'block';
@@ -228,8 +231,11 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
             <button
               onClick={e => {
                 e.preventDefault();
-                setRectStart({ x: canvas.offsetLeft, y: canvas.offsetTop });
-                setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
+                setRectStart({ x: imageBuffer.offsetLeft, y: imageBuffer.offsetTop });
+                setRectEnd({
+                  x: imageBuffer.offsetLeft + imageBuffer.offsetWidth,
+                  y: imageBuffer.offsetTop + imageBuffer.offsetHeight,
+                });
                 setConfirmCrop(false);
               }}
               class="btn btn--default"
