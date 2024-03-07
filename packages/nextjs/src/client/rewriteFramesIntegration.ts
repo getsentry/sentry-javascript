@@ -1,8 +1,9 @@
 import { defineIntegration } from '@sentry/core';
 import { rewriteFramesIntegration as originalRewriteFramesIntegration } from '@sentry/integrations';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesAssetPrefixPath__: string;
 };
 

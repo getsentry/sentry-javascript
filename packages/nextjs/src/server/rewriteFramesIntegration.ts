@@ -5,9 +5,9 @@ import {
   rewriteFramesIntegration as originalRewriteFramesIntegration,
 } from '@sentry/integrations';
 import type { IntegrationFn, StackFrame } from '@sentry/types';
-import { escapeStringForRegex } from '@sentry/utils';
+import { GLOBAL_OBJ, escapeStringForRegex } from '@sentry/utils';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
 };
 

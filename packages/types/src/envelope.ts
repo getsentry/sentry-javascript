@@ -1,3 +1,4 @@
+import type { AttachmentType } from './attachment';
 import type { SerializedCheckIn } from './checkin';
 import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
@@ -72,7 +73,7 @@ type AttachmentItemHeaders = {
   length: number;
   filename: string;
   content_type?: string;
-  attachment_type?: string;
+  attachment_type?: AttachmentType;
 };
 type UserFeedbackItemHeaders = { type: 'user_report' };
 type FeedbackItemHeaders = { type: 'feedback' };
