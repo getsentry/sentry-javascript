@@ -136,7 +136,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
           value: '(?<region>\\[a-z\\]{2})',
         },
       ],
-      destination: 'https://o:orgid.ingest.:projectid.sentry.io/api/:projectid/envelope/?hsts=0',
+      destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
     if (typeof originalRewrites !== 'function') {
