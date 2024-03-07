@@ -969,10 +969,6 @@ instead now.
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
 automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
 
-## Deprecate `scope.setTransactionName()`
-
-Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
-
 ## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
 
 Instead, you should not rely on the active transaction, but just use `startSpan()` APIs, which handle this for you.

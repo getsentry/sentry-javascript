@@ -279,7 +279,6 @@ export class Scope implements ScopeInterface {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
