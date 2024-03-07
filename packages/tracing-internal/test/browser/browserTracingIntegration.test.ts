@@ -619,10 +619,9 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
 
-      // Propagation context is correct
-      expect(propagationContext.sampled).toBe(false);
-      expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
-      expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+      // Propagation context is reset and does not contain the meta tag data
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
 
     it('puts frozen Dynamic Sampling Context on pageload span if sentry-trace data and only 3rd party baggage is present', () => {
@@ -657,10 +656,9 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({});
 
-      // Propagation context is correct
-      expect(propagationContext.sampled).toBe(false);
-      expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
-      expect(propagationContext.parentSpanId).toEqual('1121201211212012');
+      // Propagation context is reset and does not contain the meta tag data
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
 
     it('ignores the meta tag data for navigation spans', () => {
