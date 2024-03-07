@@ -30,12 +30,12 @@ fetch API to be available in the environment.
 
 New minimum supported browsers:
 
-- Chrome 51
+- Chrome 58
 - Edge 15
-- Safari/iOS Safari 10
+- Safari/iOS Safari 11
 - Firefox 54
-- Opera 38
-- Samnsung Internet 5
+- Opera 45
+- Samsung Internet 7.2
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
