@@ -12,9 +12,6 @@ export function startTransaction(hub: HubInterface, transactionContext: Transact
 
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction(transactionContext, hub as Hub);
-  // Since we do not do sampling here, we assume that this is _always_ sampled
-  // Any sampling decision happens in OpenTelemetry's sampler
-  transaction.initSpanRecorder();
 
   if (client) {
     client.emit('startTransaction', transaction);
