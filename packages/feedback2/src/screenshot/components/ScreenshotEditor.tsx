@@ -1,8 +1,8 @@
 import type { ComponentType, VNode, h as hType } from 'preact';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { h } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: reason
+import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { DOCUMENT, WINDOW } from '../../constants';
+import { DOCUMENT } from '../../constants';
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
@@ -55,7 +55,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       resizeCropper();
     }, [imageBuffer]);
 
-    function resizeCropper() {
+    function resizeCropper(): void {
       setRectStart({ x: imageBuffer.offsetLeft, y: imageBuffer.offsetTop });
       setRectEnd({
         x: imageBuffer.offsetLeft + imageBuffer.offsetWidth,
@@ -64,31 +64,35 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
 
       const cropper = cropperRef.current;
       if (cropper) {
-        cropper!.width = imageBuffer.offsetWidth;
-        cropper!.height = imageBuffer.offsetHeight;
-        cropper!.style.width = `${imageBuffer.offsetWidth}px`;
-        cropper!.style.height = `${imageBuffer.offsetHeight}px`;
+        cropper.width = imageBuffer.offsetWidth;
+        cropper.height = imageBuffer.offsetHeight;
+        cropper.style.width = `${imageBuffer.offsetWidth}px`;
+        cropper.style.height = `${imageBuffer.offsetHeight}px`;
       }
     }
 
-    function refreshCanvas() {
+    function refreshCanvas(): void {
       const cropper = cropperRef.current;
-      const ctx = cropper?.getContext('2d');
-      if (cropper && ctx) {
-        ctx.clearRect(0, 0, cropper.width, cropper.height);
-
-        const rect = constructRect(rectStart, rectEnd);
-
-        // draw gray overlay around the selection
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        ctx.fillRect(0, 0, imageBuffer.offsetWidth, imageBuffer.offsetHeight);
-        ctx.clearRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
-
-        // draw selection border
-        ctx.strokeStyle = 'purple';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
+      if (!cropper) {
+        return;
       }
+      const ctx = cropper.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      ctx.clearRect(0, 0, cropper.width, cropper.height);
+
+      const rect = constructRect(rectStart, rectEnd);
+
+      // draw gray overlay around the selection
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, imageBuffer.offsetWidth, imageBuffer.offsetHeight);
+      ctx.clearRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
+
+      // draw selection border
+      ctx.strokeStyle = 'purple';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
     }
 
     const makeHandleMouseMove = useCallback((corner: string) => {
@@ -118,26 +122,26 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       };
     }, []);
 
-    function onGrabButton(e: Event, corner: string) {
+    function onGrabButton(e: Event, corner: string): void {
       setConfirmCrop(false);
       const handleMouseMove = makeHandleMouseMove(corner);
-      const handleMouseUp = () => {
-        imageBuffer?.removeEventListener('mousemove', handleMouseMove);
-        cropperRef.current?.removeEventListener('mousemove', handleMouseMove);
-        DOCUMENT?.removeEventListener('mouseup', handleMouseUp);
+      const handleMouseUp = (): void => {
+        imageBuffer.removeEventListener('mousemove', handleMouseMove);
+        cropperRef.current && cropperRef.current.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
       };
 
-      DOCUMENT?.addEventListener('mouseup', handleMouseUp);
-      imageBuffer?.addEventListener('mousemove', handleMouseMove);
-      cropperRef.current?.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mouseup', handleMouseUp);
+      imageBuffer.addEventListener('mousemove', handleMouseMove);
+      cropperRef.current && cropperRef.current.addEventListener('mousemove', handleMouseMove);
     }
 
     useEffect(() => {
       refreshCanvas();
     }, [rectStart, rectEnd]);
 
-    function submit() {
+    function submit(): void {
       const rect = constructRect(rectStart, rectEnd);
 
       const cutoutCanvas = DOCUMENT.createElement('canvas');
