@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { DOCUMENT } from '../../constants';
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
+import { useContainerSize } from './useContainerSize';
 import { useTakeScreenshot } from './useTakeScreenshot';
 
 interface FactoryParams {
@@ -17,6 +18,11 @@ interface Props {
   onError: (error: Error) => void;
 }
 
+interface Box {
+  width: number;
+  height: number;
+}
+
 interface Point {
   x: number;
   y: number;
@@ -25,14 +31,18 @@ interface Point {
 interface Rect {
   height: number;
   width: number;
-  x: number;
-  y: number;
+  sx: number;
+  sy: number;
+  ex: number;
+  ey: number;
 }
 
 const constructRect = (start: Point, end: Point): Rect => {
   return {
-    x: Math.min(start.x, end.x),
-    y: Math.min(start.y, end.y),
+    sx: Math.min(start.x, end.x),
+    sy: Math.min(start.y, end.y),
+    ex: Math.max(start.x, end.x),
+    ey: Math.max(start.y, end.y),
     width: Math.abs(start.x - end.x),
     height: Math.abs(start.y - end.y),
   };
@@ -56,10 +66,57 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const cropperRef = useRef<HTMLCanvasElement>(null);
+    const divRef = useRef<HTMLDivElement>(null);
+
+    const containerSize = useContainerSize(canvasContainerRef);
+    const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+
+    useEffect(() => {
+      if (!canvasRef.current) {
+        return;
+      }
+      canvasRef.current.style.width = `${containerSize.width}px`;
+      canvasRef.current.style.height = `${containerSize.height}px`;
+    }, [canvasRef.current, containerSize]);
 
     const [rectStart, setRectStart] = useState({ x: 0, y: 0 });
-    const [rectEnd, setRectEnd] = useState({ x: 0, y: 0 }); // width/height
+    const [rectEnd, setRectEnd] = useState({ x: containerSize.width, y: containerSize.height });
+    const rect = useMemo(() => constructRect(rectStart, rectEnd), [rectStart, rectEnd]);
     const [confirmCrop, setConfirmCrop] = useState(false);
+
+    useEffect(() => {
+      if (!cropperRef.current || !divRef.current) {
+        return;
+      }
+      const cropper = cropperRef.current;
+
+      const widthRatio = imageSize.width / containerSize.width;
+      const heightRatio = imageSize.height / containerSize.height;
+      if (widthRatio > heightRatio) {
+        cropper.width = containerSize.width;
+        cropper.height = Math.floor(imageSize.height / widthRatio);
+      } else {
+        cropper.width = Math.floor(imageSize.width / heightRatio);
+        cropper.height = containerSize.height;
+      }
+
+      const ctx = cropper.getContext('2d');
+      if (!ctx) {
+        return;
+      }
+      console.log('redraw', cropper.width, cropper.height, rect);
+      // ctx.clearRect(0, 0, cropper.width, cropper.height);
+
+      // draw gray overlay around the selection
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.clearRect(rect.sx, rect.sy, rect.width, rect.height);
+
+      // draw selection border
+      ctx.strokeStyle = 'purple';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(rect.sx, rect.sy, rect.width, rect.height);
+    }, [rect, cropperRef.current, containerSize, imageSize]);
 
     useTakeScreenshot({
       onBeforeScreenshot: useCallback(() => {
@@ -67,18 +124,17 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       }, []),
       onScreenshot: useCallback(
         (imageSource: HTMLVideoElement) => {
+          setImageSize({
+            width: imageSource.videoWidth,
+            height: imageSource.videoHeight,
+          });
           drawIntoCanvas(imageSource, imageBuffer);
 
           if (canvasRef.current) {
             drawIntoCanvas(imageSource, canvasRef.current);
-            setRectStart({ x: 0, y: 0 });
-            setRectEnd({ x: imageSource.videoWidth, y: imageSource.videoHeight });
-            const cropper = cropperRef.current;
-            if (cropper) {
-              cropper.width = imageSource.videoWidth;
-              cropper.height = imageSource.videoHeight;
-              cropper.style.width = `${imageSource.videoWidth}px`;
-              cropper.style.height = `${imageSource.videoHeight}px`;
+
+            if (divRef.current) {
+              divRef.current.style.aspectRatio = `auto ${imageSource.videoWidth} / ${imageSource.videoHeight}`;
             }
           }
         },
@@ -94,58 +150,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       }, []),
     });
 
-    // useEffect(() => {
-    //   const ctx = canvasRef.current && canvasRef.current.getContext('2d');
-    //   if (ctx) {
-    //     ctx.drawImage(
-    //       imageBuffer,
-    //       0,
-    //       0,
-    //       imageBuffer.width,
-    //       imageBuffer.height,
-    //       0,
-    //       0,
-    //       imageBuffer.width,
-    //       imageBuffer.height,
-    //     );
-
-    //     setRectStart({ x: 0, y: 0 });
-    //     setRectEnd({ x: imageBuffer.width, y: imageBuffer.height });
-
-    //     const cropper = cropperRef.current;
-    //     if (cropper) {
-    //       cropper.width = imageBuffer.offsetWidth;
-    //       cropper.height = imageBuffer.offsetHeight;
-    //       cropper.style.width = `${imageBuffer.offsetWidth}px`;
-    //       cropper.style.height = `${imageBuffer.offsetHeight}px`;
-    //     }
-    //   }
-    // }, [canvasRef.current]);
-
-    // useEffect(() => {
-    //   // const container = canvasContainerRef.current;
-    //   // container && container.appendChild(imageBuffer);
-
-    //   resizeCropper();
-    // }, [imageBuffer]);
-
-    // function resizeCropper(): void {
-    //   setRectStart({ x: imageBuffer.offsetLeft, y: imageBuffer.offsetTop });
-    //   setRectEnd({
-    //     x: imageBuffer.offsetLeft + imageBuffer.offsetWidth,
-    //     y: imageBuffer.offsetTop + imageBuffer.offsetHeight,
-    //   });
-
-    //   const cropper = cropperRef.current;
-    //   if (cropper) {
-    //     cropper.width = imageBuffer.offsetWidth;
-    //     cropper.height = imageBuffer.offsetHeight;
-    //     cropper.style.width = `${imageBuffer.offsetWidth}px`;
-    //     cropper.style.height = `${imageBuffer.offsetHeight}px`;
-    //   }
-    // }
-
-    function refreshCanvas(): void {
+    const drawCropBorder = useCallback((rect: Rect): void => {
       const cropper = cropperRef.current;
       if (!cropper) {
         return;
@@ -156,40 +161,38 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       }
       ctx.clearRect(0, 0, cropper.width, cropper.height);
 
-      const rect = constructRect(rectStart, rectEnd);
-
       // draw gray overlay around the selection
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(0, 0, imageBuffer.offsetWidth, imageBuffer.offsetHeight);
-      ctx.clearRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
+      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.clearRect(rect.sx, rect.sy, rect.width, rect.height);
 
       // draw selection border
       ctx.strokeStyle = 'purple';
       ctx.lineWidth = 3;
-      ctx.strokeRect(rect.x - imageBuffer.offsetLeft, rect.y - imageBuffer.offsetTop, rect.width, rect.height);
-    }
+      ctx.strokeRect(rect.sx, rect.sy, rect.width, rect.height);
+    }, []);
 
     const makeHandleMouseMove = useCallback((corner: string) => {
       return function (e: MouseEvent) {
         switch (corner) {
           case 'topleft':
             setRectStart({
-              x: imageBuffer.offsetLeft + Math.floor(e.offsetX),
-              y: imageBuffer.offsetTop + Math.floor(e.offsetY),
+              x: Math.max(0, e.offsetX), // but not larger than the width
+              y: Math.max(0, e.offsetY),
             });
             break;
           case 'topright':
-            setRectStart(prev => ({ ...prev, y: imageBuffer.offsetTop + Math.floor(e.offsetY) }));
-            setRectEnd(prev => ({ ...prev, x: imageBuffer.offsetLeft + Math.floor(e.offsetX) }));
+            setRectStart(prev => ({ ...prev, y: Math.floor(e.offsetY) }));
+            setRectEnd(prev => ({ ...prev, x: Math.floor(e.offsetX) }));
             break;
           case 'bottomleft':
-            setRectStart(prev => ({ ...prev, x: imageBuffer.offsetLeft + Math.floor(e.offsetX) }));
-            setRectEnd(prev => ({ ...prev, y: imageBuffer.offsetTop + Math.floor(e.offsetY) }));
+            setRectStart(prev => ({ ...prev, x: Math.floor(e.offsetX) }));
+            setRectEnd(prev => ({ ...prev, y: Math.floor(e.offsetY) }));
             break;
           case 'bottomright':
             setRectEnd({
-              x: imageBuffer.offsetLeft + Math.floor(e.offsetX),
-              y: imageBuffer.offsetTop + Math.floor(e.offsetY),
+              x: Math.floor(e.offsetX),
+              y: Math.floor(e.offsetY),
             });
             break;
         }
@@ -211,10 +214,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       cropperRef.current && cropperRef.current.addEventListener('mousemove', handleMouseMove);
     }
 
-    useEffect(() => {
-      refreshCanvas();
-    }, [rectStart, rectEnd]);
-
     function submit(): void {
       const rect = constructRect(rectStart, rectEnd);
 
@@ -226,8 +225,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (imagebufferCtx) {
         imagebufferCtx.drawImage(
           imageBuffer,
-          ((rect.x - imageBuffer.offsetLeft) / imageBuffer.offsetWidth) * imageBuffer.width,
-          ((rect.y - imageBuffer.offsetTop) / imageBuffer.offsetHeight) * imageBuffer.height,
+          ((rect.sx - imageBuffer.offsetLeft) / imageBuffer.offsetWidth) * imageBuffer.width,
+          ((rect.sy - imageBuffer.offsetTop) / imageBuffer.offsetHeight) * imageBuffer.height,
           (rect.width / imageBuffer.offsetWidth) * imageBuffer.width,
           (rect.height / imageBuffer.offsetHeight) * imageBuffer.height,
           0,
@@ -247,30 +246,25 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
         <div class="canvasContainer" ref={canvasContainerRef}>
-          <canvas ref={canvasRef}></canvas>
-          <canvas ref={cropperRef}></canvas>
-          <div>
+          <canvas ref={canvasRef} />
+          <div ref={divRef}>
+            <canvas class="cropper" ref={cropperRef} />
+            <CropCorner left={rect.sx} top={rect.sy} onGrabButton={onGrabButton} corner="topleft"></CropCorner>
             <CropCorner
-              left={rectStart.x - 3}
-              top={rectStart.y - 3}
-              onGrabButton={onGrabButton}
-              corner="topleft"
-            ></CropCorner>
-            <CropCorner
-              left={rectEnd.x - 30 + 3}
-              top={rectStart.y - 3}
+              left={Math.max(0, rect.ex - 30)}
+              top={rect.sy}
               onGrabButton={onGrabButton}
               corner="topright"
             ></CropCorner>
             <CropCorner
-              left={rectStart.x - 3}
-              top={rectEnd.y - 30 + 3}
+              left={rect.sx}
+              top={Math.max(0, rect.ey - 30)}
               onGrabButton={onGrabButton}
               corner="bottomleft"
             ></CropCorner>
             <CropCorner
-              left={rectEnd.x - 30 + 3}
-              top={rectEnd.y - 30 + 3}
+              left={Math.max(0, rect.ex - 30)}
+              top={Math.max(0, rect.ey - 30)}
               onGrabButton={onGrabButton}
               corner="bottomright"
             ></CropCorner>
@@ -278,8 +272,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
             <div
               style={{
                 position: 'absolute',
-                left: rectEnd.x - 191,
-                top: rectEnd.y + 8,
+                left: rect.ex - 191,
+                top: rect.ey + 8,
                 display: confirmCrop ? 'flex' : 'none',
               }}
               class="crop-btn-group"

@@ -39,13 +39,19 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 .canvasContainer {
   display: grid;
   grid-template: 1fr / 1fr;
+  flex: 1 0 auto;
 }
 
 .canvasContainer > * {
   grid-area: 1 / 1;
-  flex: 1 0 auto;
-  width: 0; /* reasons... */
+  position: relative;
+  object-fit: contain;
   align-self: center;
+}
+
+.cropper {
+  width: 100%;
+  height: 100%;
 }
 
 .crop-btn-group {
