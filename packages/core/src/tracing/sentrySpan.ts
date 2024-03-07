@@ -372,6 +372,18 @@ export class SentrySpan implements Span {
   }
 
   /**
+   * This should generally not be used,
+   * but we need it for browser tracing where we want to adjust the start time afterwards.
+   * USE THIS WITH CAUTION!
+   *
+   * @hidden
+   * @internal
+   */
+  public updateStartTime(timeInput: SpanTimeInput): void {
+    this._startTime = spanTimeInputToSeconds(timeInput);
+  }
+
+  /**
    * @inheritDoc
    */
   public setStatus(value: SpanStatus): this {
