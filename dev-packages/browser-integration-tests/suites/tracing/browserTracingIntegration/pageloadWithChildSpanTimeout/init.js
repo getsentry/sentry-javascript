@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/browser';
-import { startSpanManual } from '@sentry/browser';
 
 window.Sentry = Sentry;
 
@@ -8,13 +7,18 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       // To avoid having this test run for 15s
-      childSpanTimeout: 5000,
+      childSpanTimeout: 4000,
     }),
   ],
   defaultIntegrations: false,
   tracesSampleRate: 1,
 });
 
-setTimeout(() => {
-  startSpanManual({ name: 'pageload-child-span' }, () => {});
-}, 200);
+const activeSpan = Sentry.getActiveSpan();
+if (activeSpan) {
+  Sentry.startInactiveSpan({ name: 'pageload-child-span' });
+} else {
+  setTimeout(() => {
+    Sentry.startInactiveSpan({ name: 'pageload-child-span' });
+  }, 200);
+}
