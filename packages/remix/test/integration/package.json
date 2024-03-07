@@ -39,6 +39,6 @@
     "@vanilla-extract/integration": "6.2.4"
   },
   "engines": {
-    "node": ">=14.8"
+    "node": ">=14.18"
   }
 }
