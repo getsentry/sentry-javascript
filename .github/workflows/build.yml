@@ -1051,7 +1051,6 @@ jobs:
             'react-create-hash-router',
             'react-router-6-use-routes',
             'standard-frontend-react',
-            'standard-frontend-react-tracing-import',
             'sveltekit',
             'sveltekit-2',
             'generic-ts3.8',
