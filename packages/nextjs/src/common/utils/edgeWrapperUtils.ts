@@ -67,12 +67,10 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
               },
             );
 
-            if (span) {
-              if (handlerResult instanceof Response) {
-                setHttpStatus(span, handlerResult.status);
-              } else {
-                span.setStatus({ code: SPAN_STATUS_OK });
-              }
+            if (handlerResult instanceof Response) {
+              setHttpStatus(span, handlerResult.status);
+            } else {
+              span.setStatus({ code: SPAN_STATUS_OK });
             }
 
             return handlerResult;

@@ -7,11 +7,12 @@ import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import { addChildSpanToSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { addChildSpanToSpan, getActiveSpan, setCapturedScopesOnSpan } from './utils';
+import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -24,7 +25,7 @@ import { addChildSpanToSpan, getActiveSpan, setCapturedScopesOnSpan } from './ut
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | undefined) => T): T {
+export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) => T): T {
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -35,7 +36,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
-      ? undefined
+      ? new SentryNonRecordingSpan()
       : createChildSpanOrTransaction(hub, {
           parentSpan,
           spanContext,
@@ -43,10 +44,8 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
           scope,
         });
 
-    if (activeSpan) {
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(activeSpan);
-    }
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
     return handleCallbackErrors(
       () => callback(activeSpan),
@@ -75,10 +74,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span | 
  * or you didn't set `tracesSampleRate`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startSpanManual<T>(
-  context: StartSpanOptions,
-  callback: (span: Span | undefined, finish: () => void) => T,
-): T {
+export function startSpanManual<T>(context: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -89,7 +85,7 @@ export function startSpanManual<T>(
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
-      ? undefined
+      ? new SentryNonRecordingSpan()
       : createChildSpanOrTransaction(hub, {
           parentSpan,
           spanContext,
@@ -97,10 +93,8 @@ export function startSpanManual<T>(
           scope,
         });
 
-    if (activeSpan) {
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(activeSpan);
-    }
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
       activeSpan && activeSpan.end();
@@ -131,11 +125,7 @@ export function startSpanManual<T>(
  * or you didn't set `tracesSampleRate` or `tracesSampler`, this function will not generate spans
  * and the `span` returned from the callback will be undefined.
  */
-export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
-  if (!hasTracingEnabled()) {
-    return undefined;
-  }
-
+export function startInactiveSpan(context: StartSpanOptions): Span {
   const spanContext = normalizeContext(context);
   // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
@@ -147,7 +137,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span | undefined {
   const shouldSkipSpan = context.onlyIfParent && !parentSpan;
 
   if (shouldSkipSpan) {
-    return undefined;
+    return new SentryNonRecordingSpan();
   }
 
   const scope = context.scope || getCurrentScope();
@@ -275,14 +265,14 @@ function createChildSpanOrTransaction(
     forceTransaction?: boolean;
     scope: Scope;
   },
-): Span | undefined {
+): Span {
   if (!hasTracingEnabled()) {
-    return undefined;
+    return new SentryNonRecordingSpan();
   }
 
   const isolationScope = getIsolationScope();
 
-  let span: Span | undefined;
+  let span: Span;
   if (parentSpan && !forceTransaction) {
     // eslint-disable-next-line deprecation/deprecation
     span = parentSpan.startChild(spanContext);

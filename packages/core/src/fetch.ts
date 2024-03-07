@@ -14,6 +14,7 @@ import {
   setHttpStatus,
   startInactiveSpan,
 } from './tracing';
+import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
 import { spanToTraceHeader } from './utils/spanUtils';
 
@@ -92,12 +93,10 @@ export function instrumentFetchRequest(
         },
         op: 'http.client',
       })
-    : undefined;
+    : new SentryNonRecordingSpan();
 
-  if (span) {
-    handlerData.fetchData.__span = span.spanContext().spanId;
-    spans[span.spanContext().spanId] = span;
-  }
+  handlerData.fetchData.__span = span.spanContext().spanId;
+  spans[span.spanContext().spanId] = span;
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
     const request: string | Request = handlerData.args[0];

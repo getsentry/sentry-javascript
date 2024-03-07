@@ -96,9 +96,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                     typeof serveOptions.fetch
                   >);
                   if (response && response.status) {
-                    if (span) {
-                      setHttpStatus(span, response.status);
-                    }
+                    setHttpStatus(span, response.status);
                     if (span instanceof Transaction) {
                       const scope = getCurrentScope();
                       scope.setContext('response', {

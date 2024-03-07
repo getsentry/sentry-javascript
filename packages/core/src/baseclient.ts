@@ -534,7 +534,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> | void {
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
@@ -545,6 +545,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     DEBUG_BUILD && logger.error('Transport disabled');
+
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */

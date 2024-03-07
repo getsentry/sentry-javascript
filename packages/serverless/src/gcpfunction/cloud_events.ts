@@ -48,7 +48,7 @@ function _wrapCloudEventFunction(
           if (args[0] !== null && args[0] !== undefined) {
             captureException(args[0], scope => markEventUnhandled(scope));
           }
-          span?.end();
+          span.end();
 
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)

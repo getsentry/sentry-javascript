@@ -19,7 +19,8 @@ import {
   startSpan,
   startSpanManual,
 } from '../../../src/tracing';
-import { getSpanDescendants } from '../../../src/tracing/utils';
+import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import { getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -145,9 +146,7 @@ describe('startSpan', () => {
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
-          if (span) {
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-          }
+          span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
           return callback();
         });
       } catch (e) {
@@ -243,21 +242,35 @@ describe('startSpan', () => {
     });
   });
 
-  it('creates & finishes span', async () => {
-    let _span: SentrySpan | undefined;
-    startSpan({ name: 'GET users/[id]' }, span => {
-      expect(span).toBeDefined();
-      expect(spanToJSON(span!).timestamp).toBeUndefined();
-      _span = span as SentrySpan;
+  it('returns a non recording span if tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startSpan({ name: 'GET users/[id]' }, span => {
+      return span;
     });
 
-    expect(_span).toBeDefined();
-    expect(spanToJSON(_span!).timestamp).toBeDefined();
+    expect(span).toBeDefined();
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+  });
+
+  it('creates & finishes span', async () => {
+    const span = startSpan({ name: 'GET users/[id]' }, span => {
+      expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentrySpan);
+      expect(spanToJSON(span).timestamp).toBeUndefined();
+      return span;
+    });
+
+    expect(span).toBeDefined();
+    expect(spanToJSON(span).timestamp).toBeDefined();
   });
 
   it('allows to pass a `startTime`', () => {
     const start = startSpan({ name: 'outer', startTime: [1234, 0] }, span => {
-      return spanToJSON(span!).start_timestamp;
+      return spanToJSON(span).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -287,7 +300,7 @@ describe('startSpan', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
     });
 
     expect(getCurrentScope()).toBe(initialScope);
@@ -407,18 +420,19 @@ describe('startSpan', () => {
       });
 
       startSpan({ name: 'span' }, span => {
-        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999999');
+        expect(span.spanContext().traceId).toBe('99999999999999999999999999999999');
       });
     });
   });
 
   describe('onlyIfParent', () => {
-    it('does not create a span if there is no parent', () => {
+    it('starts a non recording span if there is no parent', () => {
       const span = startSpan({ name: 'test span', onlyIfParent: true }, span => {
         return span;
       });
 
-      expect(span).toBeUndefined();
+      expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     });
 
     it('creates a span if there is a parent', () => {
@@ -431,6 +445,7 @@ describe('startSpan', () => {
       });
 
       expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentrySpan);
     });
   });
 
@@ -482,7 +497,7 @@ describe('startSpan', () => {
       startSpanManual({ name: 'my-span' }, span => {
         withScope(scope2 => {
           scope2.setTag('scope', 2);
-          span?.end();
+          span.end();
         });
       });
     });
@@ -519,12 +534,27 @@ describe('startSpanManual', () => {
     client.init();
   });
 
+  it('returns a non recording span if tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startSpanManual({ name: 'GET users/[id]' }, span => {
+      return span;
+    });
+
+    expect(span).toBeDefined();
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+  });
+
   it('creates & finishes span', async () => {
     startSpanManual({ name: 'GET users/[id]' }, (span, finish) => {
       expect(span).toBeDefined();
-      expect(spanToJSON(span!).timestamp).toBeUndefined();
+      expect(span).toBeInstanceOf(SentrySpan);
+      expect(spanToJSON(span).timestamp).toBeUndefined();
       finish();
-      expect(spanToJSON(span!).timestamp).toBeDefined();
+      expect(spanToJSON(span).timestamp).toBeDefined();
     });
   });
 
@@ -557,7 +587,7 @@ describe('startSpanManual', () => {
       expect(getCurrentScope()).not.toBe(initialScope);
       expect(getCurrentScope()).toBe(manualScope);
       expect(getActiveSpan()).toBe(span);
-      expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+      expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
 
       finish();
 
@@ -589,13 +619,13 @@ describe('startSpanManual', () => {
         startSpanManual({ name: 'inner transaction', forceTransaction: true }, span => {
           startSpanManual({ name: 'inner span 2' }, span => {
             // all good
-            span?.end();
+            span.end();
           });
-          span?.end();
+          span.end();
         });
-        span?.end();
+        span.end();
       });
-      span?.end();
+      span.end();
     });
 
     await client.flush();
@@ -677,8 +707,8 @@ describe('startSpanManual', () => {
 
   it('allows to pass a `startTime`', () => {
     const start = startSpanManual({ name: 'outer', startTime: [1234, 0] }, span => {
-      span?.end();
-      return spanToJSON(span!).start_timestamp;
+      span.end();
+      return spanToJSON(span).start_timestamp;
     });
 
     expect(start).toEqual(1234);
@@ -695,8 +725,8 @@ describe('startSpanManual', () => {
       });
 
       startSpanManual({ name: 'span' }, span => {
-        expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
-        span?.end();
+        expect(span.spanContext().traceId).toBe('99999999999999999999999999999991');
+        span.end();
       });
     });
   });
@@ -706,8 +736,8 @@ describe('startSpanManual', () => {
       const span = startSpanManual({ name: 'test span', onlyIfParent: true }, span => {
         return span;
       });
-
-      expect(span).toBeUndefined();
+      expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     });
 
     it('creates a span if there is a parent', () => {
@@ -720,6 +750,7 @@ describe('startSpanManual', () => {
       });
 
       expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentrySpan);
     });
   });
 
@@ -742,15 +773,28 @@ describe('startInactiveSpan', () => {
     client.init();
   });
 
+  it('returns a non recording span if tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({});
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startInactiveSpan({ name: 'GET users/[id]' });
+
+    expect(span).toBeDefined();
+    expect(span).toBeInstanceOf(SentryNonRecordingSpan);
+  });
+
   it('creates & finishes span', async () => {
     const span = startInactiveSpan({ name: 'GET users/[id]' });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span!).timestamp).toBeUndefined();
+    expect(span).toBeInstanceOf(SentrySpan);
+    expect(spanToJSON(span).timestamp).toBeUndefined();
 
-    span?.end();
+    span.end();
 
-    expect(spanToJSON(span!).timestamp).toBeDefined();
+    expect(spanToJSON(span).timestamp).toBeDefined();
   });
 
   it('does not set span on scope', () => {
@@ -759,7 +803,7 @@ describe('startInactiveSpan', () => {
     expect(span).toBeDefined();
     expect(getActiveSpan()).toBeUndefined();
 
-    span?.end();
+    span.end();
 
     expect(getActiveSpan()).toBeUndefined();
   });
@@ -775,10 +819,10 @@ describe('startInactiveSpan', () => {
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
     expect(span).toBeDefined();
-    expect(spanToJSON(span!).parent_span_id).toBe('parent-span-id');
+    expect(spanToJSON(span).parent_span_id).toBe('parent-span-id');
     expect(getActiveSpan()).toBeUndefined();
 
-    span?.end();
+    span.end();
 
     expect(getActiveSpan()).toBeUndefined();
   });
@@ -884,7 +928,7 @@ describe('startInactiveSpan', () => {
 
   it('allows to pass a `startTime`', () => {
     const span = startInactiveSpan({ name: 'outer', startTime: [1234, 0] });
-    expect(spanToJSON(span!).start_timestamp).toEqual(1234);
+    expect(spanToJSON(span).start_timestamp).toEqual(1234);
   });
 
   it("picks up the trace id off the parent scope's propagation context", () => {
@@ -898,8 +942,8 @@ describe('startInactiveSpan', () => {
       });
 
       const span = startInactiveSpan({ name: 'span' });
-      expect(span?.spanContext().traceId).toBe('99999999999999999999999999999991');
-      span?.end();
+      expect(span.spanContext().traceId).toBe('99999999999999999999999999999991');
+      span.end();
     });
   });
 
@@ -907,17 +951,18 @@ describe('startInactiveSpan', () => {
     it('does not create a span if there is no parent', () => {
       const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
 
-      expect(span).toBeUndefined();
+      expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentryNonRecordingSpan);
     });
 
     it('creates a span if there is a parent', () => {
       const span = startSpan({ name: 'parent span' }, () => {
         const span = startInactiveSpan({ name: 'test span', onlyIfParent: true });
-
         return span;
       });
 
       expect(span).toBeDefined();
+      expect(span).toBeInstanceOf(SentrySpan);
     });
   });
 
@@ -934,7 +979,7 @@ describe('startInactiveSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    let span: Span | undefined;
+    let span: Span;
 
     const scope = getCurrentScope();
     scope.setTag('outer', 'foo');
@@ -947,7 +992,7 @@ describe('startInactiveSpan', () => {
 
     withScope(scope => {
       scope.setTag('scope', 2);
-      span?.end();
+      span.end();
     });
 
     await client.flush();

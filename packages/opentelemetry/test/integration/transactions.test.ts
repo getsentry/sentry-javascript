@@ -473,8 +473,8 @@ describe('Integration | Transactions', () => {
       }
 
       const subSpan = startInactiveSpan({ name: 'inner span 1' });
-      innerSpan1Id = subSpan?.spanContext().spanId;
-      subSpan?.end();
+      innerSpan1Id = subSpan.spanContext().spanId;
+      subSpan.end();
 
       startSpan({ name: 'inner span 2' }, innerSpan => {
         if (!innerSpan) {

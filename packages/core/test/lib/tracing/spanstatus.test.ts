@@ -18,9 +18,9 @@ describe('setHttpStatus', () => {
   ])('applies the correct span status and http status code to the span (%s - $%s)', (code, status) => {
     const span = new SentrySpan({ name: 'test' });
 
-    setHttpStatus(span!, code);
+    setHttpStatus(span, code);
 
-    const { status: spanStatus, data } = spanToJSON(span!);
+    const { status: spanStatus, data } = spanToJSON(span);
 
     expect(spanStatus).toBe(status);
     expect(data).toMatchObject({ 'http.response.status_code': code });
@@ -29,9 +29,9 @@ describe('setHttpStatus', () => {
   it("doesn't set the status for an unknown http status code", () => {
     const span = new SentrySpan({ name: 'test' });
 
-    setHttpStatus(span!, 600);
+    setHttpStatus(span, 600);
 
-    const { status: spanStatus, data } = spanToJSON(span!);
+    const { status: spanStatus, data } = spanToJSON(span);
 
     expect(spanStatus).toBeUndefined();
     expect(data).toMatchObject({ 'http.response.status_code': 600 });
