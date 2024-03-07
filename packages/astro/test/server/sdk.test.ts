@@ -1,5 +1,5 @@
-import * as SentryNode from '@sentry/node-experimental';
-import { SDK_VERSION } from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node';
+import { SDK_VERSION } from '@sentry/node';
 import { vi } from 'vitest';
 
 import { init } from '../../src/server/sdk';
