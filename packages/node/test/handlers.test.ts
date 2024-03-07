@@ -151,6 +151,7 @@ describe('requestHandler', () => {
 
     setImmediate(() => {
       expect(flush).toHaveBeenCalledWith(1337);
+      // eslint-disable-next-line deprecation/deprecation
       expect(res.finished).toBe(true);
       done();
     });
@@ -164,6 +165,7 @@ describe('requestHandler', () => {
     res.end('ok');
 
     setImmediate(() => {
+      // eslint-disable-next-line deprecation/deprecation
       expect(res.finished).toBe(true);
       done();
     });
