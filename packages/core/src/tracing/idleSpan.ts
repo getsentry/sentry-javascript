@@ -9,15 +9,13 @@ import { getSpanDescendants, removeChildSpanFromSpan, spanTimeInputToSeconds, sp
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan, getCapturedScopesOnSpan } from './utils';
+import { getActiveSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
   finalTimeout: 30_000,
   childSpanTimeout: 15_000,
 };
-
-const FINISH_REASON_TAG = 'finishReason';
 
 const FINISH_REASON_HEARTBEAT_FAILED = 'heartbeatFailed';
 const FINISH_REASON_IDLE_TIMEOUT = 'idleTimeout';
@@ -243,22 +241,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     const attributes: SpanAttributes = spanJSON.data || {};
     if (spanJSON.op === 'ui.action.click' && !attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
-    }
-
-    // Save finish reason as tag, in addition to attribute, to maintain backwards compatibility
-    const scopes = getCapturedScopesOnSpan(span);
-
-    // Make sure to fetch up-to-date data here, as it may have been updated above
-    const finalAttributes: SpanAttributes = spanToJSON(span).data || {};
-    const finalFinishReason = finalAttributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON];
-    if (scopes.scope && typeof finalFinishReason === 'string') {
-      // We only want to add the tag to the transaction event itself
-      scopes.scope.addEventProcessor(event => {
-        if (event.type === 'transaction') {
-          event.tags = { ...event.tags, [FINISH_REASON_TAG]: finalFinishReason };
-        }
-        return event;
-      });
     }
 
     DEBUG_BUILD &&

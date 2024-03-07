@@ -296,7 +296,6 @@ describe('startIdleSpan', () => {
     expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
       'idleTimeout',
     );
-    expect(transaction?.tags?.finishReason).toEqual('idleTimeout');
   });
 
   it('uses finish reason set outside when span ends', () => {
@@ -320,7 +319,6 @@ describe('startIdleSpan', () => {
     expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
       'custom reason',
     );
-    expect(transaction?.tags?.finishReason).toEqual('custom reason');
   });
 
   describe('idleTimeout', () => {
