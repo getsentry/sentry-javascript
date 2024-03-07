@@ -132,7 +132,7 @@ export function Form({
         // pass
       }
     },
-    [onSubmitSuccess, onSubmitError],
+    [includeScreenshotValue, onSubmitSuccess, onSubmitError],
   );
 
   return (

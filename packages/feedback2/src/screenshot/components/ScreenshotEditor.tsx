@@ -82,6 +82,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const [rectStart, setRectStart] = useState({ x: 0, y: 0 });
     const [rectEnd, setRectEnd] = useState({ x: containerSize.width, y: containerSize.height });
     const rect = useMemo(() => constructRect(rectStart, rectEnd), [rectStart, rectEnd]);
+
     const [confirmCrop, setConfirmCrop] = useState(false);
 
     useEffect(() => {
@@ -104,12 +105,10 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (!ctx) {
         return;
       }
-      console.log('redraw', cropper.width, cropper.height, rect);
-      // ctx.clearRect(0, 0, cropper.width, cropper.height);
 
       // draw gray overlay around the selection
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(0, 0, rect.width, rect.height);
+      ctx.fillRect(0, 0, containerSize.width, containerSize.height);
       ctx.clearRect(rect.sx, rect.sy, rect.width, rect.height);
 
       // draw selection border
@@ -149,28 +148,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         onError(error);
       }, []),
     });
-
-    const drawCropBorder = useCallback((rect: Rect): void => {
-      const cropper = cropperRef.current;
-      if (!cropper) {
-        return;
-      }
-      const ctx = cropper.getContext('2d');
-      if (!ctx) {
-        return;
-      }
-      ctx.clearRect(0, 0, cropper.width, cropper.height);
-
-      // draw gray overlay around the selection
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      ctx.clearRect(rect.sx, rect.sy, rect.width, rect.height);
-
-      // draw selection border
-      ctx.strokeStyle = 'purple';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(rect.sx, rect.sy, rect.width, rect.height);
-    }, []);
 
     const makeHandleMouseMove = useCallback((corner: string) => {
       return function (e: MouseEvent) {
@@ -215,16 +192,12 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     }
 
     function submit(): void {
-      const rect = constructRect(rectStart, rectEnd);
-
-      // const cutoutCanvas = DOCUMENT.createElement('canvas');
-
-      // (image: CanvasImageSource, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number)
-
       const imagebufferCtx = imageBuffer.getContext('2d');
-      if (imagebufferCtx) {
+      if (imagebufferCtx && canvasRef.current) {
+        imageBuffer.width = rect.width;
+        imageBuffer.height = rect.height;
         imagebufferCtx.drawImage(
-          imageBuffer,
+          canvasRef.current,
           ((rect.sx - imageBuffer.offsetLeft) / imageBuffer.offsetWidth) * imageBuffer.width,
           ((rect.sy - imageBuffer.offsetTop) / imageBuffer.offsetHeight) * imageBuffer.height,
           (rect.width / imageBuffer.offsetWidth) * imageBuffer.width,
@@ -234,12 +207,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           rect.width,
           rect.height,
         );
-        imageBuffer.width = rect.width;
-        imageBuffer.height = rect.height;
       }
-      // resizeCropper();
-      // const container = canvasContainerRef.current;
-      // container && container.removeChild(imageBuffer);
     }
 
     return (
