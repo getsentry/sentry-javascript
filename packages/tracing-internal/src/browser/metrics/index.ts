@@ -16,6 +16,8 @@ import { WINDOW } from '../types';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
 import { _startChild, isMeasurementValue } from './utils';
+import { getNavigationEntry } from '../web-vitals/lib/getNavigationEntry';
+import { getActivationStart } from '../web-vitals/lib/getActivationStart';
 
 const MAX_INT_AS_BYTES = 2147483647;
 
@@ -240,7 +242,7 @@ export function addPerformanceEntries(transaction: Transaction): void {
 
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
-    _addTtfbToMeasurements(_measurements, responseStartTimestamp, requestStartTimestamp, transactionStartTime);
+    _addTtfbToMeasurements(_measurements);
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
       if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
@@ -535,34 +537,26 @@ function setResourceEntrySizeData(
  * Add ttfb information to measurements
  *
  * Exported for tests
+ * TODO: Switch to using onTTFB or eventually directly reporting metrics instead.
  */
-export function _addTtfbToMeasurements(
-  _measurements: Measurements,
-  responseStartTimestamp: number | undefined,
-  requestStartTimestamp: number | undefined,
-  transactionStartTime: number | undefined,
-): void {
-  // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the transaction and the
-  // start of the response in milliseconds
-  if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
+export function _addTtfbToMeasurements(_measurements: Measurements): void {
+  const navEntry = getNavigationEntry();
+
+  if (navEntry) {
     DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
+    const { responseStart, requestStart } = navEntry;
+    if (responseStart <= 0 || responseStart > performance.now()) return;
+
+    const value = Math.max(responseStart - getActivationStart(), 0) * 1000;
+
     _measurements['ttfb'] = {
-      // As per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStart,
-      // responseStart can be 0 if the request is coming straight from the cache.
-      // This might lead us to calculate a negative ttfb if we don't use Math.max here.
-      //
-      // This logic is the same as what is in the web-vitals library to calculate ttfb
-      // https://github.com/GoogleChrome/web-vitals/blob/2301de5015e82b09925238a228a0893635854587/src/onTTFB.ts#L92
-      // TODO(abhi): We should use the web-vitals library instead of this custom calculation.
-      value: Math.max(responseStartTimestamp - transactionStartTime, 0) * 1000,
+      value,
       unit: 'millisecond',
     };
 
-    if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
-      // Capture the time spent making the request and receiving the first byte of the response.
-      // This is the time between the start of the request and the start of the response in milliseconds.
+    if (requestStart <= responseStart) {
       _measurements['ttfb.requestTime'] = {
-        value: (responseStartTimestamp - requestStartTimestamp) * 1000,
+        value: Math.max(responseStart - requestStart, 0) * 1000,
         unit: 'millisecond',
       };
     }
