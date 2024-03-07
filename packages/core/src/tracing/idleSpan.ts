@@ -119,19 +119,22 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       return;
     }
 
-    const latestEndTimestamp = Math.max(...spans.map(span => spanToJSON(span).timestamp || 0));
+    const childEndTimestamps = spans
+      .map(span => spanToJSON(span).timestamp)
+      .filter(timestamp => !!timestamp) as number[];
+    const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
 
-    if (latestEndTimestamp <= 0) {
-      span.end(timestamp);
-      return;
-    }
-
-    // If the timestamp is smaller than the latest end timestamp of a span, we still want to use it
-    // Need to convert the timestamp to seconds to ensure Math.min() works as expected
-    // Note that other than this, we can just pass the timestamp as-is to `span.end()`
-    // because that will convert to seconds internally anyhow
     const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
-    const endTimestamp = Math.min(spanEndTimestamp, latestEndTimestamp);
+    const spanStartTimestamp = spanToJSON(span).start_timestamp;
+
+    // The final endTimestamp should:
+    // * Never be before the span start timestamp
+    // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
+    // * Otherwise be the passed end timestamp
+    const endTimestamp = Math.max(
+      spanStartTimestamp || -Infinity,
+      Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity),
+    );
 
     span.end(endTimestamp);
   }
