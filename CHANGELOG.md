@@ -4,6 +4,19 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.106.0
+
+- feat(nextjs): Support Hybrid Cloud DSNs with `tunnelRoute` option (#10958)
+- feat(remix): Add Vite dev-mode support to Express instrumentation (#10811)
+- fix(browser): Don't use chrome variable name (#10874)
+- fix(nextjs): Client code should not use Node `global` (#10925)
+- fix(node): support undici headers as strings or arrays (#10938)
+- fix(types): Add `AttachmentType` and use for envelope `attachment_type` property (#10946)
+- ref(ember): Avoid namespace import to hopefully resolve minification issue (#10885)
+- chore(sveltekit): Fix punctuation in a console.log (#10895)
+
+Work in this release contributed by @jessezhang91 and @bfontaine. Thank you for your contributions!
+
 ## 7.105.0
 
 ### Important Changes
