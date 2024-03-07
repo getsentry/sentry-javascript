@@ -1,5 +1,5 @@
-import { getCurrentScope } from '@sentry/browser';
-import type { Span, Transaction } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/browser';
+import type { Span } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
@@ -26,11 +26,6 @@ const defaultTrackComponentOptions: {
 export function trackComponent(options?: TrackComponentOptions): void {
   const mergedOptions = { ...defaultTrackComponentOptions, ...options };
 
-  const transaction = getActiveTransaction();
-  if (!transaction) {
-    return;
-  }
-
   const customComponentName = mergedOptions.componentName;
 
   // current_component.ctor.name is likely to give us the component's name automatically
@@ -39,7 +34,7 @@ export function trackComponent(options?: TrackComponentOptions): void {
 
   let initSpan: Span | undefined = undefined;
   if (mergedOptions.trackInit) {
-    initSpan = recordInitSpan(transaction, componentName);
+    initSpan = recordInitSpan(componentName);
   }
 
   if (mergedOptions.trackUpdates) {
@@ -47,12 +42,12 @@ export function trackComponent(options?: TrackComponentOptions): void {
   }
 }
 
-function recordInitSpan(transaction: Transaction, componentName: string): Span {
-  // eslint-disable-next-line deprecation/deprecation
-  const initSpan = transaction.startChild({
+function recordInitSpan(componentName: string): Span | undefined {
+  const initSpan = startInactiveSpan({
+    onlyIfParent: true,
     op: UI_SVELTE_INIT,
     name: componentName,
-    origin: 'auto.ui.svelte',
+    attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
   });
 
   onMount(() => {
@@ -67,21 +62,25 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
   beforeUpdate(() => {
     // We need to get the active transaction again because the initial one could
     // already be finished or there is currently no transaction going on.
-    const transaction = getActiveTransaction();
-    if (!transaction) {
+    const activeSpan = getActiveSpan();
+    if (!activeSpan) {
       return;
     }
 
     // If we are initializing the component when the update span is started, we start it as child
     // of the init span. Else, we start it as a child of the transaction.
     const parentSpan =
-      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === transaction ? initSpan : transaction;
+      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === getRootSpan(activeSpan)
+        ? initSpan
+        : getRootSpan(activeSpan);
+
+    if (!parentSpan) return;
 
     updateSpan = withActiveSpan(parentSpan, () => {
       return startInactiveSpan({
         op: UI_SVELTE_UPDATE,
         name: componentName,
-        origin: 'auto.ui.svelte',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
       });
     });
   });
@@ -93,9 +92,4 @@ function recordUpdateSpans(componentName: string, initSpan?: Span): void {
     updateSpan.end();
     updateSpan = undefined;
   });
-}
-
-function getActiveTransaction(): Transaction | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getTransaction();
 }
