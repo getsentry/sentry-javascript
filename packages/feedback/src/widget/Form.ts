@@ -163,75 +163,68 @@ export function Form({
     },
     [
       errorEl,
+
+      showName &&
+        createElement(
+          'label',
+          {
+            htmlFor: 'name',
+            className: 'form__label',
+          },
+          [
+            createElement(
+              'span',
+              { className: 'form__label__text' },
+              nameLabel,
+              isNameRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+            ),
+            nameEl,
+          ],
+        ),
+      !showName && nameEl,
+
+      showEmail &&
+        createElement(
+          'label',
+          {
+            htmlFor: 'email',
+            className: 'form__label',
+          },
+          [
+            createElement(
+              'span',
+              { className: 'form__label__text' },
+              emailLabel,
+              isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+            ),
+            emailEl,
+          ],
+        ),
+      !showEmail && emailEl,
+
+      createElement(
+        'label',
+        {
+          htmlFor: 'message',
+          className: 'form__label',
+        },
+        [
+          createElement(
+            'span',
+            { className: 'form__label__text' },
+            messageLabel,
+            createElement('span', { className: 'form__label__text--required' }, ' (required)'),
+          ),
+          messageEl,
+        ],
+      ),
+
       createElement(
         'div',
         {
-          className: 'info',
+          className: 'btn-group',
         },
-        [
-          showName &&
-            createElement(
-              'label',
-              {
-                htmlFor: 'name',
-                className: 'form__label',
-              },
-              [
-                createElement(
-                  'span',
-                  { className: 'form__label__text' },
-                  nameLabel,
-                  isNameRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-                ),
-                nameEl,
-              ],
-            ),
-          !showName && nameEl,
-
-          showEmail &&
-            createElement(
-              'label',
-              {
-                htmlFor: 'email',
-                className: 'form__label',
-              },
-              [
-                createElement(
-                  'span',
-                  { className: 'form__label__text' },
-                  emailLabel,
-                  isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-                ),
-                emailEl,
-              ],
-            ),
-          !showEmail && emailEl,
-
-          createElement(
-            'label',
-            {
-              htmlFor: 'message',
-              className: 'form__label',
-            },
-            [
-              createElement(
-                'span',
-                { className: 'form__label__text' },
-                messageLabel,
-                createElement('span', { className: 'form__label__text--required' }, ' (required)'),
-              ),
-              messageEl,
-            ],
-          ),
-
-          createElement(
-            'div',
-            {
-              className: 'btn-group',
-            },
-            [submitEl, cancelEl],
-          ),
-        ],
+        [submitEl, cancelEl],
       ),
     ],
   );

@@ -1,5 +1,6 @@
 import { getClient, getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
+
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
 import { handleFeedbackSubmit } from '../util/handleFeedbackSubmit';
 import type { ActorComponent } from './Actor';
