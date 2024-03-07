@@ -86,6 +86,10 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const [confirmCrop, setConfirmCrop] = useState(false);
 
     useEffect(() => {
+      setRectEnd({ x: containerSize.width, y: containerSize.height });
+    }, [containerSize]);
+
+    useEffect(() => {
       if (!cropperRef.current || !divRef.current) {
         return;
       }
