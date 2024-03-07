@@ -4,5 +4,3 @@ export {
   Feedback,
   feedbackIntegration,
 } from './integration';
-
-console.log('Feedback 4');

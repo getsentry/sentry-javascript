@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
-import { DOCUMENT } from '../../constants';
+import { DOCUMENT, WINDOW } from '../../constants';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { h } from 'preact';
 
 interface FactoryParams {
   h: typeof hType;
@@ -50,6 +52,13 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
       const container = canvasContainerRef.current;
       container && container.appendChild(canvas);
 
+      resizeCropper();
+    }, [canvas]);
+
+    function resizeCropper() {
+      setRectStart({ x: canvas.offsetLeft, y: canvas.offsetTop });
+      setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
+
       const cropper = cropperRef.current;
       if (cropper) {
         cropper!.width = canvas.offsetWidth;
@@ -57,10 +66,7 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
         cropper!.style.width = `${canvas.offsetWidth}px`;
         cropper!.style.height = `${canvas.offsetHeight}px`;
       }
-
-      setRectStart({ x: canvas.offsetLeft, y: canvas.offsetTop });
-      setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
-    }, [canvas]);
+    }
 
     function refreshCanvas() {
       const cropper = cropperRef.current;
@@ -173,12 +179,7 @@ export function makeScreenshotEditorComponent({ h, canvas, dialog }: FactoryPara
       ),
       onAfterScreenshot: useCallback(() => {
         dialog.el.style.display = 'block';
-        setRectStart({ x: canvas.offsetLeft, y: canvas.offsetTop });
-        setRectEnd({ x: canvas.offsetLeft + canvas.offsetWidth, y: canvas.offsetTop + canvas.offsetHeight });
-        cropperRef.current!.width = canvas.offsetWidth;
-        cropperRef.current!.height = canvas.offsetHeight;
-        cropperRef.current!.style.width = `${canvas.offsetWidth}px`;
-        cropperRef.current!.style.height = `${canvas.offsetHeight}px`;
+        resizeCropper();
       }, []),
       onError: useCallback(error => {
         dialog.el.style.display = 'block';
