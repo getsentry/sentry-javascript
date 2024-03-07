@@ -86,6 +86,7 @@ export {
   Scope,
   setMeasurement,
   continueTrace,
+  getSpanDescendants,
   parameterize,
   getCurrentScope,
   getIsolationScope,
@@ -100,6 +101,11 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  addIntegration,
 } from '@sentry/core';
 
 export type {

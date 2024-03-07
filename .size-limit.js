@@ -3,28 +3,28 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration, Feedback }',
+    import: '{ init, replayIntegration, browserTracingIntegration, feedbackIntegration }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration }',
+    import: '{ init, replayIntegration, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay with Canvas) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration, ReplayCanvas }',
+    import: '{ init, replayIntegration, browserTracingIntegration, replayCanvasIntegration }',
     gzip: true,
     limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - Webpack with treeshaking flags (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Replay, browserTracingIntegration }',
+    import: '{ init, replayIntegration, browserTracingIntegration }',
     gzip: true,
     limit: '75 KB',
     modifyWebpackConfig: function (config) {
@@ -57,7 +57,7 @@ module.exports = [
   {
     name: '@sentry/browser (incl. Feedback) - Webpack (gzipped)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: '{ init, Feedback }',
+    import: '{ init, feedbackIntegration }',
     gzip: true,
     limit: '50 KB',
   },
@@ -159,7 +159,7 @@ module.exports = [
   {
     name: '@sentry/react (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/react/build/esm/index.js',
-    import: '{ init, browserTracingIntegration, Replay }',
+    import: '{ init, browserTracingIntegration, replayIntegration }',
     gzip: true,
     limit: '75 KB',
   },
@@ -175,7 +175,7 @@ module.exports = [
   {
     name: '@sentry/nextjs Client (incl. Tracing, Replay) - Webpack (gzipped)',
     path: 'packages/nextjs/build/esm/client/index.js',
-    import: '{ init, browserTracingIntegration, Replay }',
+    import: '{ init, browserTracingIntegration, replayIntegration }',
     gzip: true,
     limit: '110 KB',
   },
@@ -189,7 +189,7 @@ module.exports = [
   {
     name: '@sentry-internal/feedback - Webpack (gzipped)',
     path: 'packages/feedback/build/npm/esm/index.js',
-    import: '{ Feedback }',
+    import: '{ feedbackIntegration }',
     gzip: true,
     limit: '25 KB',
   },

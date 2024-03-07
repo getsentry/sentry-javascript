@@ -18,6 +18,7 @@ export function startTransaction(hub: HubInterface, transactionContext: Transact
 
   if (client) {
     client.emit('startTransaction', transaction);
+    client.emit('spanStart', transaction);
   }
   return transaction;
 }

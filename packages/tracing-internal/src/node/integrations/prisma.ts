@@ -101,8 +101,9 @@ export class Prisma implements Integration {
             op: 'db.prisma',
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.prisma',
+              ...clientData,
+              'db.operation': action,
             },
-            data: { ...clientData, 'db.operation': action },
           },
           () => next(params),
         );

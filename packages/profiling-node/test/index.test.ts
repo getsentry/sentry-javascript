@@ -14,7 +14,7 @@ function makeStaticTransport(): MockTransport {
     events: [] as any[],
     send: function (...args: any[]) {
       this.events.push(args);
-      return Promise.resolve();
+      return Promise.resolve({});
     },
     flush: function () {
       return Promise.resolve(true);

@@ -9,6 +9,7 @@ import {
 } from './constants';
 import { getCurrentHub } from './custom/getCurrentHub';
 import { getScopesFromContext, setContextOnScope, setHubOnContext, setScopesOnContext } from './utils/contextData';
+import { setIsSetup } from './utils/setupCheck';
 
 /**
  * Wrap an OpenTelemetry ContextManager in a way that ensures the context is kept in sync with the Sentry Hub.
@@ -31,6 +32,10 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
 
   // @ts-expect-error TS does not like this, but we know this is fine
   class SentryContextManager extends ContextManagerClass {
+    public constructor() {
+      super();
+      setIsSetup('SentryContextManager');
+    }
     /**
      * Overwrite with() of the original AsyncLocalStorageContextManager
      * to ensure we also create a new hub per context.

@@ -2,6 +2,7 @@ import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '
 import type { BrowserOptions } from '@sentry/react';
 import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -13,7 +14,7 @@ export * from '@sentry/react';
 
 export { captureUnderscoreErrorException } from '../common/_error';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesAssetPrefixPath__: string;
 };
 

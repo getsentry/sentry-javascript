@@ -11,7 +11,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getCurrentHub,
 } from '@sentry/core';
-import type { Scope, SpanOrigin, TransactionSource } from '@sentry/types';
+import type { Scope, Span, SpanOrigin, TransactionSource } from '@sentry/types';
 import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
 import { startTransaction } from './custom/transaction';
 
@@ -314,9 +314,7 @@ const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
 const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
 
 /** Sets the scope and isolation scope to be used for when the transaction is finished. */
-function setCapturedScopesOnTransaction(span: Transaction, scope: Scope, isolationScope: Scope): void {
-  if (span) {
-    addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
-    addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
-  }
+function setCapturedScopesOnTransaction(span: Span, scope: Scope, isolationScope: Scope): void {
+  addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
+  addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
 }

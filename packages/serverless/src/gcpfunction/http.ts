@@ -73,10 +73,8 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           const _end = res.end;
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): any {
-            if (span) {
-              setHttpStatus(span, res.statusCode);
-              span.end();
-            }
+            setHttpStatus(span, res.statusCode);
+            span.end();
 
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
             flush(flushTimeout)

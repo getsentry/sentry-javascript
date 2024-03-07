@@ -35,8 +35,8 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    // With undefined response: Don't capture
-    handler(error1, undefined);
+    // With empty response: Don't capture
+    handler(error1, {});
     // With "successful" response: Capture
     handler(error2, { statusCode: 200 });
     // With "unsuccessful" response: Don't capture
@@ -66,8 +66,8 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     const handler = handleAfterSendEvent(replay);
 
-    // With undefined response: Don't capture
-    handler(transaction1, undefined);
+    // With empty response: Don't capture
+    handler(transaction1, {});
     // With "successful" response: Capture
     handler(transaction2, { statusCode: 200 });
     // With "unsuccessful" response: Don't capture
@@ -139,40 +139,6 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
         .fill(undefined)
         .map((_, i) => `tr-${i}`),
     );
-  });
-
-  it('allows undefined send response when using custom transport', async () => {
-    ({ replay } = await resetSdkMock({
-      replayOptions: {
-        stickySession: false,
-      },
-      sentryOptions: {
-        replaysSessionSampleRate: 1.0,
-        replaysOnErrorSampleRate: 0.0,
-      },
-    }));
-
-    const client = getClient()!;
-    // @ts-expect-error make sure to remove this
-    delete client.getTransport()!.send.__sentry__baseTransport__;
-
-    const error1 = Error({ event_id: 'err1' });
-    const error2 = Error({ event_id: 'err2' });
-    const error3 = Error({ event_id: 'err3' });
-    const error4 = Error({ event_id: 'err4' });
-
-    const handler = handleAfterSendEvent(replay);
-
-    // With undefined response: Capture
-    handler(error1, undefined);
-    // With "successful" response: Capture
-    handler(error2, { statusCode: 200 });
-    // With "unsuccessful" response: Capture
-    handler(error3, { statusCode: 0 });
-    // With no statusCode response: Capture
-    handler(error4, { statusCode: undefined });
-
-    expect(Array.from(replay.getContext().errorIds)).toEqual(['err1', 'err2', 'err3', 'err4']);
   });
 
   it('flushes when in buffer mode', async () => {
@@ -302,7 +268,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(replay.recordingMode).toBe('buffer');
 
-    handler(error1, undefined);
+    handler(error1, {});
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 

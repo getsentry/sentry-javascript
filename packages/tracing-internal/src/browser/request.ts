@@ -1,11 +1,13 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
   getIsolationScope,
   hasTracingEnabled,
+  instrumentFetchRequest,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
@@ -23,7 +25,6 @@ import {
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
-import { instrumentFetchRequest } from '../common/fetch';
 import { addPerformanceInstrumentationHandler } from './instrument';
 import { WINDOW } from './types';
 
@@ -320,12 +321,10 @@ export function xhrCallback(
         },
         op: 'http.client',
       })
-    : undefined;
+    : new SentryNonRecordingSpan();
 
-  if (span) {
-    xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
-    spans[xhr.__sentry_xhr_span_id__] = span;
-  }
+  xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
+  spans[xhr.__sentry_xhr_span_id__] = span;
 
   const client = getClient();
 

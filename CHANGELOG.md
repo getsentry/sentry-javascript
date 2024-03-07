@@ -4,6 +4,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.2
+
+This alpha release fixes a build problem that prevented 8.0.0-alpha.1 from being properly released.
+
+### Important Changes
+
+- **feat: Remove `@sentry/opentelemetry-node` package (#10906)**
+
+The `@sentry/opentelemetry-node` package has been removed. Instead, you can either use `@sentry/node` with built-in
+OpenTelemetry support, or use `@sentry/opentelemetry` to manually connect Sentry with OpenTelemetry.
+
+### Removal/Refactoring of deprecated functionality
+
+- ref: Refactor some deprecated `startSpan` options (#10825)
+- feat(v8/core): remove void from transport return (#10794)
+- ref(integrations): Delete deprecated class integrations (#10887)
+
+### Other Changes
+
+- feat(core): Use serialized spans in transaction event (#10912)
+- feat(deps): bump @sentry/cli from 2.28.6 to 2.29.1 (#10908)
+- feat(node): Allow to configure `skipOpenTelemetrySetup` (#10907)
+- feat(esm): Import rather than require `inspector` (#10910)
+- fix(browser): Don't use chrome variable name (#10874)
+- chore(sveltekit): Fix punctuation in a console.log (#10895)
+- fix(opentelemetry): Ensure DSC propagation works correctly (#10904)
+- feat(browser): Exclude span exports from non-performance CDN bundles (#10879)
+- ref: Refactor span status handling to be OTEL compatible (#10871)
+- feat(core): Fix span scope handling & transaction setting (#10886)
+- ref(ember): Avoid namespace import to hopefully resolve minification issue (#10885)
+
+Work in this release contributed by @harish-talview & @bfontaine. Thank you for your contributions!
+
 ## 8.0.0-alpha.1
 
 This is the first Alpha release of the v8 cycle, which includes a variety of breaking changes.
@@ -19,7 +52,7 @@ changes:
 
 - There is now automated performance instrumentation for Express, Fastify, Nest.js and Koa. You can remove any
   performance and request isolation code you previously wrote manually for these frameworks.
-- All performance instrumenttion is enabled by default, and will only take effect if the instrumented package is used.
+- All performance instrumention is enabled by default, and will only take effect if the instrumented package is used.
   You don't need to use `autoDiscoverNodePerformanceMonitoringIntegrations()` anymore.
 - You need to ensure to call `Sentry.init()` _before_ you import any other packages. Otherwise, the packages cannot be
   instrumented:
@@ -121,11 +154,14 @@ configuration options.
 
 ### Other Changes
 
+- feat: Ensure `withActiveSpan` is exported everywhere (#10878)
 - feat: Allow passing `null` to `withActiveSpan` (#10717)
 - feat: Implement new Async Context Strategy (#10647)
 - feat: Remove `hub` from global, `hub.run` & hub utilities (#10718)
 - feat: Update default trace propagation targets logic in the browser (#10621)
+- feat: Ignore ResizeObserver and undefined error (#10845)
 - feat(browser): Export `getIsolationScope` and `getGlobalScope` (#10658)
+- feat(browser): Prevent initialization in browser extensions (#10844)
 - feat(core): Add metric summaries to spans (#10554)
 - feat(core): Decouple metrics aggregation from client (#10628)
 - feat(core): Lookup client on current scope, not hub (#10635)
@@ -210,6 +246,8 @@ We have also removed or updated a variety of deprecated APIs.
 - feat(v8/node): Remove deepReadDirSync export (#10564)
 - feat(v8/node): Remove deprecated anr methods (#10562)
 - feat(v8/node): Remove getModuleFromFilename export (#10754)
+- feat(core): Remove deprecated props from `Span` interface (#10854)
+- fix(v8): Remove deprecated tracing config (#10870)
 - ref: Make `setupOnce` optional in integrations (#10729)
 - ref: Migrate transaction source from metadata to attributes (#10674)
 - ref: Refactor remaining `makeMain` usage (#10713)
@@ -223,6 +261,53 @@ We have also removed or updated a variety of deprecated APIs.
 - ref: Remove deprecated `showReportDialog` APIs (#10609)
 - ref: Remove usage of span tags (#10808)
 - ref: Remove user segment (#10575)
+
+## 7.105.0
+
+### Important Changes
+
+- **feat: Ensure `withActiveSpan` is exported everywhere (#10877)**
+
+You can use the `withActiveSpan` method to ensure a certain span is the active span in a given callback. This can be
+used to create a span as a child of a specific span with the `startSpan` API methods:
+
+```js
+const parentSpan = Sentry.startInactiveSpan({ name: 'parent' });
+if (parentSpan) {
+  withActiveSpan(parentSpan, () => {
+    // This will be a direct child of parentSpan
+    const childSpan = Sentry.startInactiveSpan({ name: 'child' });
+  });
+}
+```
+
+## 7.104.0
+
+### Important Changes
+
+- **feat(performance): create Interaction standalone spans on inp events (#10709)**
+
+This release adds support for the INP web vital. This is currently only supported for Saas Sentry, and product support
+is released with the upcoming `24.3.0` release of self-hosted.
+
+To opt-in to this feature, you can use the `enableInp` option in the `browserTracingIntegration`:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.browserTracingIntegration({
+      enableInp: true,
+    });
+  ]
+})
+```
+
+### Other Changes
+
+- feat(feedback): Flush replays when feedback form opens (#10567)
+- feat(profiling-node): Expose `nodeProfilingIntegration` (#10864)
+- fix(profiling-node): Fix dependencies to point to current versions (#10861)
+- fix(replay): Add `errorHandler` for replayCanvas integration (#10796)
 
 ## 7.103.0
 

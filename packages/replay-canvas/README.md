@@ -22,7 +22,7 @@ For details on using Replay when using Sentry via the CDN bundles, see [CDN bund
 To set up the canvas integration, add the following to your Sentry integrations:
 
 ```javascript
-new Sentry.ReplayCanvas(),
+Sentry.replayCanvasIntegration(),
 ```
 
 ### Full Example
@@ -43,8 +43,8 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   integrations: [
-    new Sentry.Replay(),
-    new Sentry.ReplayCanvas(),
+    Sentry.replayIntegration(),
+    Sentry.replayCanvasIntegration(),
   ],
   // ...
 });

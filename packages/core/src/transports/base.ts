@@ -37,14 +37,14 @@ export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export function createTransport(
   options: InternalBaseTransportOptions,
   makeRequest: TransportRequestExecutor,
-  buffer: PromiseBuffer<void | TransportMakeRequestResponse> = makePromiseBuffer(
+  buffer: PromiseBuffer<TransportMakeRequestResponse> = makePromiseBuffer(
     options.bufferSize || DEFAULT_TRANSPORT_BUFFER_SIZE,
   ),
 ): Transport {
   let rateLimits: RateLimits = {};
   const flush = (timeout?: number): PromiseLike<boolean> => buffer.drain(timeout);
 
-  function send(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> {
+  function send(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     const filteredEnvelopeItems: EnvelopeItem[] = [];
 
     // Drop rate limited items from envelope
@@ -60,7 +60,7 @@ export function createTransport(
 
     // Skip sending if envelope is empty after filtering out rate limited events
     if (filteredEnvelopeItems.length === 0) {
-      return resolvedSyncPromise();
+      return resolvedSyncPromise({});
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,7 +74,7 @@ export function createTransport(
       });
     };
 
-    const requestTask = (): PromiseLike<void | TransportMakeRequestResponse> =>
+    const requestTask = (): PromiseLike<TransportMakeRequestResponse> =>
       makeRequest({ body: serializeEnvelope(filteredEnvelope) }).then(
         response => {
           // We don't want to throw on NOK responses, but we want to at least log them
@@ -97,17 +97,13 @@ export function createTransport(
         if (error instanceof SentryError) {
           DEBUG_BUILD && logger.error('Skipped sending event because buffer is full.');
           recordEnvelopeLoss('queue_overflow');
-          return resolvedSyncPromise();
+          return resolvedSyncPromise({});
         } else {
           throw error;
         }
       },
     );
   }
-
-  // We use this to identifify if the transport is the base transport
-  // TODO (v8): Remove this again as we'll no longer need it
-  send.__sentry__baseTransport__ = true;
 
   return {
     send,

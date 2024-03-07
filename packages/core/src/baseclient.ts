@@ -22,6 +22,7 @@ import type {
   Session,
   SessionAggregates,
   SeverityLevel,
+  Span,
   StartSpanOptions,
   Transaction,
   TransactionEvent,
@@ -423,6 +424,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /** @inheritdoc */
+  public on(hook: 'spanStart', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
 
   /** @inheritdoc */
@@ -432,19 +442,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
-  public on(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /** @inheritdoc */
-  public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -479,6 +483,15 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /** @inheritdoc */
+  public emit(hook: 'spanStart', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'spanEnd', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
+
+  /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
 
   /** @inheritdoc */
@@ -488,16 +501,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
-
-  /** @inheritdoc */
-  public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
@@ -524,16 +534,19 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
       return this._transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        return reason;
       });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
     }
+
+    DEBUG_BUILD && logger.error('Transport disabled');
+
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */

@@ -13,7 +13,7 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 
-const replay = new Sentry.Replay();
+const replay = Sentry.replayIntegration();
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions

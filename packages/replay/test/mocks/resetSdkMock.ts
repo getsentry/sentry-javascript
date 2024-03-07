@@ -1,7 +1,7 @@
 import type { EventProcessor } from '@sentry/types';
 import { getGlobalSingleton, resetInstrumentationHandlers } from '@sentry/utils';
 
-import type { Replay as ReplayIntegration } from '../../src';
+import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import type { RecordMock } from './../index';
 import { BASE_TIMESTAMP } from './../index';
@@ -13,7 +13,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   domHandler: DomHandler;
   mockRecord: RecordMock;
   replay: ReplayContainer;
-  // eslint-disable-next-line deprecation/deprecation
   integration: ReplayIntegration;
 }> {
   let domHandler: DomHandler;

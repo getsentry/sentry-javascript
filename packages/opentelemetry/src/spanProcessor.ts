@@ -9,6 +9,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getHubFromContext } from './utils/contextData';
+import { setIsSetup } from './utils/setupCheck';
 import { getSpanHub, setSpanHub, setSpanParent, setSpanScopes } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context): void {
@@ -56,6 +57,8 @@ function onSpanEnd(span: Span): void {
 export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProcessorInterface {
   public constructor() {
     super(new SentrySpanExporter());
+
+    setIsSetup('SentrySpanProcessor');
   }
 
   /**
@@ -63,6 +66,9 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
    */
   public onStart(span: Span, parentContext: Context): void {
     onSpanStart(span, parentContext);
+
+    // TODO (v8): Trigger client `spanStart` & `spanEnd` in here,
+    // once we decoupled opentelemetry from SentrySpan
 
     DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
 

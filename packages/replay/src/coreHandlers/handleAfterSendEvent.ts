@@ -1,20 +1,15 @@
-import { getClient } from '@sentry/core';
-import type { ErrorEvent, Event, TransactionEvent, Transport, TransportMakeRequestResponse } from '@sentry/types';
+import type { ErrorEvent, Event, TransactionEvent, TransportMakeRequestResponse } from '@sentry/types';
 
 import type { ReplayContainer } from '../types';
 import { isErrorEvent, isTransactionEvent } from '../util/eventUtils';
 
-type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse | void) => void;
+type AfterSendEventCallback = (event: Event, sendResponse: TransportMakeRequestResponse) => void;
 
 /**
  * Returns a listener to be added to `client.on('afterSendErrorEvent, listener)`.
  */
 export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCallback {
-  // Custom transports may still be returning `Promise<void>`, which means we cannot expect the status code to be available there
-  // TODO (v8): remove this check as it will no longer be necessary
-  const enforceStatusCode = isBaseTransportSend();
-
-  return (event: Event, sendResponse: TransportMakeRequestResponse | void) => {
+  return (event: Event, sendResponse: TransportMakeRequestResponse) => {
     if (!replay.isEnabled() || (!isErrorEvent(event) && !isTransactionEvent(event))) {
       return;
     }
@@ -24,7 +19,7 @@ export function handleAfterSendEvent(replay: ReplayContainer): AfterSendEventCal
     // We only want to do stuff on successful error sending, otherwise you get error replays without errors attached
     // If not using the base transport, we allow `undefined` response (as a custom transport may not implement this correctly yet)
     // If we do use the base transport, we skip if we encountered an non-OK status code
-    if (enforceStatusCode && (!statusCode || statusCode < 200 || statusCode >= 300)) {
+    if (!statusCode || statusCode < 200 || statusCode >= 300) {
       return;
     }
 
@@ -78,20 +73,4 @@ function handleErrorEvent(replay: ReplayContainer, event: ErrorEvent): void {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     replay.sendBufferedReplayOrFlush();
   });
-}
-
-function isBaseTransportSend(): boolean {
-  const client = getClient();
-  if (!client) {
-    return false;
-  }
-
-  const transport = client.getTransport();
-  if (!transport) {
-    return false;
-  }
-
-  return (
-    (transport.send as Transport['send'] & { __sentry__baseTransport__?: true }).__sentry__baseTransport__ || false
-  );
 }

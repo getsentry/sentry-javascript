@@ -1,6 +1,6 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
 
-import type { Replay as ReplayIntegration } from '../../src';
+import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';
 import type { TestClientOptions } from '../utils/TestClient';
@@ -16,16 +16,11 @@ class MockTransport implements Transport {
   send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
 
   constructor() {
-    const send: ((request: Envelope) => PromiseLike<TransportMakeRequestResponse>) & {
-      __sentry__baseTransport__?: boolean;
-    } = jest.fn(async () => {
+    this.send = jest.fn(async () => {
       return {
         statusCode: 200,
       };
     });
-
-    send.__sentry__baseTransport__ = true;
-    this.send = send;
   }
 
   async flush() {
@@ -51,11 +46,9 @@ class MockTransport implements Transport {
 
 export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }: MockSdkParams = {}): Promise<{
   replay: ReplayContainer;
-  // eslint-disable-next-line deprecation/deprecation
   integration: ReplayIntegration;
 }> {
-  // eslint-disable-next-line deprecation/deprecation
-  const { Replay } = await import('../../src');
+  const { Replay } = await import('../../src/integration');
 
   // Scope this to the test, instead of the module
   let _initialized = false;

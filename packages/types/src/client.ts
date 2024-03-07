@@ -14,6 +14,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
+import type { Span } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
@@ -169,6 +170,9 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /** Submits the session to Sentry */
   sendSession(session: Session | SessionAggregates): void;
 
+  /** Sends an envelope to Sentry */
+  sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse>;
+
   /**
    * Record on the client that an event got dropped (ie, an event that will not be sent to sentry).
    *
@@ -194,6 +198,23 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
 
   /**
+   * Register a callback for whenever a span is started.
+   * Receives the span as argument.
+   */
+  on(hook: 'spanStart', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback for whenever a span is ended.
+   * Receives the span as argument.
+   */
+  on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback for when an idle span is allowed to auto-finish.
+   */
+  on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
+
+  /**
    * Register a callback for transaction start and finish.
    */
   on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -215,7 +236,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Register a callback for when an event has been sent.
    */
-  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void): void;
+  on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /**
    * Register a callback before a breadcrumb is added.
@@ -226,12 +247,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Register a callback when a DSC (Dynamic Sampling Context) is created.
    */
   on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /**
-   * Register a callback when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * The option argument may be mutated to drop the span.
-   */
-  on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /**
    * Register a callback when a Feedback event has been prepared.
@@ -275,6 +290,17 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   emit(hook: 'finishTransaction', transaction: Transaction): void;
 
+  /** Fire a hook whener a span starts. */
+  emit(hook: 'spanStart', span: Span): void;
+
+  /** Fire a hook whener a span ends. */
+  emit(hook: 'spanEnd', span: Span): void;
+
+  /**
+   * Fire a hook indicating that an idle span is allowed to auto finish.
+   */
+  emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
+
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
    * second argument.
@@ -298,7 +324,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook event after sending an event. Expects to be given an Event as the
    * second argument.
    */
-  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /**
    * Fire a hook for when a breadcrumb is added. Expects the breadcrumb as second argument.
@@ -309,13 +335,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * Fire a hook for when a DSC (Dynamic Sampling Context) is created. Expects the DSC as second argument.
    */
   emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
-
-  /**
-   * Fire a hook for when an OpenTelemetry span is ended (in @sentry/opentelemetry-node).
-   * Expects the OTEL span & as second argument, and an option object as third argument.
-   * The option argument may be mutated to drop the span.
-   */
-  emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /**
    * Fire a hook event for after preparing a feedback event. Events to be given

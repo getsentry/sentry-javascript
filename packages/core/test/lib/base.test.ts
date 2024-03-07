@@ -1,4 +1,4 @@
-import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
+import type { Client, Envelope, Event, Transaction } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
 import {
@@ -897,22 +897,22 @@ describe('BaseClient', () => {
           {
             data: { _sentry_extra_metrics: { M1: { value: 1 }, M2: { value: 2 } } },
             description: 'first-paint',
-            endTimestamp: 1591603196.637835,
+            timestamp: 1591603196.637835,
             op: 'paint',
-            parentSpanId: 'a3df84a60c2e4e76',
-            spanId: '9e15bf99fbe4bc80',
-            startTimestamp: 1591603196.637835,
-            traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as unknown as Span,
+            parent_span_id: 'a3df84a60c2e4e76',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
           {
             description: 'first-contentful-paint',
-            endTimestamp: 1591603196.637835,
+            timestamp: 1591603196.637835,
             op: 'paint',
-            parentSpanId: 'a3df84a60c2e4e76',
-            spanId: 'aa554c1f506b0783',
-            startTimestamp: 1591603196.637835,
-            traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as any as Span,
+            parent_span_id: 'a3df84a60c2e4e76',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
         ],
         start_timestamp: 1591603196.614865,
         timestamp: 1591603196.728485,
@@ -1804,7 +1804,7 @@ describe('BaseClient', () => {
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, undefined);
+      expect(callback).toBeCalledWith(errorEvent, 'send error');
     });
 
     it('passes the response to the hook', async () => {

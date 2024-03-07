@@ -118,7 +118,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 
-// Before (v8)
+// After (v8)
 const Sentry = require('@sentry/node');
 
 Sentry.init({
@@ -272,6 +272,7 @@ Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggreg
 - [Removal of `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode`](./MIGRATION.md#removal-of-spanstatusfromhttpcode-in-favour-of-getspanstatusfromhttpcode)
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
 - [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
+- [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
 
 #### Deprecation of `Hub` and `getCurrentHub()`
 
@@ -307,6 +308,11 @@ const replay = Sentry.getIntegration(Replay);
 // After (v8)
 const replay = getClient().getIntegrationByName('Replay');
 ```
+
+#### `framesToPop` applies to parsed frames
+
+Error with `framesToPop` property will have the specified number of frames removed from the top of the stack. This
+changes compared to the v7 where the property `framesToPop` was used to remove top n lines from the stack string.
 
 #### `tracingOrigins` has been replaced by `tracePropagationTargets`
 
@@ -435,6 +441,23 @@ addEventProcessor(event => {
 
 The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
 
+#### Remove `void` from transport return types
+
+The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in
+the promise. This means that the `void` return type is no longer allowed.
+
+```ts
+// Before (v7)
+interface Transport {
+  send(event: Event): Promise<void | TransportMakeRequestResponse>;
+}
+
+// After (v8)
+interface Transport {
+  send(event: Event): Promise<TransportMakeRequestResponse>;
+}
+```
+
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
 
 Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`
@@ -499,6 +522,45 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
 - `IS_BUILD`
 - `isBuild`
+
+#### Removal of the `sentry` property in your Next.js options (next.config.js)
+
+With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
+property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
+
+```ts
+// OLD
+const nextConfig = {
+  // Your Next.js options...
+
+  sentry: {
+    // Your Sentry SDK options...
+  },
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+});
+
+// NEW
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // Your Sentry Webpack Plugin Options...
+  },
+  {
+    // Your Sentry SDK options...
+  },
+);
+```
+
+The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
+reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
+have code completion.
 
 ### Astro SDK
 

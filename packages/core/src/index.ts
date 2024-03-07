@@ -85,7 +85,13 @@ export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
-export { spanToTraceHeader, spanToJSON, spanIsSampled, spanToTraceContext } from './utils/spanUtils';
+export {
+  spanToTraceHeader,
+  spanToJSON,
+  spanIsSampled,
+  spanToTraceContext,
+  getSpanDescendants,
+} from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
@@ -108,3 +114,4 @@ export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
+export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';

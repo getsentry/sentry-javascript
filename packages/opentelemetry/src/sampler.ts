@@ -10,6 +10,7 @@ import { isNaN, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpanContext } from './propagator';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
+import { setIsSetup } from './utils/setupCheck';
 
 /**
  * A custom OTEL sampler that uses Sentry sampling rates to make it's decision
@@ -19,6 +20,7 @@ export class SentrySampler implements Sampler {
 
   public constructor(client: Client) {
     this._client = client;
+    setIsSetup('SentrySampler');
   }
 
   /** @inheritDoc */

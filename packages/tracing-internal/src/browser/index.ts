@@ -2,8 +2,8 @@ export * from '../exports';
 
 export type { RequestInstrumentationOptions } from './request';
 
-export { BROWSER_TRACING_INTEGRATION_ID } from './browsertracing';
 export {
+  BROWSER_TRACING_INTEGRATION_ID,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
