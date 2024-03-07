@@ -8,7 +8,7 @@ Sentry.init({
   integrations: [
     Sentry.browserTracingIntegration({
       // To avoid having this test run for 15s
-      childSpanTimeout: 2000,
+      childSpanTimeout: 5000,
     }),
   ],
   defaultIntegrations: false,
