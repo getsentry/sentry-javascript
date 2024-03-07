@@ -36,7 +36,7 @@ export interface BrowserTracingOptions {
    * The time that has to pass without any span being created.
    * If this time is exceeded, the idle span will finish.
    *
-   * Default: 1000ms
+   * Default: 1000 (ms)
    */
   idleTimeout: number;
 
@@ -44,7 +44,7 @@ export interface BrowserTracingOptions {
    * The max. time an idle span may run.
    * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 30000ms
+   * Default: 30000 (ms)
    */
   finalTimeout: number;
 
@@ -52,7 +52,7 @@ export interface BrowserTracingOptions {
    The max. time an idle span may run.
    * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 15000ms
+   * Default: 15000 (ms)
    */
   childSpanTimeout: number;
 
@@ -185,7 +185,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   let latestRouteSource: TransactionSource | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span | undefined {
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
     const { beforeStartSpan, idleTimeout, finalTimeout, childSpanTimeout } = options;
 
     const isPageloadTransaction = startSpanOptions.op === 'pageload';
@@ -218,10 +218,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         addPerformanceEntries(span);
       },
     });
-
-    if (!idleSpan) {
-      return;
-    }
 
     if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
