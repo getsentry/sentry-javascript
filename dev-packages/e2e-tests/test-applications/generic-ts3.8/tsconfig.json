@@ -1,11 +1,11 @@
 {
   "include": ["index.ts"],
   "compilerOptions": {
-    "lib": ["es6", "DOM"],
+    "lib": ["es2017", "DOM"],
     "skipLibCheck": false,
     "noEmit": true,
     "types": [],
-    "target": "es6",
+    "target": "es2017",
     "moduleResolution": "node"
   }
 }

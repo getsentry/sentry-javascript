@@ -2,7 +2,7 @@
   "compilerOptions": {
     "types": ["node"],
     "esModuleInterop": true,
-    "lib": ["ES6"],
+    "lib": ["es2017"],
     "strict": true,
     "outDir": "dist",
     "target": "ESNext",

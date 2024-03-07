@@ -264,7 +264,7 @@ describe('browserTracingIntegration', () => {
     const childSpan = startInactiveSpan({ name: 'pageload-child' });
     const timestamp = timestampInSeconds();
 
-    childSpan?.end(timestamp);
+    childSpan.end(timestamp);
     pageloadSpan?.end(timestamp + 12345);
 
     expect(spanToJSON(pageloadSpan!).timestamp).toBe(timestamp);

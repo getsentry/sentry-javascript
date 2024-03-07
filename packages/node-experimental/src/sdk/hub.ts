@@ -82,7 +82,7 @@ export function getCurrentHub(): Hub {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ): any {
       // eslint-disable-next-line no-console
-      console.warn('startTransaction is a noop in @sentry/node-experimental. Use `startSpan` instead.');
+      console.warn('startTransaction is a noop in @sentry/node. Use `startSpan` instead.');
       // We return an object here as hub.ts checks for the result of this
       // and renders a different warning if this is empty
       return {};

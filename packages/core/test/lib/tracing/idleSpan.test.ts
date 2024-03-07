@@ -2,6 +2,8 @@ import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 import type { Event, Span } from '@sentry/types';
 import {
+  SentryNonRecordingSpan,
+  SentrySpan,
   addTracingExtensions,
   getActiveSpan,
   getClient,
@@ -40,6 +42,7 @@ describe('startIdleSpan', () => {
   it('sets & unsets the idle span on the scope', () => {
     const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
+    expect(idleSpan).toBeInstanceOf(SentrySpan);
 
     expect(getActiveSpan()).toBe(idleSpan);
 
@@ -49,12 +52,26 @@ describe('startIdleSpan', () => {
     expect(getActiveSpan()).toBe(undefined);
   });
 
+  it('returns non recording span if tracing is disabled', () => {
+    const options = getDefaultTestClientOptions({ dsn });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const idleSpan = startIdleSpan({ name: 'foo' });
+    expect(idleSpan).toBeDefined();
+    expect(idleSpan).toBeInstanceOf(SentryNonRecordingSpan);
+
+    // not set as active span, though
+    expect(getActiveSpan()).toBe(undefined);
+  });
+
   it('does not finish idle span if there are still active activities', () => {
-    const idleSpan = startIdleSpan({ name: 'foo' })!;
+    const idleSpan = startIdleSpan({ name: 'foo' });
     expect(idleSpan).toBeDefined();
 
     startSpanManual({ name: 'inner1' }, span => {
-      const childSpan = startInactiveSpan({ name: 'inner2' })!;
+      const childSpan = startInactiveSpan({ name: 'inner2' });
 
       span?.end();
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout + 1);
@@ -72,7 +89,7 @@ describe('startIdleSpan', () => {
 
   it('calls beforeSpanEnd callback before finishing', () => {
     const beforeSpanEnd = jest.fn();
-    const idleSpan = startIdleSpan({ name: 'foo' }, { beforeSpanEnd })!;
+    const idleSpan = startIdleSpan({ name: 'foo' }, { beforeSpanEnd });
     expect(idleSpan).toBeDefined();
 
     expect(beforeSpanEnd).not.toHaveBeenCalled();
@@ -108,7 +125,7 @@ describe('startIdleSpan', () => {
       const inner = startInactiveSpan({ name: 'from beforeSpanEnd', startTime: baseTimeInSeconds });
       inner?.end(baseTimeInSeconds);
     });
-    const idleSpan = startIdleSpan({ name: 'idle span 2', startTime: baseTimeInSeconds }, { beforeSpanEnd })!;
+    const idleSpan = startIdleSpan({ name: 'idle span 2', startTime: baseTimeInSeconds }, { beforeSpanEnd });
     expect(idleSpan).toBeDefined();
 
     expect(beforeSpanEnd).not.toHaveBeenCalled();
@@ -152,26 +169,26 @@ describe('startIdleSpan', () => {
     // We want to accomodate a bit of drift there, so we ensure this starts earlier...
     const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
 
-    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds })!;
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds });
     expect(idleSpan).toBeDefined();
 
     // regular child - should be kept
     const regularSpan = startInactiveSpan({
       name: 'regular span',
       startTime: baseTimeInSeconds + 2,
-    })!;
+    });
 
     // discardedSpan - startTimestamp is too large
-    const discardedSpan = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 99 })!;
+    const discardedSpan = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 99 });
     // discardedSpan2 - endTime is too large
-    const discardedSpan2 = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 3 })!;
+    const discardedSpan2 = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 3 });
     discardedSpan2.end(baseTimeInSeconds + 99)!;
 
     // Should be cancelled - will not finish
     const cancelledSpan = startInactiveSpan({
       name: 'cancelled span',
       startTime: baseTimeInSeconds + 4,
-    })!;
+    });
 
     regularSpan.end(baseTimeInSeconds + 4);
     idleSpan.end(baseTimeInSeconds + 10);
@@ -225,7 +242,7 @@ describe('startIdleSpan', () => {
       hookSpans.push({ span, hook: 'spanEnd' });
     });
 
-    const idleSpan = startIdleSpan({ name: 'idle span' })!;
+    const idleSpan = startIdleSpan({ name: 'idle span' });
     expect(idleSpan).toBeDefined();
 
     expect(hookSpans).toEqual([{ span: idleSpan, hook: 'spanStart' }]);
@@ -250,7 +267,7 @@ describe('startIdleSpan', () => {
 
     const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
 
-    const idleSpan = startIdleSpan({ name: 'idle span' })!;
+    const idleSpan = startIdleSpan({ name: 'idle span' });
     expect(idleSpan).toBeDefined();
 
     idleSpan?.end();
@@ -260,7 +277,7 @@ describe('startIdleSpan', () => {
 
   describe('idleTimeout', () => {
     it('finishes if no activities are added to the idle span', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' });
       expect(idleSpan).toBeDefined();
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
@@ -268,7 +285,7 @@ describe('startIdleSpan', () => {
     });
 
     it('does not finish if a activity is started', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' });
       expect(idleSpan).toBeDefined();
 
       startInactiveSpan({ name: 'span' });
@@ -279,7 +296,7 @@ describe('startIdleSpan', () => {
 
     it('does not finish when idleTimeout is not exceed after last activity finished', () => {
       const idleTimeout = 10;
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { idleTimeout })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { idleTimeout });
       expect(idleSpan).toBeDefined();
 
       startSpan({ name: 'span1' }, () => {});
@@ -295,7 +312,7 @@ describe('startIdleSpan', () => {
 
     it('finish when idleTimeout is exceeded after last activity finished', () => {
       const idleTimeout = 10;
-      const idleSpan = startIdleSpan({ name: 'idle span', startTime: 1234 }, { idleTimeout })!;
+      const idleSpan = startIdleSpan({ name: 'idle span', startTime: 1234 }, { idleTimeout });
       expect(idleSpan).toBeDefined();
 
       startSpan({ name: 'span1' }, () => {});
@@ -312,7 +329,7 @@ describe('startIdleSpan', () => {
 
   describe('child span timeout', () => {
     it('finishes when a child span exceed timeout', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' });
       expect(idleSpan).toBeDefined();
 
       // Start any span to cancel idle timeout
@@ -333,7 +350,7 @@ describe('startIdleSpan', () => {
     });
 
     it('resets after new activities are added', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { finalTimeout: 99_999 })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { finalTimeout: 99_999 });
       expect(idleSpan).toBeDefined();
 
       // Start any span to cancel idle timeout
@@ -370,7 +387,7 @@ describe('startIdleSpan', () => {
 
   describe('disableAutoFinish', () => {
     it('skips idle timeout if disableAutoFinish=true', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true });
       expect(idleSpan).toBeDefined();
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
@@ -387,7 +404,7 @@ describe('startIdleSpan', () => {
     });
 
     it('skips span timeout if disableAutoFinish=true', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true, finalTimeout: 99_999 })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true, finalTimeout: 99_999 });
       expect(idleSpan).toBeDefined();
 
       startInactiveSpan({ name: 'inner' });
@@ -406,7 +423,7 @@ describe('startIdleSpan', () => {
     });
 
     it('times out at final timeout if disableAutoFinish=true', () => {
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true })!;
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true });
       expect(idleSpan).toBeDefined();
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.finalTimeout);
@@ -414,8 +431,8 @@ describe('startIdleSpan', () => {
     });
 
     it('ignores it if hook is emitted with other span', () => {
-      const span = startInactiveSpan({ name: 'other span' })!;
-      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true })!;
+      const span = startInactiveSpan({ name: 'other span' });
+      const idleSpan = startIdleSpan({ name: 'idle span' }, { disableAutoFinish: true });
       expect(idleSpan).toBeDefined();
 
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);

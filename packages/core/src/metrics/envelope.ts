@@ -1,22 +1,11 @@
-import type {
-  ClientOptions,
-  DsnComponents,
-  MetricBucketItem,
-  SdkMetadata,
-  StatsdEnvelope,
-  StatsdItem,
-} from '@sentry/types';
+import type { Client, DsnComponents, MetricBucketItem, SdkMetadata, StatsdEnvelope, StatsdItem } from '@sentry/types';
 import { createEnvelope, dsnToString, logger } from '@sentry/utils';
-import type { BaseClient } from '../baseclient';
 import { serializeMetricBuckets } from './utils';
 
 /**
  * Captures aggregated metrics to the supplied client.
  */
-export function captureAggregateMetrics(
-  client: BaseClient<ClientOptions>,
-  metricBucketItems: Array<MetricBucketItem>,
-): void {
+export function captureAggregateMetrics(client: Client, metricBucketItems: Array<MetricBucketItem>): void {
   logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
   const dsn = client.getDsn();
   const metadata = client.getSdkMetadata();

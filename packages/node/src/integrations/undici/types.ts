@@ -224,7 +224,9 @@ export interface UndiciRequest {
   // Originally was Dispatcher.HttpMethod, but did not want to vendor that in.
   method?: string;
   path: string;
-  headers: string;
+  // string for undici@<=6.6.2 and string[] for undici@>=6.7.0.
+  // see for more information: https://github.com/getsentry/sentry-javascript/issues/10936
+  headers: string | string[];
   addHeader(key: string, value: string): RequestWithSentry;
 }
 

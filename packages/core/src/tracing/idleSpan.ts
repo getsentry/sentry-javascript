@@ -3,10 +3,12 @@ import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToJSON } from '../utils/spanUtils';
+import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { getSpanDescendants, removeChildSpanFromSpan, spanToJSON } from '../utils/spanUtils';
+import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan, getSpanDescendants, removeChildSpanFromSpan } from './utils';
+import { getActiveSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
@@ -71,10 +73,7 @@ interface IdleSpanOptions {
  * An idle span is a span that automatically finishes. It does this by tracking child spans as activities.
  * An idle span is always the active span.
  */
-export function startIdleSpan(
-  startSpanOptions: StartSpanOptions,
-  options: Partial<IdleSpanOptions> = {},
-): Span | undefined {
+export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Partial<IdleSpanOptions> = {}): Span {
   // Activities store a list of active spans
   const activities = new Map<string, boolean>();
 
@@ -101,21 +100,13 @@ export function startIdleSpan(
 
   const client = getClient();
 
-  if (!client) {
-    return;
+  if (!client || !hasTracingEnabled()) {
+    return new SentryNonRecordingSpan();
   }
 
   const scope = getCurrentScope();
   const previousActiveSpan = getActiveSpan();
-  const _span = _startIdleSpan(startSpanOptions);
-
-  // Span _should_ always be defined here, but TS does not know that...
-  if (!_span) {
-    return;
-  }
-
-  // For TS, so that we know everything below here has a span
-  const span = _span;
+  const span = _startIdleSpan(startSpanOptions);
 
   /**
    * Cancels the existing idle timeout, if there is one.
@@ -319,15 +310,13 @@ export function startIdleSpan(
   return span;
 }
 
-function _startIdleSpan(options: StartSpanOptions): Span | undefined {
+function _startIdleSpan(options: StartSpanOptions): Span {
   const span = startInactiveSpan(options);
 
   // eslint-disable-next-line deprecation/deprecation
   getCurrentScope().setSpan(span);
 
-  if (span) {
-    DEBUG_BUILD && logger.log(`Setting idle span on scope. Span ID: ${span.spanContext().spanId}`);
-  }
+  DEBUG_BUILD && logger.log(`Setting idle span on scope. Span ID: ${span.spanContext().spanId}`);
 
   return span;
 }

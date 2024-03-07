@@ -64,4 +64,15 @@ describe('applyTunnelRouteOption()', () => {
 
     expect(options.tunnel).toBeUndefined();
   });
+
+  it('Correctly applies `tunnelRoute` option to region DSNs', () => {
+    globalWithInjectedValues.__sentryRewritesTunnelPath__ = '/my-error-monitoring-route';
+    const options: any = {
+      dsn: 'https://11111111111111111111111111111111@o2222222.ingest.us.sentry.io/3333333',
+    } as BrowserOptions;
+
+    applyTunnelRouteOption(options);
+
+    expect(options.tunnel).toBe('/my-error-monitoring-route?o=2222222&p=3333333&r=us');
+  });
 });

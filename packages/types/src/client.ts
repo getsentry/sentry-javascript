@@ -170,6 +170,9 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /** Submits the session to Sentry */
   sendSession(session: Session | SessionAggregates): void;
 
+  /** Sends an envelope to Sentry */
+  sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse>;
+
   /**
    * Record on the client that an event got dropped (ie, an event that will not be sent to sentry).
    *

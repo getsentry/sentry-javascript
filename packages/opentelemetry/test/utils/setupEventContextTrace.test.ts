@@ -72,11 +72,11 @@ describe('setupEventContextTrace', () => {
     let traceId: string | undefined;
 
     client.tracer.startActiveSpan('outer', outerSpan => {
-      outerId = outerSpan?.spanContext().spanId;
-      traceId = outerSpan?.spanContext().traceId;
+      outerId = outerSpan.spanContext().spanId;
+      traceId = outerSpan.spanContext().traceId;
 
       client.tracer.startActiveSpan('inner', innerSpan => {
-        innerId = innerSpan?.spanContext().spanId;
+        innerId = innerSpan.spanContext().spanId;
         captureException(error);
       });
     });

@@ -22,12 +22,12 @@ import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  addChildSpanToSpan,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
-import { addChildSpanToSpan } from './utils';
 
 /**
  * Keeps track of finished spans for a given transaction
@@ -369,6 +369,18 @@ export class SentrySpan implements Span {
   /** @inheritdoc */
   public setAttributes(attributes: SpanAttributes): void {
     Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
+  }
+
+  /**
+   * This should generally not be used,
+   * but we need it for browser tracing where we want to adjust the start time afterwards.
+   * USE THIS WITH CAUTION!
+   *
+   * @hidden
+   * @internal
+   */
+  public updateStartTime(timeInput: SpanTimeInput): void {
+    this._startTime = spanTimeInputToSeconds(timeInput);
   }
 
   /**
