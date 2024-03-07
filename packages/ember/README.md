@@ -173,7 +173,7 @@ ENV['@sentry/ember'] = {
 ### Supported Versions
 
 * **Ember.js**: v4.0 or above
-* **Node**: v14.8 or above
+* **Node**: v14.18 or above
 
 ### Previous Integration
 
