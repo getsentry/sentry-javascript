@@ -153,7 +153,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
-  enableInp: false,
+  enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
