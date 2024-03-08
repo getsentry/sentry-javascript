@@ -7,8 +7,9 @@ import {
   getActiveSpan,
   getActiveTransaction,
   getClient,
-  getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  getRootSpan,
+  handleCallbackErrors,
   hasTracingEnabled,
   setHttpStatus,
   spanToJSON,
@@ -188,46 +189,50 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      let res: Response;
-      // eslint-disable-next-line deprecation/deprecation
-      const activeTransaction = getActiveTransaction();
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      try {
-        // eslint-disable-next-line deprecation/deprecation
-        const span = activeTransaction?.startChild({
-          op: 'function.remix.document_request',
-          origin: 'auto.function.remix',
-          name: spanToJSON(activeTransaction).description,
+      const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+
+      return startSpan(
+        {
+          // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
+          // So we don't need to care too much about the fallback name, it's just for typing purposes....
+          name: name || '<unknown>',
+          onlyIfParent: true,
           attributes: {
             method: request.method,
             url: request.url,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
           },
-        });
+        },
+        () => {
+          return handleCallbackErrors(
+            () => {
+              return origDocumentRequestFunction.call(
+                this,
+                request,
+                responseStatusCode,
+                responseHeaders,
+                context,
+                loadContext,
+              );
+            },
+            err => {
+              const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
 
-        res = await origDocumentRequestFunction.call(
-          this,
-          request,
-          responseStatusCode,
-          responseHeaders,
-          context,
-          loadContext,
-        );
-
-        span?.end();
-      } catch (err) {
-        const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
-
-        // This exists to capture the server-side rendering errors on Remix v1
-        // On Remix v2, we capture SSR errors at `handleError`
-        // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-        if (isRemixV1 && !isPrimitive(err)) {
-          await captureRemixServerException(err, 'documentRequest', request);
-        }
-
-        throw err;
-      }
-
-      return res;
+              // This exists to capture the server-side rendering errors on Remix v1
+              // On Remix v2, we capture SSR errors at `handleError`
+              // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
+              if (isRemixV1 && !isPrimitive(err)) {
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                captureRemixServerException(err, 'documentRequest', request);
+              }
+            },
+          );
+        },
+      );
     };
   };
 }
@@ -244,47 +249,32 @@ function makeWrappedDataFunction(
       return origFn.call(this, args);
     }
 
-    let res: Response | AppData;
-    // eslint-disable-next-line deprecation/deprecation
-    const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentScope();
-
-    try {
-      // eslint-disable-next-line deprecation/deprecation
-      const span = activeTransaction?.startChild({
+    return startSpan(
+      {
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
         name: id,
         attributes: {
           name,
         },
-      });
+      },
+      () => {
+        return handleCallbackErrors(
+          () => origFn.call(this, args),
+          err => {
+            const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-      if (span) {
-        // Assign data function to hub to be able to see `db` transactions (if any) as children.
-        // eslint-disable-next-line deprecation/deprecation
-        currentScope.setSpan(span);
-      }
-
-      res = await origFn.call(this, args);
-
-      // eslint-disable-next-line deprecation/deprecation
-      currentScope.setSpan(activeTransaction);
-      span?.end();
-    } catch (err) {
-      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
-
-      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
-      // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-      // Remix v1 does not have a `handleError` function, so we capture all errors here.
-      if (isRemixV2 ? isResponse(err) : true) {
-        await captureRemixServerException(err, name, args.request);
-      }
-
-      throw err;
-    }
-
-    return res;
+            // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+            // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
+            // Remix v1 does not have a `handleError` function, so we capture all errors here.
+            if (isRemixV2 ? isResponse(err) : true) {
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              captureRemixServerException(err, name, args.request);
+            }
+          },
+        );
+      },
+    );
   };
 }
 
