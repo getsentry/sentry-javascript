@@ -254,6 +254,7 @@ We now support the following integrations out of the box:
 - [Browser SDK](./MIGRATION.md#browser-sdk-browser-react-vue-angular-ember-etc)
 - [Server-side SDKs (Node, Deno, Bun)](./MIGRATION.md#server-side-sdks-node-deno-bun-etc)
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
+- [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 
 ### General
@@ -580,6 +581,78 @@ Sentry.init({
   ],
 });
 ```
+
+### SvelteKit SDK
+
+#### Breaking `sentrySvelteKit()` changes
+
+We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
+change, resolving uploaded source maps should work out of the box much more often than before
+([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
+
+To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
+the `sourceMapsUploadOptions` to remove the hard dependency on the API of the plugin. While you previously could specify
+all [version 0.x Vite plugin options](https://www.npmjs.com/package/@sentry/vite-plugin/v/0.6.1), we now reduced them to
+a subset of [2.x options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options). All of these options are
+optional just like before but here's an example of using the new options.
+
+```js
+// Before (v7):
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: '1.0.1',
+    injectRelease: true,
+    include: ['./build/*/**/*'],
+    ignore: ['**/build/client/**/*']
+  },
+}),
+
+// After (v8):
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: {
+	    name: '1.0.1',
+	    inject: true
+    },
+    sourcemaps: {
+	    assets: ['./build/*/**/*'],
+	    ignore: ['**/build/client/**/*'],
+	    filesToDeleteAfterUpload: ['./build/**/*.map']
+    },
+  },
+}),
+```
+
+In the future, we might add additional [options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options)
+from the Vite plugin but if you would like to specify some of them directly, you can do this by passing in an
+`unstable_sentryVitePluginOptions` object:
+
+```js
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    // ...
+    release: {
+	    name: '1.0.1',
+    },
+    unstable_sentryVitePluginOptions: {
+      release: {
+        setCommits: {
+          auto: true
+        }
+      }
+    }
+  },
+}),
+```
+
+Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
+time, including breaking changes within the same major version of the SDK.
 
 ## 5. Behaviour Changes
 
