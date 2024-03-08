@@ -1,4 +1,4 @@
-import { BuildContext, NextConfigObject } from '../../../src/config/types';
+import type { BuildContext, NextConfigObject } from '../../../src/config/types';
 import { getWebpackPluginOptions } from '../../../src/config/webpackPluginOptions';
 
 function generateBuildContext(overrides: {

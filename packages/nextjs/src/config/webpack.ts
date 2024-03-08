@@ -397,6 +397,7 @@ export function constructWebpackConfigFunction(
         const sentryWebpackPluginInstance = sentryWebpackPlugin(
           getWebpackPluginOptions(buildContext, userSentryOptions),
         );
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
         newConfig.plugins.push(sentryWebpackPluginInstance);
       }

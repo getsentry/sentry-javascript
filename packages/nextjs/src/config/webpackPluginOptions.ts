@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { getSentryRelease } from '@sentry/node-experimental';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import { BuildContext, SentryBuildOptions } from './types';
+import type { BuildContext, SentryBuildOptions } from './types';
 
 /**
  * Combine default and user-provided SentryWebpackPlugin options, accounting for whether we're building server files or
