@@ -17,11 +17,11 @@ import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
   addChildSpanToSpan,
+  getRootSpan,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,

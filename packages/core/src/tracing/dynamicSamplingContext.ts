@@ -4,8 +4,7 @@ import { dropUndefinedKeys } from '@sentry/utils';
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getClient } from '../currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
-import { getRootSpan } from '../utils/getRootSpan';
-import { spanIsSampled, spanToJSON } from '../utils/spanUtils';
+import { getRootSpan, spanIsSampled, spanToJSON } from '../utils/spanUtils';
 
 /**
  * Creates a dynamic sampling context from a client.

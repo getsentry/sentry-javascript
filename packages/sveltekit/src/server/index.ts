@@ -68,6 +68,7 @@ export {
   Handlers,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,

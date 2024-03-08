@@ -7,7 +7,12 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '@sentry/types';
-import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
+import {
+  addNonEnumerableProperty,
+  dropUndefinedKeys,
+  generateSentryTraceHeader,
+  timestampInSeconds,
+} from '@sentry/utils';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
@@ -169,19 +174,28 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
+const ROOT_SPAN_FIELD = '_sentryRootSpan';
 
 type SpanWithPotentialChildren = Span & {
   [CHILD_SPANS_FIELD]?: Set<Span>;
+  [ROOT_SPAN_FIELD]?: Span;
 };
 
 /**
  * Adds an opaque child span reference to a span.
  */
 export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  // We store the root span reference on the child span
+  // We need this for `getRootSpan()` to work
+  const rootSpan = span[ROOT_SPAN_FIELD] || span;
+  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+
+  // We store a list of child spans on the parent span
+  // We need this for `getSpanDescendants()` to work
   if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
     span[CHILD_SPANS_FIELD].add(childSpan);
   } else {
-    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));
   }
 }
 
@@ -215,4 +229,11 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
   addSpanChildren(span);
 
   return Array.from(resultSet);
+}
+
+/**
+ * Returns the root span of a given span.
+ */
+export function getRootSpan(span: SpanWithPotentialChildren): Span {
+  return span[ROOT_SPAN_FIELD] || span;
 }

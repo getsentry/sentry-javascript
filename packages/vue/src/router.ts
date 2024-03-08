@@ -125,7 +125,7 @@ export function instrumentVueRouter(
 
 function getActiveRootSpan(): Span | undefined {
   const span = getActiveSpan();
-  const rootSpan = span ? getRootSpan(span) : undefined;
+  const rootSpan = span && getRootSpan(span);
 
   if (!rootSpan) {
     return undefined;

@@ -32,6 +32,7 @@ export declare const startSpan: typeof clientSdk.startSpan;
 export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;
 export declare const startSpanManual: typeof clientSdk.startSpanManual;
 export declare const withActiveSpan: typeof clientSdk.withActiveSpan;
+export declare const getRootSpan: typeof clientSdk.getRootSpan;
 export declare const Span: clientSdk.Span;
 
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

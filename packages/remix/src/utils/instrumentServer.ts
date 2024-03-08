@@ -4,11 +4,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   continueTrace,
-  getActiveSpan,
-  getActiveTransaction,
   getClient,
   getDynamicSamplingContextFromSpan,
-  getRootSpan,
   handleCallbackErrors,
   hasTracingEnabled,
   setHttpStatus,
@@ -17,7 +14,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException } from '@sentry/node-experimental';
+import { captureException, getActiveSpan, getRootSpan } from '@sentry/node-experimental';
 import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -147,17 +144,17 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getActiveTransaction();
-    const activeTransactionName = transaction ? spanToJSON(transaction).description : undefined;
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
         ...normalizedRequest,
         // When `route` is not defined, `RequestData` integration uses the full URL
-        route: activeTransactionName
+        route: activeRootSpanName
           ? {
-              path: activeTransactionName,
+              path: activeRootSpanName,
             }
           : undefined,
       },
@@ -294,14 +291,12 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = getActiveTransaction();
-
   if (isNodeEnv() && hasTracingEnabled()) {
     const span = getActiveSpan();
+    const rootSpan = span && getRootSpan(span);
 
-    if (span && transaction) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
+    if (rootSpan) {
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
       return {
         sentryTrace: spanToTraceHeader(span),

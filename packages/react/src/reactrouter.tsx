@@ -258,7 +258,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
 
 function getActiveRootSpan(): Span | undefined {
   const span = getActiveSpan();
-  const rootSpan = span ? getRootSpan(span) : undefined;
+  const rootSpan = span && getRootSpan(span);
 
   if (!rootSpan) {
     return undefined;

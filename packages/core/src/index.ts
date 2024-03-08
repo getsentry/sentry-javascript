@@ -92,8 +92,8 @@ export {
   spanToTraceContext,
   getSpanDescendants,
   getStatusMessage,
+  getRootSpan,
 } from './utils/spanUtils';
-export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
 /* eslint-disable deprecation/deprecation */

@@ -66,6 +66,7 @@ export {
   Integrations,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,

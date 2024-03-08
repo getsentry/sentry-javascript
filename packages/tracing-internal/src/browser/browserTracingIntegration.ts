@@ -403,7 +403,7 @@ function registerInteractionListener(
     const op = 'ui.action.click';
 
     const activeSpan = getActiveSpan();
-    const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
     if (rootSpan) {
       const currentRootSpanOp = spanToJSON(rootSpan).op;
       if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
