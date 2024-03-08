@@ -1,34 +1,14 @@
-import { spanToJSON } from '@sentry/core';
+import { defineIntegration, getCurrentScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node-experimental';
-import type {
-  Event,
-  EventProcessor,
-  Hub,
-  Integration,
-  IntegrationFn,
-  IntegrationFnResult,
-  Transaction,
-} from '@sentry/types';
+import type { IntegrationFn, Span } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import {
-  MAX_PROFILE_DURATION_MS,
-  addProfilingExtensionMethods,
-  maybeProfileTransaction,
-  stopTransactionProfile,
-} from './hubextensions';
+import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import type { Profile, RawThreadCpuProfile } from './types';
 
-import {
-  addProfilesToEnvelope,
-  createProfilingEvent,
-  createProfilingEventEnvelope,
-  findProfiledTransactionsFromEnvelope,
-  isProfiledTransactionEvent,
-  maybeRemoveProfileFromSdkMetadata,
-} from './utils';
+import { addProfilesToEnvelope, createProfilingEvent, findProfiledTransactionsFromEnvelope } from './utils';
 
 const MAX_PROFILE_QUEUE_LENGTH = 50;
 const PROFILE_QUEUE: RawThreadCpuProfile[] = [];
@@ -43,36 +23,19 @@ function addToProfileQueue(profile: RawThreadCpuProfile): void {
   }
 }
 
-/**
- * We need this integration in order to send data to Sentry. We hook into the event processor
- * and inspect each event to see if it is a transaction event and if that transaction event
- * contains a profile on it's metadata. If that is the case, we create a profiling event envelope
- * and delete the profile from the transaction metadata.
- *
- * @deprecated Use `nodeProfilingIntegration` instead.
- */
-export class ProfilingIntegration implements Integration {
-  /**
-   * @inheritDoc
-   */
-  public readonly name: string;
-  public getCurrentHub?: () => Hub;
+/** Exported only for tests. */
+export const _nodeProfilingIntegration = (() => {
+  return {
+    name: 'ProfilingIntegration',
+    setup(client: NodeClient) {
+      const spanToProfileIdMap = new WeakMap<Span, string>();
 
-  public constructor() {
-    this.name = 'ProfilingIntegration';
-  }
+      client.on('spanStart', span => {
+        if (span !== getRootSpan(span)) {
+          return;
+        }
 
-  /**
-   * @inheritDoc
-   */
-  public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    this.getCurrentHub = getCurrentHub;
-    // eslint-disable-next-line deprecation/deprecation
-    const client = this.getCurrentHub().getClient() as NodeClient;
-
-    if (client && typeof client.on === 'function') {
-      client.on('startTransaction', (transaction: Transaction) => {
-        const profile_id = maybeProfileTransaction(client, transaction, undefined);
+        const profile_id = maybeProfileSpan(client, span, undefined);
 
         if (profile_id) {
           const options = client.getOptions();
@@ -92,34 +55,31 @@ export class ProfilingIntegration implements Integration {
             DEBUG_BUILD &&
               logger.log(
                 '[Profiling] max profile duration elapsed, stopping profiling for:',
-                spanToJSON(transaction).description,
+                spanToJSON(span).description,
               );
 
-            const profile = stopTransactionProfile(transaction, profile_id);
+            const profile = stopSpanProfile(span, profile_id);
             if (profile) {
               addToProfileQueue(profile);
             }
           }, maxProfileDurationMs);
 
-          // eslint-disable-next-line deprecation/deprecation
-          transaction.setContext('profile', { profile_id });
-          // @ts-expect-error profile_id is not part of the metadata type
-          // eslint-disable-next-line deprecation/deprecation
-          transaction.setMetadata({ profile_id: profile_id });
+          getCurrentScope().setContext('profile', { profile_id });
+
+          spanToProfileIdMap.set(span, profile_id);
         }
       });
 
-      client.on('finishTransaction', transaction => {
-        // @ts-expect-error profile_id is not part of the metadata type
-        // eslint-disable-next-line deprecation/deprecation
-        const profile_id = transaction.metadata.profile_id;
-        if (profile_id && typeof profile_id === 'string') {
+      client.on('spanEnd', span => {
+        const profile_id = spanToProfileIdMap.get(span);
+
+        if (profile_id) {
           if (PROFILE_TIMEOUTS[profile_id]) {
             global.clearTimeout(PROFILE_TIMEOUTS[profile_id]);
             // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
             delete PROFILE_TIMEOUTS[profile_id];
           }
-          const profile = stopTransactionProfile(transaction, profile_id);
+          const profile = stopSpanProfile(span, profile_id);
 
           if (profile) {
             addToProfileQueue(profile);
@@ -190,71 +150,9 @@ export class ProfilingIntegration implements Integration {
 
         addProfilesToEnvelope(envelope, profilesToAddToEnvelope);
       });
-    } else {
-      // Patch the carrier methods and add the event processor.
-      addProfilingExtensionMethods();
-      addGlobalEventProcessor(this.handleGlobalEvent.bind(this));
-    }
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public async handleGlobalEvent(event: Event): Promise<Event> {
-    if (this.getCurrentHub === undefined) {
-      return maybeRemoveProfileFromSdkMetadata(event);
-    }
-
-    if (isProfiledTransactionEvent(event)) {
-      // Client, Dsn and Transport are all required to be able to send the profiling event to Sentry.
-      // If either of them is not available, we remove the profile from the transaction event.
-      // and forward it to the next event processor.
-      const hub = this.getCurrentHub();
-
-      // eslint-disable-next-line deprecation/deprecation
-      const client = hub.getClient();
-
-      if (!client) {
-        DEBUG_BUILD &&
-          logger.log(
-            '[Profiling] getClient did not return a Client, removing profile from event and forwarding to next event processors.',
-          );
-        return maybeRemoveProfileFromSdkMetadata(event);
-      }
-
-      const dsn = client.getDsn();
-      if (!dsn) {
-        DEBUG_BUILD &&
-          logger.log(
-            '[Profiling] getDsn did not return a Dsn, removing profile from event and forwarding to next event processors.',
-          );
-        return maybeRemoveProfileFromSdkMetadata(event);
-      }
-
-      const transport = client.getTransport();
-      if (!transport) {
-        DEBUG_BUILD &&
-          logger.log(
-            '[Profiling] getTransport did not return a Transport, removing profile from event and forwarding to next event processors.',
-          );
-        return maybeRemoveProfileFromSdkMetadata(event);
-      }
-
-      // If all required components are available, we construct a profiling event envelope and send it to Sentry.
-      DEBUG_BUILD && logger.log('[Profiling] Preparing envelope and sending a profiling event');
-      const envelope = createProfilingEventEnvelope(event, dsn);
-
-      if (envelope) {
-        // Fire and forget, we don't want to block the main event processing flow.
-        // eslint-disable-next-line @typescript-eslint/no-floating-promises
-        transport.send(envelope);
-      }
-    }
-
-    // Ensure sdkProcessingMetadata["profile"] is removed from the event before forwarding it to the next event processor.
-    return maybeRemoveProfileFromSdkMetadata(event);
-  }
-}
+    },
+  };
+}) satisfies IntegrationFn;
 
 /**
  * We need this integration in order to send data to Sentry. We hook into the event processor
@@ -262,7 +160,4 @@ export class ProfilingIntegration implements Integration {
  * contains a profile on it's metadata. If that is the case, we create a profiling event envelope
  * and delete the profile from the transaction metadata.
  */
-export const nodeProfilingIntegration = (() => {
-  // eslint-disable-next-line deprecation/deprecation
-  return new ProfilingIntegration() as unknown as IntegrationFnResult;
-}) satisfies IntegrationFn;
+export const nodeProfilingIntegration = defineIntegration(_nodeProfilingIntegration);
