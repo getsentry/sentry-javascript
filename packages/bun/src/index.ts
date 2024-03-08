@@ -77,6 +77,7 @@ export {
   getSpanDescendants,
   continueTrace,
   cron,
+  metrics,
   parameterize,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
