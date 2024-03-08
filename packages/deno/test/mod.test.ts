@@ -3,7 +3,7 @@ import { assertSnapshot } from 'https://deno.land/std@0.202.0/testing/snapshot.t
 
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
-import { DenoClient, getDefaultIntegrations } from '../build/index.mjs';
+import { DenoClient, getCurrentScope, getDefaultIntegrations } from '../build/index.mjs';
 import { getNormalizedEvent } from './normalize.ts';
 import { makeTestTransport } from './transport.ts';
 
@@ -20,6 +20,9 @@ function getTestClient(
       callback(getNormalizedEvent(envelope));
     }),
   });
+
+  client.init();
+  getCurrentScope().setClient(client);
 
   return client;
 }
@@ -53,6 +56,23 @@ Deno.test('captureMessage', async t => {
   });
 
   client.captureMessage('Some error message');
+
+  await delay(200);
+  await assertSnapshot(t, ev);
+});
+
+Deno.test('captureMessage twice', async t => {
+  let ev: sentryTypes.Event | undefined;
+  const client = getTestClient(event => {
+    ev = event;
+  });
+
+  client.captureMessage('Some error message');
+
+  await delay(200);
+  await assertSnapshot(t, ev);
+
+  client.captureMessage('Another error message');
 
   await delay(200);
   await assertSnapshot(t, ev);
