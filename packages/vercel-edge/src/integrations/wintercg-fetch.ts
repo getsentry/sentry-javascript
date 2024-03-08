@@ -1,10 +1,4 @@
-import {
-  addBreadcrumb,
-  defineIntegration,
-  getClient,
-  instrumentFetchRequest,
-  isSentryRequestUrl,
-} from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getClient, instrumentFetchRequest, isSentryRequestUrl } from '@sentry/core';
 import type {
   Client,
   FetchBreadcrumbData,
