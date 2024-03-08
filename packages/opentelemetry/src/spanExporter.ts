@@ -1,19 +1,19 @@
+import type { Span} from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { SentrySpan, Transaction } from '@sentry/core';
+import { captureEvent, getMetricSummaryJsonForSpan } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getCurrentHub,
+  getStatusMessage,
 } from '@sentry/core';
-import type { Scope, Span, SpanOrigin, TransactionSource } from '@sentry/types';
-import { addNonEnumerableProperty, dropUndefinedKeys, logger } from '@sentry/utils';
-import { startTransaction } from './custom/transaction';
+import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionSource } from '@sentry/types';
+import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { InternalSentrySemanticAttributes } from './semanticAttributes';
@@ -24,7 +24,7 @@ import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanHub, getSpanMetadata, getSpanScopes } from './utils/spanData';
+import { getSpanMetadata, getSpanScopes } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -111,13 +111,20 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
   rootNodes.forEach(root => {
     remaining.delete(root);
     const span = root.span;
-    const transaction = createTransactionForOtelSpan(span);
+    const transactionEvent = createTransactionForOtelSpan(span);
+
+    // We'll recursively add all the child spans to this array
+    const spans = transactionEvent.spans || [];
 
     root.children.forEach(child => {
-      createAndFinishSpanForOtelSpan(child, transaction, remaining);
+      createAndFinishSpanForOtelSpan(child, spans, remaining);
     });
 
-    transaction.end(span.endTime);
+    transactionEvent.spans = spans;
+
+    // TODO Measurements are not yet implemented in OTEL
+
+    captureEvent(transactionEvent);
   });
 
   return Array.from(remaining)
@@ -144,69 +151,72 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
   return { origin, op, source };
 }
 
-function createTransactionForOtelSpan(span: ReadableSpan): Transaction {
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getSpanHub(span) || getCurrentHub();
-  const spanContext = span.spanContext();
-  const spanId = spanContext.spanId;
-  const traceId = spanContext.traceId;
-  const parentSpanId = span.parentSpanId;
-
-  const parentSampled = span.attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] as boolean | undefined;
-
-  const { op, description, data, origin, source } = getSpanData(span);
+function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
+  const { op, description, data, origin = 'manual', source } = getSpanData(span);
   const metadata = getSpanMetadata(span);
   const capturedSpanScopes = getSpanScopes(span);
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
 
-  const attributes = {
+  const attributes = dropUndefinedKeys({
     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
     [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
     ...data,
     ...removeSentryAttributes(span.attributes),
+  });
+
+  const { traceId: trace_id, spanId: span_id } = span.spanContext();
+  const parent_span_id = span.parentSpanId;
+
+  const status = mapStatus(span);
+
+  const traceContext: TraceContext = dropUndefinedKeys({
+    parent_span_id,
+    span_id,
+    trace_id,
+    data: attributes,
+    origin,
+    op,
+    status: getStatusMessage(status),
+  });
+
+  const transactionEvent: TransactionEvent = {
+    contexts: {
+      trace: traceContext,
+      otel: {
+        // TODO: remove the attributes here?
+        attributes: removeSentryAttributes(span.attributes),
+        resource: span.resource.attributes,
+      },
+    },
+    spans: [],
+    start_timestamp: convertOtelTimeToSeconds(span.startTime),
+    timestamp: convertOtelTimeToSeconds(span.endTime),
+    transaction: description,
+    type: 'transaction',
+    sdkProcessingMetadata: {
+      sampleRate,
+      ...metadata,
+      capturedSpanScope: capturedSpanScopes?.scope,
+      capturedSpanIsolationScope: capturedSpanScopes?.isolationScope,
+      ...dropUndefinedKeys({
+        dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+      }),
+    },
+    ...(source && {
+      transaction_info: {
+        source,
+      },
+    }),
+    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
   };
 
-  const dynamicSamplingContext = getDynamicSamplingContextFromSpan(span);
-
-  const transaction = startTransaction(hub, {
-    spanId,
-    traceId,
-    parentSpanId,
-    parentSampled,
-    name: description,
-    op,
-    startTimestamp: convertOtelTimeToSeconds(span.startTime),
-    metadata: {
-      ...dropUndefinedKeys({
-        dynamicSamplingContext,
-        sampleRate,
-      }),
-      ...metadata,
-    },
-    attributes,
-    origin,
-    sampled: true,
-  });
-
-  transaction.setStatus(mapStatus(span));
-
-  // We currently don't want to write this to the scope because it would mutate it.
-  // In the future we will likely have some sort of transaction payload factory where we can pass this context in directly
-  // eslint-disable-next-line deprecation/deprecation
-  transaction.setContext('otel', {
-    attributes: removeSentryAttributes(span.attributes),
-    resource: span.resource.attributes,
-  });
-
-  if (capturedSpanScopes) {
-    setCapturedScopesOnTransaction(transaction, capturedSpanScopes.scope, capturedSpanScopes.isolationScope);
-  }
-
-  return transaction;
+  return transactionEvent;
 }
 
-function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: SentrySpan, remaining: Set<SpanNode>): void {
+function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remaining: Set<SpanNode>): void {
   remaining.delete(node);
   const span = node.span;
 
@@ -215,33 +225,46 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, sentryParentSpan: Sentry
   // If this span should be dropped, we still want to create spans for the children of this
   if (shouldDrop) {
     node.children.forEach(child => {
-      createAndFinishSpanForOtelSpan(child, sentryParentSpan, remaining);
+      createAndFinishSpanForOtelSpan(child, spans, remaining);
     });
     return;
   }
 
-  const spanId = span.spanContext().spanId;
-  const { attributes } = span;
+  const span_id = span.spanContext().spanId;
+  const trace_id = span.spanContext().traceId;
 
-  const { op, description, data, origin } = getSpanData(span);
-  const allData = { ...removeSentryAttributes(attributes), ...data };
+  const { attributes, startTime, endTime, parentSpanId } = span;
 
-  // eslint-disable-next-line deprecation/deprecation
-  const sentrySpan = sentryParentSpan.startChild({
-    name: description,
-    op,
-    data: allData,
-    startTimestamp: convertOtelTimeToSeconds(span.startTime),
-    spanId,
-    origin,
-  }) as SentrySpan;
-  sentrySpan.setStatus(mapStatus(span));
-
-  node.children.forEach(child => {
-    createAndFinishSpanForOtelSpan(child, sentrySpan, remaining);
+  const { op, description, data, origin = 'manual' } = getSpanData(span);
+  const allData = dropUndefinedKeys({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: origin,
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+    ...removeSentryAttributes(attributes),
+    ...data,
   });
 
-  sentrySpan.end(convertOtelTimeToSeconds(span.endTime));
+  const status = mapStatus(span);
+
+  const spanJSON: SpanJSON = dropUndefinedKeys({
+    span_id,
+    trace_id,
+    data: allData,
+    description,
+    parent_span_id: parentSpanId,
+    start_timestamp: convertOtelTimeToSeconds(startTime),
+    // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
+    timestamp: convertOtelTimeToSeconds(endTime) || undefined,
+    status: getStatusMessage(status),
+    op,
+    origin,
+    _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
+  });
+
+  spans.push(spanJSON);
+
+  node.children.forEach(child => {
+    createAndFinishSpanForOtelSpan(child, spans, remaining);
+  });
 }
 
 function getSpanData(span: ReadableSpan): {
@@ -308,13 +331,4 @@ function getData(span: ReadableSpan): Record<string, unknown> {
   }
 
   return data;
-}
-
-const SCOPE_ON_START_SPAN_FIELD = '_sentryScope';
-const ISOLATION_SCOPE_ON_START_SPAN_FIELD = '_sentryIsolationScope';
-
-/** Sets the scope and isolation scope to be used for when the transaction is finished. */
-function setCapturedScopesOnTransaction(span: Span, scope: Scope, isolationScope: Scope): void {
-  addNonEnumerableProperty(span, ISOLATION_SCOPE_ON_START_SPAN_FIELD, isolationScope);
-  addNonEnumerableProperty(span, SCOPE_ON_START_SPAN_FIELD, scope);
 }

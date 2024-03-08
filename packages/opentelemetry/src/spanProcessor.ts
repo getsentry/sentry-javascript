@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getCurrentHub } from '@sentry/core';
+import { getClient, getCurrentHub } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -39,6 +39,9 @@ function onSpanStart(span: Span, parentContext: Context): void {
     setSpanHub(span, actualHub);
     setSpanScopes(span, { scope, isolationScope });
   }
+
+  const client = getClient();
+  client?.emit('spanStart', span);
 }
 
 function onSpanEnd(span: Span): void {
@@ -48,6 +51,9 @@ function onSpanEnd(span: Span): void {
   span.events.forEach(event => {
     maybeCaptureExceptionForTimedEvent(hub, event, span);
   });
+
+  const client = getClient();
+  client?.emit('spanEnd', span);
 }
 
 /**
