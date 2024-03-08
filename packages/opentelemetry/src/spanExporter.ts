@@ -1,4 +1,4 @@
-import type { Span} from '@opentelemetry/api';
+import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';

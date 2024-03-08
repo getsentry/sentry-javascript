@@ -27,7 +27,11 @@ describe('Integration | Transactions', () => {
       return null;
     });
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      release: '8.0.0',
+    });
 
     const client = getClient() as TestClientInterface;
 
@@ -119,6 +123,7 @@ describe('Integration | Transactions', () => {
       sampled: 'true',
       trace_id: expect.any(String),
       transaction: 'test name',
+      release: '8.0.0',
     });
 
     expect(transaction.environment).toEqual('production');
