@@ -11,6 +11,8 @@ function generateBuildContext(overrides: {
     buildId: 'test-build-id',
     dir: '/my/project/dir',
     config: overrides.nextjsConfig ?? {},
+    totalPages: 2,
+    defaultLoaders: true,
     webpack: {
       version: '4.0.0',
       DefinePlugin: {} as any,
