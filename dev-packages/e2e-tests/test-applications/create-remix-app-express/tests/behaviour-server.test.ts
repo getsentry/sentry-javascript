@@ -18,7 +18,7 @@ test('Sends formdata with action error to Sentry', async ({ page }) => {
   await page.goto('/action-formdata');
 
   await page.fill('input[name=test]', 'test');
-  await page.setInputFiles('input[type=file]', './static/test.txt');
+  await page.setInputFiles('input[type=file]', `${__dirname}/static/test.txt`);
 
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent?.spans?.some(span => span.op === 'function.remix.action');
