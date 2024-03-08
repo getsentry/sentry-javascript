@@ -79,8 +79,6 @@ describe('Bun Serve Integration', () => {
       // span.endTimestamp is already set in `finishTransaction` hook
       expect(transaction.isRecording()).toBe(false);
 
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
       expect(getDynamicSamplingContextFromSpan(transaction)).toStrictEqual({
         version: '1.0',
         environment: 'production',
