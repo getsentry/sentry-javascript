@@ -62,9 +62,13 @@ for NEXTJS_VERSION in 10 11 12 13; do
     if [ "$NEXTJS_VERSION" -eq "13" ]; then
       npm i --save react@18.2.0 react-dom@18.2.0
     fi
-    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
-    # 10
-    yarn --no-lockfile --ignore-engines --network-concurrency 1
+
+    rm -rf node_modules
+    yarn cache clean
+
+    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node 10
+    yarn --no-lockfile --ignore-engines
+
     # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
     # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO are set)
     linkcli && linkplugin
