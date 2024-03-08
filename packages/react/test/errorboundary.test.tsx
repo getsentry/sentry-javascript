@@ -35,12 +35,14 @@ function Bam(): JSX.Element {
   return <Boo title={title} />;
 }
 
-function EffectSpyFallback({ spy }: { spy: () => void}): JSX.Element {
-  React.useEffect(() => {
-    spy();
-  })
+function EffectSpyFallback({ error }: { error: Error }): JSX.Element {
+  const [counter, setCounter] = useState(0);
 
-  return <span>EffectSpyFallback</span>
+  React.useEffect(() => {
+    setCounter(c => c + 1)
+  }, [])
+
+  return <span>EffectSpyFallback {counter} - {error.message}</span>
 }
 
 interface TestAppProps extends ErrorBoundaryProps {
@@ -127,13 +129,13 @@ describe('ErrorBoundary', () => {
   });
 
   it('renders a fallback that can use react hooks', () => {
-    const spy = jest.fn();
-    render(
-      <ErrorBoundary fallback={<EffectSpyFallback spy={spy} />}>
+
+    const { container } = render(
+      <ErrorBoundary fallback={EffectSpyFallback}>
         <Bam />
       </ErrorBoundary>,
     );
-    expect(spy).toHaveBeenCalledTimes(1);
+    expect(container.innerHTML).toBe('<span>EffectSpyFallback 1 - boom</span>');
   })
 
   it('calls `onMount` when mounted', () => {
