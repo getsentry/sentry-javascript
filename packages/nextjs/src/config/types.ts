@@ -435,7 +435,8 @@ export type BuildContext = {
   isServer: boolean;
   buildId: string;
   dir: string;
-  config: NextConfigObject;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  config: any;
   webpack: {
     version: string;
     DefinePlugin: typeof DefinePlugin;

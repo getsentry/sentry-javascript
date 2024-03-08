@@ -1,7 +1,7 @@
 import * as path from 'path';
 import { getSentryRelease } from '@sentry/node-experimental';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
-import type { BuildContext, SentryBuildOptions } from './types';
+import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
 
 /**
  * Combine default and user-provided SentryWebpackPlugin options, accounting for whether we're building server files or
@@ -13,7 +13,7 @@ export function getWebpackPluginOptions(
 ): SentryWebpackPluginOptions {
   const { buildId, isServer, config: userNextConfig, dir: projectDir } = buildContext;
 
-  const distDirAbsPath = path.join(projectDir, userNextConfig.distDir || '.next'); // `.next` is the default directory
+  const distDirAbsPath = path.join(projectDir, (userNextConfig as NextConfigObject).distDir || '.next'); // `.next` is the default directory
 
   let sourcemapUploadAssets: string[] = [];
   const sourcemapUploadIgnore: string[] = [];
