@@ -125,13 +125,6 @@ for NEXTJS_VERSION in 10 11 12 13; do
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
       yarn build
 
-      # if the user hasn't passed any args, use the default one, which restricts each test to only outputting success and
-      # failure messages
-      args=$*
-      if [[ ! $args ]]; then
-        args="--silent"
-      fi
-
       # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
       EXIT_CODE=0
 
