@@ -35,7 +35,7 @@ function Bam(): JSX.Element {
   return <Boo title={title} />;
 }
 
-function EffectSpyFallback({ spy }: { spy: Function}): JSX.Element {
+function EffectSpyFallback({ spy }: { spy: () => void}): JSX.Element {
   React.useEffect(() => {
     spy();
   })
