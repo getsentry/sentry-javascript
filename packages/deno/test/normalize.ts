@@ -137,7 +137,7 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.contexts.os.name = '{{platform}}';
   }
 
-  if (event.contexts?.os?.version) {
+  if (event.contexts?.os) {
     event.contexts.os.version = '{{version}}';
   }
 
@@ -197,8 +197,11 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
   if (event.breadcrumbs) {
     for (const breadcrumb of event.breadcrumbs) {
       breadcrumb.timestamp = 0;
+      breadcrumb.event_id = '{{id}}';
     }
   }
+
+  event.server_name = '{{server}}';
 
   return event;
 }

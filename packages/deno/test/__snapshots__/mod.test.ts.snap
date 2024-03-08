@@ -123,6 +123,7 @@ snapshot[`captureException 1`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;
@@ -132,7 +133,7 @@ snapshot[`captureMessage 1`] = `
   breadcrumbs: [
     {
       category: "sentry.event",
-      event_id: "d5c51658d79a48e3ab9e90b17abe0ff2",
+      event_id: "{{id}}",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
@@ -192,6 +193,7 @@ snapshot[`captureMessage 1`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;
@@ -201,13 +203,13 @@ snapshot[`captureMessage twice 1`] = `
   breadcrumbs: [
     {
       category: "sentry.event",
-      event_id: "d5c51658d79a48e3ab9e90b17abe0ff2",
+      event_id: "{{id}}",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
     {
       category: "sentry.event",
-      event_id: "32076923fe4e47dc96198c3b7e1c7301",
+      event_id: "{{id}}",
       level: "info",
       message: "Some error message",
       timestamp: 0,
@@ -268,6 +270,7 @@ snapshot[`captureMessage twice 1`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;
@@ -277,20 +280,20 @@ snapshot[`captureMessage twice 2`] = `
   breadcrumbs: [
     {
       category: "sentry.event",
-      event_id: "d5c51658d79a48e3ab9e90b17abe0ff2",
+      event_id: "{{id}}",
       message: "Error: Some unhandled error",
       timestamp: 0,
     },
     {
       category: "sentry.event",
-      event_id: "32076923fe4e47dc96198c3b7e1c7301",
+      event_id: "{{id}}",
       level: "info",
       message: "Some error message",
       timestamp: 0,
     },
     {
       category: "sentry.event",
-      event_id: "4b72be0d7c324a7c8f94b05b2da12119",
+      event_id: "{{id}}",
       level: "info",
       message: "Some error message",
       timestamp: 0,
@@ -351,6 +354,7 @@ snapshot[`captureMessage twice 2`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;
