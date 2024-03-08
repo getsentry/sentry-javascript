@@ -382,19 +382,23 @@ export function constructWebpackConfigFunction(
     // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
     // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
     if (!isDev) {
-      // TODO (v8): Default `hideSourceMaps` to `true`
-
-      // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
-      // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
-      // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
-      // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
-      // without, the option to use `hidden-source-map` only applies to the client-side build.
-      newConfig.devtool = userSentryOptions.hideSourceMaps && !isServer ? 'hidden-source-map' : 'source-map';
-
       const { sentryWebpackPlugin } = loadModule('@sentry/webpack-plugin') as any;
       if (sentryWebpackPlugin) {
+        if (!userSentryOptions.sourcemaps?.disable) {
+          // `hidden-source-map` produces the same sourcemaps as `source-map`, but doesn't include the `sourceMappingURL`
+          // comment at the bottom. For folks who aren't publicly hosting their sourcemaps, this is helpful because then
+          // the browser won't look for them and throw errors into the console when it can't find them. Because this is a
+          // front-end-only problem, and because `sentry-cli` handles sourcemaps more reliably with the comment than
+          // without, the option to use `hidden-source-map` only applies to the client-side build.
+          newConfig.devtool = !isServer ? 'hidden-source-map' : 'source-map';
+        }
+
         newConfig.plugins = newConfig.plugins || [];
-        newConfig.plugins.push(sentryWebpackPlugin(getWebpackPluginOptions(buildContext, userSentryOptions)));
+        const sentryWebpackPluginInstance = sentryWebpackPlugin(
+          getWebpackPluginOptions(buildContext, userSentryOptions),
+        );
+        sentryWebpackPluginInstance._name = 'sentry-webpack-plugin'; // For tests and debugging. Serves no other purpose.
+        newConfig.plugins.push(sentryWebpackPluginInstance);
       }
     }
 

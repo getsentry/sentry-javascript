@@ -130,21 +130,6 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
-  it('returns the right `assets` and `ignore` values when run on the client with `uploadSourcemapsForDependencies`', () => {
-    const buildContext = generateBuildContext({ isServer: false });
-    const generatedPluginOptions = getWebpackPluginOptions(buildContext, { uploadSourcemapsForDependencies: true });
-    expect(generatedPluginOptions.sourcemaps).toMatchObject({
-      assets: ['/my/project/dir/.next/static/chunks/**'],
-      ignore: [
-        '/my/project/dir/.next/static/chunks/framework-*',
-        '/my/project/dir/.next/static/chunks/framework.*',
-        '/my/project/dir/.next/static/chunks/main-*',
-        '/my/project/dir/.next/static/chunks/polyfills-*',
-        '/my/project/dir/.next/static/chunks/webpack-*',
-      ],
-    });
-  });
-
   it('returns the right `assets` and `ignore` values when run on the client with `widenClientFileUpload`', () => {
     const buildContext = generateBuildContext({ isServer: false });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true });
