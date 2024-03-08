@@ -21,8 +21,6 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export type { VercelEdgeOptions } from './types';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
@@ -32,22 +30,14 @@ export {
   close,
   createTransport,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -86,13 +76,5 @@ export {
   init,
 } from './sdk';
 
-import { RequestData } from '@sentry/core';
-
-import { WinterCGFetch } from './integrations/wintercg-fetch';
 export { winterCGFetchIntegration } from './integrations/wintercg-fetch';
 
-/** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
-export const Integrations = {
-  WinterCGFetch,
-  RequestData,
-};
