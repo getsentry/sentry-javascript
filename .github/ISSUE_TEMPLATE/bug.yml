@@ -43,6 +43,7 @@ body:
         - '@sentry/react'
         - '@sentry/remix'
         - '@sentry/serverless'
+        - '@sentry/google-cloud'
         - '@sentry/svelte'
         - '@sentry/sveltekit'
         - '@sentry/vue'

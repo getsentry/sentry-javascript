@@ -19,6 +19,7 @@
     "@sentry/astro": "latest || *",
     "@sentry/nextjs": "latest || *",
     "@sentry/serverless": "latest || *",
+    "@sentry/google-cloud": "latest || *",
     "@sentry/bun": "latest || *",
     "@sentry/types": "latest || *",
     "@types/node": "18.15.1",

@@ -1,5 +1,6 @@
 import * as SentryAstro from '@sentry/astro';
 import * as SentryBun from '@sentry/bun';
+import * as SentryGoogleCloud from '@sentry/google-cloud';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
@@ -79,6 +80,12 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/serverless',
     compareWith: nodeExperimentalExports,
     exports: Object.keys(SentryServerless),
+    ignoreExports: ['cron', 'hapiErrorPlugin'],
+  },
+  {
+    package: '@sentry/google-cloud',
+    compareWith: nodeExperimentalExports,
+    exports: Object.keys(SentryGoogleCloud),
     ignoreExports: ['cron', 'hapiErrorPlugin'],
   },
   {
