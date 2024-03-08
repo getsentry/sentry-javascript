@@ -1,7 +1,9 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  continueTrace,
   getActiveSpan,
   getActiveTransaction,
   getClient,
@@ -11,10 +13,11 @@ import {
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
+  startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, getCurrentHub } from '@sentry/node-experimental';
-import type { Hub, Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import { captureException } from '@sentry/node-experimental';
+import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -24,7 +27,6 @@ import {
   loadModule,
   logger,
   objectify,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -382,47 +384,44 @@ export function createRoutes(manifest: ServerRouteManifest, parentId?: string): 
 }
 
 /**
- * Starts a new transaction for the given request to be used by different `RequestHandler` wrappers.
+ * Starts a new active span for the given request to be used by different `RequestHandler` wrappers.
  */
-export function startRequestHandlerTransaction(
-  hub: Hub,
-  name: string,
-  source: TransactionSource,
-  request: {
-    headers: {
-      'sentry-trace': string;
-      baggage: string;
-    };
+export function startRequestHandlerSpan<T>(
+  {
+    name,
+    source,
+    sentryTrace,
+    baggage,
+    method,
+  }: {
+    name: string;
+    source: TransactionSource;
+    sentryTrace: string;
+    baggage: string;
     method: string;
   },
-): Transaction {
-  // eslint-disable-next-line deprecation/deprecation
-  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-    request.headers['sentry-trace'],
-    request.headers.baggage,
+  callback: (span: Span) => T,
+): T {
+  return continueTrace(
+    {
+      sentryTrace,
+      baggage,
+    },
+    () => {
+      return startSpan(
+        {
+          name,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            method,
+          },
+        },
+        callback,
+      );
+    },
   );
-  // eslint-disable-next-line deprecation/deprecation
-  hub.getScope().setPropagationContext(propagationContext);
-
-  // TODO: Refactor this to `startSpan()`
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = hub.startTransaction({
-    name,
-    op: 'http.server',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-      method: request.method,
-    },
-    ...traceparentData,
-    metadata: {
-      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-    },
-  });
-
-  // eslint-disable-next-line deprecation/deprecation
-  hub.getScope().setSpan(transaction);
-  return transaction;
 }
 
 /**
@@ -445,8 +444,6 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
     }
 
     return withIsolationScope(async isolationScope => {
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const options = getClient()?.getOptions();
 
       let normalizedRequest: Record<string, unknown> = request;
@@ -473,23 +470,24 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         return origRequestHandler.call(this, request, loadContext);
       }
 
-      const transaction = startRequestHandlerTransaction(hub, name, source, {
-        headers: {
-          'sentry-trace': request.headers.get('sentry-trace') || '',
+      return startRequestHandlerSpan(
+        {
+          name,
+          source,
+          sentryTrace: request.headers.get('sentry-trace') || '',
           baggage: request.headers.get('baggage') || '',
+          method: request.method,
         },
-        method: request.method,
-      });
+        async span => {
+          const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-      const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+          if (isResponse(res)) {
+            setHttpStatus(span, res.status);
+          }
 
-      if (isResponse(res)) {
-        setHttpStatus(transaction, res.status);
-      }
-
-      transaction.end();
-
-      return res;
+          return res;
+        },
+      );
     });
   };
 }

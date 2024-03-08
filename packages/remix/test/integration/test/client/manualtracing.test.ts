@@ -7,6 +7,7 @@ const useV2 = process.env.REMIX_VERSION === '2';
 test('should report a manually created / finished transaction.', async ({ page }) => {
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, {
     url: '/manual-tracing/0',
+    envelopeType: 'transaction',
   });
 
   const [manualTransactionEnvelope, pageloadEnvelope] = envelopes;
