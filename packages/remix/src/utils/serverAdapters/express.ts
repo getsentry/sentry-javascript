@@ -1,10 +1,10 @@
 import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node-experimental';
-import type { Hub, Transaction } from '@sentry/types';
+import type { Hub, Span } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerTransaction } from '../instrumentServer';
+import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerSpan } from '../instrumentServer';
 import type {
   AppLoadContext,
   ExpressCreateRequestHandler,
@@ -89,19 +89,24 @@ function startRequestHandlerTransactionWithRoutes(
   next: ExpressNextFunction,
   hub: Hub,
   url: URL,
-): Transaction | undefined {
+): unknown {
   const [name, source] = getTransactionName(routes, url);
-  const transaction = startRequestHandlerTransaction(hub, name, source, {
-    headers: {
-      'sentry-trace': (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
+
+  return startRequestHandlerSpan(
+    {
+      name,
+      source,
+      sentryTrace: (req.headers && isString(req.headers['sentry-trace']) && req.headers['sentry-trace']) || '',
       baggage: (req.headers && isString(req.headers.baggage) && req.headers.baggage) || '',
+      method: req.method,
     },
-    method: req.method,
-  });
-  // save a link to the transaction on the response, so that even if there's an error (landing us outside of
-  // the domain), we can still finish it (albeit possibly missing some scope data)
-  (res as AugmentedExpressResponse).__sentryTransaction = transaction;
-  return origRequestHandler.call(this, req, res, next);
+    span => {
+      // save a link to the transaction on the response, so that even if there's an error (landing us outside of
+      // the domain), we can still finish it (albeit possibly missing some scope data)
+      (res as AugmentedExpressResponse).__sentrySpan = span;
+      return origRequestHandler.call(this, req, res, next);
+    },
+  );
 }
 
 function wrapGetLoadContext(origGetLoadContext: () => AppLoadContext): GetLoadContextFunction {
@@ -168,7 +173,7 @@ export function wrapExpressCreateRequestHandler(
 }
 
 export type AugmentedExpressResponse = ExpressResponse & {
-  __sentryTransaction?: Transaction;
+  __sentrySpan?: Span;
 };
 
 type ResponseEndMethod = AugmentedExpressResponse['end'];
@@ -201,16 +206,16 @@ function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
  * @param res The outgoing response for this request, on which the transaction is stored
  */
 async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<void> {
-  const { __sentryTransaction: transaction } = res;
+  const { __sentrySpan: span } = res;
 
-  if (transaction) {
-    setHttpStatus(transaction, res.statusCode);
+  if (span) {
+    setHttpStatus(span, res.statusCode);
 
     // Push `transaction.finish` to the next event loop so open spans have a better chance of finishing before the
     // transaction closes, and make sure to wait until that's done before flushing events
     await new Promise<void>(resolve => {
       setImmediate(() => {
-        transaction.end();
+        span.end();
         resolve();
       });
     });
