@@ -29,7 +29,6 @@ const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
   integrations,
-  debug: true,
 });
 
 const hub = new Hub(client);

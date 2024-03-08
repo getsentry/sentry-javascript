@@ -124,6 +124,9 @@ export function makeTerserPlugin() {
           // For v7 backwards-compatibility we need to access txn._frozenDynamicSamplingContext
           // TODO (v8): Remove this reserved word
           '_frozenDynamicSamplingContext',
+          // These are used to keep span relationships
+          '_sentryRootSpan',
+          '_sentryChildSpans',
         ],
       },
     },
