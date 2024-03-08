@@ -11,12 +11,6 @@ function cleanup {
   mv next.config.js.bak next.config.js 2>/dev/null || true
   mv -f package.json.bak package.json 2>/dev/null || true
   rm -rf node_modules 2>/dev/null || true
-
-  # Delete yarn's cached versions of sentry packages added during this test run, since every test run installs multiple
-  # copies of each package. Without this, the cache can balloon in size quickly if integration tests are being run
-  # multiple times in a row.
-  find "$(yarn cache dir)" -iname "npm-@sentry*" -newermt "$START_TIME" -mindepth 1 -maxdepth 1 -exec rm -rf {} \;
-
   echo "[nextjs] Test run complete"
 }
 
@@ -70,7 +64,7 @@ for NEXTJS_VERSION in 10 11 12 13; do
     fi
     # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
     # 10
-    yarn --no-lockfile --ignore-engines
+    yarn --no-lockfile --ignore-engines --network-concurrency 1
     # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
     # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO are set)
     linkcli && linkplugin

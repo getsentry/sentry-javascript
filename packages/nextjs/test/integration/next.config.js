@@ -8,6 +8,6 @@ const moduleExports = {
 };
 
 module.exports = withSentryConfig(moduleExports, {
-  silent: true,
+  debug: true,
   excludeServerRoutes: ['/api/excludedEndpoints/excludedWithString', /\/api\/excludedEndpoints\/excludedWithRegExp/],
 });
