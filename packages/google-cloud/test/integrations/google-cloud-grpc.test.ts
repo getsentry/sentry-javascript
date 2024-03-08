@@ -9,7 +9,7 @@ import * as http2 from 'http2';
 import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { NodeClient, createTransport, setCurrentClient } from '@sentry/node-experimental';
+import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
 import { googleCloudGrpcIntegration } from '../../src/integrations/google-cloud-grpc';
 
 const spyConnect = jest.spyOn(http2, 'connect');
@@ -17,9 +17,9 @@ const spyConnect = jest.spyOn(http2, 'connect');
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
 
-jest.mock('@sentry/node-experimental', () => {
+jest.mock('@sentry/node', () => {
   return {
-    ...jest.requireActual('@sentry/node-experimental'),
+    ...jest.requireActual('@sentry/node'),
     startInactiveSpan: (ctx: unknown) => {
       mockStartInactiveSpan(ctx);
       return { end: mockSpanEnd };

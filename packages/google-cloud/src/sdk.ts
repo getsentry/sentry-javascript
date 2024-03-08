@@ -1,9 +1,5 @@
 import type { NodeOptions } from '@sentry/node';
-import {
-  SDK_VERSION,
-  getDefaultIntegrations as getDefaultNodeIntegrations,
-  init as initNode,
-} from '@sentry/node';
+import { SDK_VERSION, getDefaultIntegrations as getDefaultNodeIntegrations, init as initNode } from '@sentry/node';
 import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
 import { googleCloudGrpcIntegration } from './integrations/google-cloud-grpc';

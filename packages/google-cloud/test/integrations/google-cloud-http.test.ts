@@ -10,9 +10,9 @@ import { googleCloudHttpIntegration } from '../../src/integrations/google-cloud-
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn(spanArgs => ({ ...spanArgs }));
 
-jest.mock('@sentry/node-experimental', () => {
+jest.mock('@sentry/node', () => {
   return {
-    ...jest.requireActual('@sentry/node-experimental'),
+    ...jest.requireActual('@sentry/node'),
     startInactiveSpan: (ctx: unknown) => {
       mockStartInactiveSpan(ctx);
       return { end: mockSpanEnd };

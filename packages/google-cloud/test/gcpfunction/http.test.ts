@@ -23,8 +23,8 @@ const mockSpan = {
   end: jest.fn(),
 };
 
-jest.mock('@sentry/node-experimental', () => {
-  const original = jest.requireActual('@sentry/node-experimental');
+jest.mock('@sentry/node', () => {
+  const original = jest.requireActual('@sentry/node');
   return {
     ...original,
     init: (options: unknown) => {
