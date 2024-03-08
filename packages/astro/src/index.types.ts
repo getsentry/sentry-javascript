@@ -13,10 +13,6 @@ import sentryAstro from './index.server';
 /** Initializes Sentry Astro SDK */
 export declare function init(options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions): void;
 
-// We only export server Integrations for now, until the exports are removed from Svelte and Node SDKs.
-// Necessary to avoid type collision.
-export declare const Integrations: typeof serverSdk.Integrations;
-
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
@@ -25,6 +21,18 @@ export declare const defaultStackParser: StackParser;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+
+// eslint-disable-next-line deprecation/deprecation
+export declare const makeMain: typeof clientSdk.makeMain;
+export declare const getActiveSpan: typeof clientSdk.getActiveSpan;
+// eslint-disable-next-line deprecation/deprecation
+export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
+export declare const getClient: typeof clientSdk.getClient;
+export declare const startSpan: typeof clientSdk.startSpan;
+export declare const startInactiveSpan: typeof clientSdk.startInactiveSpan;
+export declare const startSpanManual: typeof clientSdk.startSpanManual;
+export declare const withActiveSpan: typeof clientSdk.withActiveSpan;
+export declare const Span: clientSdk.Span;
 
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 export default sentryAstro;

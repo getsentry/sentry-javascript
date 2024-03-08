@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@sentry/node-experimental": "latest || *",
+    "@sentry/node": "latest || *",
     "@sentry/sveltekit": "latest || *",
     "@sentry/remix": "latest || *",
     "@sentry/astro": "latest || *",
