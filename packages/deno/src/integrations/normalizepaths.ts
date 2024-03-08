@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { createStackParser, dirname, nodeStackLineParser } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'NormalizePaths';
@@ -96,17 +96,17 @@ const _normalizePathsIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const normalizePathsIntegration = defineIntegration(_normalizePathsIntegration);
-
 /**
  * Normalises paths to the app root directory.
- * @deprecated Use `normalizePathsIntegration()` instead.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.normalizePathsIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const NormalizePaths = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  normalizePathsIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event }>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type NormalizePaths = typeof NormalizePaths;
+export const normalizePathsIntegration = defineIntegration(_normalizePathsIntegration);
