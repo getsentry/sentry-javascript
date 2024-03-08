@@ -2,42 +2,39 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getClient, getCurrentHub } from '@sentry/core';
+import { getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
-import { getHubFromContext } from './utils/contextData';
+import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
-import { getSpanHub, setSpanHub, setSpanParent, setSpanScopes } from './utils/spanData';
+import { setSpanParent, setSpanScopes } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
   const parentSpan = trace.getSpan(parentContext);
-  const hub = getHubFromContext(parentContext);
+
+  let scopes = getScopesFromContext(parentContext);
 
   // We need access to the parent span in order to be able to move up the span tree for breadcrumbs
   if (parentSpan) {
     setSpanParent(span, parentSpan);
   }
 
-  // The root context does not have a hub stored, so we check for this specifically
-  // We do this instead of just falling back to `getCurrentHub` to avoid attaching the wrong hub
-  let actualHub = hub;
+  // The root context does not have scopes stored, so we check for this specifically
+  // As fallback we attach the global scopes
   if (parentContext === ROOT_CONTEXT) {
-    // eslint-disable-next-line deprecation/deprecation
-    actualHub = getCurrentHub();
+    scopes = {
+      scope: getDefaultCurrentScope(),
+      isolationScope: getDefaultIsolationScope(),
+    };
   }
 
   // We need the scope at time of span creation in order to apply it to the event when the span is finished
-  if (actualHub) {
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = actualHub.getScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const isolationScope = actualHub.getIsolationScope();
-    setSpanHub(span, actualHub);
-    setSpanScopes(span, { scope, isolationScope });
+  if (scopes) {
+    setSpanScopes(span, scopes);
   }
 
   const client = getClient();
@@ -46,10 +43,8 @@ function onSpanStart(span: Span, parentContext: Context): void {
 
 function onSpanEnd(span: Span): void {
   // Capture exceptions as events
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getSpanHub(span) || getCurrentHub();
   span.events.forEach(event => {
-    maybeCaptureExceptionForTimedEvent(hub, event, span);
+    maybeCaptureExceptionForTimedEvent(event, span);
   });
 
   const client = getClient();

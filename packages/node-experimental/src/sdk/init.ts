@@ -45,7 +45,6 @@ function getCjsOnlyIntegrations(isCjs = typeof require !== 'undefined'): Integra
 
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  // TODO
   return [
     // Common
     inboundFiltersIntegration(),

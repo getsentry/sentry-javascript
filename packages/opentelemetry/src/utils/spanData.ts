@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import type { Hub, Scope, TransactionMetadata } from '@sentry/types';
+import type { Scope, TransactionMetadata } from '@sentry/types';
 
 import type { AbstractSpan } from '../types';
 
@@ -13,19 +13,8 @@ const SpanScopes = new WeakMap<
     isolationScope: Scope;
   }
 >();
-const SpanHub = new WeakMap<AbstractSpan, Hub>();
 const SpanParent = new WeakMap<AbstractSpan, Span>();
 const SpanMetadata = new WeakMap<AbstractSpan, Partial<TransactionMetadata>>();
-
-/** Set the Sentry hub on an OTEL span. */
-export function setSpanHub(span: AbstractSpan, hub: Hub): void {
-  SpanHub.set(span, hub);
-}
-
-/** Get the Sentry hub of an OTEL span. */
-export function getSpanHub(span: AbstractSpan): Hub | undefined {
-  return SpanHub.get(span);
-}
 
 /** Set the parent OTEL span on an OTEL span. */
 export function setSpanParent(span: AbstractSpan, parentSpan: Span): void {
