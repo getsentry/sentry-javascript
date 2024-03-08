@@ -171,12 +171,13 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
 
 function applySpanToEvent(event: Event, span: Span): void {
   event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
-  const rootSpan = getRootSpan(span);
+
   event.sdkProcessingMetadata = {
     dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
     ...event.sdkProcessingMetadata,
   };
 
+  const rootSpan = getRootSpan(span);
   const transactionName = spanToJSON(rootSpan).description;
   if (transactionName && !event.transaction) {
     event.transaction = transactionName;
