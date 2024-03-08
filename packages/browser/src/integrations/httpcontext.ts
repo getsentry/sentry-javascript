@@ -1,6 +1,10 @@
 import { defineIntegration } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
+/**
+ * Collects information about HTTP request headers and
+ * attaches them to the event.
+ */
 export const httpContextIntegration = defineIntegration(() => {
   return {
     name: 'HttpContext',
