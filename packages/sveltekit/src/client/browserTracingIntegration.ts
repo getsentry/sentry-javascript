@@ -78,7 +78,7 @@ function _instrumentNavigations(client: Client): void {
   navigating.subscribe(navigation => {
     if (!navigation) {
       // `navigating` emits a 'null' value when the navigation is completed.
-      // So in this case, we can finish the routing span. If the transaction was an IdleTransaction,
+      // So in this case, we can finish the routing span. If the span was an idle span,
       // it will finish automatically and if it was user-created users also need to finish it.
       if (routingSpan) {
         routingSpan.end();

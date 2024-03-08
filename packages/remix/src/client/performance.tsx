@@ -13,7 +13,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
+import type { Span, StartSpanOptions, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -119,34 +119,6 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
   } else {
     _customStartTransaction(spanContext);
   }
-}
-
-/**
- * @deprecated Use `browserTracingIntegration` instead.
- *
- * Creates a react-router v6 instrumention for Remix applications.
- *
- * This implementation is slightly different (and simpler) from the react-router instrumentation
- * as in Remix, `useMatches` hook is available where in react-router-v6 it's not yet.
- */
-export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: UseLocation, useMatches: UseMatches) {
-  return (
-    customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad = true,
-    startTransactionOnLocationChange = true,
-  ): void => {
-    setGlobals({
-      useEffect,
-      useLocation,
-      useMatches,
-      instrumentNavigation: startTransactionOnLocationChange,
-      customStartTransaction,
-    });
-
-    if (startTransactionOnPageLoad) {
-      startPageloadSpan();
-    }
-  };
 }
 
 /**

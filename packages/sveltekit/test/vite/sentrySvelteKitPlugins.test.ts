@@ -113,6 +113,63 @@ describe('sentrySvelteKit()', () => {
     });
   });
 
+  it('passes user-specified vite plugin options to the custom sentry source maps plugin', async () => {
+    const makePluginSpy = vi.spyOn(sourceMaps, 'makeCustomSentryVitePlugins');
+    await getSentrySvelteKitPlugins({
+      debug: true,
+      sourceMapsUploadOptions: {
+        org: 'my-org',
+        sourcemaps: {
+          assets: ['nope/*.js'],
+          filesToDeleteAfterUpload: ['baz/*.js'],
+        },
+        release: {
+          inject: false,
+          name: '2.0.0',
+        },
+        unstable_sentryVitePluginOptions: {
+          org: 'other-org',
+          sourcemaps: {
+            assets: ['foo/*.js'],
+            ignore: ['bar/*.js'],
+          },
+          release: {
+            name: '3.0.0',
+            setCommits: {
+              auto: true,
+            },
+          },
+          headers: {
+            'X-My-Header': 'foo',
+          },
+        },
+      },
+      autoInstrument: false,
+      adapter: 'vercel',
+    });
+
+    expect(makePluginSpy).toHaveBeenCalledWith({
+      debug: true,
+      org: 'other-org',
+      sourcemaps: {
+        assets: ['foo/*.js'],
+        ignore: ['bar/*.js'],
+        filesToDeleteAfterUpload: ['baz/*.js'],
+      },
+      release: {
+        inject: false,
+        name: '3.0.0',
+        setCommits: {
+          auto: true,
+        },
+      },
+      headers: {
+        'X-My-Header': 'foo',
+      },
+      adapter: 'vercel',
+    });
+  });
+
   it('passes user-specified options to the auto instrument plugin', async () => {
     const makePluginSpy = vi.spyOn(autoInstrument, 'makeAutoInstrumentationPlugin');
     const plugins = await getSentrySvelteKitPlugins({

@@ -21,6 +21,7 @@ export { nestIntegration } from './integrations/tracing/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';

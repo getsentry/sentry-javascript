@@ -96,8 +96,7 @@ export * from '@sentry/node-experimental';
 
 export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-// eslint-disable-next-line deprecation/deprecation
-export { remixRouterInstrumentation, withSentry } from './client/performance';
+export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { browserTracingIntegration } from './client/browserTracingIntegration';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';

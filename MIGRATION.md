@@ -20,9 +20,9 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.8+ for our CJS package, and Node 18.8+ for our ESM package. This applies to
-`@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no longer
-test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
+to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
+longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2017+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -254,6 +254,7 @@ We now support the following integrations out of the box:
 - [Browser SDK](./MIGRATION.md#browser-sdk-browser-react-vue-angular-ember-etc)
 - [Server-side SDKs (Node, Deno, Bun)](./MIGRATION.md#server-side-sdks-node-deno-bun-etc)
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
+- [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 
 ### General
@@ -580,6 +581,78 @@ Sentry.init({
   ],
 });
 ```
+
+### SvelteKit SDK
+
+#### Breaking `sentrySvelteKit()` changes
+
+We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
+change, resolving uploaded source maps should work out of the box much more often than before
+([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
+
+To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
+the `sourceMapsUploadOptions` to remove the hard dependency on the API of the plugin. While you previously could specify
+all [version 0.x Vite plugin options](https://www.npmjs.com/package/@sentry/vite-plugin/v/0.6.1), we now reduced them to
+a subset of [2.x options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options). All of these options are
+optional just like before but here's an example of using the new options.
+
+```js
+// Before (v7):
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: '1.0.1',
+    injectRelease: true,
+    include: ['./build/*/**/*'],
+    ignore: ['**/build/client/**/*']
+  },
+}),
+
+// After (v8):
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: {
+	    name: '1.0.1',
+	    inject: true
+    },
+    sourcemaps: {
+	    assets: ['./build/*/**/*'],
+	    ignore: ['**/build/client/**/*'],
+	    filesToDeleteAfterUpload: ['./build/**/*.map']
+    },
+  },
+}),
+```
+
+In the future, we might add additional [options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options)
+from the Vite plugin but if you would like to specify some of them directly, you can do this by passing in an
+`unstable_sentryVitePluginOptions` object:
+
+```js
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    // ...
+    release: {
+	    name: '1.0.1',
+    },
+    unstable_sentryVitePluginOptions: {
+      release: {
+        setCommits: {
+          auto: true
+        }
+      }
+    }
+  },
+}),
+```
+
+Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
+time, including breaking changes within the same major version of the SDK.
 
 ## 5. Behaviour Changes
 
@@ -968,10 +1041,6 @@ instead now.
 
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
 automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
-
-## Deprecate `scope.setTransactionName()`
-
-Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
 
 ## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
 

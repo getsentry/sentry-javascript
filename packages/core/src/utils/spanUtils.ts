@@ -22,7 +22,7 @@ export const TRACE_FLAG_SAMPLED = 0x1;
  */
 export function spanToTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
-  const { data, op, parent_span_id, status, tags, origin } = spanToJSON(span);
+  const { data, op, parent_span_id, status, origin } = spanToJSON(span);
 
   return dropUndefinedKeys({
     data,
@@ -30,7 +30,6 @@ export function spanToTraceContext(span: Span): TraceContext {
     parent_span_id,
     span_id,
     status,
-    tags,
     trace_id,
     origin,
   });

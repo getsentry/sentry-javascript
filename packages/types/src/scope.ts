@@ -128,7 +128,6 @@ export interface Scope {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   setTransactionName(name?: string): this;
 

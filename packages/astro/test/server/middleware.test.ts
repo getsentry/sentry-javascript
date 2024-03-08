@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import * as SentryNode from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node';
 import type { Client, Span } from '@sentry/types';
 import { vi } from 'vitest';
 
