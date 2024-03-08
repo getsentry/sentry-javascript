@@ -91,6 +91,7 @@ export {
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
+  getStatusMessage,
 } from './utils/spanUtils';
 export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
@@ -114,4 +115,5 @@ export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
+export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';

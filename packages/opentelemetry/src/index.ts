@@ -34,7 +34,6 @@ export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan } from '.
 export { setupGlobalHub } from './custom/hub';
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHub } from './custom/getCurrentHub';
-export { addTracingExtensions } from './custom/hubextensions';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
