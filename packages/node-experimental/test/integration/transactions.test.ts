@@ -21,7 +21,11 @@ describe('Integration | Transactions', () => {
       return null;
     });
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      release: '8.0.0',
+    });
 
     const client = Sentry.getClient()!;
 
@@ -111,6 +115,7 @@ describe('Integration | Transactions', () => {
       public_key: expect.any(String),
       sample_rate: '1',
       sampled: 'true',
+      release: '8.0.0',
       trace_id: expect.any(String),
       transaction: 'test name',
     });

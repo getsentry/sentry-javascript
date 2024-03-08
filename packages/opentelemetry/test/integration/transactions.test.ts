@@ -543,7 +543,11 @@ describe('Integration | Transactions', () => {
       traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
     };
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      release: '7.0.0',
+    });
 
     const client = getClient() as TestClientInterface;
 
