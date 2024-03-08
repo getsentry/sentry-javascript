@@ -48,7 +48,6 @@ We've removed the following packages:
 - [@sentry/hub](./MIGRATION.md#sentryhub)
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
-- [@sentry/serverless](./MIGRATION.md#sentryserverless)
 
 #### @sentry/hub
 
