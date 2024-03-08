@@ -146,7 +146,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         captureContext: {
           contexts: { react: { componentStack } },
         },
-        mechanism: { handled: false },
+        // If users provide a fallback component we can assume they are handling the error.
+        // Therefore, we set the mechanism depending on the presence of the fallback prop.
+        mechanism: { handled: !!this.props.fallback },
       });
 
       if (onError) {
