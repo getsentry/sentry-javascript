@@ -42,9 +42,6 @@ function _startTransaction(
     },
     ...customSamplingContext,
   });
-  if (transaction.isRecording()) {
-    transaction.initSpanRecorder();
-  }
   if (client) {
     client.emit('startTransaction', transaction);
     client.emit('spanStart', transaction);

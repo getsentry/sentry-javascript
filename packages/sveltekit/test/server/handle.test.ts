@@ -1,5 +1,10 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions, spanIsSampled, spanToJSON } from '@sentry/core';
-import type { Transaction as TransactionClass } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  addTracingExtensions,
+  getSpanDescendants,
+  spanIsSampled,
+  spanToJSON,
+} from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
 import * as SentryNode from '@sentry/node-experimental';
 import type { Span, Transaction } from '@sentry/types';
@@ -138,8 +143,7 @@ describe('handleSentry', () => {
 
       expect(spanToJSON(_span!).timestamp).toBeDefined();
 
-      // eslint-disable-next-line deprecation/deprecation
-      const spans = (_span! as TransactionClass).spanRecorder?.spans;
+      const spans = getSpanDescendants(_span!);
       expect(spans).toHaveLength(1);
     });
 
@@ -177,8 +181,7 @@ describe('handleSentry', () => {
 
       expect(spanToJSON(_span!).timestamp).toBeDefined();
 
-      // eslint-disable-next-line deprecation/deprecation
-      const spans = (_span! as TransactionClass).spanRecorder?.spans?.map(spanToJSON);
+      const spans = getSpanDescendants(_span!).map(spanToJSON);
 
       expect(spans).toHaveLength(2);
       expect(spans).toEqual(
