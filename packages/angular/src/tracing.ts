@@ -11,8 +11,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   WINDOW,
-  browserTracingIntegration as originalBrowserTracingIntegration,
   getCurrentScope,
+  browserTracingIntegration as originalBrowserTracingIntegration,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import { getActiveSpan, getClient, getRootSpan, spanToJSON, startInactiveSpan } from '@sentry/core';

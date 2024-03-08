@@ -1,7 +1,7 @@
 <script lang="ts">
-  function throwError() {
-    throw new Error('Click Error');
-  }
+function throwError() {
+  throw new Error('Click Error');
+}
 </script>
 
 <h1>Client error</h1>

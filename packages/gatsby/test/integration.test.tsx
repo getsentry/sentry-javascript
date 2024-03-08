@@ -2,8 +2,6 @@ import { TextDecoder, TextEncoder } from 'util';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { render } from '@testing-library/react';
 import { useEffect } from 'react';
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
-import * as React from 'react';
 
 import { onClientEntry } from '../gatsby-browser';
 import * as Sentry from '../src';

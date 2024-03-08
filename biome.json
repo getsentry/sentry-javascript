@@ -3,7 +3,8 @@
   "vcs": {
     "enabled": true,
     "clientKind": "git",
-    "useIgnoreFile": true
+    "useIgnoreFile": true,
+    "defaultBranch": "develop"
   },
   "organizeImports": {
     "enabled": true
@@ -12,8 +13,13 @@
     "enabled": true,
     "rules": {
       "recommended": false,
+      "complexity": {
+        "all": false,
+        "useRegexLiterals": "error"
+      },
       "correctness": {
         "all": false,
+        "noUnusedImports": "error",
         "noUnusedVariables": "error",
         "noPrecisionLoss": "error"
       },
@@ -21,13 +27,8 @@
         "all": false,
         "noControlCharactersInRegex": "error"
       },
-      "nursery": {
-        "noUnusedImports": "error",
-        "useRegexLiterals": "error"
-      },
       "performance": {
         "all": true,
-        "noAccumulatingSpread": "error",
         "noDelete": "off"
       }
     },
@@ -82,11 +83,16 @@
     },
     "parser": {
       "unsafeParameterDecoratorsEnabled": true
-    }
+    },
+    "globals": ["Astro", "Deno"]
   },
   "json": {
     "formatter": {
       "enabled": true
+    },
+    "parser": {
+      "allowComments": true,
+      "allowTrailingCommas": true
     }
   }
 }

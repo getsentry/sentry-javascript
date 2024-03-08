@@ -6,10 +6,7 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby",
   "author": "Sentry",
   "license": "MIT",
-  "keywords": [
-    "gatsby",
-    "gatsby-plugin"
-  ],
+  "keywords": ["gatsby", "gatsby-plugin"],
   "engines": {
     "node": ">=14.18"
   },
@@ -28,9 +25,7 @@
   "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+      "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {

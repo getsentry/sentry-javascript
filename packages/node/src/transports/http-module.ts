@@ -1,4 +1,4 @@
-import type { IncomingHttpHeaders, RequestOptions as HTTPRequestOptions } from 'http';
+import type { RequestOptions as HTTPRequestOptions, IncomingHttpHeaders } from 'http';
 import type { RequestOptions as HTTPSRequestOptions } from 'https';
 import type { Writable } from 'stream';
 import type { URL } from 'url';

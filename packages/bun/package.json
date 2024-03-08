@@ -9,20 +9,13 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8"
-  ],
+  "files": ["cjs", "esm", "types", "types-ts3.8"],
   "main": "build/esm/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
+      "build/npm/types/index.d.ts": ["build/npm/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {

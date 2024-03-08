@@ -1,5 +1,4 @@
 import Link from 'next/link';
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import React from 'react';
 
 import { User } from '../interfaces';

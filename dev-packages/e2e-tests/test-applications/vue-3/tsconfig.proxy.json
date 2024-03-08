@@ -2,10 +2,10 @@
   "compilerOptions": {
     "moduleResolution": "Node",
     "target": "ES2022",
-    "module": "ES2022",
+    "module": "ES2022"
   },
   "ts-node": {
-      "esm": true,
-      "experimentalSpecifierResolution": "node",
+    "esm": true,
+    "experimentalSpecifierResolution": "node"
   }
 }

@@ -7,9 +7,9 @@ import type {
   Measurements,
   SpanJSON,
   SpanTimeInput,
-  Transaction as TransactionInterface,
   TransactionContext,
   TransactionEvent,
+  Transaction as TransactionInterface,
   TransactionMetadata,
   TransactionSource,
 } from '@sentry/types';

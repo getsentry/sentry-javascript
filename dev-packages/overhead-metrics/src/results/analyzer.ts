@@ -100,7 +100,10 @@ export interface AnalyzerItemValues {
 const AnalyzerItemValueNotAvailable = 'n/a';
 
 class AnalyzerItemNumberValues implements AnalyzerItemValues {
-  public constructor(private _unit: AnalyzerItemUnit, private _values: (number | undefined)[]) {}
+  public constructor(
+    private _unit: AnalyzerItemUnit,
+    private _values: (number | undefined)[],
+  ) {}
 
   public value(index: number): string {
     if (!this._has(index)) return AnalyzerItemValueNotAvailable;

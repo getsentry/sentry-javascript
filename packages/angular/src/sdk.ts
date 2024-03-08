@@ -1,6 +1,6 @@
 import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
-import { getDefaultIntegrations, init as browserInit, setContext } from '@sentry/browser';
+import { init as browserInit, getDefaultIntegrations, setContext } from '@sentry/browser';
 import { applySdkMetadata } from '@sentry/core';
 import { logger } from '@sentry/utils';
 

@@ -12,22 +12,14 @@
   "engines": {
     "node": ">=14.18"
   },
-  "files": [
-    "cjs",
-    "esm",
-    "types",
-    "types-ts3.8",
-    "scripts"
-  ],
+  "files": ["cjs", "esm", "types", "types-ts3.8", "scripts"],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "typesVersions": {
     "<4.9": {
-      "build/types/index.d.ts": [
-        "build/types-ts3.8/index.d.ts"
-      ]
+      "build/types/index.d.ts": ["build/types-ts3.8/index.d.ts"]
     }
   },
   "publishConfig": {
@@ -88,8 +80,5 @@
   "volta": {
     "extends": "../../package.json"
   },
-  "sideEffects": [
-    "./esm/index.server.js",
-    "./src/index.server.ts"
-  ]
+  "sideEffects": ["./esm/index.server.js", "./src/index.server.ts"]
 }

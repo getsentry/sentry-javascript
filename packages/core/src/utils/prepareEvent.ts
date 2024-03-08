@@ -4,8 +4,8 @@ import type {
   ClientOptions,
   Event,
   EventHint,
-  Scope as ScopeInterface,
   ScopeContext,
+  Scope as ScopeInterface,
   StackFrame,
   StackParser,
 } from '@sentry/types';

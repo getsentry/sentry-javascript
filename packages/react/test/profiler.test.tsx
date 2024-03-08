@@ -2,7 +2,6 @@ import { SentrySpan } from '@sentry/core';
 import type { SpanContext } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
-// biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
 import * as React from 'react';
 
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';

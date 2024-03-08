@@ -5,6 +5,6 @@
     "allowSyntheticDefaultImports": true,
     "declaration": false,
     "declarationMap": false,
-    "skipLibCheck": true,
+    "skipLibCheck": true
   }
 }
