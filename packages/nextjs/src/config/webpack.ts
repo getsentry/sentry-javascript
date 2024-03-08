@@ -33,6 +33,8 @@ const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
   edge: './edge',
 } as const;
 
+console.log('hi');
+
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
 let showedMissingAuthTokenErrorMsg = false;
