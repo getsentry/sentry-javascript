@@ -54,6 +54,13 @@ const DEPENDENTS: Dependent[] = [
       'NodeClient',
       'hapiErrorPlugin',
       'makeNodeTransport',
+      // TODO: remove these when we switch exports from nodeExperimentalExports to nodeExports
+      'Integrations',
+      'addGlobalEventProcessor',
+      'getActiveTransaction',
+      'getCurrentHub',
+      'makeMain',
+      'startTransaction',
     ],
   },
   {
