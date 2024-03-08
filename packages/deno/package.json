@@ -8,6 +8,15 @@
   "license": "MIT",
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/index.d.ts",
+        "default": "./build/index.mjs"
+      }
+    }
+  },
   "publishConfig": {
     "access": "public"
   },

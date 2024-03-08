@@ -1,5 +1,5 @@
-import type * as http from 'http';
-import type * as https from 'https';
+import type * as http from 'node:http';
+import type * as https from 'node:https';
 import { URL } from 'url';
 
 import { NODE_VERSION } from '../../nodeVersion';

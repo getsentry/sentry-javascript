@@ -39,6 +39,10 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOtel } from './initOtel';
 
+function getCjsOnlyIntegrations(isCjs = typeof require !== 'undefined'): Integration[] {
+  return isCjs ? [modulesIntegration()] : [];
+}
+
 /** Get the default integrations for the Node Experimental SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
   // TODO
@@ -59,9 +63,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
-    modulesIntegration(),
     httpIntegration(),
-    nativeNodeFetchIntegration(),
+    ...getCjsOnlyIntegrations(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }

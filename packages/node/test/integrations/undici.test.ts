@@ -492,6 +492,7 @@ function setupTestServer() {
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
+    // eslint-disable-next-line deprecation/deprecation
     res.connection?.end();
   });
 

@@ -1,7 +1,7 @@
 import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
-import { default as Router } from 'next/router';
+import Router from 'next/router';
 
 import { pagesRouterInstrumentation } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
 
