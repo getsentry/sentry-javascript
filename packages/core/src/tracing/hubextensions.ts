@@ -2,7 +2,6 @@ import type { ClientOptions, CustomSamplingContext, Hub, TransactionContext } fr
 import { getMainCarrier } from '../asyncContext';
 
 import { registerErrorInstrumentation } from './errors';
-import { IdleTransaction } from './idletransaction';
 import { sampleTransaction } from './sampling';
 import { Transaction } from './transaction';
 
@@ -32,54 +31,6 @@ function _startTransaction(
 
   // eslint-disable-next-line deprecation/deprecation
   let transaction = new Transaction(transactionContext, this);
-  transaction = sampleTransaction(transaction, options, {
-    name: transactionContext.name,
-    parentSampled: transactionContext.parentSampled,
-    transactionContext,
-    attributes: {
-      // eslint-disable-next-line deprecation/deprecation
-      ...transactionContext.data,
-      ...transactionContext.attributes,
-    },
-    ...customSamplingContext,
-  });
-  if (transaction.isRecording()) {
-    transaction.initSpanRecorder();
-  }
-  if (client) {
-    client.emit('startTransaction', transaction);
-    client.emit('spanStart', transaction);
-  }
-  return transaction;
-}
-
-/**
- * Create new idle transaction.
- */
-export function startIdleTransaction(
-  hub: Hub,
-  transactionContext: TransactionContext,
-  idleTimeout: number,
-  finalTimeout: number,
-  onScope?: boolean,
-  customSamplingContext?: CustomSamplingContext,
-  heartbeatInterval?: number,
-  delayAutoFinishUntilSignal: boolean = false,
-): IdleTransaction {
-  // eslint-disable-next-line deprecation/deprecation
-  const client = hub.getClient();
-  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
-
-  // eslint-disable-next-line deprecation/deprecation
-  let transaction = new IdleTransaction(
-    transactionContext,
-    hub,
-    idleTimeout,
-    finalTimeout,
-    heartbeatInterval,
-    onScope,
-    delayAutoFinishUntilSignal,
-  );
   transaction = sampleTransaction(transaction, options, {
     name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,

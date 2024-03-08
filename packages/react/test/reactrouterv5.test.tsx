@@ -55,9 +55,9 @@ describe('browserTracingReactRouterV5', () => {
   function createMockBrowserClient(): BrowserClient {
     return new BrowserClient({
       integrations: [],
+      tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
       stackParser: () => [],
-      debug: true,
     });
   }
 

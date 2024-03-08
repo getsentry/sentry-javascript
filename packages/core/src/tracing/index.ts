@@ -1,6 +1,5 @@
-export { startIdleTransaction, addTracingExtensions } from './hubextensions';
-export { IdleTransaction, TRACING_DEFAULTS } from './idletransaction';
-export type { BeforeFinishCallback } from './idletransaction';
+export { addTracingExtensions } from './hubextensions';
+export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 export { Transaction } from './transaction';
@@ -19,5 +18,3 @@ export {
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
-
-export { startIdleSpan } from './idleSpan';
