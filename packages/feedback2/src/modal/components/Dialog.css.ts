@@ -83,7 +83,7 @@ export function createDialogStyles(): HTMLStyleElement {
   overflow: auto;
   flex-direction: row;
   gap: 16px;
-  flex: 1 0 auto;
+  flex: 1 0;
 }
 
 .form__right {
@@ -93,7 +93,7 @@ export function createDialogStyles(): HTMLStyleElement {
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
-
+  flex-shrink: 0;
 }
 
 

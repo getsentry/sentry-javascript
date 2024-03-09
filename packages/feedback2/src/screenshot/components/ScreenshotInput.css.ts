@@ -16,8 +16,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 }
 
 .editor {
-  display: flex;
-  flex: 1 0 auto;
+  flex-grow: 1;
 
   background-color: ${surface200};
   background-image: repeating-linear-gradient(
@@ -37,16 +36,15 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 }
 
 .canvasContainer {
-  display: grid;
-  grid-template: 1fr / 1fr;
-  flex: 1 0 auto;
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
-.canvasContainer > * {
-  grid-area: 1 / 1;
-  position: relative;
+.canvasContainer canvas {
+  width: 100%;
+  height: 100%;
   object-fit: contain;
-  align-self: center;
 }
 
 .cropper {
