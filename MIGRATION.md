@@ -593,7 +593,7 @@ have code completion.
 
 #### Updated the `@sentry/webpack-plugin` dependency to version 2
 
-We bumping the internal usage of `@sentry/webpack-plugin` to a new major version. This comes with multiple upsides like
+We bumped the internal usage of `@sentry/webpack-plugin` to a new major version. This comes with multiple upsides like
 a simpler configuration interface and the use of new state of the art Debug ID technology. Debug IDs will simplify the
 setup for source maps in Sentry and will not require you to match stack frame paths to uploaded artifacts anymore.
 
