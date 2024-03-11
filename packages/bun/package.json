@@ -15,7 +15,7 @@
     "types",
     "types-ts3.8"
   ],
-  "main": "build/esm/index.js",
+  "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
   "exports": {
