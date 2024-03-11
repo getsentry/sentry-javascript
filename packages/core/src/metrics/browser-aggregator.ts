@@ -1,9 +1,9 @@
 import type { Client, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
+import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
 import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
-import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
 import { getBucketKey, sanitizeTags } from './utils';
 

@@ -1,6 +1,8 @@
 import type { Hub, Integration } from '@sentry/types';
 import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
+import type { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './tracing/trace';
+import type { getActiveSpan } from './utils/spanUtils';
 
 /**
  * @private Private API with no semver guarantees!
@@ -42,6 +44,24 @@ export interface AsyncContextStrategy {
    * Get the currently active isolation scope.
    */
   getIsolationScope: () => Scope;
+
+  // OPTIONAL: Custom tracing methods
+  // These are used so that we can provide OTEL-based implementations
+
+  /** Start an active span. */
+  startSpan?: typeof startSpan;
+
+  /** Start an inactive span. */
+  startInactiveSpan?: typeof startInactiveSpan;
+
+  /** Start an active manual span. */
+  startSpanManual?: typeof startSpanManual;
+
+  /** Get the currently active span. */
+  getActiveSpan?: typeof getActiveSpan;
+
+  /** Make a span the active span in the context of the callback. */
+  withActiveSpan?: typeof withActiveSpan;
 }
 
 /**

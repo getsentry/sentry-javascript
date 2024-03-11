@@ -64,7 +64,10 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
  *
  * Note that you'll always get a span passed to the callback, it may just be a NonRecordingSpan if the span is not sampled.
  */
-export function startSpanManual<T>(options: OpenTelemetrySpanContext, callback: (span: Span) => T): T {
+export function startSpanManual<T>(
+  options: OpenTelemetrySpanContext,
+  callback: (span: Span, finish: () => void) => T,
+): T {
   const tracer = getTracer();
 
   const { name } = options;
@@ -79,7 +82,7 @@ export function startSpanManual<T>(options: OpenTelemetrySpanContext, callback: 
     _applySentryAttributesToSpan(span, options);
 
     return handleCallbackErrors(
-      () => callback(span),
+      () => callback(span, () => span.end()),
       () => {
         span.setStatus({ code: SpanStatusCode.ERROR });
       },

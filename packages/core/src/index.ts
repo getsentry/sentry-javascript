@@ -29,7 +29,6 @@ export {
   startSession,
   endSession,
   captureSession,
-  withActiveSpan,
   addEventProcessor,
 } from './exports';
 export {
@@ -93,6 +92,7 @@ export {
   getSpanDescendants,
   getStatusMessage,
   getRootSpan,
+  getActiveSpan,
 } from './utils/spanUtils';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
