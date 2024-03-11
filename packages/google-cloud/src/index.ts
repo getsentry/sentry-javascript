@@ -62,6 +62,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getRootSpan,
   getSpanDescendants,
   continueTrace,
   getAutoPerformanceIntegrations,
