@@ -37,7 +37,6 @@ describe('Integration | Transactions', () => {
         op: 'test op',
         name: 'test name',
         origin: 'auto.test',
-        metadata: { requestPath: 'test-path' },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         },
@@ -109,7 +108,6 @@ describe('Integration | Transactions', () => {
     });
 
     expect(transaction.sdkProcessingMetadata?.sampleRate).toEqual(1);
-    expect(transaction.sdkProcessingMetadata?.requestPath).toEqual('test-path');
     expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
       environment: 'production',
       public_key: expect.any(String),

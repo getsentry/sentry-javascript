@@ -1,5 +1,5 @@
 import type { Span } from '@opentelemetry/api';
-import type { Scope, TransactionMetadata } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 
 import type { AbstractSpan } from '../types';
 
@@ -14,7 +14,6 @@ const SpanScopes = new WeakMap<
   }
 >();
 const SpanParent = new WeakMap<AbstractSpan, Span>();
-const SpanMetadata = new WeakMap<AbstractSpan, Partial<TransactionMetadata>>();
 
 /** Set the parent OTEL span on an OTEL span. */
 export function setSpanParent(span: AbstractSpan, parentSpan: Span): void {
@@ -24,16 +23,6 @@ export function setSpanParent(span: AbstractSpan, parentSpan: Span): void {
 /** Get the parent OTEL span of an OTEL span. */
 export function getSpanParent(span: AbstractSpan): Span | undefined {
   return SpanParent.get(span);
-}
-
-/** Set metadata for an OTEL span. */
-export function setSpanMetadata(span: AbstractSpan, metadata: Partial<TransactionMetadata>): void {
-  SpanMetadata.set(span, metadata);
-}
-
-/** Get metadata for an OTEL span. */
-export function getSpanMetadata(span: AbstractSpan): Partial<TransactionMetadata> | undefined {
-  return SpanMetadata.get(span);
 }
 
 /**
