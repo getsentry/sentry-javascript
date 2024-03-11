@@ -16,7 +16,6 @@ import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
-import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
 /**

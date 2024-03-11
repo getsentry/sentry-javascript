@@ -24,7 +24,6 @@ import type {
   SeverityLevel,
   Span,
   StartSpanOptions,
-  Transaction,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,

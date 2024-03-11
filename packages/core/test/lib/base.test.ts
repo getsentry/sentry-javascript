@@ -1,4 +1,4 @@
-import type { Client, Envelope, Event, Transaction } from '@sentry/types';
+import type { Client, Envelope, Event } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
 import {

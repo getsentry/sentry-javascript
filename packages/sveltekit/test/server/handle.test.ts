@@ -8,7 +8,7 @@ import {
 } from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
 import * as SentryNode from '@sentry/node-experimental';
-import type { Span, Transaction } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';

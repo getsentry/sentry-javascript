@@ -5,11 +5,10 @@ import {
   captureException,
   getActiveSpan,
   getClient,
-  getCurrentScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { ReplayRecordingMode, Span, Transaction } from '@sentry/types';
+import type { ReplayRecordingMode, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
