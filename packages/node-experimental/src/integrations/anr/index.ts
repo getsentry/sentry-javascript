@@ -6,7 +6,7 @@ import { Worker } from 'worker_threads';
 import { NODE_MAJOR, NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
-import { base64WorkerScript } from './worker-script.js';
+import { base64WorkerScript } from './worker-script';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;

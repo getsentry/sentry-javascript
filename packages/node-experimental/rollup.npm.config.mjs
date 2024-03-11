@@ -1,7 +1,12 @@
+import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollup-utils';
-import { anrWorkerConfigs } from './rollup.anr-worker.config.mjs';
+import { createAnrWorkerCode } from './rollup.anr-worker.config.mjs';
+
+const { workerRollupConfig, getBase64Code } = createAnrWorkerCode();
 
 export default [
+  // The worker needs to be built first since it's output is used in the main bundle.
+  workerRollupConfig,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       packageSpecificConfig: {
@@ -11,10 +16,17 @@ export default [
           // set preserveModules to false because we want to bundle everything into one file.
           preserveModules: false,
         },
-        external: ['./worker-script.js'],
+        plugins: [
+          replace({
+            delimiters: ['###', '###'],
+            // removes some webpack warnings
+            preventAssignment: true,
+            values: {
+              base64WorkerScript: () => getBase64Code(),
+            },
+          }),
+        ],
       },
     }),
   ),
-  // The ANR worker builds must come after the main build because they overwrite the worker-script.js file
-  ...anrWorkerConfigs,
 ];
