@@ -5,11 +5,16 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { getSpanDescendants, removeChildSpanFromSpan, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  getActiveSpan,
+  getSpanDescendants,
+  removeChildSpanFromSpan,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,

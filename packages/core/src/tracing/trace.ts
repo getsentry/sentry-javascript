@@ -1,18 +1,26 @@
 import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
+import type { AsyncContextStrategy } from '../asyncContext';
+import { getMainCarrier } from '../asyncContext';
 import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentHub } from '../hub';
+import { getAsyncContextStrategy, getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { addChildSpanToSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  getActiveSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
+import { setCapturedScopesOnSpan } from './utils';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -26,6 +34,11 @@ import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) => T): T {
+  const acs = getAcs();
+  if (acs.startSpan) {
+    return acs.startSpan(context, callback);
+  }
+
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -73,6 +86,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpanManual<T>(context: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
+  const acs = getAcs();
+  if (acs.startSpanManual) {
+    return acs.startSpanManual(context, callback);
+  }
+
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -122,6 +140,11 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
  * and the `span` returned from the callback will be undefined.
  */
 export function startInactiveSpan(context: StartSpanOptions): Span {
+  const acs = getAcs();
+  if (acs.startInactiveSpan) {
+    return acs.startInactiveSpan(context);
+  }
+
   const spanContext = normalizeContext(context);
   // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
@@ -248,6 +271,28 @@ export const continueTrace: ContinueTrace = <V>(
   });
 };
 
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be
+ * passed `null` to start an entirely new span tree.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
+ * spans started within the callback will not be attached to a parent span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
+  const acs = getAcs();
+  if (acs.withActiveSpan) {
+    return acs.withActiveSpan(span, callback);
+  }
+
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span || undefined);
+    return callback(scope);
+  });
+}
+
 function createChildSpanOrTransaction(
   hub: Hub,
   {
@@ -339,4 +384,9 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+function getAcs(): AsyncContextStrategy {
+  const carrier = getMainCarrier();
+  return getAsyncContextStrategy(carrier);
 }

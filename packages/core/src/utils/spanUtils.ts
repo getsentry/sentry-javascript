@@ -1,4 +1,6 @@
 import type {
+  MeasurementUnit,
+  Primitive,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -13,7 +15,11 @@ import {
   generateSentryTraceHeader,
   timestampInSeconds,
 } from '@sentry/utils';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
+import { getMainCarrier } from '../asyncContext';
+import { getCurrentScope } from '../currentScopes';
+import { getAsyncContextStrategy } from '../hub';
+import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
+import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
@@ -236,4 +242,35 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
  */
 export function getRootSpan(span: SpanWithPotentialChildren): Span {
   return span[ROOT_SPAN_FIELD] || span;
+}
+
+/**
+ * Returns the currently active span.
+ */
+export function getActiveSpan(): Span | undefined {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.getActiveSpan) {
+    return acs.getActiveSpan();
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return getCurrentScope().getSpan();
+}
+
+/**
+ * Updates the metric summary on the currently active span
+ */
+export function updateMetricSummaryOnActiveSpan(
+  metricType: MetricType,
+  sanitizedName: string,
+  value: number,
+  unit: MeasurementUnit,
+  tags: Record<string, Primitive>,
+  bucketKey: string,
+): void {
+  const span = getActiveSpan();
+  if (span) {
+    updateMetricSummaryOnSpan(span, metricType, sanitizedName, value, unit, tags, bucketKey);
+  }
 }

@@ -1,7 +1,5 @@
 import type { MeasurementUnit, Span, Transaction } from '@sentry/types';
-import { getRootSpan } from '../utils/spanUtils';
-
-import { getActiveSpan } from './utils';
+import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 
 /**
  * Adds a measurement to the current active transaction.

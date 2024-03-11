@@ -39,16 +39,9 @@ export { NodeClient } from './sdk/client';
 export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
 
-export type { Span, NodeOptions } from './types';
+export type { NodeOptions } from './types';
 
-export {
-  startSpan,
-  startSpanManual,
-  startInactiveSpan,
-  getActiveSpan,
-  getRootSpan,
-  withActiveSpan,
-} from '@sentry/opentelemetry';
+export { getRootSpan } from '@sentry/opentelemetry';
 
 export {
   addRequestDataToEvent,
@@ -108,6 +101,11 @@ export {
   captureSession,
   endSession,
   addIntegration,
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  getActiveSpan,
+  withActiveSpan,
 } from '@sentry/core';
 
 export type {
@@ -126,4 +124,5 @@ export type {
   Thread,
   Transaction,
   User,
+  Span,
 } from '@sentry/types';
