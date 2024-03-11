@@ -2,7 +2,7 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
+import { addChildSpanToSpan, getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -21,6 +21,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
   // We need access to the parent span in order to be able to move up the span tree for breadcrumbs
   if (parentSpan) {
     setSpanParent(span, parentSpan);
+    addChildSpanToSpan(parentSpan, span);
   }
 
   // The root context does not have scopes stored, so we check for this specifically

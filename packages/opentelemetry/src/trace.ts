@@ -10,6 +10,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
+  getRootSpan,
   handleCallbackErrors,
 } from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
@@ -19,7 +20,6 @@ import { SENTRY_TRACE_STATE_DSC } from './constants';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
-import { getRootSpan } from './utils/getActiveSpan';
 import { setSpanMetadata } from './utils/spanData';
 
 /**

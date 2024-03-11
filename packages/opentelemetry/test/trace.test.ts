@@ -11,13 +11,14 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
+  getRootSpan,
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
 
 import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
-import { getActiveSpan, getRootSpan } from '../src/utils/getActiveSpan';
+import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { getSpanMetadata } from '../src/utils/spanData';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
