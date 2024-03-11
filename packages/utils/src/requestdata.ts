@@ -73,22 +73,32 @@ export function addRequestDataToTransaction(
   _deps?: InjectedNodeDeps,
 ): void {
   if (!transaction) return;
+
+  // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
   // eslint-disable-next-line deprecation/deprecation
-  if (!transaction.metadata.source || transaction.metadata.source === 'url') {
+  if (!transaction.attributes['sentry.source'] || transaction.attributes['sentry.source'] === 'url') {
     // Attempt to grab a parameterized route off of the request
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
     transaction.updateName(name);
-    // TODO: SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.setMetadata({ source });
+    // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
+    transaction.setAttribute('sentry.source', source);
   }
   transaction.setAttribute('url', req.originalUrl || req.url);
   if (req.baseUrl) {
     transaction.setAttribute('baseUrl', req.baseUrl);
   }
-  // TODO: We need to rewrite this to a flat format?
-  // eslint-disable-next-line deprecation/deprecation
-  transaction.setData('query', extractQueryParams(req));
+
+  const query = extractQueryParams(req);
+  if (typeof query === 'string') {
+    transaction.setAttribute('query', query);
+  } else if (query) {
+    Object.keys(query).forEach(key => {
+      const val = query[key];
+      if (typeof val === 'string' || typeof val === 'number') {
+        transaction.setAttribute(`query.${key}`, val);
+      }
+    });
+  }
 }
 
 /**
@@ -189,8 +199,6 @@ export function extractRequestData(
   req: PolymorphicRequest,
   options?: {
     include?: string[];
-    // TODO(v8): Remove this paramater
-    deps?: InjectedNodeDeps;
   },
 ): ExtractedNodeRequestData {
   const { include = DEFAULT_REQUEST_INCLUDES } = options || {};
@@ -258,7 +266,6 @@ export function extractRequestData(
         // query string:
         //   node: req.url (raw)
         //   express, koa, nextjs: req.query
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         requestData.query_string = extractQueryParams(req);
         break;
       }
@@ -309,8 +316,8 @@ export function addRequestDataToEvent(
 
   if (include.request) {
     const extractedRequestData = Array.isArray(include.request)
-      ? extractRequestData(req, { include: include.request, deps: options && options.deps })
-      : extractRequestData(req, { deps: options && options.deps });
+      ? extractRequestData(req, { include: include.request })
+      : extractRequestData(req);
 
     event.request = {
       ...event.request,

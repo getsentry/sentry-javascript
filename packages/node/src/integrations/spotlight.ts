@@ -21,8 +21,6 @@ const _spotlightIntegration = ((options: Partial<SpotlightConnectionOptions> = {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (typeof process === 'object' && process.env && process.env.NODE_ENV !== 'development') {
         logger.warn("[Spotlight] It seems you're not in dev mode. Do you really want to have Spotlight enabled?");
@@ -64,11 +62,6 @@ function connectToSpotlight(client: Client, options: Required<SpotlightConnectio
   }
 
   let failedRequests = 0;
-
-  if (typeof client.on !== 'function') {
-    logger.warn('[Spotlight] Cannot connect to spotlight due to missing method on SDK client (`client.on`)');
-    return;
-  }
 
   client.on('beforeEnvelope', (envelope: Envelope) => {
     if (failedRequests > 3) {

@@ -3,20 +3,19 @@ import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
-import { SentryPropagator, SentrySampler, setupEventContextTrace } from '@sentry/opentelemetry';
+import { SentryPropagator, SentrySampler, SentrySpanProcessor, setupEventContextTrace } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SentryContextManager } from '../otel/contextManager';
-import type { NodeExperimentalClient } from '../types';
 import { getClient } from './api';
-import { NodeExperimentalSentrySpanProcessor } from './spanProcessor';
+import type { NodeClient } from './client';
 
 /**
  * Initialize OpenTelemetry for Node.
  */
 export function initOtel(): void {
-  const client = getClient<NodeExperimentalClient>();
+  const client = getClient<NodeClient>();
 
   if (!client) {
     DEBUG_BUILD &&
@@ -44,18 +43,18 @@ export function initOtel(): void {
 }
 
 /** Just exported for tests. */
-export function setupOtel(client: NodeExperimentalClient): BasicTracerProvider {
+export function setupOtel(client: NodeClient): BasicTracerProvider {
   // Create and configure NodeTracerProvider
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: 'node-experimental',
+      [SemanticResourceAttributes.SERVICE_NAME]: 'node',
       [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
       [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
   });
-  provider.addSpanProcessor(new NodeExperimentalSentrySpanProcessor());
+  provider.addSpanProcessor(new SentrySpanProcessor());
 
   // Initialize the provider
   provider.register({

@@ -1,20 +1,14 @@
-import type { Attachment, Breadcrumb, Client, Event } from '@sentry/types';
+import type { Attachment, Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
-  Hub,
-  addTracingExtensions,
   applyScopeDataToEvent,
-  getActiveSpan,
   getCurrentScope,
+  getGlobalScope,
   getIsolationScope,
-  makeMain,
-  spanToJSON,
-  startInactiveSpan,
-  startSpan,
+  setGlobalScope,
   withIsolationScope,
 } from '../../src';
 
-import { withActiveSpan } from '../../src/exports';
-import { Scope, getGlobalScope, setGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
 describe('Scope', () => {
@@ -100,6 +94,398 @@ describe('Scope', () => {
         spanId: expect.any(String),
       },
       sdkProcessingMetadata: {},
+    });
+  });
+
+  describe('init', () => {
+    test('it creates a propagation context', () => {
+      const scope = new Scope();
+
+      expect(scope.getScopeData().propagationContext).toEqual({
+        traceId: expect.any(String),
+        spanId: expect.any(String),
+        sampled: undefined,
+        dsc: undefined,
+        parentSpanId: undefined,
+      });
+    });
+  });
+
+  describe('attributes modification', () => {
+    test('setFingerprint', () => {
+      const scope = new Scope();
+      scope.setFingerprint(['abcd']);
+      expect(scope['_fingerprint']).toEqual(['abcd']);
+    });
+
+    test('setExtra', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      expect(scope['_extra']).toEqual({ a: 1 });
+    });
+
+    test('setExtras', () => {
+      const scope = new Scope();
+      scope.setExtras({ a: 1 });
+      expect(scope['_extra']).toEqual({ a: 1 });
+    });
+
+    test('setExtras with undefined overrides the value', () => {
+      const scope = new Scope();
+      scope.setExtra('a', 1);
+      scope.setExtras({ a: undefined });
+      expect(scope['_extra']).toEqual({ a: undefined });
+    });
+
+    test('setTag', () => {
+      const scope = new Scope();
+      scope.setTag('a', 'b');
+      expect(scope['_tags']).toEqual({ a: 'b' });
+    });
+
+    test('setTags', () => {
+      const scope = new Scope();
+      scope.setTags({ a: 'b' });
+      expect(scope['_tags']).toEqual({ a: 'b' });
+    });
+
+    test('setUser', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      expect(scope['_user']).toEqual({ id: '1' });
+    });
+
+    test('setUser with null unsets the user', () => {
+      const scope = new Scope();
+      scope.setUser({ id: '1' });
+      scope.setUser(null);
+      expect(scope['_user']).toEqual({});
+    });
+
+    test('addBreadcrumb', () => {
+      const scope = new Scope();
+      scope.addBreadcrumb({ message: 'test' });
+      expect(scope['_breadcrumbs'][0]).toHaveProperty('message', 'test');
+    });
+
+    test('addBreadcrumb can be limited to hold up to N breadcrumbs', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 10; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 5);
+      }
+      expect(scope['_breadcrumbs']).toHaveLength(5);
+    });
+
+    test('addBreadcrumb can go over DEFAULT_MAX_BREADCRUMBS value', () => {
+      const scope = new Scope();
+      for (let i = 0; i < 120; i++) {
+        scope.addBreadcrumb({ message: 'test' }, 111);
+      }
+      expect(scope['_breadcrumbs']).toHaveLength(111);
+    });
+
+    test('setLevel', () => {
+      const scope = new Scope();
+      scope.setLevel('fatal');
+      expect(scope['_level']).toEqual('fatal');
+    });
+
+    test('setContext', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      expect(scope['_contexts'].os).toEqual({ id: '1' });
+    });
+
+    test('setContext with null unsets it', () => {
+      const scope = new Scope();
+      scope.setContext('os', { id: '1' });
+      scope.setContext('os', null);
+      expect(scope['_user']).toEqual({});
+    });
+
+    test('setSpan', () => {
+      const scope = new Scope();
+      const span = { fake: 'span' } as any;
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan(span);
+      expect(scope['_span']).toEqual(span);
+    });
+
+    test('setSpan with no value unsets it', () => {
+      const scope = new Scope();
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan({ fake: 'span' } as any);
+      // eslint-disable-next-line deprecation/deprecation
+      scope.setSpan();
+      expect(scope['_span']).toEqual(undefined);
+    });
+
+    test('setProcessingMetadata', () => {
+      const scope = new Scope();
+      scope.setSDKProcessingMetadata({ dogs: 'are great!' });
+      expect(scope['_sdkProcessingMetadata'].dogs).toEqual('are great!');
+    });
+
+    test('set and get propagation context', () => {
+      const scope = new Scope();
+      const oldPropagationContext = scope.getPropagationContext();
+      scope.setPropagationContext({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        spanId: '6e0c63257de34c92',
+        sampled: true,
+      });
+      expect(scope.getPropagationContext()).not.toEqual(oldPropagationContext);
+      expect(scope.getPropagationContext()).toEqual({
+        traceId: '86f39e84263a4de99c326acab3bfe3bd',
+        spanId: '6e0c63257de34c92',
+        sampled: true,
+      });
+    });
+
+    test('chaining', () => {
+      const scope = new Scope();
+      scope.setLevel('fatal').setUser({ id: '1' });
+      expect(scope['_level']).toEqual('fatal');
+      expect(scope['_user']).toEqual({ id: '1' });
+    });
+  });
+
+  describe('clone', () => {
+    test('basic inheritance', () => {
+      const parentScope = new Scope();
+      parentScope.setExtra('a', 1);
+      const scope = parentScope.clone();
+      expect(parentScope['_extra']).toEqual(scope['_extra']);
+    });
+
+    test('_requestSession clone', () => {
+      const parentScope = new Scope();
+      parentScope.setRequestSession({ status: 'errored' });
+      const scope = parentScope.clone();
+      expect(parentScope.getRequestSession()).toEqual(scope.getRequestSession());
+    });
+
+    test('parent changed inheritance', () => {
+      const parentScope = new Scope();
+      const scope = parentScope.clone();
+      parentScope.setExtra('a', 2);
+      expect(scope['_extra']).toEqual({});
+      expect(parentScope['_extra']).toEqual({ a: 2 });
+    });
+
+    test('child override inheritance', () => {
+      const parentScope = new Scope();
+      parentScope.setExtra('a', 1);
+
+      const scope = parentScope.clone();
+      scope.setExtra('a', 2);
+      expect(parentScope['_extra']).toEqual({ a: 1 });
+      expect(scope['_extra']).toEqual({ a: 2 });
+    });
+
+    test('child override should set the value of parent _requestSession', () => {
+      // Test that ensures if the status value of `status` of `_requestSession` is changed in a child scope
+      // that it should also change in parent scope because we are copying the reference to the object
+      const parentScope = new Scope();
+      parentScope.setRequestSession({ status: 'errored' });
+
+      const scope = parentScope.clone();
+      const requestSession = scope.getRequestSession();
+      if (requestSession) {
+        requestSession.status = 'ok';
+      }
+
+      expect(parentScope.getRequestSession()).toEqual({ status: 'ok' });
+      expect(scope.getRequestSession()).toEqual({ status: 'ok' });
+    });
+
+    test('should clone propagation context', () => {
+      const parentScope = new Scope();
+      const scope = parentScope.clone();
+
+      expect(scope.getScopeData().propagationContext).toEqual(parentScope.getScopeData().propagationContext);
+    });
+  });
+
+  test('clear', () => {
+    const scope = new Scope();
+    const oldPropagationContext = scope.getScopeData().propagationContext;
+    scope.setExtra('a', 2);
+    scope.setTag('a', 'b');
+    scope.setUser({ id: '1' });
+    scope.setFingerprint(['abcd']);
+    scope.addBreadcrumb({ message: 'test' });
+    scope.setRequestSession({ status: 'ok' });
+    expect(scope['_extra']).toEqual({ a: 2 });
+    scope.clear();
+    expect(scope['_extra']).toEqual({});
+    expect(scope['_requestSession']).toEqual(undefined);
+    expect(scope['_propagationContext']).toEqual({
+      traceId: expect.any(String),
+      spanId: expect.any(String),
+      sampled: undefined,
+    });
+    expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
+  });
+
+  test('clearBreadcrumbs', () => {
+    const scope = new Scope();
+    scope.addBreadcrumb({ message: 'test' });
+    expect(scope['_breadcrumbs']).toHaveLength(1);
+    scope.clearBreadcrumbs();
+    expect(scope['_breadcrumbs']).toHaveLength(0);
+  });
+
+  describe('update', () => {
+    let scope: Scope;
+
+    beforeEach(() => {
+      scope = new Scope();
+      scope.setTags({ foo: '1', bar: '2' });
+      scope.setExtras({ foo: '1', bar: '2' });
+      scope.setContext('foo', { id: '1' });
+      scope.setContext('bar', { id: '2' });
+      scope.setUser({ id: '1337' });
+      scope.setLevel('info');
+      scope.setFingerprint(['foo']);
+      scope.setRequestSession({ status: 'ok' });
+    });
+
+    test('given no data, returns the original scope', () => {
+      const updatedScope = scope.update();
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given neither function, Scope or plain object, returns original scope', () => {
+      // @ts-expect-error we want to be able to update scope with string
+      const updatedScope = scope.update('wat');
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given callback function, pass it the scope and returns original or modified scope', () => {
+      const cb = jest
+        .fn()
+        .mockImplementationOnce(v => v)
+        .mockImplementationOnce(v => {
+          v.setTag('foo', 'bar');
+          return v;
+        });
+
+      let updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenNthCalledWith(1, scope);
+      expect(updatedScope).toEqual(scope);
+
+      updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenNthCalledWith(2, scope);
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given callback function, when it doesnt return instanceof Scope, ignore it and return original scope', () => {
+      const cb = jest.fn().mockImplementationOnce(_v => 'wat');
+      const updatedScope = scope.update(cb);
+      expect(cb).toHaveBeenCalledWith(scope);
+      expect(updatedScope).toEqual(scope);
+    });
+
+    test('given another instance of Scope, it should merge two together, with the passed scope having priority', () => {
+      const localScope = new Scope();
+      localScope.setTags({ bar: '3', baz: '4' });
+      localScope.setExtras({ bar: '3', baz: '4' });
+      localScope.setContext('bar', { id: '3' });
+      localScope.setContext('baz', { id: '4' });
+      localScope.setUser({ id: '42' });
+      localScope.setLevel('warning');
+      localScope.setFingerprint(['bar']);
+      (localScope as any)._requestSession = { status: 'ok' };
+
+      const updatedScope = scope.update(localScope) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '3' },
+        baz: { id: '4' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '42' });
+      expect(updatedScope._level).toEqual('warning');
+      expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession.status).toEqual('ok');
+      // @ts-expect-error accessing private property for test
+      expect(updatedScope._propagationContext).toEqual(localScope._propagationContext);
+    });
+
+    test('given an empty instance of Scope, it should preserve all the original scope data', () => {
+      const updatedScope = scope.update(new Scope()) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '2',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '2' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '1337' });
+      expect(updatedScope._level).toEqual('info');
+      expect(updatedScope._fingerprint).toEqual(['foo']);
+      expect(updatedScope._requestSession.status).toEqual('ok');
+    });
+
+    test('given a plain object, it should merge two together, with the passed object having priority', () => {
+      const localAttributes = {
+        contexts: { bar: { id: '3' }, baz: { id: '4' } },
+        extra: { bar: '3', baz: '4' },
+        fingerprint: ['bar'],
+        level: 'warning' as const,
+        tags: { bar: '3', baz: '4' },
+        user: { id: '42' },
+        requestSession: { status: 'errored' as RequestSessionStatus },
+        propagationContext: {
+          traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+          spanId: 'a024ad8fea82680e',
+          sampled: true,
+        },
+      };
+
+      const updatedScope = scope.update(localAttributes) as any;
+
+      expect(updatedScope._tags).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._extra).toEqual({
+        bar: '3',
+        baz: '4',
+        foo: '1',
+      });
+      expect(updatedScope._contexts).toEqual({
+        bar: { id: '3' },
+        baz: { id: '4' },
+        foo: { id: '1' },
+      });
+      expect(updatedScope._user).toEqual({ id: '42' });
+      expect(updatedScope._level).toEqual('warning');
+      expect(updatedScope._fingerprint).toEqual(['bar']);
+      expect(updatedScope._requestSession).toEqual({ status: 'errored' });
+      expect(updatedScope._propagationContext).toEqual({
+        traceId: '8949daf83f4a4a70bee4c1eb9ab242ed',
+        spanId: 'a024ad8fea82680e',
+        sampled: true,
+      });
     });
   });
 
@@ -473,6 +859,38 @@ describe('Scope', () => {
       );
     });
   });
+
+  describe('addBreadcrumb()', () => {
+    test('adds a breadcrumb', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0].message).toEqual('hello world');
+    });
+
+    test('adds a timestamp to new breadcrumbs', () => {
+      const scope = new Scope();
+
+      scope.addBreadcrumb({ message: 'hello world' }, 100);
+
+      expect((scope as any)._breadcrumbs[0].timestamp).toEqual(expect.any(Number));
+    });
+
+    test('overrides the `maxBreadcrumbs` defined in client options', () => {
+      const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
+      const client = new TestClient(options);
+      const scope = new Scope();
+
+      scope.setClient(client);
+
+      scope.addBreadcrumb({ message: 'hello' }, 100);
+      scope.addBreadcrumb({ message: 'world' }, 100);
+      scope.addBreadcrumb({ message: '!' }, 100);
+
+      expect((scope as any)._breadcrumbs).toHaveLength(3);
+    });
+  });
 });
 
 describe('isolation scope', () => {
@@ -508,46 +926,6 @@ describe('isolation scope', () => {
           expect(getIsolationScope()).toBe(scope2);
           done();
         });
-      });
-    });
-  });
-});
-
-describe('withActiveSpan()', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
-  beforeEach(() => {
-    const options = getDefaultTestClientOptions({ enableTracing: true });
-    const client = new TestClient(options);
-    const scope = new Scope();
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(client, scope);
-    makeMain(hub); // eslint-disable-line deprecation/deprecation
-  });
-
-  it('should set the active span within the callback', () => {
-    expect.assertions(2);
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
-
-    expect(getActiveSpan()).not.toBe(inactiveSpan);
-
-    withActiveSpan(inactiveSpan!, () => {
-      expect(getActiveSpan()).toBe(inactiveSpan);
-    });
-  });
-
-  it('should create child spans when calling startSpan within the callback', done => {
-    expect.assertions(2);
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
-
-    withActiveSpan(inactiveSpan!, () => {
-      startSpan({ name: 'child-span' }, childSpan => {
-        // eslint-disable-next-line deprecation/deprecation
-        expect(childSpan?.parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
-        expect(spanToJSON(childSpan!).parent_span_id).toBe(inactiveSpan?.spanContext().spanId);
-        done();
       });
     });
   });

@@ -1,11 +1,12 @@
 import type * as common from '@google-cloud/common';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SentryNonRecordingSpan,
   convertIntegrationFnToClass,
   defineIntegration,
   getClient,
 } from '@sentry/core';
-import { startInactiveSpan } from '@sentry/node';
+import { startInactiveSpan } from '@sentry/node-experimental';
 import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { fill } from '@sentry/utils';
 
@@ -70,11 +71,9 @@ function wrapRequestFunction(orig: RequestFunction): RequestFunction {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.serverless',
           },
         })
-      : undefined;
+      : new SentryNonRecordingSpan();
     orig.call(this, reqOpts, (...args: Parameters<ResponseCallback>) => {
-      if (span) {
-        span.end();
-      }
+      span.end();
       callback(...args);
     });
   };

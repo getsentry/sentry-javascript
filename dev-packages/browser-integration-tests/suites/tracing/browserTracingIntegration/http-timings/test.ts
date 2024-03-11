@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SerializedEvent } from '@sentry/types';
+import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
@@ -23,10 +23,9 @@ sentryTest('should create fetch spans with http timing @firefox', async ({ brows
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const envelopes = await getMultipleSentryEnvelopeRequests<SerializedEvent>(page, 2, { url, timeout: 10000 });
+  const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, { url, timeout: 10000 });
   const tracingEvent = envelopes[envelopes.length - 1]; // last envelope contains tracing data on all browsers
 
-  // eslint-disable-next-line deprecation/deprecation
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);

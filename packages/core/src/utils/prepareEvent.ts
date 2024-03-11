@@ -12,10 +12,10 @@ import type {
 import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, truncate, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
+import { getGlobalScope } from '../currentScopes';
 import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
-import { Scope, getGlobalScope } from '../scope';
+import { Scope } from '../scope';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
-import { spanToJSON } from './spanUtils';
 
 /**
  * This type makes sure that we get either a CaptureContext, OR an EventHint.
@@ -47,9 +47,9 @@ export function prepareEvent(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-  scope?: Scope,
+  scope?: ScopeInterface,
   client?: Client,
-  isolationScope?: Scope,
+  isolationScope?: ScopeInterface,
 ): PromiseLike<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
@@ -75,7 +75,7 @@ export function prepareEvent(
     addExceptionMechanism(prepared, hint.mechanism);
   }
 
-  const clientEventProcessors = client && client.getEventProcessors ? client.getEventProcessors() : [];
+  const clientEventProcessors = client ? client.getEventProcessors() : [];
 
   // This should be the last thing called, since we want that
   // {@link Hub.addEventProcessor} gets the finished prepared event.
@@ -327,22 +327,22 @@ function normalizeEvent(event: Event | null, depth: number, maxBreadth: number):
   // event.spans[].data may contain circular/dangerous data so we need to normalize it
   if (event.spans) {
     normalized.spans = event.spans.map(span => {
-      const data = spanToJSON(span).data;
-
-      if (data) {
-        // This is a bit weird, as we generally have `Span` instances here, but to be safe we do not assume so
-        // eslint-disable-next-line deprecation/deprecation
-        span.data = normalize(data, depth, maxBreadth);
-      }
-
-      return span;
+      return {
+        ...span,
+        ...(span.data && {
+          data: normalize(span.data, depth, maxBreadth),
+        }),
+      };
     });
   }
 
   return normalized;
 }
 
-function getFinalScope(scope: Scope | undefined, captureContext: CaptureContext | undefined): Scope | undefined {
+function getFinalScope(
+  scope: ScopeInterface | undefined,
+  captureContext: CaptureContext | undefined,
+): ScopeInterface | undefined {
   if (!captureContext) {
     return scope;
   }

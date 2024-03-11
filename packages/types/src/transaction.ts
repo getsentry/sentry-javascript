@@ -1,8 +1,7 @@
 import type { Context } from './context';
 import type { DynamicSamplingContext } from './envelope';
-import type { Instrumenter } from './instrumenter';
 import type { MeasurementUnit } from './measurement';
-import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
 import type { Span, SpanAttributes, SpanContext } from './span';
 
@@ -21,12 +20,12 @@ export interface TransactionContext extends SpanContext {
    * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
    * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
    */
-  trimEnd?: boolean;
+  trimEnd?: boolean | undefined;
 
   /**
    * If this transaction has a parent, the parent's sampling decision
    */
-  parentSampled?: boolean;
+  parentSampled?: boolean | undefined;
 
   /**
    * Metadata associated with the transaction, for internal SDK use.
@@ -38,18 +37,27 @@ export interface TransactionContext extends SpanContext {
 /**
  * Data pulled from a `sentry-trace` header
  */
-export type TraceparentData = Pick<TransactionContext, 'traceId' | 'parentSpanId' | 'parentSampled'>;
+export interface TraceparentData {
+  /**
+   * Trace ID
+   */
+  traceId?: string | undefined;
+
+  /**
+   * Parent Span ID
+   */
+  parentSpanId?: string | undefined;
+
+  /**
+   * If this transaction has a parent, the parent's sampling decision
+   */
+  parentSampled?: boolean | undefined;
+}
 
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 'name'> {
-  /**
-   * Human-readable identifier for the transaction.
-   * @deprecated Use `spanToJSON(span).description` instead.
-   */
-  name: string;
-
+export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Span {
   /**
    * The ID of the transaction.
    * @deprecated Use `spanContext().spanId` instead.
@@ -74,12 +82,6 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   startTimestamp: number;
 
   /**
-   * Tags for the transaction.
-   * @deprecated Use `getSpanAttributes(transaction)` instead.
-   */
-  tags: { [key: string]: Primitive };
-
-  /**
    * Data for the transaction.
    * @deprecated Use `getSpanAttributes(transaction)` instead.
    */
@@ -96,20 +98,6 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @deprecated Use attributes or store data on the scope instead.
    */
   metadata: TransactionMetadata;
-
-  /**
-   * The instrumenter that created this transaction.
-   *
-   * @deprecated This field will be removed in v8.
-   */
-  instrumenter: Instrumenter;
-
-  /**
-   * Set the name of the transaction
-   *
-   * @deprecated Use `.updateName()` and `.setAttribute()` instead.
-   */
-  setName(name: string, source?: TransactionMetadata['source']): void;
 
   /**
    * Set the context of a transaction event.
@@ -135,12 +123,6 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
   toContext(): TransactionContext;
 
   /**
-   * Updates the current transaction with a new `TransactionContext`.
-   * @deprecated Update the fields directly instead.
-   */
-  updateWithContext(transactionContext: TransactionContext): this;
-
-  /**
    * Set metadata for this transaction.
    * @deprecated Use attributes or store data on the scope instead.
    */
@@ -152,6 +134,14 @@ export interface Transaction extends TransactionContext, Omit<Span, 'setName' | 
    * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
    */
   getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
+
+  /**
+   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+   * Also the `sampled` decision will be inherited.
+   *
+   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
+   */
+  startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
 }
 
 /**
@@ -205,21 +195,9 @@ export interface TransactionMetadata {
   /** For transactions tracing server-side request handling, the request being tracked. */
   request?: PolymorphicRequest;
 
-  /** Compatibility shim for transitioning to the `RequestData` integration. The options passed to our Express request
-   * handler controlling what request data is added to the event.
-   * TODO (v8): This should go away
-   */
-  requestDataOptionsFromExpressHandler?: { [key: string]: unknown };
-
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
-
-  /**
-   * Information on how a transaction name was generated.
-   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SOURCE` attribute instead.
-   */
-  source: TransactionSource;
 
   /**
    * Metadata for the transaction's spans, keyed by spanId.

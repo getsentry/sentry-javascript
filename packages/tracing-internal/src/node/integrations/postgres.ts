@@ -1,10 +1,9 @@
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import type { EventProcessor } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
-import { shouldDisableAutoInstrumentation } from './utils/node-utils';
 
 type PgClientQuery = (
   config: unknown,
@@ -76,11 +75,6 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
    * @inheritDoc
    */
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
-    if (shouldDisableAutoInstrumentation(getCurrentHub)) {
-      DEBUG_BUILD && logger.log('Postgres Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -107,7 +101,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
         // eslint-disable-next-line deprecation/deprecation
         const scope = getCurrentHub().getScope();
         // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan();
+        const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
         const data: Record<string, string | number> = {
           'db.system': 'postgresql',
@@ -132,7 +126,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
 
         // eslint-disable-next-line deprecation/deprecation
         const span = parentSpan?.startChild({
-          description: typeof config === 'string' ? config : (config as { text: string }).text,
+          name: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',
           origin: 'auto.db.postgres',
           data,

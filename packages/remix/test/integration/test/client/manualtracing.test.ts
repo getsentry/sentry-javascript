@@ -7,6 +7,7 @@ const useV2 = process.env.REMIX_VERSION === '2';
 test('should report a manually created / finished transaction.', async ({ page }) => {
   const envelopes = await getMultipleSentryEnvelopeRequests<Event>(page, 2, {
     url: '/manual-tracing/0',
+    envelopeType: 'transaction',
   });
 
   const [manualTransactionEnvelope, pageloadEnvelope] = envelopes;
@@ -17,7 +18,6 @@ test('should report a manually created / finished transaction.', async ({ page }
   expect(manualTransactionEnvelope.timestamp).toBeDefined();
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');
-  expect(pageloadEnvelope.tags?.['routing.instrumentation']).toBe('remix-router');
   expect(pageloadEnvelope.type).toBe('transaction');
   expect(pageloadEnvelope.transaction).toBe(useV2 ? 'routes/manual-tracing.$id' : 'routes/manual-tracing/$id');
 });

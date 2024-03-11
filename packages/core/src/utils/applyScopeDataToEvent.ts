@@ -1,8 +1,7 @@
 import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
 import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { getRootSpan } from './getRootSpan';
-import { spanToJSON, spanToTraceContext } from './spanUtils';
+import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -172,16 +171,16 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
 
 function applySpanToEvent(event: Event, span: Span): void {
   event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
+
+  event.sdkProcessingMetadata = {
+    dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+    ...event.sdkProcessingMetadata,
+  };
+
   const rootSpan = getRootSpan(span);
-  if (rootSpan) {
-    event.sdkProcessingMetadata = {
-      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
-      ...event.sdkProcessingMetadata,
-    };
-    const transactionName = spanToJSON(rootSpan).description;
-    if (transactionName) {
-      event.tags = { transaction: transactionName, ...event.tags };
-    }
+  const transactionName = spanToJSON(rootSpan).description;
+  if (transactionName && !event.transaction) {
+    event.transaction = transactionName;
   }
 }
 

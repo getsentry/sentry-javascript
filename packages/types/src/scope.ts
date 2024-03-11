@@ -46,7 +46,7 @@ export interface ScopeData {
 }
 
 /**
- * Holds additional event information. {@link Scope.applyToEvent} will be called by the client before an event is sent.
+ * Holds additional event information.
  */
 export interface Scope {
   /**
@@ -59,9 +59,15 @@ export interface Scope {
    *
    * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
-  /** Add new event processor that will be called after {@link applyToEvent}. */
+  /**
+   * Add internal on change listener. Used for sub SDKs that need to store the scope.
+   * @hidden
+   */
+  addScopeListener(callback: (scope: Scope) => void): void;
+
+  /** Add new event processor that will be called during event processing. */
   addEventProcessor(callback: EventProcessor): this;
 
   /** Get the data of this scope, which is applied to an event during processing. */
@@ -122,7 +128,6 @@ export interface Scope {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   setTransactionName(name?: string): this;
 
@@ -259,4 +264,9 @@ export interface Scope {
    * @returns the id of the captured event.
    */
   captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Clone all data from this scope into a new scope.
+   */
+  clone(): Scope;
 }

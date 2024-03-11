@@ -2,7 +2,7 @@ import { exceptionFromError } from '../../../src/eventbuilder';
 import { defaultStackParser as parser } from '../../../src/stack-parsers';
 
 describe('Tracekit - React Tests', () => {
-  it('should correctly parse Invariant Violation errors and use framesToPop to drop info message', () => {
+  it('should correctly parse Invariant Violation errors and use framesToPop to drop the invariant frame', () => {
     const REACT_INVARIANT_VIOLATION_EXCEPTION = {
       framesToPop: 1,
       message:
@@ -36,13 +36,6 @@ describe('Tracekit - React Tests', () => {
             function: 'a',
             lineno: 1,
             colno: 21841,
-            in_app: true,
-          },
-          {
-            filename: 'http://localhost:5000/static/js/foo.chunk.js',
-            function: '?',
-            lineno: 1,
-            colno: 21738,
             in_app: true,
           },
         ],
@@ -97,7 +90,7 @@ describe('Tracekit - React Tests', () => {
     });
   });
 
-  it('should not drop additional frame for production errors if framesToPop is still there', () => {
+  it('should drop invariant frame for production errors if framesToPop is present', () => {
     const REACT_PRODUCTION_ERROR = {
       framesToPop: 1,
       message:
@@ -131,13 +124,6 @@ describe('Tracekit - React Tests', () => {
             function: 'a',
             lineno: 1,
             colno: 21841,
-            in_app: true,
-          },
-          {
-            filename: 'http://localhost:5000/static/js/foo.chunk.js',
-            function: '?',
-            lineno: 1,
-            colno: 21738,
             in_app: true,
           },
         ],

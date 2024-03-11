@@ -1,55 +1,81 @@
-import type { Hub } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
   captureSession,
   getClient,
-  getCurrentHub,
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
   startSession,
 } from '@sentry/core';
-import type { Integration, Options, UserFeedback } from '@sentry/types';
+import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
 import {
   addHistoryInstrumentationHandler,
+  consoleSandbox,
   logger,
   stackParserFromStackParserOptions,
   supportsFetch,
 } from '@sentry/utils';
 
+import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-import type { ReportDialogOptions } from './helpers';
 import { WINDOW, wrap as internalWrap } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
-import { dedupeIntegration } from './integrations/dedupe';
+import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
 import { httpContextIntegration } from './integrations/httpcontext';
 import { linkedErrorsIntegration } from './integrations/linkederrors';
-import { browserApiErrorsIntegration } from './integrations/trycatch';
 import { defaultStackParser } from './stack-parsers';
-import { makeFetchTransport, makeXHRTransport } from './transports';
-
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  browserApiErrorsIntegration(),
-  breadcrumbsIntegration(),
-  globalHandlersIntegration(),
-  linkedErrorsIntegration(),
-  dedupeIntegration(),
-  httpContextIntegration(),
-];
+import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
-  // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    browserApiErrorsIntegration(),
+    breadcrumbsIntegration(),
+    globalHandlersIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    httpContextIntegration(),
   ];
+}
+
+function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
+  const defaultOptions: BrowserOptions = {
+    defaultIntegrations: getDefaultIntegrations(optionsArg),
+    release:
+      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+        ? __SENTRY_RELEASE__
+        : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
+          ? WINDOW.SENTRY_RELEASE.id
+          : undefined,
+    autoSessionTracking: true,
+    sendClientReports: true,
+  };
+
+  return { ...defaultOptions, ...optionsArg };
+}
+
+function shouldShowBrowserExtensionError(): boolean {
+  const windowWithMaybeChrome = WINDOW as typeof WINDOW & { chrome?: { runtime?: { id?: string } } };
+  const isInsideChromeExtension =
+    windowWithMaybeChrome &&
+    windowWithMaybeChrome.chrome &&
+    windowWithMaybeChrome.chrome.runtime &&
+    windowWithMaybeChrome.chrome.runtime.id;
+
+  const windowWithMaybeBrowser = WINDOW as typeof WINDOW & { browser?: { runtime?: { id?: string } } };
+  const isInsideBrowserExtension =
+    windowWithMaybeBrowser &&
+    windowWithMaybeBrowser.browser &&
+    windowWithMaybeBrowser.browser.runtime &&
+    windowWithMaybeBrowser.browser.runtime.id;
+
+  return !!isInsideBrowserExtension || !!isInsideChromeExtension;
 }
 
 /**
@@ -73,17 +99,6 @@ declare const __SENTRY_RELEASE__: string | undefined;
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * import { configureScope } from '@sentry/browser';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *
@@ -114,33 +129,31 @@ declare const __SENTRY_RELEASE__: string | undefined;
  *
  * @see {@link BrowserOptions} for documentation on configuration options.
  */
-export function init(options: BrowserOptions = {}): void {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-  if (options.release === undefined) {
-    // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
-    if (typeof __SENTRY_RELEASE__ === 'string') {
-      options.release = __SENTRY_RELEASE__;
-    }
+export function init(browserOptions: BrowserOptions = {}): void {
+  const options = applyDefaultOptions(browserOptions);
 
-    // This supports the variable that sentry-webpack-plugin injects
-    if (WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id) {
-      options.release = WINDOW.SENTRY_RELEASE.id;
-    }
-  }
-  if (options.autoSessionTracking === undefined) {
-    options.autoSessionTracking = true;
-  }
-  if (options.sendClientReports === undefined) {
-    options.sendClientReports = true;
+  if (shouldShowBrowserExtensionError()) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+      );
+    });
+    return;
   }
 
+  if (DEBUG_BUILD) {
+    if (!supportsFetch()) {
+      logger.warn(
+        'No Fetch API detected. The Sentry SDK requires a Fetch API compatible environment to send events. Please add a Fetch API polyfill.',
+      );
+    }
+  }
   const clientOptions: BrowserClientOptions = {
     ...options,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup(options),
-    transport: options.transport || (supportsFetch() ? makeFetchTransport : makeXHRTransport),
+    transport: options.transport || makeFetchTransport,
   };
 
   initAndBind(BrowserClient, clientOptions);
@@ -150,42 +163,52 @@ export function init(options: BrowserOptions = {}): void {
   }
 }
 
-type NewReportDialogOptions = ReportDialogOptions & { eventId: string }; // eslint-disable-line
-
-interface ShowReportDialogFunction {
-  /**
-   * Present the user with a report dialog.
-   *
-   * @param options Everything is optional, we try to fetch all info need from the global scope.
-   */
-  (options: NewReportDialogOptions): void;
-
-  /**
-   * Present the user with a report dialog.
-   *
-   * @param options Everything is optional, we try to fetch all info need from the global scope.
-   *
-   * @deprecated Please always pass an `options` argument with `eventId`. The `hub` argument will not be used in the next version of the SDK.
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  (options?: ReportDialogOptions, hub?: Hub): void;
+/**
+ * All properties the report dialog supports
+ */
+export interface ReportDialogOptions {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
+  eventId: string;
+  dsn?: DsnLike;
+  user?: {
+    email?: string;
+    name?: string;
+  };
+  lang?: string;
+  title?: string;
+  subtitle?: string;
+  subtitle2?: string;
+  labelName?: string;
+  labelEmail?: string;
+  labelComments?: string;
+  labelClose?: string;
+  labelSubmit?: string;
+  errorGeneric?: string;
+  errorFormEntry?: string;
+  successMessage?: string;
+  /** Callback after reportDialog showed up */
+  onLoad?(this: void): void;
+  /** Callback after reportDialog closed */
+  onClose?(this: void): void;
 }
 
-export const showReportDialog: ShowReportDialogFunction = (
-  // eslint-disable-next-line deprecation/deprecation
-  options: ReportDialogOptions = {},
-  // eslint-disable-next-line deprecation/deprecation
-  hub: Hub = getCurrentHub(),
-) => {
+/**
+ * Present the user with a report dialog.
+ *
+ * @param options Everything is optional, we try to fetch all info need from the global scope.
+ */
+export function showReportDialog(options: ReportDialogOptions): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
     return;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const { client, scope } = hub.getStackTop();
-  const dsn = options.dsn || (client && client.getDsn());
+  const scope = getCurrentScope();
+  const client = scope.getClient();
+  const dsn = client && client.getDsn();
+
   if (!dsn) {
     DEBUG_BUILD && logger.error('DSN not configured for showReportDialog call');
     return;
@@ -196,13 +219,6 @@ export const showReportDialog: ShowReportDialogFunction = (
       ...scope.getUser(),
       ...options.user,
     };
-  }
-
-  // TODO(v8): Remove this entire if statement. `eventId` will be a required option.
-  // eslint-disable-next-line deprecation/deprecation
-  if (!options.eventId) {
-    // eslint-disable-next-line deprecation/deprecation
-    options.eventId = hub.lastEventId();
   }
 
   const script = WINDOW.document.createElement('script');
@@ -234,7 +250,7 @@ export const showReportDialog: ShowReportDialogFunction = (
   } else {
     DEBUG_BUILD && logger.error('Not injecting report dialog. No injection point found in HTML');
   }
-};
+}
 
 /**
  * This function is here to be API compatible with the loader.

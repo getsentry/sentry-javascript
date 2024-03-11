@@ -1,7 +1,15 @@
-import type { Client, Envelope, Event, Span, Transaction } from '@sentry/types';
+import type { Client, Envelope, Event } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Hub, Scope, makeSession, setGlobalScope } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  getIsolationScope,
+  makeSession,
+  setCurrentClient,
+  setGlobalScope,
+} from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -55,6 +63,9 @@ describe('BaseClient', () => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
     setGlobalScope(undefined);
+    getCurrentScope().clear();
+    getCurrentScope().setClient(undefined);
+    getIsolationScope().clear();
   });
 
   afterEach(() => {
@@ -114,133 +125,108 @@ describe('BaseClient', () => {
 
   describe('getBreadcrumbs() / addBreadcrumb()', () => {
     test('adds a breadcrumb', () => {
-      expect.assertions(1);
-
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
       const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
 
       scope.addBreadcrumb({ message: 'hello' }, 100);
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'world' });
+      addBreadcrumb({ message: 'world' });
 
-      expect((scope as any)._breadcrumbs[1].message).toEqual('world');
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: expect.any(Number) }]);
     });
 
-    test('adds a timestamp to new breadcrumbs', () => {
-      expect.assertions(1);
-
+    test('accepts a timestamp for new breadcrumbs', () => {
       const options = getDefaultTestClientOptions({});
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
       const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
 
-      scope.addBreadcrumb({ message: 'hello' }, 100);
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'world' });
+      scope.addBreadcrumb({ message: 'hello', timestamp: 1234 }, 100);
+      addBreadcrumb({ message: 'world', timestamp: 12345 });
 
-      expect((scope as any)._breadcrumbs[1].timestamp).toBeGreaterThan(1);
+      const breadcrumbs = scope.getScopeData().breadcrumbs;
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+
+      expect(breadcrumbs).toEqual([{ message: 'hello', timestamp: 1234 }]);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'world', timestamp: 12345 }]);
     });
 
     test('discards breadcrumbs beyond `maxBreadcrumbs`', () => {
-      expect.assertions(2);
-
       const options = getDefaultTestClientOptions({ maxBreadcrumbs: 1 });
       const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      scope.addBreadcrumb({ message: 'hello' }, 100);
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'world' });
+      addBreadcrumb({ message: 'hello1' });
+      addBreadcrumb({ message: 'hello2' });
+      addBreadcrumb({ message: 'hello3' });
 
-      expect((scope as any)._breadcrumbs.length).toEqual(1);
-      expect((scope as any)._breadcrumbs[0].message).toEqual('world');
-    });
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
 
-    test('allows concurrent updates', () => {
-      expect.assertions(1);
-
-      const options = getDefaultTestClientOptions({});
-      const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
-
-      scope.addBreadcrumb({ message: 'hello' });
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'world' });
-
-      expect((scope as any)._breadcrumbs).toHaveLength(2);
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello3', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and adds the breadcrumb without any changes', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(breadcrumb => breadcrumb);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'hello', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and uses the new one', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(() => ({ message: 'changed' }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('changed');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([{ message: 'changed', timestamp: expect.any(Number) }]);
     });
 
     test('calls `beforeBreadcrumb` and discards the breadcrumb when returned `null`', () => {
-      expect.assertions(1);
-
       const beforeBreadcrumb = jest.fn(() => null);
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'hello' });
+      addBreadcrumb({ message: 'hello' });
 
-      expect((scope as any)._breadcrumbs.length).toEqual(0);
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([]);
     });
 
     test('`beforeBreadcrumb` gets an access to a hint as a second argument', () => {
-      expect.assertions(2);
-
       const beforeBreadcrumb = jest.fn((breadcrumb, hint) => ({ ...breadcrumb, data: hint.data }));
       const options = getDefaultTestClientOptions({ beforeBreadcrumb });
       const client = new TestClient(options);
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
+      setCurrentClient(client);
+      client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
+      addBreadcrumb({ message: 'hello' }, { data: 'someRandomThing' });
 
-      expect((scope as any)._breadcrumbs[0].message).toEqual('hello');
-      expect((scope as any)._breadcrumbs[0].data).toEqual('someRandomThing');
+      const isolationScopeBreadcrumbs = getIsolationScope().getScopeData().breadcrumbs;
+      expect(isolationScopeBreadcrumbs).toEqual([
+        { message: 'hello', data: 'someRandomThing', timestamp: expect.any(Number) },
+      ]);
     });
   });
 
@@ -627,13 +613,12 @@ describe('BaseClient', () => {
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, maxBreadcrumbs: 1 });
       const client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
       const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = new Hub(client, scope);
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: '1' });
-      // eslint-disable-next-line deprecation/deprecation
-      hub.addBreadcrumb({ message: '2' });
+
+      addBreadcrumb({ message: '1' });
+      addBreadcrumb({ message: '2' });
 
       client.captureEvent({ message: 'message' }, undefined, scope);
 
@@ -912,22 +897,22 @@ describe('BaseClient', () => {
           {
             data: { _sentry_extra_metrics: { M1: { value: 1 }, M2: { value: 2 } } },
             description: 'first-paint',
-            endTimestamp: 1591603196.637835,
+            timestamp: 1591603196.637835,
             op: 'paint',
-            parentSpanId: 'a3df84a60c2e4e76',
-            spanId: '9e15bf99fbe4bc80',
-            startTimestamp: 1591603196.637835,
-            traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as unknown as Span,
+            parent_span_id: 'a3df84a60c2e4e76',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
           {
             description: 'first-contentful-paint',
-            endTimestamp: 1591603196.637835,
+            timestamp: 1591603196.637835,
             op: 'paint',
-            parentSpanId: 'a3df84a60c2e4e76',
-            spanId: 'aa554c1f506b0783',
-            startTimestamp: 1591603196.637835,
-            traceId: '86f39e84263a4de99c326acab3bfe3bd',
-          } as any as Span,
+            parent_span_id: 'a3df84a60c2e4e76',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
         ],
         start_timestamp: 1591603196.614865,
         timestamp: 1591603196.728485,
@@ -1819,7 +1804,7 @@ describe('BaseClient', () => {
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(errorEvent, undefined);
+      expect(callback).toBeCalledWith(errorEvent, 'send error');
     });
 
     it('passes the response to the hook', async () => {
@@ -1950,20 +1935,6 @@ describe('BaseClient', () => {
     ] as const;
 
     describe.each(scenarios)('with client %s', (_, client) => {
-      it('should call a startTransaction hook', () => {
-        expect.assertions(1);
-
-        const mockTransaction = {
-          traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        } as Transaction;
-
-        client.on?.('startTransaction', transaction => {
-          expect(transaction).toEqual(mockTransaction);
-        });
-
-        client.emit?.('startTransaction', mockTransaction);
-      });
-
       it('should call a beforeEnvelope hook', () => {
         expect.assertions(1);
 
@@ -1974,11 +1945,11 @@ describe('BaseClient', () => {
           {},
         ] as Envelope;
 
-        client.on?.('beforeEnvelope', envelope => {
+        client.on('beforeEnvelope', envelope => {
           expect(envelope).toEqual(mockEnvelope);
         });
 
-        client.emit?.('beforeEnvelope', mockEnvelope);
+        client.emit('beforeEnvelope', mockEnvelope);
       });
     });
   });

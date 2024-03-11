@@ -47,38 +47,32 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
   browser: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
-    bundle_es5: 'build/bundles/bundle.es5.js',
-    bundle_es5_min: 'build/bundles/bundle.es5.min.js',
-    bundle_es6: 'build/bundles/bundle.js',
-    bundle_es6_min: 'build/bundles/bundle.min.js',
-    bundle_replay_es6: 'build/bundles/bundle.replay.js',
-    bundle_replay_es6_min: 'build/bundles/bundle.replay.min.js',
-    bundle_tracing_es5: 'build/bundles/bundle.tracing.es5.js',
-    bundle_tracing_es5_min: 'build/bundles/bundle.tracing.es5.min.js',
-    bundle_tracing_es6: 'build/bundles/bundle.tracing.js',
-    bundle_tracing_es6_min: 'build/bundles/bundle.tracing.min.js',
-    bundle_tracing_replay_es6: 'build/bundles/bundle.tracing.replay.js',
-    bundle_tracing_replay_es6_min: 'build/bundles/bundle.tracing.replay.min.js',
-    loader_base: 'build/bundles/bundle.es5.min.js',
-    loader_eager: 'build/bundles/bundle.es5.min.js',
-    loader_debug: 'build/bundles/bundle.es5.debug.min.js',
-    loader_tracing: 'build/bundles/bundle.tracing.es5.min.js',
+    bundle: 'build/bundles/bundle.js',
+    bundle_min: 'build/bundles/bundle.min.js',
+    bundle_replay: 'build/bundles/bundle.replay.js',
+    bundle_replay_min: 'build/bundles/bundle.replay.min.js',
+    bundle_tracing: 'build/bundles/bundle.tracing.js',
+    bundle_tracing_min: 'build/bundles/bundle.tracing.min.js',
+    bundle_tracing_replay: 'build/bundles/bundle.tracing.replay.js',
+    bundle_tracing_replay_min: 'build/bundles/bundle.tracing.replay.min.js',
+    loader_base: 'build/bundles/bundle.min.js',
+    loader_eager: 'build/bundles/bundle.min.js',
+    loader_debug: 'build/bundles/bundle.debug.min.js',
+    loader_tracing: 'build/bundles/bundle.tracing.min.js',
     loader_replay: 'build/bundles/bundle.replay.min.js',
     loader_tracing_replay: 'build/bundles/bundle.tracing.replay.debug.min.js',
   },
   integrations: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
-    bundle_es5: 'build/bundles/[INTEGRATION_NAME].es5.js',
-    bundle_es5_min: 'build/bundles/[INTEGRATION_NAME].es5.min.js',
-    bundle_es6: 'build/bundles/[INTEGRATION_NAME].js',
-    bundle_es6_min: 'build/bundles/[INTEGRATION_NAME].min.js',
+    bundle: 'build/bundles/[INTEGRATION_NAME].js',
+    bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
   wasm: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
-    bundle_es6: 'build/bundles/wasm.js',
-    bundle_es6_min: 'build/bundles/wasm.min.js',
+    bundle: 'build/bundles/wasm.js',
+    bundle_min: 'build/bundles/wasm.min.js',
   },
 };
 
@@ -168,14 +162,12 @@ class SentryScenarioGenerationPlugin {
       ? {
           // To help Webpack resolve Sentry modules in `import` statements in cases where they're provided in bundles rather than in `node_modules`
           '@sentry/browser': 'Sentry',
-          '@sentry/tracing': 'Sentry',
           '@sentry/replay': 'Sentry',
-          '@sentry/integrations': 'Sentry',
           '@sentry/wasm': 'Sentry',
         }
       : {};
 
-    // Checking if the current scenario has imported `@sentry/tracing` or `@sentry/integrations`.
+    // Checking if the current scenario has imported `@sentry/integrations`.
     compiler.hooks.normalModuleFactory.tap(this._name, factory => {
       factory.hooks.parser.for('javascript/auto').tap(this._name, parser => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
@@ -231,7 +223,7 @@ class SentryScenarioGenerationPlugin {
             });
           }
 
-          // Convert e.g. bundle_tracing_es5_min to bundle_es5_min
+          // Convert e.g. bundle_tracing_min to bundle_min
           const integrationBundleKey = bundleKey
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
@@ -243,7 +235,7 @@ class SentryScenarioGenerationPlugin {
               this.localOutPath,
               path.resolve(
                 PACKAGES_DIR,
-                'integrations',
+                'browser',
                 BUNDLE_PATHS['integrations'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
               ),
               fileName,

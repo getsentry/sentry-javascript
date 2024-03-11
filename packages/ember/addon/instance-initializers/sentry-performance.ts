@@ -6,14 +6,21 @@ import type RouterService from '@ember/routing/router-service';
 import { _backburner, run, scheduleOnce } from '@ember/runloop';
 import type { EmberRunQueues } from '@ember/runloop/-private/types';
 import { getOwnConfig, isTesting, macroCondition } from '@embroider/macros';
-import * as Sentry from '@sentry/browser';
+import type {
+  BrowserClient,
+  startBrowserTracingNavigationSpan as startBrowserTracingNavigationSpanType,
+  startBrowserTracingPageLoadSpan as startBrowserTracingPageLoadSpanType,
+} from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getClient,
+  startInactiveSpan,
+} from '@sentry/browser';
 import type { ExtendedBackburner } from '@sentry/ember/runloop';
 import type { Span } from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, timestampInSeconds } from '@sentry/utils';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import type { BrowserClient } from '..';
-import { getActiveSpan, startInactiveSpan } from '..';
 import type { EmberRouterMain, EmberSentryConfig, GlobalConfig, OwnConfig } from '../types';
 
 function getSentryConfig(): EmberSentryConfig {
@@ -93,6 +100,8 @@ export function _instrumentEmberRouter(
   routerService: RouterService,
   routerMain: EmberRouterMain,
   config: EmberSentryConfig,
+  startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
+  startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
 ): void {
   const { disableRunloopPerformance } = config;
   const location = routerMain.location;
@@ -103,7 +112,7 @@ export function _instrumentEmberRouter(
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
   const url = getLocationURL(location);
 
-  const client = Sentry.getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
   if (!client) {
     return;
@@ -111,17 +120,15 @@ export function _instrumentEmberRouter(
 
   if (url && browserTracingOptions.instrumentPageLoad !== false) {
     const routeInfo = routerService.recognize(url);
-    Sentry.startBrowserTracingPageLoadSpan(client, {
+    activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
-      op: 'pageload',
       origin: 'auto.pageload.ember',
-      tags: {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         url,
         toRoute: routeInfo.name,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
-    activeRootSpan = getActiveSpan();
   }
 
   const finishActiveTransaction = (_: unknown, nextInstance: unknown): void => {
@@ -140,18 +147,15 @@ export function _instrumentEmberRouter(
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
     activeRootSpan?.end();
 
-    Sentry.startBrowserTracingNavigationSpan(client, {
+    activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
-      op: 'navigation',
       origin: 'auto.navigation.ember',
-      tags: {
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         fromRoute,
         toRoute,
-        'routing.instrumentation': '@sentry/ember',
       },
     });
-
-    activeRootSpan = getActiveSpan();
 
     transitionSpan = startInactiveSpan({
       attributes: {
@@ -410,7 +414,8 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   // Maintaining backwards compatibility with config.browserTracingOptions, but passing it with Sentry options is preferred.
   const browserTracingOptions = config.browserTracingOptions || config.sentry.browserTracingOptions || {};
 
-  const { browserTracingIntegration } = await import('@sentry/browser');
+  const { browserTracingIntegration, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } =
+    await import('@sentry/browser');
 
   const idleTimeout = config.transitionTimeout || 5000;
 
@@ -421,7 +426,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
     instrumentPageLoad: false,
   });
 
-  const client = Sentry.getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
   const isAlreadyInitialized = macroCondition(isTesting()) ? !!client?.getIntegrationByName('BrowserTracing') : false;
 
@@ -430,7 +435,7 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   }
 
   // We _always_ call this, as it triggers the page load & navigation spans
-  _instrumentNavigation(appInstance, config);
+  _instrumentNavigation(appInstance, config, startBrowserTracingPageLoadSpan, startBrowserTracingNavigationSpan);
 
   // Skip instrumenting the stuff below again in tests, as these are not reset between tests
   if (isAlreadyInitialized) {
@@ -442,7 +447,12 @@ export async function instrumentForPerformance(appInstance: ApplicationInstance)
   _instrumentInitialLoad(config);
 }
 
-function _instrumentNavigation(appInstance: ApplicationInstance, config: EmberSentryConfig): void {
+function _instrumentNavigation(
+  appInstance: ApplicationInstance,
+  config: EmberSentryConfig,
+  startBrowserTracingPageLoadSpan: typeof startBrowserTracingPageLoadSpanType,
+  startBrowserTracingNavigationSpan: typeof startBrowserTracingNavigationSpanType,
+): void {
   // eslint-disable-next-line ember/no-private-routing-service
   const routerMain = appInstance.lookup('router:main') as EmberRouterMain;
   let routerService = appInstance.lookup('service:router') as RouterService & {
@@ -464,7 +474,13 @@ function _instrumentNavigation(appInstance: ApplicationInstance, config: EmberSe
   }
 
   routerService._hasMountedSentryPerformanceRouting = true;
-  _instrumentEmberRouter(routerService, routerMain, config);
+  _instrumentEmberRouter(
+    routerService,
+    routerMain,
+    config,
+    startBrowserTracingPageLoadSpan,
+    startBrowserTracingNavigationSpan,
+  );
 }
 
 export default {

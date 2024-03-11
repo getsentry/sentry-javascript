@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 /* eslint-disable complexity */
 /* eslint-disable max-lines */
-import { getSentryRelease } from '@sentry/node';
+import { getSentryRelease } from '@sentry/node-experimental';
 import { arrayify, dropUndefinedKeys, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import type SentryCliPlugin from '@sentry/webpack-plugin';
 import * as chalk from 'chalk';
@@ -17,8 +17,8 @@ import type {
   BuildContext,
   EntryPropertyObject,
   NextConfigObject,
+  SentryBuildtimeOptions,
   SentryWebpackPluginOptions,
-  UserSentryOptions,
   WebpackConfigFunction,
   WebpackConfigObject,
   WebpackConfigObjectWithModuleRules,
@@ -61,7 +61,7 @@ let showedMissingGlobalErrorWarningMsg = false;
 export function constructWebpackConfigFunction(
   userNextConfig: NextConfigObject = {},
   userSentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions> = {},
-  userSentryOptions: UserSentryOptions = {},
+  userSentryOptions: SentryBuildtimeOptions = {},
 ): WebpackConfigFunction {
   // Will be called by nextjs and passed its default webpack configuration and context data about the build (whether
   // we're building server or client, whether we're in dev, what version of webpack we're using, etc). Note that
@@ -511,7 +511,7 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 async function addSentryToEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
-  userSentryOptions: UserSentryOptions,
+  userSentryOptions: SentryBuildtimeOptions,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -725,7 +725,7 @@ function shouldAddSentryToEntryPoint(entryPointName: string, runtime: 'node' | '
 export function getWebpackPluginOptions(
   buildContext: BuildContext,
   userPluginOptions: Partial<SentryWebpackPluginOptions>,
-  userSentryOptions: UserSentryOptions,
+  userSentryOptions: SentryBuildtimeOptions,
 ): SentryWebpackPluginOptions {
   const { buildId, isServer, config, dir: projectDir } = buildContext;
   const userNextConfig = config as NextConfigObject;
@@ -764,7 +764,7 @@ export function getWebpackPluginOptions(
     project: process.env.SENTRY_PROJECT,
     authToken: process.env.SENTRY_AUTH_TOKEN,
     configFile: hasSentryProperties ? 'sentry.properties' : undefined,
-    stripPrefix: ['webpack://_N_E/'],
+    stripPrefix: ['webpack://_N_E/', 'webpack://'],
     urlPrefix,
     entries: [], // The webpack plugin's release injection breaks the `app` directory - we inject the release manually with the value injection loader instead.
     release: getSentryRelease(buildId),
@@ -884,7 +884,7 @@ export function getWebpackPluginOptions(
 }
 
 /** Check various conditions to decide if we should run the plugin */
-function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: UserSentryOptions): boolean {
+function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions: SentryBuildtimeOptions): boolean {
   const { isServer } = buildContext;
   const { disableServerWebpackPlugin, disableClientWebpackPlugin } = userSentryOptions;
 
@@ -900,7 +900,7 @@ function shouldEnableWebpackPlugin(buildContext: BuildContext, userSentryOptions
 /** Handle warning messages about `hideSourceMaps` option. Can be removed in v9 or v10 (or whenever we consider that
  * enough people will have upgraded the SDK that the warning about the default in v8 - currently commented out - is
  * overkill). */
-function handleSourcemapHidingOptionWarning(userSentryOptions: UserSentryOptions, isServer: boolean): void {
+function handleSourcemapHidingOptionWarning(userSentryOptions: SentryBuildtimeOptions, isServer: boolean): void {
   // This is nextjs's own logging formatting, vendored since it's not exported. See
   // https://github.com/vercel/next.js/blob/c3ceeb03abb1b262032bd96457e224497d3bbcef/packages/next/build/output/log.ts#L3-L11
   // and
@@ -969,7 +969,7 @@ function setUpModuleRules(newConfig: WebpackConfigObject): WebpackConfigObjectWi
 function addValueInjectionLoader(
   newConfig: WebpackConfigObjectWithModuleRules,
   userNextConfig: NextConfigObject,
-  userSentryOptions: UserSentryOptions,
+  userSentryOptions: SentryBuildtimeOptions,
   buildContext: BuildContext,
   sentryWebpackPluginOptions: Partial<SentryWebpackPluginOptions>,
 ): void {

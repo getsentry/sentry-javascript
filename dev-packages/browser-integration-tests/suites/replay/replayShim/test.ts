@@ -30,6 +30,8 @@ sentryTest(
     await forceFlushReplay();
 
     expect(requestCount).toBe(0);
-    expect(consoleMessages).toEqual(['You are using new Replay() even though this bundle does not include replay.']);
+    expect(consoleMessages).toEqual([
+      'You are using replayIntegration() even though this bundle does not include replay.',
+    ]);
   },
 );

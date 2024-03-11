@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
 import type { PromiseBuffer } from '@sentry/utils';
 import { createEnvelope, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
@@ -23,7 +22,7 @@ const ATTACHMENT_ENVELOPE = createEnvelope<EventEnvelope>(
         length: 20,
         filename: 'test-file.txt',
         content_type: 'text/plain',
-        attachment_type: 'text',
+        attachment_type: 'event.attachment',
       },
       'attachment content',
     ] as AttachmentItem,
@@ -32,12 +31,11 @@ const ATTACHMENT_ENVELOPE = createEnvelope<EventEnvelope>(
 
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
-  textEncoder: new TextEncoder(),
 };
 
 describe('createTransport', () => {
   it('flushes the buffer', async () => {
-    const mockBuffer: PromiseBuffer<void> = {
+    const mockBuffer: PromiseBuffer<TransportMakeRequestResponse> = {
       $: [],
       add: jest.fn(),
       drain: jest.fn(),
@@ -55,7 +53,7 @@ describe('createTransport', () => {
     it('constructs a request to send to Sentry', async () => {
       expect.assertions(1);
       const transport = createTransport(transportOptions, req => {
-        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
+        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         return resolvedSyncPromise({});
       });
       await transport.send(ERROR_ENVELOPE);
@@ -65,7 +63,7 @@ describe('createTransport', () => {
       expect.assertions(2);
 
       const transport = createTransport(transportOptions, req => {
-        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()));
+        expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
         throw new Error();
       });
 
@@ -101,10 +99,7 @@ describe('createTransport', () => {
 
         const mockRecordDroppedEventCallback = jest.fn();
 
-        const transport = createTransport(
-          { recordDroppedEvent: mockRecordDroppedEventCallback, textEncoder: new TextEncoder() },
-          mockRequestExecutor,
-        );
+        const transport = createTransport({ recordDroppedEvent: mockRecordDroppedEventCallback }, mockRequestExecutor);
 
         return [transport, setTransportResponse, mockRequestExecutor, mockRecordDroppedEventCallback] as const;
       }

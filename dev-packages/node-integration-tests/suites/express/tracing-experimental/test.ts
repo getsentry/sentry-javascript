@@ -21,9 +21,6 @@ describe('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
             spans: expect.arrayContaining([
@@ -61,9 +58,6 @@ describe('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
           },
@@ -93,9 +87,6 @@ describe('express tracing experimental', () => {
                   },
                   op: 'http.server',
                   status: 'ok',
-                  tags: {
-                    'http.status_code': '200',
-                  },
                 },
               },
             },
@@ -133,9 +124,6 @@ describe('express tracing experimental', () => {
                 },
                 op: 'http.server',
                 status: 'ok',
-                tags: {
-                  'http.status_code': '200',
-                },
               },
             },
           },

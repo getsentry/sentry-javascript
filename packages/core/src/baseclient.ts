@@ -16,16 +16,14 @@ import type {
   FeedbackEvent,
   Integration,
   IntegrationClass,
-  MetricBucketItem,
-  MetricsAggregator,
   Outcome,
   ParameterizedString,
   SdkMetadata,
   Session,
   SessionAggregates,
   SeverityLevel,
+  Span,
   StartSpanOptions,
-  Transaction,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
@@ -47,14 +45,12 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
-import { getClient } from './exports';
-import { getIsolationScope } from './hub';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import { createMetricEnvelope } from './metrics/envelope';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -94,13 +90,6 @@ const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been ca
  * }
  */
 export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
-  /**
-   * A reference to a metrics aggregator
-   *
-   * @experimental Note this is alpha API. It may experience breaking changes in the future.
-   */
-  public metricsAggregator?: MetricsAggregator;
-
   /** Options passed to the SDK. */
   protected readonly _options: O;
 
@@ -159,7 +148,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
@@ -281,9 +270,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public flush(timeout?: number): PromiseLike<boolean> {
     const transport = this._transport;
     if (transport) {
-      if (this.metricsAggregator) {
-        this.metricsAggregator.flush();
-      }
+      this.emit('flush');
       return this._isClientDoneProcessing(timeout).then(clientFinished => {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
@@ -298,9 +285,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public close(timeout?: number): PromiseLike<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
-      if (this.metricsAggregator) {
-        this.metricsAggregator.close();
-      }
+      this.emit('close');
       return result;
     });
   }
@@ -387,16 +372,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     let env = createEventEnvelope(event, this._dsn, this._options._metadata, this._options.tunnel);
 
     for (const attachment of hint.attachments || []) {
-      env = addItemToEnvelope(
-        env,
-        createAttachmentEnvelopeItem(
-          attachment,
-          this._options.transportOptions && this._options.transportOptions.textEncoder,
-        ),
-      );
+      env = addItemToEnvelope(env, createAttachmentEnvelopeItem(attachment));
     }
 
-    const promise = this._sendEnvelope(env);
+    const promise = this.sendEnvelope(env);
     if (promise) {
       promise.then(sendResponse => this.emit('afterSendEvent', event, sendResponse), null);
     }
@@ -408,9 +387,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public sendSession(session: Session | SessionAggregates): void {
     const env = createSessionEnvelope(session, this._dsn, this._options._metadata, this._options.tunnel);
 
-    // _sendEnvelope should not throw
+    // sendEnvelope should not throw
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(env);
+    this.sendEnvelope(env);
   }
 
   /**
@@ -434,31 +413,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
   }
 
-  /**
-   * @inheritDoc
-   */
-  public captureAggregateMetrics(metricBucketItems: Array<MetricBucketItem>): void {
-    DEBUG_BUILD && logger.log(`Flushing aggregated metrics, number of metrics: ${metricBucketItems.length}`);
-    const metricsEnvelope = createMetricEnvelope(
-      metricBucketItems,
-      this._dsn,
-      this._options._metadata,
-      this._options.tunnel,
-    );
-
-    // _sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this._sendEnvelope(metricsEnvelope);
-  }
-
   // Keep on() & emit() signatures in sync with types' client.ts interface
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
-  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -470,19 +435,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public on(hook: 'preprocessEvent', callback: (event: Event, hint?: EventHint) => void): void;
 
   /** @inheritdoc */
-  public on(
-    hook: 'afterSendEvent',
-    callback: (event: Event, sendResponse: TransportMakeRequestResponse | void) => void,
-  ): void;
+  public on(hook: 'afterSendEvent', callback: (event: Event, sendResponse: TransportMakeRequestResponse) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeAddBreadcrumb', callback: (breadcrumb: Breadcrumb, hint?: BreadcrumbHint) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'createDsc', callback: (dsc: DynamicSamplingContext) => void): void;
-
-  /** @inheritdoc */
-  public on(hook: 'otelSpanEnd', callback: (otelSpan: unknown, mutableOptions: { drop: boolean }) => void): void;
 
   /** @inheritdoc */
   public on(
@@ -496,6 +455,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
 
+  public on(hook: 'flush', callback: () => void): void;
+
+  public on(hook: 'close', callback: () => void): void;
+
   /** @inheritdoc */
   public on(hook: string, callback: unknown): void {
     if (!this._hooks[hook]) {
@@ -507,10 +470,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /** @inheritdoc */
-  public emit(hook: 'startTransaction', transaction: Transaction): void;
+  public emit(hook: 'spanStart', span: Span): void;
 
   /** @inheritdoc */
-  public emit(hook: 'finishTransaction', transaction: Transaction): void;
+  public emit(hook: 'spanEnd', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
@@ -522,16 +488,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'preprocessEvent', event: Event, hint?: EventHint): void;
 
   /** @inheritdoc */
-  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse | void): void;
+  public emit(hook: 'afterSendEvent', event: Event, sendResponse: TransportMakeRequestResponse): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeAddBreadcrumb', breadcrumb: Breadcrumb, hint?: BreadcrumbHint): void;
 
   /** @inheritdoc */
   public emit(hook: 'createDsc', dsc: DynamicSamplingContext): void;
-
-  /** @inheritdoc */
-  public emit(hook: 'otelSpanEnd', otelSpan: unknown, mutableOptions: { drop: boolean }): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
@@ -543,10 +506,34 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
 
   /** @inheritdoc */
+  public emit(hook: 'flush'): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'close'): void;
+
+  /** @inheritdoc */
   public emit(hook: string, ...rest: unknown[]): void {
     if (this._hooks[hook]) {
       this._hooks[hook].forEach(callback => callback(...rest));
     }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
+    this.emit('beforeEnvelope', envelope);
+
+    if (this._isEnabled() && this._transport) {
+      return this._transport.send(envelope).then(null, reason => {
+        DEBUG_BUILD && logger.error('Error while sending event:', reason);
+        return reason;
+      });
+    }
+
+    DEBUG_BUILD && logger.error('Transport disabled');
+
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
@@ -833,21 +820,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * @inheritdoc
-   */
-  protected _sendEnvelope(envelope: Envelope): PromiseLike<void | TransportMakeRequestResponse> | void {
-    this.emit('beforeEnvelope', envelope);
-
-    if (this._isEnabled() && this._transport) {
-      return this._transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending event:', reason);
-      });
-    } else {
-      DEBUG_BUILD && logger.error('Transport disabled');
-    }
-  }
-
-  /**
    * Clears outcomes on this client and returns them.
    */
   protected _clearOutcomes(): Outcome[] {
@@ -866,7 +838,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
 
   /**
@@ -932,18 +904,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-/**
- * Add an event processor to the current client.
- * This event processor will run for all events processed by this client.
- */
-export function addEventProcessor(callback: EventProcessor): void {
-  const client = getClient();
-
-  if (!client || !client.addEventProcessor) {
-    return;
-  }
-
-  client.addEventProcessor(callback);
 }

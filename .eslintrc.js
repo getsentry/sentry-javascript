@@ -6,7 +6,7 @@
 module.exports = {
   root: true,
   env: {
-    es6: true,
+    es2017: true,
   },
   parserOptions: {
     ecmaVersion: 2018,
@@ -22,6 +22,7 @@ module.exports = {
     'test/manual/**',
     'types/**',
   ],
+  reportUnusedDisableDirectives: true,
   overrides: [
     {
       files: ['*.ts', '*.tsx', '*.d.ts'],

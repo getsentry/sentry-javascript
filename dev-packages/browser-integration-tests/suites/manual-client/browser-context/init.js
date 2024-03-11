@@ -1,23 +1,23 @@
 import {
-  Breadcrumbs,
   BrowserClient,
-  Dedupe,
-  FunctionToString,
-  HttpContext,
   Hub,
-  InboundFilters,
-  LinkedErrors,
+  breadcrumbsIntegration,
+  dedupeIntegration,
   defaultStackParser,
+  functionToStringIntegration,
+  httpContextIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
   makeFetchTransport,
 } from '@sentry/browser';
 
 const integrations = [
-  new Breadcrumbs(),
-  new FunctionToString(),
-  new Dedupe(),
-  new HttpContext(),
-  new InboundFilters(),
-  new LinkedErrors(),
+  breadcrumbsIntegration(),
+  functionToStringIntegration(),
+  dedupeIntegration(),
+  httpContextIntegration(),
+  inboundFiltersIntegration(),
+  linkedErrorsIntegration(),
 ];
 
 const client = new BrowserClient({
@@ -29,7 +29,6 @@ const client = new BrowserClient({
   transport: makeFetchTransport,
   stackParser: defaultStackParser,
   integrations,
-  debug: true,
 });
 
 const hub = new Hub(client);

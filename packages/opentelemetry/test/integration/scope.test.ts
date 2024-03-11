@@ -1,7 +1,6 @@
 import {
   captureException,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getIsolationScope,
   setTag,
@@ -9,8 +8,6 @@ import {
   withScope,
 } from '@sentry/core';
 
-import { OpenTelemetryHub } from '../../src/custom/hub';
-import { OpenTelemetryScope } from '../../src/custom/scope';
 import { startSpan } from '../../src/trace';
 import { getSpanScopes } from '../../src/utils/spanData';
 import type { TestClientInterface } from '../helpers/TestClient';
@@ -31,14 +28,9 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
 
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error = new Error('test error');
       let spanId: string | undefined;
@@ -57,11 +49,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            // TODO: This is "incorrect" until we stop cloning the current scope for setSpanScopes
-            // Once we change this, the scopes _should_ be the same again
-            if (enableTracing) {
-              expect(getSpanScopes(span)?.scope).not.toBe(scope2);
-            }
+            expect(getSpanScopes(span)?.scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;
@@ -76,22 +64,34 @@ describe('Integration | Scope', () => {
       await client.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
+
+      if (spanId) {
+        expect(beforeSend).toHaveBeenCalledWith(
+          expect.objectContaining({
+            contexts: {
+              trace: {
+                span_id: spanId,
+                trace_id: traceId,
+              },
+            },
+          }),
+          {
+            event_id: expect.any(String),
+            originalException: error,
+            syntheticException: expect.any(Error),
+          },
+        );
+      }
+
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
-          contexts: expect.objectContaining({
-            trace: spanId
-              ? {
-                  span_id: spanId,
-                  trace_id: traceId,
-                }
-              : expect.any(Object),
-          }),
           tags: {
             tag1: 'val1',
             tag2: 'val2',
             tag3: 'val3',
             tag4: 'val4',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -110,6 +110,8 @@ describe('Integration | Scope', () => {
                 data: {
                   'otel.kind': 'INTERNAL',
                   'sentry.origin': 'manual',
+                  'sentry.source': 'custom',
+                  'sentry.sample_rate': 1,
                 },
                 span_id: spanId,
                 status: 'ok',
@@ -117,7 +119,6 @@ describe('Integration | Scope', () => {
                 origin: 'manual',
               },
             }),
-
             spans: [],
             start_timestamp: expect.any(Number),
             tags: {
@@ -144,13 +145,8 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');
@@ -224,6 +220,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3a',
             tag4: 'val4a',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -249,6 +246,7 @@ describe('Integration | Scope', () => {
             tag3: 'val3b',
             tag4: 'val4b',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -268,13 +266,8 @@ describe('Integration | Scope', () => {
 
       mockSdkInit({ enableTracing, beforeSend, beforeSendTransaction });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const client = getClient() as TestClientInterface;
       const rootScope = getCurrentScope();
-
-      expect(hub).toBeInstanceOf(OpenTelemetryHub);
-      expect(rootScope).toBeInstanceOf(OpenTelemetryScope);
 
       const error1 = new Error('test error 1');
       const error2 = new Error('test error 2');
@@ -353,6 +346,7 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -380,6 +374,7 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2b',
           },
+          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),

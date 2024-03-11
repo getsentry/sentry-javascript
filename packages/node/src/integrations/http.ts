@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub } from '@sentry/core';
+import type { Hub, SentrySpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -40,7 +40,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { NODE_VERSION } from '../nodeVersion';
 import type { NodeClientOptions } from '../types';
 import type { RequestMethod, RequestMethodArgs, RequestOptions } from './utils/http';
-import { cleanSpanDescription, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
+import { cleanSpanName, extractRawUrl, extractUrl, normalizeRequestArgs } from './utils/http';
 
 interface TracingOptions {
   /**
@@ -138,8 +138,8 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /**
- * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
- * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ * The http integration instruments Node's internal http and https modules.
+ * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  *
  * @deprecated Use `httpIntegration()` instead.
  */
@@ -185,12 +185,6 @@ export class Http implements Integration {
       return;
     }
 
-    // Do not auto-instrument for other instrumenter
-    if (clientOptions && clientOptions.instrumenter !== 'sentry') {
-      DEBUG_BUILD && logger.log('HTTP Integration is skipped because of instrumenter configuration.');
-      return;
-    }
-
     const shouldCreateSpanForRequest = _getShouldCreateSpanForRequest(shouldCreateSpans, this._tracing, clientOptions);
 
     // eslint-disable-next-line deprecation/deprecation
@@ -212,7 +206,7 @@ export class Http implements Integration {
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
     if (NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const httpsModule = require('https');
+      const httpsModule = require('node:https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
         httpsModule,
         this._breadcrumbs,
@@ -314,7 +308,6 @@ function _createWrappedRequestMethodFactory(
     return function wrappedMethod(this: unknown, ...args: RequestMethodArgs): http.ClientRequest {
       const requestArgs = normalizeRequestArgs(httpModule, args);
       const requestOptions = requestArgs[0];
-      // eslint-disable-next-line deprecation/deprecation
       const rawRequestUrl = extractRawUrl(requestOptions);
       const requestUrl = extractUrl(requestOptions);
       const client = getClient();
@@ -326,7 +319,7 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentScope();
       const isolationScope = getIsolationScope();
-      const parentSpan = getActiveSpan();
+      const parentSpan = getActiveSpan() as SentrySpan;
 
       const data = getRequestSpanData(requestUrl, requestOptions);
 
@@ -335,7 +328,7 @@ function _createWrappedRequestMethodFactory(
           parentSpan?.startChild({
             op: 'http.client',
             origin: 'auto.http.node.http',
-            description: `${data['http.method']} ${data.url}`,
+            name: `${data['http.method']} ${data.url}`,
             data,
           })
         : undefined;
@@ -378,9 +371,7 @@ function _createWrappedRequestMethodFactory(
             if (res.statusCode) {
               setHttpStatus(requestSpan, res.statusCode);
             }
-            requestSpan.updateName(
-              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
-            );
+            requestSpan.updateName(cleanSpanName(spanToJSON(requestSpan).description || '', requestOptions, req) || '');
             requestSpan.end();
           }
         })
@@ -393,9 +384,7 @@ function _createWrappedRequestMethodFactory(
           }
           if (requestSpan) {
             setHttpStatus(requestSpan, 500);
-            requestSpan.updateName(
-              cleanSpanDescription(spanToJSON(requestSpan).description || '', requestOptions, req) || '',
-            );
+            requestSpan.updateName(cleanSpanName(spanToJSON(requestSpan).description || '', requestOptions, req) || '');
             requestSpan.end();
           }
         });

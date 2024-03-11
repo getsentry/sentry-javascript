@@ -1,20 +1,21 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  getActiveSpan,
-  getActiveTransaction,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  continueTrace,
   getClient,
-  getCurrentScope,
   getDynamicSamplingContextFromSpan,
+  handleCallbackErrors,
   hasTracingEnabled,
-  runWithAsyncContext,
   setHttpStatus,
   spanToJSON,
   spanToTraceHeader,
+  startSpan,
+  withIsolationScope,
 } from '@sentry/core';
-import type { Hub } from '@sentry/node';
-import { captureException, getCurrentHub } from '@sentry/node';
-import type { Transaction, TransactionSource, WrappedFunction } from '@sentry/types';
+import { captureException, getActiveSpan, getRootSpan } from '@sentry/node-experimental';
+import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -24,7 +25,6 @@ import {
   loadModule,
   logger,
   objectify,
-  tracingContextFromHeaders,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -47,7 +47,6 @@ import type {
   EntryContext,
   FutureConfig,
   HandleDocumentRequestFunction,
-  ReactRouterDomPkg,
   RemixRequest,
   RequestHandler,
   ServerBuild,
@@ -145,17 +144,17 @@ export async function captureRemixServerException(err: unknown, name: string, re
   const objectifiedErr = objectify(err);
 
   captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getActiveTransaction();
-    const activeTransactionName = transaction ? spanToJSON(transaction).description : undefined;
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
     scope.setSDKProcessingMetadata({
       request: {
         ...normalizedRequest,
         // When `route` is not defined, `RequestData` integration uses the full URL
-        route: activeTransactionName
+        route: activeRootSpanName
           ? {
-              path: activeTransactionName,
+              path: activeRootSpanName,
             }
           : undefined,
       },
@@ -187,46 +186,50 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
       context: EntryContext,
       loadContext?: Record<string, unknown>,
     ): Promise<Response> {
-      let res: Response;
-      // eslint-disable-next-line deprecation/deprecation
-      const activeTransaction = getActiveTransaction();
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      try {
-        // eslint-disable-next-line deprecation/deprecation
-        const span = activeTransaction?.startChild({
-          op: 'function.remix.document_request',
-          origin: 'auto.function.remix',
-          description: spanToJSON(activeTransaction).description,
-          tags: {
+      const name = rootSpan ? spanToJSON(rootSpan).description : undefined;
+
+      return startSpan(
+        {
+          // If we don't have a root span, `onlyIfParent` will lead to the span not being created anyhow
+          // So we don't need to care too much about the fallback name, it's just for typing purposes....
+          name: name || '<unknown>',
+          onlyIfParent: true,
+          attributes: {
             method: request.method,
             url: request.url,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.remix.document_request',
           },
-        });
+        },
+        () => {
+          return handleCallbackErrors(
+            () => {
+              return origDocumentRequestFunction.call(
+                this,
+                request,
+                responseStatusCode,
+                responseHeaders,
+                context,
+                loadContext,
+              );
+            },
+            err => {
+              const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
 
-        res = await origDocumentRequestFunction.call(
-          this,
-          request,
-          responseStatusCode,
-          responseHeaders,
-          context,
-          loadContext,
-        );
-
-        span?.end();
-      } catch (err) {
-        const isRemixV1 = !FUTURE_FLAGS?.v2_errorBoundary && remixVersion !== 2;
-
-        // This exists to capture the server-side rendering errors on Remix v1
-        // On Remix v2, we capture SSR errors at `handleError`
-        // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
-        if (isRemixV1 && !isPrimitive(err)) {
-          await captureRemixServerException(err, 'documentRequest', request);
-        }
-
-        throw err;
-      }
-
-      return res;
+              // This exists to capture the server-side rendering errors on Remix v1
+              // On Remix v2, we capture SSR errors at `handleError`
+              // We also skip primitives here, as we can't dedupe them, and also we don't expect any primitive SSR errors.
+              if (isRemixV1 && !isPrimitive(err)) {
+                // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                captureRemixServerException(err, 'documentRequest', request);
+              }
+            },
+          );
+        },
+      );
     };
   };
 }
@@ -243,47 +246,32 @@ function makeWrappedDataFunction(
       return origFn.call(this, args);
     }
 
-    let res: Response | AppData;
-    // eslint-disable-next-line deprecation/deprecation
-    const activeTransaction = getActiveTransaction();
-    const currentScope = getCurrentScope();
-
-    try {
-      // eslint-disable-next-line deprecation/deprecation
-      const span = activeTransaction?.startChild({
+    return startSpan(
+      {
         op: `function.remix.${name}`,
         origin: 'auto.ui.remix',
-        description: id,
-        tags: {
+        name: id,
+        attributes: {
           name,
         },
-      });
+      },
+      () => {
+        return handleCallbackErrors(
+          () => origFn.call(this, args),
+          err => {
+            const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
-      if (span) {
-        // Assign data function to hub to be able to see `db` transactions (if any) as children.
-        // eslint-disable-next-line deprecation/deprecation
-        currentScope.setSpan(span);
-      }
-
-      res = await origFn.call(this, args);
-
-      // eslint-disable-next-line deprecation/deprecation
-      currentScope.setSpan(activeTransaction);
-      span?.end();
-    } catch (err) {
-      const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
-
-      // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
-      // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
-      // Remix v1 does not have a `handleError` function, so we capture all errors here.
-      if (isRemixV2 ? isResponse(err) : true) {
-        await captureRemixServerException(err, name, args.request);
-      }
-
-      throw err;
-    }
-
-    return res;
+            // On Remix v2, we capture all unexpected errors (except the `Route Error Response`s / Thrown Responses) in `handleError` function.
+            // This is both for consistency and also avoid duplicates such as primitives like `string` or `number` being captured twice.
+            // Remix v1 does not have a `handleError` function, so we capture all errors here.
+            if (isRemixV2 ? isResponse(err) : true) {
+              // eslint-disable-next-line @typescript-eslint/no-floating-promises
+              captureRemixServerException(err, name, args.request);
+            }
+          },
+        );
+      },
+    );
   };
 }
 
@@ -303,14 +291,12 @@ function getTraceAndBaggage(): {
   sentryTrace?: string;
   sentryBaggage?: string;
 } {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = getActiveTransaction();
-
   if (isNodeEnv() && hasTracingEnabled()) {
     const span = getActiveSpan();
+    const rootSpan = span && getRootSpan(span);
 
-    if (span && transaction) {
-      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
+    if (rootSpan) {
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(rootSpan);
 
       return {
         sentryTrace: spanToTraceHeader(span),
@@ -383,71 +369,57 @@ export function createRoutes(manifest: ServerRouteManifest, parentId?: string): 
 }
 
 /**
- * Starts a new transaction for the given request to be used by different `RequestHandler` wrappers.
- *
- * @param request
- * @param routes
- * @param pkg
+ * Starts a new active span for the given request to be used by different `RequestHandler` wrappers.
  */
-export function startRequestHandlerTransaction(
-  hub: Hub,
-  name: string,
-  source: TransactionSource,
-  request: {
-    headers: {
-      'sentry-trace': string;
-      baggage: string;
-    };
+export function startRequestHandlerSpan<T>(
+  {
+    name,
+    source,
+    sentryTrace,
+    baggage,
+    method,
+  }: {
+    name: string;
+    source: TransactionSource;
+    sentryTrace: string;
+    baggage: string;
     method: string;
   },
-): Transaction {
-  // eslint-disable-next-line deprecation/deprecation
-  const { traceparentData, dynamicSamplingContext, propagationContext } = tracingContextFromHeaders(
-    request.headers['sentry-trace'],
-    request.headers.baggage,
+  callback: (span: Span) => T,
+): T {
+  return continueTrace(
+    {
+      sentryTrace,
+      baggage,
+    },
+    () => {
+      return startSpan(
+        {
+          name,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            method,
+          },
+        },
+        callback,
+      );
+    },
   );
-  // eslint-disable-next-line deprecation/deprecation
-  hub.getScope().setPropagationContext(propagationContext);
-
-  // TODO: Refactor this to `startSpan()`
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = hub.startTransaction({
-    name,
-    op: 'http.server',
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.remix',
-    },
-    tags: {
-      method: request.method,
-    },
-    ...traceparentData,
-    metadata: {
-      source,
-      dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-    },
-  });
-
-  // eslint-disable-next-line deprecation/deprecation
-  hub.getScope().setSpan(transaction);
-  return transaction;
 }
 
 /**
  * Get transaction name from routes and url
  */
-export function getTransactionName(
-  routes: ServerRoute[],
-  url: URL,
-  pkg?: ReactRouterDomPkg,
-): [string, TransactionSource] {
-  const matches = matchServerRoutes(routes, url.pathname, pkg);
+export function getTransactionName(routes: ServerRoute[], url: URL): [string, TransactionSource] {
+  const matches = matchServerRoutes(routes, url.pathname);
   const match = matches && getRequestMatch(url, matches);
-  return match === null ? [url.pathname, 'url'] : [match.route.id, 'route'];
+  return match === null ? [url.pathname, 'url'] : [match.route.id || 'no-route-id', 'route'];
 }
 
 function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBuild): RequestHandler {
   const routes = createRoutes(build.routes);
-  const pkg = loadModule<ReactRouterDomPkg>('react-router-dom');
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
     // This means that the request handler of the adapter (ex: express) is already wrapped.
@@ -456,11 +428,8 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return origRequestHandler.call(this, request, loadContext);
     }
 
-    return runWithAsyncContext(async () => {
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
+    return withIsolationScope(async isolationScope => {
       const options = getClient()?.getOptions();
-      const scope = getCurrentScope();
 
       let normalizedRequest: Record<string, unknown> = request;
 
@@ -471,9 +440,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       }
 
       const url = new URL(request.url);
-      const [name, source] = getTransactionName(routes, url, pkg);
+      const [name, source] = getTransactionName(routes, url);
 
-      scope.setSDKProcessingMetadata({
+      isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
           route: {
@@ -486,23 +455,24 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
         return origRequestHandler.call(this, request, loadContext);
       }
 
-      const transaction = startRequestHandlerTransaction(hub, name, source, {
-        headers: {
-          'sentry-trace': request.headers.get('sentry-trace') || '',
+      return startRequestHandlerSpan(
+        {
+          name,
+          source,
+          sentryTrace: request.headers.get('sentry-trace') || '',
           baggage: request.headers.get('baggage') || '',
+          method: request.method,
         },
-        method: request.method,
-      });
+        async span => {
+          const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
 
-      const res = (await origRequestHandler.call(this, request, loadContext)) as Response;
+          if (isResponse(res)) {
+            setHttpStatus(span, res.status);
+          }
 
-      if (isResponse(res)) {
-        setHttpStatus(transaction, res.status);
-      }
-
-      transaction.end();
-
-      return res;
+          return res;
+        },
+      );
     });
   };
 }

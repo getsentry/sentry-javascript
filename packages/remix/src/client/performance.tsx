@@ -1,4 +1,9 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getActiveSpan, getRootSpan } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  getActiveSpan,
+  getRootSpan,
+} from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
 import type { BrowserClient, ErrorBoundaryProps } from '@sentry/react';
 import {
@@ -8,7 +13,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, StartSpanOptions, Transaction, TransactionContext } from '@sentry/types';
+import type { Span, StartSpanOptions, TransactionContext } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -43,10 +48,6 @@ export type RemixBrowserTracingIntegrationOptions = Partial<Parameters<typeof or
   useMatches?: UseMatches;
 };
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'remix-router',
-} as const;
-
 let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
@@ -76,10 +77,9 @@ export function startPageloadSpan(): void {
   const spanContext: StartSpanOptions = {
     name: initPathName,
     op: 'pageload',
-    origin: 'auto.pageload.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'url',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
     },
   };
 
@@ -101,10 +101,9 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
   const spanContext: StartSpanOptions = {
     name: matches[matches.length - 1].id,
     op: 'navigation',
-    origin: 'auto.navigation.remix',
-    tags: DEFAULT_TAGS,
-    metadata: {
-      source: 'route',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.remix',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
     },
   };
 
@@ -120,34 +119,6 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
   } else {
     _customStartTransaction(spanContext);
   }
-}
-
-/**
- * @deprecated Use `browserTracingIntegration` instead.
- *
- * Creates a react-router v6 instrumention for Remix applications.
- *
- * This implementation is slightly different (and simpler) from the react-router instrumentation
- * as in Remix, `useMatches` hook is available where in react-router-v6 it's not yet.
- */
-export function remixRouterInstrumentation(useEffect: UseEffect, useLocation: UseLocation, useMatches: UseMatches) {
-  return (
-    customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad = true,
-    startTransactionOnLocationChange = true,
-  ): void => {
-    setGlobals({
-      useEffect,
-      useLocation,
-      useMatches,
-      instrumentNavigation: startTransactionOnLocationChange,
-      customStartTransaction,
-    });
-
-    if (startTransactionOnPageLoad) {
-      startPageloadSpan();
-    }
-  };
 }
 
 /**

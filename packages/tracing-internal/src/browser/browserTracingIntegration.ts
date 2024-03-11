@@ -1,30 +1,21 @@
-/* eslint-disable max-lines, complexity */
-import type { IdleTransaction } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
   addTracingExtensions,
-  getActiveTransaction,
+  continueTrace,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getRootSpan,
   spanToJSON,
-  startIdleTransaction,
+  startIdleSpan,
+  withScope,
 } from '@sentry/core';
-import type {
-  Client,
-  IntegrationFn,
-  StartSpanOptions,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  browserPerformanceTimeOrigin,
-  getDomElement,
-  logger,
-  propagationContextFromHeaders,
-} from '@sentry/utils';
+import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, getDomElement, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -34,43 +25,36 @@ import {
   startTrackingLongTasks,
   startTrackingWebVitals,
 } from './metrics';
-import type { RequestInstrumentationOptions } from './request';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
 import { WINDOW } from './types';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
 /** Options for Browser Tracing integration */
-export interface BrowserTracingOptions extends RequestInstrumentationOptions {
+export interface BrowserTracingOptions {
   /**
-   * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
-   * by a moment where there are no in-progress spans.
+   * The time that has to pass without any span being created.
+   * If this time is exceeded, the idle span will finish.
    *
-   * The transaction will use the end timestamp of the last finished span as the endtime for the transaction.
-   * If there are still active spans when this the `idleTimeout` is set, the `idleTimeout` will get reset.
-   * Time is in ms.
-   *
-   * Default: 1000
+   * Default: 1000 (ms)
    */
   idleTimeout: number;
 
   /**
-   * The max duration for a transaction. If a transaction duration hits the `finalTimeout` value, it
-   * will be finished.
-   * Time is in ms.
+   * The max. time an idle span may run.
+   * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 30000
+   * Default: 30000 (ms)
    */
   finalTimeout: number;
 
   /**
-   * The heartbeat interval. If no new spans are started or open spans are finished within 3 heartbeats,
-   * the transaction will be finished.
-   * Time is in ms.
+   The max. time an idle span may run.
+   * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 5000
+   * Default: 15000 (ms)
    */
-  heartbeatInterval: number;
+  childSpanTimeout: number;
 
   /**
    * If a span should be created on page load.
@@ -103,6 +87,27 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableLongTask: boolean;
 
   /**
+   * Flag to disable patching all together for fetch requests.
+   *
+   * Default: true
+   */
+  traceFetch: boolean;
+
+  /**
+   * Flag to disable patching all together for xhr requests.
+   *
+   * Default: true
+   */
+  traceXHR: boolean;
+
+  /**
+   * If true, Sentry will capture http timings and add them to the corresponding http spans.
+   *
+   * Default: true
+   */
+  enableHTTPTimings: boolean;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -118,9 +123,6 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
 
   /**
    * _experiments allows the user to send options to define how this integration works.
-   * Note that the `enableLongTask` options is deprecated in favor of the option at the top level, and will be removed in v8.
-   *
-   * TODO (v8): Remove enableLongTask
    *
    * Default: undefined
    */
@@ -133,6 +135,14 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
    * It receives the options passed to `startSpan`, and expects to return an updated options object.
    */
   beforeStartSpan?: (options: StartSpanOptions) => StartSpanOptions;
+
+  /**
+   * This function will be called before creating a span for a request with the given url.
+   * Return false if you don't want a span for the given url.
+   *
+   * Default: (url: string) => true
+   */
+  shouldCreateSpanForRequest?(this: void, url: string): boolean;
 }
 
 const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
@@ -150,28 +160,12 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * actions as transactions, and captures requests, metrics and errors as spans.
  *
  * The integration can be configured with a variety of options, and can be extended to use
- * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ * any routing library.
  *
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  const _hasSetTracePropagationTargets = DEBUG_BUILD
-    ? !!(
-        // eslint-disable-next-line deprecation/deprecation
-        (_options.tracePropagationTargets || _options.tracingOrigins)
-      )
-    : false;
-
   addTracingExtensions();
-
-  // TODO (v8): remove this block after tracingOrigins is removed
-  // Set tracePropagationTargets to tracingOrigins if specified by the user
-  // In case both are specified, tracePropagationTargets takes precedence
-  // eslint-disable-next-line deprecation/deprecation
-  if (!_options.tracePropagationTargets && _options.tracingOrigins) {
-    // eslint-disable-next-line deprecation/deprecation
-    _options.tracePropagationTargets = _options.tracingOrigins;
-  }
 
   const options = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,
@@ -191,90 +185,53 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   let latestRouteSource: TransactionSource | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteTransaction(context: TransactionContext): Transaction | undefined {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
+    const { beforeStartSpan, idleTimeout, finalTimeout, childSpanTimeout } = options;
 
-    const { beforeStartSpan, idleTimeout, finalTimeout, heartbeatInterval } = options;
+    const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
-    const isPageloadTransaction = context.op === 'pageload';
-
-    let expandedContext: TransactionContext;
-    if (isPageloadTransaction) {
-      const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
-      const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
-      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
-      expandedContext = {
-        traceId,
-        parentSpanId,
-        parentSampled: sampled,
-        ...context,
-        metadata: {
-          // eslint-disable-next-line deprecation/deprecation
-          ...context.metadata,
-          dynamicSamplingContext: dsc,
-        },
-        trimEnd: true,
-      };
-    } else {
-      expandedContext = {
-        trimEnd: true,
-        ...context,
-      };
-    }
-
-    const finalContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
+    const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
+      ? beforeStartSpan(startSpanOptions)
+      : startSpanOptions;
 
     // If `beforeStartSpan` set a custom name, record that fact
-    // eslint-disable-next-line deprecation/deprecation
-    finalContext.metadata =
-      finalContext.name !== expandedContext.name
-        ? // eslint-disable-next-line deprecation/deprecation
-          { ...finalContext.metadata, source: 'custom' }
-        : // eslint-disable-next-line deprecation/deprecation
-          finalContext.metadata;
+    const attributes = finalStartSpanOptions.attributes || {};
 
-    latestRouteName = finalContext.name;
-    latestRouteSource = getSource(finalContext);
-
-    // eslint-disable-next-line deprecation/deprecation
-    if (finalContext.sampled === false) {
-      DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
+    if (finalStartSpanOptions.name !== finalStartSpanOptions.name) {
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
+      finalStartSpanOptions.attributes = attributes;
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    latestRouteName = finalStartSpanOptions.name;
+    latestRouteSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    const { location } = WINDOW;
+    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalStartSpanOptions.op} idle span on scope`);
 
-    const idleTransaction = startIdleTransaction(
-      hub,
-      finalContext,
+    const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
-      true,
-      { location }, // for use in the tracesSampler
-      heartbeatInterval,
-      isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
-    );
+      childSpanTimeout,
+      // should wait for finish signal if it's a pageload transaction
+      disableAutoFinish: isPageloadTransaction,
+      beforeSpanEnd: span => {
+        _collectWebVitals();
+        addPerformanceEntries(span);
+      },
+    });
 
-    if (isPageloadTransaction) {
+    if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
         if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
-          idleTransaction.sendAutoFinishSignal();
+          client.emit('idleSpanEnableAutoFinish', idleSpan);
         }
       });
 
       if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
-        idleTransaction.sendAutoFinishSignal();
+        client.emit('idleSpanEnableAutoFinish', idleSpan);
       }
     }
 
-    idleTransaction.registerBeforeFinishCallback(transaction => {
-      _collectWebVitals();
-      addPerformanceEntries(transaction);
-    });
-
-    return idleTransaction as Transaction;
+    return idleSpan;
   }
 
   return {
@@ -282,68 +239,75 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce: () => {},
     afterAllSetup(client) {
-      const clientOptions = client.getOptions();
-
       const { markBackgroundSpan, traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, _experiments } =
         options;
 
-      const clientOptionsTracePropagationTargets = clientOptions && clientOptions.tracePropagationTargets;
-      // There are three ways to configure tracePropagationTargets:
-      // 1. via top level client option `tracePropagationTargets`
-      // 2. via BrowserTracing option `tracePropagationTargets`
-      // 3. via BrowserTracing option `tracingOrigins` (deprecated)
-      //
-      // To avoid confusion, favour top level client option `tracePropagationTargets`, and fallback to
-      // BrowserTracing option `tracePropagationTargets` and then `tracingOrigins` (deprecated).
-      // This is done as it minimizes bundle size (we don't have to have undefined checks).
-      //
-      // If both 1 and either one of 2 or 3 are set (from above), we log out a warning.
-      // eslint-disable-next-line deprecation/deprecation
-      const tracePropagationTargets = clientOptionsTracePropagationTargets || options.tracePropagationTargets;
-      if (DEBUG_BUILD && _hasSetTracePropagationTargets && clientOptionsTracePropagationTargets) {
-        logger.warn(
-          '[Tracing] The `tracePropagationTargets` option was set in the BrowserTracing integration and top level `Sentry.init`. The top level `Sentry.init` value is being used.',
-        );
-      }
-
       let activeSpan: Span | undefined;
-      let startingUrl: string | undefined = WINDOW.location.href;
+      let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
-      if (client.on) {
-        client.on('startNavigationSpan', (context: StartSpanOptions) => {
-          if (activeSpan) {
-            DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
-            // If there's an open transaction on the scope, we need to finish it before creating an new one.
-            activeSpan.end();
-          }
-          activeSpan = _createRouteTransaction(context);
+      client.on('startNavigationSpan', (startSpanOptions: StartSpanOptions) => {
+        if (getClient() !== client) {
+          return;
+        }
+
+        if (activeSpan) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open transaction on the scope, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+        activeSpan = _createRouteSpan(client, {
+          op: 'navigation',
+          ...startSpanOptions,
+        });
+      });
+
+      client.on('startPageLoadSpan', (startSpanOptions: StartSpanOptions) => {
+        if (getClient() !== client) {
+          return;
+        }
+
+        if (activeSpan) {
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          // If there's an open transaction on the scope, we need to finish it before creating an new one.
+          activeSpan.end();
+        }
+
+        const sentryTrace = getMetaContent('sentry-trace');
+        const baggage = getMetaContent('baggage');
+
+        // Continue trace updates the _current_ scope, but we want to break out of it again...
+        // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
+        // but afterwards, we want to reset it to avoid this also applying to other spans
+        const scope = getCurrentScope();
+        const propagationContextBefore = scope.getPropagationContext();
+
+        activeSpan = continueTrace({ sentryTrace, baggage }, () => {
+          // Ensure we are on the original current scope again, so the span is set as active on it
+          return withScope(scope, () => {
+            return _createRouteSpan(client, {
+              op: 'pageload',
+              ...startSpanOptions,
+            });
+          });
         });
 
-        client.on('startPageLoadSpan', (context: StartSpanOptions) => {
-          if (activeSpan) {
-            DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
-            // If there's an open transaction on the scope, we need to finish it before creating an new one.
-            activeSpan.end();
-          }
-          activeSpan = _createRouteTransaction(context);
-        });
-      }
+        scope.setPropagationContext(propagationContextBefore);
+      });
 
-      if (options.instrumentPageLoad && client.emit) {
-        const context: StartSpanOptions = {
+      if (options.instrumentPageLoad && WINDOW.location) {
+        const startSpanOptions: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
-          startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-          op: 'pageload',
-          origin: 'auto.pageload.browser',
+          startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
           },
         };
-        startBrowserTracingPageLoadSpan(client, context);
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
       }
 
-      if (options.instrumentNavigation && client.emit) {
+      if (options.instrumentNavigation && WINDOW.location) {
         addHistoryInstrumentationHandler(({ to, from }) => {
           /**
            * This early return is there to account for some cases where a navigation transaction starts right after
@@ -361,16 +325,15 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
           if (from !== to) {
             startingUrl = undefined;
-            const context: StartSpanOptions = {
+            const startSpanOptions: StartSpanOptions = {
               name: WINDOW.location.pathname,
-              op: 'navigation',
-              origin: 'auto.navigation.browser',
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
               },
             };
 
-            startBrowserTracingNavigationSpan(client, context);
+            startBrowserTracingNavigationSpan(client, startSpanOptions);
           }
         });
       }
@@ -386,39 +349,36 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       instrumentOutgoingRequests({
         traceFetch,
         traceXHR,
-        tracePropagationTargets,
+        tracePropagationTargets: client.getOptions().tracePropagationTargets,
         shouldCreateSpanForRequest,
         enableHTTPTimings,
       });
     },
-    // TODO v8: Remove this again
-    // This is private API that we use to fix converted BrowserTracing integrations in Next.js & SvelteKit
-    options,
   };
 }) satisfies IntegrationFn;
 
 /**
  * Manually start a page load span.
- * This will only do something if the BrowserTracing integration has been setup.
+ * This will only do something if a browser tracing integration integration has been setup.
  */
-export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): void {
-  if (!client.emit) {
-    return;
-  }
-
+export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'pageload' ? span : undefined;
 }
 
 /**
  * Manually start a navigation span.
- * This will only do something if the BrowserTracing integration has been setup.
+ * This will only do something if a browser tracing integration has been setup.
  */
-export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): void {
-  if (!client.emit) {
-    return;
-  }
-
+export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
+
+  const span = getActiveSpan();
+  const op = span && spanToJSON(span).op;
+  return op === 'navigation' ? span : undefined;
 }
 
 /** Returns the value of a meta tag */
@@ -437,25 +397,26 @@ function registerInteractionListener(
   latestRouteName: string | undefined,
   latestRouteSource: TransactionSource | undefined,
 ): void {
-  let inflightInteractionTransaction: IdleTransaction | undefined;
+  let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
-    const { idleTimeout, finalTimeout, heartbeatInterval } = options;
+    const { idleTimeout, finalTimeout, childSpanTimeout } = options;
     const op = 'ui.action.click';
 
-    // eslint-disable-next-line deprecation/deprecation
-    const currentTransaction = getActiveTransaction();
-    if (currentTransaction && currentTransaction.op && ['navigation', 'pageload'].includes(currentTransaction.op)) {
-      DEBUG_BUILD &&
-        logger.warn(
-          `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-        );
-      return undefined;
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    if (rootSpan) {
+      const currentRootSpanOp = spanToJSON(rootSpan).op;
+      if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
+        DEBUG_BUILD &&
+          logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
+        return undefined;
+      }
     }
 
-    if (inflightInteractionTransaction) {
-      inflightInteractionTransaction.setFinishReason('interactionInterrupted');
-      inflightInteractionTransaction.end();
-      inflightInteractionTransaction = undefined;
+    if (inflightInteractionSpan) {
+      inflightInteractionSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'interactionInterrupted');
+      inflightInteractionSpan.end();
+      inflightInteractionSpan = undefined;
     }
 
     if (!latestRouteName) {
@@ -463,40 +424,24 @@ function registerInteractionListener(
       return undefined;
     }
 
-    const { location } = WINDOW;
-
-    const context: TransactionContext = {
-      name: latestRouteName,
-      op,
-      trimEnd: true,
-      data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+    inflightInteractionSpan = startIdleSpan(
+      {
+        name: latestRouteName,
+        op,
+        trimEnd: true,
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+        },
       },
-    };
-
-    inflightInteractionTransaction = startIdleTransaction(
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentHub(),
-      context,
-      idleTimeout,
-      finalTimeout,
-      true,
-      { location }, // for use in the tracesSampler
-      heartbeatInterval,
+      {
+        idleTimeout,
+        finalTimeout,
+        childSpanTimeout,
+      },
     );
   };
 
   ['click'].forEach(type => {
     addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
   });
-}
-
-function getSource(context: TransactionContext): TransactionSource | undefined {
-  const sourceFromAttributes = context.attributes && context.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromData = context.data && context.data[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  // eslint-disable-next-line deprecation/deprecation
-  const sourceFromMetadata = context.metadata && context.metadata.source;
-
-  return sourceFromAttributes || sourceFromData || sourceFromMetadata;
 }

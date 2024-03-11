@@ -1,12 +1,8 @@
-import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, hasTracingEnabled, setTag } from '@sentry/core';
 import type { BrowserOptions } from '@sentry/react';
-import {
-  DEFAULT_TRACE_PROPAGATION_TARGETS,
-  getCurrentScope,
-  getDefaultIntegrations as getReactDefaultIntegrations,
-  init as reactInit,
-} from '@sentry/react';
+import { getDefaultIntegrations as getReactDefaultIntegrations, init as reactInit } from '@sentry/react';
 import type { EventProcessor, Integration } from '@sentry/types';
+import { GLOBAL_OBJ } from '@sentry/utils';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
@@ -18,7 +14,7 @@ export * from '@sentry/react';
 
 export { captureUnderscoreErrorException } from '../common/_error';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesAssetPrefixPath__: string;
 };
 
@@ -29,17 +25,6 @@ declare const __SENTRY_TRACING__: boolean;
 export function init(options: BrowserOptions): void {
   const opts = {
     environment: getVercelEnv(true) || process.env.NODE_ENV,
-
-    tracePropagationTargets:
-      process.env.NODE_ENV === 'development'
-        ? [
-            // Will match any URL that contains "localhost" but not "webpack.hot-update.json" - The webpack dev-server
-            // has cors and it doesn't like extra headers when it's accessed from a different URL.
-            // TODO(v8): Ideally we rework our tracePropagationTargets logic so this hack won't be necessary anymore (see issue #9764)
-            /^(?=.*localhost)(?!.*webpack\.hot-update\.json).*/,
-            /^\/(?!\/)/,
-          ]
-        : [...DEFAULT_TRACE_PROPAGATION_TARGETS, /^(api\/)/],
     defaultIntegrations: getDefaultIntegrations(options),
     ...options,
   } satisfies BrowserOptions;
@@ -49,15 +34,14 @@ export function init(options: BrowserOptions): void {
 
   reactInit(opts);
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'browser');
+  setTag('runtime', 'browser');
   const filterTransactions: EventProcessor = event =>
     event.type === 'transaction' && event.transaction === '/404' ? null : event;
   filterTransactions.id = 'NextClient404Filter';
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 }
 

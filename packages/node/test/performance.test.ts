@@ -81,7 +81,8 @@ describe('startSpan()', () => {
 
     const transactionEvent = await transactionEventPromise;
 
-    expect(transactionEvent.spans).toContainEqual(expect.objectContaining({ description: 'second' }));
+    expect(transactionEvent.spans).toHaveLength(1);
+    expect(transactionEvent.spans?.[0].description).toBe('second');
   });
 });
 
@@ -106,7 +107,7 @@ describe('startSpanManual()', () => {
     startSpanManual({ name: 'first' }, span => {
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          span?.end();
+          span.end();
           resolve();
         }, 500);
       });
@@ -115,7 +116,7 @@ describe('startSpanManual()', () => {
     startSpanManual({ name: 'second' }, span => {
       return new Promise<void>(resolve => {
         setTimeout(() => {
-          span?.end();
+          span.end();
           resolve();
         }, 500);
       });
@@ -153,7 +154,7 @@ describe('startSpanManual()', () => {
 
     const transactionEvent = await transactionEventPromise;
 
-    expect(transactionEvent.spans).toContainEqual(expect.objectContaining({ description: 'second' }));
+    expect(transactionEvent.spans?.[0].description).toBe('second');
   });
 
   it('should use the scopes at time of creation instead of the scopes at time of termination', async () => {
@@ -182,7 +183,7 @@ describe('startSpanManual()', () => {
             isolationScope2.setTag('isolationScope', 2);
             withScope(scope2 => {
               scope2.setTag('scope', 2);
-              span?.end();
+              span.end();
             });
           });
         });

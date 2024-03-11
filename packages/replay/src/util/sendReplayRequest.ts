@@ -1,6 +1,7 @@
 import { getClient, getCurrentScope } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
+import { resolvedSyncPromise } from '@sentry/utils';
 import { isRateLimited, updateRateLimits } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
@@ -20,7 +21,7 @@ export async function sendReplayRequest({
   eventContext,
   timestamp,
   session,
-}: SendReplayData): Promise<void | TransportMakeRequestResponse> {
+}: SendReplayData): Promise<TransportMakeRequestResponse> {
   const preparedRecordingData = prepareRecordingData({
     recordingData,
     headers: {
@@ -36,7 +37,7 @@ export async function sendReplayRequest({
   const dsn = client && client.getDsn();
 
   if (!client || !transport || !dsn || !session.sampled) {
-    return;
+    return resolvedSyncPromise({});
   }
 
   const baseEvent: ReplayEvent = {
@@ -57,7 +58,7 @@ export async function sendReplayRequest({
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'replay', baseEvent);
     logInfo('An event processor returned `null`, will not send event.');
-    return;
+    return resolvedSyncPromise({});
   }
 
   /*
@@ -102,7 +103,7 @@ export async function sendReplayRequest({
 
   const envelope = createReplayEnvelope(replayEvent, preparedRecordingData, dsn, client.getOptions().tunnel);
 
-  let response: void | TransportMakeRequestResponse;
+  let response: TransportMakeRequestResponse;
 
   try {
     response = await transport.send(envelope);
@@ -117,11 +118,6 @@ export async function sendReplayRequest({
       // nothing to do
     }
     throw error;
-  }
-
-  // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-  if (!response) {
-    return response;
   }
 
   // If the status code is invalid, we want to immediately stop & not retry

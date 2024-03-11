@@ -78,7 +78,6 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
         span_id: expect.any(String),
         start_timestamp: expect.any(Number),
         status: 'ok',
-        tags: { 'http.status_code': '200' },
         timestamp: expect.any(Number),
         trace_id: expect.any(String),
       },

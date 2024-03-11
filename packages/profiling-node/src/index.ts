@@ -1,1 +1,1 @@
-export { ProfilingIntegration } from './integration';
+export { nodeProfilingIntegration } from './integration';

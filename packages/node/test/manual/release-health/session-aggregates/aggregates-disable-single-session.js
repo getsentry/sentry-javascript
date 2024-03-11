@@ -3,7 +3,6 @@ const express = require('express');
 const app = express();
 const Sentry = require('../../../../build/cjs');
 const { assertSessions } = require('../test-utils');
-const { TextEncoder } = require('util');
 
 function cleanUpAndExitSuccessfully() {
   server.close();
@@ -32,7 +31,7 @@ function assertSessionAggregates(session, expected) {
 }
 
 function makeDummyTransport() {
-  return Sentry.createTransport({ recordDroppedEvent: () => undefined, textEncoder: new TextEncoder() }, req => {
+  return Sentry.createTransport({ recordDroppedEvent: () => undefined }, req => {
     const sessionEnv = req.body
       .split('\n')
       .filter(l => !!l)

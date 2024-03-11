@@ -27,8 +27,8 @@
  */
 
 /* eslint-disable jsdoc/require-jsdoc */
-import * as http from 'http';
-import * as https from 'https';
+import * as http from 'node:http';
+import * as https from 'node:https';
 import type { Readable } from 'stream';
 // TODO (v8): Remove this when Node < 12 is no longer supported
 import type { URL } from 'url';

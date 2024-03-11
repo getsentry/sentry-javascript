@@ -14,7 +14,13 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
-import { default as Router } from 'next/router';
+import RouterImport from 'next/router';
+
+// next/router v10 is CJS
+//
+// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+const Router: typeof RouterImport = RouterImport.events ? RouterImport : (RouterImport as any).default;
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 
@@ -97,10 +103,6 @@ function extractNextDataTagInformation(): NextDataTagInfo {
   return nextDataTagInfo;
 }
 
-const DEFAULT_TAGS = {
-  'routing.instrumentation': 'next-pages-router',
-} as const;
-
 /**
  * Instruments the Next.js pages router. Only supported for
  * client side routing. Works for Next >= 10.
@@ -123,7 +125,6 @@ export function pagesRouterInstrumentation(
     const client = getClient();
     startPageloadSpanCallback({
       name: prevLocationName,
-      tags: DEFAULT_TAGS,
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       traceId,
@@ -159,11 +160,8 @@ export function pagesRouterInstrumentation(
 
       startNavigationSpanCallback({
         name: newLocation,
-        tags: {
-          ...DEFAULT_TAGS,
-          from: prevLocationName,
-        },
         attributes: {
+          from: prevLocationName,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,

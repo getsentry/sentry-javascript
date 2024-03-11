@@ -12,7 +12,6 @@ sentryTest('should add browser-related spans to pageload transaction', async ({ 
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  // eslint-disable-next-line deprecation/deprecation
   const browserSpans = eventData.spans?.filter(({ op }) => op === 'browser');
 
   // Spans `connect`, `cache` and `DNS` are not always inside `pageload` transaction.

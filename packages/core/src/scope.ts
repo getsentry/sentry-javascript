@@ -25,9 +25,8 @@ import type {
 } from '@sentry/types';
 import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
-import { getGlobalEventProcessors, notifyEventProcessors } from './eventProcessors';
 import { updateSession } from './session';
-import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
+import type { SentrySpan } from './tracing/sentrySpan';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -35,14 +34,7 @@ import { applyScopeDataToEvent } from './utils/applyScopeDataToEvent';
 const DEFAULT_MAX_BREADCRUMBS = 100;
 
 /**
- * The global scope is kept in this module.
- * When accessing this via `getGlobalScope()` we'll make sure to set one if none is currently present.
- */
-let globalScope: ScopeInterface | undefined;
-
-/**
- * Holds additional event information. {@link Scope.applyToEvent} will be
- * called by the client before an event will be sent.
+ * Holds additional event information.
  */
 export class Scope implements ScopeInterface {
   /** Flag if notifying is happening. */
@@ -51,7 +43,7 @@ export class Scope implements ScopeInterface {
   /** Callback for client to receive scope changes. */
   protected _scopeListeners: Array<(scope: Scope) => void>;
 
-  /** Callback list that will be called after {@link applyToEvent}. */
+  /** Callback list that will be called during event processing. */
   protected _eventProcessors: EventProcessor[];
 
   /** Array of breadcrumbs. */
@@ -129,7 +121,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Clone this scope instance.
+   * @inheritDoc
    */
   public clone(): Scope {
     const newScope = new Scope();
@@ -153,23 +145,22 @@ export class Scope implements ScopeInterface {
     return newScope;
   }
 
-  /** Update the client on the scope. */
+  /**
+   * @inheritDoc
+   */
   public setClient(client: Client | undefined): void {
     this._client = client;
   }
 
   /**
-   * Get the client assigned to this scope.
-   *
-   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   * @inheritDoc
    */
-  public getClient(): Client | undefined {
-    return this._client;
+  public getClient<C extends Client>(): C | undefined {
+    return this._client as C | undefined;
   }
 
   /**
-   * Add internal on change listener. Used for sub SDKs that need to store the scope.
-   * @hidden
+   * @inheritDoc
    */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this._scopeListeners.push(callback);
@@ -288,7 +279,6 @@ export class Scope implements ScopeInterface {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -338,10 +328,15 @@ export class Scope implements ScopeInterface {
     // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
     // have a pointer to the currently-active transaction.
     const span = this._span;
+
     // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
     // Also, this method will be removed anyway.
     // eslint-disable-next-line deprecation/deprecation
-    return span && span.transaction;
+    if (span && (span as SentrySpan).transaction) {
+      // eslint-disable-next-line deprecation/deprecation
+      return (span as SentrySpan).transaction;
+    }
+    return undefined;
   }
 
   /**
@@ -372,50 +367,48 @@ export class Scope implements ScopeInterface {
       return this;
     }
 
-    if (typeof captureContext === 'function') {
-      const updatedScope = (captureContext as <T>(scope: T) => T)(this);
-      return updatedScope instanceof Scope ? updatedScope : this;
-    }
+    const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
 
-    if (captureContext instanceof Scope) {
-      this._tags = { ...this._tags, ...captureContext._tags };
-      this._extra = { ...this._extra, ...captureContext._extra };
-      this._contexts = { ...this._contexts, ...captureContext._contexts };
-      if (captureContext._user && Object.keys(captureContext._user).length) {
-        this._user = captureContext._user;
+    if (scopeToMerge instanceof Scope) {
+      const scopeData = scopeToMerge.getScopeData();
+
+      this._tags = { ...this._tags, ...scopeData.tags };
+      this._extra = { ...this._extra, ...scopeData.extra };
+      this._contexts = { ...this._contexts, ...scopeData.contexts };
+      if (scopeData.user && Object.keys(scopeData.user).length) {
+        this._user = scopeData.user;
       }
-      if (captureContext._level) {
-        this._level = captureContext._level;
+      if (scopeData.level) {
+        this._level = scopeData.level;
       }
-      if (captureContext._fingerprint) {
-        this._fingerprint = captureContext._fingerprint;
+      if (scopeData.fingerprint.length) {
+        this._fingerprint = scopeData.fingerprint;
       }
-      if (captureContext._requestSession) {
-        this._requestSession = captureContext._requestSession;
+      if (scopeToMerge.getRequestSession()) {
+        this._requestSession = scopeToMerge.getRequestSession();
       }
-      if (captureContext._propagationContext) {
-        this._propagationContext = captureContext._propagationContext;
+      if (scopeData.propagationContext) {
+        this._propagationContext = scopeData.propagationContext;
       }
-    } else if (isPlainObject(captureContext)) {
-      // eslint-disable-next-line no-param-reassign
-      captureContext = captureContext as ScopeContext;
-      this._tags = { ...this._tags, ...captureContext.tags };
-      this._extra = { ...this._extra, ...captureContext.extra };
-      this._contexts = { ...this._contexts, ...captureContext.contexts };
-      if (captureContext.user) {
-        this._user = captureContext.user;
+    } else if (isPlainObject(scopeToMerge)) {
+      const scopeContext = captureContext as ScopeContext;
+      this._tags = { ...this._tags, ...scopeContext.tags };
+      this._extra = { ...this._extra, ...scopeContext.extra };
+      this._contexts = { ...this._contexts, ...scopeContext.contexts };
+      if (scopeContext.user) {
+        this._user = scopeContext.user;
       }
-      if (captureContext.level) {
-        this._level = captureContext.level;
+      if (scopeContext.level) {
+        this._level = scopeContext.level;
       }
-      if (captureContext.fingerprint) {
-        this._fingerprint = captureContext.fingerprint;
+      if (scopeContext.fingerprint) {
+        this._fingerprint = scopeContext.fingerprint;
       }
-      if (captureContext.requestSession) {
-        this._requestSession = captureContext.requestSession;
+      if (scopeContext.requestSession) {
+        this._requestSession = scopeContext.requestSession;
       }
-      if (captureContext.propagationContext) {
-        this._propagationContext = captureContext.propagationContext;
+      if (scopeContext.propagationContext) {
+        this._propagationContext = scopeContext.propagationContext;
       }
     }
 
@@ -426,6 +419,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public clear(): this {
+    // client is not cleared here on purpose!
     this._breadcrumbs = [];
     this._tags = {};
     this._extra = {};
@@ -546,33 +540,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Applies data from the scope to the event and runs all event processors on it.
-   *
-   * @param event Event
-   * @param hint Object containing additional information about the original exception, for use by the event processors.
-   * @hidden
-   * @deprecated Use `applyScopeDataToEvent()` directly
-   */
-  public applyToEvent(
-    event: Event,
-    hint: EventHint = {},
-    additionalEventProcessors: EventProcessor[] = [],
-  ): PromiseLike<Event | null> {
-    applyScopeDataToEvent(event, this.getScopeData());
-
-    // TODO (v8): Update this order to be: Global > Client > Scope
-    const eventProcessors: EventProcessor[] = [
-      ...additionalEventProcessors,
-      // eslint-disable-next-line deprecation/deprecation
-      ...getGlobalEventProcessors(),
-      ...this._eventProcessors,
-    ];
-
-    return notifyEventProcessors(eventProcessors, event, hint);
-  }
-
-  /**
-   * Add data which will be accessible during event processing but won't get sent to Sentry
+   * @inheritDoc
    */
   public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
     this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
@@ -596,11 +564,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture an exception for this scope.
-   *
-   * @param exception The exception to capture.
-   * @param hint Optinal additional data to attach to the Sentry event.
-   * @returns the id of the captured Sentry event.
+   * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -627,12 +591,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture a message for this scope.
-   *
-   * @param message The message to capture.
-   * @param level An optional severity level to report the message with.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured message.
+   * @inheritDoc
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -660,11 +619,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Captures a manually created event for this scope and sends it to Sentry.
-   *
-   * @param exception The event to capture.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured event.
+   * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -694,27 +649,6 @@ export class Scope implements ScopeInterface {
       this._notifyingListeners = false;
     }
   }
-}
-
-/**
- * Get the global scope.
- * This scope is applied to _all_ events.
- */
-export function getGlobalScope(): ScopeInterface {
-  if (!globalScope) {
-    globalScope = new Scope();
-  }
-
-  return globalScope;
-}
-
-/**
- * This is mainly needed for tests.
- * DO NOT USE this, as this is an internal API and subject to change.
- * @hidden
- */
-export function setGlobalScope(scope: ScopeInterface | undefined): void {
-  globalScope = scope;
 }
 
 function generatePropagationContext(): PropagationContext {

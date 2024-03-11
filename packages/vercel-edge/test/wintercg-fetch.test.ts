@@ -1,4 +1,3 @@
-import * as internalTracing from '@sentry-internal/tracing';
 import * as sentryCore from '@sentry/core';
 import type { HandlerDataFetch, Integration } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
@@ -14,7 +13,7 @@ class FakeClient extends VercelEdgeClient {
 }
 
 const addFetchInstrumentationHandlerSpy = jest.spyOn(sentryUtils, 'addFetchInstrumentationHandler');
-const instrumentFetchRequestSpy = jest.spyOn(internalTracing, 'instrumentFetchRequest');
+const instrumentFetchRequestSpy = jest.spyOn(sentryCore, 'instrumentFetchRequest');
 const addBreadcrumbSpy = jest.spyOn(sentryCore, 'addBreadcrumb');
 
 describe('WinterCGFetch instrumentation', () => {
@@ -29,7 +28,7 @@ describe('WinterCGFetch instrumentation', () => {
       tracesSampleRate: 1,
       integrations: [],
       transport: () => ({
-        send: () => Promise.resolve(undefined),
+        send: () => Promise.resolve({}),
         flush: () => Promise.resolve(true),
       }),
       tracePropagationTargets: ['http://my-website.com/'],
@@ -43,7 +42,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -77,7 +76,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     // integration.setup!(client) is not called!
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -97,7 +96,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -121,7 +120,7 @@ describe('WinterCGFetch instrumentation', () => {
         return url === 'http://only-acceptable-url.com/';
       },
     });
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -145,7 +144,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration();
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];
@@ -182,7 +181,7 @@ describe('WinterCGFetch instrumentation', () => {
     addFetchInstrumentationHandlerSpy.mockImplementationOnce(() => undefined);
 
     const integration = winterCGFetchIntegration({ breadcrumbs: false });
-    integration.setupOnce();
+    integration.setupOnce!();
     integration.setup!(client);
 
     const [fetchInstrumentationHandlerCallback] = addFetchInstrumentationHandlerSpy.mock.calls[0];

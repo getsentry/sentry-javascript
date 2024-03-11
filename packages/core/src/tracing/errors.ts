@@ -5,10 +5,15 @@ import {
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import type { SpanStatusType } from './spanstatus';
-import { getActiveTransaction } from './utils';
+import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
+import { SPAN_STATUS_ERROR } from './spanstatus';
 
 let errorsInstrumented = false;
+
+/**  Only exposed for testing */
+export function _resetErrorsInstrumented(): void {
+  errorsInstrumented = false;
+}
 
 /**
  * Configures global error listeners
@@ -24,15 +29,15 @@ export function registerErrorInstrumentation(): void {
 }
 
 /**
- * If an error or unhandled promise occurs, we mark the active transaction as failed
+ * If an error or unhandled promise occurs, we mark the active root span as failed
  */
 function errorCallback(): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const activeTransaction = getActiveTransaction();
-  if (activeTransaction) {
-    const status: SpanStatusType = 'internal_error';
-    DEBUG_BUILD && logger.log(`[Tracing] Transaction: ${status} -> Global error occured`);
-    activeTransaction.setStatus(status);
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
+  if (rootSpan) {
+    const message = 'internal_error';
+    DEBUG_BUILD && logger.log(`[Tracing] Root span: ${message} -> Global error occured`);
+    rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message });
   }
 }
 

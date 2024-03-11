@@ -1,11 +1,16 @@
-import { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { functionToStringIntegration, inboundFiltersIntegration, linkedErrorsIntegration } from '@sentry/core';
+import {
+  dedupeIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+} from '@sentry/core';
 import { getIntegrationsToSetup, initAndBind } from '@sentry/core';
 import type { Integration, Options, StackParser } from '@sentry/types';
 import { createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
 
 import { DenoClient } from './client';
+import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { denoContextIntegration } from './integrations/context';
 import { contextLinesIntegration } from './integrations/contextlines';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
@@ -13,32 +18,21 @@ import { normalizePathsIntegration } from './integrations/normalizepaths';
 import { makeFetchTransport } from './transports';
 import type { DenoOptions } from './types';
 
-/** @deprecated Use `getDefaultIntegrations(options)` instead. */
-export const defaultIntegrations = [
-  // Common
-  inboundFiltersIntegration(),
-  functionToStringIntegration(),
-  linkedErrorsIntegration(),
-  // From Browser
-  dedupeIntegration(),
-  breadcrumbsIntegration({
-    dom: false,
-    history: false,
-    xhr: false,
-  }),
-  // Deno Specific
-  denoContextIntegration(),
-  contextLinesIntegration(),
-  normalizePathsIntegration(),
-  globalHandlersIntegration(),
-];
-
 /** Get the default integrations for the Deno SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
   // We return a copy of the defaultIntegrations here to avoid mutating this
   return [
-    // eslint-disable-next-line deprecation/deprecation
-    ...defaultIntegrations,
+    // Common
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    // Deno Specific
+    breadcrumbsIntegration(),
+    denoContextIntegration(),
+    contextLinesIntegration(),
+    normalizePathsIntegration(),
+    globalHandlersIntegration(),
   ];
 }
 
@@ -59,17 +53,6 @@ const defaultStackParser: StackParser = createStackParser(nodeStackLineParser())
  * init({
  *   dsn: '__DSN__',
  *   // ...
- * });
- * ```
- *
- * @example
- * ```
- *
- * import { configureScope } from 'npm:@sentry/deno';
- * configureScope((scope: Scope) => {
- *   scope.setExtra({ battery: 0.7 });
- *   scope.setTag({ user_mode: 'admin' });
- *   scope.setUser({ id: '4711' });
  * });
  * ```
  *

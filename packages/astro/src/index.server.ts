@@ -8,8 +8,6 @@ import { handleRequest } from './server/middleware';
 
 // Hence, we export everything from the Node SDK explicitly:
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   captureException,
@@ -17,14 +15,7 @@ export {
   captureMessage,
   captureCheckIn,
   withMonitor,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
@@ -33,12 +24,8 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -48,25 +35,17 @@ export {
   setUser,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   withScope,
   withIsolationScope,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
   flush,
   close,
   getSentryRelease,
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  Integrations,
   consoleIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -78,17 +57,36 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  Handlers,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
-  // eslint-disable-next-line deprecation/deprecation
-  startActiveSpan,
   startInactiveSpan,
   startSpanManual,
+  withActiveSpan,
+  getSpanDescendants,
   continueTrace,
   cron,
   parameterize,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  expressIntegration,
+  expressErrorHandler,
+  setupExpressErrorHandler,
+  fastifyIntegration,
+  graphqlIntegration,
+  mongoIntegration,
+  mongooseIntegration,
+  mysqlIntegration,
+  mysql2Integration,
+  nestIntegration,
+  postgresIntegration,
+  prismaIntegration,
+  hapiIntegration,
+  setupHapiErrorHandler,
+  spotlightIntegration,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

@@ -1,7 +1,7 @@
 import { WINDOW } from '@sentry/react';
 import { JSDOM } from 'jsdom';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
-import { default as Router } from 'next/router';
+import Router from 'next/router';
 
 import { pagesRouterInstrumentation } from '../../src/client/routing/pagesRouterRoutingInstrumentation';
 
@@ -243,6 +243,7 @@ describe('pagesRouterInstrumentation', () => {
           expect.objectContaining({
             name: expectedTransactionName,
             attributes: {
+              from: '/home',
               'sentry.op': 'navigation',
               'sentry.origin': 'auto.navigation.nextjs.pages_router_instrumentation',
               'sentry.source': expectedTransactionSource,

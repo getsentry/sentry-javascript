@@ -7,7 +7,6 @@ import { builtinModules } from 'module';
 import deepMerge from 'deepmerge';
 
 import {
-  getEs5Polyfills,
   makeBrowserBuildPlugin,
   makeCleanupPlugin,
   makeCommonJSPlugin,
@@ -17,7 +16,6 @@ import {
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
   makeSucrasePlugin,
-  makeTSPlugin,
   makeTerserPlugin,
 } from './plugins/index.mjs';
 import { mergePlugins } from './utils.mjs';
@@ -25,16 +23,13 @@ import { mergePlugins } from './utils.mjs';
 const BUNDLE_VARIANTS = ['.js', '.min.js', '.debug.min.js'];
 
 export function makeBaseBundleConfig(options) {
-  const { bundleType, entrypoints, jsVersion, licenseTitle, outputFileBase, packageSpecificConfig } = options;
-
-  const isEs5 = jsVersion.toLowerCase() === 'es5';
+  const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);
-  const tsPlugin = makeTSPlugin('es5');
   const rrwebBuildPlugin = makeRrwebBuildPlugin({
     excludeIframe: false,
     excludeShadowDom: false,
@@ -45,21 +40,17 @@ export function makeBaseBundleConfig(options) {
   // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
   const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
 
-  // used by `@sentry/browser`, `@sentry/tracing`, and `@sentry/vue` (bundles which are a full SDK in and of themselves)
+  // used by `@sentry/browser`
   const standAloneBundleConfig = {
     output: {
       format: 'iife',
       name: 'Sentry',
-      outro: () => {
-        // Add polyfills for ES6 array/string methods at the end of the bundle
-        return isEs5 ? getEs5Polyfills() : '';
-      },
     },
     context: 'window',
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
-  // used by `@sentry/integrations` and `@sentry/wasm` (bundles which need to be combined with a stand-alone SDK bundle)
+  // used by `@sentry/wasm` & pluggable integrations from core/browser (bundles which need to be combined with a stand-alone SDK bundle)
   const addOnBundleConfig = {
     // These output settings are designed to mimic an IIFE. We don't use Rollup's `iife` format because we don't want to
     // attach this code to a new global variable, but rather inject it into the existing SDK's `Integrations` object.
@@ -123,9 +114,7 @@ export function makeBaseBundleConfig(options) {
       strict: false,
       esModule: false,
     },
-    plugins: isEs5
-      ? [tsPlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin]
-      : [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
+    plugins: [sucrasePlugin, nodeResolvePlugin, cleanupPlugin, licensePlugin],
     treeshake: 'smallest',
   };
 

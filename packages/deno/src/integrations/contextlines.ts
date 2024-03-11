@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn, StackFrame } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'ContextLines';
@@ -52,27 +52,26 @@ const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     processEvent(event) {
       return addSourceContext(event, contextLines);
     },
   };
 }) satisfies IntegrationFn;
 
-export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
-
 /**
- * Add node modules / packages to the event.
- * @deprecated Use `contextLinesIntegration()` instead.
+ * Adds source context to event stacktraces.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.contextLinesIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const ContextLines = convertIntegrationFnToClass(INTEGRATION_NAME, contextLinesIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Promise<Event> }
->;
-
-// eslint-disable-next-line deprecation/deprecation
-export type ContextLines = typeof ContextLines;
+export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
 
 /** Processes an event and adds context lines */
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {

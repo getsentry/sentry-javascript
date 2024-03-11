@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    // package-specific options
+    "lib": ["es2017"],
+    "module": "Node16"
   }
 }

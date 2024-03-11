@@ -129,7 +129,7 @@ class AsyncSession implements DebugSession {
         } else if (prop?.value?.objectId && prop?.value?.className === 'Object') {
           const id = prop.value.objectId;
           add(vars => this._unrollObject(id, prop.name, vars, next));
-        } else if (prop?.value?.value || prop?.value?.description) {
+        } else if (prop?.value) {
           add(vars => this._unrollOther(prop, vars, next));
         }
       }
@@ -192,10 +192,18 @@ class AsyncSession implements DebugSession {
    * Unrolls other properties
    */
   private _unrollOther(prop: Runtime.PropertyDescriptor, vars: Variables, next: (vars: Variables) => void): void {
-    if (prop?.value?.value) {
-      vars[prop.name] = prop.value.value;
-    } else if (prop?.value?.description && prop?.value?.type !== 'function') {
-      vars[prop.name] = `<${prop.value.description}>`;
+    if (prop.value) {
+      if ('value' in prop.value) {
+        if (prop.value.value === undefined || prop.value.value === null) {
+          vars[prop.name] = `<${prop.value.value}>`;
+        } else {
+          vars[prop.name] = prop.value.value;
+        }
+      } else if ('description' in prop.value && prop.value.type !== 'function') {
+        vars[prop.name] = `<${prop.value.description}>`;
+      } else if (prop.value.type === 'undefined') {
+        vars[prop.name] = '<undefined>';
+      }
     }
 
     next(vars);

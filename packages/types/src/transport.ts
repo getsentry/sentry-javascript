@@ -1,6 +1,5 @@
 import type { Client } from './client';
 import type { Envelope } from './envelope';
-import type { TextEncoderInternal } from './textencoder';
 
 export type TransportRequest = {
   body: string | Uint8Array;
@@ -18,7 +17,6 @@ export type TransportMakeRequestResponse = {
 export interface InternalBaseTransportOptions {
   bufferSize?: number;
   recordDroppedEvent: Client['recordDroppedEvent'];
-  textEncoder?: TextEncoderInternal;
 }
 
 export interface BaseTransportOptions extends InternalBaseTransportOptions {
@@ -29,8 +27,7 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
-  // TODO (v8) Remove void from return as it was only retained to avoid a breaking change
-  send(request: Envelope): PromiseLike<void | TransportMakeRequestResponse>;
+  send(request: Envelope): PromiseLike<TransportMakeRequestResponse>;
   flush(timeout?: number): PromiseLike<boolean>;
 }
 

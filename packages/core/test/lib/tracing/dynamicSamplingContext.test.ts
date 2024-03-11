@@ -1,18 +1,23 @@
 import type { TransactionSource } from '@sentry/types';
-import { Hub, SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, makeMain } from '../../../src';
-import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
-import { addTracingExtensions } from '../../../src/tracing';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  setCurrentClient,
+} from '../../../src';
+import {
+  Transaction,
+  addTracingExtensions,
+  getDynamicSamplingContextFromSpan,
+  startInactiveSpan,
+} from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
-  let hub: Hub;
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0, release: '1.0.1' });
     const client = new TestClient(options);
-    // eslint-disable-next-line deprecation/deprecation
-    hub = new Hub(client);
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    setCurrentClient(client);
+    client.init();
     addTracingExtensions();
   });
 
@@ -74,7 +79,9 @@ describe('getDynamicSamplingContextFromSpan', () => {
       name: 'tx',
       metadata: {
         sampleRate: 0.56,
-        source: 'route',
+      },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       },
       sampled: true,
     });
@@ -97,8 +104,10 @@ describe('getDynamicSamplingContextFromSpan', () => {
       const transaction = new Transaction({
         name: 'tx',
         metadata: {
-          source: 'url',
           sampleRate: 0.56,
+        },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         },
       });
 
@@ -109,11 +118,11 @@ describe('getDynamicSamplingContextFromSpan', () => {
     test.each([
       ['is included if transaction source is parameterized route/url', 'route'],
       ['is included if transaction source is a custom name', 'custom'],
-    ])('%s', (_: string, source) => {
+    ] as const)('%s', (_: string, source: TransactionSource) => {
       const transaction = startInactiveSpan({
         name: 'tx',
-        metadata: {
-          ...(source && { source: source as TransactionSource }),
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
         },
       });
 

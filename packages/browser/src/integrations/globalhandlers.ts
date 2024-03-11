@@ -1,6 +1,7 @@
 import { captureEvent, defineIntegration, getClient } from '@sentry/core';
 import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
 import {
+  UNKNOWN_FUNCTION,
   addGlobalErrorInstrumentationHandler,
   addGlobalUnhandledRejectionInstrumentationHandler,
   getLocationHref,
@@ -172,7 +173,7 @@ function _enhanceEventWithInitialFrame(event: Event, url: any, line: any, column
     ev0sf.push({
       colno,
       filename,
-      function: '?',
+      function: UNKNOWN_FUNCTION,
       in_app: true,
       lineno,
     });

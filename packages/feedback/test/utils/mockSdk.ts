@@ -11,16 +11,11 @@ class MockTransport implements Transport {
   send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
 
   constructor() {
-    const send: ((request: Envelope) => PromiseLike<TransportMakeRequestResponse>) & {
-      __sentry__baseTransport__?: boolean;
-    } = jest.fn(async () => {
+    this.send = jest.fn(async () => {
       return {
         statusCode: 200,
       };
     });
-
-    send.__sentry__baseTransport__ = true;
-    this.send = send;
   }
 
   async flush() {

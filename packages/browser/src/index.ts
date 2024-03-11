@@ -1,9 +1,6 @@
 export * from './exports';
 
-import { Integrations as CoreIntegrations } from '@sentry/core';
-
 import { WINDOW } from './helpers';
-import * as BrowserIntegrations from './integrations';
 
 let windowIntegrations = {};
 
@@ -15,17 +12,24 @@ if (WINDOW.Sentry && WINDOW.Sentry.Integrations) {
 /** @deprecated Import the integration function directly, e.g. `inboundFiltersIntegration()` instead of `new Integrations.InboundFilter(). */
 const INTEGRATIONS = {
   ...windowIntegrations,
-  // eslint-disable-next-line deprecation/deprecation
-  ...CoreIntegrations,
-  ...BrowserIntegrations,
 };
 
 // eslint-disable-next-line deprecation/deprecation
 export { INTEGRATIONS as Integrations };
 
+export { reportingObserverIntegration } from './integrations/reportingobserver';
+export { httpClientIntegration } from './integrations/httpclient';
+export { contextLinesIntegration } from './integrations/contextlines';
+
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  Replay,
+  captureConsoleIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
+
+export {
   replayIntegration,
   getReplay,
 } from '@sentry/replay';
@@ -41,52 +45,40 @@ export type {
   ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  ReplayCanvas,
-  replayCanvasIntegration,
-} from '@sentry-internal/replay-canvas';
+export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  Feedback,
   feedbackIntegration,
   sendFeedback,
 } from '@sentry-internal/feedback';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserTracing,
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-  DEFAULT_TRACE_PROPAGATION_TARGETS,
 } from '@sentry-internal/tracing';
 export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
 export {
   addTracingExtensions,
+  getActiveSpan,
+  getRootSpan,
+  startSpan,
+  startInactiveSpan,
+  startSpanManual,
+  withActiveSpan,
+  getSpanDescendants,
   setMeasurement,
-  // eslint-disable-next-line deprecation/deprecation
-  extractTraceparentData,
   // eslint-disable-next-line deprecation/deprecation
   getActiveTransaction,
   getSpanStatusFromHttpCode,
   setHttpStatus,
-  // eslint-disable-next-line deprecation/deprecation
-  trace,
   makeMultiplexedTransport,
   // eslint-disable-next-line deprecation/deprecation
   ModuleMetadata,
   moduleMetadataIntegration,
 } from '@sentry/core';
-export type { SpanStatusType } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';
-export { onProfilingStartRouteTransaction } from './profiling/hubextensions';
-export {
-  // eslint-disable-next-line deprecation/deprecation
-  BrowserProfilingIntegration,
-  browserProfilingIntegration,
-} from './profiling/integration';
+export { browserProfilingIntegration } from './profiling/integration';

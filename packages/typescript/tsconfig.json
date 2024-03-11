@@ -7,7 +7,7 @@
     "importHelpers": true,
     "inlineSources": true,
     "isolatedModules": true,
-    "lib": ["es6", "dom"],
+    "lib": ["es2017", "dom"],
     "moduleResolution": "node",
     "noErrorTruncation": true,
     "noFallthroughCasesInSwitch": true,
@@ -19,6 +19,6 @@
     "sourceMap": true,
     "strict": true,
     "strictBindCallApply": false,
-    "target": "es6"
+    "target": "es2017"
   }
 }

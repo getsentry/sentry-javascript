@@ -1,11 +1,10 @@
-import { addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
+import type { NodeOptions } from '@sentry/node-experimental';
 import {
   Integrations as OriginalIntegrations,
-  getCurrentScope,
   getDefaultIntegrations,
   init as nodeInit,
-} from '@sentry/node';
+} from '@sentry/node-experimental';
 import type { EventProcessor } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -17,8 +16,7 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { Http } from './httpIntegration';
 import { OnUncaughtException } from './onUncaughtExceptionIntegration';
 
-export { createReduxEnhancer } from '@sentry/react';
-export * from '@sentry/node';
+export * from '@sentry/node-experimental';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 export const Integrations = {
@@ -47,6 +45,13 @@ export const ErrorBoundary = (props: React.PropsWithChildren<unknown>): React.Re
   // since Next.js >= 10 requires React ^16.6.0 we are allowed to return children like this here
   return props.children as React.ReactNode;
 };
+
+/**
+ * A passthrough redux enhancer for the server that doesn't depend on anything from the `@sentry/react` package.
+ */
+export function createReduxEnhancer() {
+  return (createStore: unknown) => createStore;
+}
 
 /**
  * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch
@@ -120,16 +125,15 @@ export function init(options: NodeOptions): void {
 
   filterTransactions.id = 'NextServer404TransactionFilter';
 
-  const scope = getCurrentScope();
-  scope.setTag('runtime', 'node');
+  setTag('runtime', 'node');
   if (IS_VERCEL) {
-    scope.setTag('vercel', true);
+    setTag('vercel', true);
   }
 
-  scope.addEventProcessor(filterTransactions);
+  addEventProcessor(filterTransactions);
 
   if (process.env.NODE_ENV === 'development') {
-    scope.addEventProcessor(devErrorSymbolicationEventProcessor);
+    addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');

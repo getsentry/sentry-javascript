@@ -1,7 +1,5 @@
-import type { browserTracingIntegration } from '@sentry-internal/tracing';
-import { BrowserTracing } from '@sentry-internal/tracing';
 import { captureException, withScope } from '@sentry/core';
-import type { DsnLike, Integration, Mechanism, WrappedFunction } from '@sentry/types';
+import type { Mechanism, WrappedFunction } from '@sentry/types';
 import {
   GLOBAL_OBJ,
   addExceptionMechanism,
@@ -154,68 +152,4 @@ export function wrap(
   } catch (_oO) {}
 
   return sentryWrapped;
-}
-
-/**
- * All properties the report dialog supports
- *
- * @deprecated This type will be removed in the next major version of the Sentry SDK. `showReportDialog` will still be around, however the `eventId` option will now be required.
- */
-export interface ReportDialogOptions {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
-  eventId?: string;
-  dsn?: DsnLike;
-  user?: {
-    email?: string;
-    name?: string;
-  };
-  lang?: string;
-  title?: string;
-  subtitle?: string;
-  subtitle2?: string;
-  labelName?: string;
-  labelEmail?: string;
-  labelComments?: string;
-  labelClose?: string;
-  labelSubmit?: string;
-  errorGeneric?: string;
-  errorFormEntry?: string;
-  successMessage?: string;
-  /** Callback after reportDialog showed up */
-  onLoad?(this: void): void;
-  /** Callback after reportDialog closed */
-  onClose?(this: void): void;
-}
-
-/**
- * This is a slim shim of `browserTracingIntegration` for the CDN bundles.
- * Since the actual functional integration uses a different code from `BrowserTracing`,
- * we want to avoid shipping both of them in the CDN bundles, as that would blow up the size.
- * Instead, we provide a functional integration with the same API, but the old implementation.
- * This means that it's not possible to register custom routing instrumentation, but that's OK for now.
- * We also don't expose the utilities for this anyhow in the CDN bundles.
- * For users that need custom routing in CDN bundles, they have to continue using `new BrowserTracing()` until v8.
- */
-export function bundleBrowserTracingIntegration(
-  options: Parameters<typeof browserTracingIntegration>[0] = {},
-): Integration {
-  // Migrate some options from the old integration to the new one
-  // eslint-disable-next-line deprecation/deprecation
-  const opts: ConstructorParameters<typeof BrowserTracing>[0] = options;
-
-  if (typeof options.markBackgroundSpan === 'boolean') {
-    opts.markBackgroundTransactions = options.markBackgroundSpan;
-  }
-
-  if (typeof options.instrumentPageLoad === 'boolean') {
-    opts.startTransactionOnPageLoad = options.instrumentPageLoad;
-  }
-
-  if (typeof options.instrumentNavigation === 'boolean') {
-    opts.startTransactionOnLocationChange = options.instrumentNavigation;
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  return new BrowserTracing(opts);
 }

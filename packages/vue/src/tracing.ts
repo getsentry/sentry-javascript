@@ -1,5 +1,5 @@
-import { getActiveSpan, getCurrentScope, startInactiveSpan } from '@sentry/browser';
-import type { Span, Transaction } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/browser';
+import type { Span } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 
 import { DEFAULT_HOOKS } from './constants';
@@ -31,16 +31,6 @@ const HOOKS: { [key in Operation]: Hook[] } = {
   mount: ['beforeMount', 'mounted'],
   update: ['beforeUpdate', 'updated'],
 };
-
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export function getActiveTransaction(): Transaction | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getTransaction();
-}
 
 /** Finish top-level span and activity with a debounce configured using `timeout` option */
 function finishRootSpan(vm: VueSentry, timestamp: number, timeout: number): void {
@@ -85,7 +75,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
               startInactiveSpan({
                 name: 'Application Render',
                 op: `${VUE_OP}.render`,
-                origin: 'auto.ui.vue',
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+                },
               });
           }
         }
@@ -119,7 +111,9 @@ export const createTracingMixins = (options: TracingOptions): Mixins => {
             this.$_sentrySpans[operation] = startInactiveSpan({
               name: `Vue <${name}>`,
               op: `${VUE_OP}.${operation}`,
-              origin: 'auto.ui.vue',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.vue',
+              },
             });
           }
         } else {

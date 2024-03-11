@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getClient, getCurrentScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import type { FeedbackFormData, FeedbackInternalOptions, FeedbackWidget } from '../types';
@@ -8,6 +8,8 @@ import { Actor } from './Actor';
 import type { DialogComponent } from './Dialog';
 import { Dialog } from './Dialog';
 import { SuccessMessage } from './SuccessMessage';
+
+import { DEBUG_BUILD } from '../debug-build';
 
 interface CreateWidgetParams {
   /**
@@ -107,7 +109,7 @@ export function createWidget({
     const result = await handleFeedbackSubmit(dialog, feedback);
 
     // Error submitting feedback
-    if (!result) {
+    if (!result || Object.keys(result).length === 0) {
       if (options.onSubmitError) {
         options.onSubmitError();
       }
@@ -122,6 +124,21 @@ export function createWidget({
     if (options.onSubmitSuccess) {
       options.onSubmitSuccess();
     }
+  }
+
+  /**
+   * Internal handler when dialog is opened
+   */
+  function handleOpenDialog(): void {
+    // Flush replay if integration exists
+    const client = getClient();
+    const replay = client && client.getIntegrationByName<{ name: string; flush: () => Promise<void> }>('Replay');
+    if (!replay) {
+      return;
+    }
+    replay.flush().catch(err => {
+      DEBUG_BUILD && logger.error(err);
+    });
   }
 
   /**
@@ -156,6 +173,7 @@ export function createWidget({
         if (options.onFormOpen) {
           options.onFormOpen();
         }
+        handleOpenDialog();
         return;
       }
 
@@ -208,6 +226,7 @@ export function createWidget({
       if (options.onFormOpen) {
         options.onFormOpen();
       }
+      handleOpenDialog();
     } catch (err) {
       // TODO: Error handling?
       logger.error(err);

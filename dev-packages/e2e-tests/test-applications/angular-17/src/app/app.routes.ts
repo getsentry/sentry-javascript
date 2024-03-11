@@ -12,6 +12,18 @@ export const routes: Routes = [
     component: HomeComponent,
   },
   {
+    path: 'redirect1',
+    redirectTo: '/redirect2',
+  },
+  {
+    path: 'redirect2',
+    redirectTo: '/redirect3',
+  },
+  {
+    path: 'redirect3',
+    redirectTo: '/users/456',
+  },
+  {
     path: '**',
     redirectTo: 'home',
   },

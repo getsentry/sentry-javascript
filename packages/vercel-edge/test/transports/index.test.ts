@@ -1,4 +1,3 @@
-import { TextEncoder } from 'util';
 import type { EventEnvelope, EventItem } from '@sentry/types';
 import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
@@ -8,7 +7,6 @@ import { IsolatedPromiseBuffer, makeEdgeTransport } from '../../src/transports';
 const DEFAULT_EDGE_TRANSPORT_OPTIONS: VercelEdgeTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
   recordDroppedEvent: () => undefined,
-  textEncoder: new TextEncoder(),
 };
 
 const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
@@ -55,7 +53,7 @@ describe('Edge Transport', () => {
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
     });
   });
@@ -104,7 +102,7 @@ describe('Edge Transport', () => {
     await transport.send(ERROR_ENVELOPE);
     await transport.flush();
     expect(mockFetch).toHaveBeenLastCalledWith(DEFAULT_EDGE_TRANSPORT_OPTIONS.url, {
-      body: serializeEnvelope(ERROR_ENVELOPE, new TextEncoder()),
+      body: serializeEnvelope(ERROR_ENVELOPE),
       method: 'POST',
       ...REQUEST_OPTIONS,
     });

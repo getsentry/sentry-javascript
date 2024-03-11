@@ -27,26 +27,24 @@ npm install --save @sentry/node @sentry/profiling-node
 
 ```javascript
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 Sentry.init({
   dsn: 'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302',
   debug: true,
   tracesSampleRate: 1,
   profilesSampleRate: 1, // Set profiling sampling rate.
-  integrations: [new ProfilingIntegration()],
+  integrations: [nodeProfilingIntegration()],
 });
 ```
 
-Sentry SDK will now automatically profile all transactions, even the ones which may be started as a result of using an
+Sentry SDK will now automatically profile all root spans, even the ones which may be started as a result of using an
 automatic instrumentation integration.
 
 ```javascript
-const transaction = Sentry.startTransaction({ name: 'some workflow' });
-
-// The code between startTransaction and transaction.finish will be profiled
-
-transaction.finish();
+Sentry.startSpan({ name: 'some workflow' }, () => {
+  // The code in here will be profiled
+});
 ```
 
 ### Building the package from source

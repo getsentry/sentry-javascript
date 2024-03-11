@@ -1,13 +1,13 @@
 {
   "name": "@sentry/browser",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.2",
   "description": "Official Sentry SDK for browsers",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/browser",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=14.18"
   },
   "files": [
     "cjs",
@@ -18,6 +18,19 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm.types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -29,16 +42,16 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/feedback": "7.100.0",
-    "@sentry-internal/replay-canvas": "7.100.0",
-    "@sentry-internal/tracing": "7.100.0",
-    "@sentry/core": "7.100.0",
-    "@sentry/replay": "7.100.0",
-    "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry-internal/feedback": "8.0.0-alpha.2",
+    "@sentry-internal/replay-canvas": "8.0.0-alpha.2",
+    "@sentry-internal/tracing": "8.0.0-alpha.2",
+    "@sentry/core": "8.0.0-alpha.2",
+    "@sentry/replay": "8.0.0-alpha.2",
+    "@sentry/types": "8.0.0-alpha.2",
+    "@sentry/utils": "8.0.0-alpha.2"
   },
   "devDependencies": {
-    "@sentry-internal/integration-shims": "7.100.0",
+    "@sentry-internal/integration-shims": "8.0.0-alpha.2",
     "@types/md5": "2.1.33",
     "btoa": "^1.2.1",
     "chai": "^4.1.2",
@@ -64,9 +77,7 @@
   "scripts": {
     "build": "run-p build:transpile build:bundle build:types",
     "build:dev": "yarn build",
-    "build:bundle": "run-p build:bundle:es5 build:bundle:es6",
-    "build:bundle:es5": "JS_VERSION=es5 rollup -c rollup.bundle.config.mjs",
-    "build:bundle:es6": "JS_VERSION=es6 rollup -c rollup.bundle.config.mjs",
+    "build:bundle": "rollup -c rollup.bundle.config.mjs",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
@@ -81,10 +92,7 @@
     "clean": "rimraf build coverage .rpt2_cache sentry-browser-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "validate:es5": "es-check es5 'build/bundles/*.es5*.js'",
-    "size:check": "run-p size:check:es5 size:check:es6",
-    "size:check:es5": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES5: \",$1,\"kB\";}'",
-    "size:check:es6": "cat build/bundles/bundle.es6.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES6: \",$1,\"kB\";}'",
+    "size:check": "cat build/bundles/bundle.min.js | gzip -9 | wc -c | awk '{$1=$1/1024; print \"ES2017: \",$1,\"kB\";}'",
     "test": "yarn test:unit",
     "test:unit": "jest",
     "test:integration": "test/integration/run.js",

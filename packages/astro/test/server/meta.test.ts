@@ -1,25 +1,23 @@
 import * as SentryCore from '@sentry/core';
+import { SentrySpan } from '@sentry/core';
+import type { Transaction } from '@sentry/types';
 import { vi } from 'vitest';
 
 import { getTracingMetaTags, isValidBaggageString } from '../../src/server/meta';
 
-const TRACE_FLAG_SAMPLED = 0x1;
+const TRACE_FLAG_SAMPLED = 1;
 
-const mockedSpan = {
-  isRecording: () => true,
-  spanContext: () => {
-    return {
-      traceId: '12345678901234567890123456789012',
-      spanId: '1234567890123456',
-      traceFlags: TRACE_FLAG_SAMPLED,
-    };
-  },
-  transaction: {
-    getDynamicSamplingContext: () => ({
-      environment: 'production',
-    }),
-  },
-} as any;
+const mockedSpan = new SentrySpan({
+  traceId: '12345678901234567890123456789012',
+  spanId: '1234567890123456',
+  sampled: true,
+});
+// eslint-disable-next-line deprecation/deprecation
+mockedSpan.transaction = {
+  getDynamicSamplingContext: () => ({
+    environment: 'production',
+  }),
+} as Transaction;
 
 const mockedClient = {} as any;
 

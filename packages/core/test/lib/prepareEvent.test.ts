@@ -9,9 +9,9 @@ import type {
   ScopeContext,
 } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getIsolationScope, setGlobalScope } from '../../src';
+import { getGlobalScope, getIsolationScope, setGlobalScope } from '../../src';
 
-import { Scope, getGlobalScope } from '../../src/scope';
+import { Scope } from '../../src/scope';
 import {
   applyDebugIds,
   applyDebugMeta,
@@ -377,6 +377,132 @@ describe('prepareEvent', () => {
         aa: 'aa',
         bb: 'bb',
       },
+    });
+  });
+
+  describe('captureContext', () => {
+    it('works with scope & captureContext=POJO', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as Client;
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext: { tags: { foo: 'bar' } },
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
+    });
+
+    it('works with scope & captureContext=scope instance', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as Client;
+
+      const captureContext = new Scope();
+      captureContext.setTags({ foo: 'bar' });
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext,
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
+    });
+
+    it('works with scope & captureContext=function', async () => {
+      const scope = new Scope();
+      scope.setTags({
+        initial: 'aa',
+        foo: 'foo',
+      });
+
+      const event = { message: 'foo' };
+
+      const options = {} as ClientOptions;
+      const client = {
+        getEventProcessors() {
+          return [] as EventProcessor[];
+        },
+      } as Client;
+
+      const captureContextScope = new Scope();
+      captureContextScope.setTags({ foo: 'bar' });
+
+      const captureContext = jest.fn(passedScope => {
+        expect(passedScope).toEqual(scope);
+        return captureContextScope;
+      });
+
+      const processedEvent = await prepareEvent(
+        options,
+        event,
+        {
+          captureContext,
+          integrations: [],
+        },
+        scope,
+        client,
+      );
+
+      expect(captureContext).toHaveBeenCalledTimes(1);
+
+      expect(processedEvent).toEqual({
+        timestamp: expect.any(Number),
+        event_id: expect.any(String),
+        environment: 'production',
+        message: 'foo',
+        sdkProcessingMetadata: {},
+        tags: { initial: 'aa', foo: 'bar' },
+      });
     });
   });
 });

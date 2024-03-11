@@ -7,7 +7,6 @@ import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { Session } from './session';
 import type { SeverityLevel } from './severity';
-import type { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import type { User } from './user';
 
 /**
@@ -79,7 +78,7 @@ export interface Hub {
    * Returns the client of the top stack.
    * @deprecated Use `Sentry.getClient()` instead.
    */
-  getClient(): Client | undefined;
+  getClient<C extends Client>(): C | undefined;
 
   /**
    * Returns the scope of the top stack.
@@ -127,15 +126,6 @@ export interface Hub {
    * @deprecated Use `Sentry.captureEvent()` instead.
    */
   captureEvent(event: Event, hint?: EventHint): string;
-
-  /**
-   * This is the getter for lastEventId.
-   *
-   * @returns The last event id of a captured event.
-   *
-   * @deprecated This will be removed in v8.
-   */
-  lastEventId(): string | undefined;
 
   /**
    * Records a new breadcrumb which will be attached to future events.
@@ -207,56 +197,11 @@ export interface Hub {
   setContext(name: string, context: { [key: string]: any } | null): void;
 
   /**
-   * Callback to set context information onto the scope.
-   *
-   * @param callback Callback function that receives Scope.
-   * @deprecated Use `getScope()` directly.
-   */
-  configureScope(callback: (scope: Scope) => void): void;
-
-  /**
-   * For the duration of the callback, this hub will be set as the global current Hub.
-   * This function is useful if you want to run your own client and hook into an already initialized one
-   * e.g.: Reporting issues to your own sentry when running in your component while still using the users configuration.
-   *
-   * TODO v8: This will be merged with `withScope()`
-   */
-  run(callback: (hub: Hub) => void): void;
-
-  /**
    * Returns the integration if installed on the current client.
    *
    * @deprecated Use `Sentry.getClient().getIntegration()` instead.
    */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
-
-  /**
-   * Returns all trace headers that are currently on the top scope.
-   *
-   * @deprecated Use `spanToTraceHeader()` instead.
-   */
-  traceHeaders(): { [key: string]: string };
-
-  /**
-   * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
-   *
-   * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
-   * new child span within the transaction or any span, call the respective `.startChild()` method.
-   *
-   * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
-   *
-   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
-   * finished child spans will be sent to Sentry.
-   *
-   * @param context Properties of the new `Transaction`.
-   * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
-   * default values). See {@link Options.tracesSampler}.
-   *
-   * @returns The transaction which was just started
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 
   /**
    * Starts a new `Session`, sets on the current scope and returns it.

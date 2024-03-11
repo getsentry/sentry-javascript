@@ -1,5 +1,6 @@
-import type { ReportDialogOptions, Scope } from '@sentry/browser';
+import type { ReportDialogOptions } from '@sentry/browser';
 import { captureException, getClient, showReportDialog, withScope } from '@sentry/browser';
+import type { Scope } from '@sentry/types';
 import { isError, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -28,7 +29,6 @@ export type ErrorBoundaryProps = {
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  // eslint-disable-next-line deprecation/deprecation
   dialogOptions?: Omit<ReportDialogOptions, 'eventId'> | undefined;
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
@@ -89,7 +89,7 @@ function setCause(error: Error & { cause?: Error }, cause: Error): void {
 }
 
 /**
- * A ErrorBoundary component that logs errors to Sentry. Requires React >= 16.
+ * A ErrorBoundary component that logs errors to Sentry.
  * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
  * Sentry React SDK ErrorBoundary caught an error invoking your application code. This
  * is expected behavior and NOT indicative of a bug with the Sentry React SDK.
@@ -108,11 +108,10 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     this._openFallbackReportDialog = true;
 
     const client = getClient();
-    if (client && client.on && props.showDialog) {
+    if (client && props.showDialog) {
       this._openFallbackReportDialog = false;
       client.on('afterSendEvent', event => {
-        if (!event.type && event.event_id === this._lastEventId) {
-          // eslint-disable-next-line deprecation/deprecation
+        if (!event.type && this._lastEventId && event.event_id === this._lastEventId) {
           showReportDialog({ ...props.dialogOptions, eventId: this._lastEventId });
         }
       });
@@ -147,7 +146,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
         captureContext: {
           contexts: { react: { componentStack } },
         },
-        mechanism: { handled: false },
+        // If users provide a fallback component we can assume they are handling the error.
+        // Therefore, we set the mechanism depending on the presence of the fallback prop.
+        mechanism: { handled: !!this.props.fallback },
       });
 
       if (onError) {

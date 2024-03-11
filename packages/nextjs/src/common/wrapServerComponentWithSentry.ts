@@ -1,5 +1,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
+  SPAN_STATUS_OK,
   addTracingExtensions,
   captureException,
   getCurrentScope,
@@ -67,12 +69,12 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
               error => {
                 if (isNotFoundNavigationError(error)) {
                   // We don't want to report "not-found"s
-                  span?.setStatus('not_found');
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
                 } else if (isRedirectNavigationError(error)) {
                   // We don't want to report redirects
-                  span?.setStatus('ok');
+                  span.setStatus({ code: SPAN_STATUS_OK });
                 } else {
-                  span?.setStatus('internal_error');
+                  span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                   captureException(error, {
                     mechanism: {
                       handled: false,
@@ -81,7 +83,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                 }
               },
               () => {
-                span?.end();
+                span.end();
 
                 // flushQueue should not throw
                 // eslint-disable-next-line @typescript-eslint/no-floating-promises

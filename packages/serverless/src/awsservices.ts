@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import { getClient, startInactiveSpan } from '@sentry/node';
+import { getClient, startInactiveSpan } from '@sentry/node-experimental';
 import type { Client, Integration, IntegrationClass, IntegrationFn, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
@@ -64,10 +64,10 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
   orig: MakeRequestFunction<GenericParams, TResult>,
 ): MakeRequestFunction<GenericParams, TResult> {
   return function (this: TService, operation: string, params?: GenericParams, callback?: MakeRequestCallback<TResult>) {
-    let span: Span | undefined;
     const req = orig.call(this, operation, params);
 
     if (SETUP_CLIENTS.has(getClient() as Client)) {
+      let span: Span | undefined;
       req.on('afterBuild', () => {
         span = startInactiveSpan({
           name: describe(this, operation, params),
@@ -79,9 +79,7 @@ function wrapMakeRequest<TService extends AWSService, TResult>(
         });
       });
       req.on('complete', () => {
-        if (span) {
-          span.end();
-        }
+        span?.end();
       });
     }
 

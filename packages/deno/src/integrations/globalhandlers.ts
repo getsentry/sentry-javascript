@@ -1,18 +1,9 @@
 import type { ServerRuntimeClient } from '@sentry/core';
 import { defineIntegration } from '@sentry/core';
-import { convertIntegrationFnToClass } from '@sentry/core';
 import { captureEvent } from '@sentry/core';
 import { getClient } from '@sentry/core';
 import { flush } from '@sentry/core';
-import type {
-  Client,
-  Event,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  Primitive,
-  StackParser,
-} from '@sentry/types';
+import type { Client, Event, IntegrationFn, Primitive, StackParser } from '@sentry/types';
 import { eventFromUnknownInput, isPrimitive } from '@sentry/utils';
 
 type GlobalHandlersIntegrationsOptionKeys = 'error' | 'unhandledrejection';
@@ -31,8 +22,6 @@ const _globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
 
   return {
     name: INTEGRATION_NAME,
-    // TODO v8: Remove this
-    setupOnce() {}, // eslint-disable-line @typescript-eslint/no-empty-function
     setup(client) {
       if (_options.error) {
         installGlobalErrorHandler(client);
@@ -44,20 +33,20 @@ const _globalHandlersIntegration = ((options?: GlobalHandlersIntegrations) => {
   };
 }) satisfies IntegrationFn;
 
-export const globalHandlersIntegration = defineIntegration(_globalHandlersIntegration);
-
 /**
- * Global handlers.
- * @deprecated Use `globalHandlersIntegration()` instead.
+ * Instruments global `error` and `unhandledrejection` listeners in Deno.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.globalHandlersIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const GlobalHandlers = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  globalHandlersIntegration,
-) as IntegrationClass<Integration & { setup: (client: Client) => void }>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type GlobalHandlers = typeof GlobalHandlers;
+export const globalHandlersIntegration = defineIntegration(_globalHandlersIntegration);
 
 function installGlobalErrorHandler(client: Client): void {
   globalThis.addEventListener('error', data => {
@@ -69,7 +58,7 @@ function installGlobalErrorHandler(client: Client): void {
 
     const { message, error } = data;
 
-    const event = eventFromUnknownInput(getClient(), stackParser, error || message);
+    const event = eventFromUnknownInput(client, stackParser, error || message);
 
     event.level = 'fatal';
 
@@ -118,7 +107,7 @@ function installGlobalUnhandledRejectionHandler(client: Client): void {
 
     const event = isPrimitive(error)
       ? eventFromRejectionWithPrimitive(error)
-      : eventFromUnknownInput(getClient(), stackParser, error, undefined);
+      : eventFromUnknownInput(client, stackParser, error, undefined);
 
     event.level = 'fatal';
 

@@ -1,13 +1,13 @@
 {
   "name": "@sentry-internal/feedback",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.2",
   "description": "Sentry SDK integration for user feedback",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/feedback",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=12"
+    "node": ">=14.18"
   },
   "files": [
     "cjs",
@@ -18,6 +18,19 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -29,9 +42,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/core": "7.100.0",
-    "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry/core": "8.0.0-alpha.2",
+    "@sentry/types": "8.0.0-alpha.2",
+    "@sentry/utils": "8.0.0-alpha.2"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",

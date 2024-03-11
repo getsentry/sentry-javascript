@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import type { ActivatedRouteSnapshot, CanActivate, RouterStateSnapshot } from '@angular/router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 
 import { TraceClassDecorator, TraceDirective, TraceMethodDecorator, instrumentAngularRouting } from '../src';
 import { getParameterizedRouteFromSnapshot } from '../src/tracing';
@@ -13,7 +13,7 @@ const defaultStartTransaction = (ctx: any) => {
     ...ctx,
     updateName: jest.fn(name => (transaction.name = name)),
     setAttribute: jest.fn(),
-    toJSON: () => ({
+    getSpanJSON: () => ({
       data: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
         ...ctx.data,
@@ -117,7 +117,7 @@ describe('Angular Tracing', () => {
       const customStartTransaction = jest.fn((ctx: any) => {
         transaction = {
           ...ctx,
-          toJSON: () => ({
+          getSpanJSON: () => ({
             data: {
               ...ctx.data,
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -154,7 +154,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.updateName).toHaveBeenCalledTimes(0);
       expect(transaction.name).toEqual(url);
-      expect(transaction.toJSON().data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
+      expect(spanToJSON(transaction).data).toEqual({ [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' });
 
       env.destroy();
     });
@@ -373,13 +373,13 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
         origin: 'auto.ui.angular.trace_directive',
-        description: '<unknown>',
+        name: '<unknown>',
       });
 
       env.destroy();
     });
 
-    it('should use component name as span description', async () => {
+    it('should use component name as span name', async () => {
       const directive = new TraceDirective();
       const finishMock = jest.fn();
       const customStartTransaction = jest.fn(defaultStartTransaction);
@@ -400,7 +400,7 @@ describe('Angular Tracing', () => {
       expect(transaction.startChild).toHaveBeenCalledWith({
         op: 'ui.angular.init',
         origin: 'auto.ui.angular.trace_directive',
-        description: '<test-component>',
+        name: '<test-component>',
       });
 
       env.destroy();
@@ -472,7 +472,7 @@ describe('Angular Tracing', () => {
       });
 
       expect(transaction.startChild).toHaveBeenCalledWith({
-        description: '<DecoratedComponent>',
+        name: '<DecoratedComponent>',
         op: 'ui.angular.init',
         origin: 'auto.ui.angular.trace_class_decorator',
       });
@@ -526,7 +526,7 @@ describe('Angular Tracing', () => {
 
       expect(transaction.startChild).toHaveBeenCalledTimes(2);
       expect(transaction.startChild.mock.calls[0][0]).toEqual({
-        description: '<DecoratedComponent>',
+        name: '<DecoratedComponent>',
         op: 'ui.angular.ngOnInit',
         origin: 'auto.ui.angular.trace_method_decorator',
         startTimestamp: expect.any(Number),
@@ -534,7 +534,7 @@ describe('Angular Tracing', () => {
       });
 
       expect(transaction.startChild.mock.calls[1][0]).toEqual({
-        description: '<DecoratedComponent>',
+        name: '<DecoratedComponent>',
         op: 'ui.angular.ngAfterViewInit',
         origin: 'auto.ui.angular.trace_method_decorator',
         startTimestamp: expect.any(Number),

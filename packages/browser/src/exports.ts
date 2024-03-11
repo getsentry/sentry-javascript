@@ -17,8 +17,7 @@ export type {
 
 export type { BrowserOptions } from './client';
 
-// eslint-disable-next-line deprecation/deprecation
-export type { ReportDialogOptions } from './helpers';
+export type { ReportDialogOptions } from './sdk';
 
 export {
   // eslint-disable-next-line deprecation/deprecation
@@ -30,30 +29,20 @@ export {
   captureEvent,
   captureMessage,
   close,
-  // eslint-disable-next-line deprecation/deprecation
-  configureScope,
   createTransport,
   flush,
-  getHubFromCarrier,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
+  getIsolationScope,
+  getGlobalScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  lastEventId,
-  // eslint-disable-next-line deprecation/deprecation
   // eslint-disable-next-line deprecation/deprecation
   makeMain,
   setCurrentClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
-  getActiveSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
   continueTrace,
   SDK_VERSION,
   setContext,
@@ -64,19 +53,28 @@ export {
   setUser,
   withScope,
   withIsolationScope,
-  // eslint-disable-next-line deprecation/deprecation
-  FunctionToString,
-  // eslint-disable-next-line deprecation/deprecation
-  InboundFilters,
-  metrics,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  dedupeIntegration,
   parameterize,
+  startSession,
+  captureSession,
+  endSession,
+  spanToJSON,
 } from '@sentry/core';
+
+export {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+} from '@sentry/core';
+
+export * from './metrics';
 
 export { WINDOW } from './helpers';
 export { BrowserClient } from './client';
-export { makeFetchTransport, makeXHRTransport } from './transports';
+export { makeFetchTransport } from './transports/fetch';
 export {
   defaultStackParser,
   defaultStackLineParsers,
@@ -89,8 +87,6 @@ export {
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
 export { createUserFeedbackEnvelope } from './userfeedback';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  defaultIntegrations,
   getDefaultIntegrations,
   forceLoad,
   init,
@@ -102,11 +98,7 @@ export {
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';
-export { dedupeIntegration } from './integrations/dedupe';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
-export { browserApiErrorsIntegration } from './integrations/trycatch';
-
-// eslint-disable-next-line deprecation/deprecation
-export { TryCatch, Breadcrumbs, LinkedErrors, HttpContext, Dedupe } from './integrations';
+export { browserApiErrorsIntegration } from './integrations/browserapierrors';

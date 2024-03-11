@@ -48,6 +48,7 @@ describe('Integration | OTEL TimedEvents', () => {
         event_id: expect.any(String),
         originalException: expect.any(Error),
         syntheticException: expect.any(Error),
+        captureContext: expect.any(Object),
       },
     );
   });

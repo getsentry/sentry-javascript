@@ -25,12 +25,12 @@
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
-    "@sentry/integrations": "file:../../../integrations",
-    "@sentry/node": "file:../../../node",
+    "@sentry/node": "file:../../../node-experimental",
+    "@sentry/node-experimental": "file:../../../node",
+    "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
     "@sentry/replay": "file:../../../replay",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
-    "@sentry/tracing": "file:../../../tracing",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry-internal/feedback": "file:../../../feedback",
     "@sentry/types": "file:../../../types",
@@ -39,6 +39,6 @@
     "@vanilla-extract/integration": "6.2.4"
   },
   "engines": {
-    "node": ">=14"
+    "node": ">=14.18"
   }
 }

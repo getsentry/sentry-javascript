@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, handleCallbackErrors } from '@sentry/core';
-import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node';
+import { captureException, flush, getCurrentScope, startSpanManual } from '@sentry/node-experimental';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -51,7 +51,7 @@ function _wrapEventFunction<F extends EventFunction | EventFunctionWithCallback>
           if (args[0] !== null && args[0] !== undefined) {
             captureException(args[0], scope => markEventUnhandled(scope));
           }
-          span?.end();
+          span.end();
 
           // eslint-disable-next-line @typescript-eslint/no-floating-promises
           flush(options.flushTimeout)

@@ -7,7 +7,7 @@ import type { Express } from 'express';
  */
 export function loggingTransport(_options: BaseTransportOptions): Transport {
   return {
-    send(request: Envelope): Promise<void | TransportMakeRequestResponse> {
+    send(request: Envelope): Promise<TransportMakeRequestResponse> {
       // eslint-disable-next-line no-console
       console.log(JSON.stringify(request));
       return Promise.resolve({ statusCode: 200 });

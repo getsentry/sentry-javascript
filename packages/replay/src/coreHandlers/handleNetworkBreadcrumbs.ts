@@ -1,23 +1,14 @@
 import { getClient } from '@sentry/core';
-import type {
-  Breadcrumb,
-  BreadcrumbHint,
-  FetchBreadcrumbData,
-  TextEncoderInternal,
-  XhrBreadcrumbData,
-} from '@sentry/types';
-import { addFetchInstrumentationHandler, addXhrInstrumentationHandler, logger } from '@sentry/utils';
+import type { Breadcrumb, BreadcrumbHint, FetchBreadcrumbData, XhrBreadcrumbData } from '@sentry/types';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import type { FetchHint, ReplayContainer, ReplayNetworkOptions, XhrHint } from '../types';
-import { handleFetchSpanListener } from './handleFetch';
-import { handleXhrSpanListener } from './handleXhr';
 import { captureFetchBreadcrumbToReplay, enrichFetchBreadcrumb } from './util/fetchUtils';
 import { captureXhrBreadcrumbToReplay, enrichXhrBreadcrumb } from './util/xhrUtils';
 
 interface ExtendedNetworkBreadcrumbsOptions extends ReplayNetworkOptions {
   replay: ReplayContainer;
-  textEncoder: TextEncoderInternal;
 }
 
 /**
@@ -30,8 +21,6 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
   const client = getClient();
 
   try {
-    const textEncoder = new TextEncoder();
-
     const {
       networkDetailAllowUrls,
       networkDetailDenyUrls,
@@ -42,7 +31,6 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
 
     const options: ExtendedNetworkBreadcrumbsOptions = {
       replay,
-      textEncoder,
       networkDetailAllowUrls,
       networkDetailDenyUrls,
       networkCaptureBodies,
@@ -50,12 +38,8 @@ export function handleNetworkBreadcrumbs(replay: ReplayContainer): void {
       networkResponseHeaders,
     };
 
-    if (client && client.on) {
+    if (client) {
       client.on('beforeAddBreadcrumb', (breadcrumb, hint) => beforeAddNetworkBreadcrumb(options, breadcrumb, hint));
-    } else {
-      // Fallback behavior
-      addFetchInstrumentationHandler(handleFetchSpanListener(replay));
-      addXhrInstrumentationHandler(handleXhrSpanListener(replay));
     }
   } catch {
     // Do nothing
@@ -77,7 +61,7 @@ export function beforeAddNetworkBreadcrumb(
       // This has to be sync, as we need to ensure the breadcrumb is enriched in the same tick
       // Because the hook runs synchronously, and the breadcrumb is afterwards passed on
       // So any async mutations to it will not be reflected in the final breadcrumb
-      enrichXhrBreadcrumb(breadcrumb, hint, options);
+      enrichXhrBreadcrumb(breadcrumb, hint);
 
       // This call should not reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
@@ -88,7 +72,7 @@ export function beforeAddNetworkBreadcrumb(
       // This has to be sync, as we need to ensure the breadcrumb is enriched in the same tick
       // Because the hook runs synchronously, and the breadcrumb is afterwards passed on
       // So any async mutations to it will not be reflected in the final breadcrumb
-      enrichFetchBreadcrumb(breadcrumb, hint, options);
+      enrichFetchBreadcrumb(breadcrumb, hint);
 
       // This call should not reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises

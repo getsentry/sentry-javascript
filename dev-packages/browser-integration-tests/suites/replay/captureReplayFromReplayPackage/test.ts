@@ -45,7 +45,7 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
       integrations: [
         'InboundFilters',
         'FunctionToString',
-        'TryCatch',
+        'BrowserApiErrors',
         'Breadcrumbs',
         'GlobalHandlers',
         'LinkedErrors',
@@ -82,7 +82,7 @@ sentryTest('should capture replays (@sentry/replay export)', async ({ getLocalTe
       integrations: [
         'InboundFilters',
         'FunctionToString',
-        'TryCatch',
+        'BrowserApiErrors',
         'Breadcrumbs',
         'GlobalHandlers',
         'LinkedErrors',

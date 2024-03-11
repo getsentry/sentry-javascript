@@ -1,14 +1,14 @@
-import { BrowserClient } from '@sentry/browser';
-import { Hub, addTracingExtensions, makeMain, spanToJSON, startInactiveSpan, startSpan } from '@sentry/core';
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
+import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
-import { getDefaultBrowserClientOptions } from '../../../../tracing/test/testutils';
-import { registerErrorInstrumentation } from '../../../src/tracing/errors';
+import { _resetErrorsInstrumented, registerErrorInstrumentation } from '../../../src/tracing/errors';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const mockAddGlobalErrorInstrumentationHandler = jest.fn();
 const mockAddGlobalUnhandledRejectionInstrumentationHandler = jest.fn();
 let mockErrorCallback: (data: HandlerDataError) => void = () => {};
 let mockUnhandledRejectionCallback: (data: HandlerDataUnhandledRejection) => void = () => {};
+
 jest.mock('@sentry/utils', () => {
   const actual = jest.requireActual('@sentry/utils');
   return {
@@ -33,11 +33,11 @@ describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
     mockAddGlobalUnhandledRejectionInstrumentationHandler.mockClear();
-    const options = getDefaultBrowserClientOptions({ enableTracing: true });
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new BrowserClient(options));
-    // eslint-disable-next-line deprecation/deprecation
-    makeMain(hub);
+    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+    _resetErrorsInstrumented();
   });
 
   it('registers error instrumentation', () => {
@@ -52,18 +52,12 @@ describe('registerErrorHandlers()', () => {
     registerErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockErrorCallback({} as HandlerDataError);
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     mockUnhandledRejectionCallback({});
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction.status).toBe(undefined);
     expect(spanToJSON(transaction).status).toBe(undefined);
 
     transaction.end();
@@ -74,9 +68,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span!.status).toBe('internal_error');
-      expect(spanToJSON(span!).status).toBe('internal_error');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
   });
 
@@ -85,9 +77,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span!.status).toBe('internal_error');
-      expect(spanToJSON(span!).status).toBe('internal_error');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
   });
 });

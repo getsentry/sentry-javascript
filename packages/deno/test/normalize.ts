@@ -137,7 +137,7 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.contexts.os.name = '{{platform}}';
   }
 
-  if (event.contexts?.os?.version) {
+  if (event.contexts?.os) {
     event.contexts.os.version = '{{version}}';
   }
 
@@ -152,9 +152,9 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
   }
 
   if (event.exception?.values?.[0].stacktrace?.frames) {
-    // Exlcude Deno frames since these may change between versions
+    // Exclude Deno frames since these may change between versions
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.filter(
-      frame => !frame.filename?.includes('deno:'),
+      frame => !frame.filename?.includes('deno:') && !frame.filename?.startsWith('ext:'),
     );
   }
 
@@ -197,8 +197,11 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
   if (event.breadcrumbs) {
     for (const breadcrumb of event.breadcrumbs) {
       breadcrumb.timestamp = 0;
+      breadcrumb.event_id = '{{id}}';
     }
   }
+
+  event.server_name = '{{server}}';
 
   return event;
 }

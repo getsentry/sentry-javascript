@@ -1,13 +1,13 @@
 {
   "name": "@sentry/utils",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.2",
   "description": "Utilities for all Sentry JavaScript SDKs",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/utils",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14"
+    "node": ">=14.18"
   },
   "files": [
     "cjs",
@@ -18,6 +18,19 @@
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
   "types": "build/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/esm/index.js"
+      },
+      "require": {
+        "types": "./build/types/index.d.ts",
+        "default": "./build/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -29,7 +42,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/types": "7.100.0"
+    "@sentry/types": "8.0.0-alpha.2"
   },
   "devDependencies": {
     "@types/array.prototype.flat": "^1.2.1",

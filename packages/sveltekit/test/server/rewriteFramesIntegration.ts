@@ -1,4 +1,4 @@
-import { RewriteFrames } from '@sentry/integrations';
+import { rewriteFramesIntegration } from '@sentry/browser';
 import type { Event, StackFrame } from '@sentry/types';
 import { basename } from '@sentry/utils';
 
@@ -25,10 +25,8 @@ describe('rewriteFramesIteratee', () => {
       module: '3-ab34d22f.js',
     };
 
-    // eslint-disable-next-line deprecation/deprecation
-    const originalRewriteFrames = new RewriteFrames();
-    // eslint-disable-next-line deprecation/deprecation
-    const rewriteFrames = new RewriteFrames({ iteratee: rewriteFramesIteratee });
+    const originalRewriteFrames = rewriteFramesIntegration();
+    const rewriteFrames = rewriteFramesIntegration({ iteratee: rewriteFramesIteratee });
 
     const event: Event = {
       exception: {
@@ -42,8 +40,8 @@ describe('rewriteFramesIteratee', () => {
       },
     };
 
-    const originalResult = originalRewriteFrames.processEvent(event);
-    const result = rewriteFrames.processEvent(event);
+    const originalResult = originalRewriteFrames.processEvent?.(event, {}, {} as any);
+    const result = rewriteFrames.processEvent?.(event, {}, {} as any) as Event;
 
     expect(result.exception?.values?.[0]?.stacktrace?.frames?.[0]).toEqual({
       filename: 'app:///3-ab34d22f.js',

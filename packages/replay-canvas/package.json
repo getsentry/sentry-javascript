@@ -1,10 +1,23 @@
 {
   "name": "@sentry-internal/replay-canvas",
-  "version": "7.100.0",
+  "version": "8.0.0-alpha.2",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -59,13 +72,13 @@
     "@sentry-internal/rrweb": "2.11.0"
   },
   "dependencies": {
-    "@sentry/core": "7.100.0",
-    "@sentry/replay": "7.100.0",
-    "@sentry/types": "7.100.0",
-    "@sentry/utils": "7.100.0"
+    "@sentry/core": "8.0.0-alpha.2",
+    "@sentry/replay": "8.0.0-alpha.2",
+    "@sentry/types": "8.0.0-alpha.2",
+    "@sentry/utils": "8.0.0-alpha.2"
   },
   "engines": {
-    "node": ">=12"
+    "node": ">=14.18"
   },
   "volta": {
     "extends": "../../package.json"

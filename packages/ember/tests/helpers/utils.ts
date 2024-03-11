@@ -1,4 +1,3 @@
-import { spanToJSON } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
 const defaultAssertOptions = {
@@ -51,7 +50,7 @@ export function assertSentryTransactions(
   options: {
     spans: string[];
     transaction: string;
-    tags: Record<string, string | undefined>;
+    attributes: Record<string, string | undefined>;
     durationCheck?: (duration: number) => boolean;
   },
 ): void {
@@ -68,23 +67,24 @@ export function assertSentryTransactions(
   // Also we ignore ui.long-task spans, as they are brittle and may or may not appear
   const filteredSpans = spans
     .filter(span => {
-      const op = spanToJSON(span).op;
+      const op = span.op;
       return !op?.startsWith('ui.ember.runloop.') && !op?.startsWith('ui.long-task');
     })
-    .map(s => {
-      const spanJson = spanToJSON(s);
+    .map(spanJson => {
       return `${spanJson.op} | ${spanJson.description}`;
     });
 
   assert.true(
-    spans.some(span => spanToJSON(span).op?.startsWith('ui.ember.runloop.')),
+    spans.some(span => span.op?.startsWith('ui.ember.runloop.')),
     'it captures runloop spans',
   );
   assert.deepEqual(filteredSpans, options.spans, 'Has correct spans');
 
   assert.equal(event.transaction, options.transaction);
-  assert.equal(event.tags?.fromRoute, options.tags.fromRoute);
-  assert.equal(event.tags?.toRoute, options.tags.toRoute);
+
+  Object.keys(options.attributes).forEach(key => {
+    assert.equal(event.contexts?.trace?.data?.[key], options.attributes[key]);
+  });
 
   if (options.durationCheck && event.timestamp && event.start_timestamp) {
     const duration = (event.timestamp - event.start_timestamp) * 1000;

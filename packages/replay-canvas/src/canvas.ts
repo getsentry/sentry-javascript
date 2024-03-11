@@ -1,7 +1,7 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
-import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   enableManualSnapshot?: boolean;
@@ -66,8 +66,6 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
 
   return {
     name: INTEGRATION_NAME,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    setupOnce() {},
     getOptions(): ReplayCanvasIntegrationOptions {
       const { quality, enableManualSnapshot } = _canvasOptions;
 
@@ -75,7 +73,20 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
         enableManualSnapshot,
         recordCanvas: true,
         getCanvasManager: (options: CanvasManagerOptions) => {
-          const manager = new CanvasManager({ ...options, enableManualSnapshot });
+          const manager = new CanvasManager({
+            ...options,
+            enableManualSnapshot,
+            errorHandler: (err: unknown) => {
+              try {
+                if (typeof err === 'object') {
+                  (err as Error & { __rrweb__?: boolean }).__rrweb__ = true;
+                }
+              } catch (error) {
+                // ignore errors here
+                // this can happen if the error is frozen or does not allow mutation for other reasons
+              }
+            },
+          });
           canvasManagerResolve(manager);
           return manager;
         },
@@ -93,13 +104,3 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
  * Add this in addition to `replayIntegration()` to enable canvas recording.
  */
 export const replayCanvasIntegration = defineIntegration(_replayCanvasIntegration);
-
-/**
- * @deprecated Use `replayCanvasIntegration()` instead
- */
-// eslint-disable-next-line deprecation/deprecation
-export const ReplayCanvas = convertIntegrationFnToClass(INTEGRATION_NAME, replayCanvasIntegration) as IntegrationClass<
-  Integration & {
-    getOptions: () => ReplayCanvasIntegrationOptions;
-  }
->;
