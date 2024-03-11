@@ -3,16 +3,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getClient,
+  continueTrace,
+  getCurrentScope,
+  withScope,
 } from '@sentry/core';
-import { WINDOW } from '@sentry/react';
-import type { StartSpanOptions, TransactionSource } from '@sentry/types';
-import {
-  browserPerformanceTimeOrigin,
-  logger,
-  propagationContextFromHeaders,
-  stripUrlQueryAndFragment,
-} from '@sentry/utils';
+import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import type { Client, TransactionSource } from '@sentry/types';
+import { browserPerformanceTimeOrigin, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
 import RouterImport from 'next/router';
 
@@ -29,8 +26,6 @@ const globalObject = WINDOW as typeof WINDOW & {
     sortedPages?: string[];
   };
 };
-
-type StartSpanCb = (context: StartSpanOptions) => void;
 
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
@@ -104,73 +99,77 @@ function extractNextDataTagInformation(): NextDataTagInfo {
 }
 
 /**
- * Instruments the Next.js pages router. Only supported for
- * client side routing. Works for Next >= 10.
+ * Instruments the Next.js pages router for pageloads.
+ * Only supported for client side routing. Works for Next >= 10.
  *
  * Leverages the SingletonRouter from the `next/router` to
  * generate pageload/navigation transactions and parameterize
  * transaction names.
  */
-export function pagesRouterInstrumentation(
-  shouldInstrumentPageload: boolean,
-  shouldInstrumentNavigation: boolean,
-  startPageloadSpanCallback: StartSpanCb,
-  startNavigationSpanCallback: StartSpanCb,
-): void {
+export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
-  const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
-  let prevLocationName = route || globalObject.location.pathname;
+  const name = route || globalObject.location.pathname;
 
-  if (shouldInstrumentPageload) {
-    const client = getClient();
-    startPageloadSpanCallback({
-      name: prevLocationName,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-      traceId,
-      parentSpanId,
-      parentSampled: sampled,
-      ...(params && client && client.getOptions().sendDefaultPii && { data: params }),
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
-      },
-      metadata: {
-        dynamicSamplingContext: dsc,
-      },
-    });
-  }
+  // Continue trace updates the _current_ scope, but we want to break out of it again...
+  // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
+  // but wards, we want to reset it to avoid this also applying to other spans
+  const scope = getCurrentScope();
+  const propagationContextBefore = scope.getPropagationContext();
 
-  if (shouldInstrumentNavigation) {
-    Router.events.on('routeChangeStart', (navigationTarget: string) => {
-      const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
-      const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
+  continueTrace({ sentryTrace, baggage }, () => {
+    // Ensure we are on the original current scope again, so the span is set as active on it
+    return withScope(scope, () => {
+      startBrowserTracingPageLoadSpan(client, {
+        name,
+        // pageload should always start at timeOrigin (and needs to be in s, not ms)
+        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
 
-      let newLocation: string;
-      let spanSource: TransactionSource;
-
-      if (matchedRoute) {
-        newLocation = matchedRoute;
-        spanSource = 'route';
-      } else {
-        newLocation = strippedNavigationTarget;
-        spanSource = 'url';
-      }
-
-      startNavigationSpanCallback({
-        name: newLocation,
         attributes: {
-          from: prevLocationName,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+          ...(params && client.getOptions().sendDefaultPii && { ...params }),
         },
       });
-
-      prevLocationName = newLocation;
     });
-  }
+  });
+
+  scope.setPropagationContext(propagationContextBefore);
+}
+
+/**
+ * Instruments the Next.js pages router for navigation.
+ * Only supported for client side routing. Works for Next >= 10.
+ *
+ * Leverages the SingletonRouter from the `next/router` to
+ * generate pageload/navigation transactions and parameterize
+ * transaction names.
+ */
+export function pagesRouterInstrumentNavigation(client: Client): void {
+  Router.events.on('routeChangeStart', (navigationTarget: string) => {
+    const strippedNavigationTarget = stripUrlQueryAndFragment(navigationTarget);
+    const matchedRoute = getNextRouteFromPathname(strippedNavigationTarget);
+
+    let newLocation: string;
+    let spanSource: TransactionSource;
+
+    if (matchedRoute) {
+      newLocation = matchedRoute;
+      spanSource = 'route';
+    } else {
+      newLocation = strippedNavigationTarget;
+      spanSource = 'url';
+    }
+
+    startBrowserTracingNavigationSpan(client, {
+      name: newLocation,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.pages_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: spanSource,
+      },
+    });
+  });
 }
 
 function getNextRouteFromPathname(pathname: string): string | undefined {
