@@ -107,7 +107,6 @@ jobs:
               - 'packages/replay/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
-              - 'packages/feedback-screenshot/**'
               - 'packages/wasm/**'
             browser_integration:
               - *shared
