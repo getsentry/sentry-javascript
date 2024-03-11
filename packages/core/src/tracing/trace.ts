@@ -416,7 +416,6 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
     },
   });
   if (client) {
-    client.emit('startTransaction', transaction);
     client.emit('spanStart', transaction);
   }
   return transaction;
