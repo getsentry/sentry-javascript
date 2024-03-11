@@ -14,11 +14,11 @@ test('Sends a loader error to Sentry', async ({ page }) => {
   expect(loaderError.contexts.trace.op).toBe('http.server');
 });
 
-test('Sends formdata with action error to Sentry', async ({ page }) => {
+test('Sends formdata with action error to Sentry', async ({ page }, workerInfo) => {
   await page.goto('/action-formdata');
 
   await page.fill('input[name=test]', 'test');
-  await page.setInputFiles('input[type=file]', `${__dirname}/static/test.txt`);
+  await page.setInputFiles('input[type=file]', `${workerInfo.project.testDir}/static/test.txt`);
 
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent?.spans?.some(span => span.op === 'function.remix.action');
