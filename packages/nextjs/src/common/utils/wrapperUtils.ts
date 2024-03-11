@@ -35,8 +35,8 @@ export function getSpanFromRequest(req: IncomingMessage): Span | undefined {
   return req._sentrySpan;
 }
 
-function setSpanOnRequest(transaction: Span, req: IncomingMessage): void {
-  req._sentrySpan = transaction;
+function setSpanOnRequest(span: Span, req: IncomingMessage): void {
+  req._sentrySpan = span;
 }
 
 /**
@@ -99,25 +99,9 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       const baggage = req.headers?.baggage;
 
       return continueTrace({ sentryTrace, baggage }, () => {
-        let requestSpan: Span | undefined = getSpanFromRequest(req);
-        if (!requestSpan) {
-          // TODO(v8): Simplify these checks when startInactiveSpan always returns a span
-          requestSpan = startInactiveSpan({
-            name: options.requestedRouteName,
-            op: 'http.server',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            },
-          });
-          if (requestSpan) {
-            requestSpan.setStatus({ code: SPAN_STATUS_OK });
-            setSpanOnRequest(requestSpan, req);
-            autoEndSpanOnResponseEnd(requestSpan, res);
-          }
-        }
+        const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
 
-        const withActiveSpanCallback = (): Promise<ReturnType<F>> => {
+        return withActiveSpan(requestSpan, () => {
           return startSpanManual(
             {
               op: 'function.nextjs',
@@ -143,16 +127,32 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
               }
             },
           );
-        };
-
-        if (requestSpan) {
-          return withActiveSpan(requestSpan, withActiveSpanCallback);
-        } else {
-          return withActiveSpanCallback();
-        }
+        });
       });
     });
   };
+}
+
+function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: string): Span {
+  const existingSpan = getSpanFromRequest(req);
+  if (existingSpan) {
+    return existingSpan;
+  }
+
+  const requestSpan = startInactiveSpan({
+    name,
+    op: 'http.server',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    },
+  });
+
+  requestSpan.setStatus({ code: SPAN_STATUS_OK });
+  setSpanOnRequest(requestSpan, req);
+  autoEndSpanOnResponseEnd(requestSpan, res);
+
+  return requestSpan;
 }
 
 /**
