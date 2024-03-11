@@ -1,6 +1,13 @@
-import { NodeClient, defaultStackParser, flush, makeNodeTransport, setCurrentClient, startInactiveSpan } from '@sentry/node';
+import {
+  NodeClient,
+  defaultStackParser,
+  flush,
+  makeNodeTransport,
+  setCurrentClient,
+  startInactiveSpan,
+} from '@sentry/node';
 
-import { getMainCarrier,  } from '@sentry/core';
+import { getMainCarrier } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 import { GLOBAL_OBJ, createEnvelope, logger } from '@sentry/utils';
 import { CpuProfilerBindings } from '../src/cpu_profiler';
