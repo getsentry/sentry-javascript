@@ -248,8 +248,6 @@ function makeWrappedDataFunction(
       return origFn.call(this, args);
     }
 
-    let res: Response | AppData;
-
     return startSpan(
       {
         op: `function.remix.${name}`,
@@ -290,7 +288,7 @@ function makeWrappedDataFunction(
 
             span?.end();
 
-            res = await origFn.call(this, args);
+            return origFn.call(this, args);
           },
           err => {
             const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
@@ -302,9 +300,6 @@ function makeWrappedDataFunction(
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               captureRemixServerException(err, name, args.request);
             }
-          },
-          () => {
-            return res;
           },
         );
       },
