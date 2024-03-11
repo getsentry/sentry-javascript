@@ -3,7 +3,7 @@ import type { Context, Envelope, Event, StackFrame, StackParser } from '@sentry/
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import * as Sentry from '@sentry/node-experimental';
+import { getCurrentHub } from '@sentry/node';
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -318,7 +318,7 @@ export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): Debug
   }
 
   // eslint-disable-next-line deprecation/deprecation
-  const hub = Sentry.getCurrentHub();
+  const hub = getCurrentHub();
   // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
   const options = client && client.getOptions();
