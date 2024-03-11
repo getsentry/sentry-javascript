@@ -41,8 +41,6 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export { getRootSpan } from '@sentry/opentelemetry';
-
 export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
@@ -106,6 +104,7 @@ export {
   startInactiveSpan,
   getActiveSpan,
   withActiveSpan,
+  getRootSpan,
 } from '@sentry/core';
 
 export type {

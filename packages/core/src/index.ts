@@ -93,6 +93,7 @@ export {
   getStatusMessage,
   getRootSpan,
   getActiveSpan,
+  addChildSpanToSpan,
 } from './utils/spanUtils';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';

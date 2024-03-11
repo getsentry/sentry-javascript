@@ -26,7 +26,7 @@ export {
 
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
-export { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
+export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan } from './trace';
 
 // eslint-disable-next-line deprecation/deprecation
