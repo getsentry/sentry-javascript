@@ -142,7 +142,7 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     event.level = level;
   }
 
-  // transaction events get their `transaction` from the root span name 
+  // transaction events get their `transaction` from the root span name
   if (transactionName && event.type !== 'transaction') {
     event.transaction = transactionName;
   }

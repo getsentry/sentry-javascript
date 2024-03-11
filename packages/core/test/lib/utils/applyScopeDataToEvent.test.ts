@@ -187,7 +187,38 @@ describe('applyScopeDataToEvent', () => {
     expect(event.transaction).toBe('/users/:id');
   });
 
-  it("doesn't the root span name to non-transaction events", () => {
+  it('applies the root span name to transaction events', () => {
+    const data: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {},
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { spanId: '1', traceId: '1' },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+      transactionName: 'foo',
+      span: {
+        attributes: {},
+        startTime: 1,
+        endTime: 2,
+        status: 'ok',
+        name: 'bar',
+        // @ts-expect-error - we don't need to provide all span context fields
+        spanContext: () => ({}),
+      },
+    };
+
+    const event: Event = { type: 'transaction' };
+
+    applyScopeDataToEvent(event, data);
+
+    expect(event.transaction).toBe('bar');
+  });
+
+  it("doesn't apply the root span name to non-transaction events", () => {
     const data: ScopeData = {
       eventProcessors: [],
       breadcrumbs: [],
