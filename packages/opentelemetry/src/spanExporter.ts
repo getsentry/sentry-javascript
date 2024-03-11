@@ -16,7 +16,7 @@ import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionS
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
@@ -297,8 +297,8 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   const cleanedData = { ...data };
 
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
-  delete cleanedData[InternalSentrySemanticAttributes.PARENT_SAMPLED];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;
