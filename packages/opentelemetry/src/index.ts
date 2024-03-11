@@ -7,7 +7,6 @@ export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
 export {
-  getSpanHub,
   getSpanMetadata,
   getSpanParent,
   setSpanMetadata,

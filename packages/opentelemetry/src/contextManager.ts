@@ -7,8 +7,7 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from './constants';
-import { getCurrentHub } from './custom/getCurrentHub';
-import { getScopesFromContext, setContextOnScope, setHubOnContext, setScopesOnContext } from './utils/contextData';
+import { getScopesFromContext, setContextOnScope, setScopesOnContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -59,25 +58,17 @@ export function wrapContextManagerClass<ContextManagerInstance extends ContextMa
         isolationScope || (shouldForkIsolationScope ? currentIsolationScope.clone() : currentIsolationScope);
       const scopes = { scope: newCurrentScope, isolationScope: newIsolationScope };
 
-      const mockHub = {
-        // eslint-disable-next-line deprecation/deprecation
-        ...getCurrentHub(),
-        getScope: () => newCurrentScope,
-        getIsolationScope: () => newIsolationScope,
-      };
-
-      const ctx1 = setHubOnContext(context, mockHub);
-      const ctx2 = setScopesOnContext(ctx1, scopes);
+      const ctx1 = setScopesOnContext(context, scopes);
 
       // Remove the unneeded values again
-      const ctx3 = ctx2
+      const ctx2 = ctx1
         .deleteValue(SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY)
         .deleteValue(SENTRY_FORK_SET_SCOPE_CONTEXT_KEY)
         .deleteValue(SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY);
 
-      setContextOnScope(newCurrentScope, ctx3);
+      setContextOnScope(newCurrentScope, ctx2);
 
-      return super.with(ctx3, fn, thisArg, ...args);
+      return super.with(ctx2, fn, thisArg, ...args);
     }
   }
 
