@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
-import type { DebugImage, Envelope, Event, EventEnvelope, StackFrame, StackParser, Transaction } from '@sentry/types';
+import type { DebugImage, Envelope, Event, EventEnvelope, Span, StackFrame, StackParser } from '@sentry/types';
 import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
@@ -201,8 +201,8 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
 /**
  *
  */
-export function isAutomatedPageLoadTransaction(transaction: Transaction): boolean {
-  return spanToJSON(transaction).op === 'pageload';
+export function isAutomatedPageLoadSpan(span: Span): boolean {
+  return spanToJSON(span).op === 'pageload';
 }
 
 /**
@@ -506,7 +506,7 @@ export function startJSSelfProfile(): JSSelfProfiler | undefined {
 /**
  * Determine if a profile should be profiled.
  */
-export function shouldProfileTransaction(transaction: Transaction): boolean {
+export function shouldProfileSpan(span: Span): boolean {
   // If constructor failed once, it will always fail, so we can early return.
   if (PROFILING_CONSTRUCTOR_FAILED) {
     if (DEBUG_BUILD) {
@@ -515,7 +515,7 @@ export function shouldProfileTransaction(transaction: Transaction): boolean {
     return false;
   }
 
-  if (!transaction.isRecording()) {
+  if (!span.isRecording()) {
     if (DEBUG_BUILD) {
       logger.log('[Profiling] Discarding profile because transaction was not sampled.');
     }
