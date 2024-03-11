@@ -86,7 +86,7 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/google-cloud',
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
-    ignoreExports: ['cron'],
+    ignoreExports: ['makeMain'],
   },
   {
     package: '@sentry/sveltekit',
