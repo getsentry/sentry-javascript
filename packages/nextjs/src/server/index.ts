@@ -16,7 +16,6 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 import { Http } from './httpIntegration';
 import { OnUncaughtException } from './onUncaughtExceptionIntegration';
 
-export { createReduxEnhancer } from '@sentry/react';
 export * from '@sentry/node-experimental';
 export { captureUnderscoreErrorException } from '../common/_error';
 
@@ -46,6 +45,13 @@ export const ErrorBoundary = (props: React.PropsWithChildren<unknown>): React.Re
   // since Next.js >= 10 requires React ^16.6.0 we are allowed to return children like this here
   return props.children as React.ReactNode;
 };
+
+/**
+ * A passthrough redux enhancer for the server that doesn't depend on anything from the `@sentry/react` package.
+ */
+export function createReduxEnhancer() {
+  return (createStore: unknown) => createStore;
+}
 
 /**
  * A passthrough error boundary wrapper for the server that doesn't depend on any react. Error boundaries don't catch

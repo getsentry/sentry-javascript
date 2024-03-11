@@ -30,6 +30,7 @@ export declare const defaultStackParser: StackParser;
 export declare function getSentryRelease(fallback?: string): string | undefined;
 
 export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
+export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
 
