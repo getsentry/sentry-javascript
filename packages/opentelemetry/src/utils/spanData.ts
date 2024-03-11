@@ -1,4 +1,3 @@
-import type { Span } from '@opentelemetry/api';
 import type { Scope } from '@sentry/types';
 
 import type { AbstractSpan } from '../types';
@@ -13,17 +12,6 @@ const SpanScopes = new WeakMap<
     isolationScope: Scope;
   }
 >();
-const SpanParent = new WeakMap<AbstractSpan, Span>();
-
-/** Set the parent OTEL span on an OTEL span. */
-export function setSpanParent(span: AbstractSpan, parentSpan: Span): void {
-  SpanParent.set(span, parentSpan);
-}
-
-/** Get the parent OTEL span of an OTEL span. */
-export function getSpanParent(span: AbstractSpan): Span | undefined {
-  return SpanParent.get(span);
-}
 
 /**
  * Set the Sentry scope to be used for finishing a given OTEL span.
