@@ -1,6 +1,6 @@
 import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
-import { GLOBAL_OBJ, getGlobalSingleton } from '@sentry/utils';
+import { getGlobalSingleton } from '@sentry/utils';
 import { getMainCarrier } from './asyncContext';
 import { getAsyncContextStrategy } from './hub';
 import { Scope as ScopeClass } from './scope';
