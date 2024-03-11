@@ -12,11 +12,11 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Integration, Span, StartSpanOptions, TransactionSource } from '@sentry/types';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
-import type { Action, Location, ReactRouterInstrumentation } from './types';
+import type { Action, Location } from './types';
 
 // We need to disable eslint no-explict-any because any is required for the
 // react-router typings.
@@ -63,21 +63,15 @@ export function reactRouterV4BrowserTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingPageLoadSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingNavigationSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v4', routes, matchPath);
-
-      // Now instrument page load & navigation with correct settings
-      instrumentation(startPageloadCallback, instrumentPageLoad, false);
-      instrumentation(startNavigationCallback, false, instrumentNavigation);
+      instrumentReactRouter(
+        client,
+        instrumentPageLoad,
+        instrumentNavigation,
+        history,
+        'reactrouter_v4',
+        routes,
+        matchPath,
+      );
     },
   };
 }
@@ -95,38 +89,35 @@ export function reactRouterV5BrowserTracingIntegration(
     instrumentNavigation: false,
   });
 
-  const { history, routes, matchPath } = options;
+  const { history, routes, matchPath, instrumentPageLoad = true, instrumentNavigation = true } = options;
 
   return {
     ...integration,
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingPageLoadSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingNavigationSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const instrumentation = createReactRouterInstrumentation(history, 'reactrouter_v5', routes, matchPath);
-
-      // Now instrument page load & navigation with correct settings
-      instrumentation(startPageloadCallback, options.instrumentPageLoad, false);
-      instrumentation(startNavigationCallback, false, options.instrumentNavigation);
+      instrumentReactRouter(
+        client,
+        instrumentPageLoad,
+        instrumentNavigation,
+        history,
+        'reactrouter_v5',
+        routes,
+        matchPath,
+      );
     },
   };
 }
 
-function createReactRouterInstrumentation(
+function instrumentReactRouter(
+  client: Client,
+  instrumentPageLoad: boolean,
+  instrumentNavigation: boolean,
   history: RouterHistory,
   instrumentationName: string,
   allRoutes: RouteConfig[] = [],
   matchPath?: MatchPath,
-): ReactRouterInstrumentation {
+): void {
   function getInitPathName(): string | undefined {
     if (history && history.location) {
       return history.location.pathname;
@@ -161,12 +152,11 @@ function createReactRouterInstrumentation(
     return [pathname, 'url'];
   }
 
-  return (customStartTransaction, startTransactionOnPageLoad = true, startTransactionOnLocationChange = true): void => {
+  if (instrumentPageLoad) {
     const initPathName = getInitPathName();
-
-    if (startTransactionOnPageLoad && initPathName) {
+    if (initPathName) {
       const [name, source] = normalizeTransactionName(initPathName);
-      customStartTransaction({
+      startBrowserTracingPageLoadSpan(client, {
         name,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
@@ -175,23 +165,23 @@ function createReactRouterInstrumentation(
         },
       });
     }
+  }
 
-    if (startTransactionOnLocationChange && history.listen) {
-      history.listen((location, action) => {
-        if (action && (action === 'PUSH' || action === 'POP')) {
-          const [name, source] = normalizeTransactionName(location.pathname);
-          customStartTransaction({
-            name,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-            },
-          });
-        }
-      });
-    }
-  };
+  if (instrumentNavigation && history.listen) {
+    history.listen((location, action) => {
+      if (action && (action === 'PUSH' || action === 'POP')) {
+        const [name, source] = normalizeTransactionName(location.pathname);
+        startBrowserTracingNavigationSpan(client, {
+          name,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.navigation.react.${instrumentationName}`,
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          },
+        });
+      }
+    });
+  }
 }
 
 /**
