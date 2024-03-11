@@ -72,6 +72,7 @@ Sentry.init({
   integrations: [new BrowserTracing()],
 });
 ```
+
 ```js
 // v8
 import * as Sentry from '@sentry/browser';
@@ -96,6 +97,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 ```
+
 ```js
 // v8
 import * as Sentry from '@sentry/browser';
@@ -120,6 +122,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 });
 ```
+
 ```js
 // v8
 const Sentry = require('@sentry/node');
@@ -140,6 +143,7 @@ classes.
 // v7
 import { RewriteFrames } from '@sentry/integrations';
 ```
+
 ```js
 // v8
 import { rewriteFramesIntegration } from '@sentry/browser';
@@ -310,6 +314,7 @@ The `getIntegration()` and `getIntegrationById()` have been removed entirely, se
 // v7
 const replay = Sentry.getIntegration(Replay);
 ```
+
 ```js
 // v8
 const replay = getClient().getIntegrationByName('Replay');
@@ -337,6 +342,7 @@ Sentry.init({
   integrations: [new Sentry.BrowserTracing({ tracingOrigins: ['localhost', 'example.com'] })],
 });
 ```
+
 ```ts
 // v8
 Sentry.init({
@@ -365,6 +371,7 @@ Sentry.init({
   integrations: [Sentry.metricsAggregatorIntegration()],
 });
 ```
+
 ```ts
 // v8
 Sentry.init({
@@ -385,6 +392,7 @@ const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
 ```
+
 ```js
 // v8
 import { SeverityLevel } from '@sentry/types';
@@ -405,6 +413,7 @@ Sentry.configureScope(scope => {
   scope.setTag('key', 'value');
 });
 ```
+
 ```js
 // v8
 Sentry.getCurrentScope().setTag('key', 'value');
@@ -423,6 +432,7 @@ In v8, we are removing the `spanStatusfromHttpCode` function in favor of `getSpa
 // v7
 const spanStatus = spanStatusfromHttpCode(200);
 ```
+
 ```js
 // v8
 const spanStatus = getSpanStatusFromHttpCode(200);
@@ -439,6 +449,7 @@ addGlobalEventProcessor(event => {
   return event;
 });
 ```
+
 ```js
 // v8
 addEventProcessor(event => {
@@ -462,6 +473,7 @@ interface Transport {
   send(event: Event): Promise<void | TransportMakeRequestResponse>;
 }
 ```
+
 ```ts
 // v8
 interface Transport {
@@ -553,6 +565,7 @@ module.exports = withSentryConfig(nextConfig, {
   // Your Sentry Webpack Plugin Options...
 });
 ```
+
 ```ts
 // v8
 const nextConfig = {
@@ -621,6 +634,7 @@ sentrySvelteKit({
   },
 }),
 ```
+
 ```js
 // v8
 sentrySvelteKit({
