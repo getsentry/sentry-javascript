@@ -45,7 +45,6 @@ export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
-  setGlobalScope,
   withScope,
   withIsolationScope,
   getClient,

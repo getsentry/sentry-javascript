@@ -4,16 +4,16 @@ import {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  setGlobalScope,
   withIsolationScope,
 } from '../../src';
 
 import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { clearGlobalScope } from './clear-global-scope';
 
 describe('Scope', () => {
   beforeEach(() => {
-    setGlobalScope(undefined);
+    clearGlobalScope();
   });
 
   it('allows to create & update a scope', () => {
@@ -491,7 +491,7 @@ describe('Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      setGlobalScope(undefined);
+      clearGlobalScope();
     });
 
     it('works', () => {
