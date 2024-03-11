@@ -45,8 +45,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   private _metadata: Partial<TransactionMetadata>;
 
   /**
-   * This constructor should never be called manually. Those instrumenting tracing should use
-   * `Sentry.startTransaction()`, and internal methods should use `hub.startTransaction()`.
+   * This constructor should never be called manually.
    * @internal
    * @hideconstructor
    * @hidden
@@ -225,9 +224,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
-    if (client) {
-      client.emit('finishTransaction', this);
-    }
 
     if (this._sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.

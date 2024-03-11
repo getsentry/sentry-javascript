@@ -1,4 +1,7 @@
-const transaction = Sentry.startTransaction({ name: 'some_transaction' });
+const transaction = Sentry.startInactiveSpan({
+  name: 'some_transaction',
+  forceTransaction: true,
+});
 
 transaction.setMeasurement('metric.foo', 42, 'ms');
 transaction.setMeasurement('metric.bar', 1337, 'nanoseconds');

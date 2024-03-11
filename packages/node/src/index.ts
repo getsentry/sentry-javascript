@@ -46,8 +46,6 @@ export {
   makeMain,
   setCurrentClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,

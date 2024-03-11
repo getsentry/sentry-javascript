@@ -6,12 +6,7 @@ export type { OpenTelemetryClient } from './types';
 export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
-export {
-  getSpanMetadata,
-  getSpanParent,
-  setSpanMetadata,
-  getSpanScopes,
-} from './utils/spanData';
+export { getSpanScopes } from './utils/spanData';
 
 export { getScopesFromContext } from './utils/contextData';
 

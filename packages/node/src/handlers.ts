@@ -1,5 +1,6 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Transaction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -12,7 +13,7 @@ import {
   getIsolationScope,
   hasTracingEnabled,
   setHttpStatus,
-  startTransaction,
+  startInactiveSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
@@ -21,7 +22,6 @@ import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToTransaction,
   extractPathForTransaction,
-  extractRequestData,
   isString,
   isThenable,
   logger,
@@ -59,14 +59,14 @@ export function tracingHandler(): (
     }
 
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
-      // TODO: Refactor this to use `startSpan()`
-      // eslint-disable-next-line deprecation/deprecation
-      startTransaction(
-        {
+    const transaction = continueTrace(
+      { sentryTrace, baggage },
+      ctx =>
+        startInactiveSpan({
           name,
           op: 'http.server',
           origin: 'auto.http.node.tracingHandler',
+          forceTransaction: true,
           ...ctx,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
@@ -80,10 +80,7 @@ export function tracingHandler(): (
             // be sure
             request: req,
           },
-        },
-        // extra context passed to the tracesSampler
-        { request: extractRequestData(req) },
-      ),
+        }) as Transaction,
     );
 
     // We put the transaction on the scope so users can attach children to it

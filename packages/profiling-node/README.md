@@ -38,15 +38,13 @@ Sentry.init({
 });
 ```
 
-Sentry SDK will now automatically profile all transactions, even the ones which may be started as a result of using an
+Sentry SDK will now automatically profile all root spans, even the ones which may be started as a result of using an
 automatic instrumentation integration.
 
 ```javascript
-const transaction = Sentry.startTransaction({ name: 'some workflow' });
-
-// The code between startTransaction and transaction.finish will be profiled
-
-transaction.end();
+Sentry.startSpan({ name: 'some workflow' }, () => {
+  // The code in here will be profiled
+});
 ```
 
 ### Building the package from source

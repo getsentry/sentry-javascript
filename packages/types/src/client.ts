@@ -16,7 +16,6 @@ import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
-import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
 /**
@@ -186,18 +185,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
-   * Register a callback for transaction start.
-   * Receives the transaction as argument.
-   */
-  on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
-
-  /**
-   * Register a callback for transaction finish.
-   * Receives the transaction as argument.
-   */
-  on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
-
-  /**
    * Register a callback for whenever a span is started.
    * Receives the span as argument.
    */
@@ -277,18 +264,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * A hook that is called when the client is closing
    */
   on(hook: 'close', callback: () => void): void;
-
-  /**
-   * Fire a hook event for transaction start.
-   * Expects to be given a transaction as the second argument.
-   */
-  emit(hook: 'startTransaction', transaction: Transaction): void;
-
-  /**
-   * Fire a hook event for transaction finish.
-   * Expects to be given a transaction as the second argument.
-   */
-  emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /** Fire a hook whener a span starts. */
   emit(hook: 'spanStart', span: Span): void;

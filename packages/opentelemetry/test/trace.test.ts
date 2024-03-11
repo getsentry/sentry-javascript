@@ -20,7 +20,6 @@ import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSpanKind } from '../src/utils/getSpanKind';
-import { getSpanMetadata } from '../src/utils/spanData';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
@@ -216,8 +215,6 @@ describe('trace', () => {
           expect(getSpanAttributes(span)).toEqual({
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
-
-          expect(getSpanMetadata(span)).toEqual(undefined);
         },
       );
 
@@ -226,7 +223,6 @@ describe('trace', () => {
           name: 'outer',
           op: 'my-op',
           origin: 'auto.test.origin',
-          metadata: { requestPath: 'test-path' },
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
@@ -239,8 +235,6 @@ describe('trace', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
             [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
           });
-
-          expect(getSpanMetadata(span)).toEqual({ requestPath: 'test-path' });
         },
       );
     });
@@ -478,8 +472,6 @@ describe('trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
       });
 
-      expect(getSpanMetadata(span)).toEqual(undefined);
-
       const span2 = startInactiveSpan({
         name: 'outer',
         op: 'my-op',
@@ -497,8 +489,6 @@ describe('trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'my-op',
       });
-
-      expect(getSpanMetadata(span2)).toEqual({ requestPath: 'test-path' });
     });
 
     it('allows to pass base SpanOptions', () => {
