@@ -91,10 +91,9 @@ describe('Client init()', () => {
     const transportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     // Ensure we have no current span, so our next span is a transaction
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(undefined);
-
-    SentryReact.startInactiveSpan({ name: '/404' })?.end();
+    SentryReact.withActiveSpan(null, () => {
+      SentryReact.startInactiveSpan({ name: '/404' })?.end();
+    });
 
     expect(transportSend).not.toHaveBeenCalled();
     expect(captureEvent.mock.results[0].value).toBeUndefined();
