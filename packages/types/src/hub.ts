@@ -7,7 +7,6 @@ import type { Primitive } from './misc';
 import type { Scope } from './scope';
 import type { Session } from './session';
 import type { SeverityLevel } from './severity';
-import type { CustomSamplingContext, Transaction, TransactionContext } from './transaction';
 import type { User } from './user';
 
 /**
@@ -203,27 +202,6 @@ export interface Hub {
    * @deprecated Use `Sentry.getClient().getIntegration()` instead.
    */
   getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
-
-  /**
-   * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
-   *
-   * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
-   * new child span within the transaction or any span, call the respective `.startChild()` method.
-   *
-   * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
-   *
-   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
-   * finished child spans will be sent to Sentry.
-   *
-   * @param context Properties of the new `Transaction`.
-   * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
-   * default values). See {@link Options.tracesSampler}.
-   *
-   * @returns The transaction which was just started
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction;
 
   /**
    * Starts a new `Session`, sets on the current scope and returns it.

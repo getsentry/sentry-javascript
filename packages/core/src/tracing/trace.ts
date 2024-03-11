@@ -1,9 +1,17 @@
-import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type {
+  ClientOptions,
+  Hub,
+  Scope,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+  TransactionContext,
+} from '@sentry/types';
 
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../asyncContext';
-import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getAsyncContextStrategy, getCurrentHub } from '../hub';
@@ -17,9 +25,11 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { sampleTransaction } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
+import { Transaction } from './transaction';
 import { setCapturedScopesOnSpan } from './utils';
 
 /**
@@ -324,8 +334,7 @@ function createChildSpanOrTransaction(
     const { traceId, spanId: parentSpanId } = parentSpan.spanContext();
     const sampled = spanIsSampled(parentSpan);
 
-    // eslint-disable-next-line deprecation/deprecation
-    span = hub.startTransaction({
+    span = _startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -342,8 +351,7 @@ function createChildSpanOrTransaction(
       ...scope.getPropagationContext(),
     };
 
-    // eslint-disable-next-line deprecation/deprecation
-    span = hub.startTransaction({
+    span = _startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -389,4 +397,27 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
 function getAcs(): AsyncContextStrategy {
   const carrier = getMainCarrier();
   return getAsyncContextStrategy(carrier);
+}
+
+function _startTransaction(transactionContext: TransactionContext): Transaction {
+  const client = getClient();
+  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+
+  // eslint-disable-next-line deprecation/deprecation
+  let transaction = new Transaction(transactionContext, getCurrentHub());
+  transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
+  });
+  if (client) {
+    client.emit('startTransaction', transaction);
+    client.emit('spanStart', transaction);
+  }
+  return transaction;
 }

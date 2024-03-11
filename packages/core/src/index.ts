@@ -17,8 +17,6 @@ export {
   captureMessage,
   close,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   setContext,
   setExtra,
   setExtras,

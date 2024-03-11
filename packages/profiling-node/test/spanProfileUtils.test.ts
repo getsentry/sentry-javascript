@@ -50,8 +50,7 @@ describe('spanProfileUtils', () => {
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     await wait(500);
     transaction.end();
 
@@ -85,8 +84,7 @@ describe('spanProfileUtils', () => {
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     transaction.end();
 
     await Sentry.flush(1000);
@@ -129,8 +127,7 @@ describe('spanProfileUtils', () => {
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub', traceId: 'boop' });
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub', traceId: 'boop' });
     await wait(500);
     transaction.end();
 
@@ -150,8 +147,7 @@ describe('spanProfileUtils', () => {
 
       jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
       transaction.end();
 
@@ -168,8 +164,7 @@ describe('spanProfileUtils', () => {
 
       const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
       transaction.end();
 
@@ -216,8 +211,7 @@ describe('spanProfileUtils', () => {
         return Promise.resolve({});
       });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
       transaction.end();
 
@@ -237,8 +231,7 @@ describe('spanProfileUtils', () => {
 
       client.on('preprocessEvent', onPreprocessEvent);
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+      const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
       await wait(500);
       transaction.end();
 
@@ -260,8 +253,7 @@ describe('spanProfileUtils', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'txn' });
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'txn' });
     transaction.end();
     transaction.end();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
@@ -302,8 +294,7 @@ describe('spanProfileUtils', () => {
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = Sentry.getCurrentHub().startTransaction({ name: 'profile_hub' });
+    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub' });
     await wait(500);
     transaction.end();
 
