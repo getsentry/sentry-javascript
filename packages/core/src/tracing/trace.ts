@@ -50,15 +50,13 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
     return handleCallbackErrors(
       () => callback(activeSpan),
       () => {
-        // Only update the span status if it hasn't been changed yet
-        if (activeSpan) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
+        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+        const { status } = spanToJSON(activeSpan);
+        if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }
       },
-      () => activeSpan && activeSpan.end(),
+      () => activeSpan.end(),
     );
   });
 }
@@ -97,18 +95,16 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
     scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
-      activeSpan && activeSpan.end();
+      activeSpan.end();
     }
 
     return handleCallbackErrors(
       () => callback(activeSpan, finishAndSetSpan),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording()) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
+        const { status } = spanToJSON(activeSpan);
+        if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }
       },
     );
@@ -313,6 +309,13 @@ function createChildSpanOrTransaction(
         ...spanContext.metadata,
       },
     });
+  }
+
+  // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
+  // This happens if tracing extensions have not been added
+  // In this case, we just want to return a non-recording span
+  if (!span) {
+    return new SentryNonRecordingSpan();
   }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);

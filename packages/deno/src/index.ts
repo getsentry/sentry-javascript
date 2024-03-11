@@ -53,6 +53,7 @@ export {
   withMonitor,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,

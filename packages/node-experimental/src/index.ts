@@ -46,6 +46,7 @@ export {
   startSpanManual,
   startInactiveSpan,
   getActiveSpan,
+  getRootSpan,
   withActiveSpan,
 } from '@sentry/opentelemetry';
 

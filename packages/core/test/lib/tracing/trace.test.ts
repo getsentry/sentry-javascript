@@ -42,7 +42,7 @@ describe('startSpan', () => {
     getIsolationScope().clear();
     getGlobalScope().clear();
 
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -228,7 +228,7 @@ describe('startSpan', () => {
       expect(jsonSpan).toEqual({
         data: {
           'sentry.origin': 'auto.http.browser',
-          'sentry.sample_rate': 0,
+          'sentry.sample_rate': 1,
           'sentry.source': 'custom',
         },
         origin: 'auto.http.browser',
@@ -1022,7 +1022,7 @@ describe('startInactiveSpan', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -1222,7 +1222,7 @@ describe('span hooks', () => {
     getIsolationScope().clear();
     getGlobalScope().clear();
 
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
