@@ -224,9 +224,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
-    if (client) {
-      client.emit('finishTransaction', this);
-    }
 
     if (this._sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.

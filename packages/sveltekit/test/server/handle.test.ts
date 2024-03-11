@@ -1,13 +1,14 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
+  getRootSpan,
   getSpanDescendants,
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
 import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
 import * as SentryNode from '@sentry/node-experimental';
-import type { Span, Transaction } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -124,8 +125,10 @@ describe('handleSentry', () => {
 
     it("creates a transaction if there's no active span", async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -150,9 +153,11 @@ describe('handleSentry', () => {
     it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
       let _span: Span | undefined = undefined;
       let txnCount = 0;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
-        ++txnCount;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+          ++txnCount;
+        }
       });
 
       try {
@@ -208,8 +213,10 @@ describe('handleSentry', () => {
       });
 
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -248,8 +255,10 @@ describe('handleSentry', () => {
       });
 
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -312,8 +321,10 @@ describe('handleSentry', () => {
 
     it("doesn't create a transaction if there's no route", async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
@@ -327,8 +338,10 @@ describe('handleSentry', () => {
 
     it("Creates a transaction if there's no route but `handleUnknownRequests` is true", async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', (transaction: Transaction) => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
 
       try {
