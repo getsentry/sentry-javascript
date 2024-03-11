@@ -121,7 +121,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Clone this scope instance.
+   * @inheritDoc
    */
   public clone(): Scope {
     const newScope = new Scope();
@@ -145,23 +145,22 @@ export class Scope implements ScopeInterface {
     return newScope;
   }
 
-  /** Update the client on the scope. */
+  /**
+   * @inheritDoc
+   */
   public setClient(client: Client | undefined): void {
     this._client = client;
   }
 
   /**
-   * Get the client assigned to this scope.
-   *
-   * It is generally recommended to use the global function `Sentry.getClient()` instead, unless you know what you are doing.
+   * @inheritDoc
    */
   public getClient<C extends Client>(): C | undefined {
     return this._client as C | undefined;
   }
 
   /**
-   * Add internal on change listener. Used for sub SDKs that need to store the scope.
-   * @hidden
+   * @inheritDoc
    */
   public addScopeListener(callback: (scope: Scope) => void): void {
     this._scopeListeners.push(callback);
@@ -280,7 +279,6 @@ export class Scope implements ScopeInterface {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
@@ -542,7 +540,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Add data which will be accessible during event processing but won't get sent to Sentry
+   * @inheritDoc
    */
   public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
     this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
@@ -566,11 +564,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture an exception for this scope.
-   *
-   * @param exception The exception to capture.
-   * @param hint Optinal additional data to attach to the Sentry event.
-   * @returns the id of the captured Sentry event.
+   * @inheritDoc
    */
   public captureException(exception: unknown, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -597,12 +591,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Capture a message for this scope.
-   *
-   * @param message The message to capture.
-   * @param level An optional severity level to report the message with.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured message.
+   * @inheritDoc
    */
   public captureMessage(message: string, level?: SeverityLevel, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();
@@ -630,11 +619,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Captures a manually created event for this scope and sends it to Sentry.
-   *
-   * @param exception The event to capture.
-   * @param hint Optional additional data to attach to the Sentry event.
-   * @returns the id of the captured event.
+   * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint): string {
     const eventId = hint && hint.event_id ? hint.event_id : uuid4();

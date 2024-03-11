@@ -9,7 +9,6 @@ import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpanContext } from './propagator';
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -68,10 +67,6 @@ export class SentrySampler implements Sampler {
     const attributes: Attributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: Number(sampleRate),
     };
-
-    if (typeof parentSampled === 'boolean') {
-      attributes[InternalSentrySemanticAttributes.PARENT_SAMPLED] = parentSampled;
-    }
 
     // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
     // only valid values are booleans or numbers between 0 and 1.)

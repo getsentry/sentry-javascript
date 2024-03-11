@@ -50,7 +50,6 @@ export interface SpanJSON {
   span_id: string;
   start_timestamp: number;
   status?: string;
-  tags?: { [key: string]: Primitive };
   timestamp?: number;
   trace_id: string;
   origin?: SpanOrigin;
@@ -61,6 +60,44 @@ export interface SpanJSON {
 type TraceFlagNone = 0;
 type TraceFlagSampled = 1;
 export type TraceFlag = TraceFlagNone | TraceFlagSampled;
+
+export interface TraceState {
+  /**
+   * Create a new TraceState which inherits from this TraceState and has the
+   * given key set.
+   * The new entry will always be added in the front of the list of states.
+   *
+   * @param key key of the TraceState entry.
+   * @param value value of the TraceState entry.
+   */
+  set(key: string, value: string): TraceState;
+  /**
+   * Return a new TraceState which inherits from this TraceState but does not
+   * contain the given key.
+   *
+   * @param key the key for the TraceState entry to be removed.
+   */
+  unset(key: string): TraceState;
+  /**
+   * Returns the value to which the specified key is mapped, or `undefined` if
+   * this map contains no mapping for the key.
+   *
+   * @param key with which the specified value is to be associated.
+   * @returns the value to which the specified key is mapped, or `undefined` if
+   *     this map contains no mapping for the key.
+   */
+  get(key: string): string | undefined;
+  /**
+   * Serializes the TraceState to a `list` as defined below. The `list` is a
+   * series of `list-members` separated by commas `,`, and a list-member is a
+   * key/value pair separated by an equals sign `=`. Spaces and horizontal tabs
+   * surrounding `list-members` are ignored. There can be a maximum of 32
+   * `list-members` in a `list`.
+   *
+   * @returns the serialized string.
+   */
+  serialize(): string;
+}
 
 export interface SpanContextData {
   /**
@@ -81,7 +118,7 @@ export interface SpanContextData {
   /**
    * Only true if the SpanContext was propagated from a remote parent.
    */
-  isRemote?: boolean;
+  isRemote?: boolean | undefined;
 
   /**
    * Trace flags to propagate.
@@ -90,11 +127,11 @@ export interface SpanContextData {
    * sampled or not. When set, the least significant bit documents that the
    * caller may have recorded trace data. A caller who does not record trace
    * data out-of-band leaves this flag unset.
-   * We allow number here because otel also does, so we can't be stricter than them.
    */
   traceFlags: TraceFlag | number;
 
-  // Note: we do not have traceState here, but this is optional in OpenTelemetry anyhow
+  /** In OpenTelemetry, this can be used to store trace state, which are basically key-value pairs. */
+  traceState?: TraceState | undefined;
 }
 
 /**
@@ -131,12 +168,6 @@ export interface SpanContext {
    * Trace ID
    */
   traceId?: string | undefined;
-
-  /**
-   * Tags of the Span.
-   * @deprecated Pass `attributes` instead.
-   */
-  tags?: { [key: string]: Primitive };
 
   /**
    * Data of the Span.

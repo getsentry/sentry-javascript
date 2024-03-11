@@ -1,31 +1,21 @@
-import type { IdleTransaction } from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { getActiveSpan } from '@sentry/core';
-import { getCurrentHub } from '@sentry/core';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
   addTracingExtensions,
-  getActiveTransaction,
+  continueTrace,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getRootSpan,
   spanToJSON,
-  startIdleTransaction,
+  startIdleSpan,
+  withScope,
 } from '@sentry/core';
-import type {
-  Client,
-  IntegrationFn,
-  StartSpanOptions,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  browserPerformanceTimeOrigin,
-  getDomElement,
-  logger,
-  propagationContextFromHeaders,
-} from '@sentry/utils';
+import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, getDomElement, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -43,34 +33,28 @@ export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 /** Options for Browser Tracing integration */
 export interface BrowserTracingOptions {
   /**
-   * The time to wait in ms until the transaction will be finished during an idle state. An idle state is defined
-   * by a moment where there are no in-progress spans.
+   * The time that has to pass without any span being created.
+   * If this time is exceeded, the idle span will finish.
    *
-   * The transaction will use the end timestamp of the last finished span as the endtime for the transaction.
-   * If there are still active spans when this the `idleTimeout` is set, the `idleTimeout` will get reset.
-   * Time is in ms.
-   *
-   * Default: 1000
+   * Default: 1000 (ms)
    */
   idleTimeout: number;
 
   /**
-   * The max duration for a transaction. If a transaction duration hits the `finalTimeout` value, it
-   * will be finished.
-   * Time is in ms.
+   * The max. time an idle span may run.
+   * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 30000
+   * Default: 30000 (ms)
    */
   finalTimeout: number;
 
   /**
-   * The heartbeat interval. If no new spans are started or open spans are finished within 3 heartbeats,
-   * the transaction will be finished.
-   * Time is in ms.
+   The max. time an idle span may run.
+   * If this time is exceeded, the idle span will finish no matter what.
    *
-   * Default: 5000
+   * Default: 15000 (ms)
    */
-  heartbeatInterval: number;
+  childSpanTimeout: number;
 
   /**
    * If a span should be created on page load.
@@ -176,7 +160,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * actions as transactions, and captures requests, metrics and errors as spans.
  *
  * The integration can be configured with a variety of options, and can be extended to use
- * any routing library. This integration uses {@see IdleTransaction} to create transactions.
+ * any routing library.
  *
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
@@ -201,88 +185,53 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   let latestRouteSource: TransactionSource | undefined;
 
   /** Create routing idle transaction. */
-  function _createRouteTransaction(context: TransactionContext): Transaction | undefined {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
+  function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
+    const { beforeStartSpan, idleTimeout, finalTimeout, childSpanTimeout } = options;
 
-    const { beforeStartSpan, idleTimeout, finalTimeout, heartbeatInterval } = options;
+    const isPageloadTransaction = startSpanOptions.op === 'pageload';
 
-    const isPageloadTransaction = context.op === 'pageload';
-
-    let expandedContext: TransactionContext;
-    if (isPageloadTransaction) {
-      const sentryTrace = isPageloadTransaction ? getMetaContent('sentry-trace') : '';
-      const baggage = isPageloadTransaction ? getMetaContent('baggage') : undefined;
-      const { traceId, dsc, parentSpanId, sampled } = propagationContextFromHeaders(sentryTrace, baggage);
-      expandedContext = {
-        traceId,
-        parentSpanId,
-        parentSampled: sampled,
-        ...context,
-        metadata: {
-          // eslint-disable-next-line deprecation/deprecation
-          ...context.metadata,
-          dynamicSamplingContext: dsc,
-        },
-        trimEnd: true,
-      };
-    } else {
-      expandedContext = {
-        trimEnd: true,
-        ...context,
-      };
-    }
-
-    const finalContext: TransactionContext = beforeStartSpan ? beforeStartSpan(expandedContext) : expandedContext;
+    const finalStartSpanOptions: StartSpanOptions = beforeStartSpan
+      ? beforeStartSpan(startSpanOptions)
+      : startSpanOptions;
 
     // If `beforeStartSpan` set a custom name, record that fact
-    finalContext.attributes =
-      finalContext.name !== expandedContext.name
-        ? { ...finalContext.attributes, [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' }
-        : finalContext.attributes;
+    const attributes = finalStartSpanOptions.attributes || {};
 
-    latestRouteName = finalContext.name;
-    if (finalContext.attributes) {
-      latestRouteSource = finalContext.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    if (finalStartSpanOptions.name !== finalStartSpanOptions.name) {
+      attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = 'custom';
+      finalStartSpanOptions.attributes = attributes;
     }
 
-    if (finalContext.sampled === false) {
-      DEBUG_BUILD && logger.log(`[Tracing] Will not send ${finalContext.op} transaction because of beforeNavigate.`);
-    }
+    latestRouteName = finalStartSpanOptions.name;
+    latestRouteSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalContext.op} transaction on scope`);
+    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalStartSpanOptions.op} idle span on scope`);
 
-    const { location } = WINDOW;
-
-    const idleTransaction = startIdleTransaction(
-      hub,
-      finalContext,
+    const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
-      true,
-      { location }, // for use in the tracesSampler
-      heartbeatInterval,
-      isPageloadTransaction, // should wait for finish signal if it's a pageload transaction
-    );
+      childSpanTimeout,
+      // should wait for finish signal if it's a pageload transaction
+      disableAutoFinish: isPageloadTransaction,
+      beforeSpanEnd: span => {
+        _collectWebVitals();
+        addPerformanceEntries(span);
+      },
+    });
 
     if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
         if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
-          idleTransaction.sendAutoFinishSignal();
+          client.emit('idleSpanEnableAutoFinish', idleSpan);
         }
       });
 
       if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
-        idleTransaction.sendAutoFinishSignal();
+        client.emit('idleSpanEnableAutoFinish', idleSpan);
       }
     }
 
-    idleTransaction.registerBeforeFinishCallback(transaction => {
-      _collectWebVitals();
-      addPerformanceEntries(transaction);
-    });
-
-    return idleTransaction as Transaction;
+    return idleSpan;
   }
 
   return {
@@ -296,32 +245,57 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
-      client.on('startNavigationSpan', (context: StartSpanOptions) => {
+      client.on('startNavigationSpan', (startSpanOptions: StartSpanOptions) => {
+        if (getClient() !== client) {
+          return;
+        }
+
         if (activeSpan) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction({
+        activeSpan = _createRouteSpan(client, {
           op: 'navigation',
-          ...context,
+          ...startSpanOptions,
         });
       });
 
-      client.on('startPageLoadSpan', (context: StartSpanOptions) => {
+      client.on('startPageLoadSpan', (startSpanOptions: StartSpanOptions) => {
+        if (getClient() !== client) {
+          return;
+        }
+
         if (activeSpan) {
           DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
-        activeSpan = _createRouteTransaction({
-          op: 'pageload',
-          ...context,
+
+        const sentryTrace = getMetaContent('sentry-trace');
+        const baggage = getMetaContent('baggage');
+
+        // Continue trace updates the _current_ scope, but we want to break out of it again...
+        // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
+        // but afterwards, we want to reset it to avoid this also applying to other spans
+        const scope = getCurrentScope();
+        const propagationContextBefore = scope.getPropagationContext();
+
+        activeSpan = continueTrace({ sentryTrace, baggage }, () => {
+          // Ensure we are on the original current scope again, so the span is set as active on it
+          return withScope(scope, () => {
+            return _createRouteSpan(client, {
+              op: 'pageload',
+              ...startSpanOptions,
+            });
+          });
         });
+
+        scope.setPropagationContext(propagationContextBefore);
       });
 
       if (options.instrumentPageLoad && WINDOW.location) {
-        const context: StartSpanOptions = {
+        const startSpanOptions: StartSpanOptions = {
           name: WINDOW.location.pathname,
           // pageload should always start at timeOrigin (and needs to be in s, not ms)
           startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
@@ -330,7 +304,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
           },
         };
-        startBrowserTracingPageLoadSpan(client, context);
+        startBrowserTracingPageLoadSpan(client, startSpanOptions);
       }
 
       if (options.instrumentNavigation && WINDOW.location) {
@@ -351,7 +325,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
           if (from !== to) {
             startingUrl = undefined;
-            const context: StartSpanOptions = {
+            const startSpanOptions: StartSpanOptions = {
               name: WINDOW.location.pathname,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
@@ -359,7 +333,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
               },
             };
 
-            startBrowserTracingNavigationSpan(client, context);
+            startBrowserTracingNavigationSpan(client, startSpanOptions);
           }
         });
       }
@@ -423,28 +397,26 @@ function registerInteractionListener(
   latestRouteName: string | undefined,
   latestRouteSource: TransactionSource | undefined,
 ): void {
-  let inflightInteractionTransaction: IdleTransaction | undefined;
+  let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
-    const { idleTimeout, finalTimeout, heartbeatInterval } = options;
+    const { idleTimeout, finalTimeout, childSpanTimeout } = options;
     const op = 'ui.action.click';
 
-    // eslint-disable-next-line deprecation/deprecation
-    const currentTransaction = getActiveTransaction();
-    if (currentTransaction) {
-      const currentTransactionOp = spanToJSON(currentTransaction).op;
-      if (currentTransactionOp && ['navigation', 'pageload'].includes(currentTransactionOp)) {
+    const activeSpan = getActiveSpan();
+    const rootSpan = activeSpan && getRootSpan(activeSpan);
+    if (rootSpan) {
+      const currentRootSpanOp = spanToJSON(rootSpan).op;
+      if (['navigation', 'pageload'].includes(currentRootSpanOp as string)) {
         DEBUG_BUILD &&
-          logger.warn(
-            `[Tracing] Did not create ${op} transaction because a pageload or navigation transaction is in progress.`,
-          );
+          logger.warn(`[Tracing] Did not create ${op} span because a pageload or navigation span is in progress.`);
         return undefined;
       }
     }
 
-    if (inflightInteractionTransaction) {
-      inflightInteractionTransaction.setFinishReason('interactionInterrupted');
-      inflightInteractionTransaction.end();
-      inflightInteractionTransaction = undefined;
+    if (inflightInteractionSpan) {
+      inflightInteractionSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'interactionInterrupted');
+      inflightInteractionSpan.end();
+      inflightInteractionSpan = undefined;
     }
 
     if (!latestRouteName) {
@@ -452,26 +424,20 @@ function registerInteractionListener(
       return undefined;
     }
 
-    const { location } = WINDOW;
-
-    const context: TransactionContext = {
-      name: latestRouteName,
-      op,
-      trimEnd: true,
-      data: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+    inflightInteractionSpan = startIdleSpan(
+      {
+        name: latestRouteName,
+        op,
+        trimEnd: true,
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+        },
       },
-    };
-
-    inflightInteractionTransaction = startIdleTransaction(
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentHub(),
-      context,
-      idleTimeout,
-      finalTimeout,
-      true,
-      { location }, // for use in the tracesSampler
-      heartbeatInterval,
+      {
+        idleTimeout,
+        finalTimeout,
+        childSpanTimeout,
+      },
     );
   };
 

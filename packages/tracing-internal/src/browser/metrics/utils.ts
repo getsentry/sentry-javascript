@@ -1,5 +1,6 @@
-import type { Transaction } from '@sentry/core';
-import type { Span, SpanContext } from '@sentry/types';
+import type { SentrySpan } from '@sentry/core';
+import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import type { Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 
 /**
  * Checks if a given value is a valid measurement value.
@@ -16,16 +17,31 @@ export function isMeasurementValue(value: unknown): value is number {
  * Note: this will not be possible anymore in v8,
  * unless we do some special handling for browser here...
  */
-export function _startChild(transaction: Transaction, { startTimestamp, ...ctx }: SpanContext): Span {
-  // eslint-disable-next-line deprecation/deprecation
-  if (startTimestamp && transaction.startTimestamp > startTimestamp) {
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.startTimestamp = startTimestamp;
+export function startAndEndSpan(
+  parentSpan: Span,
+  startTimeInSeconds: number,
+  endTime: SpanTimeInput,
+  { ...ctx }: StartSpanOptions,
+): Span | undefined {
+  const parentStartTime = spanToJSON(parentSpan).start_timestamp;
+  if (parentStartTime && parentStartTime > startTimeInSeconds) {
+    // We can only do this for SentrySpans...
+    if (typeof (parentSpan as Partial<SentrySpan>).updateStartTime === 'function') {
+      (parentSpan as SentrySpan).updateStartTime(startTimeInSeconds);
+    }
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  return transaction.startChild({
-    startTimestamp,
-    ...ctx,
+  // The return value only exists for tests
+  return withActiveSpan(parentSpan, () => {
+    const span = startInactiveSpan({
+      startTime: startTimeInSeconds,
+      ...ctx,
+    });
+
+    if (span) {
+      span.end(endTime);
+    }
+
+    return span;
   });
 }

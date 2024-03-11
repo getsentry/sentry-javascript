@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import * as http from 'http';
 
 import { createGunzip } from 'zlib';
@@ -50,7 +51,9 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    res.connection.end();
+    if (res.connection) {
+      res.connection.end();
+    }
   });
 
   testServer.listen(18099);

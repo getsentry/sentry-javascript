@@ -14,7 +14,13 @@ import {
   stripUrlQueryAndFragment,
 } from '@sentry/utils';
 import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
-import { default as Router } from 'next/router';
+import RouterImport from 'next/router';
+
+// next/router v10 is CJS
+//
+// For ESM/CJS interoperability 'reasons', depending on how this file is loaded, Router might be on the default export
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+const Router: typeof RouterImport = RouterImport.events ? RouterImport : (RouterImport as any).default;
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 

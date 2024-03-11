@@ -279,39 +279,6 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
-  job_size_check:
-    name: Size Check
-    needs: [job_get_metadata, job_build]
-    timeout-minutes: 15
-    runs-on: ubuntu-20.04
-    if:
-      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' ||
-      needs.job_get_metadata.outputs.is_release == 'true'
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          # The size limit action runs `yarn` and `yarn build` when this job is executed on
-          # use Node 14 for now.
-          node-version: '14'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Check bundle sizes
-        uses: getsentry/size-limit-action@runForBranch
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          skip_step: build
-          main_branch: develop
-          # When on release branch, we want to always run
-          # Else, we fall back to the default handling of the action
-          run_for_branch: ${{ (needs.job_get_metadata.outputs.is_release == 'true' && 'true') || '' }}
-
   job_lint:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
@@ -336,8 +303,6 @@ jobs:
         run: yarn lint:lerna
       - name: Lint C++ files
         run: yarn lint:clang
-      - name: Validate ES5 builds
-        run: yarn validate:es5
 
   job_check_format:
     name: Check file formatting
@@ -627,28 +592,24 @@ jobs:
       matrix:
         bundle:
           - esm
-          - bundle_es5
-          - bundle_es5_min
-          - bundle_es6
-          - bundle_es6_min
-          - bundle_replay_es6
-          - bundle_replay_es6_min
-          - bundle_tracing_es5
-          - bundle_tracing_es5_min
-          - bundle_tracing_es6
-          - bundle_tracing_es6_min
-          - bundle_tracing_replay_es6
-          - bundle_tracing_replay_es6_min
+          - bundle
+          - bundle_min
+          - bundle_replay
+          - bundle_replay_min
+          - bundle_tracing
+          - bundle_tracing_min
+          - bundle_tracing_replay
+          - bundle_tracing_replay_min
         project:
           - chromium
         include:
           # Only check all projects for esm & full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_es6_min
+          - bundle: bundle_tracing_replay_min
             project: ''
             shard: 1
             shards: 2
-          - bundle: bundle_tracing_replay_es6_min
+          - bundle: bundle_tracing_replay_min
             project: ''
             shard: 2
             shards: 2
@@ -665,7 +626,7 @@ jobs:
             shards: 3
         exclude:
           # Do not run the default chromium-only tests
-          - bundle: bundle_tracing_replay_es6_min
+          - bundle: bundle_tracing_replay_min
             project: 'chromium'
           - bundle: esm
             project: 'chromium'
@@ -1057,7 +1018,6 @@ jobs:
             'react-create-hash-router',
             'react-router-6-use-routes',
             'standard-frontend-react',
-            'standard-frontend-react-tracing-import',
             'sveltekit',
             'sveltekit-2',
             'generic-ts3.8',

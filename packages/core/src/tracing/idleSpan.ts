@@ -1,22 +1,26 @@
-import type { Span, StartSpanOptions } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { logger, timestampInSeconds } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { getSpanDescendants, removeChildSpanFromSpan, spanToJSON } from '../utils/spanUtils';
+import {
+  getActiveSpan,
+  getSpanDescendants,
+  removeChildSpanFromSpan,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { startInactiveSpan } from './trace';
-import { getActiveSpan } from './utils';
 
 export const TRACING_DEFAULTS = {
   idleTimeout: 1_000,
   finalTimeout: 30_000,
   childSpanTimeout: 15_000,
 };
-
-const FINISH_REASON_TAG = 'finishReason';
 
 const FINISH_REASON_HEARTBEAT_FAILED = 'heartbeatFailed';
 const FINISH_REASON_IDLE_TIMEOUT = 'idleTimeout';
@@ -108,6 +112,36 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   const previousActiveSpan = getActiveSpan();
   const span = _startIdleSpan(startSpanOptions);
 
+  function _endSpan(timestamp: number = timestampInSeconds()): void {
+    // Ensure we end with the last span timestamp, if possible
+    const spans = getSpanDescendants(span).filter(child => child !== span);
+
+    // If we have no spans, we just end, nothing else to do here
+    if (!spans.length) {
+      span.end(timestamp);
+      return;
+    }
+
+    const childEndTimestamps = spans
+      .map(span => spanToJSON(span).timestamp)
+      .filter(timestamp => !!timestamp) as number[];
+    const latestSpanEndTimestamp = childEndTimestamps.length ? Math.max(...childEndTimestamps) : undefined;
+
+    const spanEndTimestamp = spanTimeInputToSeconds(timestamp);
+    const spanStartTimestamp = spanToJSON(span).start_timestamp;
+
+    // The final endTimestamp should:
+    // * Never be before the span start timestamp
+    // * Be the latestSpanEndTimestamp, if there is one, and it is smaller than the passed span end timestamp
+    // * Otherwise be the passed end timestamp
+    const endTimestamp = Math.max(
+      spanStartTimestamp || -Infinity,
+      Math.min(spanEndTimestamp, latestSpanEndTimestamp || Infinity),
+    );
+
+    span.end(endTimestamp);
+  }
+
   /**
    * Cancels the existing idle timeout, if there is one.
    */
@@ -136,7 +170,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && activities.size === 0 && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_IDLE_TIMEOUT;
-        span.end(endTimestamp);
+        _endSpan(endTimestamp);
       }
     }, idleTimeout);
   }
@@ -149,7 +183,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _idleTimeoutID = setTimeout(() => {
       if (!_finished && _autoFinishAllowed) {
         _finishReason = FINISH_REASON_HEARTBEAT_FAILED;
-        span.end(endTimestamp);
+        _endSpan(endTimestamp);
       }
     }, childSpanTimeout);
   }
@@ -190,7 +224,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
   }
 
-  function endIdleSpan(): void {
+  function onIdleSpanEnded(): void {
     _finished = true;
     activities.clear();
 
@@ -209,9 +243,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       return;
     }
 
-    const attributes = spanJSON.data || {};
-    if (spanJSON.op === 'ui.action.click' && !attributes[FINISH_REASON_TAG]) {
-      span.setAttribute(FINISH_REASON_TAG, _finishReason);
+    const attributes: SpanAttributes = spanJSON.data || {};
+    if (spanJSON.op === 'ui.action.click' && !attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
     DEBUG_BUILD &&
@@ -279,7 +313,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     _popActivity(endedSpan.spanContext().spanId);
 
     if (endedSpan === span) {
-      endIdleSpan();
+      onIdleSpanEnded();
     }
   });
 
@@ -303,7 +337,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     if (!_finished) {
       span.setStatus({ code: SPAN_STATUS_ERROR, message: 'deadline_exceeded' });
       _finishReason = FINISH_REASON_FINAL_TIMEOUT;
-      span.end();
+      _endSpan();
     }
   }, finalTimeout);
 

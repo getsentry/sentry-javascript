@@ -138,8 +138,8 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /**
- * The http module integration instruments Node's internal http module. It creates breadcrumbs, transactions for outgoing
- * http requests and attaches trace data when tracing is enabled via its `tracing` option.
+ * The http integration instruments Node's internal http and https modules.
+ * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
  *
  * @deprecated Use `httpIntegration()` instead.
  */
@@ -206,7 +206,7 @@ export class Http implements Integration {
     // It has been changed in Node 9, so for all versions equal and above, we patch `https` separately.
     if (NODE_VERSION.major > 8) {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const httpsModule = require('https');
+      const httpsModule = require('node:https');
       const wrappedHttpsHandlerMaker = _createWrappedRequestMethodFactory(
         httpsModule,
         this._breadcrumbs,

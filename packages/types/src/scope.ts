@@ -61,6 +61,12 @@ export interface Scope {
    */
   getClient<C extends Client>(): C | undefined;
 
+  /**
+   * Add internal on change listener. Used for sub SDKs that need to store the scope.
+   * @hidden
+   */
+  addScopeListener(callback: (scope: Scope) => void): void;
+
   /** Add new event processor that will be called during event processing. */
   addEventProcessor(callback: EventProcessor): this;
 
@@ -122,7 +128,6 @@ export interface Scope {
 
   /**
    * Sets the transaction name on the scope for future events.
-   * @deprecated Use extra or tags instead.
    */
   setTransactionName(name?: string): this;
 

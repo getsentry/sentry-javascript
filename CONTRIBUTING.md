@@ -31,7 +31,7 @@ With that, the repo is fully set up and you are ready to run all commands.
 Since we are using [`TypeScript`](https://www.typescriptlang.org/), you need to transpile the code to JavaScript to be
 able to use it. From the top level of the repo, there are three commands available:
 
-- `yarn build:dev`, which runs a one-time build of ES5 and ES6 versions of every package
+- `yarn build:dev`, which runs a one-time build of every package
 - `yarn build:dev:filter <name of npm package>`, which runs `yarn build:dev` only in projects relevant to the given
   package (so, for example, running `yarn build:dev:filter @sentry/react` will build the `react` package, all of its
   dependencies (`utils`, `core`, `browser`, etc), and all packages which depend on it (currently `gatsby` and `nextjs`))

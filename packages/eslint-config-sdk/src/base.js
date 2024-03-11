@@ -151,9 +151,6 @@ module.exports = {
           },
         ],
 
-        // Do not allow usage of functions we do not polyfill for ES5
-        '@sentry-internal/sdk/no-unsupported-es6-methods': 'error',
-
         // Do not allow usage of class field initializers
         '@sentry-internal/sdk/no-class-field-initializers': 'error',
       },

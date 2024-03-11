@@ -20,22 +20,22 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.8+ for our CJS package, and Node 18.8+ for our ESM package. This applies to
-`@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no longer
-test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
+to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
+longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
-**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES6+ compatible
+**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2017+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
 fetch API to be available in the environment.
 
 New minimum supported browsers:
 
-- Chrome 51
+- Chrome 58
 - Edge 15
-- Safari/iOS Safari 10
+- Safari/iOS Safari 11
 - Firefox 54
-- Opera 38
-- Samnsung Internet 5
+- Opera 45
+- Samsung Internet 7.2
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
@@ -62,7 +62,7 @@ We've removed the following packages:
 For Browser SDKs you can import `BrowserTracing` from the SDK directly:
 
 ```js
-// Before (v7)
+// v7
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
 
@@ -71,8 +71,10 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [new BrowserTracing()],
 });
+```
 
-// After (v8)
+```js
+// v8
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
@@ -86,7 +88,7 @@ If you were importing `@sentry/tracing` for the side effect, you can now use `Se
 tracing extensions to the SDK. `addTracingExtensions` replaces the `addExtensionMethods` method from `@sentry/tracing`.
 
 ```js
-// Before (v7)
+// v7
 import * as Sentry from '@sentry/browser';
 import '@sentry/tracing';
 
@@ -94,8 +96,10 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
 });
+```
 
-// After (v8)
+```js
+// v8
 import * as Sentry from '@sentry/browser';
 
 Sentry.addTracingExtensions();
@@ -109,7 +113,7 @@ Sentry.init({
 For Node SDKs you no longer need the side effect import, you can remove all references to `@sentry/tracing`.
 
 ```js
-// Before (v7)
+// v7
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
 
@@ -117,8 +121,10 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
 });
+```
 
-// After (v8)
+```js
+// v8
 const Sentry = require('@sentry/node');
 
 Sentry.init({
@@ -134,10 +140,12 @@ package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`. in add
 classes.
 
 ```js
-// Before (v7)
+// v7
 import { RewriteFrames } from '@sentry/integrations';
+```
 
-// After (v8)
+```js
+// v8
 import { rewriteFramesIntegration } from '@sentry/browser';
 ```
 
@@ -254,6 +262,7 @@ We now support the following integrations out of the box:
 - [Browser SDK](./MIGRATION.md#browser-sdk-browser-react-vue-angular-ember-etc)
 - [Server-side SDKs (Node, Deno, Bun)](./MIGRATION.md#server-side-sdks-node-deno-bun-etc)
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
+- [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 
 ### General
@@ -302,10 +311,12 @@ The `getIntegration()` and `getIntegrationById()` have been removed entirely, se
 [below](./MIGRATION.md#deprecate-getintegration-and-getintegrationbyid).
 
 ```js
-// Before (v7)
+// v7
 const replay = Sentry.getIntegration(Replay);
+```
 
-// After (v8)
+```js
+// v8
 const replay = getClient().getIntegrationByName('Replay');
 ```
 
@@ -325,13 +336,15 @@ details.
 For example for the Browser SDKs:
 
 ```ts
-// Before (v7)
+// v7
 Sentry.init({
   dsn: '__DSN__',
   integrations: [new Sentry.BrowserTracing({ tracingOrigins: ['localhost', 'example.com'] })],
 });
+```
 
-// After (v8)
+```ts
+// v8
 Sentry.init({
   dsn: '__DSN__',
   integrations: [Sentry.browserTracingIntegration()],
@@ -344,8 +357,7 @@ Sentry.init({
 The SDKs now support metrics features without any additional configuration.
 
 ```ts
-// Before (v7)
-// Server (Node/Deno/Bun)
+// v7 - Server (Node/Deno/Bun)
 Sentry.init({
   dsn: '__DSN__',
   _experiments: {
@@ -353,14 +365,15 @@ Sentry.init({
   },
 });
 
-// Before (v7)
-// Browser
+// v7 - Browser
 Sentry.init({
   dsn: '__DSN__',
   integrations: [Sentry.metricsAggregatorIntegration()],
 });
+```
 
-// After (v8)
+```ts
+// v8
 Sentry.init({
   dsn: '__DSN__',
 });
@@ -372,14 +385,16 @@ In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` ty
 this has been removed in v8. You should now use the `SeverityLevel` type directly.
 
 ```js
-// Before (v7)
+// v7
 import { Severity, SeverityLevel } from '@sentry/types';
 
 const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
+```
 
-// After (v8)
+```js
+// v8
 import { SeverityLevel } from '@sentry/types';
 
 const levelA = "error" as SeverityLevel;
@@ -393,12 +408,14 @@ The top level `Sentry.configureScope` function has been removed. Instead, you sh
 to access and mutate the current scope.
 
 ```js
-// Before (v7)
+// v7
 Sentry.configureScope(scope => {
   scope.setTag('key', 'value');
 });
+```
 
-// After (v8)
+```js
+// v8
 Sentry.getCurrentScope().setTag('key', 'value');
 ```
 
@@ -412,10 +429,12 @@ Internally, this class is now called `SentrySpan`, and it is no longer meant to 
 In v8, we are removing the `spanStatusfromHttpCode` function in favor of `getSpanStatusFromHttpCode`.
 
 ```js
-// Before (v7)
+// v7
 const spanStatus = spanStatusfromHttpCode(200);
+```
 
-// After (v8)
+```js
+// v8
 const spanStatus = getSpanStatusFromHttpCode(200);
 ```
 
@@ -424,13 +443,15 @@ const spanStatus = getSpanStatusFromHttpCode(200);
 In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
 
 ```js
-// Before (v7)
+// v7
 addGlobalEventProcessor(event => {
   delete event.extra;
   return event;
 });
+```
 
-// After (v8)
+```js
+// v8
 addEventProcessor(event => {
   delete event.extra;
   return event;
@@ -447,12 +468,14 @@ The `send` method on the `Transport` interface now always requires a `TransportM
 the promise. This means that the `void` return type is no longer allowed.
 
 ```ts
-// Before (v7)
+// v7
 interface Transport {
   send(event: Event): Promise<void | TransportMakeRequestResponse>;
 }
+```
 
-// After (v8)
+```ts
+// v8
 interface Transport {
   send(event: Event): Promise<TransportMakeRequestResponse>;
 }
@@ -529,7 +552,7 @@ With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing
 property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
 
 ```ts
-// OLD
+// v7
 const nextConfig = {
   // Your Next.js options...
 
@@ -541,8 +564,10 @@ const nextConfig = {
 module.exports = withSentryConfig(nextConfig, {
   // Your Sentry Webpack Plugin Options...
 });
+```
 
-// NEW
+```ts
+// v8
 const nextConfig = {
   // Your Next.js options...
 };
@@ -580,6 +605,80 @@ Sentry.init({
   ],
 });
 ```
+
+### SvelteKit SDK
+
+#### Breaking `sentrySvelteKit()` changes
+
+We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
+change, resolving uploaded source maps should work out of the box much more often than before
+([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
+
+To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
+the `sourceMapsUploadOptions` to remove the hard dependency on the API of the plugin. While you previously could specify
+all [version 0.x Vite plugin options](https://www.npmjs.com/package/@sentry/vite-plugin/v/0.6.1), we now reduced them to
+a subset of [2.x options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options). All of these options are
+optional just like before but here's an example of using the new options.
+
+```js
+// v7
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: '1.0.1',
+    injectRelease: true,
+    include: ['./build/*/**/*'],
+    ignore: ['**/build/client/**/*']
+  },
+}),
+```
+
+```js
+// v8
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    release: {
+	    name: '1.0.1',
+	    inject: true
+    },
+    sourcemaps: {
+	    assets: ['./build/*/**/*'],
+	    ignore: ['**/build/client/**/*'],
+	    filesToDeleteAfterUpload: ['./build/**/*.map']
+    },
+  },
+}),
+```
+
+In the future, we might add additional [options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.14.2#options)
+from the Vite plugin but if you would like to specify some of them directly, you can do this by passing in an
+`unstable_sentryVitePluginOptions` object:
+
+```js
+sentrySvelteKit({
+  sourceMapsUploadOptions: {
+    // ...
+    release: {
+	    name: '1.0.1',
+    },
+    unstable_sentryVitePluginOptions: {
+      release: {
+        setCommits: {
+          auto: true
+        }
+      }
+    }
+  },
+}),
+```
+
+Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
+time, including breaking changes within the same major version of the SDK.
 
 ## 5. Behaviour Changes
 
@@ -968,10 +1067,6 @@ instead now.
 
 Instead, you can get the currently active span via `Sentry.getActiveSpan()`. Setting a span on the scope happens
 automatically when you use the new performance APIs `startSpan()` and `startSpanManual()`.
-
-## Deprecate `scope.setTransactionName()`
-
-Instead, either set this as attributes or tags, or use an event processor to set `event.transaction`.
 
 ## Deprecate `scope.getTransaction()` and `getActiveTransaction()`
 

@@ -24,7 +24,6 @@ import type {
   SeverityLevel,
   Span,
   StartSpanOptions,
-  Transaction,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
@@ -418,12 +417,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
-
-  /** @inheritdoc */
-  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
-
-  /** @inheritdoc */
   public on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
@@ -475,12 +468,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
   }
-
-  /** @inheritdoc */
-  public emit(hook: 'startTransaction', transaction: Transaction): void;
-
-  /** @inheritdoc */
-  public emit(hook: 'finishTransaction', transaction: Transaction): void;
 
   /** @inheritdoc */
   public emit(hook: 'spanStart', span: Span): void;

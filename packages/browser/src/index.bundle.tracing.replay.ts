@@ -8,6 +8,7 @@ addTracingExtensions();
 
 export {
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,

@@ -1,11 +1,11 @@
-import type { ClientRequest, ServerResponse } from 'http';
+import type { ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
 import { addBreadcrumb, defineIntegration, getIsolationScope, isSentryRequestUrl } from '@sentry/core';
-import { _INTERNAL, getClient, getSpanKind, setSpanMetadata } from '@sentry/opentelemetry';
+import { _INTERNAL, getClient, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 import type { NodeClient } from '../sdk/client';
@@ -81,7 +81,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
           requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
-            _updateSpan(span, req);
+            _updateSpan(span);
 
             // Update the isolation scope, isolate this request
             if (getSpanKind(span) === SpanKind.SERVER) {
@@ -117,15 +117,15 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
+/**
+ * The http integration instruments Node's internal http and https modules.
+ * It creates breadcrumbs and spans for outgoing HTTP requests which will be attached to the currently active span.
+ */
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /** Update the span with data we need. */
-function _updateSpan(span: Span, request: ClientRequest | HTTPModuleRequestIncomingMessage): void {
+function _updateSpan(span: Span): void {
   addOriginToSpan(span, 'auto.http.otel.http');
-
-  if (getSpanKind(span) === SpanKind.SERVER) {
-    setSpanMetadata(span, { request: request as HTTPModuleRequestIncomingMessage });
-  }
 }
 
 /** Add a breadcrumb for outgoing requests. */

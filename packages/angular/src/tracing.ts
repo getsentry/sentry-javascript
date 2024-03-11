@@ -289,10 +289,6 @@ export class TraceService implements OnDestroy {
     }
 
     const rootSpan = getRootSpan(activeSpan);
-    if (!rootSpan) {
-      this._pageloadOngoing = false;
-      return false;
-    }
 
     this._pageloadOngoing = spanToJSON(rootSpan).op === 'pageload';
     return this._pageloadOngoing;

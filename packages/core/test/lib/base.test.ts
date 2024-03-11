@@ -1,4 +1,4 @@
-import type { Client, Envelope, Event, Transaction } from '@sentry/types';
+import type { Client, Envelope, Event } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
 import {
@@ -1935,20 +1935,6 @@ describe('BaseClient', () => {
     ] as const;
 
     describe.each(scenarios)('with client %s', (_, client) => {
-      it('should call a startTransaction hook', () => {
-        expect.assertions(1);
-
-        const mockTransaction = {
-          traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        } as Transaction;
-
-        client.on('startTransaction', transaction => {
-          expect(transaction).toEqual(mockTransaction);
-        });
-
-        client.emit('startTransaction', mockTransaction);
-      });
-
       it('should call a beforeEnvelope hook', () => {
         expect.assertions(1);
 

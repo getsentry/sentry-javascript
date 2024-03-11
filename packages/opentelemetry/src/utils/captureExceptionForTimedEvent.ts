@@ -1,13 +1,13 @@
 import type { Span as OtelSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { Hub } from '@sentry/types';
+import { captureException } from '@sentry/core';
 import { isString } from '@sentry/utils';
 
 /**
  * Maybe capture a Sentry exception for an OTEL timed event.
  * This will check if the event is exception-like and in that case capture it as an exception.
  */
-export function maybeCaptureExceptionForTimedEvent(hub: Hub, event: TimedEvent, otelSpan?: OtelSpan): void {
+export function maybeCaptureExceptionForTimedEvent(event: TimedEvent, otelSpan?: OtelSpan): void {
   if (event.name !== 'exception') {
     return;
   }
@@ -35,8 +35,7 @@ export function maybeCaptureExceptionForTimedEvent(hub: Hub, event: TimedEvent, 
     syntheticError.name = type;
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  hub.captureException(syntheticError, {
+  captureException(syntheticError, {
     captureContext: otelSpan
       ? {
           contexts: {

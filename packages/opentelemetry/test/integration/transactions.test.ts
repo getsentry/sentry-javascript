@@ -21,9 +21,17 @@ describe('Integration | Transactions', () => {
   });
 
   it('correctly creates transaction & spans', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const transactions: TransactionEvent[] = [];
+    const beforeSendTransaction = jest.fn(event => {
+      transactions.push(event);
+      return null;
+    });
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      release: '8.0.0',
+    });
 
     const client = getClient() as TestClientInterface;
 
@@ -35,7 +43,6 @@ describe('Integration | Transactions', () => {
         op: 'test op',
         name: 'test name',
         origin: 'auto.test',
-        metadata: { requestPath: 'test-path' },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
         },
@@ -64,83 +71,74 @@ describe('Integration | Transactions', () => {
 
     await client.flush();
 
-    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
-    expect(beforeSendTransaction).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        breadcrumbs: [
-          { message: 'test breadcrumb 1', timestamp: 123456 },
-          { message: 'test breadcrumb 2', timestamp: 123456 },
-          { message: 'test breadcrumb 3', timestamp: 123456 },
-        ],
-        contexts: {
-          otel: {
-            attributes: {
-              'test.outer': 'test value',
-              'sentry.op': 'test op',
-              'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
-            },
-            resource: {
-              'service.name': 'opentelemetry-test',
-              'service.namespace': 'sentry',
-              'service.version': expect.any(String),
-              'telemetry.sdk.language': 'nodejs',
-              'telemetry.sdk.name': 'opentelemetry',
-              'telemetry.sdk.version': expect.any(String),
-            },
-          },
-          trace: {
-            data: {
-              'otel.kind': 'INTERNAL',
-              'sentry.op': 'test op',
-              'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
-              'sentry.sample_rate': 1,
-              'test.outer': 'test value',
-            },
-            op: 'test op',
-            span_id: expect.any(String),
-            status: 'ok',
-            trace_id: expect.any(String),
-            origin: 'auto.test',
-          },
-        },
-        environment: 'production',
-        event_id: expect.any(String),
-        sdkProcessingMetadata: expect.objectContaining({
-          dynamicSamplingContext: expect.objectContaining({
-            environment: 'production',
-            public_key: expect.any(String),
-            sample_rate: '1',
-            sampled: 'true',
-            trace_id: expect.any(String),
-            transaction: 'test name',
-          }),
-          sampleRate: 1,
-          spanMetadata: expect.any(Object),
-          requestPath: 'test-path',
-        }),
-        // spans are circular (they have a reference to the transaction), which leads to jest choking on this
-        // instead we compare them in detail below
-        spans: [expect.any(Object), expect.any(Object)],
-        start_timestamp: expect.any(Number),
-        tags: {
-          'outer.tag': 'test value',
-          'test.tag': 'test value',
-        },
-        timestamp: expect.any(Number),
-        transaction: 'test name',
-        transaction_info: { source: 'task' },
-        type: 'transaction',
-      }),
-      {
-        event_id: expect.any(String),
-      },
-    );
+    expect(transactions).toHaveLength(1);
+    const transaction = transactions[0];
 
-    // Checking the spans here, as they are circular to the transaction...
-    const runArgs = beforeSendTransaction.mock.calls[0] as unknown as [TransactionEvent, unknown];
-    const spans = runArgs[0].spans || [];
+    expect(transaction.breadcrumbs).toEqual([
+      { message: 'test breadcrumb 1', timestamp: 123456 },
+      { message: 'test breadcrumb 2', timestamp: 123456 },
+      { message: 'test breadcrumb 3', timestamp: 123456 },
+    ]);
+
+    expect(transaction.contexts?.otel).toEqual({
+      attributes: {
+        'test.outer': 'test value',
+        'sentry.op': 'test op',
+        'sentry.origin': 'auto.test',
+        'sentry.source': 'task',
+      },
+      resource: {
+        'service.name': 'opentelemetry-test',
+        'service.namespace': 'sentry',
+        'service.version': expect.any(String),
+        'telemetry.sdk.language': 'nodejs',
+        'telemetry.sdk.name': 'opentelemetry',
+        'telemetry.sdk.version': expect.any(String),
+      },
+    });
+
+    expect(transaction.contexts?.trace).toEqual({
+      data: {
+        'otel.kind': 'INTERNAL',
+        'sentry.op': 'test op',
+        'sentry.origin': 'auto.test',
+        'sentry.source': 'task',
+        'sentry.sample_rate': 1,
+        'test.outer': 'test value',
+      },
+      op: 'test op',
+      span_id: expect.any(String),
+      status: 'ok',
+      trace_id: expect.any(String),
+      origin: 'auto.test',
+    });
+
+    expect(transaction.sdkProcessingMetadata?.sampleRate).toEqual(1);
+    expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
+      environment: 'production',
+      public_key: expect.any(String),
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: expect.any(String),
+      transaction: 'test name',
+      release: '8.0.0',
+    });
+
+    expect(transaction.environment).toEqual('production');
+    expect(transaction.event_id).toEqual(expect.any(String));
+    expect(transaction.start_timestamp).toEqual(expect.any(Number));
+    expect(transaction.timestamp).toEqual(expect.any(Number));
+    expect(transaction.transaction).toEqual('test name');
+
+    expect(transaction.tags).toEqual({
+      'outer.tag': 'test value',
+      'test.tag': 'test value',
+    });
+    expect(transaction.transaction_info).toEqual({ source: 'task' });
+    expect(transaction.type).toEqual('transaction');
+
+    expect(transaction.spans).toHaveLength(2);
+    const spans = transaction.spans || [];
 
     // note: Currently, spans do not have any context/span added to them
     // This is the same behavior as for the "regular" SDKs
@@ -543,7 +541,11 @@ describe('Integration | Transactions', () => {
       traceState: new TraceState().set(SENTRY_TRACE_STATE_DSC, dscString),
     };
 
-    mockSdkInit({ enableTracing: true, beforeSendTransaction });
+    mockSdkInit({
+      enableTracing: true,
+      beforeSendTransaction,
+      release: '7.0.0',
+    });
 
     const client = getClient() as TestClientInterface;
 

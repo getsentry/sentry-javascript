@@ -1,15 +1,20 @@
-import type { MeasurementUnit } from '@sentry/types';
-
-import { getActiveTransaction } from './utils';
+import type { MeasurementUnit, Span, Transaction } from '@sentry/types';
+import { getActiveSpan, getRootSpan } from '../utils/spanUtils';
 
 /**
  * Adds a measurement to the current active transaction.
  */
 export function setMeasurement(name: string, value: number, unit: MeasurementUnit): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = getActiveTransaction();
-  if (transaction) {
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
+
+  if (rootSpan && rootSpanIsTransaction(rootSpan)) {
     // eslint-disable-next-line deprecation/deprecation
-    transaction.setMeasurement(name, value, unit);
+    rootSpan.setMeasurement(name, value, unit);
   }
+}
+
+function rootSpanIsTransaction(rootSpan: Span): rootSpan is Transaction {
+  // eslint-disable-next-line deprecation/deprecation
+  return typeof (rootSpan as Transaction).setMeasurement === 'function';
 }

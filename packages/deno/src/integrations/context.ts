@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { Event, IntegrationFn } from '@sentry/types';
 
 const INTEGRATION_NAME = 'DenoContext';
 
@@ -61,16 +61,17 @@ const _denoContextIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const denoContextIntegration = defineIntegration(_denoContextIntegration);
-
 /**
- * Adds Deno context to events.
- * @deprecated Use `denoContextintegration()` instead.
+ * Adds Deno related context to events. This includes contexts about app, device, os, v8, and TypeScript.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.denoContextIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const DenoContext = convertIntegrationFnToClass(INTEGRATION_NAME, denoContextIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Promise<Event> }
->;
-
-// eslint-disable-next-line deprecation/deprecation
-export type DenoContext = typeof DenoContext;
+export const denoContextIntegration = defineIntegration(_denoContextIntegration);

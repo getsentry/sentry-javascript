@@ -6,7 +6,7 @@ import type {
   ReplayRecordingData,
   ReplayRecordingMode,
   SentryWrappedXMLHttpRequest,
-  Transaction,
+  Span,
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
@@ -478,7 +478,7 @@ export interface ReplayContainer {
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;
-  lastTransaction?: Transaction;
+  lastActiveSpan?: Span;
   throttledAddEvent: (
     event: RecordingEvent,
     isCheckout?: boolean,

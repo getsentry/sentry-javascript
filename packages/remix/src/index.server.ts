@@ -35,8 +35,6 @@ export {
   setCurrentClient,
   NodeClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -73,6 +71,7 @@ export {
   Handlers,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startSpanManual,
   startInactiveSpan,
@@ -96,8 +95,7 @@ export * from '@sentry/node-experimental';
 
 export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
-// eslint-disable-next-line deprecation/deprecation
-export { remixRouterInstrumentation, withSentry } from './client/performance';
+export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { browserTracingIntegration } from './client/browserTracingIntegration';
 export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';

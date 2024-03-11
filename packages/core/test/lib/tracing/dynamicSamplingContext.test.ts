@@ -4,8 +4,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '../../../src';
-import { Transaction, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
-import { addTracingExtensions } from '../../../src/tracing';
+import {
+  Transaction,
+  addTracingExtensions,
+  getDynamicSamplingContextFromSpan,
+  startInactiveSpan,
+} from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {

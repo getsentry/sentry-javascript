@@ -1,7 +1,8 @@
 import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
+import { getRootSpan } from '@sentry/core';
 
-import { getActiveSpan, getRootSpan } from '../../src/utils/getActiveSpan';
+import { getActiveSpan } from '../../src/utils/getActiveSpan';
 import { TestClient, getDefaultTestClientOptions } from '../helpers/TestClient';
 import { setupOtel } from '../helpers/initOtel';
 import { cleanupOtel } from '../helpers/mockSdkInit';

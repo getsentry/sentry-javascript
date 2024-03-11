@@ -81,6 +81,7 @@ describe('startSpan()', () => {
 
     const transactionEvent = await transactionEventPromise;
 
+    expect(transactionEvent.spans).toHaveLength(1);
     expect(transactionEvent.spans?.[0].description).toBe('second');
   });
 });

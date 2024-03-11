@@ -17,8 +17,6 @@ export {
   captureMessage,
   close,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   setContext,
   setExtra,
   setExtras,
@@ -29,7 +27,6 @@ export {
   startSession,
   endSession,
   captureSession,
-  withActiveSpan,
   addEventProcessor,
 } from './exports';
 export {
@@ -91,8 +88,11 @@ export {
   spanIsSampled,
   spanToTraceContext,
   getSpanDescendants,
+  getStatusMessage,
+  getRootSpan,
+  getActiveSpan,
+  addChildSpanToSpan,
 } from './utils/spanUtils';
-export { getRootSpan } from './utils/getRootSpan';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
 /* eslint-disable deprecation/deprecation */
@@ -114,4 +114,5 @@ export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
+export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';

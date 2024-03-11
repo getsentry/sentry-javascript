@@ -1,4 +1,3 @@
-import type { IdleTransaction } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -6,15 +5,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
   getActiveSpan,
-  getActiveTransaction,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
+  getIsolationScope,
   setCurrentClient,
   spanIsSampled,
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
-import * as hubExtensions from '@sentry/core';
-import type { StartSpanOptions } from '@sentry/types';
+import type { Span, StartSpanOptions } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 import { browserTracingIntegration, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '../..';
@@ -41,9 +40,15 @@ afterAll(() => {
 });
 
 describe('browserTracingIntegration', () => {
-  afterEach(() => {
+  beforeEach(() => {
     getCurrentScope().clear();
+    getIsolationScope().clear();
     getCurrentScope().setClient(undefined);
+    document.head.innerHTML = '';
+  });
+
+  afterEach(() => {
+    getActiveSpan()?.end();
   });
 
   it('works with tracing enabled', () => {
@@ -85,8 +90,7 @@ describe('browserTracingIntegration', () => {
     client.init();
 
     const span = getActiveSpan();
-    expect(span).toBeDefined();
-    expect(spanIsSampled(span!)).toBe(false);
+    expect(span).toBeUndefined();
   });
 
   it("doesn't create a pageload span when instrumentPageLoad is false", () => {
@@ -201,59 +205,11 @@ describe('browserTracingIntegration', () => {
     });
   });
 
-  it('extracts window.location/self.location for sampling context in pageload transactions', () => {
-    // this is what is used to get the span name - JSDOM does not update this on it's own!
-    const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
-    Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
-
-    const tracesSampler = jest.fn();
+  it("trims pageload transactions to the max duration of the transaction's children", async () => {
     const client = new TestClient(
       getDefaultClientOptions({
         tracesSampleRate: 1,
-        integrations: [browserTracingIntegration()],
-        tracesSampler,
-      }),
-    );
-    setCurrentClient(client);
-    client.init();
-
-    expect(tracesSampler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        location: dom.window.document.location,
-      }),
-    );
-  });
-
-  it('extracts window.location/self.location for sampling context in navigation transactions', () => {
-    const tracesSampler = jest.fn();
-    const client = new TestClient(
-      getDefaultClientOptions({
-        tracesSampleRate: 1,
-        integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
-        tracesSampler,
-      }),
-    );
-    setCurrentClient(client);
-    client.init();
-
-    // this is what is used to get the span name - JSDOM does not update this on it's own!
-    const dom = new JSDOM(undefined, { url: 'https://example.com/test' });
-    Object.defineProperty(global, 'location', { value: dom.window.document.location, writable: true });
-
-    WINDOW.history.pushState({}, '', '/test');
-
-    expect(tracesSampler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        location: dom.window.document.location,
-      }),
-    );
-  });
-
-  it("trims pageload transactions to the max duration of the transaction's children", () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
-        tracesSampleRate: 1,
-        integrations: [browserTracingIntegration()],
+        integrations: [browserTracingIntegration({ idleTimeout: 10 })],
       }),
     );
 
@@ -265,7 +221,9 @@ describe('browserTracingIntegration', () => {
     const timestamp = timestampInSeconds();
 
     childSpan.end(timestamp);
-    pageloadSpan?.end(timestamp + 12345);
+
+    // Wait for 10ms for idle timeout
+    await new Promise(resolve => setTimeout(resolve, 10));
 
     expect(spanToJSON(pageloadSpan!).timestamp).toBe(timestamp);
   });
@@ -628,43 +586,8 @@ describe('browserTracingIntegration', () => {
     });
   });
 
-  it('sets transaction context from sentry-trace header for pageload transactions', () => {
-    const name = 'sentry-trace';
-    const content = '126de09502ae4e0fb26c6967190756a4-b6e54397b12a2a0f-1';
-    document.head.innerHTML =
-      `<meta name="${name}" content="${content}">` + '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
-    const startIdleTransaction = jest.spyOn(hubExtensions, 'startIdleTransaction');
-
-    const client = new TestClient(
-      getDefaultClientOptions({
-        tracesSampleRate: 1,
-        integrations: [browserTracingIntegration()],
-      }),
-    );
-    setCurrentClient(client);
-    client.init();
-
-    expect(startIdleTransaction).toHaveBeenCalledWith(
-      expect.any(Object),
-      expect.objectContaining({
-        traceId: '126de09502ae4e0fb26c6967190756a4',
-        parentSpanId: 'b6e54397b12a2a0f',
-        parentSampled: true,
-        metadata: {
-          dynamicSamplingContext: { release: '2.1.14' },
-        },
-      }),
-      expect.any(Number),
-      expect.any(Number),
-      expect.any(Boolean),
-      expect.any(Object),
-      expect.any(Number),
-      true,
-    );
-  });
-
   describe('using the <meta> tag data', () => {
-    it('uses the tracing data for pageload transactions', () => {
+    it('uses the tracing data for pageload span', () => {
       // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
@@ -672,6 +595,7 @@ describe('browserTracingIntegration', () => {
 
       const client = new TestClient(
         getDefaultClientOptions({
+          tracesSampleRate: 1,
           integrations: [browserTracingIntegration()],
         }),
       );
@@ -680,24 +604,27 @@ describe('browserTracingIntegration', () => {
       // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction() as IdleTransaction;
-      // eslint-disable-next-line deprecation/deprecation
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
 
-      expect(transaction).toBeDefined();
-      expect(spanToJSON(transaction).op).toBe('pageload');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.parentSpanId).toEqual('1121201211212012');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.sampled).toBe(false);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span is correct
+      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
+      expect(spanIsSampled(idleSpan)).toBe(false);
+
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
+
+      // Propagation context is reset and does not contain the meta tag data
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
 
-    it('puts frozen Dynamic Sampling Context on pageload transactions if sentry-trace data and only 3rd party baggage is present', () => {
+    it('puts frozen Dynamic Sampling Context on pageload span if sentry-trace data and only 3rd party baggage is present', () => {
       // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
@@ -705,6 +632,7 @@ describe('browserTracingIntegration', () => {
 
       const client = new TestClient(
         getDefaultClientOptions({
+          tracesSampleRate: 1,
           integrations: [browserTracingIntegration()],
         }),
       );
@@ -713,29 +641,34 @@ describe('browserTracingIntegration', () => {
       // pageload transactions are created as part of the browserTracingIntegration's initialization
       client.init();
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction() as IdleTransaction;
-      // eslint-disable-next-line deprecation/deprecation
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
 
-      expect(transaction).toBeDefined();
-      expect(spanToJSON(transaction).op).toBe('pageload');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.parentSpanId).toEqual('1121201211212012');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.sampled).toBe(false);
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span is correct
+      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312012');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212012');
+      expect(spanIsSampled(idleSpan)).toBe(false);
+
+      expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({});
+
+      // Propagation context is reset and does not contain the meta tag data
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
 
-    it('ignores the meta tag data for navigation transactions', () => {
+    it('ignores the meta tag data for navigation spans', () => {
       document.head.innerHTML =
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
         '<meta name="baggage" content="sentry-release=2.1.14">';
 
       const client = new TestClient(
         getDefaultClientOptions({
+          tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
       );
@@ -750,21 +683,30 @@ describe('browserTracingIntegration', () => {
 
       WINDOW.history.pushState({}, '', '/navigation-test');
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction() as IdleTransaction;
-      // eslint-disable-next-line deprecation/deprecation
-      const dynamicSamplingContext = transaction.getDynamicSamplingContext()!;
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
 
-      expect(transaction).toBeDefined();
-      expect(spanToJSON(transaction).op).toBe('navigation');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.traceId).not.toEqual('12312012123120121231201212312012');
-      // eslint-disable-next-line deprecation/deprecation
-      expect(transaction.parentSpanId).toBeUndefined();
-      expect(dynamicSamplingContext).toMatchObject({
-        trace_id: expect.not.stringMatching('12312012123120121231201212312012'),
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span is correct
+      expect(spanToJSON(idleSpan).op).toBe('navigation');
+      expect(spanToJSON(idleSpan).trace_id).not.toEqual('12312012123120121231201212312012');
+      expect(spanToJSON(idleSpan).parent_span_id).not.toEqual('1121201211212012');
+      expect(spanIsSampled(idleSpan)).toBe(true);
+
+      expect(dynamicSamplingContext).toBeDefined();
+      expect(dynamicSamplingContext).toStrictEqual({
+        environment: 'production',
+        public_key: 'username',
+        sample_rate: '1',
+        sampled: 'true',
+        trace_id: expect.not.stringContaining('12312012123120121231201212312012'),
       });
-      transaction.end();
+
+      // Propagation context is correct
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
   });
 
@@ -780,19 +722,27 @@ describe('browserTracingIntegration', () => {
       setCurrentClient(client);
       client.init();
 
-      const mockFinish = jest.fn();
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction() as IdleTransaction;
-      transaction.sendAutoFinishSignal();
-      transaction.end = mockFinish;
+      const spans: Span[] = [];
+      client.on('spanEnd', span => {
+        spans.push(span);
+      });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const span = transaction.startChild(); // activities = 1
-      span.end(); // activities = 0
+      const idleSpan = getActiveSpan();
+      expect(idleSpan).toBeDefined();
 
-      expect(mockFinish).toHaveBeenCalledTimes(0);
+      client.emit('idleSpanEnableAutoFinish', idleSpan!);
+
+      const span = startInactiveSpan({ name: 'inner1' });
+      span?.end(); // activities = 0
+
+      // inner1 is now ended, all good
+      expect(spans).toHaveLength(1);
+
       jest.advanceTimersByTime(TRACING_DEFAULTS.idleTimeout);
-      expect(mockFinish).toHaveBeenCalledTimes(1);
+
+      // idle span itself is now ended
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
 
     it('can be a custom value', () => {
@@ -807,19 +757,27 @@ describe('browserTracingIntegration', () => {
       setCurrentClient(client);
       client.init();
 
-      const mockFinish = jest.fn();
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction() as IdleTransaction;
-      transaction.sendAutoFinishSignal();
-      transaction.end = mockFinish;
+      const spans: Span[] = [];
+      client.on('spanEnd', span => {
+        spans.push(span);
+      });
 
-      // eslint-disable-next-line deprecation/deprecation
-      const span = transaction.startChild(); // activities = 1
-      span.end(); // activities = 0
+      const idleSpan = getActiveSpan();
+      expect(idleSpan).toBeDefined();
 
-      expect(mockFinish).toHaveBeenCalledTimes(0);
+      client.emit('idleSpanEnableAutoFinish', idleSpan!);
+
+      const span = startInactiveSpan({ name: 'inner1' });
+      span?.end(); // activities = 0
+
+      // inner1 is now ended, all good
+      expect(spans).toHaveLength(1);
+
       jest.advanceTimersByTime(2000);
-      expect(mockFinish).toHaveBeenCalledTimes(1);
+
+      // idle span itself is now ended
+      expect(spans).toHaveLength(2);
+      expect(spans[1]).toBe(idleSpan);
     });
   });
 

@@ -1,6 +1,5 @@
 // Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { Transaction, TransactionContext } from '@sentry/types';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
@@ -8,12 +7,6 @@ export type Location = {
   pathname: string;
   action?: Action;
 } & Record<string, any>;
-
-export type ReactRouterInstrumentation = <T extends Transaction>(
-  startTransaction: (context: TransactionContext) => T | undefined,
-  startTransactionOnPageLoad?: boolean,
-  startTransactionOnLocationChange?: boolean,
-) => void;
 
 // React Router v6 Vendored Types
 export interface NonIndexRouteObject {

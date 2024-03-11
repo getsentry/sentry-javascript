@@ -22,8 +22,6 @@ export type { TransactionNamingScheme } from '@sentry/node-experimental';
 export type { BunOptions } from './types';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
@@ -33,22 +31,14 @@ export {
   close,
   createTransport,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -64,6 +54,7 @@ export {
   withMonitor,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,
@@ -119,13 +110,4 @@ export {
   init,
 } from './sdk';
 
-import { Integrations as NodeIntegrations } from '@sentry/node-experimental';
-import { BunServer } from './integrations/bunserver';
 export { bunServerIntegration } from './integrations/bunserver';
-
-const INTEGRATIONS = {
-  ...NodeIntegrations,
-  BunServer,
-};
-
-export { INTEGRATIONS as Integrations };

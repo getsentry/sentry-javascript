@@ -1,26 +1,29 @@
-import type { Event, Span } from '@sentry/types';
+import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  Scope,
   addTracingExtensions,
-  getCurrentHub,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  getMainCarrier,
+  setAsyncContextStrategy,
   setCurrentClient,
   spanIsSampled,
   spanToJSON,
   withScope,
 } from '../../../src';
+import { getAsyncContextStrategy } from '../../../src/hub';
 import {
   SentrySpan,
   continueTrace,
-  getActiveSpan,
   startInactiveSpan,
   startSpan,
   startSpanManual,
+  withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { getSpanDescendants } from '../../../src/utils/spanUtils';
+import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -42,7 +45,9 @@ describe('startSpan', () => {
     getIsolationScope().clear();
     getGlobalScope().clear();
 
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -77,27 +82,10 @@ describe('startSpan', () => {
       }
     });
 
-    it('should return the same value as the callback if transactions are undefined', async () => {
-      // @ts-expect-error we are force overriding the transaction return to be undefined
-      // The `startTransaction` types are actually wrong - it can return undefined
-      // if tracingExtensions are not enabled
-      // eslint-disable-next-line deprecation/deprecation
-      jest.spyOn(getCurrentHub(), 'startTransaction').mockImplementationOnce(() => undefined);
-
-      try {
-        const result = await startSpan({ name: 'GET users/[id]' }, () => {
-          return callback();
-        });
-        expect(result).toEqual(expected);
-      } catch (e) {
-        expect(e).toEqual(expected);
-      }
-    });
-
     it('creates a transaction', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
@@ -114,8 +102,8 @@ describe('startSpan', () => {
 
     it('allows traceparent information to be overriden', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan(
@@ -141,8 +129,8 @@ describe('startSpan', () => {
 
     it('allows for transaction to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
@@ -158,8 +146,10 @@ describe('startSpan', () => {
 
     it('creates a span with correct description', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -182,8 +172,10 @@ describe('startSpan', () => {
 
     it('allows for span to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -212,8 +204,8 @@ describe('startSpan', () => {
       { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
     ])('correctly sets the span origin', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
@@ -228,7 +220,7 @@ describe('startSpan', () => {
       expect(jsonSpan).toEqual({
         data: {
           'sentry.origin': 'auto.http.browser',
-          'sentry.sample_rate': 0,
+          'sentry.sample_rate': 1,
           'sentry.source': 'custom',
         },
         origin: 'auto.http.browser',
@@ -524,10 +516,42 @@ describe('startSpan', () => {
       });
     });
   });
+
+  it('uses implementation from ACS, if it exists', () => {
+    const staticSpan = new SentrySpan({ spanId: 'aha' });
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+      callback(staticSpan);
+      return 'aha';
+    }) as typeof startSpan;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      startSpan: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const result = startSpan({ name: 'GET users/[id]' }, span => {
+      expect(span).toEqual(staticSpan);
+      return 'oho?';
+    });
+
+    expect(result).toBe('aha');
+  });
 });
 
 describe('startSpanManual', () => {
   beforeEach(() => {
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
     setCurrentClient(client);
@@ -763,10 +787,42 @@ describe('startSpanManual', () => {
       });
     });
   });
+
+  it('uses implementation from ACS, if it exists', () => {
+    const staticSpan = new SentrySpan({ spanId: 'aha' });
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn((_options: StartSpanOptions, callback: (span: Span) => string) => {
+      callback(staticSpan);
+      return 'aha';
+    }) as unknown as typeof startSpanManual;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      startSpanManual: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const result = startSpanManual({ name: 'GET users/[id]' }, span => {
+      expect(span).toEqual(staticSpan);
+      return 'oho?';
+    });
+
+    expect(result).toBe('aha');
+  });
 });
 
 describe('startInactiveSpan', () => {
   beforeEach(() => {
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
     client = new TestClient(options);
     setCurrentClient(client);
@@ -1018,11 +1074,38 @@ describe('startInactiveSpan', () => {
       expect(childSpans).toContain(innerSpan);
     });
   });
+
+  it('uses implementation from ACS, if it exists', () => {
+    const staticSpan = new SentrySpan({ spanId: 'aha' });
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn((_options: StartSpanOptions) => {
+      return staticSpan;
+    }) as unknown as typeof startInactiveSpan;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      startInactiveSpan: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const result = startInactiveSpan({ name: 'GET users/[id]' });
+    expect(result).toBe(staticSpan);
+  });
 });
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
@@ -1214,6 +1297,131 @@ describe('continueTrace', () => {
   });
 });
 
+describe('getActiveSpan', () => {
+  beforeEach(() => {
+    addTracingExtensions();
+
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('works without an active span on the scope', () => {
+    const span = getActiveSpan();
+    expect(span).toBeUndefined();
+  });
+
+  it('works with an active span on the scope', () => {
+    const activeSpan = new SentrySpan({ spanId: 'aha' });
+    // eslint-disable-next-line deprecation/deprecation
+    getCurrentScope().setSpan(activeSpan);
+
+    const span = getActiveSpan();
+    expect(span).toBe(activeSpan);
+  });
+
+  it('uses implementation from ACS, if it exists', () => {
+    const staticSpan = new SentrySpan({ spanId: 'aha' });
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn(() => {
+      return staticSpan;
+    }) as typeof getActiveSpan;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      getActiveSpan: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const result = getActiveSpan();
+    expect(result).toBe(staticSpan);
+  });
+});
+
+describe('withActiveSpan()', () => {
+  beforeAll(() => {
+    addTracingExtensions();
+  });
+
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ enableTracing: true });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  it('should set the active span within the callback', () => {
+    expect.assertions(2);
+    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
+
+    expect(getActiveSpan()).not.toBe(inactiveSpan);
+
+    withActiveSpan(inactiveSpan, () => {
+      expect(getActiveSpan()).toBe(inactiveSpan);
+    });
+  });
+
+  it('should create child spans when calling startSpan within the callback', () => {
+    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
+
+    const parentSpanId = withActiveSpan(inactiveSpan, () => {
+      return startSpan({ name: 'child-span' }, childSpan => {
+        return spanToJSON(childSpan).parent_span_id;
+      });
+    });
+
+    expect(parentSpanId).toBe(inactiveSpan.spanContext().spanId);
+  });
+
+  it('when `null` is passed, no span should be active within the callback', () => {
+    expect.assertions(1);
+    startSpan({ name: 'parent-span' }, () => {
+      withActiveSpan(null, () => {
+        expect(getActiveSpan()).toBeUndefined();
+      });
+    });
+  });
+
+  it('uses implementation from ACS, if it exists', () => {
+    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticScope = new Scope();
+
+    const carrier = getMainCarrier();
+
+    const customFn = jest.fn((_span: Span | null, callback: (scope: Scope) => string) => {
+      callback(staticScope);
+      return 'aha';
+    }) as typeof withActiveSpan;
+
+    const acs = {
+      ...getAsyncContextStrategy(carrier),
+      withActiveSpan: customFn,
+    };
+    setAsyncContextStrategy(acs);
+
+    const result = withActiveSpan(staticSpan, scope => {
+      expect(scope).toBe(staticScope);
+      return 'oho';
+    });
+    expect(result).toBe('aha');
+  });
+});
+
 describe('span hooks', () => {
   beforeEach(() => {
     addTracingExtensions();
@@ -1222,7 +1430,7 @@ describe('span hooks', () => {
     getIsolationScope().clear();
     getGlobalScope().clear();
 
-    const options = getDefaultTestClientOptions({ tracesSampleRate: 0.0 });
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0 });
     client = new TestClient(options);
     setCurrentClient(client);
     client.init();
