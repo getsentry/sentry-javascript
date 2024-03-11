@@ -23,7 +23,7 @@ import {
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { getActiveSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
+import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -84,8 +84,8 @@ describe('startSpan', () => {
 
     it('creates a transaction', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
@@ -102,8 +102,8 @@ describe('startSpan', () => {
 
     it('allows traceparent information to be overriden', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan(
@@ -129,8 +129,8 @@ describe('startSpan', () => {
 
     it('allows for transaction to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
@@ -146,8 +146,10 @@ describe('startSpan', () => {
 
     it('creates a span with correct description', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -170,8 +172,10 @@ describe('startSpan', () => {
 
     it('allows for span to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
         await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
@@ -200,8 +204,8 @@ describe('startSpan', () => {
       { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
     ])('correctly sets the span origin', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {

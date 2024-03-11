@@ -4,12 +4,12 @@ import type { ClientReport } from './clientreport';
 import type { DsnComponents } from './dsn';
 import type { Event } from './event';
 import type { FeedbackEvent } from './feedback';
+import type { UserFeedback } from './feedback';
 import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, Session, SessionAggregates } from './session';
 import type { Transaction } from './transaction';
-import type { UserFeedback } from './user';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
