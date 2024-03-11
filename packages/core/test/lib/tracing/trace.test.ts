@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   Scope,
   addTracingExtensions,
-  getCurrentHub,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -73,23 +72,6 @@ describe('startSpan', () => {
     ],
   ])('with %s callback and error %s', (_type, isError, callback, expected) => {
     it('should return the same value as the callback', async () => {
-      try {
-        const result = await startSpan({ name: 'GET users/[id]' }, () => {
-          return callback();
-        });
-        expect(result).toEqual(expected);
-      } catch (e) {
-        expect(e).toEqual(expected);
-      }
-    });
-
-    it('should return the same value as the callback if transactions are undefined', async () => {
-      // @ts-expect-error we are force overriding the transaction return to be undefined
-      // The `startTransaction` types are actually wrong - it can return undefined
-      // if tracingExtensions are not enabled
-      // eslint-disable-next-line deprecation/deprecation
-      jest.spyOn(getCurrentHub(), 'startTransaction').mockImplementationOnce(() => undefined);
-
       try {
         const result = await startSpan({ name: 'GET users/[id]' }, () => {
           return callback();

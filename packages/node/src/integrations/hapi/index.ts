@@ -11,7 +11,7 @@ import {
   getRootSpan,
   setHttpStatus,
   spanToTraceHeader,
-  startTransaction,
+  startInactiveSpan,
 } from '@sentry/core';
 
 import type { IntegrationFn } from '@sentry/types';
@@ -82,11 +82,11 @@ export const hapiTracingPlugin = {
           baggage: request.headers['baggage'] || undefined,
         },
         transactionContext => {
-          // eslint-disable-next-line deprecation/deprecation
-          return startTransaction({
+          return startInactiveSpan({
             ...transactionContext,
             op: 'hapi.request',
             name: `${request.route.method} ${request.path}`,
+            forceTransaction: true,
           });
         },
       );

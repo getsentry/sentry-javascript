@@ -1,14 +1,4 @@
-import type {
-  Client,
-  CustomSamplingContext,
-  EventHint,
-  Hub,
-  Integration,
-  IntegrationClass,
-  Scope,
-  SeverityLevel,
-  TransactionContext,
-} from '@sentry/types';
+import type { Client, EventHint, Hub, Integration, IntegrationClass, Scope, SeverityLevel } from '@sentry/types';
 
 import {
   addBreadcrumb,
@@ -74,18 +64,6 @@ export function getCurrentHub(): Hub {
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
       // eslint-disable-next-line deprecation/deprecation
       return getClient().getIntegration(integration);
-    },
-
-    startTransaction(
-      _context: TransactionContext,
-      _customSamplingContext?: CustomSamplingContext,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ): any {
-      // eslint-disable-next-line no-console
-      console.warn('startTransaction is a noop in @sentry/node. Use `startSpan` instead.');
-      // We return an object here as hub.ts checks for the result of this
-      // and renders a different warning if this is empty
-      return {};
     },
 
     startSession,

@@ -251,38 +251,38 @@ describe('tracingHandler', () => {
   }
 
   it('creates a transaction when handling a request', () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    const startInactiveSpan = jest.spyOn(sentryCore, 'startInactiveSpan');
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).toHaveBeenCalled();
+    expect(startInactiveSpan).toHaveBeenCalled();
   });
 
   it("doesn't create a transaction when handling a `HEAD` request", () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    const startInactiveSpan = jest.spyOn(sentryCore, 'startInactiveSpan');
     req.method = 'HEAD';
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startInactiveSpan).not.toHaveBeenCalled();
   });
 
   it("doesn't create a transaction when handling an `OPTIONS` request", () => {
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    const startInactiveSpan = jest.spyOn(sentryCore, 'startInactiveSpan');
     req.method = 'OPTIONS';
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startInactiveSpan).not.toHaveBeenCalled();
   });
 
   it("doesn't create a transaction if tracing is disabled", () => {
     delete getClient()?.getOptions().tracesSampleRate;
-    const startTransaction = jest.spyOn(sentryCore, 'startTransaction');
+    const startInactiveSpan = jest.spyOn(sentryCore, 'startInactiveSpan');
 
     sentryTracingMiddleware(req, res, next);
 
-    expect(startTransaction).not.toHaveBeenCalled();
+    expect(startInactiveSpan).not.toHaveBeenCalled();
   });
 
   it("pulls parent's data from tracing header on the request", () => {
@@ -346,29 +346,6 @@ describe('tracingHandler', () => {
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
-  it('extracts request data for sampling context', () => {
-    const tracesSampler = jest.fn();
-    const options = getDefaultNodeClientOptions({ tracesSampler });
-    const client = new NodeClient(options);
-    setCurrentClient(client);
-
-    withScope(() => {
-      sentryTracingMiddleware(req, res, next);
-
-      expect(tracesSampler).toHaveBeenCalledWith(
-        expect.objectContaining({
-          request: {
-            headers,
-            method,
-            url: `http://${hostname}${path}?${queryString}`,
-            cookies: { favorite: 'zukes' },
-            query_string: queryString,
-          },
-        }),
-      );
-    });
-  });
-
   it('puts its transaction on the scope', () => {
     const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
     const client = new NodeClient(options);
@@ -400,7 +377,7 @@ describe('tracingHandler', () => {
   it('pulls status code from the response', done => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
+    jest.spyOn(sentryCore, 'startInactiveSpan').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
 
     sentryTracingMiddleware(req, res, next);
@@ -448,7 +425,7 @@ describe('tracingHandler', () => {
   it('closes the transaction when request processing is done', done => {
     // eslint-disable-next-line deprecation/deprecation
     const transaction = new Transaction({ name: 'mockTransaction' });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
+    jest.spyOn(sentryCore, 'startInactiveSpan').mockReturnValue(transaction as Transaction);
     const finishTransaction = jest.spyOn(transaction, 'end');
 
     sentryTracingMiddleware(req, res, next);
@@ -468,7 +445,7 @@ describe('tracingHandler', () => {
       name: 'reallyCoolHandler',
       op: 'middleware',
     });
-    jest.spyOn(sentryCore, 'startTransaction').mockReturnValue(transaction as Transaction);
+    jest.spyOn(sentryCore, 'startInactiveSpan').mockReturnValue(transaction as Transaction);
     const finishSpan = jest.spyOn(span, 'end');
     const finishTransaction = jest.spyOn(transaction, 'end');
 
