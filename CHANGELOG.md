@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.106.1
+
+- fix(nextjs/v7): Use passthrough `createReduxEnhancer` on server (#11010)
+
 ## 7.106.0
 
 - feat(nextjs): Support Hybrid Cloud DSNs with `tunnelRoute` option (#10958)
