@@ -23,11 +23,11 @@ describe('Bun Serve Integration', () => {
   });
 
   test('generates a transaction around a request', async () => {
-    client.on('finishTransaction', transaction => {
-      expect(spanToJSON(transaction).status).toBe('ok');
-      expect(spanToJSON(transaction).data?.['http.response.status_code']).toEqual(200);
-      expect(spanToJSON(transaction).op).toEqual('http.server');
-      expect(spanToJSON(transaction).description).toEqual('GET /');
+    client.on('spanEnd', span => {
+      expect(spanToJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(span).op).toEqual('http.server');
+      expect(spanToJSON(span).description).toEqual('GET /');
     });
 
     const server = Bun.serve({
@@ -43,11 +43,11 @@ describe('Bun Serve Integration', () => {
   });
 
   test('generates a post transaction', async () => {
-    client.on('finishTransaction', transaction => {
-      expect(spanToJSON(transaction).status).toBe('ok');
-      expect(spanToJSON(transaction).data?.['http.response.status_code']).toEqual(200);
-      expect(spanToJSON(transaction).op).toEqual('http.server');
-      expect(spanToJSON(transaction).description).toEqual('POST /');
+    client.on('spanEnd', span => {
+      expect(spanToJSON(span).status).toBe('ok');
+      expect(spanToJSON(span).data?.['http.response.status_code']).toEqual(200);
+      expect(spanToJSON(span).op).toEqual('http.server');
+      expect(spanToJSON(span).description).toEqual('POST /');
     });
 
     const server = Bun.serve({
@@ -72,14 +72,13 @@ describe('Bun Serve Integration', () => {
     const SENTRY_TRACE_HEADER = `${TRACE_ID}-${PARENT_SPAN_ID}-${PARENT_SAMPLED}`;
     const SENTRY_BAGGAGE_HEADER = 'sentry-version=1.0,sentry-environment=production';
 
-    client.on('finishTransaction', transaction => {
-      expect(transaction.spanContext().traceId).toBe(TRACE_ID);
-      expect(transaction.parentSpanId).toBe(PARENT_SPAN_ID);
-      expect(spanIsSampled(transaction)).toBe(true);
-      // span.endTimestamp is already set in `finishTransaction` hook
-      expect(transaction.isRecording()).toBe(false);
+    client.on('spanEnd', span => {
+      expect(span.spanContext().traceId).toBe(TRACE_ID);
+      expect(spanToJSON(span).parent_span_id).toBe(PARENT_SPAN_ID);
+      expect(spanIsSampled(span)).toBe(true);
+      expect(span.isRecording()).toBe(false);
 
-      expect(getDynamicSamplingContextFromSpan(transaction)).toStrictEqual({
+      expect(getDynamicSamplingContextFromSpan(span)).toStrictEqual({
         version: '1.0',
         environment: 'production',
       });
@@ -100,7 +99,7 @@ describe('Bun Serve Integration', () => {
   });
 
   test('does not create transactions for OPTIONS or HEAD requests', async () => {
-    client.on('finishTransaction', () => {
+    client.on('spanEnd', () => {
       // This will never run, but we want to make sure it doesn't run.
       expect(false).toEqual(true);
     });
