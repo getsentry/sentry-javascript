@@ -20,7 +20,6 @@ import { SENTRY_TRACE_STATE_DSC } from './constants';
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
-import { setSpanMetadata } from './utils/spanData';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -144,7 +143,7 @@ function getTracer(): Tracer {
 
 function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanContext): void {
   // eslint-disable-next-line deprecation/deprecation
-  const { origin, op, source, metadata } = options;
+  const { origin, op, source } = options;
 
   if (origin) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
@@ -156,10 +155,6 @@ function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanCont
 
   if (source) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
-  }
-
-  if (metadata) {
-    setSpanMetadata(span, metadata);
   }
 }
 
