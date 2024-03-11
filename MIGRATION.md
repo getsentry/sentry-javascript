@@ -591,7 +591,7 @@ The reason for this change is to have one consistent way of defining the SDK opt
 reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
 have code completion.
 
-#### Bumping the `@sentry/webpack-plugin` dependency to version 2
+#### Updated the `@sentry/webpack-plugin` dependency to version 2
 
 We bumping the internal usage of `@sentry/webpack-plugin` to a new major version. This comes with multiple upsides like
 a simpler configuration interface and the use of new state of the art Debug ID technology. Debug IDs will simplify the
