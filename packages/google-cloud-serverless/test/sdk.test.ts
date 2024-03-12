@@ -24,10 +24,10 @@ describe('init()', () => {
       expect.objectContaining({
         _metadata: {
           sdk: {
-            name: 'sentry.javascript.google-cloud',
+            name: 'sentry.javascript.google-cloud-serverless',
             packages: [
               {
-                name: 'npm:@sentry/google-cloud',
+                name: 'npm:@sentry/google-cloud-serverless',
                 version: expect.any(String),
               },
             ],

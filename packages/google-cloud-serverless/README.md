@@ -14,12 +14,12 @@
 ## General
 
 This package is a wrapper around `@sentry/node`, with added functionality related to various Serverless solutions. All
-methods available in `@sentry/node` can be imported from `@sentry/google-cloud`.
+methods available in `@sentry/node` can be imported from `@sentry/google-cloud-serverless`.
 
 To use this SDK, call `Sentry.init(options)` at the very beginning of your JavaScript file.
 
 ```javascript
-import * as Sentry from '@sentry/google-cloud';
+const Sentry = require('@sentry/google-cloud-serverless');
 
 Sentry.init({
   dsn: '__DSN__',

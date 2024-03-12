@@ -1,5 +1,5 @@
 {
-  "name": "@sentry/google-cloud",
+  "name": "@sentry/google-cloud-serverless",
   "version": "8.0.0-alpha.2",
   "description": "Official Sentry SDK for Google Cloud Functions",
   "repository": "git://github.com/getsentry/sentry-javascript.git",

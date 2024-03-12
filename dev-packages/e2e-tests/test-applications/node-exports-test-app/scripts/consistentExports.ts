@@ -1,7 +1,7 @@
 import * as SentryAstro from '@sentry/astro';
 import * as SentryAWS from '@sentry/aws-serverless';
 import * as SentryBun from '@sentry/bun';
-import * as SentryGoogleCloud from '@sentry/google-cloud';
+import * as SentryGoogleCloud from '@sentry/google-cloud-serverless';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
@@ -86,7 +86,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: ['makeMain'],
   },
   {
-    package: '@sentry/google-cloud',
+    package: '@sentry/google-cloud-serverless',
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
     ignoreExports: ['makeMain'],
