@@ -16,8 +16,8 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
-import type { IFeedback2ModalIntegration } from '../modal/integration';
-import type { IFeedback2ScreenshotIntegration } from '../screenshot/integration';
+import type { IFeedbackModalIntegration } from '../modal/integration';
+import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
 import type {
   Dialog,
   FeedbackInternalOptions,
@@ -33,7 +33,7 @@ import { sendFeedback } from './sendFeedback';
 
 type Unsubscribe = () => void;
 
-interface PublicFeedback2Integration {
+interface PublicFeedbackIntegration {
   attachTo: (el: Element | string, optionOverrides: OverrideFeedbackConfiguration) => () => void;
   createWidget: (optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean }) => Promise<Dialog>;
   getWidget: () => Dialog | null;
@@ -42,9 +42,9 @@ interface PublicFeedback2Integration {
   closeDialog: () => void;
   removeWidget: () => void;
 }
-export type IFeedback2Integration = IntegrationFnResult & PublicFeedback2Integration;
+export type IFeedbackIntegration = IntegrationFnResult & PublicFeedbackIntegration;
 
-export const _feedback2Integration = (({
+export const _feedbackIntegration = (({
   // FeedbackGeneralConfiguration
   id = 'sentry-feedback',
   showBranding = true,
@@ -147,8 +147,8 @@ export const _feedback2Integration = (({
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
     }
-    const modalIntegration = client.getIntegrationByName<IFeedback2ModalIntegration>('Feedback2Modal');
-    const screenshotIntegration = client.getIntegrationByName<IFeedback2ScreenshotIntegration>('Feedback2Screenshot');
+    const modalIntegration = client.getIntegrationByName<IFeedbackModalIntegration>('FeedbackModal');
+    const screenshotIntegration = client.getIntegrationByName<IFeedbackScreenshotIntegration>('FeedbackScreenshot');
     const screenshotIsSupported = isScreenshotSupported();
 
     // START TEMP: Error messages
@@ -239,7 +239,7 @@ export const _feedback2Integration = (({
   };
 
   return {
-    name: 'Feedback2',
+    name: 'Feedback',
     setupOnce() {
       if (!isBrowser() || !_options.autoInject) {
         return;
@@ -277,4 +277,4 @@ export const _feedback2Integration = (({
   };
 }) satisfies IntegrationFn;
 
-export const feedback2Integration = defineIntegration(_feedback2Integration);
+export const feedbackIntegration = defineIntegration(_feedbackIntegration);

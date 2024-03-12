@@ -2,15 +2,15 @@ import { defineIntegration } from '@sentry/core';
 import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
 import { createInput } from './createInput';
 
-interface PublicFeedback2ScreenshotIntegration {
+interface PublicFeedbackScreenshotIntegration {
   createInput: typeof createInput;
 }
 
-const INTEGRATION_NAME = 'Feedback2Screenshot';
+const INTEGRATION_NAME = 'FeedbackScreenshot';
 
-export type IFeedback2ScreenshotIntegration = IntegrationFnResult & PublicFeedback2ScreenshotIntegration;
+export type IFeedbackScreenshotIntegration = IntegrationFnResult & PublicFeedbackScreenshotIntegration;
 
-export const _feedback2ScreenshotIntegration = (() => {
+export const _feedbackScreenshotIntegration = (() => {
   return {
     name: INTEGRATION_NAME,
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -19,4 +19,4 @@ export const _feedback2ScreenshotIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const feedback2ScreenshotIntegration = defineIntegration(_feedback2ScreenshotIntegration);
+export const feedbackScreenshotIntegration = defineIntegration(_feedbackScreenshotIntegration);

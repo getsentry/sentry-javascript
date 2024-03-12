@@ -2,14 +2,14 @@ import { getCurrentScope } from '@sentry/core';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import type { sendFeedback as sendFeedbackFn } from '../core/sendFeedback';
-import type { IFeedback2ScreenshotIntegration } from '../screenshot/integration';
+import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
 import type { Dialog, FeedbackFormData, FeedbackInternalOptions } from '../types';
 import { createDialogStyles } from './components/Dialog.css';
 import { DialogComponent } from './components/DialogContainer';
 
 interface Props {
   options: FeedbackInternalOptions;
-  screenshotIntegration: IFeedback2ScreenshotIntegration | undefined;
+  screenshotIntegration: IFeedbackScreenshotIntegration | undefined;
   sendFeedback: typeof sendFeedbackFn;
   shadow: ShadowRoot;
 }

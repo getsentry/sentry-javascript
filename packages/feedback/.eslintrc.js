@@ -7,29 +7,18 @@ module.exports = {
   extends: ['../../.eslintrc.js'],
   overrides: [
     {
+      files: ['src/**/*.ts', 'src/**/*.tsx'],
+      rules: {
+        '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',
+      },
+    },
+    {
       files: ['jest.setup.ts', 'jest.config.ts'],
       parserOptions: {
         project: ['tsconfig.test.json'],
       },
       rules: {
         'no-console': 'off',
-      },
-    },
-    {
-      files: ['test/**/*.ts'],
-
-      rules: {
-        // most of these errors come from `new Promise(process.nextTick)`
-        '@typescript-eslint/unbound-method': 'off',
-        // TODO: decide if we want to enable this again after the migration
-        // We can take the freedom to be a bit more lenient with tests
-        '@typescript-eslint/no-floating-promises': 'off',
-      },
-    },
-    {
-      files: ['src/types/deprecated.ts'],
-      rules: {
-        '@typescript-eslint/naming-convention': 'off',
       },
     },
   ],
