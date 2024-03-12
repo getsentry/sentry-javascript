@@ -123,29 +123,29 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           case 'topleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: e.offsetX,
-              starty: e.offsetY,
+              startx: Math.min(e.offsetX, prev.endx - 30),
+              starty: Math.min(e.offsetY, prev.endy - 30),
             }));
             break;
           case 'topright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: e.offsetX,
-              starty: e.offsetY,
+              endx: Math.max(e.offsetX, prev.startx + 30),
+              starty: Math.min(e.offsetY, prev.endy - 30),
             }));
             break;
           case 'bottomleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: e.offsetX,
-              endy: e.offsetY,
+              startx: Math.min(e.offsetX, prev.endx - 30),
+              endy: Math.max(e.offsetY, prev.starty + 30),
             }));
             break;
           case 'bottomright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: e.offsetX,
-              endy: e.offsetY,
+              endx: Math.max(e.offsetX, prev.startx + 30),
+              endy: Math.max(e.offsetY, prev.starty + 30),
             }));
             break;
         }
@@ -258,8 +258,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
             <div
               style={{
                 position: 'absolute',
-                left: croppingRect.endx - 191,
-                top: croppingRect.endy + 8,
+                left: Math.max(0, croppingRect.endx - 191),
+                top: Math.max(0, croppingRect.endy + 8),
                 display: confirmCrop ? 'flex' : 'none',
               }}
               class="crop-btn-group"
