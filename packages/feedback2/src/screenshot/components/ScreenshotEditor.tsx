@@ -59,35 +59,37 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
     const canvasContainerRef = useRef<HTMLDivElement>(null);
+    const cropContainerRef = useRef<HTMLDivElement>(null);
     const croppingRef = useRef<HTMLCanvasElement>(null);
     const [croppingRect, setCroppingRect] = useState<Box>({ startx: 0, starty: 0, endx: 0, endy: 0 });
     const [confirmCrop, setConfirmCrop] = useState(false);
 
     useEffect(() => {
-      WINDOW.addEventListener('resize', handleResize, false);
+      WINDOW.addEventListener('resize', resizeCropper, false);
     }, []);
-
-    const handleResize = useCallback(() => {
-      setCroppingRect(containedImage(imageBuffer));
-      resizeCropper();
-    }, []);
-
-    useEffect(() => {
-      const container = canvasContainerRef.current;
-      container && container.appendChild(imageBuffer);
-      setCroppingRect(containedImage(imageBuffer));
-      resizeCropper();
-    }, [imageBuffer]);
 
     function resizeCropper(): void {
       const cropper = croppingRef.current;
-      if (cropper && canvasContainerRef.current) {
-        cropper.width = canvasContainerRef.current.clientWidth;
-        cropper.height = canvasContainerRef.current.clientHeight;
-        cropper.style.width = `${canvasContainerRef.current.clientWidth}px`;
-        cropper.style.height = `${canvasContainerRef.current.clientHeight}px`;
+      const imageDimensions = constructRect(containedImage(imageBuffer));
+      if (cropper) {
+        cropper.width = imageDimensions.width;
+        cropper.height = imageDimensions.height;
       }
+
+      const cropButton = cropContainerRef.current;
+      if (cropButton) {
+        cropButton.style.width = `${imageDimensions.width}px`;
+        cropButton.style.height = `${imageDimensions.height}px`;
+        cropButton.style.left = `${imageDimensions.x}px`;
+        cropButton.style.top = `${imageDimensions.y}px`;
+      }
+
+      setCroppingRect({ startx: 0, starty: 0, endx: imageDimensions.width, endy: imageDimensions.height });
     }
+
+    useEffect(() => {
+      refreshCroppingBox();
+    }, [croppingRect]);
 
     function refreshCroppingBox(): void {
       const cropper = croppingRef.current;
@@ -99,15 +101,14 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (!ctx) {
         return;
       }
-
-      ctx.clearRect(0, 0, imageBuffer.width, imageBuffer.height);
-
       const imageDimensions = constructRect(containedImage(imageBuffer));
       const croppingBox = constructRect(croppingRect);
 
+      ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
+
       // draw gray overlay around the selection
       ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-      ctx.fillRect(imageDimensions.x, imageDimensions.y, imageDimensions.width, imageDimensions.height);
+      ctx.fillRect(0, 0, imageDimensions.width, imageDimensions.height);
       ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
 
       // draw selection border
@@ -122,29 +123,29 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           case 'topleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.floor(e.offsetX),
-              starty: Math.floor(e.offsetY),
+              startx: e.offsetX,
+              starty: e.offsetY,
             }));
             break;
           case 'topright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.floor(e.offsetX),
-              starty: Math.floor(e.offsetY),
+              endx: e.offsetX,
+              starty: e.offsetY,
             }));
             break;
           case 'bottomleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.floor(e.offsetX),
-              endy: Math.floor(e.offsetY),
+              startx: e.offsetX,
+              endy: e.offsetY,
             }));
             break;
           case 'bottomright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.floor(e.offsetX),
-              endy: Math.floor(e.offsetY),
+              endx: e.offsetX,
+              endy: e.offsetY,
             }));
             break;
         }
@@ -164,10 +165,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       croppingRef.current && croppingRef.current.addEventListener('mousemove', handleMouseMove);
     }
 
-    useEffect(() => {
-      refreshCroppingBox();
-    }, [croppingRect]);
-
     function submit(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
       const imageBox = constructRect(containedImage(imageBuffer));
@@ -179,8 +176,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (cutoutCtx && imageBuffer) {
         cutoutCtx.drawImage(
           imageBuffer,
-          ((croppingBox.x - imageBox.x) / imageBox.width) * imageBuffer.width,
-          ((croppingBox.y - imageBox.y) / imageBox.height) * imageBuffer.height,
+          (croppingBox.x / imageBox.width) * imageBuffer.width,
+          (croppingBox.y / imageBox.height) * imageBuffer.height,
           (croppingBox.width / imageBox.width) * imageBuffer.width,
           (croppingBox.height / imageBox.height) * imageBuffer.height,
           0,
@@ -196,7 +193,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         imageBuffer.width = cutoutCanvas.width;
         imageBuffer.height = cutoutCanvas.height;
         ctx.drawImage(cutoutCanvas, 0, 0);
-        setCroppingRect(containedImage(imageBuffer));
         resizeCropper();
       }
     }
@@ -219,7 +215,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       ),
       onAfterScreenshot: useCallback(() => {
         dialog.el.style.display = 'block';
-        setCroppingRect(containedImage(imageBuffer));
+        const container = canvasContainerRef.current;
+        container && container.appendChild(imageBuffer);
         resizeCropper();
       }, []),
       onError: useCallback(error => {
@@ -232,60 +229,69 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
         <div class="canvasContainer" ref={canvasContainerRef}>
-          <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
-          <CropCorner
-            left={croppingRect.startx - 3}
-            top={croppingRect.starty - 3}
-            onGrabButton={onGrabButton}
-            corner="topleft"
-          ></CropCorner>
-          <CropCorner
-            left={croppingRect.endx - 30 + 3}
-            top={croppingRect.starty - 3}
-            onGrabButton={onGrabButton}
-            corner="topright"
-          ></CropCorner>
-          <CropCorner
-            left={croppingRect.startx - 3}
-            top={croppingRect.endy - 30 + 3}
-            onGrabButton={onGrabButton}
-            corner="bottomleft"
-          ></CropCorner>
-          <CropCorner
-            left={croppingRect.endx - 30 + 3}
-            top={croppingRect.endy - 30 + 3}
-            onGrabButton={onGrabButton}
-            corner="bottomright"
-          ></CropCorner>
-          <div
-            style={{
-              position: 'absolute',
-              left: croppingRect.endx - 191,
-              top: croppingRect.endy + 8,
-              display: confirmCrop ? 'flex' : 'none',
-            }}
-            class="crop-btn-group"
-          >
-            <button
-              onClick={e => {
-                e.preventDefault();
-                setCroppingRect(containedImage(imageBuffer));
-                setConfirmCrop(false);
+          <div class="cropButtonContainer" style={{ position: 'absolute' }} ref={cropContainerRef}>
+            <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
+            <CropCorner
+              left={croppingRect.startx}
+              top={croppingRect.starty}
+              onGrabButton={onGrabButton}
+              corner="topleft"
+            ></CropCorner>
+            <CropCorner
+              left={croppingRect.endx - 30}
+              top={croppingRect.starty}
+              onGrabButton={onGrabButton}
+              corner="topright"
+            ></CropCorner>
+            <CropCorner
+              left={croppingRect.startx}
+              top={croppingRect.endy - 30}
+              onGrabButton={onGrabButton}
+              corner="bottomleft"
+            ></CropCorner>
+            <CropCorner
+              left={croppingRect.endx - 30}
+              top={croppingRect.endy - 30}
+              onGrabButton={onGrabButton}
+              corner="bottomright"
+            ></CropCorner>
+            <div
+              style={{
+                position: 'absolute',
+                left: croppingRect.endx - 191,
+                top: croppingRect.endy + 8,
+                display: confirmCrop ? 'flex' : 'none',
               }}
-              class="btn btn--default"
+              class="crop-btn-group"
             >
-              Cancel
-            </button>
-            <button
-              onClick={e => {
-                e.preventDefault();
-                submit();
-                setConfirmCrop(false);
-              }}
-              class="btn btn--primary"
-            >
-              Confirm
-            </button>
+              <button
+                onClick={e => {
+                  e.preventDefault();
+                  if (croppingRef.current) {
+                    setCroppingRect({
+                      startx: 0,
+                      starty: 0,
+                      endx: croppingRef.current.width,
+                      endy: croppingRef.current.height,
+                    });
+                  }
+                  setConfirmCrop(false);
+                }}
+                class="btn btn--default"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={e => {
+                  e.preventDefault();
+                  submit();
+                  setConfirmCrop(false);
+                }}
+                class="btn btn--primary"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       </div>
