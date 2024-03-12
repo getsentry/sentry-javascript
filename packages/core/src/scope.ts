@@ -81,6 +81,9 @@ export class Scope implements ScopeInterface {
 
   /**
    * Transaction Name
+   *
+   * IMPORTANT: The transaction name on the scope has nothing to do with root spans/transaction objects.
+   * It's purpose is to assign a transaction to the scope that's added to non-transaction events.
    */
   protected _transactionName?: string;
 
@@ -278,7 +281,7 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Sets the transaction name on the scope for future events.
+   * @inheritDoc
    */
   public setTransactionName(name?: string): this {
     this._transactionName = name;
