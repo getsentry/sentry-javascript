@@ -143,10 +143,13 @@ export class TraceService implements OnDestroy {
         (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
       );
 
+      if (route) {
+        getCurrentScope().setTransactionName(route);
+      }
+
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
       _updateSpanAttributesForParametrizedUrl(route, rootSpan);
     }),
   );
