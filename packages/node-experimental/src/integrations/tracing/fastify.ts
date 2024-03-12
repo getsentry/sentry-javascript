@@ -1,6 +1,6 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
-import { defineIntegration } from '@sentry/core';
+import { captureException, defineIntegration } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
@@ -28,3 +28,14 @@ const _fastifyIntegration = (() => {
  * Capture tracing data for fastify.
  */
 export const fastifyIntegration = defineIntegration(_fastifyIntegration);
+
+/**
+ * Setup an error handler for Fastify.
+ */
+export function setupFastifyErrorHandler(fastify: {
+  addHook: (hook: string, handler: (request: unknown, reply: unknown, error: Error) => void) => void;
+}): void {
+  fastify.addHook('onError', async (_request, _reply, error) => {
+    captureException(error);
+  });
+}

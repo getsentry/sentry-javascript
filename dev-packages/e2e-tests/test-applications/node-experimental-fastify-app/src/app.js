@@ -2,21 +2,12 @@ require('./tracing');
 
 const Sentry = require('@sentry/node');
 const { fastify } = require('fastify');
-const fastifyPlugin = require('fastify-plugin');
 const http = require('http');
-
-const FastifySentry = fastifyPlugin(async (fastify, options) => {
-  fastify.decorateRequest('_sentryContext', null);
-
-  fastify.addHook('onError', async (_request, _reply, error) => {
-    Sentry.captureException(error);
-  });
-});
 
 const app = fastify();
 const port = 3030;
 
-app.register(FastifySentry);
+Sentry.setupFastifyErrorHandler(app);
 
 app.get('/test-success', function (req, res) {
   res.send({ version: 'v1' });
