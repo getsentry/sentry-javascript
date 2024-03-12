@@ -450,7 +450,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
-  public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  public on(
+    hook: 'startPageLoadSpan',
+    callback: (
+      options: StartSpanOptions,
+      traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+    ) => void,
+  ): void;
 
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
@@ -500,7 +506,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
-  public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  public emit(
+    hook: 'startPageLoadSpan',
+    options: StartSpanOptions,
+    traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+  ): void;
 
   /** @inheritdoc */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
