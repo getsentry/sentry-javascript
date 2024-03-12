@@ -1,5 +1,4 @@
 import * as SentryAstro from '@sentry/astro';
-import * as SentryBun from '@sentry/bun';
 import * as SentryGoogleCloud from '@sentry/google-cloud';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
@@ -9,6 +8,8 @@ import * as SentrySvelteKit from '@sentry/sveltekit';
 
 // SentryAWS is CJS only
 const SentryAWS = require('@sentry/aws-serverless');
+// Using CJS export for Bun SDK
+const SentryBun = require('@sentry/bun');
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
 const NODE_EXPERIMENTAL_EXPORTS_IGNORE = [
