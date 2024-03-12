@@ -56,6 +56,7 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
+      'makeMain'
     ],
   },
   {
