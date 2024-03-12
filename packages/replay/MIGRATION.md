@@ -1,7 +1,5 @@
 # End of Replay Beta
 
-Sentry Replay is now out of Beta. This means that the usual stability guarantees apply.
-
 > For further migration changes please refer to the [general SDK migration notes](../../MIGRATION.md).
 
 Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since

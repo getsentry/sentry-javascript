@@ -836,8 +836,8 @@ options, you have to explicitly set them like this:
 Sentry.init({
   integrations: [
     Sentry.replayIntegration({
-      unblock: '.sentry-unblock, [data-sentry-unblock]',
-      unmask: '.sentry-unmask, [data-sentry-unmask]',
+      unblock: ['.sentry-unblock, [data-sentry-unblock]'],
+      unmask: ['.sentry-unmask, [data-sentry-unmask]'],
     }),
   ],
 });
