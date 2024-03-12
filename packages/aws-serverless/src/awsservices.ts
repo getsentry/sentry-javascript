@@ -1,5 +1,5 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
-import { getClient, startInactiveSpan } from '@sentry/node-experimental';
+import { getClient, startInactiveSpan } from '@sentry/node';
 import type { Client, IntegrationFn, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
