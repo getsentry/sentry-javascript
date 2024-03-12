@@ -12,5 +12,5 @@ function run(cmd: string, options?: childProcess.ExecSyncOptions): string | Buff
 run('yarn rollup -c rollup.npm.config.mjs');
 
 // We want to distribute the README because it contains the MIT license blurb from Sucrase and Rollup
-fs.copyFileSync('src/buildPolyfills/README.md', 'build/cjs/buildPolyfills/README.md');
-fs.copyFileSync('src/buildPolyfills/README.md', 'build/esm/buildPolyfills/README.md');
+fs.copyFileSync('src/buildPolyfills/README.md', 'build/cjs/build-polyfills-license.md');
+fs.copyFileSync('src/buildPolyfills/README.md', 'build/esm/build-polyfills-license.md');
