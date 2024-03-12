@@ -68,9 +68,15 @@ for NEXTJS_VERSION in 10 11 12 13; do
     if [ "$NEXTJS_VERSION" -eq "13" ]; then
       npm i --save react@18.2.0 react-dom@18.2.0
     fi
-    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
-    # 10
-    yarn --no-lockfile --ignore-engines --silent >/dev/null 2>&1
+
+    # Yarn install randomly started failing because it couldn't find some cache  so for now we need to run these two commands which seem to fix it.
+    # It was pretty much this issue: https://github.com/yarnpkg/yarn/issues/5275
+    rm -rf node_modules
+    yarn cache clean
+
+    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node 10
+    yarn --no-lockfile --ignore-engines
+
     # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
     # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO are set)
     linkcli && linkplugin
@@ -124,13 +130,6 @@ for NEXTJS_VERSION in 10 11 12 13; do
 
       echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
       yarn build
-
-      # if the user hasn't passed any args, use the default one, which restricts each test to only outputting success and
-      # failure messages
-      args=$*
-      if [[ ! $args ]]; then
-        args="--silent"
-      fi
 
       # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
       EXIT_CODE=0
