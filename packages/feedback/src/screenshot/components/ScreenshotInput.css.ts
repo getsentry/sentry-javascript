@@ -58,6 +58,14 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   border-radius: var(--form-content-border-radius);
   background-color: var(--background);
   width: 175px;
+  position: absolute;
+}
+
+.crop-btn {
+  width: 30px;
+  height: 30px;
+  position: absolute;
+  background: none;
 }
 `;
 

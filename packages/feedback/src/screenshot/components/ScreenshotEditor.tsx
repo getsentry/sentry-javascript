@@ -1,5 +1,5 @@
+// eslint-disable max-lines
 import type { ComponentType, VNode, h as hType } from 'preact';
-// biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { DOCUMENT, WINDOW } from '../../constants';
@@ -40,7 +40,7 @@ const constructRect = (box: Box): Rect => {
   };
 };
 
-const containedImage = (img: HTMLCanvasElement): Box => {
+const getContainedSize = (img: HTMLCanvasElement): Box => {
   const ratio = img.width / img.height;
   let width = img.clientHeight * ratio;
   let height = img.clientHeight;
@@ -70,7 +70,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
 
     function resizeCropper(): void {
       const cropper = croppingRef.current;
-      const imageDimensions = constructRect(containedImage(imageBuffer));
+      const imageDimensions = constructRect(getContainedSize(imageBuffer));
       if (cropper) {
         cropper.width = imageDimensions.width;
         cropper.height = imageDimensions.height;
@@ -88,10 +88,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     }
 
     useEffect(() => {
-      refreshCroppingBox();
-    }, [croppingRect]);
-
-    function refreshCroppingBox(): void {
       const cropper = croppingRef.current;
       if (!cropper) {
         return;
@@ -101,7 +97,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (!ctx) {
         return;
       }
-      const imageDimensions = constructRect(containedImage(imageBuffer));
+      const imageDimensions = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
 
       ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
@@ -115,6 +111,19 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       ctx.strokeStyle = 'purple';
       ctx.lineWidth = 3;
       ctx.strokeRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
+    }, [croppingRect]);
+
+    function onGrabButton(e: Event, corner: string): void {
+      setConfirmCrop(false);
+      const handleMouseMove = makeHandleMouseMove(corner);
+      const handleMouseUp = (): void => {
+        croppingRef.current && croppingRef.current.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
+        setConfirmCrop(true);
+      };
+
+      DOCUMENT.addEventListener('mouseup', handleMouseUp);
+      croppingRef.current && croppingRef.current.addEventListener('mousemove', handleMouseMove);
     }
 
     const makeHandleMouseMove = useCallback((corner: string) => {
@@ -152,22 +161,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       };
     }, []);
 
-    function onGrabButton(e: Event, corner: string): void {
-      setConfirmCrop(false);
-      const handleMouseMove = makeHandleMouseMove(corner);
-      const handleMouseUp = (): void => {
-        croppingRef.current && croppingRef.current.removeEventListener('mousemove', handleMouseMove);
-        DOCUMENT.removeEventListener('mouseup', handleMouseUp);
-        setConfirmCrop(true);
-      };
-
-      DOCUMENT.addEventListener('mouseup', handleMouseUp);
-      croppingRef.current && croppingRef.current.addEventListener('mousemove', handleMouseMove);
-    }
-
     function submit(): void {
       const cutoutCanvas = DOCUMENT.createElement('canvas');
-      const imageBox = constructRect(containedImage(imageBuffer));
+      const imageBox = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
       cutoutCanvas.width = croppingBox.width;
       cutoutCanvas.height = croppingBox.height;
@@ -257,7 +253,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
             ></CropCorner>
             <div
               style={{
-                position: 'absolute',
                 left: Math.max(0, croppingRect.endx - 191),
                 top: Math.max(0, croppingRect.endy + 8),
                 display: confirmCrop ? 'flex' : 'none',
@@ -312,13 +307,10 @@ function CropCorner({
 }): VNode {
   return (
     <button
+      class="crop-btn"
       style={{
-        width: 30,
-        height: 30,
-        position: 'absolute',
         top: top,
         left: left,
-        background: 'none',
         borderTop: corner === 'topleft' || corner === 'topright' ? 'solid purple' : 'none',
         borderLeft: corner === 'topleft' || corner === 'bottomleft' ? 'solid purple' : 'none',
         borderRight: corner === 'topright' || corner === 'bottomright' ? 'solid purple' : 'none',
