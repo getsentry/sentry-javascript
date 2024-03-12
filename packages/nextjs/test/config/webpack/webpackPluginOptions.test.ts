@@ -108,7 +108,7 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
-  it('returns the right `assets` and `ignore` values when run on the server', () => {
+  it('returns the right `assets` and `ignore` values during the server build', () => {
     const buildContext = generateBuildContext({ isServer: true });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, {});
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
@@ -117,7 +117,7 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
-  it('returns the right `assets` and `ignore` values when run on the client', () => {
+  it('returns the right `assets` and `ignore` values during the client build', () => {
     const buildContext = generateBuildContext({ isServer: false });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, {});
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
@@ -132,7 +132,7 @@ describe('getWebpackPluginOptions()', () => {
     });
   });
 
-  it('returns the right `assets` and `ignore` values when run on the client with `widenClientFileUpload`', () => {
+  it('returns the right `assets` and `ignore` values during the client build with `widenClientFileUpload`', () => {
     const buildContext = generateBuildContext({ isServer: false });
     const generatedPluginOptions = getWebpackPluginOptions(buildContext, { widenClientFileUpload: true });
     expect(generatedPluginOptions.sourcemaps).toMatchObject({
