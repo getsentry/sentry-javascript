@@ -724,9 +724,10 @@ function addValueInjectionLoader(
       : '',
   };
 
-  newConfig.module.rules.push(
-    {
-      test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
+  if (buildContext.isServer) {
+    newConfig.module.rules.push({
+      // TODO: Find a more bulletproof way of matching.
+      test: /(sentry\.(server|edge)\.config\.(jsx?|tsx?))|(instrumentation.(js|ts))/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
@@ -735,8 +736,9 @@ function addValueInjectionLoader(
           },
         },
       ],
-    },
-    {
+    });
+  } else {
+    newConfig.module.rules.push({
       test: /sentry\.client\.config\.(jsx?|tsx?)/,
       use: [
         {
@@ -746,8 +748,8 @@ function addValueInjectionLoader(
           },
         },
       ],
-    },
-  );
+    });
+  }
 }
 
 function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
