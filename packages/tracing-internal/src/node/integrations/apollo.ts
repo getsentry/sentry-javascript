@@ -1,6 +1,5 @@
-import type { Hub, SentrySpan } from '@sentry/core';
-import type { EventProcessor } from '@sentry/types';
-import { arrayify, fill, isThenable, loadModule, logger } from '@sentry/utils';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startSpan } from '@sentry/core';
+import { arrayify, fill, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
 import type { LazyLoadedIntegration } from './lazy';
@@ -75,7 +74,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     if (this._useNest) {
       const pkg = this.loadDependency();
 
@@ -99,7 +98,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
               return function (this: unknown) {
                 const resolvers = arrayify(orig.call(this));
 
-                const instrumentedResolvers = instrumentResolvers(resolvers, getCurrentHub);
+                const instrumentedResolvers = instrumentResolvers(resolvers);
 
                 return instrumentedResolvers;
               };
@@ -146,7 +145,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
 
           const resolvers = arrayify(this.config.resolvers);
 
-          this.config.resolvers = instrumentResolvers(resolvers, getCurrentHub);
+          this.config.resolvers = instrumentResolvers(resolvers);
 
           return orig.call(this);
         };
@@ -155,7 +154,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   }
 }
 
-function instrumentResolvers(resolvers: ApolloModelResolvers[], getCurrentHub: () => Hub): ApolloModelResolvers[] {
+function instrumentResolvers(resolvers: ApolloModelResolvers[]): ApolloModelResolvers[] {
   return resolvers.map(model => {
     Object.keys(model).forEach(resolverGroupName => {
       Object.keys(model[resolverGroupName]).forEach(resolverName => {
@@ -163,7 +162,7 @@ function instrumentResolvers(resolvers: ApolloModelResolvers[], getCurrentHub: (
           return;
         }
 
-        wrapResolver(model, resolverGroupName, resolverName, getCurrentHub);
+        wrapResolver(model, resolverGroupName, resolverName);
       });
     });
 
@@ -174,37 +173,22 @@ function instrumentResolvers(resolvers: ApolloModelResolvers[], getCurrentHub: (
 /**
  * Wrap a single resolver which can be a parent of other resolvers and/or db operations.
  */
-function wrapResolver(
-  model: ApolloModelResolvers,
-  resolverGroupName: string,
-  resolverName: string,
-  getCurrentHub: () => Hub,
-): void {
+function wrapResolver(model: ApolloModelResolvers, resolverGroupName: string, resolverName: string): void {
   fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {
     return function (this: unknown, ...args: unknown[]) {
-      // eslint-disable-next-line deprecation/deprecation
-      const scope = getCurrentHub().getScope();
-      // eslint-disable-next-line deprecation/deprecation
-      const parentSpan = scope.getSpan() as SentrySpan | undefined;
-      // eslint-disable-next-line deprecation/deprecation
-      const span = parentSpan?.startChild({
-        name: `${resolverGroupName}.${resolverName}`,
-        op: 'graphql.resolve',
-        origin: 'auto.graphql.apollo',
-      });
-
-      const rv = orig.call(this, ...args);
-
-      if (isThenable(rv)) {
-        return rv.then((res: unknown) => {
-          span?.end();
-          return res;
-        });
-      }
-
-      span?.end();
-
-      return rv;
+      return startSpan(
+        {
+          onlyIfParent: true,
+          name: `${resolverGroupName}.${resolverName}`,
+          op: 'graphql.resolve',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.graphql.apollo',
+          },
+        },
+        () => {
+          return orig.call(this, ...args);
+        },
+      );
     };
   });
 }

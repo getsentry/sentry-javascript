@@ -1,5 +1,5 @@
-import type { Hub, SentrySpan } from '@sentry/core';
-import type { EventProcessor, Span } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import type { Span } from '@sentry/types';
 import { fill, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
@@ -44,7 +44,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -97,18 +97,13 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
     //    function (options, values, callback) => void
     fill(pkg, 'createQuery', function (orig: () => void) {
       return function (this: unknown, options: unknown, values: unknown, callback: unknown) {
-        // eslint-disable-next-line deprecation/deprecation
-        const scope = getCurrentHub().getScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan() as SentrySpan | undefined;
-
-        // eslint-disable-next-line deprecation/deprecation
-        const span = parentSpan?.startChild({
+        const span = startInactiveSpan({
+          onlyIfParent: true,
           name: typeof options === 'string' ? options : (options as { sql: string }).sql,
           op: 'db',
-          origin: 'auto.db.mysql',
-          data: {
+          attributes: {
             'db.system': 'mysql',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.mysql',
           },
         });
 
