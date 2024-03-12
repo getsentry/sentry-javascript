@@ -119,11 +119,16 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
-export function makeNPMConfigVariants(baseConfig) {
-  const variantSpecificConfigs = [
-    { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
-    { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm'), plugins: [makePackageNodeEsm()] } },
-  ];
+export function makeNPMConfigVariants(baseConfig, options = {}) {
+  const { emitEsm = true } = options;
+
+  const variantSpecificConfigs = [{ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } }];
+
+  if (emitEsm) {
+    variantSpecificConfigs.push({
+      output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm'), plugins: [makePackageNodeEsm()] },
+    });
+  }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
 }
