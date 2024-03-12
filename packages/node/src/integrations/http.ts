@@ -1,11 +1,11 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub, SentrySpan } from '@sentry/core';
+import type { Hub } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
-  getActiveSpan,
   getClient,
   getCurrentHub,
   getCurrentScope,
@@ -319,17 +319,18 @@ function _createWrappedRequestMethodFactory(
 
       const scope = getCurrentScope();
       const isolationScope = getIsolationScope();
-      const parentSpan = getActiveSpan() as SentrySpan;
 
-      const data = getRequestSpanData(requestUrl, requestOptions);
+      const attributes = getRequestSpanData(requestUrl, requestOptions);
 
       const requestSpan = shouldCreateSpan(rawRequestUrl)
-        ? // eslint-disable-next-line deprecation/deprecation
-          parentSpan?.startChild({
+        ? startInactiveSpan({
+            onlyIfParent: true,
             op: 'http.client',
-            origin: 'auto.http.node.http',
-            name: `${data['http.method']} ${data.url}`,
-            data,
+            name: `${attributes['http.method']} ${attributes.url}`,
+            attributes: {
+              ...attributes,
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node.http',
+            },
           })
         : undefined;
 
@@ -365,7 +366,7 @@ function _createWrappedRequestMethodFactory(
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const req = this;
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('response', data, req, res);
+            addRequestBreadcrumb('response', attributes, req, res);
           }
           if (requestSpan) {
             if (res.statusCode) {
@@ -380,7 +381,7 @@ function _createWrappedRequestMethodFactory(
           const req = this;
 
           if (breadcrumbsEnabled) {
-            addRequestBreadcrumb('error', data, req);
+            addRequestBreadcrumb('error', attributes, req);
           }
           if (requestSpan) {
             setHttpStatus(requestSpan, 500);
