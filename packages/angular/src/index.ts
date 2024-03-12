@@ -6,8 +6,8 @@ export { init } from './sdk';
 export { createErrorHandler, SentryErrorHandler } from './errorhandler';
 export {
   browserTracingIntegration,
-  TraceClassDecorator,
-  TraceMethodDecorator,
+  TraceClass,
+  TraceMethod,
   TraceDirective,
   TraceModule,
   TraceService,

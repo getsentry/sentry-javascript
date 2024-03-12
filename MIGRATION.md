@@ -777,6 +777,35 @@ The SDK no longer filters out health check transactions by default. Instead, the
 by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
 drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
 
+#### Angular Tracing Decorator renaming
+
+The usage of `TraceClassDecorator` and the `TraceMethodDecorator` already implies that those are decorators. The word
+`Decorator` is now removed from the names to avoid multiple mentioning.
+
+Additionally, the `TraceClass` and `TraceMethod` decorators accept an optional `name` parameter to set the transaction
+name. This was added because Angular minifies class and method names, and you might want to set a more descriptive name.
+If nothing provided, the name defaults to `'unnamed'`.
+
+```js
+// v7
+@Sentry.TraceClassDecorator()
+export class HeaderComponent {
+  @Sentry.TraceMethodDecorator()
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+```js
+// v8
+@Sentry.TraceClass({ name: 'HeaderComponent' })
+export class HeaderComponent {
+  @Sentry.TraceMethod({ name: 'ngOnChanges' })
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+---
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
