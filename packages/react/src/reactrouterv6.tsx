@@ -13,6 +13,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
   getClient,
+  getCurrentScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
@@ -198,10 +199,15 @@ function updatePageloadTransaction(
     ? matches
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
-  if (activeRootSpan && branches) {
+  if (branches) {
     const [name, source] = getNormalizedName(routes, location, branches, basename);
-    activeRootSpan.updateName(name);
-    activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+    getCurrentScope().setTransactionName(name);
+
+    if (activeRootSpan) {
+      activeRootSpan.updateName(name);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    }
   }
 }
 
