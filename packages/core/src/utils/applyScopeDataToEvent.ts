@@ -38,7 +38,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     eventProcessors,
     attachments,
     propagationContext,
-    // eslint-disable-next-line deprecation/deprecation
     transactionName,
     span,
   } = mergeData;
@@ -54,7 +53,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   }
 
   if (transactionName) {
-    // eslint-disable-next-line deprecation/deprecation
     data.transactionName = transactionName;
   }
 
@@ -118,15 +116,7 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
-  const {
-    extra,
-    tags,
-    user,
-    contexts,
-    level,
-    // eslint-disable-next-line deprecation/deprecation
-    transactionName,
-  } = data;
+  const { extra, tags, user, contexts, level, transactionName } = data;
 
   const cleanedExtra = dropUndefinedKeys(extra);
   if (cleanedExtra && Object.keys(cleanedExtra).length) {
@@ -152,7 +142,8 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     event.level = level;
   }
 
-  if (transactionName) {
+  // transaction events get their `transaction` from the root span name
+  if (transactionName && event.type !== 'transaction') {
     event.transaction = transactionName;
   }
 }
@@ -179,7 +170,7 @@ function applySpanToEvent(event: Event, span: Span): void {
 
   const rootSpan = getRootSpan(span);
   const transactionName = spanToJSON(rootSpan).description;
-  if (transactionName && !event.transaction) {
+  if (transactionName && !event.transaction && event.type === 'transaction') {
     event.transaction = transactionName;
   }
 }

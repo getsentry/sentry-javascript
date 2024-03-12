@@ -37,11 +37,7 @@ export const customRewriteFramesIntegration = ((options?: RewriteFramesOptions) 
 
   // Do nothing if we can't find a distDirName
   return {
-    // eslint-disable-next-line deprecation/deprecation
     name: 'RewriteFrames',
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    setupOnce: () => {},
-    processEvent: event => event,
   };
 }) satisfies IntegrationFn;
 

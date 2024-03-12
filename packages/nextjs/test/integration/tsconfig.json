@@ -24,7 +24,6 @@
         "name": "next"
       }
     ],
-    "incremental": true
   },
   "exclude": ["node_modules"],
   "include": ["**/*.ts", "**/*.tsx", "../../playwright.config.ts", ".next/types/**/*.ts"]

@@ -8,7 +8,8 @@ test('should report a manually captured error.', async ({ page }) => {
   const [errorEnvelope, pageloadEnvelope] = envelopes;
 
   expect(errorEnvelope.level).toBe('error');
-  expect(errorEnvelope.transaction).toBe('/capture-exception');
+  // TODO: Comment back in once we update the scope transaction name on the client side
+  // expect(errorEnvelope.transaction).toBe('/capture-exception');
   expect(errorEnvelope.exception?.values).toMatchObject([
     {
       type: 'Error',

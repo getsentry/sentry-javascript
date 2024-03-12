@@ -1112,18 +1112,9 @@ describe('continueTrace', () => {
   });
 
   it('works without trace & baggage data', () => {
-    const expectedContext = {
-      metadata: {},
-    };
-
-    const result = continueTrace({ sentryTrace: undefined, baggage: undefined }, ctx => {
-      expect(ctx).toEqual(expectedContext);
-      return ctx;
+    const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
+      return getCurrentScope();
     });
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
@@ -1135,29 +1126,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
@@ -1171,32 +1148,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace & baggage data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {
-          environment: 'production',
-          version: '1.0',
-        },
-      },
-      parentSampled: true,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production',
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {
@@ -1213,32 +1173,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace & 3rd party baggage data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {
-          environment: 'production',
-          version: '1.0',
-        },
-      },
-      parentSampled: true,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {
@@ -1255,45 +1198,17 @@ describe('continueTrace', () => {
   });
 
   it('returns response of callback', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
     const result = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
       },
-      ctx => {
-        return { ctx };
+      () => {
+        return 'aha';
       },
     );
 
-    expect(result).toEqual({ ctx: expectedContext });
-  });
-
-  it('works without a callback', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    // eslint-disable-next-line deprecation/deprecation
-    const ctx = continueTrace({
-      sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-      baggage: undefined,
-    });
-
-    expect(ctx).toEqual(expectedContext);
+    expect(result).toEqual('aha');
   });
 });
 

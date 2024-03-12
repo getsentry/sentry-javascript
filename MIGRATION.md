@@ -546,10 +546,43 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `IS_BUILD`
 - `isBuild`
 
+#### Merging of the Sentry Webpack Plugin options and SDK Build options
+
+With version 8 of the Sentry Next.js SDK, `withSentryConfig` will no longer accept 3 arguments. The second argument
+(holding options for the Sentry Webpack plugin) and the third argument (holding options for SDK build-time
+configuration) should now be passed as one:
+
+```ts
+// OLD
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // Your Sentry Webpack Plugin Options...
+  },
+  {
+    // Your Sentry SDK options...
+  },
+);
+
+// NEW
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+  // AND your Sentry SDK options...
+});
+```
+
 #### Removal of the `sentry` property in your Next.js options (next.config.js)
 
 With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
-property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
+property to `withSentryConfig`. Please use the second argument of `withSentryConfig` to configure the SDK instead:
 
 ```ts
 // v7
@@ -572,20 +605,24 @@ const nextConfig = {
   // Your Next.js options...
 };
 
-module.exports = withSentryConfig(
-  nextConfig,
-  {
-    // Your Sentry Webpack Plugin Options...
-  },
-  {
-    // Your Sentry SDK options...
-  },
-);
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+  // AND your Sentry SDK options...
+});
 ```
 
 The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
 reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
 have code completion.
+
+#### Updated the `@sentry/webpack-plugin` dependency to version 2
+
+We bumped the internal usage of `@sentry/webpack-plugin` to a new major version. This comes with multiple upsides like a
+simpler configuration interface and the use of new state of the art Debug ID technology. Debug IDs will simplify the
+setup for source maps in Sentry and will not require you to match stack frame paths to uploaded artifacts anymore.
+
+To see the new options, check out the docs at https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/,
+or look at the TypeScript type definitions of `withSentryConfig`.
 
 ### Astro SDK
 

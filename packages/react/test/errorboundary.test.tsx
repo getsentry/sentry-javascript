@@ -35,6 +35,20 @@ function Bam(): JSX.Element {
   return <Boo title={title} />;
 }
 
+function EffectSpyFallback({ error }: { error: Error }): JSX.Element {
+  const [counter, setCounter] = useState(0);
+
+  React.useEffect(() => {
+    setCounter(c => c + 1);
+  }, []);
+
+  return (
+    <span>
+      EffectSpyFallback {counter} - {error.message}
+    </span>
+  );
+}
+
 interface TestAppProps extends ErrorBoundaryProps {
   errorComp?: JSX.Element;
 }
@@ -101,7 +115,7 @@ describe('ErrorBoundary', () => {
   it('renders null if not given a valid `fallback` prop function', () => {
     const { container } = render(
       // @ts-expect-error Passing wrong type on purpose
-      <ErrorBoundary fallback={() => 'Not a ReactElement'}>
+      <ErrorBoundary fallback={() => undefined}>
         <Bam />
       </ErrorBoundary>,
     );
@@ -116,6 +130,15 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
     expect(container.innerHTML).toBe('<h1>Error Component</h1>');
+  });
+
+  it('renders a fallback that can use react hooks', () => {
+    const { container } = render(
+      <ErrorBoundary fallback={EffectSpyFallback}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+    expect(container.innerHTML).toBe('<span>EffectSpyFallback 1 - boom</span>');
   });
 
   it('calls `onMount` when mounted', () => {

@@ -153,7 +153,7 @@ const opera11: StackLineParserFn = line => {
 
 export const opera11StackLineParser: StackLineParser = [OPERA11_PRIORITY, opera11];
 
-export const defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser, winjsStackLineParser];
+export const defaultStackLineParsers = [chromeStackLineParser, geckoStackLineParser];
 
 export const defaultStackParser = createStackParser(...defaultStackLineParsers);
 

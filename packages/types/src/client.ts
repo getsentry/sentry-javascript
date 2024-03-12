@@ -248,7 +248,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
-  on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  on(
+    hook: 'startPageLoadSpan',
+    callback: (
+      options: StartSpanOptions,
+      traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+    ) => void,
+  ): void;
 
   /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
@@ -321,7 +327,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
-  emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  emit(
+    hook: 'startPageLoadSpan',
+    options: StartSpanOptions,
+    traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+  ): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.

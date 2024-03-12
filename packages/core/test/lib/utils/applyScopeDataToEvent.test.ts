@@ -1,5 +1,11 @@
-import type { Attachment, Breadcrumb, EventProcessor, ScopeData } from '@sentry/types';
-import { mergeAndOverwriteScopeData, mergeArray, mergeScopeData } from '../../../src/utils/applyScopeDataToEvent';
+import type { Attachment, Breadcrumb, Event, EventProcessor, EventType, ScopeData } from '@sentry/types';
+import { startInactiveSpan } from '../../../src';
+import {
+  applyScopeDataToEvent,
+  mergeAndOverwriteScopeData,
+  mergeArray,
+  mergeScopeData,
+} from '../../../src/utils/applyScopeDataToEvent';
 
 describe('mergeArray', () => {
   it.each([
@@ -157,4 +163,104 @@ describe('mergeScopeData', () => {
       fingerprint: ['aa', 'bb', 'cc'],
     });
   });
+});
+
+describe('applyScopeDataToEvent', () => {
+  it("doesn't apply scope.transactionName to transaction events", () => {
+    const data: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {},
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { spanId: '1', traceId: '1' },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+      transactionName: 'foo',
+    };
+    const event: Event = { type: 'transaction', transaction: '/users/:id' };
+
+    applyScopeDataToEvent(event, data);
+
+    expect(event.transaction).toBe('/users/:id');
+  });
+
+  it('applies the root span name to transaction events', () => {
+    const data: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {},
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { spanId: '1', traceId: '1' },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+      transactionName: 'foo',
+      span: {
+        attributes: {},
+        startTime: 1,
+        endTime: 2,
+        status: 'ok',
+        name: 'bar',
+        // @ts-expect-error - we don't need to provide all span context fields
+        spanContext: () => ({}),
+      },
+    };
+
+    const event: Event = { type: 'transaction' };
+
+    applyScopeDataToEvent(event, data);
+
+    expect(event.transaction).toBe('bar');
+  });
+
+  it("doesn't apply the root span name to non-transaction events", () => {
+    const data: ScopeData = {
+      eventProcessors: [],
+      breadcrumbs: [],
+      user: {},
+      tags: {},
+      extra: {},
+      contexts: {},
+      attachments: [],
+      propagationContext: { spanId: '1', traceId: '1' },
+      sdkProcessingMetadata: {},
+      fingerprint: [],
+      transactionName: '/users/:id',
+      span: startInactiveSpan({ name: 'foo' }),
+    };
+    const event: Event = { type: undefined };
+
+    applyScopeDataToEvent(event, data);
+
+    expect(event.transaction).toBe('/users/:id');
+  });
+
+  it.each([undefined, 'profile', 'replay_event', 'feedback'])(
+    'applies scope.transactionName to event with type %s',
+    type => {
+      const data: ScopeData = {
+        eventProcessors: [],
+        breadcrumbs: [],
+        user: {},
+        tags: {},
+        extra: {},
+        contexts: {},
+        attachments: [],
+        propagationContext: { spanId: '1', traceId: '1' },
+        sdkProcessingMetadata: {},
+        fingerprint: [],
+        transactionName: 'foo',
+      };
+      const event: Event = { type: type as EventType, transaction: '/users/:id' };
+
+      applyScopeDataToEvent(event, data);
+
+      expect(event.transaction).toBe('foo');
+    },
+  );
 });

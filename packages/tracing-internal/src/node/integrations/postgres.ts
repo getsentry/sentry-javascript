@@ -1,5 +1,5 @@
-import type { Hub, SentrySpan } from '@sentry/core';
-import type { EventProcessor } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import type { SpanAttributes } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
@@ -74,7 +74,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(): void {
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -98,38 +98,33 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
      */
     fill(Client.prototype, 'query', function (orig: PgClientQuery) {
       return function (this: PgClientThis, config: unknown, values: unknown, callback: unknown) {
-        // eslint-disable-next-line deprecation/deprecation
-        const scope = getCurrentHub().getScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan() as SentrySpan | undefined;
-
-        const data: Record<string, string | number> = {
+        const attributes: SpanAttributes = {
           'db.system': 'postgresql',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.db.postgres',
         };
 
         try {
           if (this.database) {
-            data['db.name'] = this.database;
+            attributes['db.name'] = this.database;
           }
           if (this.host) {
-            data['server.address'] = this.host;
+            attributes['server.address'] = this.host;
           }
           if (this.port) {
-            data['server.port'] = this.port;
+            attributes['server.port'] = this.port;
           }
           if (this.user) {
-            data['db.user'] = this.user;
+            attributes['db.user'] = this.user;
           }
         } catch (e) {
           // ignore
         }
 
-        // eslint-disable-next-line deprecation/deprecation
-        const span = parentSpan?.startChild({
+        const span = startInactiveSpan({
+          onlyIfParent: true,
           name: typeof config === 'string' ? config : (config as { text: string }).text,
           op: 'db',
-          origin: 'auto.db.postgres',
-          data,
+          attributes,
         });
 
         if (typeof callback === 'function') {

@@ -1,8 +1,6 @@
 // mock helper functions not tested directly in this file
 import '../mocks';
 
-import { default as SentryWebpackPlugin } from '@sentry/webpack-plugin';
-
 import {
   CLIENT_SDK_CONFIG_FILE,
   clientBuildContext,
@@ -26,7 +24,7 @@ describe('constructWebpackConfigFunction()', () => {
       expect.objectContaining({
         devtool: 'source-map',
         entry: expect.any(Object), // `entry` is tested specifically elsewhere
-        plugins: expect.arrayContaining([expect.any(SentryWebpackPlugin)]),
+        plugins: expect.arrayContaining([expect.objectContaining({ _name: 'sentry-webpack-plugin' })]),
       }),
     );
   });
@@ -58,8 +56,11 @@ describe('constructWebpackConfigFunction()', () => {
           }) as any,
       },
       undefined,
-      undefined,
-      { disableServerWebpackPlugin: true },
+      {
+        sourcemaps: {
+          disable: true,
+        },
+      },
     );
 
     const finalWebpackConfig = finalNextConfig.webpack?.(serverWebpackConfig, serverBuildContext);
