@@ -22,7 +22,7 @@ export function DialogComponent({ open, onFormSubmitted, successMessageText, ...
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
-  const handlOnSuccessClick = useCallback(() => {
+  const handleOnSuccessClick = useCallback(() => {
     if (timeoutId) {
       clearTimeout(timeoutId);
       setTimeoutId(null);
@@ -41,7 +41,7 @@ export function DialogComponent({ open, onFormSubmitted, successMessageText, ...
   return (
     <Fragment>
       {timeoutId ? (
-        <div class="success-message" onClick={handlOnSuccessClick}>
+        <div class="success-message" onClick={handleOnSuccessClick}>
           {successMessageText}
           <span class="success-icon" dangerouslySetInnerHTML={successIconHtml} />
         </div>
