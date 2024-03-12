@@ -69,6 +69,18 @@ function getFinalConfigObject(
     }
   }
 
+  // We need to enable `instrumentation.ts` for users because we tell them to put their `Sentry.init()` calls inside of it.
+  if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You turned off the `instrumentationHook` option. Note that Sentry will not be initialized if you set it up inside `instrumentation.ts`.',
+    );
+  }
+  incomingUserNextConfigObject.experimental = {
+    instrumentationHook: true,
+    ...incomingUserNextConfigObject.experimental,
+  };
+
   return {
     ...incomingUserNextConfigObject,
     webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),

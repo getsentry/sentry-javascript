@@ -545,24 +545,19 @@ async function addSentryToEntryProperty(
  * @returns The name of the relevant file. If the server or client file is not found, this method throws an error. The
  * edge file is optional, if it is not found this function will return `undefined`.
  */
-export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
+export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | void {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
+      if (platform === 'server' || platform === 'edge') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] It seems you have configured a \`${filename}\` file. It is recommended to put this file's content into a Next.js instrumentation hook instead! Read more: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation`,
+        );
+      }
       return filename;
     }
-  }
-
-  // Edge config file is optional
-  if (platform === 'edge') {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] You are using Next.js features that run on the Edge Runtime. Please add a "sentry.edge.config.js" or a "sentry.edge.config.ts" file to your project root in which you initialize the Sentry SDK with "Sentry.init()".',
-    );
-    return;
-  } else {
-    throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
   }
 }
 
