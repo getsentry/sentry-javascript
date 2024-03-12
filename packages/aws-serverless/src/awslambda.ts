@@ -2,9 +2,9 @@ import { existsSync } from 'fs';
 import { hostname } from 'os';
 import { basename, resolve } from 'path';
 import { types } from 'util';
-import type { NodeOptions } from '@sentry/node-experimental';
-import { SDK_VERSION } from '@sentry/node-experimental';
+import type { NodeOptions } from '@sentry/node';
 import {
+  SDK_VERSION,
   captureException,
   captureMessage,
   continueTrace,
@@ -14,7 +14,7 @@ import {
   init as initNode,
   startSpanManual,
   withScope,
-} from '@sentry/node-experimental';
+} from '@sentry/node';
 import type { Integration, Options, Scope, SdkMetadata, Span } from '@sentry/types';
 import { isString, logger } from '@sentry/utils';
 import type { Context, Handler } from 'aws-lambda';
@@ -25,8 +25,6 @@ import { awsServicesIntegration } from './awsservices';
 
 import { DEBUG_BUILD } from './debug-build';
 import { markEventUnhandled } from './utils';
-
-export * from '@sentry/node-experimental';
 
 const { isPromise } = types;
 
@@ -70,20 +68,12 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [...getNodeDefaultIntegrations(options), awsServicesIntegration({ optional: true })];
 }
 
-interface AWSLambdaOptions extends NodeOptions {
-  /**
-   * Internal field that is set to `true` when init() is called by the Sentry AWS Lambda layer.
-   *
-   */
-  _invokedByLambdaLayer?: boolean;
-}
-
 /**
  * Initializes the Sentry AWS Lambda SDK.
  *
  * @param options Configuration options for the SDK, @see {@link AWSLambdaOptions}.
  */
-export function init(options: AWSLambdaOptions = {}): void {
+export function init(options: NodeOptions = {}): void {
   const opts = {
     _metadata: {} as SdkMetadata,
     defaultIntegrations: getDefaultIntegrations(options),
@@ -91,11 +81,11 @@ export function init(options: AWSLambdaOptions = {}): void {
   };
 
   opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.serverless',
+    name: 'sentry.javascript.aws-serverless',
     integrations: ['AWSLambda'],
     packages: [
       {
-        name: 'npm:@sentry/serverless',
+        name: 'npm:@sentry/aws-serverless',
         version: SDK_VERSION,
       },
     ],

@@ -1,6 +1,6 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration } from '@sentry/core';
 import { getClient, startInactiveSpan } from '@sentry/node-experimental';
-import type { Client, Integration, IntegrationClass, IntegrationFn, Span } from '@sentry/types';
+import type { Client, IntegrationFn, Span } from '@sentry/types';
 import { fill } from '@sentry/utils';
 // 'aws-sdk/global' import is expected to be type-only so it's erased in the final .js file.
 // When TypeScript compiler is upgraded, use `import type` syntax to explicitly assert that we don't want to load a module here.
@@ -41,21 +41,10 @@ const _awsServicesIntegration = ((options: { optional?: boolean } = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const awsServicesIntegration = defineIntegration(_awsServicesIntegration);
-
 /**
  * AWS Service Request Tracking.
- *
- * @deprecated Use `awsServicesIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const AWSServices = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  awsServicesIntegration,
-) as IntegrationClass<Integration>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type AWSServices = typeof AWSServices;
+export const awsServicesIntegration = defineIntegration(_awsServicesIntegration);
 
 /**
  * Patches AWS SDK request to create `http.client` spans.

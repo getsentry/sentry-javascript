@@ -84,7 +84,7 @@ export function makeBaseBundleConfig(options) {
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
-  // used by `@sentry/serverless`, when creating the lambda layer
+  // used by `@sentry/aws-serverless`, when creating the lambda layer
   const nodeBundleConfig = {
     output: {
       format: 'cjs',

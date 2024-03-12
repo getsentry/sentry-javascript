@@ -7,11 +7,11 @@ export default [
       // this automatically sets it to be CJS
       bundleType: 'node',
       entrypoints: ['src/index.awslambda.ts'],
-      licenseTitle: '@sentry/serverless',
+      licenseTitle: '@sentry/aws-serverless',
       outputFileBase: () => 'index',
       packageSpecificConfig: {
         output: {
-          dir: 'build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/build/npm/cjs',
+          dir: 'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs',
           sourcemap: false,
         },
       },
@@ -23,7 +23,7 @@ export default [
   ),
 
   // This builds a wrapper file, which our lambda layer integration automatically sets up to run as soon as node
-  // launches (via the `NODE_OPTIONS="-r @sentry/serverless/dist/awslambda-auto"` variable). Note the inclusion in this
+  // launches (via the `NODE_OPTIONS="-r @sentry/aws-serverless/dist/awslambda-auto"` variable). Note the inclusion in this
   // path of the legacy `dist` folder; for backwards compatibility, in the build script we'll copy the file there.
   makeBaseNPMConfig({
     entrypoints: ['src/awslambda-auto.ts'],
@@ -32,7 +32,7 @@ export default [
       // and the directory structure is different than normal, so we have to do it ourselves.
       output: {
         format: 'cjs',
-        dir: 'build/aws/dist-serverless/nodejs/node_modules/@sentry/serverless/build/npm/cjs',
+        dir: 'build/aws/dist-serverless/nodejs/node_modules/@sentry/aws-serverless/build/npm/cjs',
         sourcemap: false,
       },
       // We only want `awslambda-auto.js`, not the modules that it imports, because they're all included in the bundle

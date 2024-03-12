@@ -411,7 +411,7 @@ describe('SentryNode initialization', () => {
       expect(sdkData.version).toEqual(SDK_VERSION);
     });
 
-    // wrapper packages (like @sentry/serverless) set their SDK data in their `init` methods, which are
+    // wrapper packages (like @sentry/aws-serverless) set their SDK data in their `init` methods, which are
     // called before the client is instantiated, and we don't want to clobber that data
     it("shouldn't overwrite SDK data that's already there", () => {
       init({
@@ -419,10 +419,10 @@ describe('SentryNode initialization', () => {
         // this would normally be set by the wrapper SDK in init()
         _metadata: {
           sdk: {
-            name: 'sentry.javascript.serverless',
+            name: 'sentry.javascript.aws-serverless',
             packages: [
               {
-                name: 'npm:@sentry/serverless',
+                name: 'npm:@sentry/aws-serverless',
                 version: SDK_VERSION,
               },
             ],
@@ -433,8 +433,8 @@ describe('SentryNode initialization', () => {
 
       const sdkData = getClient()?.getOptions()._metadata?.sdk || {};
 
-      expect(sdkData.name).toEqual('sentry.javascript.serverless');
-      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/serverless');
+      expect(sdkData.name).toEqual('sentry.javascript.aws-serverless');
+      expect(sdkData.packages?.[0].name).toEqual('npm:@sentry/aws-serverless');
       expect(sdkData.packages?.[0].version).toEqual(SDK_VERSION);
       expect(sdkData.version).toEqual(SDK_VERSION);
     });

@@ -1,11 +1,11 @@
 import * as SentryAstro from '@sentry/astro';
+import * as SentryAWS from '@sentry/aws-serverless';
 import * as SentryBun from '@sentry/bun';
 import * as SentryGoogleCloud from '@sentry/google-cloud';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
 import * as SentryRemix from '@sentry/remix';
-import * as SentryServerless from '@sentry/serverless';
 import * as SentrySvelteKit from '@sentry/sveltekit';
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
@@ -77,9 +77,9 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryRemix),
   },
   {
-    package: '@sentry/serverless',
-    compareWith: nodeExperimentalExports,
-    exports: Object.keys(SentryServerless),
+    package: '@sentry/aws-serverless',
+    compareWith: nodeExports,
+    exports: Object.keys(SentryAWS),
     ignoreExports: ['cron', 'hapiErrorPlugin'],
   },
   {
