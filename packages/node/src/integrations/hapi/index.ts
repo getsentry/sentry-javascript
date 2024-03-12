@@ -81,9 +81,8 @@ export const hapiTracingPlugin = {
           sentryTrace: request.headers['sentry-trace'] || undefined,
           baggage: request.headers['baggage'] || undefined,
         },
-        transactionContext => {
+        () => {
           return startInactiveSpan({
-            ...transactionContext,
             op: 'hapi.request',
             name: `${request.route.method} ${request.path}`,
             forceTransaction: true,

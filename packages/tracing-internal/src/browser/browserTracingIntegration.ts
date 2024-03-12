@@ -282,6 +282,9 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const propagationContextBefore = scope.getPropagationContext();
 
         activeSpan = continueTrace({ sentryTrace, baggage }, () => {
+          // We update the outer current scope to have the correct propagation context...
+          scope.setPropagationContext(getCurrentScope().getPropagationContext());
+
           // Ensure we are on the original current scope again, so the span is set as active on it
           return withScope(scope, () => {
             return _createRouteSpan(client, {
@@ -291,6 +294,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           });
         });
 
+        // Reset this back to what it was before
         scope.setPropagationContext(propagationContextBefore);
       });
 
