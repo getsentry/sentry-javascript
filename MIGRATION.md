@@ -827,6 +827,22 @@ The SDK no longer filters out health check transactions by default. Instead, the
 by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
 drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
 
+#### Change of Replay default options (`unblock` and `unmask`)
+
+The Replay options `unblock` and `unmask` now have `[]` as default value. This means that if you want to use these
+options, you have to explicitly set them like this:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      unblock: '.sentry-unblock, [data-sentry-unblock]',
+      unmask: '.sentry-unmask, [data-sentry-unmask]',
+    }),
+  ],
+});
+```
+
 #### Angular Tracing Decorator renaming
 
 The usage of `TraceClassDecorator` and the `TraceMethodDecorator` already implies that those are decorators. The word

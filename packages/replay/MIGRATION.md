@@ -2,6 +2,8 @@
 
 Sentry Replay is now out of Beta. This means that the usual stability guarantees apply.
 
+> For further migration changes please refer to the [general SDK migration notes](../../MIGRATION.md).
+
 Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since
 been fixed/improved. We **strongly** recommend anyone using Replay in a version before 7.39.0 to update to 7.39.0 or
 newer, in order to prevent running Replay with known problems that have since been fixed.
