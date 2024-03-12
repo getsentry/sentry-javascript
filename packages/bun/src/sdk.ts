@@ -11,9 +11,9 @@ import {
   httpIntegration,
   init as initNode,
   modulesIntegration,
-  nativeNodeFetchintegration,
+  nativeNodeFetchIntegration,
   nodeContextIntegration,
-} from '@sentry/node-experimental';
+} from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
 import { BunClient } from './client';
@@ -33,7 +33,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),
-    nativeNodeFetchintegration(),
+    nativeNodeFetchIntegration(),
     // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
     // new NodeIntegrations.OnUncaughtException(),
     // new NodeIntegrations.OnUnhandledRejection(),
