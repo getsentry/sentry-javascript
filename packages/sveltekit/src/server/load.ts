@@ -1,15 +1,13 @@
-/* eslint-disable @sentry-internal/sdk/no-optional-chaining */
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  getCurrentScope,
+  continueTrace,
   startSpan,
 } from '@sentry/core';
 import { captureException } from '@sentry/node-experimental';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 
-import type { TransactionContext } from '@sentry/types';
 import type { SentryWrappedFlag } from '../common/utils';
 import { isHttpError, isRedirect } from '../common/utils';
 import { flushIfServerless, getTracePropagationData } from './utils';
@@ -70,18 +68,19 @@ export function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T)
 
       const routeId = event.route && event.route.id;
 
-      const traceLoadContext: TransactionContext = {
-        op: 'function.sveltekit.load',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-        },
-        name: routeId ? routeId : event.url.pathname,
-      };
-
       try {
         // We need to await before returning, otherwise we won't catch any errors thrown by the load function
-        return await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
+        return await startSpan(
+          {
+            op: 'function.sveltekit.load',
+            attributes: {
+              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+            },
+            name: routeId ? routeId : event.url.pathname,
+          },
+          () => wrappingTarget.apply(thisArg, args),
+        );
       } catch (e) {
         sendErrorToSentry(e);
         throw e;
@@ -133,34 +132,30 @@ export function wrapServerLoadWithSentry<T extends (...args: any) => any>(origSe
       // https://github.com/sveltejs/kit/blob/e133aba479fa9ba0e7f9e71512f5f937f0247e2c/packages/kit/src/runtime/server/page/load_data.js#L111C3-L124
       const routeId = event.route && (Object.getOwnPropertyDescriptor(event.route, 'id')?.value as string | undefined);
 
-      const { dynamicSamplingContext, traceparentData, propagationContext } = getTracePropagationData(event);
-      getCurrentScope().setPropagationContext(propagationContext);
+      const { sentryTrace, baggage } = getTracePropagationData(event);
 
-      const traceLoadContext: TransactionContext = {
-        op: 'function.sveltekit.server.load',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-        },
-        name: routeId ? routeId : event.url.pathname,
-        metadata: {
-          dynamicSamplingContext: traceparentData && !dynamicSamplingContext ? {} : dynamicSamplingContext,
-        },
-        data: {
-          'http.method': event.request.method,
-        },
-        ...traceparentData,
-      };
-
-      try {
-        // We need to await before returning, otherwise we won't catch any errors thrown by the load function
-        return await startSpan(traceLoadContext, () => wrappingTarget.apply(thisArg, args));
-      } catch (e: unknown) {
-        sendErrorToSentry(e);
-        throw e;
-      } finally {
-        await flushIfServerless();
-      }
+      return continueTrace({ sentryTrace, baggage }, async () => {
+        try {
+          // We need to await before returning, otherwise we won't catch any errors thrown by the load function
+          return await startSpan(
+            {
+              op: 'function.sveltekit.server.load',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.sveltekit',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
+                'http.method': event.request.method,
+              },
+              name: routeId ? routeId : event.url.pathname,
+            },
+            () => wrappingTarget.apply(thisArg, args),
+          );
+        } catch (e: unknown) {
+          sendErrorToSentry(e);
+          throw e;
+        } finally {
+          await flushIfServerless();
+        }
+      });
     },
   });
 }

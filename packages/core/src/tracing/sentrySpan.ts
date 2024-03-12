@@ -17,48 +17,16 @@ import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
   addChildSpanToSpan,
+  getRootSpan,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
-
-/**
- * Keeps track of finished spans for a given transaction
- * @internal
- * @hideconstructor
- * @hidden
- */
-export class SpanRecorder {
-  public spans: SentrySpan[];
-
-  private readonly _maxlen: number;
-
-  public constructor(maxlen: number = 1000) {
-    this._maxlen = maxlen;
-    this.spans = [];
-  }
-
-  /**
-   * This is just so that we don't run out of memory while recording a lot
-   * of spans. At some point we just stop and flush out the start of the
-   * trace tree (i.e.the first n spans with the smallest
-   * start_timestamp).
-   */
-  public add(span: SentrySpan): void {
-    if (this.spans.length > this._maxlen) {
-      // eslint-disable-next-line deprecation/deprecation
-      span.spanRecorder = undefined;
-    } else {
-      this.spans.push(span);
-    }
-  }
-}
 
 /**
  * Span contains all data about a span
@@ -70,13 +38,6 @@ export class SentrySpan implements Span {
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
-
-  /**
-   * List of spans that were finalized
-   *
-   * @deprecated This property will no longer be public. Span recording will be handled internally.
-   */
-  public spanRecorder?: SpanRecorder;
 
   /**
    * @inheritDoc
@@ -99,8 +60,8 @@ export class SentrySpan implements Span {
   private _logMessage?: string;
 
   /**
-   * You should never call the constructor manually, always use `Sentry.startTransaction()`
-   * or call `startChild()` on an existing span.
+   * You should never call the constructor manually, always use `Sentry.startSpan()`
+   * or other span methods.
    * @internal
    * @hideconstructor
    * @hidden
@@ -277,14 +238,6 @@ export class SentrySpan implements Span {
       sampled: this._sampled,
       traceId: this._traceId,
     });
-
-    // eslint-disable-next-line deprecation/deprecation
-    childSpan.spanRecorder = this.spanRecorder;
-    // eslint-disable-next-line deprecation/deprecation
-    if (childSpan.spanRecorder) {
-      // eslint-disable-next-line deprecation/deprecation
-      childSpan.spanRecorder.add(childSpan);
-    }
 
     // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
     // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.

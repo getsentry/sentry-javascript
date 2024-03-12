@@ -23,6 +23,17 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -35,7 +46,7 @@
   },
   "dependencies": {
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.29.1",
+    "@sentry/cli": "^2.30.0",
     "@sentry/core": "8.0.0-alpha.2",
     "@sentry/node-experimental": "8.0.0-alpha.2",
     "@sentry/react": "8.0.0-alpha.2",

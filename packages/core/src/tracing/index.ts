@@ -4,7 +4,7 @@ export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 export { Transaction } from './transaction';
 // eslint-disable-next-line deprecation/deprecation
-export { getActiveTransaction, getActiveSpan } from './utils';
+export { getActiveTransaction } from './utils';
 export {
   setHttpStatus,
   getSpanStatusFromHttpCode,
@@ -15,6 +15,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   continueTrace,
+  withActiveSpan,
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';

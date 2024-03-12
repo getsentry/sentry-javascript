@@ -8,7 +8,6 @@ Sentry.init({
   tracePropagationTargets: [/.*/],
   environment: 'production',
   tracesSampleRate: 1,
-  debug: true,
 });
 
 const scope = Sentry.getCurrentScope();

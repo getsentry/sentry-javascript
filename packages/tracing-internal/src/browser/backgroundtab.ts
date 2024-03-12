@@ -18,9 +18,6 @@ export function registerBackgroundTabDetection(): void {
       }
 
       const rootSpan = getRootSpan(activeSpan);
-      if (!rootSpan) {
-        return;
-      }
 
       if (WINDOW.document.hidden && rootSpan) {
         const cancelledStatus = 'cancelled';

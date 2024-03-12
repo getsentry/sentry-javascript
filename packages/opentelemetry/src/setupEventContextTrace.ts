@@ -1,7 +1,8 @@
+import { getRootSpan } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 
-import { getActiveSpan, getRootSpan } from './utils/getActiveSpan';
+import { getActiveSpan } from './utils/getActiveSpan';
 import { spanHasName, spanHasParentId } from './utils/spanTypes';
 
 /** Ensure the `trace` context is set on all events. */

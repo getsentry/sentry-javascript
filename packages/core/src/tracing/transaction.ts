@@ -21,7 +21,7 @@ import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { getSpanDescendants, spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-import { SentrySpan, SpanRecorder } from './sentrySpan';
+import { SentrySpan } from './sentrySpan';
 import { getCapturedScopesOnSpan } from './utils';
 
 /** JSDoc */
@@ -45,8 +45,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   private _metadata: Partial<TransactionMetadata>;
 
   /**
-   * This constructor should never be called manually. Those instrumenting tracing should use
-   * `Sentry.startTransaction()`, and internal methods should use `hub.startTransaction()`.
+   * This constructor should never be called manually.
    * @internal
    * @hideconstructor
    * @hidden
@@ -126,20 +125,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     this._name = name;
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
-  }
-
-  /**
-   * Attaches SpanRecorder to the span itself
-   * @param maxlen maximum number of spans that can be recorded
-   */
-  public initSpanRecorder(maxlen: number = 1000): void {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!this.spanRecorder) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.spanRecorder = new SpanRecorder(maxlen);
-    }
-    // eslint-disable-next-line deprecation/deprecation
-    this.spanRecorder.add(this);
   }
 
   /**
@@ -239,9 +224,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     // eslint-disable-next-line deprecation/deprecation
     const client = this._hub.getClient();
-    if (client) {
-      client.emit('finishTransaction', this);
-    }
 
     if (this._sampled !== true) {
       // At this point if `sampled !== true` we want to discard the transaction.

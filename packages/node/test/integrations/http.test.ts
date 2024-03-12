@@ -1,7 +1,7 @@
 import * as http from 'http';
 import * as https from 'https';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import type { Hub, SentrySpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getSpanDescendants } from '@sentry/core';
+import type { Hub } from '@sentry/core';
 import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
@@ -81,12 +81,10 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/').reply(200);
 
     const transaction = createTransactionOnScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/');
 
-    expect(spans.length).toEqual(2);
+    const spans = getSpanDescendants(transaction);
 
     // our span is at index 1 because the transaction itself is at index 0
     expect(spanToJSON(spans[1]).description).toEqual('GET http://dogs.are.great/');
@@ -97,10 +95,10 @@ describe('tracing', () => {
     nock('http://squirrelchasers.ingest.sentry.io').get('/api/12312012/store/').reply(200);
 
     const transaction = createTransactionOnScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://squirrelchasers.ingest.sentry.io/api/12312012/store/');
+
+    const spans = getSpanDescendants(transaction);
 
     // only the transaction itself should be there
     expect(spans.length).toEqual(1);
@@ -263,10 +261,10 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get('http://dogs.are.great/spaniel?tail=wag&cute=true#learn-more');
+
+    const spans = getSpanDescendants(transaction);
 
     expect(spans.length).toEqual(2);
 
@@ -286,10 +284,10 @@ describe('tracing', () => {
     nock('http://dogs.are.great').get('/spaniel?tail=wag&cute=true#learn-more').reply(200);
 
     const transaction = createTransactionOnScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.request({ method: 'GET', host: 'dogs.are.great', path: '/spaniel?tail=wag&cute=true#learn-more' });
+
+    const spans = getSpanDescendants(transaction);
 
     expect(spans.length).toEqual(2);
 
@@ -314,10 +312,10 @@ describe('tracing', () => {
     nock(`http://${auth}@dogs.are.great`).get('/').reply(200);
 
     const transaction = createTransactionOnScope();
-    // eslint-disable-next-line deprecation/deprecation
-    const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
     http.get(`http://${auth}@dogs.are.great/`);
+
+    const spans = getSpanDescendants(transaction);
 
     expect(spans.length).toEqual(2);
 
@@ -374,10 +372,10 @@ describe('tracing', () => {
         );
 
         const transaction = createTransactionAndPutOnScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
+
+        const spans = getSpanDescendants(transaction);
 
         // There should be no http spans
         const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));
@@ -483,10 +481,10 @@ describe('tracing', () => {
         );
 
         const transaction = createTransactionAndPutOnScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const spans = (transaction as unknown as SentrySpan).spanRecorder?.spans as SentrySpan[];
 
         const request = http.get(url);
+
+        const spans = getSpanDescendants(transaction);
 
         // There should be no http spans
         const httpSpans = spans.filter(span => spanToJSON(span).op?.startsWith('http'));

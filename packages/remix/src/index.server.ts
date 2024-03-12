@@ -35,8 +35,6 @@ export {
   setCurrentClient,
   NodeClient,
   Scope,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   SDK_VERSION,
   setContext,
   setExtra,
@@ -73,6 +71,7 @@ export {
   Handlers,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startSpanManual,
   startInactiveSpan,

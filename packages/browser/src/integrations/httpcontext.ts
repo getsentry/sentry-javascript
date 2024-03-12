@@ -1,13 +1,13 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
-
+import { defineIntegration } from '@sentry/core';
 import { WINDOW } from '../helpers';
 
-const INTEGRATION_NAME = 'HttpContext';
-
-const _httpContextIntegration = (() => {
+/**
+ * Collects information about HTTP request headers and
+ * attaches them to the event.
+ */
+export const httpContextIntegration = defineIntegration(() => {
   return {
-    name: INTEGRATION_NAME,
+    name: 'HttpContext',
     preprocessEvent(event) {
       // if none of the information we want exists, don't bother
       if (!WINDOW.navigator && !WINDOW.location && !WINDOW.document) {
@@ -29,15 +29,4 @@ const _httpContextIntegration = (() => {
       event.request = request;
     },
   };
-}) satisfies IntegrationFn;
-
-export const httpContextIntegration = defineIntegration(_httpContextIntegration);
-
-/**
- * HttpContext integration collects information about HTTP request headers.
- * @deprecated Use `httpContextIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const HttpContext = convertIntegrationFnToClass(INTEGRATION_NAME, httpContextIntegration) as IntegrationClass<
-  Integration & { preprocessEvent: (event: Event) => void }
->;
+});

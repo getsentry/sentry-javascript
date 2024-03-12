@@ -92,6 +92,9 @@ targets:
     id: '@sentry/serverless'
     includeNames: /^sentry-serverless-\d.*\.tgz$/
   - name: npm
+    id: '@sentry/google-cloud'
+    includeNames: /^sentry-google-cloud-\d.*\.tgz$/
+  - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
 

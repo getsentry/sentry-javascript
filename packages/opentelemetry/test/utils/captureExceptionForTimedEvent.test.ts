@@ -1,22 +1,22 @@
 import type { Span as OtelSpan, TimedEvent } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { Hub } from '@sentry/types';
+import * as SentryCore from '@sentry/core';
 
 import { maybeCaptureExceptionForTimedEvent } from '../../src/utils/captureExceptionForTimedEvent';
 
 describe('maybeCaptureExceptionForTimedEvent', () => {
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   it('ignores non-exception events', async () => {
     const event: TimedEvent = {
       time: [12345, 0],
       name: 'test event',
     };
 
-    const captureException = jest.fn();
-    const hub = {
-      captureException,
-    } as unknown as Hub;
-
-    maybeCaptureExceptionForTimedEvent(hub, event);
+    const captureException = jest.spyOn(SentryCore, 'captureException');
+    maybeCaptureExceptionForTimedEvent(event);
 
     expect(captureException).not.toHaveBeenCalled();
   });
@@ -27,12 +27,8 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
       name: 'exception',
     };
 
-    const captureException = jest.fn();
-    const hub = {
-      captureException,
-    } as unknown as Hub;
-
-    maybeCaptureExceptionForTimedEvent(hub, event);
+    const captureException = jest.spyOn(SentryCore, 'captureException');
+    maybeCaptureExceptionForTimedEvent(event);
 
     expect(captureException).not.toHaveBeenCalled();
   });
@@ -46,12 +42,8 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
       },
     };
 
-    const captureException = jest.fn();
-    const hub = {
-      captureException,
-    } as unknown as Hub;
-
-    maybeCaptureExceptionForTimedEvent(hub, event);
+    const captureException = jest.spyOn(SentryCore, 'captureException');
+    maybeCaptureExceptionForTimedEvent(event);
 
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(expect.objectContaining({ message: 'test-message' }), {
@@ -73,12 +65,8 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
       },
     };
 
-    const captureException = jest.fn();
-    const hub = {
-      captureException,
-    } as unknown as Hub;
-
-    maybeCaptureExceptionForTimedEvent(hub, event);
+    const captureException = jest.spyOn(SentryCore, 'captureException');
+    maybeCaptureExceptionForTimedEvent(event);
 
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(
@@ -116,12 +104,8 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
       },
     } as unknown as OtelSpan;
 
-    const captureException = jest.fn();
-    const hub = {
-      captureException,
-    } as unknown as Hub;
-
-    maybeCaptureExceptionForTimedEvent(hub, event, span);
+    const captureException = jest.spyOn(SentryCore, 'captureException');
+    maybeCaptureExceptionForTimedEvent(event, span);
 
     expect(captureException).toHaveBeenCalledTimes(1);
     expect(captureException).toHaveBeenCalledWith(expect.objectContaining({ message: 'test-message' }), {

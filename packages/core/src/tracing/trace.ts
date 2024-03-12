@@ -1,18 +1,36 @@
-import type { Hub, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type {
+  ClientOptions,
+  Hub,
+  Scope,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+  TransactionContext,
+} from '@sentry/types';
 
 import { dropUndefinedKeys, logger, tracingContextFromHeaders } from '@sentry/utils';
-import { getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
+import type { AsyncContextStrategy } from '../asyncContext';
+import { getMainCarrier } from '../asyncContext';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { getCurrentHub } from '../hub';
+import { getAsyncContextStrategy, getCurrentHub } from '../hub';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { addChildSpanToSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
+import {
+  addChildSpanToSpan,
+  getActiveSpan,
+  spanIsSampled,
+  spanTimeInputToSeconds,
+  spanToJSON,
+} from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { sampleTransaction } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
+import { Transaction } from './transaction';
+import { setCapturedScopesOnSpan } from './utils';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -26,6 +44,11 @@ import { getActiveSpan, setCapturedScopesOnSpan } from './utils';
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) => T): T {
+  const acs = getAcs();
+  if (acs.startSpan) {
+    return acs.startSpan(context, callback);
+  }
+
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -50,15 +73,13 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
     return handleCallbackErrors(
       () => callback(activeSpan),
       () => {
-        // Only update the span status if it hasn't been changed yet
-        if (activeSpan) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
+        // Only update the span status if it hasn't been changed yet, and the span is not yet finished
+        const { status } = spanToJSON(activeSpan);
+        if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }
       },
-      () => activeSpan && activeSpan.end(),
+      () => activeSpan.end(),
     );
   });
 }
@@ -75,6 +96,11 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
  * and the `span` returned from the callback will be undefined.
  */
 export function startSpanManual<T>(context: StartSpanOptions, callback: (span: Span, finish: () => void) => T): T {
+  const acs = getAcs();
+  if (acs.startSpanManual) {
+    return acs.startSpanManual(context, callback);
+  }
+
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
@@ -97,18 +123,16 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
     scope.setSpan(activeSpan);
 
     function finishAndSetSpan(): void {
-      activeSpan && activeSpan.end();
+      activeSpan.end();
     }
 
     return handleCallbackErrors(
       () => callback(activeSpan, finishAndSetSpan),
       () => {
         // Only update the span status if it hasn't been changed yet, and the span is not yet finished
-        if (activeSpan && activeSpan.isRecording()) {
-          const { status } = spanToJSON(activeSpan);
-          if (!status || status === 'ok') {
-            activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-          }
+        const { status } = spanToJSON(activeSpan);
+        if (activeSpan.isRecording() && (!status || status === 'ok')) {
+          activeSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         }
       },
     );
@@ -126,6 +150,11 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
  * and the `span` returned from the callback will be undefined.
  */
 export function startInactiveSpan(context: StartSpanOptions): Span {
+  const acs = getAcs();
+  if (acs.startInactiveSpan) {
+    return acs.startInactiveSpan(context);
+  }
+
   const spanContext = normalizeContext(context);
   // eslint-disable-next-line deprecation/deprecation
   const hub = getCurrentHub();
@@ -252,6 +281,28 @@ export const continueTrace: ContinueTrace = <V>(
   });
 };
 
+/**
+ * Forks the current scope and sets the provided span as active span in the context of the provided callback. Can be
+ * passed `null` to start an entirely new span tree.
+ *
+ * @param span Spans started in the context of the provided callback will be children of this span. If `null` is passed,
+ * spans started within the callback will not be attached to a parent span.
+ * @param callback Execution context in which the provided span will be active. Is passed the newly forked scope.
+ * @returns the value returned from the provided callback function.
+ */
+export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) => T): T {
+  const acs = getAcs();
+  if (acs.withActiveSpan) {
+    return acs.withActiveSpan(span, callback);
+  }
+
+  return withScope(scope => {
+    // eslint-disable-next-line deprecation/deprecation
+    scope.setSpan(span || undefined);
+    return callback(scope);
+  });
+}
+
 function createChildSpanOrTransaction(
   hub: Hub,
   {
@@ -283,8 +334,7 @@ function createChildSpanOrTransaction(
     const { traceId, spanId: parentSpanId } = parentSpan.spanContext();
     const sampled = spanIsSampled(parentSpan);
 
-    // eslint-disable-next-line deprecation/deprecation
-    span = hub.startTransaction({
+    span = _startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -301,8 +351,7 @@ function createChildSpanOrTransaction(
       ...scope.getPropagationContext(),
     };
 
-    // eslint-disable-next-line deprecation/deprecation
-    span = hub.startTransaction({
+    span = _startTransaction({
       traceId,
       parentSpanId,
       parentSampled: sampled,
@@ -313,6 +362,13 @@ function createChildSpanOrTransaction(
         ...spanContext.metadata,
       },
     });
+  }
+
+  // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
+  // This happens if tracing extensions have not been added
+  // In this case, we just want to return a non-recording span
+  if (!span) {
+    return new SentryNonRecordingSpan();
   }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
@@ -336,4 +392,31 @@ function normalizeContext(context: StartSpanOptions): TransactionContext {
   }
 
   return context;
+}
+
+function getAcs(): AsyncContextStrategy {
+  const carrier = getMainCarrier();
+  return getAsyncContextStrategy(carrier);
+}
+
+function _startTransaction(transactionContext: TransactionContext): Transaction {
+  const client = getClient();
+  const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
+
+  // eslint-disable-next-line deprecation/deprecation
+  let transaction = new Transaction(transactionContext, getCurrentHub());
+  transaction = sampleTransaction(transaction, options, {
+    name: transactionContext.name,
+    parentSampled: transactionContext.parentSampled,
+    transactionContext,
+    attributes: {
+      // eslint-disable-next-line deprecation/deprecation
+      ...transactionContext.data,
+      ...transactionContext.attributes,
+    },
+  });
+  if (client) {
+    client.emit('spanStart', transaction);
+  }
+  return transaction;
 }

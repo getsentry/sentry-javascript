@@ -8,7 +8,6 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration()],
   environment: 'production',
   tracesSampleRate: 1,
-  debug: true,
 });
 
 Sentry.setUser({ id: 'user123' });

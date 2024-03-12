@@ -17,6 +17,10 @@ interface BreadcrumbsOptions {
 
 const INTEGRATION_NAME = 'Breadcrumbs';
 
+/**
+ * Note: This `breadcrumbsIntegration` is almost the same as the one from @sentry/browser.
+ * The Deno-version does not support browser-specific APIs like dom, xhr and history.
+ */
 const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => {
   const _options = {
     console: true,
@@ -42,8 +46,17 @@ const _breadcrumbsIntegration = ((options: Partial<BreadcrumbsOptions> = {}) => 
 }) satisfies IntegrationFn;
 
 /**
- * This breadcrumbsIntegration is almost the same as the one from @sentry/browser.
- * The Deno-version does not support browser-specific APIs like dom, xhr and history.
+ * Adds a breadcrumbs for console, fetch, and sentry events.
+ *
+ * Enabled by default in the Deno SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.breadcrumbsIntegration(),
+ *   ],
+ * })
+ * ```
  */
 export const breadcrumbsIntegration = defineIntegration(_breadcrumbsIntegration);
 

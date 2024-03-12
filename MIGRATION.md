@@ -62,7 +62,7 @@ We've removed the following packages:
 For Browser SDKs you can import `BrowserTracing` from the SDK directly:
 
 ```js
-// Before (v7)
+// v7
 import * as Sentry from '@sentry/browser';
 import { BrowserTracing } from '@sentry/tracing';
 
@@ -71,8 +71,10 @@ Sentry.init({
   tracesSampleRate: 1.0,
   integrations: [new BrowserTracing()],
 });
+```
 
-// After (v8)
+```js
+// v8
 import * as Sentry from '@sentry/browser';
 
 Sentry.init({
@@ -86,7 +88,7 @@ If you were importing `@sentry/tracing` for the side effect, you can now use `Se
 tracing extensions to the SDK. `addTracingExtensions` replaces the `addExtensionMethods` method from `@sentry/tracing`.
 
 ```js
-// Before (v7)
+// v7
 import * as Sentry from '@sentry/browser';
 import '@sentry/tracing';
 
@@ -94,8 +96,10 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
 });
+```
 
-// After (v8)
+```js
+// v8
 import * as Sentry from '@sentry/browser';
 
 Sentry.addTracingExtensions();
@@ -109,7 +113,7 @@ Sentry.init({
 For Node SDKs you no longer need the side effect import, you can remove all references to `@sentry/tracing`.
 
 ```js
-// Before (v7)
+// v7
 const Sentry = require('@sentry/node');
 require('@sentry/tracing');
 
@@ -117,8 +121,10 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
 });
+```
 
-// After (v8)
+```js
+// v8
 const Sentry = require('@sentry/node');
 
 Sentry.init({
@@ -134,10 +140,12 @@ package (`@sentry/integrations`) to `@sentry/browser` and `@sentry/node`. in add
 classes.
 
 ```js
-// Before (v7)
+// v7
 import { RewriteFrames } from '@sentry/integrations';
+```
 
-// After (v8)
+```js
+// v8
 import { rewriteFramesIntegration } from '@sentry/browser';
 ```
 
@@ -303,10 +311,12 @@ The `getIntegration()` and `getIntegrationById()` have been removed entirely, se
 [below](./MIGRATION.md#deprecate-getintegration-and-getintegrationbyid).
 
 ```js
-// Before (v7)
+// v7
 const replay = Sentry.getIntegration(Replay);
+```
 
-// After (v8)
+```js
+// v8
 const replay = getClient().getIntegrationByName('Replay');
 ```
 
@@ -326,13 +336,15 @@ details.
 For example for the Browser SDKs:
 
 ```ts
-// Before (v7)
+// v7
 Sentry.init({
   dsn: '__DSN__',
   integrations: [new Sentry.BrowserTracing({ tracingOrigins: ['localhost', 'example.com'] })],
 });
+```
 
-// After (v8)
+```ts
+// v8
 Sentry.init({
   dsn: '__DSN__',
   integrations: [Sentry.browserTracingIntegration()],
@@ -345,8 +357,7 @@ Sentry.init({
 The SDKs now support metrics features without any additional configuration.
 
 ```ts
-// Before (v7)
-// Server (Node/Deno/Bun)
+// v7 - Server (Node/Deno/Bun)
 Sentry.init({
   dsn: '__DSN__',
   _experiments: {
@@ -354,14 +365,15 @@ Sentry.init({
   },
 });
 
-// Before (v7)
-// Browser
+// v7 - Browser
 Sentry.init({
   dsn: '__DSN__',
   integrations: [Sentry.metricsAggregatorIntegration()],
 });
+```
 
-// After (v8)
+```ts
+// v8
 Sentry.init({
   dsn: '__DSN__',
 });
@@ -373,14 +385,16 @@ In v7 we deprecated the `Severity` enum in favor of using the `SeverityLevel` ty
 this has been removed in v8. You should now use the `SeverityLevel` type directly.
 
 ```js
-// Before (v7)
+// v7
 import { Severity, SeverityLevel } from '@sentry/types';
 
 const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
+```
 
-// After (v8)
+```js
+// v8
 import { SeverityLevel } from '@sentry/types';
 
 const levelA = "error" as SeverityLevel;
@@ -394,12 +408,14 @@ The top level `Sentry.configureScope` function has been removed. Instead, you sh
 to access and mutate the current scope.
 
 ```js
-// Before (v7)
+// v7
 Sentry.configureScope(scope => {
   scope.setTag('key', 'value');
 });
+```
 
-// After (v8)
+```js
+// v8
 Sentry.getCurrentScope().setTag('key', 'value');
 ```
 
@@ -413,10 +429,12 @@ Internally, this class is now called `SentrySpan`, and it is no longer meant to 
 In v8, we are removing the `spanStatusfromHttpCode` function in favor of `getSpanStatusFromHttpCode`.
 
 ```js
-// Before (v7)
+// v7
 const spanStatus = spanStatusfromHttpCode(200);
+```
 
-// After (v8)
+```js
+// v8
 const spanStatus = getSpanStatusFromHttpCode(200);
 ```
 
@@ -425,13 +443,15 @@ const spanStatus = getSpanStatusFromHttpCode(200);
 In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
 
 ```js
-// Before (v7)
+// v7
 addGlobalEventProcessor(event => {
   delete event.extra;
   return event;
 });
+```
 
-// After (v8)
+```js
+// v8
 addEventProcessor(event => {
   delete event.extra;
   return event;
@@ -448,12 +468,14 @@ The `send` method on the `Transport` interface now always requires a `TransportM
 the promise. This means that the `void` return type is no longer allowed.
 
 ```ts
-// Before (v7)
+// v7
 interface Transport {
   send(event: Event): Promise<void | TransportMakeRequestResponse>;
 }
+```
 
-// After (v8)
+```ts
+// v8
 interface Transport {
   send(event: Event): Promise<TransportMakeRequestResponse>;
 }
@@ -563,7 +585,7 @@ With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing
 property to `withSentryConfig`. Please use the second argument of `withSentryConfig` to configure the SDK instead:
 
 ```ts
-// OLD
+// v7
 const nextConfig = {
   // Your Next.js options...
 
@@ -575,8 +597,10 @@ const nextConfig = {
 module.exports = withSentryConfig(nextConfig, {
   // Your Sentry Webpack Plugin Options...
 });
+```
 
-// NEW
+```ts
+// v8
 const nextConfig = {
   // Your Next.js options...
 };
@@ -634,7 +658,7 @@ a subset of [2.x options](https://www.npmjs.com/package/@sentry/vite-plugin/v/2.
 optional just like before but here's an example of using the new options.
 
 ```js
-// Before (v7):
+// v7
 sentrySvelteKit({
   sourceMapsUploadOptions: {
     org: process.env.SENTRY_ORG,
@@ -646,8 +670,10 @@ sentrySvelteKit({
     ignore: ['**/build/client/**/*']
   },
 }),
+```
 
-// After (v8):
+```js
+// v8
 sentrySvelteKit({
   sourceMapsUploadOptions: {
     org: process.env.SENTRY_ORG,

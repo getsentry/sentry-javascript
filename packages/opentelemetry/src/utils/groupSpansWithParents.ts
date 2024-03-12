@@ -1,6 +1,5 @@
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
-
-import { getSpanParent } from './spanData';
+import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from '../semanticAttributes';
 
 export interface SpanNode {
   id: string;
@@ -28,8 +27,7 @@ export function groupSpansWithParents(spans: ReadableSpan[]): SpanNode[] {
 }
 
 function createOrUpdateSpanNodeAndRefs(nodeMap: SpanMap, span: ReadableSpan): void {
-  const parentSpan = getSpanParent(span);
-  const parentIsRemote = parentSpan ? !!parentSpan.spanContext().isRemote : false;
+  const parentIsRemote = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE] === true;
 
   const id = span.spanContext().spanId;
 

@@ -1,4 +1,6 @@
 import type {
+  MeasurementUnit,
+  Primitive,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -7,8 +9,17 @@ import type {
   SpanTimeInput,
   TraceContext,
 } from '@sentry/types';
-import { dropUndefinedKeys, generateSentryTraceHeader, timestampInSeconds } from '@sentry/utils';
-import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
+import {
+  addNonEnumerableProperty,
+  dropUndefinedKeys,
+  generateSentryTraceHeader,
+  timestampInSeconds,
+} from '@sentry/utils';
+import { getMainCarrier } from '../asyncContext';
+import { getCurrentScope } from '../currentScopes';
+import { getAsyncContextStrategy } from '../hub';
+import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
+import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
@@ -169,19 +180,28 @@ export function getStatusMessage(status: SpanStatus | undefined): string | undef
 }
 
 const CHILD_SPANS_FIELD = '_sentryChildSpans';
+const ROOT_SPAN_FIELD = '_sentryRootSpan';
 
 type SpanWithPotentialChildren = Span & {
   [CHILD_SPANS_FIELD]?: Set<Span>;
+  [ROOT_SPAN_FIELD]?: Span;
 };
 
 /**
  * Adds an opaque child span reference to a span.
  */
 export function addChildSpanToSpan(span: SpanWithPotentialChildren, childSpan: Span): void {
+  // We store the root span reference on the child span
+  // We need this for `getRootSpan()` to work
+  const rootSpan = span[ROOT_SPAN_FIELD] || span;
+  addNonEnumerableProperty(childSpan as SpanWithPotentialChildren, ROOT_SPAN_FIELD, rootSpan);
+
+  // We store a list of child spans on the parent span
+  // We need this for `getSpanDescendants()` to work
   if (span[CHILD_SPANS_FIELD] && span[CHILD_SPANS_FIELD].size < 1000) {
     span[CHILD_SPANS_FIELD].add(childSpan);
   } else {
-    span[CHILD_SPANS_FIELD] = new Set([childSpan]);
+    addNonEnumerableProperty(span, CHILD_SPANS_FIELD, new Set([childSpan]));
   }
 }
 
@@ -215,4 +235,42 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
   addSpanChildren(span);
 
   return Array.from(resultSet);
+}
+
+/**
+ * Returns the root span of a given span.
+ */
+export function getRootSpan(span: SpanWithPotentialChildren): Span {
+  return span[ROOT_SPAN_FIELD] || span;
+}
+
+/**
+ * Returns the currently active span.
+ */
+export function getActiveSpan(): Span | undefined {
+  const carrier = getMainCarrier();
+  const acs = getAsyncContextStrategy(carrier);
+  if (acs.getActiveSpan) {
+    return acs.getActiveSpan();
+  }
+
+  // eslint-disable-next-line deprecation/deprecation
+  return getCurrentScope().getSpan();
+}
+
+/**
+ * Updates the metric summary on the currently active span
+ */
+export function updateMetricSummaryOnActiveSpan(
+  metricType: MetricType,
+  sanitizedName: string,
+  value: number,
+  unit: MeasurementUnit,
+  tags: Record<string, Primitive>,
+  bucketKey: string,
+): void {
+  const span = getActiveSpan();
+  if (span) {
+    updateMetricSummaryOnSpan(span, metricType, sanitizedName, value, unit, tags, bucketKey);
+  }
 }

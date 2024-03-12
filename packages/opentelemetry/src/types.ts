@@ -1,6 +1,6 @@
 import type { Span as WriteableSpan, SpanKind, Tracer } from '@opentelemetry/api';
-import type { BasicTracerProvider, ReadableSpan, Span } from '@opentelemetry/sdk-trace-base';
-import type { Scope, StartSpanOptions } from '@sentry/types';
+import type { BasicTracerProvider, ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { Scope, Span, StartSpanOptions } from '@sentry/types';
 
 export interface OpenTelemetryClient {
   tracer: Tracer;
@@ -21,9 +21,7 @@ export interface OpenTelemetrySpanContext extends StartSpanOptions {
  * Note that technically, the `Span` exported from `@opentelemwetry/sdk-trace-base` matches this,
  * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
  */
-export type AbstractSpan = WriteableSpan | ReadableSpan;
-
-export type { Span };
+export type AbstractSpan = WriteableSpan | ReadableSpan | Span;
 
 export interface CurrentScopes {
   scope: Scope;

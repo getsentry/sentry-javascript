@@ -29,3 +29,5 @@ jobs:
           version: ${{ github.event.inputs.version }}
           force: ${{ github.event.inputs.force }}
           merge_target: ${{ github.event.inputs.merge_target }}
+          craft_config_from_merge_target: true
+

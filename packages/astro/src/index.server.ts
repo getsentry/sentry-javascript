@@ -59,6 +59,7 @@ export {
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
+  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,
