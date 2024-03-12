@@ -21,10 +21,14 @@ export type { AddRequestDataToEventOptions } from '@sentry/utils';
 export {
   addEventProcessor,
   addBreadcrumb,
+  addIntegration,
   captureException,
   captureEvent,
   captureMessage,
   captureCheckIn,
+  startSession,
+  captureSession,
+  endSession,
   withMonitor,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -49,6 +53,7 @@ export {
   withScope,
   withIsolationScope,
   makeNodeTransport,
+  NodeClient,
   defaultStackParser,
   flush,
   close,
@@ -56,7 +61,11 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
+  createGetModuleFromFilename,
+  anrIntegration,
   consoleIntegration,
+  httpIntegration,
+  nativeNodeFetchIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
   modulesIntegration,
@@ -69,13 +78,14 @@ export {
   linkedErrorsIntegration,
   setMeasurement,
   getActiveSpan,
-  getRootSpan,
   startSpan,
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  getRootSpan,
   getSpanDescendants,
   continueTrace,
+  getAutoPerformanceIntegrations,
   cron,
   metrics,
   parameterize,
@@ -99,6 +109,15 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
 } from '@sentry/node';
+
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+} from '@sentry/core';
 
 export type { BunOptions } from './types';
 
