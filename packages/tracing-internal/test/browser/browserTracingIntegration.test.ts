@@ -374,6 +374,20 @@ describe('browserTracingIntegration', () => {
 
       expect(spanToJSON(pageloadSpan!).op).toBe('test op');
     });
+
+    it('sets the pageload span name on `scope.transactionName`', () => {
+      const client = new TestClient(
+        getDefaultClientOptions({
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingPageLoadSpan(client, { name: 'test pageload span' });
+
+      expect(getCurrentScope().getScopeData().transactionName).toBe('test pageload span');
+    });
   });
 
   it('sets source to "custom" if name is changed in beforeStartSpan', () => {
@@ -583,6 +597,20 @@ describe('browserTracingIntegration', () => {
 
       expect(spanToJSON(pageloadSpan!).description).toBe('changed');
       expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
+    });
+
+    it('sets the pageload span name on `scope.transactionName`', () => {
+      const client = new TestClient(
+        getDefaultClientOptions({
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      startBrowserTracingPageLoadSpan(client, { name: 'test navigation span' });
+
+      expect(getCurrentScope().getScopeData().transactionName).toBe('test navigation span');
     });
   });
 

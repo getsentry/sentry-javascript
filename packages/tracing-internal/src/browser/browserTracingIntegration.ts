@@ -375,6 +375,8 @@ export function startBrowserTracingPageLoadSpan(
 ): Span | undefined {
   client.emit('startPageLoadSpan', spanOptions, traceOptions);
 
+  getCurrentScope().setTransactionName(spanOptions.name);
+
   const span = getActiveSpan();
   const op = span && spanToJSON(span).op;
   return op === 'pageload' ? span : undefined;
@@ -386,6 +388,8 @@ export function startBrowserTracingPageLoadSpan(
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
   client.emit('startNavigationSpan', spanOptions);
+
+  getCurrentScope().setTransactionName(spanOptions.name);
 
   const span = getActiveSpan();
   const op = span && spanToJSON(span).op;
