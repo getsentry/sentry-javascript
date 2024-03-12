@@ -6,6 +6,7 @@ import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import {
+  _setSpanForScope,
   getActiveSpan,
   getSpanDescendants,
   removeChildSpanFromSpan,
@@ -232,8 +233,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       beforeSpanEnd(span);
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(previousActiveSpan);
+    _setSpanForScope(scope, previousActiveSpan);
 
     const spanJSON = spanToJSON(span);
 
@@ -347,8 +347,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 function _startIdleSpan(options: StartSpanOptions): Span {
   const span = startInactiveSpan(options);
 
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentScope().setSpan(span);
+  _setSpanForScope(getCurrentScope(), span);
 
   DEBUG_BUILD && logger.log(`Setting idle span on scope. Span ID: ${span.spanContext().spanId}`);
 

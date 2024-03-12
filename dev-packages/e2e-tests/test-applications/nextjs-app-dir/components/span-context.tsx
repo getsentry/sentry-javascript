@@ -1,6 +1,6 @@
 'use client';
 
-import { getCurrentScope, startInactiveSpan } from '@sentry/nextjs';
+import { startInactiveSpan } from '@sentry/nextjs';
 import { Span } from '@sentry/types';
 import { PropsWithChildren, createContext, useState } from 'react';
 
@@ -29,7 +29,6 @@ export function SpanContextProvider({ children }: PropsWithChildren) {
               spanActive: false,
               start: (spanName: string) => {
                 const span = startInactiveSpan({ name: spanName });
-                getCurrentScope().setSpan(span);
                 setSpan(span);
               },
             }

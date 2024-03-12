@@ -146,19 +146,6 @@ export interface Scope {
   setContext(name: string, context: Context | null): this;
 
   /**
-   * Sets the Span on the scope.
-   * @param span Span
-   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
-   */
-  setSpan(span?: Span): this;
-
-  /**
-   * Returns the `Span` if there is one.
-   * @deprecated Use `getActiveSpan()` instead.
-   */
-  getSpan(): Span | undefined;
-
-  /**
    * Returns the `Transaction` attached to the scope (if there is one).
    * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
    */
