@@ -122,9 +122,9 @@ export function _instrumentEmberRouter(
     const routeInfo = routerService.recognize(url);
     activeRootSpan = startBrowserTracingPageLoadSpan(client, {
       name: `route:${routeInfo.name}`,
-      origin: 'auto.pageload.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.ember',
         url,
         toRoute: routeInfo.name,
       },
@@ -149,9 +149,9 @@ export function _instrumentEmberRouter(
 
     activeRootSpan = startBrowserTracingNavigationSpan(client, {
       name: `route:${toRoute}`,
-      origin: 'auto.navigation.ember',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.ember',
         fromRoute,
         toRoute,
       },
@@ -295,8 +295,10 @@ function processComponentRenderAfter(
     startInactiveSpan({
       name: payload.containerKey || payload.object,
       op,
-      origin: 'auto.ui.ember',
       startTimestamp: begin.now,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
+      },
     })?.end(now);
   }
 }
