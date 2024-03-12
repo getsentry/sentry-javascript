@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import type { AfterViewInit, OnDestroy, OnInit } from '@angular/core';
 import { Directive, Injectable, Input, NgModule } from '@angular/core';
 import type { ActivatedRouteSnapshot, Event, RouterState } from '@angular/router';
@@ -10,13 +9,12 @@ import { NavigationEnd, NavigationStart, ResolveEnd } from '@angular/router';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
   getCurrentScope,
   startBrowserTracingNavigationSpan,
 } from '@sentry/browser';
 import { getActiveSpan, getClient, getRootSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
-import type { Integration, Span, Transaction, TransactionContext } from '@sentry/types';
+import type { Integration, Span, Transaction } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -27,44 +25,6 @@ import { IS_DEBUG_BUILD } from './flags';
 import { runOutsideAngular } from './zone';
 
 let instrumentationInitialized: boolean;
-let stashedStartTransaction: (context: TransactionContext) => Transaction | undefined;
-let stashedStartTransactionOnLocationChange: boolean;
-
-let hooksBasedInstrumentation = false;
-
-/**
- * Creates routing instrumentation for Angular Router.
- *
- * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
- */
-export function routingInstrumentation(
-  customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-  startTransactionOnPageLoad: boolean = true,
-  startTransactionOnLocationChange: boolean = true,
-): void {
-  instrumentationInitialized = true;
-  stashedStartTransaction = customStartTransaction;
-  stashedStartTransactionOnLocationChange = startTransactionOnLocationChange;
-
-  if (startTransactionOnPageLoad && WINDOW && WINDOW.location) {
-    customStartTransaction({
-      name: WINDOW.location.pathname,
-      op: 'pageload',
-      origin: 'auto.pageload.angular',
-      attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-      },
-    });
-  }
-}
-
-/**
- * Creates routing instrumentation for Angular Router.
- *
- * @deprecated Use `browserTracingIntegration()` instead, which includes Angular-specific instrumentation out of the box.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const instrumentAngularRouting = routingInstrumentation;
 
 /**
  * A custom browser tracing integration for Angular.
@@ -78,13 +38,25 @@ export function browserTracingIntegration(
   // That way, the TraceService will not actually do anything, functionally disabling this.
   if (options.instrumentNavigation !== false) {
     instrumentationInitialized = true;
-    hooksBasedInstrumentation = true;
   }
 
   return originalBrowserTracingIntegration({
     ...options,
     instrumentNavigation: false,
   });
+}
+
+/**
+ * This function is extracted to make unit testing easier.
+ */
+export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Span): void {
+  const attributes = (span && spanToJSON(span).data) || {};
+
+  if (span && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+    span.updateName(route);
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
+  }
 }
 
 /**
@@ -120,7 +92,7 @@ export class TraceService implements OnDestroy {
       const client = getClient();
       const strippedUrl = stripUrlQueryAndFragment(navigationEvent.url);
 
-      if (client && hooksBasedInstrumentation) {
+      if (client) {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
           startBrowserTracingNavigationSpan(client, {
@@ -153,35 +125,6 @@ export class TraceService implements OnDestroy {
 
         return;
       }
-
-      // eslint-disable-next-line deprecation/deprecation
-      let activeTransaction = getActiveTransaction();
-
-      if (!activeTransaction && stashedStartTransactionOnLocationChange) {
-        activeTransaction = stashedStartTransaction({
-          name: strippedUrl,
-          op: 'navigation',
-          origin: 'auto.navigation.angular',
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-          },
-        });
-      }
-
-      if (activeTransaction) {
-        // eslint-disable-next-line deprecation/deprecation
-        this._routingSpan = activeTransaction.startChild({
-          name: `${navigationEvent.url}`,
-          op: ANGULAR_ROUTING_OP,
-          origin: 'auto.ui.angular',
-          attributes: {
-            url: strippedUrl,
-            ...(navigationEvent.navigationTrigger && {
-              navigationTrigger: navigationEvent.navigationTrigger,
-            }),
-          },
-        });
-      }
     }),
   );
 
@@ -200,15 +143,11 @@ export class TraceService implements OnDestroy {
         (event.state as unknown as RouterState & { root: ActivatedRouteSnapshot }).root,
       );
 
-      // eslint-disable-next-line deprecation/deprecation
-      const transaction = getActiveTransaction();
+      const activeSpan = getActiveSpan();
+      const rootSpan = activeSpan && getRootSpan(activeSpan);
+
       // TODO (v8 / #5416): revisit the source condition. Do we want to make the parameterized route the default?
-      const attributes = (transaction && spanToJSON(transaction).data) || {};
-      if (transaction && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
-        transaction.updateName(route);
-        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-        transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(transaction).op}.angular`);
-      }
+      _updateSpanAttributesForParametrizedUrl(route, rootSpan);
     }),
   );
 
@@ -274,7 +213,7 @@ export class TraceService implements OnDestroy {
    * - if `_pageloadOngoing` is already `false`, create a navigation root span
    * - if there's no active/pageload root span, create a navigation root span
    * - only if there's an ongoing pageload root span AND `_pageloadOngoing` is still `true,
-   *   con't create a navigation root span
+   *   don't create a navigation root span
    */
   private _isPageloadOngoing(): boolean {
     if (!this._pageloadOngoing) {
@@ -315,14 +254,11 @@ export class TraceDirective implements OnInit, AfterViewInit {
       this.componentName = UNKNOWN_COMPONENT;
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const activeTransaction = getActiveTransaction();
-    if (activeTransaction) {
-      // eslint-disable-next-line deprecation/deprecation
-      this._tracingSpan = activeTransaction.startChild({
+    if (getActiveSpan()) {
+      this._tracingSpan = startInactiveSpan({
         name: `<${this.componentName}>`,
         op: ANGULAR_INIT_OP,
-        origin: 'auto.ui.angular.trace_directive',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive' },
       });
     }
   }
