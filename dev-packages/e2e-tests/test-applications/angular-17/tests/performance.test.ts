@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP } from '@sentry/core/src';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { waitForTransaction } from '../event-proxy-server';
 
 test('sends a pageload transaction with a parameterized URL', async ({ page }) => {
@@ -169,6 +168,8 @@ test.describe('finish routing span', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#nonExistentLink').click(), navigationTxnPromise]);
 
+    const nonExistentRoute = '/non-existent';
+
     expect(navigationTxn).toMatchObject({
       contexts: {
         trace: {
@@ -176,7 +177,7 @@ test.describe('finish routing span', () => {
           origin: 'auto.navigation.angular',
         },
       },
-      transaction: '/non-existent',
+      transaction: nonExistentRoute,
       transaction_info: {
         source: 'url',
       },
@@ -185,7 +186,7 @@ test.describe('finish routing span', () => {
     const routingSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.routing');
 
     expect(routingSpan).toBeDefined();
-    expect(routingSpan?.description).toBe('/nonExistentLink');
+    expect(routingSpan?.description).toBe(nonExistentRoute);
   });
 });
 
@@ -200,24 +201,24 @@ test.describe('TraceDirective', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const traceDirectiveSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.init');
+    const traceDirectiveSpan = navigationTxn.spans?.find(
+      span => span?.data && span?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.ui.angular.trace_directive',
+    );
 
     expect(traceDirectiveSpan).toBeDefined();
     expect(traceDirectiveSpan).toEqual(
       expect.objectContaining({
-        description: '<sample-component>',
-        attributes: {
+        data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive',
         },
+        description: '<sample-component>',
         op: 'ui.angular.init',
         origin: 'auto.ui.angular.trace_directive',
+        start_timestamp: expect.any(Number),
+        timestamp: expect.any(Number),
       }),
     );
-  });
-
-  test('finishes tracingSpan after ngAfterViewInit', () => {
-    // todo
   });
 });
 
@@ -232,9 +233,25 @@ test.describe('TraceClassDecorator', () => {
     // immediately navigate to a different route
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
-    const initSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.init');
+    const classDecoratorSpan = navigationTxn.spans?.find(
+      span => span?.data && span?.data[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] === 'auto.ui.angular.trace_class_decorator',
+    );
 
-    expect(initSpan).toBeDefined();
+    expect(classDecoratorSpan).toBeDefined();
+    expect(classDecoratorSpan).toEqual(
+      expect.objectContaining({
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+        },
+        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
+        description: expect.any(String),
+        op: 'ui.angular.init',
+        origin: 'auto.ui.angular.trace_class_decorator',
+        start_timestamp: expect.any(Number),
+        timestamp: expect.any(Number),
+      }),
+    );
   });
 });
 
@@ -255,26 +272,32 @@ test.describe('TraceMethodDecorator', () => {
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
       expect.objectContaining({
-        description: '<ComponentTrackingComponent>',
-        op: 'ui.angular.ngOnInit',
-        attributes: {
+        data: {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
+        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
+        description: expect.any(String),
+        op: 'ui.angular.ngOnInit',
+        origin: 'auto.ui.angular.trace_method_decorator',
+        start_timestamp: expect.any(Number),
+        timestamp: expect.any(Number),
       }),
     );
 
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
       expect.objectContaining({
-        description: '<ComponentTrackingComponent>',
-        op: 'ui.angular.ngAfterViewInit',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
+        data: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngAfterViewInit',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
-        startTimestamp: expect.any(Number),
-        endTimestamp: expect.any(Number),
+        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
+        description: expect.any(String),
+        op: 'ui.angular.ngAfterViewInit',
+        origin: 'auto.ui.angular.trace_method_decorator',
+        start_timestamp: expect.any(Number),
+        timestamp: expect.any(Number),
       }),
     );
   });

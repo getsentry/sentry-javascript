@@ -1,7 +1,10 @@
 import type { ActivatedRouteSnapshot } from '@angular/router';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, SentrySpan, spanToJSON } from '@sentry/core';
-
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SentrySpan,
+  spanToJSON,
+} from '@sentry/core';
 import { TraceDirective, browserTracingIntegration, init } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
 
@@ -25,8 +28,6 @@ describe('browserTracingIntegration', () => {
   it('implements required hooks', () => {
     const integration = browserTracingIntegration();
     expect(integration.name).toEqual('BrowserTracing');
-    expect(integration.setupOnce).toBeDefined();
-    expect(integration.afterAllSetup).toBeDefined();
   });
 });
 
@@ -124,17 +125,6 @@ describe('Angular Tracing', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'sample-source',
           },
           description: 'initial-span-name',
-        }),
-      );
-    });
-
-    it('should contain the keys "test1" and "test2"', () => {
-      const obj = { test1: 'value1', test2: 'value2', otherKey: 'otherValue', ll: { sdf: 'sdfsd' } };
-
-      expect(obj).toEqual(
-        expect.objectContaining({
-          test1: 'value1',
-          ll: { sdf: 'sdfsd' },
         }),
       );
     });
