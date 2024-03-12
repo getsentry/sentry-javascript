@@ -58,34 +58,34 @@ export function tracingHandler(): (
       return next();
     }
 
+    // We depend here on the fact that we update the current scope...
+    // so we keep this legacy behavior here for now
+    const scope = getCurrentScope();
+
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = continueTrace(
-      { sentryTrace, baggage },
-      ctx =>
-        startInactiveSpan({
-          name,
-          op: 'http.server',
-          origin: 'auto.http.node.tracingHandler',
-          forceTransaction: true,
-          ...ctx,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          },
-          metadata: {
-            // eslint-disable-next-line deprecation/deprecation
-            ...ctx.metadata,
-            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-            // be sure
-            request: req,
-          },
-        }) as Transaction,
-    );
+    const transaction = continueTrace({ sentryTrace, baggage }, () => {
+      scope.setPropagationContext(getCurrentScope().getPropagationContext());
+      return startInactiveSpan({
+        name,
+        op: 'http.server',
+        origin: 'auto.http.node.tracingHandler',
+        forceTransaction: true,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+        },
+        metadata: {
+          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
+          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
+          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
+          // be sure
+          request: req,
+        },
+      }) as Transaction;
+    });
 
     // We put the transaction on the scope so users can attach children to it
     // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
+    scope.setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
