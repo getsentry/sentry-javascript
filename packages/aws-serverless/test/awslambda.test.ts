@@ -20,8 +20,8 @@ const mockScope = {
   addEventProcessor: jest.fn(),
 };
 
-jest.mock('@sentry/node-experimental', () => {
-  const original = jest.requireActual('@sentry/node-experimental');
+jest.mock('@sentry/node', () => {
+  const original = jest.requireActual('@sentry/node');
   return {
     ...original,
     init: (options: unknown) => {
@@ -517,11 +517,11 @@ describe('AWSLambda', () => {
         expect.objectContaining({
           _metadata: {
             sdk: {
-              name: 'sentry.javascript.serverless',
+              name: 'sentry.javascript.aws-serverless',
               integrations: ['AWSLambda'],
               packages: [
                 {
-                  name: 'npm:@sentry/serverless',
+                  name: 'npm:@sentry/aws-serverless',
                   version: expect.any(String),
                 },
               ],

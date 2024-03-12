@@ -1,7 +1,7 @@
 {
-  "name": "@sentry/serverless",
+  "name": "@sentry/aws-serverless",
   "version": "8.0.0-alpha.2",
-  "description": "Official Sentry SDK for various serverless solutions",
+  "description": "Official Sentry SDK for AWS Lambda and AWS Serverless Environments",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless",
   "author": "Sentry",
@@ -11,20 +11,14 @@
   },
   "files": [
     "cjs",
-    "esm",
     "types",
     "types-ts3.8"
   ],
   "main": "build/npm/cjs/index.js",
-  "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
-      "import": {
-        "types": "./build/npm/types/index.d.ts",
-        "default": "./build/npm/esm/index.js"
-      },
       "require": {
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
@@ -43,21 +37,16 @@
   },
   "dependencies": {
     "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
+    "@sentry/node": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",
     "@types/aws-lambda": "^8.10.62",
     "@types/express": "^4.17.14"
   },
   "devDependencies": {
-    "@google-cloud/bigquery": "^5.3.0",
-    "@google-cloud/common": "^3.4.1",
-    "@google-cloud/functions-framework": "^1.7.1",
-    "@google-cloud/pubsub": "^2.5.0",
     "@types/node": "^14.6.4",
     "aws-sdk": "^2.765.0",
     "find-up": "^5.0.0",
-    "google-gax": "^2.9.0",
     "nock": "^13.0.4",
     "npm-packlist": "^2.1.4"
   },

@@ -5,8 +5,10 @@ import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
 import * as SentryRemix from '@sentry/remix';
-import * as SentryServerless from '@sentry/serverless';
 import * as SentrySvelteKit from '@sentry/sveltekit';
+
+// SentryAWS is CJS only
+const SentryAWS = require('@sentry/aws-serverless');
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
 const NODE_EXPERIMENTAL_EXPORTS_IGNORE = [
@@ -77,10 +79,10 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryRemix),
   },
   {
-    package: '@sentry/serverless',
-    compareWith: nodeExperimentalExports,
-    exports: Object.keys(SentryServerless),
-    ignoreExports: ['cron', 'hapiErrorPlugin'],
+    package: '@sentry/aws-serverless',
+    compareWith: nodeExports,
+    exports: Object.keys(SentryAWS),
+    ignoreExports: ['makeMain'],
   },
   {
     package: '@sentry/google-cloud',

@@ -47,6 +47,7 @@
     "packages/angular",
     "packages/angular-ivy",
     "packages/astro",
+    "packages/aws-serverless",
     "packages/browser",
     "packages/bun",
     "packages/core",
@@ -68,7 +69,6 @@
     "packages/replay",
     "packages/replay-canvas",
     "packages/replay-worker",
-    "packages/serverless",
     "packages/svelte",
     "packages/sveltekit",
     "packages/tracing-internal",
@@ -87,6 +87,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
     "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^13.1.3",
     "@rollup/plugin-replace": "^3.0.1",
     "@rollup/plugin-sucrase": "^4.0.3",

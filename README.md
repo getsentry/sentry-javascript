@@ -57,8 +57,10 @@ package. Please refer to the README and instructions of those SDKs for more deta
 - [`@sentry/gatsby`](https://github.com/getsentry/sentry-javascript/tree/master/packages/gatsby): SDK for Gatsby
 - [`@sentry/nextjs`](https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs): SDK for Next.js
 - [`@sentry/remix`](https://github.com/getsentry/sentry-javascript/tree/master/packages/remix): SDK for Remix
-- [`@sentry/serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/serverless): SDK for
-  Serverless Platforms (AWS, GCP)
+- [`@sentry/aws-serverless`](https://github.com/getsentry/sentry-javascript/tree/master/packages/aws-serverless): SDK
+  for AWS Lambda Functions
+- [`@sentry/google-cloud`](https://github.com/getsentry/sentry-javascript/tree/master/packages/google-cloud): SDK for
+  Google Cloud Functions
 - [`@sentry/electron`](https://github.com/getsentry/sentry-electron): SDK for Electron with support for native crashes
 - [`@sentry/react-native`](https://github.com/getsentry/sentry-react-native): SDK for React Native with support for
   native crashes
