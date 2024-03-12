@@ -3,9 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  continueTrace,
-  getCurrentScope,
-  withScope,
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import type { Client, TransactionSource } from '@sentry/types';
@@ -110,31 +107,21 @@ export function pagesRouterInstrumentPageLoad(client: Client): void {
   const { route, params, sentryTrace, baggage } = extractNextDataTagInformation();
   const name = route || globalObject.location.pathname;
 
-  // Continue trace updates the _current_ scope, but we want to break out of it again...
-  // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
-  // but wards, we want to reset it to avoid this also applying to other spans
-  const scope = getCurrentScope();
-  const propagationContextBefore = scope.getPropagationContext();
-
-  continueTrace({ sentryTrace, baggage }, () => {
-    // Ensure we are on the original current scope again, so the span is set as active on it
-    return withScope(scope, () => {
-      startBrowserTracingPageLoadSpan(client, {
-        name,
-        // pageload should always start at timeOrigin (and needs to be in s, not ms)
-        startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
-
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
-          ...(params && client.getOptions().sendDefaultPii && { ...params }),
-        },
-      });
-    });
-  });
-
-  scope.setPropagationContext(propagationContextBefore);
+  startBrowserTracingPageLoadSpan(
+    client,
+    {
+      name,
+      // pageload should always start at timeOrigin (and needs to be in s, not ms)
+      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.pages_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: route ? 'route' : 'url',
+        ...(params && client.getOptions().sendDefaultPii && { ...params }),
+      },
+    },
+    { sentryTrace, baggage },
+  );
 }
 
 /**

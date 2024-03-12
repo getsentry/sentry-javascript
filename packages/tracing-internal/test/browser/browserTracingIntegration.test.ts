@@ -708,6 +708,54 @@ describe('browserTracingIntegration', () => {
       expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
       expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
     });
+
+    it('uses passed in tracing data for pageload span over meta tags', () => {
+      // make sampled false here, so we can see that it's being used rather than the tracesSampleRate-dictated one
+      document.head.innerHTML =
+        '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-1">' +
+        '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
+
+      const client = new TestClient(
+        getDefaultClientOptions({
+          tracesSampleRate: 1,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+
+      client.init();
+
+      // manually create a pageload span with tracing data
+      startBrowserTracingPageLoadSpan(
+        client,
+        {
+          name: 'test span',
+        },
+        {
+          sentryTrace: '12312012123120121231201212312011-1121201211212011-1',
+          baggage: 'sentry-release=2.2.14,foo=bar',
+        },
+      );
+
+      const idleSpan = getActiveSpan()!;
+      expect(idleSpan).toBeDefined();
+
+      const dynamicSamplingContext = getDynamicSamplingContextFromSpan(idleSpan!);
+      const propagationContext = getCurrentScope().getPropagationContext();
+
+      // Span is correct
+      expect(spanToJSON(idleSpan).op).toBe('pageload');
+      expect(spanToJSON(idleSpan).trace_id).toEqual('12312012123120121231201212312011');
+      expect(spanToJSON(idleSpan).parent_span_id).toEqual('1121201211212011');
+      expect(spanIsSampled(idleSpan)).toBe(true);
+
+      expect(dynamicSamplingContext).toBeDefined();
+      expect(dynamicSamplingContext).toStrictEqual({ release: '2.2.14' });
+
+      // Propagation context is reset and does not contain the meta tag data
+      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
+    });
   });
 
   describe('idleTimeout', () => {

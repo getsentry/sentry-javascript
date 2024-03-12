@@ -245,7 +245,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       let activeSpan: Span | undefined;
       let startingUrl: string | undefined = WINDOW.location && WINDOW.location.href;
 
-      client.on('startNavigationSpan', (startSpanOptions: StartSpanOptions) => {
+      client.on('startNavigationSpan', startSpanOptions => {
         if (getClient() !== client) {
           return;
         }
@@ -261,7 +261,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
-      client.on('startPageLoadSpan', (startSpanOptions: StartSpanOptions) => {
+      client.on('startPageLoadSpan', (startSpanOptions, traceOptions) => {
         if (getClient() !== client) {
           return;
         }
@@ -272,10 +272,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           activeSpan.end();
         }
 
-        const sentryTrace = getMetaContent('sentry-trace');
-        const baggage = getMetaContent('baggage');
+        const sentryTrace = traceOptions?.sentryTrace || getMetaContent('sentry-trace');
+        const baggage = traceOptions?.baggage || getMetaContent('baggage');
 
-        // Continue trace updates the _current_ scope, but we want to break out of it again...
+        // Continue trace updates the scope in the callback only, but we want to break out of it again...
         // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
         // but afterwards, we want to reset it to avoid this also applying to other spans
         const scope = getCurrentScope();
@@ -364,9 +364,16 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 /**
  * Manually start a page load span.
  * This will only do something if a browser tracing integration integration has been setup.
+ *
+ * If you provide a custom `traceOptions` object, it will be used to continue the trace
+ * instead of the default behavior, which is to look it up on the <meta> tags.
  */
-export function startBrowserTracingPageLoadSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  client.emit('startPageLoadSpan', spanOptions);
+export function startBrowserTracingPageLoadSpan(
+  client: Client,
+  spanOptions: StartSpanOptions,
+  traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+): Span | undefined {
+  client.emit('startPageLoadSpan', spanOptions, traceOptions);
 
   const span = getActiveSpan();
   const op = span && spanToJSON(span).op;

@@ -51,6 +51,7 @@ describe('appRouterInstrumentPageLoad', () => {
           'sentry.source': 'url',
         },
       }),
+      undefined,
     );
   });
 });

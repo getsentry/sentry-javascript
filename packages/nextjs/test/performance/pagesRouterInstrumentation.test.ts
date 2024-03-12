@@ -194,8 +194,18 @@ describe('pagesRouterInstrumentPageLoad', () => {
 
       pagesRouterInstrumentPageLoad(client);
 
+      const sentryTrace = (props as any).pageProps?._sentryTraceData;
+      const baggage = (props as any).pageProps?._sentryBaggage;
+
       expect(emit).toHaveBeenCalledTimes(1);
-      expect(emit).toHaveBeenCalledWith('startPageLoadSpan', expect.objectContaining(expectedStartTransactionArgument));
+      expect(emit).toHaveBeenCalledWith(
+        'startPageLoadSpan',
+        expect.objectContaining(expectedStartTransactionArgument),
+        {
+          sentryTrace,
+          baggage,
+        },
+      );
     },
   );
 });
