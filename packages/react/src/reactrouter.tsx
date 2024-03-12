@@ -9,6 +9,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
@@ -226,9 +227,13 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   const activeRootSpan = getActiveRootSpan();
 
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (activeRootSpan && props && props.computedMatch && props.computedMatch.isExact) {
-      activeRootSpan.updateName(props.computedMatch.path);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    if (props && props.computedMatch && props.computedMatch.isExact) {
+      getCurrentScope().setTransactionName(props.computedMatch.path);
+
+      if (activeRootSpan) {
+        activeRootSpan.updateName(props.computedMatch.path);
+        activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      }
     }
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
