@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, OnInit } from '@angular/core';
-import { TraceClassDecorator, TraceMethodDecorator, TraceModule } from '@sentry/angular-ivy';
+import { TraceClass, TraceMethod, TraceModule } from '@sentry/angular-ivy';
 import { SampleComponent } from '../sample-component/sample-component.components';
 
 @Component({
@@ -8,11 +8,11 @@ import { SampleComponent } from '../sample-component/sample-component.components
   imports: [TraceModule, SampleComponent],
   template: `<app-sample-component [trace]="'sample-component'"></app-sample-component>`,
 })
-@TraceClassDecorator()
+@TraceClass({ name: 'ComponentTrackingComponent' })
 export class ComponentTrackingComponent implements OnInit, AfterViewInit {
-  @TraceMethodDecorator()
+  @TraceMethod({ name: 'ngOnInit' })
   ngOnInit() {}
 
-  @TraceMethodDecorator()
+  @TraceMethod()
   ngAfterViewInit() {}
 }

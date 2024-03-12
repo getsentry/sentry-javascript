@@ -280,10 +280,17 @@ export class TraceDirective implements OnInit, AfterViewInit {
 })
 export class TraceModule {}
 
+interface TraceClassOptions {
+  /**
+   * Name of the class
+   */
+  name?: string;
+}
+
 /**
  * Decorator function that can be used to capture initialization lifecycle of the whole component.
  */
-export function TraceClassDecorator(): ClassDecorator {
+export function TraceClass(options?: TraceClassOptions): ClassDecorator {
   let tracingSpan: Span;
 
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -293,7 +300,7 @@ export function TraceClassDecorator(): ClassDecorator {
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
       tracingSpan = startInactiveSpan({
         onlyIfParent: true,
-        name: `<${target.name}>`,
+        name: `<${options && options.name ? options.name : 'unnamed'}>`,
         op: ANGULAR_INIT_OP,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
@@ -319,10 +326,17 @@ export function TraceClassDecorator(): ClassDecorator {
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
+interface TraceMethodOptions {
+  /**
+   * Name of the method (is added to the tracing span)
+   */
+  name?: string;
+}
+
 /**
  * Decorator function that can be used to capture a single lifecycle methods of the component.
  */
-export function TraceMethodDecorator(): MethodDecorator {
+export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
   // eslint-disable-next-line @typescript-eslint/ban-types
   return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
@@ -332,7 +346,7 @@ export function TraceMethodDecorator(): MethodDecorator {
 
       startInactiveSpan({
         onlyIfParent: true,
-        name: `<${target.constructor.name}>`,
+        name: `<${options && options.name ? options.name : 'unnamed'}>`,
         op: `${ANGULAR_OP}.${String(propertyKey)}`,
         startTime: now,
         attributes: {

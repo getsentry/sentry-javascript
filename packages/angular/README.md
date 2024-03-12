@@ -181,34 +181,34 @@ Then, inside your component's template (keep in mind that the directive's name a
 <app-footer trace="footer"></app-footer>
 ```
 
-_TraceClassDecorator:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
+_TraceClass:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
 
 ```javascript
 import { Component } from '@angular/core';
-import { TraceClassDecorator } from '@sentry/angular';
+import { TraceClass } from '@sentry/angular';
 
 @Component({
   selector: 'layout-header',
   templateUrl: './header.component.html',
 })
-@TraceClassDecorator()
+@TraceClass()
 export class HeaderComponent {
   // ...
 }
 ```
 
-_TraceMethodDecorator:_ used to track a specific lifecycle hooks as point-in-time spans in components:
+_TraceMethod:_ used to track a specific lifecycle hooks as point-in-time spans in components:
 
 ```javascript
 import { Component, OnInit } from '@angular/core';
-import { TraceMethodDecorator } from '@sentry/angular';
+import { TraceMethod } from '@sentry/angular';
 
 @Component({
   selector: 'app-footer',
   templateUrl: './footer.component.html',
 })
 export class FooterComponent implements OnInit {
-  @TraceMethodDecorator()
+  @TraceMethod()
   ngOnInit() {}
 }
 ```
