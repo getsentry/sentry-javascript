@@ -1,15 +1,14 @@
 import * as SentryAstro from '@sentry/astro';
-import * as SentryAWS from '@sentry/aws-serverless';
 import * as SentryBun from '@sentry/bun';
-import * as SentryGoogleCloud from '@sentry/google-cloud-serverless';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
 import * as SentryRemix from '@sentry/remix';
 import * as SentrySvelteKit from '@sentry/sveltekit';
 
-// SentryAWS is CJS only
+// Serverless SDKs are CJS only
 const SentryAWS = require('@sentry/aws-serverless');
+const SentryGoogleCloud = require('@sentry/google-cloud-serverless');
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
 const NODE_EXPERIMENTAL_EXPORTS_IGNORE = [
