@@ -1,6 +1,7 @@
 import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   Scope,
   addTracingExtensions,
   getCurrentScope,
@@ -197,20 +198,21 @@ describe('startSpan', () => {
       expect(spanToJSON(spans[1]).op).toEqual('db.query');
     });
 
-    it.each([
-      { origin: 'auto.http.browser' },
-      { attributes: { 'sentry.origin': 'auto.http.browser' } },
-      // attribute should take precedence over top level origin
-      { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
-    ])('correctly sets the span origin', async () => {
+    it('correctly sets the span origin', async () => {
       let _span: Span | undefined = undefined;
       client.on('spanEnd', span => {
         _span = span;
       });
       try {
-        await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
-          return callback();
-        });
+        await startSpan(
+          {
+            name: 'GET users/[id]',
+            attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser' },
+          },
+          () => {
+            return callback();
+          },
+        );
       } catch (e) {
         //
       }

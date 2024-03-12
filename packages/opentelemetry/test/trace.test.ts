@@ -222,9 +222,9 @@ describe('trace', () => {
         {
           name: 'outer',
           op: 'my-op',
-          origin: 'auto.test.origin',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
           },
         },
         span => {
@@ -475,9 +475,9 @@ describe('trace', () => {
       const span2 = startInactiveSpan({
         name: 'outer',
         op: 'my-op',
-        origin: 'auto.test.origin',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         },
         metadata: { requestPath: 'test-path' },
       });

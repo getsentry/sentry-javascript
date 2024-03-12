@@ -301,8 +301,10 @@ describe('browserTracingIntegration', () => {
 
       const span = startBrowserTracingPageLoadSpan(client, {
         name: 'test span',
-        origin: 'auto.test',
-        attributes: { testy: 'yes' },
+        attributes: {
+          testy: 'yes',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+        },
       });
 
       expect(span).toBeDefined();
@@ -492,8 +494,10 @@ describe('browserTracingIntegration', () => {
 
       const span = startBrowserTracingNavigationSpan(client, {
         name: 'test span',
-        origin: 'auto.test',
-        attributes: { testy: 'yes' },
+        attributes: {
+          testy: 'yes',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+        },
       });
 
       expect(span).toBeDefined();

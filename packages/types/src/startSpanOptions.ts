@@ -1,6 +1,6 @@
 import type { Primitive } from './misc';
 import type { Scope } from './scope';
-import type { SpanAttributes, SpanOrigin, SpanTimeInput } from './span';
+import type { SpanAttributes, SpanTimeInput } from './span';
 import type { TransactionContext, TransactionMetadata, TransactionSource } from './transaction';
 
 export interface StartSpanOptions extends TransactionContext {
@@ -25,13 +25,6 @@ export interface StartSpanOptions extends TransactionContext {
    * It is not guaranteed that a span started with this flag set to `true` will be sent as a transaction.
    */
   forceTransaction?: boolean;
-
-  /**
-   * The origin of the span - if it comes from auto instrumentation or manual instrumentation.
-   *
-   * @deprecated Set `attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]` instead.
-   */
-  origin?: SpanOrigin;
 
   /** Attributes for the span. */
   attributes?: SpanAttributes;
