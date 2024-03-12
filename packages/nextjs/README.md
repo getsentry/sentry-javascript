@@ -21,7 +21,8 @@ Currently, the minimum Next.js supported version is `10.0.8`.
 
 ## General
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added functionality related to Next.js.
+This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added
+functionality related to Next.js.
 
 To use this SDK, init it in the Sentry config files.
 
@@ -31,7 +32,7 @@ To use this SDK, init it in the Sentry config files.
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
-  dsn: "__DSN__",
+  dsn: '__DSN__',
   // ...
 });
 ```
@@ -42,7 +43,7 @@ Sentry.init({
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
-  dsn: "__DSN__",
+  dsn: '__DSN__',
   // ...
 });
 ```

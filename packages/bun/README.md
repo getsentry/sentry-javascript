@@ -15,7 +15,8 @@
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
-The Sentry Bun SDK is in beta. Please help us improve the SDK by [reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
+The Sentry Bun SDK is in beta. Please help us improve the SDK by
+[reporting any issues or giving us feedback](https://github.com/getsentry/sentry-javascript/issues).
 
 ## Usage
 
@@ -34,8 +35,8 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/bun`. Note that these
-functions will not perform any action before you have called `init()`:
+To set context information or send manual events, use the exported functions of `@sentry/bun`. Note that these functions
+will not perform any action before you have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras
@@ -60,8 +61,9 @@ Sentry.captureEvent({
 });
 ```
 
-It's not possible to capture unhandled exceptions, unhandled promise rejections now - Bun is working on adding support for it.
-[Github Issue](https://github.com/oven-sh/bun/issues/5091) follow this issue. To report errors to Sentry, you have to manually try-catch and call `Sentry.captureException` in the catch block.
+It's not possible to capture unhandled exceptions, unhandled promise rejections now - Bun is working on adding support
+for it. [Github Issue](https://github.com/oven-sh/bun/issues/5091) follow this issue. To report errors to Sentry, you
+have to manually try-catch and call `Sentry.captureException` in the catch block.
 
 ```ts
 import * as Sentry from '@sentry/bun';
@@ -72,4 +74,3 @@ try {
   Sentry.captureException(e);
 }
 ```
-

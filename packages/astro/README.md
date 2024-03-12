@@ -12,12 +12,12 @@
 
 ## Links
 
- - [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/astro/)
+- [Official SDK Docs](https://docs.sentry.io/platforms/javascript/guides/astro/)
 
 ## SDK Status
 
-This SDK is in Beta and not yet fully stable.
-If you have feedback or encounter any bugs, feel free to [open an issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
+This SDK is in Beta and not yet fully stable. If you have feedback or encounter any bugs, feel free to
+[open an issue](https://github.com/getsentry/sentry-javascript/issues/new/choose).
 
 ## General
 
@@ -34,15 +34,15 @@ npx astro add @sentry/astro
 Add your DSN and source maps upload configuration:
 
 ```javascript
-import { defineConfig } from "astro/config";
-import sentry from "@sentry/astro";
+import { defineConfig } from 'astro/config';
+import sentry from '@sentry/astro';
 
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "__DSN__",
+      dsn: '__DSN__',
       sourceMapsUploadOptions: {
-        project: "your-sentry-project-slug",
+        project: 'your-sentry-project-slug',
         authToken: process.env.SENTRY_AUTH_TOKEN,
       },
     }),
@@ -50,7 +50,8 @@ export default defineConfig({
 });
 ```
 
-Follow [this guide](https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens) to create an auth token and add it to your environment variables:
+Follow [this guide](https://docs.sentry.io/product/accounts/auth-tokens/#organization-auth-tokens) to create an auth
+token and add it to your environment variables:
 
 ```bash
 SENTRY_AUTH_TOKEN="your-token"
@@ -58,14 +59,15 @@ SENTRY_AUTH_TOKEN="your-token"
 
 ### Server Instrumentation
 
-For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
+For Astro apps configured for (hybrid) Server Side Rendering (SSR), the Sentry integration will automatically add
+middleware to your server to instrument incoming requests **if you're using Astro 3.5.2 or newer**.
 
 If you're using Astro <3.5.2, complete the setup by adding the Sentry middleware to your `src/middleware.js` file:
 
 ```javascript
 // src/middleware.js
-import { sequence } from "astro:middleware";
-import * as Sentry from "@sentry/astro";
+import { sequence } from 'astro:middleware';
+import * as Sentry from '@sentry/astro';
 
 export const onRequest = sequence(
   Sentry.handleRequest(),
@@ -74,6 +76,7 @@ export const onRequest = sequence(
 ```
 
 The Sentry middleware enhances the data collected by Sentry on the server side by:
+
 - Enabeling distributed tracing between client and server
 - Collecting performance spans for incoming requests
 - Enhancing captured errors with additional information
@@ -83,26 +86,25 @@ The Sentry middleware enhances the data collected by Sentry on the server side b
 You can opt out of using the automatic sentry server instrumentation in your `astro.config.mjs` file:
 
 ```javascript
-import { defineConfig } from "astro/config";
-import sentry from "@sentry/astro";
+import { defineConfig } from 'astro/config';
+import sentry from '@sentry/astro';
 
 export default defineConfig({
   integrations: [
     sentry({
-      dsn: "__DSN__",
+      dsn: '__DSN__',
       autoInstrumentation: {
         requestHandler: false,
-      }
+      },
     }),
   ],
 });
 ```
 
-
 ## Configuration
 
 Check out our docs for configuring your SDK setup:
 
-* [Getting Started](https://docs.sentry.io/platforms/javascript/guides/astro/)
-* [Manual Setup and Configuration](https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/)
-* [Source Maps Upload](https://docs.sentry.io/platforms/javascript/guides/astro/sourcemaps/)
+- [Getting Started](https://docs.sentry.io/platforms/javascript/guides/astro/)
+- [Manual Setup and Configuration](https://docs.sentry.io/platforms/javascript/guides/astro/manual-setup/)
+- [Source Maps Upload](https://docs.sentry.io/platforms/javascript/guides/astro/sourcemaps/)
