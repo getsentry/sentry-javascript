@@ -1,4 +1,5 @@
 import * as SentryAstro from '@sentry/astro';
+import * as SentryAWS from '@sentry/aws-serverless';
 import * as SentryBun from '@sentry/bun';
 import * as SentryGoogleCloud from '@sentry/google-cloud';
 import * as SentryNextJs from '@sentry/nextjs';
