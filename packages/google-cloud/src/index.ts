@@ -33,6 +33,7 @@ export {
   withScope,
   withIsolationScope,
   makeNodeTransport,
+  NodeClient,
   defaultStackParser,
   flush,
   close,

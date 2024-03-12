@@ -9,8 +9,6 @@ import * as SentrySvelteKit from '@sentry/sveltekit';
 
 // SentryAWS is CJS only
 const SentryAWS = require('@sentry/aws-serverless');
-// Using CJS export for Bun SDK
-// const SentryBun = require('@sentry/bun');
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
 const NODE_EXPERIMENTAL_EXPORTS_IGNORE = [
