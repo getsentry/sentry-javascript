@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getSpanDescendants } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getSpanDescendants, startSpan } from '@sentry/core';
 import type { Hub } from '@sentry/core';
 import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
@@ -12,6 +12,7 @@ import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
+import { _setSpanForScope } from '../../src/_setSpanForScope';
 import { NodeClient } from '../../src/client';
 import {
   Http as HttpIntegration,
@@ -33,8 +34,7 @@ describe('tracing', () => {
   });
 
   afterEach(() => {
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(undefined);
+    _setSpanForScope(getCurrentScope(), undefined);
   });
 
   function createTransactionOnScope(
@@ -55,9 +55,7 @@ describe('tracing', () => {
     });
 
     expect(transaction).toBeInstanceOf(Transaction);
-
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
+    _setSpanForScope(getCurrentScope(), transaction);
 
     return transaction;
   }
@@ -207,19 +205,20 @@ describe('tracing', () => {
 
     const { traceId } = getCurrentScope().getPropagationContext();
 
-    const request = http.get('http://dogs.are.great/');
+    // Needs an outer span, or else we skip it
+    const request = startSpan({ name: 'outer' }, () => http.get('http://dogs.are.great/'));
     const sentryTraceHeader = request.getHeader('sentry-trace') as string;
     const baggageHeader = request.getHeader('baggage') as string;
 
     const parts = sentryTraceHeader.split('-');
 
-    // Should not include sampling decision since we don't wanna influence the tracing decisions downstream
-    expect(parts.length).toEqual(2);
+    expect(parts.length).toEqual(3);
     expect(parts[0]).toEqual(traceId);
     expect(parts[1]).toEqual(expect.any(String));
+    expect(parts[2]).toEqual('1');
 
     expect(baggageHeader).toEqual(
-      `sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId}`,
+      `sentry-environment=production,sentry-release=1.0.0,sentry-public_key=dogsarebadatkeepingsecrets,sentry-trace_id=${traceId},sentry-sample_rate=1,sentry-transaction=outer,sentry-sampled=true`,
     );
   });
 
@@ -237,7 +236,8 @@ describe('tracing', () => {
       },
     });
 
-    const request = http.get('http://dogs.are.great/');
+    // Needs an outer span, or else we skip it
+    const request = startSpan({ name: 'outer' }, () => http.get('http://dogs.are.great/'));
     const sentryTraceHeader = request.getHeader('sentry-trace') as string;
     const baggageHeader = request.getHeader('baggage') as string;
 
@@ -351,8 +351,7 @@ describe('tracing', () => {
     function createTransactionAndPutOnScope() {
       addTracingExtensions();
       const transaction = startInactiveSpan({ name: 'dogpark' });
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(transaction);
+      _setSpanForScope(getCurrentScope(), transaction);
       return transaction;
     }
 
