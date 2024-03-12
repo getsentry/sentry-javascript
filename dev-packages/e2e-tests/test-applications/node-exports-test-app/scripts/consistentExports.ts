@@ -82,7 +82,7 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/aws-serverless',
     compareWith: nodeExports,
     exports: Object.keys(SentryAWS),
-    ignoreExports: ['cron', 'hapiErrorPlugin'],
+    ignoreExports: ['makeMain'],
   },
   {
     package: '@sentry/google-cloud',
