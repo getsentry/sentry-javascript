@@ -24,10 +24,13 @@
     "@playwright/test": "^1.36.2",
     "@remix-run/dev": "2.7.2",
     "@remix-run/eslint-config": "2.7.2",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "@types/react": "^18.0.35",
     "@types/react-dom": "^18.0.11",
     "eslint": "^8.38.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "ts-node": "10.9.1"
   },
   "engines": {
     "node": ">=18.0.0"

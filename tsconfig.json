@@ -2,7 +2,6 @@
   "extends": "./packages/typescript/tsconfig.json",
 
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
     "declaration": false,
     "declarationMap": false,
     "skipLibCheck": true,

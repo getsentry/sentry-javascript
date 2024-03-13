@@ -55,6 +55,8 @@ export interface InternalGlobal {
       [key: string]: Function;
     };
     globalScope: Scope | undefined;
+    defaultCurrentScope: Scope | undefined;
+    defaultIsolationScope: Scope | undefined;
     globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
   };
   /**

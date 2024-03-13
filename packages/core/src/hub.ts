@@ -17,6 +17,7 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
+import { getGlobalSingleton } from '@sentry/utils';
 import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
 import type { AsyncContextStrategy, Carrier } from './asyncContext';
@@ -574,25 +575,14 @@ export function getCurrentHub(): HubInterface {
   return acs.getCurrentHub() || getGlobalHub();
 }
 
-let defaultCurrentScope: Scope | undefined;
-let defaultIsolationScope: Scope | undefined;
-
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {
-  if (!defaultCurrentScope) {
-    defaultCurrentScope = new Scope();
-  }
-
-  return defaultCurrentScope;
+  return getGlobalSingleton('defaultCurrentScope', () => new Scope());
 }
 
 /** Get the default isolation scope. */
 export function getDefaultIsolationScope(): Scope {
-  if (!defaultIsolationScope) {
-    defaultIsolationScope = new Scope();
-  }
-
-  return defaultIsolationScope;
+  return getGlobalSingleton('defaultIsolationScope', () => new Scope());
 }
 
 /**
