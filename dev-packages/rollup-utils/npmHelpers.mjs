@@ -52,6 +52,9 @@ export function makeBaseNPMConfig(options = {}) {
 
       sourcemap: true,
 
+      // Include __esModule property when generating exports as this was there before and the test break if this is removed
+      esModule: true,
+
       // output individual files rather than one big bundle
       preserveModules: true,
 
