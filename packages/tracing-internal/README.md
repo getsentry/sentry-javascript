@@ -8,4 +8,5 @@
 
 This is an internal package that is being used to migrate @sentry/tracing code to its respective runtime packages.
 
-For v8, @sentry/tracing will be dropped and the code in this package will be split into @sentry/browser and @sentry/node.
+For v8, @sentry/tracing will be dropped and the code in this package will be split into @sentry/browser and
+@sentry/node.
