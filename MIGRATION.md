@@ -35,7 +35,7 @@ New minimum supported browsers:
 - Safari/iOS Safari 10
 - Firefox 54
 - Opera 38
-- Samnsung Internet 5
+- Samsung Internet 5
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
