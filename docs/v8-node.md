@@ -78,7 +78,7 @@ See [New Performance APIs](./v8-new-performance-apis.md) for details.
 For now, ESM support is only experimental. For the time being we only fully support CJS-based Node application - we are
 working on this during the v8 alpha/beta cycle.
 
-### Using custom OpenTelemetry instrumentation
+### Using Custom OpenTelemetry Instrumentation
 
 While we include some vetted OpenTelemetry instrumentation out of the box, you can also add your own instrumentation on
 top of that. You can do that by installing an instrumentation package (as well as `@opentelemetry/instrumentation`) and
@@ -99,7 +99,7 @@ registerInsturmentations({
 });
 ```
 
-### Using a custom OpenTelemetry Setup
+### Using a Custom OpenTelemetry Setup
 
 If you already have OpenTelemetry set up yourself, you can also use your existing setup.
 
