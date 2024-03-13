@@ -3,7 +3,7 @@
   "compilerOptions": {
     "module": "esnext",
 
-   /* Preact Config */
+    /* Preact Config */
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact",
 		"skipLibCheck": true,
