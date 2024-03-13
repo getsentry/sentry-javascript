@@ -91,9 +91,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
                 },
-                metadata: {
-                  request: req,
-                },
               },
               async span => {
                 // eslint-disable-next-line @typescript-eslint/unbound-method

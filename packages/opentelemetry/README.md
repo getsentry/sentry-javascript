@@ -34,7 +34,8 @@ Note that `@sentry/opentelemetry` depends on the following peer dependencies:
 
 ## Usage
 
-This package exposes a few building blocks you can add to your OpenTelemetry setup in order to capture OpenTelemetry traces to Sentry.
+This package exposes a few building blocks you can add to your OpenTelemetry setup in order to capture OpenTelemetry
+traces to Sentry.
 
 This is how you can use this in your app:
 

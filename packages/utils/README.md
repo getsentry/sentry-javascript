@@ -19,4 +19,5 @@
 
 Common utilities used by the Sentry JavaScript SDKs.
 
-Note: This package is only meant to be used internally, and as such is not part of our public API contract and does not follow semver.
+Note: This package is only meant to be used internally, and as such is not part of our public API contract and does not
+follow semver.

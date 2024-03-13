@@ -12,7 +12,7 @@ repo, only a full repo itself. Since we run a monorepo, this won't work in our c
 
 From `packages/nextjs`, run
 
-  `yarn vercel:branch`.
+`yarn vercel:branch`.
 
 This will delete unneeded packages (angular, vue, etc) in order to speed up deployment. It will then commit that change.
 When your branch is ready to PR, just rebase and drop that commit.
@@ -24,7 +24,7 @@ want to test are pushed to GitHub.
 
 From `packages/nextjs`, run
 
-  `yarn vercel:project <path/to/testapp>`.
+`yarn vercel:project <path/to/testapp>`.
 
 This will copy the `install-sentry-from-branch.sh` script into a `.sentry` folder at the root level of your test app,
 and create a `set-branch-name.sh` script in the same location. (The first script is the one you'll run on Vercel. The
@@ -33,11 +33,11 @@ commit (but not push) this change.
 
 Go into your project settings on Vercel and change the install command to
 
-  `bash .sentry/install-sentry-from-branch.sh`
+`bash .sentry/install-sentry-from-branch.sh`
 
 and the build command to
 
-  `yarn build && bash .sentry/post-app-build.sh`.
+`yarn build && bash .sentry/post-app-build.sh`.
 
 If you're using bundle analyzer, the post-build script will move the visualizations it creates so that they're available
 on your deployed site at `/client.html` and `/server.html`.

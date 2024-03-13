@@ -140,7 +140,7 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry/google-cloud':
+  '@sentry/google-cloud-serverless':
     access: $all
     publish: $all
     unpublish: $all

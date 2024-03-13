@@ -9,7 +9,7 @@ import { captureException, continueTrace, flush, getCurrentScope, startSpanManua
 import { isString, logger, stripUrlQueryAndFragment } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { domainify, markEventUnhandled, proxyFunction } from './../utils';
+import { domainify, markEventUnhandled, proxyFunction } from '../utils';
 import type { HttpFunction, WrapperOptions } from './general';
 
 /**

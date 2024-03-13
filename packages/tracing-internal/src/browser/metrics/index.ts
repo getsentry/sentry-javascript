@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
-import { getActiveSpan, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, startInactiveSpan } from '@sentry/core';
 import { setMeasurement } from '@sentry/core';
-import type { Measurements, Span, StartSpanOptions } from '@sentry/types';
+import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
@@ -80,8 +80,10 @@ export function startTrackingLongTasks(): void {
       const span = startInactiveSpan({
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
-        origin: 'auto.ui.browser.metrics',
         startTime,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        },
       });
       if (span) {
         span.end(startTime + duration);
@@ -107,8 +109,10 @@ export function startTrackingInteractions(): void {
         const spanOptions: StartSpanOptions = {
           name: htmlTreeAsString(entry.target),
           op: `ui.interaction.${entry.name}`,
-          origin: 'auto.ui.browser.metrics',
           startTime: startTime,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+          },
         };
 
         const componentName = getComponentName(entry.target);
@@ -264,7 +268,9 @@ export function addPerformanceEntries(span: Span): void {
       startAndEndSpan(span, fidMark.value, fidMark.value + msToSec(_measurements['fid'].value), {
         name: 'first input delay',
         op: 'ui.action',
-        origin: 'auto.ui.browser.metrics',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        },
       });
 
       // Delete mark.fid as we don't want it to be part of final payload
@@ -304,7 +310,9 @@ export function _addMeasureSpans(
   startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
     name: entry.name as string,
     op: entry.entryType as string,
-    origin: 'auto.resource.browser.metrics',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+    },
   });
 
   return measureStartTimestamp;
@@ -339,8 +347,10 @@ function _addPerformanceNavigationTiming(
   }
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
     op: 'browser',
-    origin: 'auto.browser.browser.metrics',
     name: name || event,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+    },
   });
 }
 
@@ -358,8 +368,10 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
       timeOrigin + msToSec(entry.responseEnd as number),
       {
         op: 'browser',
-        origin: 'auto.browser.browser.metrics',
         name: 'request',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        },
       },
     );
 
@@ -369,8 +381,10 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
       timeOrigin + msToSec(entry.responseEnd as number),
       {
         op: 'browser',
-        origin: 'auto.browser.browser.metrics',
         name: 'response',
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+        },
       },
     );
   }
@@ -401,24 +415,25 @@ export function _addResourceSpans(
 
   const parsedUrl = parseUrl(resourceUrl);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const data: Record<string, any> = {};
-  setResourceEntrySizeData(data, entry, 'transferSize', 'http.response_transfer_size');
-  setResourceEntrySizeData(data, entry, 'encodedBodySize', 'http.response_content_length');
-  setResourceEntrySizeData(data, entry, 'decodedBodySize', 'http.decoded_response_content_length');
+  const attributes: SpanAttributes = {
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
+  };
+  setResourceEntrySizeData(attributes, entry, 'transferSize', 'http.response_transfer_size');
+  setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
+  setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
 
   if ('renderBlockingStatus' in entry) {
-    data['resource.render_blocking_status'] = entry.renderBlockingStatus;
+    attributes['resource.render_blocking_status'] = entry.renderBlockingStatus;
   }
   if (parsedUrl.protocol) {
-    data['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
+    attributes['url.scheme'] = parsedUrl.protocol.split(':').pop(); // the protocol returned by parseUrl includes a :, but OTEL spec does not, so we remove it.
   }
 
   if (parsedUrl.host) {
-    data['server.address'] = parsedUrl.host;
+    attributes['server.address'] = parsedUrl.host;
   }
 
-  data['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
+  attributes['url.same_origin'] = resourceUrl.includes(WINDOW.location.origin);
 
   const startTimestamp = timeOrigin + startTime;
   const endTimestamp = startTimestamp + duration;
@@ -426,8 +441,7 @@ export function _addResourceSpans(
   startAndEndSpan(span, startTimestamp, endTimestamp, {
     name: resourceUrl.replace(WINDOW.location.origin, ''),
     op: entry.initiatorType ? `resource.${entry.initiatorType}` : 'resource.other',
-    origin: 'auto.resource.browser.metrics',
-    data,
+    attributes,
   });
 }
 
@@ -498,14 +512,14 @@ function _tagMetricInfo(span: Span): void {
 }
 
 function setResourceEntrySizeData(
-  data: Record<string, unknown>,
+  attributes: SpanAttributes,
   entry: ResourceEntry,
   key: keyof Pick<ResourceEntry, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];
   if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
-    data[dataKey] = entryVal;
+    attributes[dataKey] = entryVal;
   }
 }
 

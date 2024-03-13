@@ -189,11 +189,6 @@ export interface SpanContext {
    * Timestamp in seconds (epoch time) indicating when the span ended.
    */
   endTimestamp?: number | undefined;
-
-  /**
-   * The origin of the span, giving context about what created the span.
-   */
-  origin?: SpanOrigin | undefined;
 }
 
 /**

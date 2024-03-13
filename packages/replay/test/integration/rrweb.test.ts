@@ -35,8 +35,8 @@ describe('Integration | rrweb', () => {
         "maskTextSelector": ".sentry-mask,[data-sentry-mask]",
         "onMutation": [Function],
         "slimDOMOptions": "all",
-        "unblockSelector": ".sentry-unblock,[data-sentry-unblock]",
-        "unmaskTextSelector": ".sentry-unmask,[data-sentry-unmask]",
+        "unblockSelector": "",
+        "unmaskTextSelector": "",
       }
     `);
   });

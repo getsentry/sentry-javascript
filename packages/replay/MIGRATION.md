@@ -1,9 +1,10 @@
 # End of Replay Beta
 
-Sentry Replay is now out of Beta. This means that the usual stability guarantees apply.
+> For further migration changes please refer to the [general SDK migration notes](../../MIGRATION.md).
 
-Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since been fixed/improved.
-We **strongly** recommend anyone using Replay in a version before 7.39.0 to update to 7.39.0 or newer, in order to prevent running Replay with known problems that have since been fixed.
+Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since
+been fixed/improved. We **strongly** recommend anyone using Replay in a version before 7.39.0 to update to 7.39.0 or
+newer, in order to prevent running Replay with known problems that have since been fixed.
 
 Below you can find a list of relevant replay issues that have been resolved until 7.39.0:
 
@@ -33,7 +34,7 @@ Below you can find a list of relevant replay issues that have been resolved unti
 - Handle removed attributes ([#65](https://github.com/getsentry/rrweb/pull/65))
 - Change LCP calculation (#7187, #7225)
 - Fix debounced flushes not respecting `maxWait` (#7207, #7208)
-- Fix svgs not getting unblocked  (#7132)
+- Fix svgs not getting unblocked (#7132)
 - Fix missing fetch/xhr requests (#7134)
 - Fix feature detection of PerformanceObserver (#7029)
 - Fix `checkoutEveryNms` (#6722)
@@ -44,14 +45,18 @@ Below you can find a list of relevant replay issues that have been resolved unti
 
 # Upgrading Replay from 7.34.0 to 7.35.0 - #6645
 
-This release will remove the ability to change the default rrweb recording options (outside of privacy options). The following are the new configuration values all replays will use:
-`slimDOMOptions: 'all'` - Removes `script`, comments, `favicon`, whitespace in `head`, and a few `meta` tags in `head`
-`recordCanvas: false` - This option did not do anything as playback of recorded canvas means we would have to remove the playback sandbox (which is a security concern).
-`inlineStylesheet: true` - Inlines styles into the recording itself instead of attempting to fetch it remotely. This means that styles in the replay will reflect the styles at the time of recording and not the current styles of the remote stylesheet.
-`collectFonts: true` - Attempts to load custom fonts.
-`inlineImages: false` - Does not inline images to recording and instead loads the asset remotely. During playback, images may not load due to CORS (add sentry.io as an origin).
+This release will remove the ability to change the default rrweb recording options (outside of privacy options). The
+following are the new configuration values all replays will use: `slimDOMOptions: 'all'` - Removes `script`, comments,
+`favicon`, whitespace in `head`, and a few `meta` tags in `head` `recordCanvas: false` - This option did not do anything
+as playback of recorded canvas means we would have to remove the playback sandbox (which is a security concern).
+`inlineStylesheet: true` - Inlines styles into the recording itself instead of attempting to fetch it remotely. This
+means that styles in the replay will reflect the styles at the time of recording and not the current styles of the
+remote stylesheet. `collectFonts: true` - Attempts to load custom fonts. `inlineImages: false` - Does not inline images
+to recording and instead loads the asset remotely. During playback, images may not load due to CORS (add sentry.io as an
+origin).
 
-Additionally, we have streamlined the privacy options. The following table lists the deprecated value, and what it is replaced by:
+Additionally, we have streamlined the privacy options. The following table lists the deprecated value, and what it is
+replaced by:
 
 | deprecated key   | replaced by | description                                                                                                                                      |
 | ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -64,17 +69,17 @@ Additionally, we have streamlined the privacy options. The following table lists
 
 # Upgrading Replay from 7.31.0 to 7.32.0
 
-In 7.32.0, we have removed the default values for the replay sample rates.
-Previously, they were:
+In 7.32.0, we have removed the default values for the replay sample rates. Previously, they were:
 
-* `replaysSessionSampleRate: 0.1`
-* `replaysOnErrorSampleRate: 1.0`
+- `replaysSessionSampleRate: 0.1`
+- `replaysOnErrorSampleRate: 1.0`
 
 Now, you have to explicitly set the sample rates, otherwise they default to 0.
 
 # Upgrading Replay from 0.6.x to 7.24.0
 
-The Sentry Replay integration was moved to the Sentry JavaScript SDK monorepo. Hence we're jumping from version 0.x to the monorepo's 7.x version which is shared across all JS SDK packages.
+The Sentry Replay integration was moved to the Sentry JavaScript SDK monorepo. Hence we're jumping from version 0.x to
+the monorepo's 7.x version which is shared across all JS SDK packages.
 
 ## Replay sample rates are defined on top level (https://github.com/getsentry/sentry-javascript/issues/6351)
 
@@ -87,7 +92,7 @@ Sentry.init({
     new Replay({
       sessionSampleRate: 0.1,
       errorSampleRate: 1.0,
-    })
+    }),
   ],
   // ...
 });
@@ -103,23 +108,25 @@ Sentry.init({
   integrations: [
     new Replay({
       // other replay config still goes in here
-    })
+    }),
   ],
 });
 ```
 
-Note that the sample rate options inside of `new Replay({})` have been deprecated and will be removed in a future update.
+Note that the sample rate options inside of `new Replay({})` have been deprecated and will be removed in a future
+update.
 
 ## Removed deprecated options (https://github.com/getsentry/sentry-javascript/pull/6370)
 
 Two options, which have been deprecated for some time, have been removed:
 
-* `replaysSamplingRate` - instead use `sessionSampleRate`
-* `captureOnlyOnError` - instead use `errorSampleRate`
+- `replaysSamplingRate` - instead use `sessionSampleRate`
+- `captureOnlyOnError` - instead use `errorSampleRate`
 
 ## New NPM package structure (https://github.com/getsentry/sentry-javascript/issues/6280)
 
-The internal structure of the npm package has changed. This is unlikely to affect you, unless you have imported something from e.g.:
+The internal structure of the npm package has changed. This is unlikely to affect you, unless you have imported
+something from e.g.:
 
 ```js
 import something from '@sentry/replay/submodule';
@@ -134,8 +141,8 @@ Unless you manually imported this and used it somewhere in your codebase, this w
 
 ## Session object is now a plain object (https://github.com/getsentry/sentry-javascript/pull/6417)
 
-The `Session` object exported from Replay is now a plain object, instead of a class.
-This should not affect you unless you specifically accessed this class & did custom things with it.
+The `Session` object exported from Replay is now a plain object, instead of a class. This should not affect you unless
+you specifically accessed this class & did custom things with it.
 
 ## Reduce public API of Replay integration (https://github.com/getsentry/sentry-javascript/pull/6407)
 

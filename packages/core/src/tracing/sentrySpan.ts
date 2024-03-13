@@ -75,7 +75,7 @@ export class SentrySpan implements Span {
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanContext.origin || 'manual',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });

@@ -1,6 +1,7 @@
 # Upgrading from 4.x to 5.x/6.x
 
-We recommend upgrading from `4.x` to `6.x` directly. Migrating from `5.x` to `6.x` has no breaking changes to the SDK's API.
+We recommend upgrading from `4.x` to `6.x` directly. Migrating from `5.x` to `6.x` has no breaking changes to the SDK's
+API.
 
 In this version upgrade, there are a few breaking changes. This guide should help you update your code accordingly.
 
