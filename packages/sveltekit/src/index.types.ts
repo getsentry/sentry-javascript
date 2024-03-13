@@ -36,15 +36,17 @@ export declare function handleErrorWithSentry<T extends HandleClientError | Hand
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export declare function wrapLoadWithSentry<T extends (...args: any) => any>(origLoad: T): T;
 
-// We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-// eslint-disable-next-line deprecation/deprecation
-export declare const Integrations: typeof clientSdk.Integrations & typeof serverSdk.Integrations;
-
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
+
+export declare const getClient: typeof clientSdk.getClient;
+// eslint-disable-next-line deprecation/deprecation
+export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
+// eslint-disable-next-line deprecation/deprecation
+export declare const makeMain: typeof clientSdk.makeMain;
 
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;

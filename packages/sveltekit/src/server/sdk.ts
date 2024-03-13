@@ -1,7 +1,7 @@
 import { applySdkMetadata, setTag } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node-experimental';
-import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node-experimental';
-import { init as initNodeSdk } from '@sentry/node-experimental';
+import type { NodeOptions } from '@sentry/node';
+import { getDefaultIntegrations as getDefaultNodeIntegrations } from '@sentry/node';
+import { init as initNodeSdk } from '@sentry/node';
 
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 

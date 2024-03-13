@@ -39,7 +39,7 @@
   "dependencies": {
     "@sentry-internal/tracing": "8.0.0-alpha.2",
     "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
+    "@sentry/node": "8.0.0-alpha.2",
     "@sentry/svelte": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",

@@ -5,8 +5,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
 } from '@sentry/core';
-import { getClient, getCurrentScope, getIsolationScope, init } from '@sentry/node-experimental';
-import * as SentryNode from '@sentry/node-experimental';
+import { getClient, getCurrentScope, getIsolationScope, init } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import type { Event } from '@sentry/types';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
@@ -151,7 +151,8 @@ describe.each([
       [504, 1],
     ])('error with status code %s calls captureException %s times', async (code, times) => {
       async function load({ params }) {
-        throw error(code, params.id);
+        // @ts-expect-error - number is not assignable to NumericRange but that's fine here
+        throw error(code, { message: params.id });
       }
 
       const wrappedLoad = wrapLoadWithSentry(load);

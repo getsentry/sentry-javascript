@@ -10,7 +10,7 @@ import {
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node-experimental';
+import { captureException } from '@sentry/node';
 import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';

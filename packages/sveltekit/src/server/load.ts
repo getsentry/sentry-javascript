@@ -4,7 +4,7 @@ import {
   continueTrace,
   startSpan,
 } from '@sentry/core';
-import { captureException } from '@sentry/node-experimental';
+import { captureException } from '@sentry/node';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 

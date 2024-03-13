@@ -6,8 +6,8 @@ import {
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
-import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
-import * as SentryNode from '@sentry/node-experimental';
+import { NodeClient, setCurrentClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
 import type { Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
