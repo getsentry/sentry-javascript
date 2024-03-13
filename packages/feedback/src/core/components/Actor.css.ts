@@ -19,7 +19,7 @@ export function createActorStyles(): HTMLStyleElement {
   display: flex;
   align-items: center;
   gap: 8px;
-  z-index: 9000;
+
 
   border-radius: var(--border-radius);
   cursor: pointer;
@@ -27,6 +27,7 @@ export function createActorStyles(): HTMLStyleElement {
   font-weight: 600;
   padding: 12px 16px;
   text-decoration: none;
+  z-index: 9000;
 
   color: var(--foreground);
   background-color: var(--background);

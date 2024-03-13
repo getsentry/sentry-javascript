@@ -44,7 +44,7 @@ export function createMainStyles(colorScheme: 'system' | 'dark' | 'light', theme
   style.textContent = `
 :host {
   --bottom: 1rem;
-  --right: 1rem; /* this is the font-size of the page, not the shadowroot */
+  --right: 1rem;
   --top: auto;
   --left: auto;
   --z-index: 100000;
