@@ -14,11 +14,15 @@ test('Sends a loader error to Sentry', async ({ page }) => {
   expect(loaderError.contexts.trace.op).toBe('http.server');
 });
 
-test('Sends formdata with action error to Sentry', async ({ page }, workerInfo) => {
+test('Sends form data with action error to Sentry', async ({ page }) => {
   await page.goto('/action-formdata');
 
   await page.fill('input[name=test]', 'test');
-  await page.setInputFiles('input[type=file]', `${workerInfo.project.testDir}/static/test.txt`);
+  await page.setInputFiles('input[type=file]', {
+    name: 'file.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('this is test'),
+  });
 
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
     return transactionEvent?.spans?.some(span => span.op === 'function.remix.action');
@@ -32,6 +36,6 @@ test('Sends formdata with action error to Sentry', async ({ page }, workerInfo) 
   expect(actionTransaction.contexts.trace.op).toBe('http.server');
   expect(actionTransaction.spans[0].data).toMatchObject({
     action_form_data_test: 'test',
-    action_form_data_file: 'test.txt',
+    action_form_data_file: 'file.txt',
   });
 });
