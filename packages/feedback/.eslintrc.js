@@ -7,18 +7,9 @@ module.exports = {
   extends: ['../../.eslintrc.js'],
   overrides: [
     {
-      files: ['src/**/*.ts', 'src/**/*.tsx'],
-      rules: {
-        '@sentry-internal/sdk/no-unsupported-es6-methods': 'off',
-      },
-    },
-    {
       files: ['jest.setup.ts', 'jest.config.ts'],
       parserOptions: {
         project: ['tsconfig.test.json'],
-      },
-      rules: {
-        'no-console': 'off',
       },
     },
   ],

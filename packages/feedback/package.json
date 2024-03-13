@@ -18,13 +18,6 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
-  "typesVersions": {
-    "<4.9": {
-      "build/npm/types/index.d.ts": [
-        "build/npm/types-ts3.8/index.d.ts"
-      ]
-    }
-  },
   "exports": {
    "./package.json": "./package.json",
    ".": {
@@ -37,6 +30,13 @@
        "default": "./build/npm/cjs/index.js"
      }
    }
+  },
+  "typesVersions": {
+    "<4.9": {
+      "build/npm/types/index.d.ts": [
+        "build/npm/types-ts3.8/index.d.ts"
+      ]
+    }
   },
   "publishConfig": {
     "access": "public"
