@@ -175,6 +175,7 @@ export const ReplayRecordingData = [
           decodedBodySize: expect.any(Number),
           encodedBodySize: expect.any(Number),
           size: expect.any(Number),
+          statusCode: expect.any(Number),
         },
       },
     },
