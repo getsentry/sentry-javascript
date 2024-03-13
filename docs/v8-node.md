@@ -108,25 +108,20 @@ components that Sentry needs yourself. In this case, you need to install `@sentr
 
 ```js
 const Sentry = require('@sentry/node');
-const {
-   SentrySpanProcessor,
-    SentryPropagator,
-    SentryContextManager,
-    SentrySampler
-    } = require("@sentry/opentelemetry");
+const { SentrySpanProcessor, SentryPropagator, SentryContextManager, SentrySampler } = require('@sentry/opentelemetry');
 
 // We need a custom span processor
 provider.addSpanProcessor(new SentrySpanProcessor());
 // We need a custom propagator and context manager
 provier.register({
-   propagator: new SentryPropagator(),
-    contextManager: new SentryContextManager(),
+  propagator: new SentryPropagator(),
+  contextManager: new SentryContextManager(),
 });
 
 // And optionally, if you want to use the `tracesSamplingRate` or related options from Sentry,
 // you also need to use a custom sampler when you set up your provider
 const provider = new BasicTracerProvider({
-    sampler: new SentrySampler(Sentry.getClient()),
+  sampler: new SentrySampler(Sentry.getClient()),
 });
 ```
 
