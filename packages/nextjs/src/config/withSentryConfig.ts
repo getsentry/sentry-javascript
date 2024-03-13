@@ -18,13 +18,14 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-export function withSentryConfig(
-  nextConfig: NextConfig = {},
-  sentryBuildOptions: SentryBuildOptions = {},
-): NextConfigFunction | NextConfigObject {
-  if (typeof nextConfig === 'function') {
+export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
+  const castNextConfig = (nextConfig as NextConfig) || {};
+  if (typeof castNextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
-      const maybePromiseNextConfig: ReturnType<typeof nextConfig> = nextConfig.apply(this, webpackConfigFunctionArgs);
+      const maybePromiseNextConfig: ReturnType<typeof castNextConfig> = castNextConfig.apply(
+        this,
+        webpackConfigFunctionArgs,
+      );
 
       if (isThenable(maybePromiseNextConfig)) {
         return maybePromiseNextConfig.then(promiseResultNextConfig => {
@@ -33,9 +34,9 @@ export function withSentryConfig(
       }
 
       return getFinalConfigObject(maybePromiseNextConfig, sentryBuildOptions);
-    };
+    } as C;
   } else {
-    return getFinalConfigObject(nextConfig, sentryBuildOptions);
+    return getFinalConfigObject(castNextConfig, sentryBuildOptions) as C;
   }
 }
 
