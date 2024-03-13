@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, test, vi } from 'vitest';
+
 import * as SentryBrowser from '@sentry/browser';
 import * as SentryCore from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
@@ -6,21 +8,21 @@ import type { Span, SpanAttributes } from '@sentry/types';
 import type { Route } from '../src/router';
 import { instrumentVueRouter } from '../src/router';
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
-jest.mock('@sentry/core', () => {
-  const actual = jest.requireActual('@sentry/core');
+const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
+vi.mock('@sentry/core', async (importOriginal) => {
+  const actual = await importOriginal<typeof SentryCore>()
   return {
     ...actual,
-    getActiveSpan: jest.fn().mockReturnValue({}),
+    getActiveSpan: vi.fn().mockReturnValue({}),
   };
 });
 
 const mockVueRouter = {
-  onError: jest.fn<void, [(error: Error) => void]>(),
-  beforeEach: jest.fn<void, [(from: Route, to: Route, next?: () => void) => void]>(),
+  onError: vi.fn<any, [(error: Error) => void]>(),
+  beforeEach: vi.fn<any, [(from: Route, to: Route, next?: () => void) => void]>(),
 };
 
-const mockNext = jest.fn();
+const mockNext = vi.fn();
 
 const testRoutes: Record<string, Route> = {
   initialPageloadRoute: { matched: [], params: {}, path: '', query: {} },
@@ -60,11 +62,11 @@ const testRoutes: Record<string, Route> = {
 
 describe('instrumentVueRouter()', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should return instrumentation that instruments VueRouter.onError', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -90,7 +92,7 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for navigations',
     (fromKey, toKey, transactionName, transactionSource) => {
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -128,15 +130,15 @@ describe('instrumentVueRouter()', () => {
     'should return instrumentation that instruments VueRouter.beforeEach(%s, %s) for pageloads',
     (fromKey, toKey, transactionName, transactionSource) => {
       const mockRootSpan = {
-        getSpanJSON: jest.fn().mockReturnValue({ op: 'pageload' }),
-        updateName: jest.fn(),
-        setAttribute: jest.fn(),
-        setAttributes: jest.fn(),
+        getSpanJSON: vi.fn().mockReturnValue({ op: 'pageload' }),
+        updateName: vi.fn(),
+        setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
       };
 
-      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
-      const mockStartSpan = jest.fn().mockImplementation(_ => {
+      const mockStartSpan = vi.fn().mockImplementation(_ => {
         return mockRootSpan;
       });
       instrumentVueRouter(
@@ -168,7 +170,7 @@ describe('instrumentVueRouter()', () => {
   );
 
   it('allows to configure routeLabel=path', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'path', instrumentPageLoad: true, instrumentNavigation: true },
@@ -195,7 +197,7 @@ describe('instrumentVueRouter()', () => {
   });
 
   it('allows to configure routeLabel=name', () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
@@ -223,9 +225,9 @@ describe('instrumentVueRouter()', () => {
 
   it("doesn't overwrite a pageload transaction name it was set to custom before the router resolved the route", () => {
     const mockRootSpan = {
-      updateName: jest.fn(),
-      setAttribute: jest.fn(),
-      setAttributes: jest.fn(),
+      updateName: vi.fn(),
+      setAttribute: vi.fn(),
+      setAttributes: vi.fn(),
       name: '',
       getSpanJSON: () => ({
         op: 'pageload',
@@ -234,10 +236,10 @@ describe('instrumentVueRouter()', () => {
         },
       }),
     };
-    const mockStartSpan = jest.fn().mockImplementation(_ => {
+    const mockStartSpan = vi.fn().mockImplementation(_ => {
       return mockRootSpan;
     });
-    jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+    vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
     instrumentVueRouter(
       mockVueRouter,
@@ -283,10 +285,10 @@ describe('instrumentVueRouter()', () => {
     'should return instrumentation that considers the instrumentPageLoad = %p',
     (instrumentPageLoad, expectedCallsAmount) => {
       const mockRootSpan = {
-        updateName: jest.fn(),
-        setData: jest.fn(),
-        setAttribute: jest.fn(),
-        setAttributes: jest.fn(),
+        updateName: vi.fn(),
+        setData: vi.fn(),
+        setAttribute: vi.fn(),
+        setAttributes: vi.fn(),
         name: '',
         getSpanJSON: () => ({
           op: 'pageload',
@@ -295,9 +297,9 @@ describe('instrumentVueRouter()', () => {
           },
         }),
       };
-      jest.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
+      vi.spyOn(SentryCore, 'getRootSpan').mockImplementation(() => mockRootSpan as unknown as Span);
 
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad, instrumentNavigation: true },
@@ -321,7 +323,7 @@ describe('instrumentVueRouter()', () => {
   ])(
     'should return instrumentation that considers the instrumentNavigation = %p',
     (instrumentNavigation, expectedCallsAmount) => {
-      const mockStartSpan = jest.fn();
+      const mockStartSpan = vi.fn();
       instrumentVueRouter(
         mockVueRouter,
         { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation },
@@ -339,7 +341,7 @@ describe('instrumentVueRouter()', () => {
   );
 
   it("doesn't throw when `next` is not available in the beforeEach callback (Vue Router 4)", () => {
-    const mockStartSpan = jest.fn();
+    const mockStartSpan = vi.fn();
     instrumentVueRouter(
       mockVueRouter,
       { routeLabel: 'path', instrumentPageLoad: true, instrumentNavigation: true },

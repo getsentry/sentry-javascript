@@ -1,3 +1,4 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from 'vue';
 
 import type { Options } from '../../src/types';
@@ -10,13 +11,13 @@ describe('Sentry.init', () => {
 
   beforeEach(() => {
     warnings = [];
-    jest.spyOn(console, 'warn').mockImplementation((message: unknown) => {
+    vi.spyOn(console, 'warn').mockImplementation((message: unknown) => {
       warnings.push(message);
     });
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('does not warn when correctly setup (Vue 3)', () => {
