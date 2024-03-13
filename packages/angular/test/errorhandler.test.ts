@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import * as SentryBrowser from '@sentry/browser';
 import type { Client, Event } from '@sentry/types';
+import { vi } from 'vitest';
 
 import { SentryErrorHandler, createErrorHandler } from '../src/errorhandler';
 
-const captureExceptionSpy = jest.spyOn(SentryBrowser, 'captureException');
+const captureExceptionSpy = vi.spyOn(SentryBrowser, 'captureException');
 
-jest.spyOn(console, 'error').mockImplementation();
+vi.spyOn(console, 'error').mockImplementation(() => {});
 
 const captureExceptionEventHint = {
   mechanism: { handled: false, type: 'angular' },
@@ -34,7 +35,7 @@ class NonErrorShapedClass {}
 
 describe('SentryErrorHandler', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('`createErrorHandler `creates a SentryErrorHandler with an empty config', () => {
@@ -500,14 +501,14 @@ describe('SentryErrorHandler', () => {
       it('by using SDK lifecycle hooks if available', () => {
         const client = {
           cb: (_: Event) => {},
-          on: jest.fn((_, cb) => {
+          on: vi.fn((_, cb) => {
             client.cb = cb;
           }),
         };
 
-        jest.spyOn(SentryBrowser, 'getClient').mockImplementationOnce(() => client as unknown as Client);
+        vi.spyOn(SentryBrowser, 'getClient').mockImplementationOnce(() => client as unknown as Client);
 
-        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+        const showReportDialogSpy = vi.spyOn(SentryBrowser, 'showReportDialog');
 
         const errorHandler = createErrorHandler({ showDialog: true });
         errorHandler.handleError(new Error('test'));
@@ -520,7 +521,7 @@ describe('SentryErrorHandler', () => {
       });
 
       it('by just calling `showReportDialog` if hooks are not available', () => {
-        const showReportDialogSpy = jest.spyOn(SentryBrowser, 'showReportDialog');
+        const showReportDialogSpy = vi.spyOn(SentryBrowser, 'showReportDialog');
 
         const errorHandler = createErrorHandler({ showDialog: true });
         errorHandler.handleError(new Error('test'));

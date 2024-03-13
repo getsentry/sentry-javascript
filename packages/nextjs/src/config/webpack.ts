@@ -8,7 +8,6 @@ import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/util
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
 
-import { DEBUG_BUILD } from '../common/debug-build';
 import type { VercelCronsConfig } from '../common/types';
 // Note: If you need to import a type from Webpack, do it in `types.ts` and export it from there. Otherwise, our
 // circular dependency check thinks this file is importing from itself. See https://github.com/pahen/madge/issues/306.
@@ -124,7 +123,6 @@ export function constructWebpackConfigFunction(
       pagesDir: pagesDirPath,
       pageExtensionRegex,
       excludeServerRoutes: userSentryOptions.excludeServerRoutes,
-      sentryConfigFilePath: getUserConfigFilePath(projectDir, runtime),
       nextjsRequestAsyncStorageModulePath: getRequestAsyncStorageModuleLocation(
         projectDir,
         rawNewConfig.resolve?.modules,
@@ -227,7 +225,12 @@ export function constructWebpackConfigFunction(
           // noop if file does not exist
         } else {
           // log but noop
-          logger.error(`${chalk.red('error')} - Sentry failed to read vercel.json`, e);
+          logger.error(
+            `${chalk.red(
+              'error',
+            )} - Sentry failed to read vercel.json for automatic cron job monitoring instrumentation`,
+            e,
+          );
         }
       }
 
@@ -293,32 +296,9 @@ export function constructWebpackConfigFunction(
       });
     }
 
-    if (isServer) {
-      // Import the Sentry config in every user file
-      newConfig.module.rules.unshift({
-        test: resourcePath => {
-          return (
-            isPageResource(resourcePath) ||
-            isApiRouteResource(resourcePath) ||
-            isMiddlewareResource(resourcePath) ||
-            isServerComponentResource(resourcePath) ||
-            isRouteHandlerResource(resourcePath)
-          );
-        },
-        use: [
-          {
-            loader: path.resolve(__dirname, 'loaders', 'wrappingLoader.js'),
-            options: {
-              ...staticWrappingLoaderOptions,
-              wrappingTargetKind: 'sentry-init',
-            },
-          },
-        ],
-      });
-    }
-
     if (appDirPath) {
       const hasGlobalErrorFile = ['global-error.js', 'global-error.jsx', 'global-error.ts', 'global-error.tsx'].some(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         globalErrorFile => fs.existsSync(path.join(appDirPath!, globalErrorFile)),
       );
 
@@ -364,19 +344,21 @@ export function constructWebpackConfigFunction(
       });
     }
 
-    // Tell webpack to inject user config files (containing the two `Sentry.init()` calls) into the appropriate output
-    // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
-    // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
-    // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
-    // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
-    // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
-    // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
-    // be fixed by using `bind`, but this is way simpler.)
-    const origEntryProperty = newConfig.entry;
-    newConfig.entry = async () => addSentryToEntryProperty(origEntryProperty, buildContext, userSentryOptions);
+    if (!isServer) {
+      // Tell webpack to inject the client config files (containing the client-side `Sentry.init()` call) into the appropriate output
+      // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
+      // this, we'll have a statement of the form `x.y = () => f(x.y)`, where one of the things `f` does is call `x.y`.
+      // Since we're setting `x.y` to be a callback (which, by definition, won't run until some time later), by the time
+      // the function runs (causing `f` to run, causing `x.y` to run), `x.y` will point to the callback itself, rather
+      // than its original value. So calling it will call the callback which will call `f` which will call `x.y` which
+      // will call the callback which will call `f` which will call `x.y`... and on and on. Theoretically this could also
+      // be fixed by using `bind`, but this is way simpler.)
+      const origEntryProperty = newConfig.entry;
+      newConfig.entry = async () => addSentryToClientEntryProperty(origEntryProperty, buildContext);
+    }
 
-    // Next doesn't let you change `devtool` in dev even if you want to, so don't bother trying - see
-    // https://github.com/vercel/next.js/blob/master/errors/improper-devtool.md
+    // We don't want to do any webpack plugin stuff OR any source maps stuff in dev mode.
+    // Symbolication for dev-mode errors is done elsewhere.
     if (!isDev) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { sentryWebpackPlugin } = loadModule('@sentry/webpack-plugin') as any;
@@ -480,7 +462,7 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
 }
 
 /**
- * Modify the webpack `entry` property so that the code in `sentry.server.config.js` and `sentry.client.config.js` is
+ * Modify the webpack `entry` property so that the code in `sentry.client.config.js` is
  * included in the the necessary bundles.
  *
  * @param currentEntryProperty The value of the property before Sentry code has been injected
@@ -488,10 +470,9 @@ function findTranspilationRules(rules: WebpackModuleRule[] | undefined, projectD
  * @returns The value which the new `entry` property (which will be a function) will return (TODO: this should return
  * the function, rather than the function's return value)
  */
-async function addSentryToEntryProperty(
+async function addSentryToClientEntryProperty(
   currentEntryProperty: WebpackEntryProperty,
   buildContext: BuildContext,
-  userSentryOptions: SentryBuildOptions,
 ): Promise<EntryPropertyObject> {
   // The `entry` entry in a webpack config can be a string, array of strings, object, or function. By default, nextjs
   // sets it to an async function which returns the promise of an object of string arrays. Because we don't know whether
@@ -499,37 +480,24 @@ async function addSentryToEntryProperty(
   // we know is that it won't have gotten *simpler* in form, so we only need to worry about the object and function
   // options. See https://webpack.js.org/configuration/entry-context/#entry.
 
-  const { isServer, dir: projectDir, nextRuntime, dev: isDevMode } = buildContext;
-  const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'node') : 'browser';
+  const { dir: projectDir, dev: isDevMode } = buildContext;
 
   const newEntryProperty =
     typeof currentEntryProperty === 'function' ? await currentEntryProperty() : { ...currentEntryProperty };
 
-  // `sentry.server.config.js` or `sentry.client.config.js` (or their TS equivalents)
-  const userConfigFile =
-    nextRuntime === 'edge'
-      ? getUserConfigFile(projectDir, 'edge')
-      : isServer
-        ? getUserConfigFile(projectDir, 'server')
-        : getUserConfigFile(projectDir, 'client');
+  const clientSentryConfigFileName = getClientSentryConfigFile(projectDir);
 
   // we need to turn the filename into a path so webpack can find it
-  const filesToInject = userConfigFile ? [`./${userConfigFile}`] : [];
+  const filesToInject = clientSentryConfigFileName ? [`./${clientSentryConfigFileName}`] : [];
 
   // inject into all entry points which might contain user's code
   for (const entryPointName in newEntryProperty) {
-    if (shouldAddSentryToEntryPoint(entryPointName, runtime)) {
-      addFilesToExistingEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
-    } else {
-      if (
-        isServer &&
-        // If the user has asked to exclude pages, confirm for them that it's worked
-        userSentryOptions.excludeServerRoutes &&
-        // We always skip these, so it's not worth telling the user that we've done so
-        !['pages/_app', 'pages/_document'].includes(entryPointName)
-      ) {
-        DEBUG_BUILD && logger.log(`Skipping Sentry injection for ${entryPointName.replace(/^pages/, '')}`);
-      }
+    if (
+      entryPointName === 'pages/_app' ||
+      // entrypoint for `/app` pages
+      entryPointName === 'main-app'
+    ) {
+      addFilesToWebpackEntryPoint(newEntryProperty, entryPointName, filesToInject, isDevMode);
     }
   }
 
@@ -537,49 +505,39 @@ async function addSentryToEntryProperty(
 }
 
 /**
- * Search the project directory for a valid user config file for the given platform, allowing for it to be either a
- * TypeScript or JavaScript file.
+ * Searches for old `sentry.(server|edge).config.ts` files and warns if it finds any.
  *
- * @param projectDir The root directory of the project, where the file should be located
+ * @param projectDir The root directory of the project, where config files would be located
  * @param platform Either "server", "client" or "edge", so that we know which file to look for
- * @returns The name of the relevant file. If the server or client file is not found, this method throws an error. The
- * edge file is optional, if it is not found this function will return `undefined`.
  */
-export function getUserConfigFile(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
+export function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' | 'client' | 'edge'): void {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
+
+  for (const filename of possibilities) {
+    if (fs.existsSync(path.resolve(projectDir, filename))) {
+      if (platform === 'server' || platform === 'edge') {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[@sentry/nextjs] It seems you have configured a \`${filename}\` file. You need to put this file's content into a Next.js instrumentation hook instead! Read more: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation`,
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Searches for a `sentry.client.config.ts|js` file and returns it's file name if it finds one. (ts being prioritized)
+ *
+ * @param projectDir The root directory of the project, where config files would be located
+ */
+export function getClientSentryConfigFile(projectDir: string): string | void {
+  const possibilities = ['sentry.client.config.ts', 'sentry.client.config.js'];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
       return filename;
     }
   }
-
-  // Edge config file is optional
-  if (platform === 'edge') {
-    // eslint-disable-next-line no-console
-    console.warn(
-      '[@sentry/nextjs] You are using Next.js features that run on the Edge Runtime. Please add a "sentry.edge.config.js" or a "sentry.edge.config.ts" file to your project root in which you initialize the Sentry SDK with "Sentry.init()".',
-    );
-    return;
-  } else {
-    throw new Error(`Cannot find '${possibilities[0]}' or '${possibilities[1]}' in '${projectDir}'.`);
-  }
-}
-
-/**
- * Gets the absolute path to a sentry config file for a particular platform. Returns `undefined` if it doesn't exist.
- */
-export function getUserConfigFilePath(projectDir: string, platform: 'server' | 'client' | 'edge'): string | undefined {
-  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
-
-  for (const filename of possibilities) {
-    const configPath = path.resolve(projectDir, filename);
-    if (fs.existsSync(configPath)) {
-      return configPath;
-    }
-  }
-
-  return undefined;
 }
 
 /**
@@ -589,7 +547,7 @@ export function getUserConfigFilePath(projectDir: string, platform: 'server' | '
  * @param entryPointName The key where the file should be injected
  * @param filesToInsert An array of paths to the injected files
  */
-function addFilesToExistingEntryPoint(
+function addFilesToWebpackEntryPoint(
   entryProperty: EntryPropertyObject,
   entryPointName: string,
   filesToInsert: string[],
@@ -654,23 +612,6 @@ function addFilesToExistingEntryPoint(
 }
 
 /**
- * Determine if this is an entry point into which both `Sentry.init()` code and the release value should be injected
- *
- * @param entryPointName The name of the entry point in question
- * @param isServer Whether or not this function is being called in the context of a server build
- * @param excludeServerRoutes A list of excluded serverside entrypoints provided by the user
- * @returns `true` if sentry code should be injected, and `false` otherwise
- */
-function shouldAddSentryToEntryPoint(entryPointName: string, runtime: 'node' | 'browser' | 'edge'): boolean {
-  return (
-    runtime === 'browser' &&
-    (entryPointName === 'pages/_app' ||
-      // entrypoint for `/app` pages
-      entryPointName === 'main-app')
-  );
-}
-
-/**
  * Ensure that `newConfig.module.rules` exists. Modifies the given config in place but also returns it in order to
  * change its type.
  *
@@ -723,15 +664,16 @@ function addValueInjectionLoader(
   const clientValues = {
     ...isomorphicValues,
     // Get the path part of `assetPrefix`, minus any trailing slash. (We use a placeholder for the origin if
-    // `assetPreix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
+    // `assetPrefix` doesn't include one. Since we only care about the path, it doesn't matter what it is.)
     __rewriteFramesAssetPrefixPath__: assetPrefix
       ? new URL(assetPrefix, 'http://dogs.are.great').pathname.replace(/\/$/, '')
       : '',
   };
 
-  newConfig.module.rules.push(
-    {
-      test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
+  if (buildContext.isServer) {
+    newConfig.module.rules.push({
+      // TODO: Find a more bulletproof way of matching. For now this is fine and doesn't hurt anyone. It merely sets some globals.
+      test: /(src[\\/])?instrumentation.(js|ts)/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
@@ -740,8 +682,9 @@ function addValueInjectionLoader(
           },
         },
       ],
-    },
-    {
+    });
+  } else {
+    newConfig.module.rules.push({
       test: /sentry\.client\.config\.(jsx?|tsx?)/,
       use: [
         {
@@ -751,8 +694,8 @@ function addValueInjectionLoader(
           },
         },
       ],
-    },
-  );
+    });
+  }
 }
 
 function resolveNextPackageDirFromDirectory(basedir: string): string | undefined {
@@ -764,7 +707,7 @@ function resolveNextPackageDirFromDirectory(basedir: string): string | undefined
   }
 }
 
-const POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS = [
+const POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS = [
   // Original location of RequestAsyncStorage
   // https://github.com/vercel/next.js/blob/46151dd68b417e7850146d00354f89930d10b43b/packages/next/src/client/components/request-async-storage.ts
   'next/dist/client/components/request-async-storage.js',
@@ -788,7 +731,7 @@ function getRequestAsyncStorageModuleLocation(
   for (const webpackResolvableLocation of absoluteWebpackResolvableModuleLocations) {
     const nextPackageDir = resolveNextPackageDirFromDirectory(webpackResolvableLocation);
     if (nextPackageDir) {
-      const asyncLocalStorageLocation = POTENTIAL_REQUEST_ASNYC_STORAGE_LOCATIONS.find(loc =>
+      const asyncLocalStorageLocation = POTENTIAL_REQUEST_ASYNC_STORAGE_LOCATIONS.find(loc =>
         fs.existsSync(path.join(nextPackageDir, '..', loc)),
       );
       if (asyncLocalStorageLocation) {

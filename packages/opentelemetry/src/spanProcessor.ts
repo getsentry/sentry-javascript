@@ -8,7 +8,6 @@ import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
-import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 import { setSpanScopes } from './utils/spanData';
@@ -20,7 +19,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
   let scopes = getScopesFromContext(parentContext);
 
   // We need access to the parent span in order to be able to move up the span tree for breadcrumbs
-  if (parentSpan) {
+  if (parentSpan && !parentSpan.spanContext().isRemote) {
     addChildSpanToSpan(parentSpan, span);
   }
 
@@ -48,11 +47,6 @@ function onSpanStart(span: Span, parentContext: Context): void {
 }
 
 function onSpanEnd(span: Span): void {
-  // Capture exceptions as events
-  span.events.forEach(event => {
-    maybeCaptureExceptionForTimedEvent(event, span);
-  });
-
   const client = getClient();
   client?.emit('spanEnd', span);
 }

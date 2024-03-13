@@ -65,6 +65,8 @@ describe('Integration | Scope', () => {
               trace: {
                 span_id: spanId,
                 trace_id: traceId,
+                // local span ID from propagation context
+                ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
               },
             }),
           }),
@@ -110,6 +112,8 @@ describe('Integration | Scope', () => {
                 status: 'ok',
                 trace_id: traceId,
                 origin: 'manual',
+                // local span ID from propagation context
+                parent_span_id: expect.any(String),
               },
             }),
             spans: [],
@@ -194,7 +198,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId1,
                   trace_id: traceId1,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -220,7 +225,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId2,
                   trace_id: traceId2,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -283,7 +289,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -341,7 +347,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -390,7 +396,7 @@ describe('Integration | Scope', () => {
 
       expect(initialIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -433,7 +439,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -493,7 +499,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -541,7 +547,7 @@ describe('Integration | Scope', () => {
 
       expect(initialCurrentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -587,7 +593,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -630,7 +636,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -676,7 +682,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(

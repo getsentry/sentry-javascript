@@ -1,4 +1,4 @@
-import type { ClientOptions, DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
+import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
 import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';
@@ -31,20 +31,7 @@ function _encodedAuth(dsn: DsnComponents, sdkInfo: SdkInfo | undefined): string 
  *
  * Sending auth as part of the query string and not as custom HTTP headers avoids CORS preflight requests.
  */
-export function getEnvelopeEndpointWithUrlEncodedAuth(
-  dsn: DsnComponents,
-  // TODO (v8): Remove `tunnelOrOptions` in favor of `options`, and use the substitute code below
-  // options: ClientOptions = {} as ClientOptions,
-  tunnelOrOptions: string | ClientOptions = {} as ClientOptions,
-): string {
-  // TODO (v8): Use this code instead
-  // const { tunnel, _metadata = {} } = options;
-  // return tunnel ? tunnel : `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, _metadata.sdk)}`;
-
-  const tunnel = typeof tunnelOrOptions === 'string' ? tunnelOrOptions : tunnelOrOptions.tunnel;
-  const sdkInfo =
-    typeof tunnelOrOptions === 'string' || !tunnelOrOptions._metadata ? undefined : tunnelOrOptions._metadata.sdk;
-
+export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel?: string, sdkInfo?: SdkInfo): string {
   return tunnel ? tunnel : `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, sdkInfo)}`;
 }
 

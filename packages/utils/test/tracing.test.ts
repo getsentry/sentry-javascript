@@ -1,16 +1,7 @@
-import { extractTraceparentData, propagationContextFromHeaders, tracingContextFromHeaders } from '../src/tracing';
+import { extractTraceparentData, propagationContextFromHeaders } from '../src/tracing';
 
 const EXAMPLE_SENTRY_TRACE = '12312012123120121231201212312012-1121201211212012-1';
 const EXAMPLE_BAGGAGE = 'sentry-release=1.2.3,sentry-foo=bar,other=baz';
-
-describe('tracingContextFromHeaders()', () => {
-  it('should produce a frozen baggage (empty object) when there is an incoming trace but no baggage header', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const tracingContext = tracingContextFromHeaders('12312012123120121231201212312012-1121201211212012-1', undefined);
-    expect(tracingContext.dynamicSamplingContext).toEqual({});
-    expect(tracingContext.propagationContext.dsc).toEqual({});
-  });
-});
 
 describe('propagationContextFromHeaders()', () => {
   it('returns a completely new propagation context when no sentry-trace data is given but baggage data is given', () => {

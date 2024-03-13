@@ -267,6 +267,8 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'auto.test',
+            // local span ID from propagation context
+            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -312,6 +314,8 @@ describe('Integration | Transactions', () => {
             status: 'ok',
             trace_id: expect.any(String),
             origin: 'manual',
+            // local span ID from propagation context
+            parent_span_id: expect.any(String),
           },
         }),
         spans: [expect.any(Object), expect.any(Object)],
@@ -340,7 +344,7 @@ describe('Integration | Transactions', () => {
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
     Sentry.withIsolationScope(() => {
-      client.tracer.startActiveSpan('test name', span => {
+      client?.tracer.startActiveSpan('test name', span => {
         Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
         span.setAttributes({
@@ -367,7 +371,7 @@ describe('Integration | Transactions', () => {
     });
 
     Sentry.withIsolationScope(() => {
-      client.tracer.startActiveSpan('test name b', span => {
+      client?.tracer.startActiveSpan('test name b', span => {
         Sentry.addBreadcrumb({ message: 'test breadcrumb 2b', timestamp: 123456 });
 
         span.setAttributes({
@@ -393,7 +397,7 @@ describe('Integration | Transactions', () => {
       });
     });
 
-    await client.flush();
+    await client?.flush();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
     expect(beforeSendTransaction).toHaveBeenCalledWith(

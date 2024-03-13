@@ -1,4 +1,3 @@
-import { TraceFlags } from '@opentelemetry/api';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -8,6 +7,7 @@ import {
 import type { DynamicSamplingContext } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_DSC } from '../constants';
+import { getSamplingDecision } from '../propagator';
 import type { AbstractSpan } from '../types';
 import { spanHasAttributes, spanHasName } from './spanTypes';
 
@@ -51,10 +51,10 @@ export function getDynamicSamplingContextFromSpan(span: AbstractSpan): Readonly<
     dsc.transaction = name;
   }
 
-  // TODO: Once we aligned span types, use spanIsSampled() from core instead
-  // eslint-disable-next-line no-bitwise
-  const sampled = Boolean(span.spanContext().traceFlags & TraceFlags.SAMPLED);
-  dsc.sampled = String(sampled);
+  const sampled = getSamplingDecision(span.spanContext());
+  if (sampled != null) {
+    dsc.sampled = String(sampled);
+  }
 
   client.emit('createDsc', dsc);
 

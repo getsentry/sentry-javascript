@@ -1,4 +1,4 @@
-import { flush } from '@sentry/node-experimental';
+import { flush } from '@sentry/node';
 import { logger } from '@sentry/utils';
 import type { RequestEvent } from '@sveltejs/kit';
 

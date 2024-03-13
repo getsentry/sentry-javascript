@@ -1,5 +1,5 @@
 import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
-import { flush } from '@sentry/node-experimental';
+import { flush } from '@sentry/node';
 import type { Hub, Span } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 

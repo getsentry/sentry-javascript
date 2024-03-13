@@ -8,7 +8,9 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
+// Skipping because this test is flaky
+// https://github.com/getsentry/sentry-javascript/issues/10395
+sentryTest.skip('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }

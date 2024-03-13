@@ -75,8 +75,6 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  ModuleMetadata,
   moduleMetadataIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';

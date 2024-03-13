@@ -7,7 +7,7 @@ import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { FeedbackEvent } from './feedback';
-import type { Integration, IntegrationClass } from './integration';
+import type { Integration } from './integration';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
 import type { Scope } from './scope';
@@ -127,12 +127,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   getEventProcessors(): EventProcessor[];
 
-  /**
-   * Returns the client's instance of the given integration class, it any.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null;
-
   /** Get the instance of the integration with the given name on the client, if it was added. */
   getIntegrationByName<T extends Integration = Integration>(name: string): T | undefined;
 
@@ -144,12 +138,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    *
    * */
   addIntegration(integration: Integration): void;
-
-  /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  setupIntegrations(forceInitialize?: boolean): void;
 
   /**
    * Initialize this client.

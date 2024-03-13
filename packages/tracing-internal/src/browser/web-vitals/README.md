@@ -12,6 +12,8 @@ Current vendored web vitals are:
 - LCP (Largest Contentful Paint)
 - FID (First Input Delay)
 - CLS (Cumulative Layout Shift)
+- INP (Interaction to Next Paint)
+- TTFB (Time to First Byte)
 
 ## Notable Changes from web-vitals library
 
@@ -44,3 +46,11 @@ https://github.com/getsentry/sentry-javascript/pull/2964
 https://github.com/getsentry/sentry-javascript/pull/2909
 
 - Added support for FID (First Input Delay) and LCP (Largest Contentful Paint)
+
+https://github.com/getsentry/sentry-javascript/pull/9690
+
+- Added support for INP (Interaction to Next Paint)
+
+TODO
+
+- Add support for TTFB (Time to First Byte)
