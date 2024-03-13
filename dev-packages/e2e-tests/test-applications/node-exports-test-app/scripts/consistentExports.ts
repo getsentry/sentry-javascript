@@ -46,6 +46,10 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/astro',
     compareWith: nodeExports,
     exports: Object.keys(SentryAstro),
+    ignoreExports: [
+      // Not needed for Astro
+      'setupFastifyErrorHandler',
+    ],
   },
   {
     package: '@sentry/bun',
@@ -82,13 +86,23 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/aws-serverless',
     compareWith: nodeExports,
     exports: Object.keys(SentryAWS),
-    ignoreExports: ['makeMain'],
+    ignoreExports: [
+      // legacy, to be removed...
+      'makeMain',
+      // Not needed for Serverless
+      'setupFastifyErrorHandler',
+    ],
   },
   {
     package: '@sentry/google-cloud-serverless',
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
-    ignoreExports: ['makeMain'],
+    ignoreExports: [
+      // legacy, to be removed...
+      'makeMain',
+      // Not needed for Serverless
+      'setupFastifyErrorHandler',
+    ],
   },
   {
     package: '@sentry/sveltekit',
