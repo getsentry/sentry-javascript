@@ -223,7 +223,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
             },
             name: 'runloop',
             op: `ui.ember.runloop.${queue}`,
-            startTimestamp: currentQueueStart,
+            startTime: currentQueueStart,
           })?.end(now);
         }
         currentQueueStart = undefined;
@@ -295,7 +295,7 @@ function processComponentRenderAfter(
     startInactiveSpan({
       name: payload.containerKey || payload.object,
       op,
-      startTimestamp: begin.now,
+      startTime: begin.now,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
       },
@@ -374,8 +374,8 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const measure = measures[0]!;
 
-  const startTimestamp = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
-  const endTimestamp = startTimestamp + measure.duration / 1000;
+  const startTime = (measure.startTime + browserPerformanceTimeOrigin) / 1000;
+  const endTime = startTime + measure.duration / 1000;
 
   startInactiveSpan({
     op: 'ui.ember.init',
@@ -383,8 +383,8 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
     },
-    startTimestamp,
-  })?.end(endTimestamp);
+    startTime,
+  })?.end(endTime);
   performance.clearMarks(startName);
   performance.clearMarks(endName);
 

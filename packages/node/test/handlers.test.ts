@@ -1,7 +1,6 @@
 import * as http from 'http';
 import * as sentryCore from '@sentry/core';
 import {
-  Hub,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   Transaction,
   getClient,
@@ -468,24 +467,6 @@ describe('tracingHandler', () => {
       expect(sentEvent.spans?.[0].span_id).toEqual(span.spanContext().spanId);
       done();
     });
-  });
-
-  it('stores request in transaction metadata', () => {
-    const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = new Hub(new NodeClient(options));
-
-    jest.spyOn(sentryCore, 'getCurrentHub').mockReturnValue(hub);
-    // eslint-disable-next-line deprecation/deprecation
-    jest.spyOn(sentryCore, 'getCurrentScope').mockImplementation(() => hub.getScope());
-
-    sentryTracingMiddleware(req, res, next);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = getCurrentScope().getTransaction();
-
-    // eslint-disable-next-line deprecation/deprecation
-    expect(transaction?.metadata.request).toEqual(req);
   });
 });
 

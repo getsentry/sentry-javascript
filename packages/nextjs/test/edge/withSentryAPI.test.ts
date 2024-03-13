@@ -53,9 +53,6 @@ describe('wrapApiHandlerWithSentry', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: {
-          request: { headers: {}, method: 'POST', url: 'https://sentry.io/' },
-        },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
@@ -65,6 +62,10 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
+
+    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
+      request: { headers: {}, method: 'POST', url: 'https://sentry.io/' },
+    });
   });
 
   it('should return a function that calls trace without throwing when no request is passed', async () => {
@@ -77,7 +78,6 @@ describe('wrapApiHandlerWithSentry', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: {},
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [coreSdk.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
@@ -87,5 +87,7 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
+
+    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({});
   });
 });
