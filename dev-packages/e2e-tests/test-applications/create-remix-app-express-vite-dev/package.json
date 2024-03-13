@@ -27,6 +27,8 @@
   "devDependencies": {
     "@playwright/test": "^1.36.2",
     "@remix-run/dev": "^2.7.2",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "@types/compression": "^1.7.5",
     "@types/express": "^4.17.20",
     "@types/morgan": "^1.9.9",
@@ -43,7 +45,8 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "typescript": "^5.1.6",
     "vite": "^5.1.0",
-    "vite-tsconfig-paths": "^4.2.1"
+    "vite-tsconfig-paths": "^4.2.1",
+    "ts-node": "10.9.1"
   },
   "engines": {
     "node": ">=18.0.0"

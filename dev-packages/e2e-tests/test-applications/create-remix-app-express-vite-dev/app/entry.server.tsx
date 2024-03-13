@@ -17,6 +17,7 @@ Sentry.init({
   dsn: process.env.E2E_TEST_DSN,
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
+  tunnel: 'http://localhost:3031/', // proxy server
 });
 
 export const handleError = Sentry.wrapRemixHandleError;
