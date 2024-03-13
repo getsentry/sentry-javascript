@@ -7,6 +7,7 @@ window.Replay = Sentry.replayIntegration({
   minReplayDuration: 0,
   useCompression: false,
   maskAllInputs: false,
+  unmask: ['.sentry-unmask, [data-sentry-unmask]'],
 });
 
 Sentry.init({
