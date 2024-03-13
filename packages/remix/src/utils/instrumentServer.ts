@@ -249,9 +249,9 @@ function makeWrappedDataFunction(
     return startSpan(
       {
         op: `function.remix.${name}`,
-        origin: 'auto.ui.remix',
         name: id,
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
           name,
         },
       },

@@ -82,9 +82,6 @@ describe('withEdgeWrapping', () => {
     expect(startSpanSpy).toHaveBeenCalledTimes(1);
     expect(startSpanSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        metadata: {
-          request: { headers: {} },
-        },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [coreSdk.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
@@ -94,6 +91,10 @@ describe('withEdgeWrapping', () => {
       }),
       expect.any(Function),
     );
+
+    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
+      request: { headers: {} },
+    });
   });
 
   it("should return a function that doesn't crash when req isn't passed", async () => {

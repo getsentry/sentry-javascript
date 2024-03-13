@@ -1021,7 +1021,7 @@ jobs:
             'sveltekit',
             'sveltekit-2',
             'generic-ts3.8',
-            'node-experimental-fastify-app',
+            'node-fastify-app',
             # TODO(v8): Re-enable hapi tests
             # 'node-hapi-app',
             'node-exports-test-app',

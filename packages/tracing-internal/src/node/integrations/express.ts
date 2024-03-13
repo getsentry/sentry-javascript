@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import type { Transaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { startInactiveSpan, withActiveSpan } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Integration, PolymorphicRequest } from '@sentry/types';
@@ -158,7 +159,9 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
             return startInactiveSpan({
               name: fn.name,
               op: `middleware.express.${method}`,
-              origin: 'auto.middleware.express',
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.express',
+              },
             });
           });
           res.once('finish', () => {
@@ -181,7 +184,9 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
               return startInactiveSpan({
                 name: fn.name,
                 op: `middleware.express.${method}`,
-                origin: 'auto.middleware.express',
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.express',
+                },
               });
             })
           : undefined;
@@ -205,7 +210,9 @@ function wrap(fn: Function, method: Method): (...args: any[]) => void {
               return startInactiveSpan({
                 name: fn.name,
                 op: `middleware.express.${method}`,
-                origin: 'auto.middleware.express',
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.middleware.express',
+                },
               });
             })
           : undefined;

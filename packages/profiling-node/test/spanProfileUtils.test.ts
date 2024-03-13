@@ -127,7 +127,11 @@ describe('spanProfileUtils', () => {
 
     jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
-    const transaction = Sentry.startInactiveSpan({ forceTransaction: true, name: 'profile_hub', traceId: 'boop' });
+    Sentry.getCurrentScope().getPropagationContext().traceId = 'boop';
+    const transaction = Sentry.startInactiveSpan({
+      forceTransaction: true,
+      name: 'profile_hub',
+    });
     await wait(500);
     transaction.end();
 

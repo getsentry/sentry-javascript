@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { HandlerDataHistory } from '@sentry/types';
 import { JSDOM } from 'jsdom';
 import { conditionalTest } from '../../../node/test/utils';
@@ -45,8 +45,10 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
     expect(customStartTransaction).toHaveBeenLastCalledWith({
       name: 'blank',
       op: 'pageload',
-      origin: 'auto.pageload.browser',
-      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+      attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
+      },
       startTimestamp: expect.any(Number),
     });
   });
@@ -63,12 +65,7 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
 
     it('it is not created automatically', () => {
       instrumentRoutingWithDefaults(customStartTransaction);
-      expect(customStartTransaction).not.toHaveBeenLastCalledWith({
-        name: 'blank',
-        op: 'navigation',
-        origin: 'auto.navigation.browser',
-        metadata: { source: 'url' },
-      });
+      expect(customStartTransaction).not.toHaveBeenCalledWith(expect.objectContaining({ op: 'navigation' }));
     });
 
     it('is created on location change', () => {
@@ -80,8 +77,10 @@ conditionalTest({ min: 16 })('instrumentRoutingWithDefaults', () => {
       expect(customStartTransaction).toHaveBeenLastCalledWith({
         name: 'blank',
         op: 'navigation',
-        origin: 'auto.navigation.browser',
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url' },
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
+        },
       });
     });
 

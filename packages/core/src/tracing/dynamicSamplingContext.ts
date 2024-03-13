@@ -49,15 +49,15 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   const dsc = getDynamicSamplingContextFromClient(spanToJSON(span).trace_id || '', client);
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
-  const txn = getRootSpan(span) as TransactionWithV7FrozenDsc | undefined;
-  if (!txn) {
+  const rootSpan = getRootSpan(span);
+  if (!rootSpan) {
     return dsc;
   }
 
   // TODO (v8): Remove v7FrozenDsc as a Transaction will no longer have _frozenDynamicSamplingContext
   // For now we need to avoid breaking users who directly created a txn with a DSC, where this field is still set.
   // @see Transaction class constructor
-  const v7FrozenDsc = txn && txn._frozenDynamicSamplingContext;
+  const v7FrozenDsc = rootSpan && (rootSpan as TransactionWithV7FrozenDsc)._frozenDynamicSamplingContext;
   if (v7FrozenDsc) {
     return v7FrozenDsc;
   }
@@ -65,13 +65,13 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
   // TODO (v8): Replace txn.metadata with txn.attributes[]
   // We can't do this yet because attributes aren't always set yet.
   // eslint-disable-next-line deprecation/deprecation
-  const { sampleRate: maybeSampleRate } = txn.metadata;
+  const { sampleRate: maybeSampleRate } = (rootSpan as TransactionWithV7FrozenDsc).metadata || {};
   if (maybeSampleRate != null) {
     dsc.sample_rate = `${maybeSampleRate}`;
   }
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
-  const jsonSpan = spanToJSON(txn);
+  const jsonSpan = spanToJSON(rootSpan);
 
   const source = (jsonSpan.data || {})[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
@@ -80,7 +80,7 @@ export function getDynamicSamplingContextFromSpan(span: Span): Readonly<Partial<
     dsc.transaction = jsonSpan.description;
   }
 
-  dsc.sampled = String(spanIsSampled(txn));
+  dsc.sampled = String(spanIsSampled(rootSpan));
 
   client.emit('createDsc', dsc);
 

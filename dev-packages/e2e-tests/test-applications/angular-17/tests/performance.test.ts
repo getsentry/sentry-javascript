@@ -222,7 +222,7 @@ test.describe('TraceDirective', () => {
   });
 });
 
-test.describe('TraceClassDecorator', () => {
+test.describe('TraceClass Decorator', () => {
   test('adds init span for decorated class', async ({ page }) => {
     const navigationTxnPromise = waitForTransaction('angular-17', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
@@ -244,8 +244,7 @@ test.describe('TraceClassDecorator', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.init',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
         },
-        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
-        description: expect.any(String),
+        description: '<ComponentTrackingComponent>',
         op: 'ui.angular.init',
         origin: 'auto.ui.angular.trace_class_decorator',
         start_timestamp: expect.any(Number),
@@ -255,8 +254,8 @@ test.describe('TraceClassDecorator', () => {
   });
 });
 
-test.describe('TraceMethodDecorator', () => {
-  test('instruments decorated methods (`ngOnInit` and `ngAfterViewInit`)', async ({ page }) => {
+test.describe('TraceMethod Decorator', () => {
+  test('adds name to span description of decorated method `ngOnInit`', async ({ page }) => {
     const navigationTxnPromise = waitForTransaction('angular-17', async transactionEvent => {
       return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
     });
@@ -267,7 +266,6 @@ test.describe('TraceMethodDecorator', () => {
     const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
 
     const ngInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngOnInit');
-    const ngAfterViewInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngAfterViewInit');
 
     expect(ngInitSpan).toBeDefined();
     expect(ngInitSpan).toEqual(
@@ -276,14 +274,26 @@ test.describe('TraceMethodDecorator', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngOnInit',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
-        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
-        description: expect.any(String),
+        description: '<ngOnInit>',
         op: 'ui.angular.ngOnInit',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),
         timestamp: expect.any(Number),
       }),
     );
+  });
+
+  test('adds fallback name to span description of decorated method `ngAfterViewInit`', async ({ page }) => {
+    const navigationTxnPromise = waitForTransaction('angular-17', async transactionEvent => {
+      return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'navigation';
+    });
+
+    await page.goto(`/`);
+
+    // immediately navigate to a different route
+    const [_, navigationTxn] = await Promise.all([page.locator('#componentTracking').click(), navigationTxnPromise]);
+
+    const ngAfterViewInitSpan = navigationTxn.spans?.find(span => span.op === 'ui.angular.ngAfterViewInit');
 
     expect(ngAfterViewInitSpan).toBeDefined();
     expect(ngAfterViewInitSpan).toEqual(
@@ -292,8 +302,7 @@ test.describe('TraceMethodDecorator', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'ui.angular.ngAfterViewInit',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
         },
-        // todo: right now, it shows the minified version of the component name - we will add a name input to the Decorator
-        description: expect.any(String),
+        description: '<unnamed>',
         op: 'ui.angular.ngAfterViewInit',
         origin: 'auto.ui.angular.trace_method_decorator',
         start_timestamp: expect.any(Number),

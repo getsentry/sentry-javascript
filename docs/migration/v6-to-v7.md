@@ -541,4 +541,3 @@ const levelA = Severity.error;
 
 const levelB: SeverityLevel = "error"
 ```
-

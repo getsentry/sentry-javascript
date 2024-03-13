@@ -1,19 +1,12 @@
 import type { Client, Envelope, Event } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import {
-  Scope,
-  addBreadcrumb,
-  getCurrentScope,
-  getIsolationScope,
-  makeSession,
-  setCurrentClient,
-  setGlobalScope,
-} from '../../src';
+import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
+import { clearGlobalScope } from './clear-global-scope';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -62,7 +55,7 @@ describe('BaseClient', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    setGlobalScope(undefined);
+    clearGlobalScope();
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
     getIsolationScope().clear();

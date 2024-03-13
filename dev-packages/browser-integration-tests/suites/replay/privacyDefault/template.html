@@ -7,9 +7,9 @@
   <body>
     <button aria-label="Click me" onclick="console.log('Test log')">Click me</button>
     <div>This should be masked by default</div>
-    <div data-sentry-unmask>This should be unmasked due to data attribute</div>
+    <div data-sentry-unmask>With default settings, this should also be masked (even with data attribute)</div>
     <input placeholder="Placeholder should be masked" />
-    <input data-sentry-unmask placeholder="Placeholder can be unmasked" />
+    <input data-sentry-unmask placeholder="Placeholder can be unmasked - but not with default settings" />
     <div title="Title should be masked">Title should be masked</div>
     <svg style="width:200px;height:200px" viewBox="0 0 80 80"><path d=""/><area /><rect /></svg>
     <svg style="width:200px;height:200px" viewBox="0 0 80 80" data-sentry-unblock><path d=""/><area /><rect /></svg>

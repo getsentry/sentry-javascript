@@ -1,26 +1,36 @@
 # Manual Tests
 
 ## How this works
-`express-patient.js` is an express app with a collection of endpoints that exercise various functionalities of @sentry/node, including exception capturing, contexts, autobreadcrumbs, and the express middleware.
 
-It uses [memwatch-next](https://www.npmjs.com/package/memwatch-next) to record memory usage after each GC. `manager.js` does some child process stuff to have a fresh patient process for each test scenario, while poke-patient.sh uses apache bench to send a bunch of traffic so we can see what happens.
+`express-patient.js` is an express app with a collection of endpoints that exercise various functionalities of
+@sentry/node, including exception capturing, contexts, autobreadcrumbs, and the express middleware.
+
+It uses [memwatch-next](https://www.npmjs.com/package/memwatch-next) to record memory usage after each GC. `manager.js`
+does some child process stuff to have a fresh patient process for each test scenario, while poke-patient.sh uses apache
+bench to send a bunch of traffic so we can see what happens.
 
 ## Routes and what we test
+
 The @sentry/node express middleware is used on all endpoints, so each request constitutes its own context.
+
 - `/hello`: just send a basic response without doing anything
 - `/context/basic`: `setContext` call
 - `/breadcrumbs/capture`: manual `captureBreadcrumb` call
 - `/breadcrumbs/auto/console`: console log with console autoBreadcrumbs enabled
 - `/breadcrumbs/auto/http`: send an http request with http autoBreadcrumbs enabled
   - uses nock to mock the response, not actual request
-- If the request has querystring param `doError=true`, we pass an error via Express's error handling mechanism with `next(new Error(responseText))` which will then be captured by the @sentry/node express middleware error handler.
+- If the request has querystring param `doError=true`, we pass an error via Express's error handling mechanism with
+  `next(new Error(responseText))` which will then be captured by the @sentry/node express middleware error handler.
   - We test all 5 above cases with and without `doError=true`
 
-We also have a `/gc` endpoint for forcing a garbage collection; this is used at the end of each test scenario to see final memory usage.
+We also have a `/gc` endpoint for forcing a garbage collection; this is used at the end of each test scenario to see
+final memory usage.
 
-Note: there's a `/capture` endpoint which does a basic `captureException` call 1000 times. That's our current problem child requiring some more investigation on its memory usage.
+Note: there's a `/capture` endpoint which does a basic `captureException` call 1000 times. That's our current problem
+child requiring some more investigation on its memory usage.
 
 ## How to run it
+
 ```bash
 npm install memwatch-next nock
 node manager.js
@@ -29,10 +39,17 @@ curl localhost:3000/capture
 ```
 
 ## Why this can't be more automated
-Some objects can have long lifecycles or not be cleaned up by GC when you think they would be, and so it isn't straightforward to make the assertion "memory usage should have returned to baseline by now". Also, when the numbers look bad, it's pretty obvious to a trained eye that they're bad, but it can be hard to quantify an exact threshold of pass or fail.
+
+Some objects can have long lifecycles or not be cleaned up by GC when you think they would be, and so it isn't
+straightforward to make the assertion "memory usage should have returned to baseline by now". Also, when the numbers
+look bad, it's pretty obvious to a trained eye that they're bad, but it can be hard to quantify an exact threshold of
+pass or fail.
 
 ## Interpreting results
-Starting the manager and then running `ab -c 5 -n 5000 /context/basic && sleep 1 && curl localhost:3000/gc` will get us this output:
+
+Starting the manager and then running `ab -c 5 -n 5000 /context/basic && sleep 1 && curl localhost:3000/gc` will get us
+this output:
+
 <details>
 ```
 :[/Users/lewis/dev/raven-node/test/manual]#memleak-tests?$ node manager.js
@@ -52,6 +69,7 @@ gc #7: min 11673824, max 16864536, est base 11673824, curr base 11673824
 This test stores some basic data in the request's Raven context, with the hope being for that context data to go out of scope and be garbage collected after the request is over. We can see that we start at a base of ~11.6MB, go up to ~16.8MB during the test, and then return to ~11.6MB. Everything checks out, no memory leak issue here.
 
 Back when we had a memory leak in `captureException`, if we started the manager and ran:
+
 ```shell
 ab -c 5 -n 5000 localhost:3000/context/basic?doError=true && sleep 5 && curl localhost:3000/gc
 sleep 5
@@ -61,7 +79,9 @@ curl localhost:3000/gc
 sleep 15
 curl localhost:3000/gc
 ```
+
 we'd get this output:
+
 <details>
 ```
 [/Users/lewis/dev/raven-node/test/manual]#memleak-tests?$ node manager.js

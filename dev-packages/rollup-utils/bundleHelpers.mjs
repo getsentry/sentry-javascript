@@ -11,6 +11,7 @@ import {
   makeCleanupPlugin,
   makeCommonJSPlugin,
   makeIsDebugBuildPlugin,
+  makeJsonPlugin,
   makeLicensePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
@@ -39,6 +40,8 @@ export function makeBaseBundleConfig(options) {
   // will include all dependencies, imported or required, in the final bundle. (Without it, CJS modules aren't included
   // at all, and without `transformMixedEsModules`, they're only included if they're imported, not if they're required.)
   const commonJSPlugin = makeCommonJSPlugin({ transformMixedEsModules: true });
+
+  const jsonPlugin = makeJsonPlugin();
 
   // used by `@sentry/browser`
   const standAloneBundleConfig = {
@@ -84,12 +87,12 @@ export function makeBaseBundleConfig(options) {
     plugins: [rrwebBuildPlugin, markAsBrowserBuildPlugin],
   };
 
-  // used by `@sentry/serverless`, when creating the lambda layer
+  // used by `@sentry/aws-serverless`, when creating the lambda layer
   const nodeBundleConfig = {
     output: {
       format: 'cjs',
     },
-    plugins: [commonJSPlugin],
+    plugins: [jsonPlugin, commonJSPlugin],
     // Don't bundle any of Node's core modules
     external: builtinModules,
   };

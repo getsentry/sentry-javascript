@@ -48,6 +48,7 @@ We've removed the following packages:
 - [@sentry/hub](./MIGRATION.md#sentryhub)
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
 
 #### @sentry/hub
 
@@ -166,6 +167,55 @@ Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or
 - `dedupeIntegration` (`Dedupe`) - _Note: enabled by default, not pluggable_
 
 The `Transaction` integration has been removed from `@sentry/integrations`. There is no replacement API.
+
+#### @sentry/serverless
+
+`@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`. These new packages have smaller
+bundle size than `@sentry/serverless`, which should improve your serverless cold-start times.
+
+`@sentry/aws-serverless` and `@sentry/google-cloud-serverless` has also been changed to only emit CJS builds. The ESM
+build for the `@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be
+re-added at a later date.
+
+In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
+directly import from the SDK instead.
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.AWSLambda.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/aws-serverless');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.GCPFunction.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/google-cloud-serverless');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
 
 ## 3. Performance Monitoring Changes
 
@@ -776,6 +826,51 @@ Sentry was actually initialized, using `getClient()` will thus not work anymore.
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
 by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
 drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
+
+#### Change of Replay default options (`unblock` and `unmask`)
+
+The Replay options `unblock` and `unmask` now have `[]` as default value. This means that if you want to use these
+options, you have to explicitly set them like this:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      unblock: ['.sentry-unblock, [data-sentry-unblock]'],
+      unmask: ['.sentry-unmask, [data-sentry-unmask]'],
+    }),
+  ],
+});
+```
+
+#### Angular Tracing Decorator renaming
+
+The usage of `TraceClassDecorator` and the `TraceMethodDecorator` already implies that those are decorators. The word
+`Decorator` is now removed from the names to avoid multiple mentioning.
+
+Additionally, the `TraceClass` and `TraceMethod` decorators accept an optional `name` parameter to set the transaction
+name. This was added because Angular minifies class and method names, and you might want to set a more descriptive name.
+If nothing provided, the name defaults to `'unnamed'`.
+
+```js
+// v7
+@Sentry.TraceClassDecorator()
+export class HeaderComponent {
+  @Sentry.TraceMethodDecorator()
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+```js
+// v8
+@Sentry.TraceClass({ name: 'HeaderComponent' })
+export class HeaderComponent {
+  @Sentry.TraceMethod({ name: 'ngOnChanges' })
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+---
 
 # Deprecations in 7.x
 

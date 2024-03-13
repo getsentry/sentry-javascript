@@ -122,6 +122,39 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
       });
     });
 
+    it("updates the scope's `transactionName` on a pageload", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <div>TEST</div>,
+          },
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
+
+      // @ts-expect-error router is fine
+      render(<RouterProvider router={router} />);
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+    });
+
     it('starts a navigation transaction', () => {
       const client = createMockBrowserClient();
       setCurrentClient(client);
@@ -589,6 +622,43 @@ describe('reactRouterV6BrowserTracingIntegration (v6.4)', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v6',
         },
       });
+    });
+
+    it("updates the scope's `transactionName` on a navigation", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createMemoryRouter as CreateRouterFunction);
+
+      const router = sentryCreateBrowserRouter(
+        [
+          {
+            path: '/',
+            element: <Navigate to="/about" />,
+          },
+          {
+            path: 'about',
+            element: <div>About</div>,
+          },
+        ],
+        {
+          initialEntries: ['/'],
+        },
+      );
+
+      // @ts-expect-error router is fine
+      render(<RouterProvider router={router} />);
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/about');
     });
   });
 });
