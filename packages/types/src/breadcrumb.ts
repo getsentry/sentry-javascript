@@ -9,7 +9,7 @@ export interface Breadcrumb {
   category?: string;
   message?: string;
   data?: { [key: string]: any };
-  timestamp?: number;
+  timestamp?: number | string;
 }
 
 /** JSDoc */
