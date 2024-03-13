@@ -97,6 +97,7 @@ export {
   expressErrorHandler,
   setupExpressErrorHandler,
   fastifyIntegration,
+  setupFastifyErrorHandler,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
