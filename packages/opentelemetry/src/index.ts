@@ -1,4 +1,3 @@
-import { addOriginToSpan } from './utils/addOriginToSpan';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 
@@ -46,7 +45,6 @@ export { getClient } from '@sentry/core';
  * @hidden
  */
 const _INTERNAL = {
-  addOriginToSpan,
   maybeCaptureExceptionForTimedEvent,
   getRequestSpanData,
 } as const;

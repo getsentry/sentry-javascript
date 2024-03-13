@@ -1,6 +1,6 @@
 import { TraceFlags, context, trace } from '@opentelemetry/api';
 import type { SpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import { SentrySpanProcessor } from '@sentry/opentelemetry';
 import type { TransactionEvent } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -36,9 +36,9 @@ describe('Integration | Transactions', () => {
       {
         op: 'test op',
         name: 'test name',
-        origin: 'auto.test',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
         },
       },
       span => {
@@ -179,26 +179,36 @@ describe('Integration | Transactions', () => {
     Sentry.addBreadcrumb({ message: 'test breadcrumb 1', timestamp: 123456 });
 
     Sentry.withIsolationScope(() => {
-      Sentry.startSpan({ op: 'test op', name: 'test name', source: 'task', origin: 'auto.test' }, span => {
-        Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
+      Sentry.startSpan(
+        {
+          op: 'test op',
+          name: 'test name',
+          attributes: {
+            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+          },
+        },
+        span => {
+          Sentry.addBreadcrumb({ message: 'test breadcrumb 2', timestamp: 123456 });
 
-        span.setAttributes({
-          'test.outer': 'test value',
-        });
-
-        const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
-        subSpan.end();
-
-        Sentry.setTag('test.tag', 'test value');
-
-        Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
-          Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
-
-          innerSpan.setAttributes({
-            'test.inner': 'test value',
+          span.setAttributes({
+            'test.outer': 'test value',
           });
-        });
-      });
+
+          const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
+          subSpan.end();
+
+          Sentry.setTag('test.tag', 'test value');
+
+          Sentry.startSpan({ name: 'inner span 2' }, innerSpan => {
+            Sentry.addBreadcrumb({ message: 'test breadcrumb 3', timestamp: 123456 });
+
+            innerSpan.setAttributes({
+              'test.inner': 'test value',
+            });
+          });
+        },
+      );
     });
 
     Sentry.withIsolationScope(() => {
@@ -493,8 +503,10 @@ describe('Integration | Transactions', () => {
         {
           op: 'test op',
           name: 'test name',
-          origin: 'auto.test',
-          attributes: { [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task' },
+          attributes: {
+            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
+            [Sentry.SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+          },
         },
         () => {
           const subSpan = Sentry.startInactiveSpan({ name: 'inner span 1' });
