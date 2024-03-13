@@ -20,7 +20,7 @@ export const ReplayRecordingData = [
         sessionSampleRate: 1,
         shouldRecordCanvas: false,
         useCompression: false,
-        useCompressionOption: true,
+        useCompressionOption: false,
       },
       tag: 'options',
     },
