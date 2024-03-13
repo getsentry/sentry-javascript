@@ -624,6 +624,40 @@ setup for source maps in Sentry and will not require you to match stack frame pa
 To see the new options, check out the docs at https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/,
 or look at the TypeScript type definitions of `withSentryConfig`.
 
+#### Updated the recommended way of calling `Sentry.init()`
+
+With version 8 of the SDK we will no longer support the use of `sentry.server.config.ts` and `sentry.edge.config.ts` files (note that `sentry.client.config.ts` is still supported and encouraged).
+Instead, please initialize the Sentry Next.js SDK for the serverside in a [Next.js instrumentation hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation).
+
+The following is an example of how to initialize the serverside SDK in a Next.js instrumentation hook:
+1. First, enable the Next.js instrumentation hook by setting the `experimental.instrumentationHook` to `true` in your `next.config.js`.
+2. Next, create a `instrumentation.ts|js` file in the root directory of your project (or in the `src` folder if you have have one).
+3. Now, export a `register` function from the `instrumentation.ts|js` file and call `Sentry.init()` inside of it:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         // Your Node.js Sentry configuration...
+       });
+     }
+
+     if (process.env.NEXT_RUNTIME === 'edge') {
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         // Your Edge Runtime Sentry configuration...
+       });
+     }
+   }
+   ```
+
+   Note that you can initialize the SDK differently depending on which server runtime is being used.
+
+**Why are we making this change?** The very simple reason is that Next.js requires us to set up OpenTelemetry instrumentation inside the `register` function of the instrumentation hook. Looking a little bit further into the future, we also would like the Sentry SDK to be compatible with [Turbopack](https://turbo.build/pack), which is gonna be the bundler that Next.js will be using instead of Webpack. The SDK in its previous version depended heavily on Webpack in order to inject the `sentry.(server|edge).config.ts` files into the server-side code. Because this will not be possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them - hopefully reducing bugs and jank.
+
 ### Astro SDK
 
 #### Removal of `trackHeaders` option for Astro middleware
