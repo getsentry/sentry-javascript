@@ -512,14 +512,14 @@ function _tagMetricInfo(span: Span): void {
 }
 
 function setResourceEntrySizeData(
-  data: Record<string, unknown>,
+  attributes: SpanAttributes,
   entry: ResourceEntry,
   key: keyof Pick<ResourceEntry, 'transferSize' | 'encodedBodySize' | 'decodedBodySize'>,
   dataKey: 'http.response_transfer_size' | 'http.response_content_length' | 'http.decoded_response_content_length',
 ): void {
   const entryVal = entry[key];
   if (entryVal != null && entryVal < MAX_INT_AS_BYTES) {
-    data[dataKey] = entryVal;
+    attributes[dataKey] = entryVal;
   }
 }
 

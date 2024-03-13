@@ -5,6 +5,7 @@ import {
   addTracingExtensions,
   captureException,
   continueTrace,
+  getIsolationScope,
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
@@ -39,6 +40,9 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
         baggage,
       },
       () => {
+        getIsolationScope().setSDKProcessingMetadata({
+          request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
+        });
         return startSpan(
           {
             name: options.spanDescription,
@@ -46,9 +50,6 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
-            },
-            metadata: {
-              request: req instanceof Request ? winterCGRequestToRequestData(req) : undefined,
             },
           },
           async span => {

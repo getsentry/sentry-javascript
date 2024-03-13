@@ -443,8 +443,7 @@ function registerInteractionListener(
       {
         name: latestRouteName,
         op,
-        trimEnd: true,
-        data: {
+        attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
         },
       },

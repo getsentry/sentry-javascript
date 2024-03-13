@@ -196,9 +196,9 @@ describe('Integration | Transactions', () => {
         {
           op: 'test op',
           name: 'test name',
-          source: 'task',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
         },
         span => {
@@ -367,15 +367,14 @@ describe('Integration | Transactions', () => {
         {
           op: 'test op',
           name: 'test name',
-          source: 'task',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
         },
         () => {
           const subSpan = startInactiveSpan({ name: 'inner span 1' });
           subSpan.end();
-
           startSpan({ name: 'inner span 2' }, () => {});
         },
       );
@@ -582,9 +581,9 @@ describe('Integration | Transactions', () => {
         {
           op: 'test op',
           name: 'test name',
-          source: 'task',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test',
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           },
         },
         span => {

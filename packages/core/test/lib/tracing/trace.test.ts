@@ -10,7 +10,6 @@ import {
   getMainCarrier,
   setAsyncContextStrategy,
   setCurrentClient,
-  spanIsSampled,
   spanToJSON,
   withScope,
 } from '../../../src';
@@ -101,33 +100,6 @@ describe('startSpan', () => {
       expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
-    it('allows traceparent information to be overriden', async () => {
-      let _span: Span | undefined = undefined;
-      client.on('spanEnd', span => {
-        _span = span;
-      });
-      try {
-        await startSpan(
-          {
-            name: 'GET users/[id]',
-            parentSampled: true,
-            traceId: '12345678901234567890123456789012',
-            parentSpanId: '1234567890123456',
-          },
-          () => {
-            return callback();
-          },
-        );
-      } catch (e) {
-        //
-      }
-      expect(_span).toBeDefined();
-
-      expect(spanIsSampled(_span!)).toEqual(true);
-      expect(spanToJSON(_span!).trace_id).toEqual('12345678901234567890123456789012');
-      expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890123456');
-    });
-
     it('allows for transaction to be mutated', async () => {
       let _span: Span | undefined = undefined;
       client.on('spanEnd', span => {
@@ -153,7 +125,7 @@ describe('startSpan', () => {
         }
       });
       try {
-        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+        await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, () => {
             return callback();
           });
@@ -179,7 +151,7 @@ describe('startSpan', () => {
         }
       });
       try {
-        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+        await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
               childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
@@ -453,12 +425,9 @@ describe('startSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    startSpan(
-      { name: 'outer', attributes: { test1: 'aa', test2: 'aa' }, data: { test1: 'bb', test3: 'bb' } },
-      outerSpan => {
-        expect(outerSpan).toBeDefined();
-      },
-    );
+    startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+    });
 
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({

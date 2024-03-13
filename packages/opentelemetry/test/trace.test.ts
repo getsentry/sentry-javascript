@@ -479,7 +479,6 @@ describe('trace', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'task',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.test.origin',
         },
-        metadata: { requestPath: 'test-path' },
       });
 
       expect(span2).toBeDefined();
