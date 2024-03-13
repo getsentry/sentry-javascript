@@ -15,7 +15,7 @@ If you want, you can use OpenTelemetry-native APIs to start spans, and Sentry wi
 We support the following Node Frameworks out of the box:
 
 - [Express](#express)
-- Fastify
+- [Fastify](#fastify)
 - Koa
 - Nest.js
 - Hapi
@@ -100,4 +100,26 @@ Sentry.setupExpressErrorHandler(app);
 // add other error middleware below this, if needed
 
 app.listen(3000);
+```
+
+## Fastify
+
+The following shows how you can setup Fastify instrumentation in v8. This will capture performance data & errors for
+your Fastify app.
+
+```js
+const Sentry = require('@sentry/node');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1,
+});
+
+const { fastify } = require('fastify');
+const app = fastify();
+Sentry.setupFastifyErrorHandler(app);
+
+// add routes etc. here
+
+app.listen();
 ```
