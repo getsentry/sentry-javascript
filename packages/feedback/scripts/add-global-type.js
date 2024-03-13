@@ -6,11 +6,37 @@
 const fs = require('fs');
 const path = require('path');
 
+const snippet = `type VNode = any;
+type ComponentChildren = any;
+type ComponentType<T> = any;
+declare const hType: any;
+`
+
+const preactImportRegex = /import\s*{\s*([\w\s,]+)\s*}\s*from\s*'preact'\s*;?/g;
+
+function walk(dir) {
+  const files = fs.readdirSync(dir);
+  files.forEach(file => {
+    const filePath = path.join(dir, file);
+    const stat = fs.lstatSync(filePath);
+    if (stat.isDirectory()) {
+      walk(filePath);
+    } else {
+      if (filePath.endsWith('.d.ts')) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        if (preactImportRegex.test(content)) {
+          const newContent = content.replace(preactImportRegex, '// replaced import from preact');
+          fs.writeFileSync(filePath, snippet + newContent, 'utf8');
+        }
+      }
+    }
+  });
+}
+
 function run() {
-  fs.copyFileSync(
-    path.join('scripts', 'global-test.d.ts.tmpl'),
-    path.join('build', 'npm', 'types-ts3.8', 'global.d.ts'),
-  );
+  // recurse through build/npm/types-ts3.8 directory
+  const dir = path.join('build', 'npm', 'types-ts3.8');
+  walk(dir);
 }
 
 run();
