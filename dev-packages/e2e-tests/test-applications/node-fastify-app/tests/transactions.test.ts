@@ -8,7 +8,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-experimental-fastify-app', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-fastify-app', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -58,13 +58,13 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       spans: [
         {
           data: {
-            'plugin.name': 'fastify -> app-auto-0',
+            'plugin.name': 'fastify -> sentry-fastify-error-handler',
             'fastify.type': 'request_handler',
             'http.route': '/test-transaction',
             'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.http.otel.fastify',
           },
-          description: 'request handler - fastify -> app-auto-0',
+          description: 'request handler - fastify -> sentry-fastify-error-handler',
           parent_span_id: expect.any(String),
           span_id: expect.any(String),
           start_timestamp: expect.any(Number),
