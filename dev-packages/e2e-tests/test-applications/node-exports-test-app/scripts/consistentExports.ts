@@ -53,21 +53,13 @@ const DEPENDENTS: Dependent[] = [
   },
   {
     package: '@sentry/bun',
-    compareWith: nodeExperimentalExports,
+    compareWith: nodeExports,
     exports: Object.keys(SentryBun),
     ignoreExports: [
       // not supported in bun:
-      'Handlers',
       'NodeClient',
-      'hapiErrorPlugin',
-      'makeNodeTransport',
-      // TODO: remove these when we switch exports from nodeExperimentalExports to nodeExports
-      'Integrations',
-      'addGlobalEventProcessor',
-      'getActiveTransaction',
-      'getCurrentHub',
+      // legacy, to be removed...
       'makeMain',
-      'startTransaction',
     ],
   },
   {
