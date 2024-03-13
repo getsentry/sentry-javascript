@@ -18,7 +18,7 @@
     "@sentry/remix": "latest || *",
     "@sentry/astro": "latest || *",
     "@sentry/nextjs": "latest || *",
-    "@sentry/serverless": "latest || *",
+    "@sentry/aws-serverless": "latest || *",
     "@sentry/google-cloud": "latest || *",
     "@sentry/bun": "latest || *",
     "@sentry/types": "latest || *",

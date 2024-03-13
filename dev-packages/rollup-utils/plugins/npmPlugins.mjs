@@ -7,6 +7,7 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
+import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
 import cleanup from 'rollup-plugin-cleanup';
@@ -18,9 +19,15 @@ import cleanup from 'rollup-plugin-cleanup';
  */
 export function makeSucrasePlugin(options = {}) {
   return sucrase({
+    // Required for bundling OTEL code properly
+    exclude: ['**/*.json'],
     transforms: ['typescript', 'jsx'],
     ...options,
   });
+}
+
+export function makeJsonPlugin() {
+  return json();
 }
 
 /**

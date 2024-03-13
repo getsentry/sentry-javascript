@@ -48,6 +48,7 @@ We've removed the following packages:
 - [@sentry/hub](./MIGRATION.md#sentryhub)
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
 
 #### @sentry/hub
 
@@ -166,6 +167,55 @@ Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or
 - `dedupeIntegration` (`Dedupe`) - _Note: enabled by default, not pluggable_
 
 The `Transaction` integration has been removed from `@sentry/integrations`. There is no replacement API.
+
+#### @sentry/serverless
+
+`@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud`. These new packages have smaller bundle size
+than `@sentry/serverless`, which should improve your serverless cold-start times.
+
+`@sentry/aws-serverless` and `@sentry/google-cloud` has also been changed to only emit CJS builds. The ESM build for the
+`@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be re-added at a
+later date.
+
+In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
+directly import from the SDK instead.
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.AWSLambda.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/aws-serverless');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.GCPFunction.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/google-cloud');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
 
 ## 3. Performance Monitoring Changes
 
