@@ -73,13 +73,13 @@ export async function sendFeedback(
         );
       }
 
-      // TODO (v8): we can remove this guard once transport.send's type signature doesn't include void anymore
-      if (!response) {
-        throw new Error('Unable to send Feedback');
-      }
-
       // Require valid status codes, otherwise can assume feedback was not sent successfully
       if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+        if (response.statusCode === 0) {
+          throw new Error(
+            'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+          );
+        }
         throw new Error('Unable to send Feedback. Invalid response from server.');
       }
 
