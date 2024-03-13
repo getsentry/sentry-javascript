@@ -41,27 +41,25 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
 
 test('Sends correct error event', async ({ baseURL }) => {
   const errorEventPromise = waitForError('node-fastify-app', event => {
-    return !event.type;
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an exception';
   });
 
-  await axios.get(`${baseURL}/test-exception`);
+  try {
+    await axios.get(`${baseURL}/test-exception`);
+  } catch {
+    // this results in an error, but we don't care - we want to check the error event
+  }
 
   const errorEvent = await errorEventPromise;
 
-  console.log(JSON.stringify(errorEvent, null, 2));
-
   expect(errorEvent.exception?.values).toHaveLength(1);
-  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception.');
+  expect(errorEvent.exception?.values?.[0]?.value).toBe('This is an exception');
 
-  expect(errorEvent.request).toEqual({});
-
-  expect(errorEvent).toEqual({
-    request: {
-      method: 'GET',
-      cookies: {},
-      headers: expect.any(Object),
-      url: 'http://localhost:3030/test-exception',
-    },
+  expect(errorEvent.request).toEqual({
+    method: 'GET',
+    cookies: {},
+    headers: expect.any(Object),
+    url: 'http://localhost:3030/test-exception',
   });
 
   expect(errorEvent.transaction).toEqual('GET /test-exception');
@@ -69,5 +67,6 @@ test('Sends correct error event', async ({ baseURL }) => {
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: expect.any(String),
     span_id: expect.any(String),
+    parent_span_id: expect.any(String),
   });
 });
