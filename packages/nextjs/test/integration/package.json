@@ -8,13 +8,13 @@
     "start": "next start",
     "pretest": "yarn build",
     "test:client": "playwright test",
-    "test:server": "jest --detectOpenHandles --forceExit --runInBand"
+    "test:server": "jest --forceExit --runInBand"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
     "next": "latest",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
     "@types/node": "^15.3.1",
@@ -31,7 +31,7 @@
     "@sentry/node-experimental": "file:../../../node",
     "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
-    "@sentry/replay": "file:../../../replay",
+    "@sentry-internal/replay": "file:../../../replay-internal",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry-internal/feedback": "file:../../../feedback",

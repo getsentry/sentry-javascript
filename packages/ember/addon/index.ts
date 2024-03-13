@@ -128,8 +128,3 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
 };
 
 export * from '@sentry/browser';
-
-/**
- * @deprecated Use `Sentry.init()` instead.
- */
-export const InitSentryForEmber = init;

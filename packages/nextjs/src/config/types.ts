@@ -43,6 +43,10 @@ export type NextConfigObject = {
         fallback?: NextRewrite[];
       }
   >;
+  // Next.js experimental options
+  experimental?: {
+    instrumentationHook?: boolean;
+  };
 };
 
 export type SentryBuildOptions = {

@@ -3,7 +3,7 @@
 These docs walk through how to migrate our JavaScript SDKs through different major versions.
 
 - Upgrading from [SDK 4.x to 5.x/6.x](./docs/migration/v4-to-v5_v6.md)
-- Uprading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
+- Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
 - Upgrading from [SDK 7.x to 8.x](./MIGRATION.md#upgrading-from-7x-to-8x)
 
 # Upgrading from 7.x to 8.x
@@ -24,18 +24,18 @@ stable release of `8.x` comes out).
 to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
 longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
-**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2017+ compatible
+**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
 fetch API to be available in the environment.
 
 New minimum supported browsers:
 
-- Chrome 58
-- Edge 15
-- Safari/iOS Safari 11
-- Firefox 54
-- Opera 45
-- Samsung Internet 7.2
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
@@ -219,8 +219,39 @@ Sentry.init({
 
 ## 3. Performance Monitoring Changes
 
+- [Initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk)
 - [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
 - [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Initializing the Node SDK
+
+If you are using `@sentry/node` or `@sentry/bun`, or a package that depends on it (`@sentry/nextjs`, `@sentry/remix`,
+`@sentry/sveltekit`, `@sentry/`), you will need to initialize the SDK differently. The primary change is to ensure that
+the SDK is initialized as early as possible. See [Initializing the SDK in v8](./docs/v8-initializing.md) on what steps
+to follow.
+
+For example with the Remix SDK, you should initialize the SDK at the top of your `entry.server.tsx` server entrypoint
+before you do anything else.
+
+```js
+// first import Sentry and initialize Sentry
+import * as Sentry from '@sentry/remix';
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  tracesSampleRate: 1,
+  tracePropagationTargets: ['example.org'],
+  // Disabling to test series of envelopes deterministically.
+  autoSessionTracking: false,
+});
+
+// then handle everything else
+import type { EntryContext } from '@remix-run/node';
+import { RemixServer } from '@remix-run/react';
+import { renderToString } from 'react-dom/server';
+
+export const handleError = Sentry.wrapRemixHandleError;
+```
 
 ### Performance Monitoring API
 
@@ -274,7 +305,7 @@ function middleware(res, req, next) {
 
 You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
 
-To accomodate these changes, we're removed the following APIs:
+To accommodate these changes, we're removed the following APIs:
 
 - [`startTransaction` and `span.startChild`](./MIGRATION.md#deprecate-starttransaction--spanstartchild)
 - [Certain arguments in `startSpan` and `startTransaction`](./MIGRATION.md#deprecate-arguments-for-startspan-apis)
@@ -290,7 +321,7 @@ As we added support for OpenTelemetry, we have expanded the automatic instrument
 support for frameworks like Fastify, Nest.js, and Hapi, and expanding support for databases like Prisma and MongoDB via
 Mongoose.
 
-We now support the following integrations out of the box:
+We now support the following integrations out of the box without extra configuration:
 
 - `httpIntegration`: Automatically instruments Node `http` and `https` standard libraries
 - `nativeNodeFetchIntegration`: Automatically instruments top level fetch and undici
@@ -306,6 +337,9 @@ We now support the following integrations out of the box:
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
 
+To make sure these integrations work properly you'll have to change how you
+[initialize the SDK](./docs/v8-initializing.md)
+
 ## 4. Removal of deprecated APIs
 
 - [General](./MIGRATION.md#general)
@@ -314,12 +348,16 @@ We now support the following integrations out of the box:
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
 - [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
+- [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
+- [Ember SDK](./MIGRATION.md#ember-sdk)
 
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
+
+Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
 
 - [Deprecation of `Hub` and `getCurrentHub()`](./MIGRATION.md#deprecate-hub)
 - [Removal of class-based integrations](./MIGRATION.md#removal-of-class-based-integrations)
@@ -533,11 +571,14 @@ interface Transport {
 
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
 
-Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`
+Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`, `wrap`
 
 - [Removal of the `BrowserTracing` integration](./MIGRATION.md#removal-of-the-browsertracing-integration)
 - [Removal of Offline integration](./MIGRATION.md#removal-of-the-offline-integration)
 - [Removal of `makeXHRTransport` transport](./MIGRATION.md#removal-of-makexhrtransport-transport)
+- [Removal of `wrap` method](./MIGRATION.md#removal-of-wrap-method)
+- [Removal of `@sentry/angular-ivy` package](./MIGRATION.md#removal-of-sentryangular-ivy-package)
+- [Removal of `@sentry/replay` package](./MIGRATION.md#removal-of-sentryreplay-package)
 
 #### Removal of the `BrowserTracing` integration
 
@@ -554,6 +595,21 @@ The `Offline` integration has been removed in favor of the
 
 The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the
 Sentry SDK requires the fetch API to be available in the environment.
+
+#### Removal of `wrap` method
+
+The `wrap` method has been removed. There is no replacement API.
+
+#### Removal of `@sentry/angular-ivy` package
+
+The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` package now supports Ivy by default and
+requires at least Angular 14. If you are using Angular 13 or lower, we suggest upgrading your Angular version before
+migrating to v8. If you can't upgrade your Angular version to at least Angular 14, you can also continue using the
+`@sentry/angular-ivy@7` SDK. However, v7 of the SDKs will no longer be fully supported going forward.
+
+#### Removal of `@sentry/replay` package
+
+You can import from `@sentry/browser` (or from a respective SDK package like `@sentry/react` or `@sentry/vue`).
 
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 
@@ -579,6 +635,10 @@ Removed top-level exports: `withSentryApi`, `withSentryAPI`, `withSentryGetServe
 `IS_BUILD`, `isBuild`
 
 - [Removal of deprecated API in `@sentry/nextjs`](./MIGRATION.md#removal-of-deprecated-api-in-sentrynextjs)
+- [Updated minimum compatible Next.js version to `13.2.0`](./MIGRATION.md#updated-minimum-compatible-nextjs-version-to-1320)
+- [Merging of the Sentry Webpack Plugin options and SDK Build options](./MIGRATION.md#merging-of-the-sentry-webpack-plugin-options-and-sdk-build-options)
+- [Removal of the `sentry` property in your Next.js options (next.config.js)](./MIGRATION.md#removal-of-the-sentry-property-in-your-nextjs-options-nextconfigjs)
+- [Updated the `@sentry/webpack-plugin` dependency to version 2](./MIGRATION.md#updated-the-sentry-webpack-plugin-dependency-to-version-2)
 
 #### Removal of deprecated API in `@sentry/nextjs`
 
@@ -595,6 +655,11 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
 - `IS_BUILD`
 - `isBuild`
+
+#### Updated minimum compatible Next.js version to `13.2.0`
+
+The minimum version of Next.js compatible with the Sentry Next.js SDK has been raised to `13.2.0`. Older versions may
+exhibit bugs or unexpected behaviour.
 
 #### Merging of the Sentry Webpack Plugin options and SDK Build options
 
@@ -674,7 +739,59 @@ setup for source maps in Sentry and will not require you to match stack frame pa
 To see the new options, check out the docs at https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/,
 or look at the TypeScript type definitions of `withSentryConfig`.
 
+#### Updated the recommended way of calling `Sentry.init()`
+
+With version 8 of the SDK we will no longer support the use of `sentry.server.config.ts` and `sentry.edge.config.ts`
+files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
+[Next.js instrumentation hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation).
+**`sentry.client.config.ts|js` is still supported and encouraged for initializing the clientside SDK.**
+
+The following is an example of how to initialize the serverside SDK in a Next.js instrumentation hook:
+
+1. First, enable the Next.js instrumentation hook by setting the `experimental.instrumentationHook` to `true` in your
+   `next.config.js`.
+2. Next, create a `instrumentation.ts|js` file in the root directory of your project (or in the `src` folder if you have
+   have one).
+3. Now, export a `register` function from the `instrumentation.ts|js` file and call `Sentry.init()` inside of it:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         // Your Node.js Sentry configuration...
+       });
+     }
+
+     if (process.env.NEXT_RUNTIME === 'edge') {
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         // Your Edge Runtime Sentry configuration...
+       });
+     }
+   }
+   ```
+
+   Note that you can initialize the SDK differently depending on which server runtime is being used.
+
+If you are using a
+[Next.js custom server](https://nextjs.org/docs/pages/building-your-application/configuring/custom-server), the
+`instrumentation.ts` hook is not called by Next.js so you need to manually call it yourself from within your server
+code. It is recommended to do so as early as possible in your application lifecycle.
+
+**Why are we making this change?** The very simple reason is that Next.js requires us to set up OpenTelemetry
+instrumentation inside the `register` function of the instrumentation hook. Looking a little bit further into the
+future, we also would like the Sentry SDK to be compatible with [Turbopack](https://turbo.build/pack), which is gonna be
+the bundler that Next.js will be using instead of Webpack. The SDK in its previous version depended heavily on Webpack
+in order to inject the `sentry.(server|edge).config.ts` files into the server-side code. Because this will not be
+possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them -
+hopefully reducing bugs and jank.
+
 ### Astro SDK
+
+- [Removal of `trackHeaders` option for Astro middleware](./MIGRATION.md#removal-of-trackheaders-option-for-astro-middleware)
 
 #### Removal of `trackHeaders` option for Astro middleware
 
@@ -694,6 +811,8 @@ Sentry.init({
 ```
 
 ### SvelteKit SDK
+
+- [Breaking `sentrySvelteKit()` changes](./MIGRATION.md#breaking-sentrysveltekit-changes)
 
 #### Breaking `sentrySvelteKit()` changes
 
@@ -767,6 +886,26 @@ sentrySvelteKit({
 Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
 time, including breaking changes within the same major version of the SDK.
 
+### AWS Serverless SDK
+
+- [Removal of `rethrowAfterCapture` option](./MIGRATION.md#removal-of-rethrowaftercapture-option)
+
+#### Removal of `rethrowAfterCapture` option
+
+In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no
+replacement API.
+
+### Ember SDK
+
+Removed top-level exports: `InitSentryForEmber`
+
+- [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+
+#### Removal of `InitSentryForEmber` export
+
+The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
+SDK.
+
 ## 5. Behaviour Changes
 
 - [Updated behaviour of `tracePropagationTargets` in the browser](./MIGRATION.md#updated-behaviour-of-tracepropagationtargets-in-the-browser-http-tracing-headers--cors)
@@ -774,6 +913,8 @@ time, including breaking changes within the same major version of the SDK.
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
+- [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
+- [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
 
 #### Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
 

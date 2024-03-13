@@ -5,6 +5,9 @@ import * as path from 'path';
 import { parse } from 'url';
 import next from 'next';
 import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
+import { register } from '../../../instrumentation';
+
+let initializedSdk = false;
 
 // Type not exported from NextJS
 // @ts-expect-error
@@ -40,6 +43,13 @@ export class NextTestEnv extends TestEnv {
   }
 
   public static async init(): Promise<NextTestEnv> {
+    if (!initializedSdk) {
+      // Normally, Next.js calls the `register` hook by itself, but since we are using a custom server for the tests we need to do it manually.
+      process.env.NEXT_RUNTIME = 'nodejs';
+      await register();
+      initializedSdk = true;
+    }
+
     const server = await createNextServer({
       dev: false,
       dir: path.resolve(__dirname, '../../..'),

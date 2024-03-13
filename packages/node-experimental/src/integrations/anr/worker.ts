@@ -33,7 +33,7 @@ function log(msg: string): void {
   }
 }
 
-const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn);
+const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn, options.tunnel, options.sdkMetadata.sdk);
 const transport = makeNodeTransport({
   url,
   recordDroppedEvent: () => {
@@ -47,7 +47,7 @@ async function sendAbnormalSession(): Promise<void> {
     log('Sending abnormal session');
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
 
-    const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
+    const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata, options.tunnel);
     // Log the envelope so to aid in testing
     log(JSON.stringify(envelope));
 
@@ -119,15 +119,15 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
     tags: options.staticTags,
   };
 
-  const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
-  // Log the envelope so to aid in testing
+  const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata, options.tunnel);
+  // Log the envelope to aid in testing
   log(JSON.stringify(envelope));
 
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush in the main event loop ever restarts.
-  // This is mainly for the benefit of logging/debugging issues.
+  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
+  // This is mainly for the benefit of logging or debugging.
   setTimeout(() => {
     process.exit(0);
   }, 5_000);
@@ -172,7 +172,7 @@ if (options.captureStackTrace) {
         {
           // Grab the trace context from the current scope
           expression:
-            'const ctx = __SENTRY__.acs?.getCurrentScope().getPropagationContext() || {}; ctx.traceId + "-" + ctx.spanId + "-" + ctx.parentSpanId',
+            'var __sentry_ctx = __SENTRY__.acs?.getCurrentScope().getPropagationContext() || {}; __sentry_ctx.traceId + "-" + __sentry_ctx.spanId + "-" + __sentry_ctx.parentSpanId',
           // Don't re-trigger the debugger if this causes an error
           silent: true,
         },

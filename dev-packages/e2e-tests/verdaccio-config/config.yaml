@@ -38,12 +38,6 @@ packages:
     unpublish: $all
     # proxy: npmjs # Don't proxy for E2E tests!
 
-  '@sentry/angular-ivy':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
   '@sentry/astro':
     access: $all
     publish: $all
@@ -123,12 +117,6 @@ packages:
     # proxy: npmjs # Don't proxy for E2E tests!
 
   '@sentry/remix':
-    access: $all
-    publish: $all
-    unpublish: $all
-    # proxy: npmjs # Don't proxy for E2E tests!
-
-  '@sentry/replay':
     access: $all
     publish: $all
     unpublish: $all

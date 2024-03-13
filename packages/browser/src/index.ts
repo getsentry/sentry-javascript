@@ -32,7 +32,7 @@ export {
 export {
   replayIntegration,
   getReplay,
-} from '@sentry/replay';
+} from '@sentry-internal/replay';
 export type {
   ReplayEventType,
   ReplayEventWithTime,
@@ -43,7 +43,7 @@ export type {
   ReplayFrameEvent,
   ReplaySpanFrame,
   ReplaySpanFrameEvent,
-} from '@sentry/replay';
+} from '@sentry-internal/replay';
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
@@ -75,8 +75,6 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  ModuleMetadata,
   moduleMetadataIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';

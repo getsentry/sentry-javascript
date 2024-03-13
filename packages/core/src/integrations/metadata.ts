@@ -1,6 +1,6 @@
-import type { Client, Event, EventHint, EventItem, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import type { EventItem, IntegrationFn } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
-import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+import { defineIntegration } from '../integration';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
 
@@ -33,8 +33,6 @@ const _moduleMetadataIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const moduleMetadataIntegration = defineIntegration(_moduleMetadataIntegration);
-
 /**
  * Adds module metadata to stack frames.
  *
@@ -43,16 +41,5 @@ export const moduleMetadataIntegration = defineIntegration(_moduleMetadataIntegr
  * When this integration is added, the metadata passed to the bundler plugin is added to the stack frames of all events
  * under the `module_metadata` property. This can be used to help in tagging or routing of events from different teams
  * our sources
- *
- * @deprecated Use `moduleMetadataIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const ModuleMetadata = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  moduleMetadataIntegration,
-) as IntegrationClass<
-  Integration & {
-    setup: (client: Client) => void;
-    processEvent: (event: Event, hint: EventHint, client: Client) => Event;
-  }
->;
+export const moduleMetadataIntegration = defineIntegration(_moduleMetadataIntegration);

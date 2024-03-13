@@ -5,24 +5,9 @@ import {
   SentrySpan,
   spanToJSON,
 } from '@sentry/core';
+import { describe, it } from 'vitest';
 import { TraceDirective, browserTracingIntegration, init } from '../src/index';
 import { _updateSpanAttributesForParametrizedUrl, getParameterizedRouteFromSnapshot } from '../src/tracing';
-
-let transaction: any;
-
-jest.mock('@sentry/browser', () => {
-  const original = jest.requireActual('@sentry/browser');
-  return {
-    ...original,
-    getCurrentScope() {
-      return {
-        getTransaction: () => {
-          return transaction;
-        },
-      };
-    },
-  };
-});
 
 describe('browserTracingIntegration', () => {
   it('implements required hooks', () => {
@@ -32,10 +17,6 @@ describe('browserTracingIntegration', () => {
 });
 
 describe('Angular Tracing', () => {
-  beforeEach(() => {
-    transaction = undefined;
-  });
-
   describe('getParameterizedRouteFromSnapshot', () => {
     it.each([
       ['returns `/` if the route has no children', {}, '/'],

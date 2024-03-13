@@ -20,11 +20,11 @@ targets:
   - name: npm
     id: '@sentry-internal/tracing'
     includeNames: /^sentry-internal-tracing-\d.*\.tgz$/
-  ## 1.5 Replay package (browser only)
+  ## 1.5 Replay Internal package (browser only)
   - name: npm
-    id: '@sentry/replay'
-    includeNames: /^sentry-replay-\d.*\.tgz$/
-  ## 1.6. OpenTelemetry package
+    id: '@sentry-internal/replay'
+    includeNames: /^sentry-internal-replay-\d.*\.tgz$/
+  ## 1.6 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
@@ -49,9 +49,6 @@ targets:
     includeNames: /^sentry-profiling-node-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
-  - name: npm
-    id: '@sentry/angular-ivy'
-    includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
   - name: npm
     id: '@sentry/angular'
     includeNames: /^sentry-angular-\d.*\.tgz$/
@@ -93,7 +90,7 @@ targets:
     includeNames: /^sentry-aws-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/google-cloud-serverless'
-    includeNames: /^sentry-google-cloud-\d.*\.tgz$/
+    includeNames: /^sentry-google-cloud-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
@@ -145,6 +142,7 @@ targets:
           - nodejs14.x
           - nodejs16.x
           - nodejs18.x
+          - nodejs20.x
     license: MIT
 
   # CDN Bundle Target
@@ -178,8 +176,6 @@ targets:
         onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/gatsby':
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
-      'npm:@sentry/angular-ivy':
-        onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
       'npm:@sentry/astro':

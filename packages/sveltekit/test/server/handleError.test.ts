@@ -1,4 +1,4 @@
-import * as SentryNode from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node';
 import type { HandleServerError, RequestEvent } from '@sveltejs/kit';
 import { vi } from 'vitest';
 

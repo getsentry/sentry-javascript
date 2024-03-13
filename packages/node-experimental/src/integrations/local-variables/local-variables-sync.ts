@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
-import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
+import { defineIntegration, getClient } from '@sentry/core';
+import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
 import type { Debugger, InspectorNotification, Runtime } from 'inspector';
 import { Session } from 'inspector';
@@ -288,14 +288,16 @@ const _localVariablesSyncIntegration = ((
       return;
     }
 
-    const frameCount = exception.stacktrace?.frames?.length || 0;
+    // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
+    // but do not appear in the debugger call frames
+    const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
 
-    for (let i = 0; i < frameCount; i++) {
+    for (let i = 0; i < frames.length; i++) {
       // Sentry frames are in reverse order
-      const frameIndex = frameCount - i - 1;
+      const frameIndex = frames.length - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrame[i]) {
+      if (!frames[frameIndex] || !cachedFrame[i]) {
         break;
       }
 
@@ -303,14 +305,14 @@ const _localVariablesSyncIntegration = ((
         // We need to have vars to add
         cachedFrame[i].vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        exception.stacktrace.frames[frameIndex].in_app === false ||
+        frames[frameIndex].in_app === false ||
         // The function names need to match
-        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(frames[frameIndex].function, cachedFrame[i].function)
       ) {
         continue;
       }
 
-      exception.stacktrace.frames[frameIndex].vars = cachedFrame[i].vars;
+      frames[frameIndex].vars = cachedFrame[i].vars;
     }
   }
 
@@ -384,19 +386,7 @@ const _localVariablesSyncIntegration = ((
   };
 }) satisfies IntegrationFn;
 
-export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);
-
 /**
  * Adds local variables to exception frames.
- * @deprecated Use `localVariablesSyncIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const LocalVariablesSync = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  localVariablesSyncIntegration,
-) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
-  new (options?: LocalVariablesIntegrationOptions, session?: DebugSession): Integration;
-};
-
-// eslint-disable-next-line deprecation/deprecation
-export type LocalVariablesSync = typeof LocalVariablesSync;
+export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);

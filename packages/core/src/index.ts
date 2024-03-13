@@ -94,9 +94,6 @@ export {
 } from './utils/spanUtils';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
-/* eslint-disable deprecation/deprecation */
-export { ModuleMetadata } from './integrations/metadata';
-export { RequestData } from './integrations/requestdata';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/inboundfilters';

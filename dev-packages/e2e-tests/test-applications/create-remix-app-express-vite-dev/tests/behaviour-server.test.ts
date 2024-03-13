@@ -7,7 +7,13 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   // We use this to identify the transactions
   const testTag = uuid4();
 
-  // no server span here!
+  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
+    return (
+      transactionEvent.type === 'transaction' &&
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.tags?.['sentry_test'] === testTag
+    );
+  });
 
   const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
     return (
@@ -20,16 +26,25 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   page.goto(`/?tag=${testTag}`);
 
   const pageloadTransaction = await pageLoadTransactionPromise;
+  const httpServerTransaction = await httpServerTransactionPromise;
 
   expect(pageloadTransaction).toBeDefined();
+  expect(httpServerTransaction).toBeDefined();
+
+  const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
+  const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
+  expect(httpServerTransaction.transaction).toBe('routes/_index');
   expect(pageloadTransaction.transaction).toBe('routes/_index');
 
-  expect(pageLoadTraceId).toBeDefined();
-  expect(pageLoadParentSpanId).toBeUndefined();
-  expect(pageLoadSpanId).toBeDefined();
+  expect(httpServerTraceId).toBeDefined();
+  expect(httpServerSpanId).toBeDefined();
+
+  expect(pageLoadTraceId).toEqual(httpServerTraceId);
+  expect(pageLoadParentSpanId).toEqual(httpServerSpanId);
+  expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });

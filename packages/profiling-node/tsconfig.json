@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "esnext",
-    "lib": ["es2017"],
+    "lib": ["es2018"],
     "outDir": "lib",
     "types": ["node"]
   },
