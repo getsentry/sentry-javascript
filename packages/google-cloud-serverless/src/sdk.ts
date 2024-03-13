@@ -25,10 +25,10 @@ export function init(options: NodeOptions = {}): void {
   };
 
   opts._metadata.sdk = opts._metadata.sdk || {
-    name: 'sentry.javascript.google-cloud',
+    name: 'sentry.javascript.google-cloud-serverless',
     packages: [
       {
-        name: 'npm:@sentry/google-cloud',
+        name: 'npm:@sentry/google-cloud-serverless',
         version: SDK_VERSION,
       },
     ],

@@ -57,7 +57,7 @@
     "packages/eslint-plugin-sdk",
     "packages/feedback",
     "packages/gatsby",
-    "packages/google-cloud",
+    "packages/google-cloud-serverless",
     "packages/integration-shims",
     "packages/nextjs",
     "packages/node",
