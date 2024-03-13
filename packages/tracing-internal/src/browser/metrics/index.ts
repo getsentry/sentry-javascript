@@ -204,7 +204,7 @@ function _trackFID(): () => void {
 /** Starts tracking the Interaction to Next Paint on the current page. */
 function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.find(e => e.name === 'click');
+    const entry = metric.entries.find(e => e.name === 'click' || e.name === 'pointerdown');
     const client = getClient();
     if (!entry || !client) {
       return;
@@ -252,7 +252,7 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     }
 
     if (Math.random() < (sampleRate as number | boolean)) {
-      const envelope = span ? createSpanEnvelope([span]) : undefined;
+      const envelope = span ? createSpanEnvelope([span], client.getDsn()) : undefined;
       const transport = client && client.getTransport();
       if (transport && envelope) {
         transport.send(envelope).then(null, reason => {

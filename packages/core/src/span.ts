@@ -1,14 +1,18 @@
-import type { SpanEnvelope, SpanItem } from '@sentry/types';
+import type { DsnComponents, SpanEnvelope, SpanItem } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import { createEnvelope } from '@sentry/utils';
+import { createEnvelope, dsnToString } from '@sentry/utils';
 
 /**
  * Create envelope from Span item.
  */
-export function createSpanEnvelope(spans: Span[]): SpanEnvelope {
+export function createSpanEnvelope(spans: Span[], dsn?: DsnComponents): SpanEnvelope {
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
   };
+
+  if (dsn) {
+    headers.dsn = dsnToString(dsn);
+  }
 
   const items = spans.map(createSpanItem);
   return createEnvelope<SpanEnvelope>(headers, items);
