@@ -1,7 +1,7 @@
 import { WINDOW } from '@sentry/react';
 import type { Client } from '@sentry/types';
 import { JSDOM } from 'jsdom';
-import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
+import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import Router from 'next/router';
 
 import {
@@ -60,7 +60,7 @@ describe('pagesRouterInstrumentPageLoad', () => {
     navigatableRoutes?: string[];
     hasNextData: boolean;
   }) {
-    const nextDataContent: NextData = {
+    const nextDataContent: NEXT_DATA = {
       props: pageProperties.props,
       page: pageProperties.route,
       query: pageProperties.query,
