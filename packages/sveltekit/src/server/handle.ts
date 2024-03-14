@@ -1,19 +1,19 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  continueTrace,
   getActiveSpan,
-  getDynamicSamplingContextFromSpan,
   getRootSpan,
   setHttpStatus,
   spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node';
+import { captureException, continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
+
+import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
 import { isHttpError, isRedirect } from '../common/utils';
 import { flushIfServerless, getTracePropagationData } from './utils';
