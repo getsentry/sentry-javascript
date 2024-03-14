@@ -1,7 +1,17 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "module": "esnext"
+    "module": "esnext",
+
+    /* Preact Config */
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "skipLibCheck": true,
+    "baseUrl": "./",
+    "paths": {
+      "react": ["./node_modules/preact/compat/"],
+      "react-dom": ["./node_modules/preact/compat/"]
+    }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts","src/**/*.tsx"]
 }

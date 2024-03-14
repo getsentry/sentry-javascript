@@ -1,14 +1,15 @@
-/* eslint-disable no-bitwise */
 import type { Attributes, Context, SpanContext } from '@opentelemetry/api';
-import { TraceFlags, isSpanContextValid, trace } from '@opentelemetry/api';
+import { isSpanContextValid, trace } from '@opentelemetry/api';
+import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled } from '@sentry/core';
 import type { Client, ClientOptions, SamplingContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
-import { getPropagationContextFromSpanContext } from './propagator';
+import { getPropagationContextFromSpanContext, getSamplingDecision } from './propagator';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -38,6 +39,7 @@ export class SentrySampler implements Sampler {
     }
 
     const parentContext = trace.getSpanContext(context);
+    const traceState = parentContext?.traceState || new TraceState();
 
     let parentSampled: boolean | undefined = undefined;
 
@@ -49,7 +51,7 @@ export class SentrySampler implements Sampler {
         DEBUG_BUILD &&
           logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       } else {
-        parentSampled = Boolean(parentContext.traceFlags & TraceFlags.SAMPLED);
+        parentSampled = getSamplingDecision(parentContext);
         DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
       }
     }
@@ -76,6 +78,7 @@ export class SentrySampler implements Sampler {
       return {
         decision: SamplingDecision.NOT_RECORD,
         attributes,
+        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
 
@@ -93,6 +96,7 @@ export class SentrySampler implements Sampler {
       return {
         decision: SamplingDecision.NOT_RECORD,
         attributes,
+        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
 
@@ -112,6 +116,7 @@ export class SentrySampler implements Sampler {
       return {
         decision: SamplingDecision.NOT_RECORD,
         attributes,
+        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
       };
     }
 
