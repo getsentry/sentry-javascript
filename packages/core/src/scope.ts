@@ -64,9 +64,6 @@ export class Scope implements ScopeInterface {
   /** Attachments */
   protected _attachments: Attachment[];
 
-  /** Propagation Context for distributed tracing */
-  protected _propagationContext: PropagationContext;
-
   /**
    * A place to stash data which is needed at some point in the SDK's event processing pipeline but which shouldn't get
    * sent to Sentry
@@ -99,6 +96,9 @@ export class Scope implements ScopeInterface {
   /** The client on this scope */
   protected _client?: Client;
 
+  /** Propagation Context for distributed tracing */
+  protected _propagationContext?: PropagationContext;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -112,7 +112,6 @@ export class Scope implements ScopeInterface {
     this._extra = {};
     this._contexts = {};
     this._sdkProcessingMetadata = {};
-    this._propagationContext = generatePropagationContext();
   }
 
   /**
@@ -142,7 +141,7 @@ export class Scope implements ScopeInterface {
     newScope._requestSession = this._requestSession;
     newScope._attachments = [...this._attachments];
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
-    newScope._propagationContext = { ...this._propagationContext };
+    newScope._propagationContext = this._propagationContext;
     newScope._client = this._client;
 
     return newScope;
@@ -554,7 +553,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public setPropagationContext(context: PropagationContext): this {
+  public setPropagationContext(context: PropagationContext | undefined): this {
     this._propagationContext = context;
     return this;
   }
@@ -562,7 +561,7 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public getPropagationContext(): PropagationContext {
+  public getPropagationContext(): PropagationContext | undefined {
     return this._propagationContext;
   }
 

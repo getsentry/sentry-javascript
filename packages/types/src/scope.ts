@@ -25,7 +25,7 @@ export interface ScopeContext {
   tags: { [key: string]: Primitive };
   fingerprint: string[];
   requestSession: RequestSession;
-  propagationContext: PropagationContext;
+  propagationContext?: PropagationContext;
 }
 
 export interface ScopeData {
@@ -237,12 +237,12 @@ export interface Scope {
   /**
    * Add propagation context to the scope, used for distributed tracing
    */
-  setPropagationContext(context: PropagationContext): this;
+  setPropagationContext(context: PropagationContext | undefined): this;
 
   /**
    * Get propagation context from the scope, used for distributed tracing
    */
-  getPropagationContext(): PropagationContext;
+  getPropagationContext(): PropagationContext | undefined;
 
   /**
    * Capture an exception for this scope.
