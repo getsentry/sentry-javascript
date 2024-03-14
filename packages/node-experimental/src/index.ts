@@ -47,6 +47,10 @@ export {
   extractRequestData,
 } from '@sentry/utils';
 
+// These are custom variants that need to be used instead of the core one
+// As they have slightly different implementations
+export { continueTrace } from '@sentry/opentelemetry';
+
 export {
   addBreadcrumb,
   isInitialized,
@@ -78,7 +82,6 @@ export {
   setCurrentClient,
   Scope,
   setMeasurement,
-  continueTrace,
   getSpanDescendants,
   parameterize,
   getCurrentScope,
