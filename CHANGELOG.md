@@ -4,6 +4,16 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.107.0
+
+This release fixes issues with INP instrumentation with the Next.js SDK and adds support for the `enableInp` option in
+the deprecated `BrowserTracing` integration for backwards compatibility.
+
+- feat(performance): Port INP span instrumentation to old browser tracing (#11085)
+- fix(ember): Ensure browser tracing is correctly lazy loaded (#11027)
+- fix(node): Do not assert in vendored proxy code (v7 backport) (#11009)
+- fix(react): Set `handled` value in ErrorBoundary depending on fallback [v7] (#11037)
+
 ## 7.106.1
 
 - fix(nextjs/v7): Use passthrough `createReduxEnhancer` on server (#11010)
