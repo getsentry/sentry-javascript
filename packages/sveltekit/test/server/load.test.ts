@@ -283,12 +283,15 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.server.load',
         'http.method': 'GET',
+        'otel.kind': 'INTERNAL',
+        'sentry.sample_rate': 1,
       },
       op: 'function.sveltekit.server.load',
       parent_span_id: '1234567890abcdef',
       span_id: expect.any(String),
       trace_id: '1234567890abcdef1234567890abcdef',
       origin: 'auto.function.sveltekit',
+      status: 'ok',
     });
     expect(transaction.transaction).toEqual('/users/[id]');
     expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
@@ -330,11 +333,14 @@ describe('wrapServerLoadWithSentry calls trace', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'function.sveltekit.server.load',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 1,
         'http.method': 'GET',
+        'otel.kind': 'INTERNAL',
       },
       op: 'function.sveltekit.server.load',
       span_id: expect.any(String),
       trace_id: expect.not.stringContaining('1234567890abcdef1234567890abcdef'),
+      parent_span_id: expect.not.stringContaining('1234567890abcdef'),
       origin: 'auto.function.sveltekit',
+      status: 'ok',
     });
     expect(transaction.transaction).toEqual('/users/[id]');
     expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
