@@ -6,6 +6,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "target": "es2017",
+    "declarationMap": false,
     "lib": ["dom", "es2017"],
     "baseUrl": "./"
   },
@@ -23,6 +24,6 @@
     // at application compile time into an Ivy-compatible version which is then further used in
     // the build process. This ensures compatibility with newer Angular versions than the one
     // that was used to initially compile the library (Angular 10 in our case).
-    "enableIvy": false
+
   }
 }
