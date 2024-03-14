@@ -1,6 +1,5 @@
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { VNode } from 'preact';
 import { useCallback, useMemo, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
 import type { FeedbackFormData } from '../../types';
@@ -17,7 +16,9 @@ interface Props extends HeaderProps, FormProps {
   open: boolean;
 }
 
-export function DialogComponent({ open, onFormSubmitted, successMessageText, ...props }: Props): VNode {
+// This returns a VNode, but we want to avoid having preact imports as types that are exported
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function DialogComponent({ open, onFormSubmitted, successMessageText, ...props }: Props): any {
   const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
