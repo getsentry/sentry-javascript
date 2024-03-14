@@ -4,21 +4,7 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "types": ["bun-types"],
-    "lib": ["esnext"],
-    "module": "esnext",
-    "target": "esnext",
-
-    // if TS 4.x or earlier
-    "moduleResolution": "nodenext",
-
-    "jsx": "react-jsx", // support JSX
-    "allowJs": true, // allow importing `.js` from `.ts`
-    "esModuleInterop": true, // allow default imports for CommonJS modules
-
-    // best practices
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    // package-specific options
+    "types": ["bun-types"]
   }
 }

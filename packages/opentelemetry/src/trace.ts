@@ -6,8 +6,6 @@ import { TraceState, suppressTracing } from '@opentelemetry/core';
 import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
   getRootSpan,
@@ -142,19 +140,10 @@ function getTracer(): Tracer {
 }
 
 function _applySentryAttributesToSpan(span: Span, options: OpenTelemetrySpanContext): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const { origin, op, source } = options;
-
-  if (origin) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, origin);
-  }
+  const { op } = options;
 
   if (op) {
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, op);
-  }
-
-  if (source) {
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
   }
 }
 

@@ -1,6 +1,7 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Transaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -68,17 +69,10 @@ export function tracingHandler(): (
       return startInactiveSpan({
         name,
         op: 'http.server',
-        origin: 'auto.http.node.tracingHandler',
         forceTransaction: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-        },
-        metadata: {
-          // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-          // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-          // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-          // be sure
-          request: req,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node.tracingHandler',
         },
       }) as Transaction;
     });

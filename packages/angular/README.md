@@ -17,11 +17,14 @@
 
 ## Angular Version Compatibility
 
-**Important**: This package is not compatible with Angular 16 or newer. Please use [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy) instead.
+**Important**: This package is not compatible with Angular 16 or newer. Please use
+[`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy) instead.
 
-If you're using Angular 12 or newer, we recommend using `@sentry/angular-ivy` for native support with Angular's rendering engine Ivy.
+If you're using Angular 12 or newer, we recommend using `@sentry/angular-ivy` for native support with Angular's
+rendering engine Ivy.
 
-This SDK still officially supports Angular 10-15. If you are using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
+This SDK still officially supports Angular 10-15. If you are using an older version of Angular and experience problems
+with the Angular SDK, we recommend downgrading the SDK to version 6.x.
 
 ## General
 
@@ -80,26 +83,23 @@ see `ErrorHandlerOptions` interface in `src/errorhandler.ts`.
 
 ### Tracing
 
-`@sentry/angular` exports a Trace Service, Directive and Decorators that leverage the tracing
-features to add Angular-related spans to transactions. If tracing is not enabled, this functionality
-will not work. The SDK's `TraceService` itself tracks route changes and durations, while directive and decorators are tracking
-components initializations.
+`@sentry/angular` exports a Trace Service, Directive and Decorators that leverage the tracing features to add
+Angular-related spans to transactions. If tracing is not enabled, this functionality will not work. The SDK's
+`TraceService` itself tracks route changes and durations, while directive and decorators are tracking components
+initializations.
 
 #### Install
 
 Registering a Trace Service is a 3-step process.
 
-1. Register and configure the `BrowserTracing` integration, including custom Angular routing
-   instrumentation:
+1. Register and configure the `BrowserTracing` integration, including custom Angular routing instrumentation:
 
 ```javascript
 import { init, browserTracingIntegration } from '@sentry/angular';
 
 init({
   dsn: '__DSN__',
-  integrations: [
-    browserTracingIntegration(),
-  ],
+  integrations: [browserTracingIntegration()],
   tracePropagationTargets: ['localhost', 'https://yourserver.io/api'],
   tracesSampleRate: 1,
 });
@@ -181,39 +181,40 @@ Then, inside your component's template (keep in mind that the directive's name a
 <app-footer trace="footer"></app-footer>
 ```
 
-_TraceClassDecorator:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
+_TraceClass:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
 
 ```javascript
 import { Component } from '@angular/core';
-import { TraceClassDecorator } from '@sentry/angular';
+import { TraceClass } from '@sentry/angular';
 
 @Component({
   selector: 'layout-header',
   templateUrl: './header.component.html',
 })
-@TraceClassDecorator()
+@TraceClass()
 export class HeaderComponent {
   // ...
 }
 ```
 
-_TraceMethodDecorator:_ used to track a specific lifecycle hooks as point-in-time spans in components:
+_TraceMethod:_ used to track a specific lifecycle hooks as point-in-time spans in components:
 
 ```javascript
 import { Component, OnInit } from '@angular/core';
-import { TraceMethodDecorator } from '@sentry/angular';
+import { TraceMethod } from '@sentry/angular';
 
 @Component({
   selector: 'app-footer',
   templateUrl: './footer.component.html',
 })
 export class FooterComponent implements OnInit {
-  @TraceMethodDecorator()
+  @TraceMethod()
   ngOnInit() {}
 }
 ```
 
-You can also add your own custom spans via `startSpan()`. For example, if you'd like to track the duration of Angular boostraping process, you can do it as follows:
+You can also add your own custom spans via `startSpan()`. For example, if you'd like to track the duration of Angular
+boostraping process, you can do it as follows:
 
 ```javascript
 import { enableProdMode } from '@angular/core';
@@ -223,12 +224,13 @@ import { init, startSpan } from '@sentry/angular';
 import { AppModule } from './app/app.module';
 
 // ...
-startSpan({
-  name: 'platform-browser-dynamic',
-  op: 'ui.angular.bootstrap'
+startSpan(
+  {
+    name: 'platform-browser-dynamic',
+    op: 'ui.angular.bootstrap',
   },
   async () => {
     await platformBrowserDynamic().bootstrapModule(AppModule);
-  }
+  },
 );
 ```

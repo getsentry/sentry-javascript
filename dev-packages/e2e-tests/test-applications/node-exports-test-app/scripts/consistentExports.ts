@@ -1,12 +1,14 @@
 import * as SentryAstro from '@sentry/astro';
 import * as SentryBun from '@sentry/bun';
-import * as SentryGoogleCloud from '@sentry/google-cloud';
 import * as SentryNextJs from '@sentry/nextjs';
 import * as SentryNode from '@sentry/node';
 import * as SentryNodeExperimental from '@sentry/node-experimental';
 import * as SentryRemix from '@sentry/remix';
-import * as SentryServerless from '@sentry/serverless';
 import * as SentrySvelteKit from '@sentry/sveltekit';
+
+// Serverless SDKs are CJS only
+const SentryAWS = require('@sentry/aws-serverless');
+const SentryGoogleCloud = require('@sentry/google-cloud-serverless');
 
 /* List of exports that are safe to ignore / we don't require in any depending package */
 const NODE_EXPERIMENTAL_EXPORTS_IGNORE = [
@@ -44,24 +46,20 @@ const DEPENDENTS: Dependent[] = [
     package: '@sentry/astro',
     compareWith: nodeExports,
     exports: Object.keys(SentryAstro),
+    ignoreExports: [
+      // Not needed for Astro
+      'setupFastifyErrorHandler',
+    ],
   },
   {
     package: '@sentry/bun',
-    compareWith: nodeExperimentalExports,
+    compareWith: nodeExports,
     exports: Object.keys(SentryBun),
     ignoreExports: [
       // not supported in bun:
-      'Handlers',
       'NodeClient',
-      'hapiErrorPlugin',
-      'makeNodeTransport',
-      // TODO: remove these when we switch exports from nodeExperimentalExports to nodeExports
-      'Integrations',
-      'addGlobalEventProcessor',
-      'getActiveTransaction',
-      'getCurrentHub',
+      // legacy, to be removed...
       'makeMain',
-      'startTransaction',
     ],
   },
   {
@@ -77,16 +75,26 @@ const DEPENDENTS: Dependent[] = [
     exports: Object.keys(SentryRemix),
   },
   {
-    package: '@sentry/serverless',
-    compareWith: nodeExperimentalExports,
-    exports: Object.keys(SentryServerless),
-    ignoreExports: ['cron', 'hapiErrorPlugin'],
+    package: '@sentry/aws-serverless',
+    compareWith: nodeExports,
+    exports: Object.keys(SentryAWS),
+    ignoreExports: [
+      // legacy, to be removed...
+      'makeMain',
+      // Not needed for Serverless
+      'setupFastifyErrorHandler',
+    ],
   },
   {
-    package: '@sentry/google-cloud',
+    package: '@sentry/google-cloud-serverless',
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
-    ignoreExports: ['makeMain'],
+    ignoreExports: [
+      // legacy, to be removed...
+      'makeMain',
+      // Not needed for Serverless
+      'setupFastifyErrorHandler',
+    ],
   },
   {
     package: '@sentry/sveltekit',

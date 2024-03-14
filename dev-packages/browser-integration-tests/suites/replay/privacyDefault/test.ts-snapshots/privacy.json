@@ -106,7 +106,7 @@
                   "childNodes": [
                     {
                       "type": 3,
-                      "textContent": "This should be unmasked due to data attribute",
+                      "textContent": "**** ******* ********* **** ****** **** ** ****** ***** **** **** **********",
                       "id": 17
                     }
                   ],
@@ -136,7 +136,7 @@
                   "tagName": "input",
                   "attributes": {
                     "data-sentry-unmask": "",
-                    "placeholder": "Placeholder can be unmasked"
+                    "placeholder": "*********** *** ** ******** * *** *** **** ******* ********"
                   },
                   "childNodes": [],
                   "id": 21

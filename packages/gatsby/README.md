@@ -13,17 +13,19 @@ module.exports = {
   // ...
   plugins: [
     {
-      resolve: "@sentry/gatsby",
+      resolve: '@sentry/gatsby',
       options: {
-          dsn: process.env.SENTRY_DSN, // this is the default
-      }
+        dsn: process.env.SENTRY_DSN, // this is the default
+      },
     },
     // ...
-  ]
-}
+  ],
+};
 ```
 
-Options will be passed directly to `Sentry.init`. See all available options in [our docs](https://docs.sentry.io/error-reporting/configuration/?platform=javascript). The `environment` value defaults to `NODE_ENV` (or `'development'` if `NODE_ENV` is not set).
+Options will be passed directly to `Sentry.init`. See all available options in
+[our docs](https://docs.sentry.io/error-reporting/configuration/?platform=javascript). The `environment` value defaults
+to `NODE_ENV` (or `'development'` if `NODE_ENV` is not set).
 
 ## GitHub Actions
 
@@ -35,18 +37,21 @@ The `release` value is inferred from `COMMIT_REF`.
 
 ## Vercel
 
-To automatically capture the `release` value on Vercel you will need to register appropriate [system environment variable](https://vercel.com/docs/v2/build-step#system-environment-variables) (e.g. `VERCEL_GITHUB_COMMIT_SHA`) in your project.
+To automatically capture the `release` value on Vercel you will need to register appropriate
+[system environment variable](https://vercel.com/docs/v2/build-step#system-environment-variables) (e.g.
+`VERCEL_GITHUB_COMMIT_SHA`) in your project.
 
 ## Sentry Performance
 
-To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options. This will turn on the `BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
+To enable tracing, supply either `tracesSampleRate` or `tracesSampler` to the options. This will turn on the
+`BrowserTracing` integration for automatic instrumentation of pageloads and navigations.
 
 ```javascript
 module.exports = {
   // ...
   plugins: [
     {
-      resolve: "@sentry/gatsby",
+      resolve: '@sentry/gatsby',
       options: {
         dsn: process.env.SENTRY_DSN, // this is the default
 
@@ -60,24 +65,21 @@ module.exports = {
           // for this transaction.
           // Can return 0 to drop the transaction entirely.
 
-          if ("...") {
-            return 0.5 // These are important - take a big sample
+          if ('...') {
+            return 0.5; // These are important - take a big sample
+          } else if ('...') {
+            return 0.01; // These are less important or happen much more frequently - only take 1% of them
+          } else if ('...') {
+            return 0; // These aren't something worth tracking - drop all transactions like this
+          } else {
+            return 0.1; // Default sample rate
           }
-          else if ("...") {
-            return 0.01 // These are less important or happen much more frequently - only take 1% of them
-          }
-          else if ("...") {
-            return 0 // These aren't something worth tracking - drop all transactions like this
-          }
-          else {
-            return 0.1 // Default sample rate
-          }
-        }
-      }
+        },
+      },
     },
     // ...
-  ]
-}
+  ],
+};
 ```
 
 If you want to supply options to the `BrowserTracing` integration, use the `browserTracingOptions` parameter.
@@ -87,19 +89,19 @@ module.exports = {
   // ...
   plugins: [
     {
-      resolve: "@sentry/gatsby",
+      resolve: '@sentry/gatsby',
       options: {
-          dsn: process.env.SENTRY_DSN, // this is the default
-          tracesSampleRate: 1, // or tracesSampler (see above)
-          browserTracingOptions: {
-            // disable creating spans for XHR requests
-            traceXHR: false,
-          }
-      }
+        dsn: process.env.SENTRY_DSN, // this is the default
+        tracesSampleRate: 1, // or tracesSampler (see above)
+        browserTracingOptions: {
+          // disable creating spans for XHR requests
+          traceXHR: false,
+        },
+      },
     },
     // ...
-  ]
-}
+  ],
+};
 ```
 
 ## Links

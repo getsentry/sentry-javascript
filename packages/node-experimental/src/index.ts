@@ -11,7 +11,7 @@ export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejec
 export { anrIntegration } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration } from './integrations/tracing/fastify';
+export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';

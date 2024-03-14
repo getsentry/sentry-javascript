@@ -74,7 +74,7 @@ export function getPrivacyOptions({
   const defaultBlockedElements = ['base[href="/"]'];
 
   const maskSelector = getOption(mask, ['.sentry-mask', '[data-sentry-mask]'], maskTextClass, maskTextSelector);
-  const unmaskSelector = getOption(unmask, ['.sentry-unmask', '[data-sentry-unmask]']);
+  const unmaskSelector = getOption(unmask, []);
 
   const options: GetPrivacyReturn = {
     // We are making the decision to make text and input selectors the same
@@ -87,7 +87,7 @@ export function getPrivacyOptions({
       blockClass,
       blockSelector,
     ),
-    unblockSelector: getOption(unblock, ['.sentry-unblock', '[data-sentry-unblock]']),
+    unblockSelector: getOption(unblock, []),
     ignoreSelector: getOption(ignore, ['.sentry-ignore', '[data-sentry-ignore]', 'input[type="file"]'], ignoreClass),
   };
 

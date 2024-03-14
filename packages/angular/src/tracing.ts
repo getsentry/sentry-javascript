@@ -10,11 +10,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   browserTracingIntegration as originalBrowserTracingIntegration,
+  getActiveSpan,
+  getClient,
   getCurrentScope,
+  getRootSpan,
+  spanToJSON,
   startBrowserTracingNavigationSpan,
+  startInactiveSpan,
 } from '@sentry/browser';
-import { getActiveSpan, getClient, getRootSpan, spanToJSON, startInactiveSpan } from '@sentry/core';
-import type { Integration, Span, Transaction } from '@sentry/types';
+import type { Integration, Span } from '@sentry/types';
 import { logger, stripUrlQueryAndFragment, timestampInSeconds } from '@sentry/utils';
 import type { Observable } from 'rxjs';
 import { Subscription } from 'rxjs';
@@ -57,16 +61,6 @@ export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Sp
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
   }
-}
-
-/**
- * Grabs active transaction off scope.
- *
- * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
- */
-export function getActiveTransaction(): Transaction | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getTransaction();
 }
 
 /**
@@ -286,28 +280,33 @@ export class TraceDirective implements OnInit, AfterViewInit {
 })
 export class TraceModule {}
 
+interface TraceClassOptions {
+  /**
+   * Name of the class
+   */
+  name?: string;
+}
+
 /**
  * Decorator function that can be used to capture initialization lifecycle of the whole component.
  */
-export function TraceClassDecorator(): ClassDecorator {
+export function TraceClass(options?: TraceClassOptions): ClassDecorator {
   let tracingSpan: Span;
 
   /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   return target => {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
-      // eslint-disable-next-line deprecation/deprecation
-      const activeTransaction = getActiveTransaction();
-      if (activeTransaction) {
-        // eslint-disable-next-line deprecation/deprecation
-        tracingSpan = activeTransaction.startChild({
-          name: `<${target.name}>`,
-          op: ANGULAR_INIT_OP,
-          origin: 'auto.ui.angular.trace_class_decorator',
-        });
-      }
+      tracingSpan = startInactiveSpan({
+        onlyIfParent: true,
+        name: `<${options && options.name ? options.name : 'unnamed'}>`,
+        op: ANGULAR_INIT_OP,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+        },
+      });
+
       if (originalOnInit) {
         return originalOnInit.apply(this, args);
       }
@@ -327,28 +326,34 @@ export function TraceClassDecorator(): ClassDecorator {
   /* eslint-enable @typescript-eslint/no-unsafe-member-access */
 }
 
+interface TraceMethodOptions {
+  /**
+   * Name of the method (is added to the tracing span)
+   */
+  name?: string;
+}
+
 /**
  * Decorator function that can be used to capture a single lifecycle methods of the component.
  */
-export function TraceMethodDecorator(): MethodDecorator {
-  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type, @typescript-eslint/ban-types
+export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
+  // eslint-disable-next-line @typescript-eslint/ban-types
   return (target: Object, propertyKey: string | symbol, descriptor: PropertyDescriptor) => {
     const originalMethod = descriptor.value;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
-      // eslint-disable-next-line deprecation/deprecation
-      const activeTransaction = getActiveTransaction();
-      if (activeTransaction) {
-        // eslint-disable-next-line deprecation/deprecation
-        activeTransaction.startChild({
-          name: `<${target.constructor.name}>`,
-          endTimestamp: now,
-          op: `${ANGULAR_OP}.${String(propertyKey)}`,
-          origin: 'auto.ui.angular.trace_method_decorator',
-          startTimestamp: now,
-        });
-      }
+
+      startInactiveSpan({
+        onlyIfParent: true,
+        name: `<${options && options.name ? options.name : 'unnamed'}>`,
+        op: `${ANGULAR_OP}.${String(propertyKey)}`,
+        startTime: now,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+        },
+      }).end(now);
+
       if (originalMethod) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         return originalMethod.apply(this, args);
