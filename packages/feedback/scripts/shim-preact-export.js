@@ -34,10 +34,10 @@ function walk(dir) {
           //
           // Example:
           //
-          // import { ComponentChildren, VNode } from 'preact';
+          // import type { ComponentChildren, VNode } from 'preact';
           // becomes
-          // declare const ComponentChildren: any;
-          // declare const VNode: any;
+          // type ComponentChildren: any;
+          // type VNode: any;
           const snippet = groups.reduce((acc, curr) => {
             const searchableValue = curr.includes(' as ') ? curr.split(' as ')[1] : curr;
 
