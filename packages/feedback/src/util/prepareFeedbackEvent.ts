@@ -1,5 +1,4 @@
-import { getIsolationScope } from '@sentry/core';
-import { prepareEvent } from '@sentry/core';
+import { getIsolationScope, prepareEvent } from '@sentry/core';
 import type { Client, FeedbackEvent, Scope } from '@sentry/types';
 
 interface PrepareFeedbackEventParams {
@@ -14,9 +13,11 @@ export async function prepareFeedbackEvent({
   client,
   scope,
   event,
-}: PrepareFeedbackEventParams): Promise<FeedbackEvent | null> {
+}: PrepareFeedbackEventParams): Promise<FeedbackEvent> {
   const eventHint = {};
-  client.emit('preprocessEvent', event, eventHint);
+  if (client.emit) {
+    client.emit('preprocessEvent', event, eventHint);
+  }
 
   const preparedEvent = (await prepareEvent(
     client.getOptions(),
@@ -30,7 +31,7 @@ export async function prepareFeedbackEvent({
   if (preparedEvent === null) {
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'feedback', event);
-    return null;
+    throw new Error('Unable to prepare event');
   }
 
   // This normally happens in browser client "_prepareEvent"

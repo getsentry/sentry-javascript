@@ -13,8 +13,8 @@ import * as childProcess from 'child_process';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
+import terser from '@rollup/plugin-terser';
 import license from 'rollup-plugin-license';
-import { terser } from 'rollup-plugin-terser';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.

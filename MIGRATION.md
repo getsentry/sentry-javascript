@@ -598,8 +598,8 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 
 #### Updated minimum compatible Next.js version to `13.2.0`
 
-The minimum version of Next.js compatible with the Sentry Next.js SDK has been raised to `13.2.0`.
-Older versions may exhibit bugs or unexpected behaviour.
+The minimum version of Next.js compatible with the Sentry Next.js SDK has been raised to `13.2.0`. Older versions may
+exhibit bugs or unexpected behaviour.
 
 #### Merging of the Sentry Webpack Plugin options and SDK Build options
 

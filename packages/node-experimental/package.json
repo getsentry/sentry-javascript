@@ -65,7 +65,9 @@
     "@sentry/core": "8.0.0-alpha.2",
     "@sentry/opentelemetry": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
-    "@sentry/utils": "8.0.0-alpha.2",
+    "@sentry/utils": "8.0.0-alpha.2"
+  },
+  "devDependencies": {
     "@types/node": "14.18.63"
   },
   "optionalDependencies": {
