@@ -12,8 +12,9 @@ Replay with canvas requires Node 14+, and browsers newer than IE11.
 
 ## Installation
 
-Replay and ReplayCanvas can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or `@sentry/vue`.
-You don't need to install anything in order to use Session Replay. The minimum version that includes Replay is 7.27.0.
+Replay and ReplayCanvas can be imported from `@sentry/browser`, or a respective SDK package like `@sentry/react` or
+`@sentry/vue`. You don't need to install anything in order to use Session Replay. The minimum version that includes
+Replay is 7.27.0.
 
 For details on using Replay when using Sentry via the CDN bundles, see [CDN bundle](#loading-replay-as-a-cdn-bundle).
 
@@ -22,7 +23,7 @@ For details on using Replay when using Sentry via the CDN bundles, see [CDN bund
 To set up the canvas integration, add the following to your Sentry integrations:
 
 ```javascript
-new Sentry.ReplayCanvas(),
+Sentry.replayCanvasIntegration(),
 ```
 
 ### Full Example
@@ -42,10 +43,7 @@ Sentry.init({
   // sessions when an error occurs.
   replaysOnErrorSampleRate: 1.0,
 
-  integrations: [
-    new Sentry.Replay(),
-    new Sentry.ReplayCanvas(),
-  ],
+  integrations: [Sentry.replayIntegration(), Sentry.replayCanvasIntegration()],
   // ...
 });
 ```

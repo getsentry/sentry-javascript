@@ -48,7 +48,7 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: 'node-experimental',
+      [SemanticResourceAttributes.SERVICE_NAME]: 'node',
       [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
       [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
     }),

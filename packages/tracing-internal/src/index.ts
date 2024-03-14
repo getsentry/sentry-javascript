@@ -25,6 +25,4 @@ export {
   addLcpInstrumentationHandler,
 } from './browser';
 
-export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './common/fetch';
-
 export type { RequestInstrumentationOptions } from './browser';

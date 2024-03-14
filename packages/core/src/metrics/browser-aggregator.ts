@@ -1,10 +1,9 @@
-import type { ClientOptions, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
+import type { Client, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import type { BaseClient } from '../baseclient';
+import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
 import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
-import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
 import { getBucketKey, sanitizeTags } from './utils';
 
@@ -21,7 +20,7 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
   private _buckets: MetricBucket;
   private readonly _interval: ReturnType<typeof setInterval>;
 
-  public constructor(private readonly _client: BaseClient<ClientOptions>) {
+  public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._interval = setInterval(() => this.flush(), DEFAULT_BROWSER_FLUSH_INTERVAL);
   }

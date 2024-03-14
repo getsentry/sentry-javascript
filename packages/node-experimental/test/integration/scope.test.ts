@@ -1,5 +1,6 @@
-import { getCurrentScope, setGlobalScope } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { getClient, getSpanScopes } from '@sentry/opentelemetry';
+import { clearGlobalScope } from '../../../core/test/lib/clear-global-scope';
 
 import * as Sentry from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';
@@ -64,6 +65,8 @@ describe('Integration | Scope', () => {
               trace: {
                 span_id: spanId,
                 trace_id: traceId,
+                // local span ID from propagation context
+                ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
               },
             }),
           }),
@@ -109,6 +112,8 @@ describe('Integration | Scope', () => {
                 status: 'ok',
                 trace_id: traceId,
                 origin: 'manual',
+                // local span ID from propagation context
+                parent_span_id: expect.any(String),
               },
             }),
             spans: [],
@@ -193,7 +198,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId1,
                   trace_id: traceId1,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -219,7 +225,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId2,
                   trace_id: traceId2,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -246,7 +253,7 @@ describe('Integration | Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      setGlobalScope(undefined);
+      clearGlobalScope();
     });
 
     it('works before calling init', () => {

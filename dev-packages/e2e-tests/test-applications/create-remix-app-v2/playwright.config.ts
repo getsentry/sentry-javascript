@@ -2,6 +2,7 @@ import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const port = 3030;
+const eventProxyPort = 3031;
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -34,6 +35,9 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    /* Base URL to use in actions like `await page.goto('/')`. */
+    baseURL: `http://localhost:${port}`,
   },
 
   /* Configure projects for major browsers */
@@ -44,14 +48,19 @@ const config: PlaywrightTestConfig = {
         ...devices['Desktop Chrome'],
       },
     },
-    // For now we only test Chrome!
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: `PORT=${port} pnpm start`,
-    port,
-  },
+  webServer: [
+    {
+      command: 'pnpm ts-node-script start-event-proxy.ts',
+      port: eventProxyPort,
+    },
+    {
+      command: `PORT=${port} pnpm start`,
+      port: port,
+    },
+  ],
 };
 
 export default config;

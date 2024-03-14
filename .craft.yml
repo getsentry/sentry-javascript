@@ -89,8 +89,11 @@ targets:
 
   ## 5. Node-based Packages
   - name: npm
-    id: '@sentry/serverless'
-    includeNames: /^sentry-serverless-\d.*\.tgz$/
+    id: '@sentry/aws-serverless'
+    includeNames: /^sentry-aws-serverless-\d.*\.tgz$/
+  - name: npm
+    id: '@sentry/google-cloud-serverless'
+    includeNames: /^sentry-google-cloud-\d.*\.tgz$/
   - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/

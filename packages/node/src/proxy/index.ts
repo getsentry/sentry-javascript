@@ -28,7 +28,6 @@
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import assert from 'assert';
 import type * as http from 'http';
 import type { OutgoingHttpHeaders } from 'http';
 import * as net from 'net';
@@ -190,8 +189,6 @@ export class HttpsProxyAgent<Uri extends string> extends Agent {
     // Need to wait for the "socket" event to re-play the "data" events.
     req.once('socket', (s: net.Socket) => {
       debug('Replaying proxy buffer for failed request');
-      assert(s.listenerCount('data') > 0);
-
       // Replay the "buffered" Buffer onto the fake `socket`, since at
       // this point the HTTP module machinery has been hooked up for
       // the user.

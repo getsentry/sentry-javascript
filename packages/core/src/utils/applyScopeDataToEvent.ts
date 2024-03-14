@@ -1,8 +1,7 @@
 import type { Breadcrumb, Event, ScopeData, Span } from '@sentry/types';
 import { arrayify, dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from '../tracing/dynamicSamplingContext';
-import { getRootSpan } from './getRootSpan';
-import { spanToJSON, spanToTraceContext } from './spanUtils';
+import { getRootSpan, spanToJSON, spanToTraceContext } from './spanUtils';
 
 /**
  * Applies data from the scope to the event and runs all event processors on it.
@@ -39,7 +38,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     eventProcessors,
     attachments,
     propagationContext,
-    // eslint-disable-next-line deprecation/deprecation
     transactionName,
     span,
   } = mergeData;
@@ -55,7 +53,6 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
   }
 
   if (transactionName) {
-    // eslint-disable-next-line deprecation/deprecation
     data.transactionName = transactionName;
   }
 
@@ -119,15 +116,7 @@ export function mergeArray<Prop extends 'breadcrumbs' | 'fingerprint'>(
 }
 
 function applyDataToEvent(event: Event, data: ScopeData): void {
-  const {
-    extra,
-    tags,
-    user,
-    contexts,
-    level,
-    // eslint-disable-next-line deprecation/deprecation
-    transactionName,
-  } = data;
+  const { extra, tags, user, contexts, level, transactionName } = data;
 
   const cleanedExtra = dropUndefinedKeys(extra);
   if (cleanedExtra && Object.keys(cleanedExtra).length) {
@@ -153,7 +142,8 @@ function applyDataToEvent(event: Event, data: ScopeData): void {
     event.level = level;
   }
 
-  if (transactionName) {
+  // transaction events get their `transaction` from the root span name
+  if (transactionName && event.type !== 'transaction') {
     event.transaction = transactionName;
   }
 }
@@ -172,17 +162,16 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
 
 function applySpanToEvent(event: Event, span: Span): void {
   event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
-  const rootSpan = getRootSpan(span);
-  if (rootSpan) {
-    event.sdkProcessingMetadata = {
-      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
-      ...event.sdkProcessingMetadata,
-    };
 
-    const transactionName = spanToJSON(rootSpan).description;
-    if (transactionName && !event.transaction) {
-      event.transaction = transactionName;
-    }
+  event.sdkProcessingMetadata = {
+    dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+    ...event.sdkProcessingMetadata,
+  };
+
+  const rootSpan = getRootSpan(span);
+  const transactionName = spanToJSON(rootSpan).description;
+  if (transactionName && !event.transaction && event.type === 'transaction') {
+    event.transaction = transactionName;
   }
 }
 

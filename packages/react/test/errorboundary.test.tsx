@@ -35,6 +35,20 @@ function Bam(): JSX.Element {
   return <Boo title={title} />;
 }
 
+function EffectSpyFallback({ error }: { error: Error }): JSX.Element {
+  const [counter, setCounter] = useState(0);
+
+  React.useEffect(() => {
+    setCounter(c => c + 1);
+  }, []);
+
+  return (
+    <span>
+      EffectSpyFallback {counter} - {error.message}
+    </span>
+  );
+}
+
 interface TestAppProps extends ErrorBoundaryProps {
   errorComp?: JSX.Element;
 }
@@ -101,7 +115,7 @@ describe('ErrorBoundary', () => {
   it('renders null if not given a valid `fallback` prop function', () => {
     const { container } = render(
       // @ts-expect-error Passing wrong type on purpose
-      <ErrorBoundary fallback={() => 'Not a ReactElement'}>
+      <ErrorBoundary fallback={() => undefined}>
         <Bam />
       </ErrorBoundary>,
     );
@@ -116,6 +130,15 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
     expect(container.innerHTML).toBe('<h1>Error Component</h1>');
+  });
+
+  it('renders a fallback that can use react hooks', () => {
+    const { container } = render(
+      <ErrorBoundary fallback={EffectSpyFallback}>
+        <Bam />
+      </ErrorBoundary>,
+    );
+    expect(container.innerHTML).toBe('<span>EffectSpyFallback 1 - boom</span>');
   });
 
   it('calls `onMount` when mounted', () => {
@@ -242,7 +265,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -300,7 +323,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       // Check if error.cause -> react component stack
@@ -339,7 +362,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -383,7 +406,7 @@ describe('ErrorBoundary', () => {
         captureContext: {
           contexts: { react: { componentStack: expect.any(String) } },
         },
-        mechanism: { handled: false },
+        mechanism: { handled: true },
       });
 
       expect(mockOnError.mock.calls[0][0]).toEqual(mockCaptureException.mock.calls[0][0]);
@@ -514,6 +537,48 @@ describe('ErrorBoundary', () => {
 
       expect(mockOnReset).toHaveBeenCalledTimes(1);
       expect(mockOnReset).toHaveBeenCalledWith(expect.any(Error), expect.any(String), expect.any(String));
+    });
+
+    it('sets `handled: true` when a fallback is provided', async () => {
+      render(
+        <TestApp fallback={({ resetError }) => <button data-testid="reset" onClick={resetError} />}>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: true },
+      });
+    });
+
+    it('sets `handled: false` when no fallback is provided', async () => {
+      render(
+        <TestApp>
+          <h1>children</h1>
+        </TestApp>,
+      );
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(0);
+
+      const btn = screen.getByTestId('errorBtn');
+      fireEvent.click(btn);
+
+      expect(mockCaptureException).toHaveBeenCalledTimes(1);
+      expect(mockCaptureException).toHaveBeenLastCalledWith(expect.any(Object), {
+        captureContext: {
+          contexts: { react: { componentStack: expect.any(String) } },
+        },
+        mechanism: { handled: false },
+      });
     });
   });
 });

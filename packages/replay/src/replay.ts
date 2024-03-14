@@ -3,11 +3,12 @@ import { EventType, record } from '@sentry-internal/rrweb';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
+  getActiveSpan,
   getClient,
-  getCurrentScope,
+  getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { ReplayRecordingMode, Transaction } from '@sentry/types';
+import type { ReplayRecordingMode, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import {
@@ -87,10 +88,10 @@ export class ReplayContainer implements ReplayContainerInterface {
   public recordingMode: ReplayRecordingMode;
 
   /**
-   * The current or last active transcation.
+   * The current or last active span.
    * This is only available when performance is enabled.
    */
-  public lastTransaction?: Transaction;
+  public lastActiveSpan?: Span;
 
   /**
    * These are here so we can overwrite them in tests etc.
@@ -720,16 +721,16 @@ export class ReplayContainer implements ReplayContainerInterface {
    * This is only available if performance is enabled, and if an instrumented router is used.
    */
   public getCurrentRoute(): string | undefined {
-    // eslint-disable-next-line deprecation/deprecation
-    const lastTransaction = this.lastTransaction || getCurrentScope().getTransaction();
+    const lastActiveSpan = this.lastActiveSpan || getActiveSpan();
+    const lastRootSpan = lastActiveSpan && getRootSpan(lastActiveSpan);
 
-    const attributes = (lastTransaction && spanToJSON(lastTransaction).data) || {};
+    const attributes = (lastRootSpan && spanToJSON(lastRootSpan).data) || {};
     const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-    if (!lastTransaction || !source || !['route', 'custom'].includes(source)) {
+    if (!lastRootSpan || !source || !['route', 'custom'].includes(source)) {
       return undefined;
     }
 
-    return spanToJSON(lastTransaction).description;
+    return spanToJSON(lastRootSpan).description;
   }
 
   /**

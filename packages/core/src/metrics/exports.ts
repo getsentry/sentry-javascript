@@ -1,11 +1,10 @@
 import type {
-  ClientOptions,
+  Client,
   MeasurementUnit,
   MetricsAggregator as MetricsAggregatorInterface,
   Primitive,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
-import type { BaseClient } from '../baseclient';
+import { getGlobalSingleton, logger } from '@sentry/utils';
 import { getCurrentScope } from '../currentScopes';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -17,18 +16,39 @@ export interface MetricData {
   unit?: MeasurementUnit;
   tags?: Record<string, Primitive>;
   timestamp?: number;
+  client?: Client;
 }
 
 type MetricsAggregatorConstructor = {
-  new (client: BaseClient<ClientOptions>): MetricsAggregatorInterface;
+  new (client: Client): MetricsAggregatorInterface;
 };
 
 /**
- * Global metrics aggregator instance.
- *
- * This is initialized on the first call to any `Sentry.metric.*` method.
+ * Gets the metrics aggregator for a given client.
+ * @param client The client for which to get the metrics aggregator.
+ * @param Aggregator Optional metrics aggregator class to use to create an aggregator if one does not exist.
  */
-let globalMetricsAggregator: MetricsAggregatorInterface | undefined;
+function getMetricsAggregatorForClient(
+  client: Client,
+  Aggregator: MetricsAggregatorConstructor,
+): MetricsAggregatorInterface {
+  const globalMetricsAggregators = getGlobalSingleton<WeakMap<Client, MetricsAggregatorInterface>>(
+    'globalMetricsAggregators',
+    () => new WeakMap(),
+  );
+
+  const aggregator = globalMetricsAggregators.get(client);
+  if (aggregator) {
+    return aggregator;
+  }
+
+  const newAggregator = new Aggregator(client);
+  client.on('flush', () => newAggregator.flush());
+  client.on('close', () => newAggregator.close());
+  globalMetricsAggregators.set(client, newAggregator);
+
+  return newAggregator;
+}
 
 function addToMetricsAggregator(
   Aggregator: MetricsAggregatorConstructor,
@@ -37,38 +57,32 @@ function addToMetricsAggregator(
   value: number | string,
   data: MetricData | undefined = {},
 ): void {
-  const client = getClient<BaseClient<ClientOptions>>();
+  const client = data.client || getClient<Client>();
+
   if (!client) {
     return;
   }
 
-  if (!globalMetricsAggregator) {
-    const aggregator = (globalMetricsAggregator = new Aggregator(client));
-
-    client.on('flush', () => aggregator.flush());
-    client.on('close', () => aggregator.close());
+  const scope = getCurrentScope();
+  const { unit, tags, timestamp } = data;
+  const { release, environment } = client.getOptions();
+  // eslint-disable-next-line deprecation/deprecation
+  const transaction = scope.getTransaction();
+  const metricTags: Record<string, string> = {};
+  if (release) {
+    metricTags.release = release;
+  }
+  if (environment) {
+    metricTags.environment = environment;
+  }
+  if (transaction) {
+    metricTags.transaction = spanToJSON(transaction).description || '';
   }
 
-  if (client) {
-    const scope = getCurrentScope();
-    const { unit, tags, timestamp } = data;
-    const { release, environment } = client.getOptions();
-    // eslint-disable-next-line deprecation/deprecation
-    const transaction = scope.getTransaction();
-    const metricTags: Record<string, string> = {};
-    if (release) {
-      metricTags.release = release;
-    }
-    if (environment) {
-      metricTags.environment = environment;
-    }
-    if (transaction) {
-      metricTags.transaction = spanToJSON(transaction).description || '';
-    }
+  DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
 
-    DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);
-    globalMetricsAggregator.add(metricType, name, value, unit, { ...metricTags, ...tags }, timestamp);
-  }
+  const aggregator = getMetricsAggregatorForClient(client, Aggregator);
+  aggregator.add(metricType, name, value, unit, { ...metricTags, ...tags }, timestamp);
 }
 
 /**
@@ -112,4 +126,8 @@ export const metrics = {
   distribution,
   set,
   gauge,
+  /**
+   * @ignore This is for internal use only.
+   */
+  getMetricsAggregatorForClient,
 };

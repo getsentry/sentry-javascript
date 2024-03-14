@@ -27,22 +27,20 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
-  function getInstrumentation(): [Instrumentation] | void {
+  async function getInstrumentation(): Promise<[Instrumentation] | void> {
     // Only add NodeFetch if Node >= 16, as previous versions do not support it
     if (NODE_MAJOR < 16) {
       return;
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { FetchInstrumentation } = require('opentelemetry-instrumentation-fetch-node');
+      const pkg = await import('opentelemetry-instrumentation-fetch-node');
       return [
-        new FetchInstrumentation({
+        new pkg.FetchInstrumentation({
           ignoreRequestHook: (request: { origin?: string }) => {
             const url = request.origin;
             return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
           },
-
           onRequest: ({ span }: { span: Span }) => {
             _updateSpan(span);
 
@@ -50,7 +48,8 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
               _addRequestBreadcrumb(span);
             }
           },
-        }),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any),
       ];
     } catch (error) {
       // Could not load instrumentation
@@ -60,13 +59,14 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   return {
     name: 'NodeFetch',
     setupOnce() {
-      const instrumentations = getInstrumentation();
-
-      if (instrumentations) {
-        registerInstrumentations({
-          instrumentations,
-        });
-      }
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      getInstrumentation().then(instrumentations => {
+        if (instrumentations) {
+          registerInstrumentations({
+            instrumentations,
+          });
+        }
+      });
     },
   };
 }) satisfies IntegrationFn;

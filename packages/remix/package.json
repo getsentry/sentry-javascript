@@ -10,7 +10,7 @@
     "sentry-upload-sourcemaps": "scripts/sentry-upload-sourcemaps.js"
   },
   "engines": {
-    "node": ">=14.8"
+    "node": ">=14.18"
   },
   "files": [
     "cjs",
@@ -23,6 +23,17 @@
   "module": "build/esm/index.server.js",
   "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "browser": {
+        "import": "./build/esm/index.client.js",
+        "require": "./build/cjs/index.client.js"
+      },
+      "node": "./build/cjs/index.server.js",
+      "types": "./build/types/index.types.d.ts"
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/types/index.d.ts": [
@@ -35,9 +46,10 @@
   },
   "dependencies": {
     "@remix-run/router": "1.x",
-    "@sentry/cli": "^2.29.1",
+    "@sentry/cli": "^2.30.0",
     "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
+    "@sentry/node": "8.0.0-alpha.2",
+    "@sentry/opentelemetry": "8.0.0-alpha.2",
     "@sentry/react": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",
@@ -71,10 +83,9 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:integration": "run-s test:integration:v1 test:integration:v2 test:integration:tracingIntegration",
+    "test:integration": "run-s test:integration:v1 test:integration:v2",
     "test:integration:v1": "run-s test:integration:clean test:integration:prepare test:integration:client test:integration:server",
     "test:integration:v2": "export REMIX_VERSION=2 && run-s test:integration:v1",
-    "test:integration:tracingIntegration": "export TRACING_INTEGRATION=true && run-s test:integration:v2",
     "test:integration:ci": "run-s test:integration:clean test:integration:prepare test:integration:client:ci test:integration:server",
     "test:integration:prepare": "(cd test/integration && yarn install)",
     "test:integration:clean": "(cd test/integration && rimraf .cache node_modules build)",

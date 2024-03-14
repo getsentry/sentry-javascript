@@ -51,14 +51,13 @@
   "dependencies": {
     "@sentry/browser": "8.0.0-alpha.2",
     "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
+    "@sentry/node": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",
     "@sentry/vite-plugin": "^2.14.2"
   },
   "devDependencies": {
     "astro": "^3.5.0",
-    "rollup": "^3.20.2",
     "vite": "4.0.5"
   },
   "scripts": {

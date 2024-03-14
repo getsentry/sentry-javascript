@@ -11,7 +11,7 @@ export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejec
 export { anrIntegration } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration } from './integrations/tracing/fastify';
+export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
@@ -21,6 +21,7 @@ export { nestIntegration } from './integrations/tracing/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
@@ -38,21 +39,17 @@ export { NodeClient } from './sdk/client';
 export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
 
-export type { Span, NodeOptions } from './types';
-
-export {
-  startSpan,
-  startSpanManual,
-  startInactiveSpan,
-  getActiveSpan,
-  withActiveSpan,
-} from '@sentry/opentelemetry';
+export type { NodeOptions } from './types';
 
 export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
 } from '@sentry/utils';
+
+// These are custom variants that need to be used instead of the core one
+// As they have slightly different implementations
+export { continueTrace } from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
@@ -85,7 +82,7 @@ export {
   setCurrentClient,
   Scope,
   setMeasurement,
-  continueTrace,
+  getSpanDescendants,
   parameterize,
   getCurrentScope,
   getIsolationScope,
@@ -100,6 +97,17 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  addIntegration,
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  getActiveSpan,
+  withActiveSpan,
+  getRootSpan,
 } from '@sentry/core';
 
 export type {
@@ -118,4 +126,5 @@ export type {
   Thread,
   Transaction,
   User,
+  Span,
 } from '@sentry/types';

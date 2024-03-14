@@ -1,18 +1,9 @@
-import { instrumentFetchRequest } from '@sentry-internal/tracing';
-import {
-  addBreadcrumb,
-  convertIntegrationFnToClass,
-  defineIntegration,
-  getClient,
-  isSentryRequestUrl,
-} from '@sentry/core';
+import { addBreadcrumb, defineIntegration, getClient, instrumentFetchRequest, isSentryRequestUrl } from '@sentry/core';
 import type {
   Client,
   FetchBreadcrumbData,
   FetchBreadcrumbHint,
   HandlerDataFetch,
-  Integration,
-  IntegrationClass,
   IntegrationFn,
   Span,
 } from '@sentry/types';
@@ -117,23 +108,10 @@ const _winterCGFetch = ((options: Partial<Options> = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const winterCGFetchIntegration = defineIntegration(_winterCGFetch);
-
 /**
  * Creates spans and attaches tracing headers to fetch requests on WinterCG runtimes.
- *
- * @deprecated Use `winterCGFetchIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const WinterCGFetch = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  winterCGFetchIntegration,
-) as IntegrationClass<Integration & { setupOnce: () => void }> & {
-  new (options?: Partial<Options>): Integration;
-};
-
-// eslint-disable-next-line deprecation/deprecation
-export type WinterCGFetch = typeof WinterCGFetch;
+export const winterCGFetchIntegration = defineIntegration(_winterCGFetch);
 
 function createBreadcrumb(handlerData: HandlerDataFetch): void {
   const { startTimestamp, endTimestamp } = handlerData;

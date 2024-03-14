@@ -35,8 +35,8 @@ export function getSpanFromRequest(req: IncomingMessage): Span | undefined {
   return req._sentrySpan;
 }
 
-function setSpanOnRequest(transaction: Span, req: IncomingMessage): void {
-  req._sentrySpan = transaction;
+function setSpanOnRequest(span: Span, req: IncomingMessage): void {
+  req._sentrySpan = span;
 }
 
 /**
@@ -99,25 +99,9 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
       const baggage = req.headers?.baggage;
 
       return continueTrace({ sentryTrace, baggage }, () => {
-        let requestSpan: Span | undefined = getSpanFromRequest(req);
-        if (!requestSpan) {
-          // TODO(v8): Simplify these checks when startInactiveSpan always returns a span
-          requestSpan = startInactiveSpan({
-            name: options.requestedRouteName,
-            op: 'http.server',
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-            },
-          });
-          if (requestSpan) {
-            requestSpan.setStatus({ code: SPAN_STATUS_OK });
-            setSpanOnRequest(requestSpan, req);
-            autoEndSpanOnResponseEnd(requestSpan, res);
-          }
-        }
+        const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
 
-        const withActiveSpanCallback = (): Promise<ReturnType<F>> => {
+        return withActiveSpan(requestSpan, () => {
           return startSpanManual(
             {
               op: 'function.nextjs',
@@ -128,31 +112,47 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
               },
             },
             async dataFetcherSpan => {
-              dataFetcherSpan?.setStatus({ code: SPAN_STATUS_OK });
+              dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
               try {
                 return await origDataFetcher.apply(this, args);
               } catch (e) {
-                dataFetcherSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
                 throw e;
               } finally {
-                dataFetcherSpan?.end();
+                dataFetcherSpan.end();
                 if (!platformSupportsStreaming()) {
                   await flushQueue();
                 }
               }
             },
           );
-        };
-
-        if (requestSpan) {
-          return withActiveSpan(requestSpan, withActiveSpanCallback);
-        } else {
-          return withActiveSpanCallback();
-        }
+        });
       });
     });
   };
+}
+
+function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: string): Span {
+  const existingSpan = getSpanFromRequest(req);
+  if (existingSpan) {
+    return existingSpan;
+  }
+
+  const requestSpan = startInactiveSpan({
+    name,
+    op: 'http.server',
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+    },
+  });
+
+  requestSpan.setStatus({ code: SPAN_STATUS_OK });
+  setSpanOnRequest(requestSpan, req);
+  autoEndSpanOnResponseEnd(requestSpan, res);
+
+  return requestSpan;
 }
 
 /**
@@ -182,16 +182,16 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
       },
     },
     async dataFetcherSpan => {
-      dataFetcherSpan?.setStatus({ code: SPAN_STATUS_OK });
+      dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
 
       try {
         return await origFunction(...origFunctionArgs);
       } catch (e) {
-        dataFetcherSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+        dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
         captureException(e, { mechanism: { handled: false } });
         throw e;
       } finally {
-        dataFetcherSpan?.end();
+        dataFetcherSpan.end();
         if (!platformSupportsStreaming()) {
           await flushQueue();
         }

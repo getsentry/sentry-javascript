@@ -3,71 +3,55 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import { WINDOW } from '@sentry/react';
-import type { StartSpanOptions } from '@sentry/types';
+import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
+import type { Client } from '@sentry/types';
 import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
 
-type StartSpanCb = (context: StartSpanOptions) => void;
+/** Instruments the Next.js app router for pageloads. */
+export function appRouterInstrumentPageLoad(client: Client): void {
+  startBrowserTracingPageLoadSpan(client, {
+    name: WINDOW.location.pathname,
+    // pageload should always start at timeOrigin (and needs to be in s, not ms)
+    startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+    },
+  });
+}
 
-/**
- * Instruments the Next.js Client App Router.
- */
-export function appRouterInstrumentation(
-  shouldInstrumentPageload: boolean,
-  shouldInstrumentNavigation: boolean,
-  startPageloadSpanCallback: StartSpanCb,
-  startNavigationSpanCallback: StartSpanCb,
-): void {
-  // We keep track of the previous location name so we can set the `from` field on navigation transactions.
-  // This is either a route or a pathname.
-  let currPathname = WINDOW.location.pathname;
+/** Instruments the Next.js app router for navigation. */
+export function appRouterInstrumentNavigation(client: Client): void {
+  addFetchInstrumentationHandler(handlerData => {
+    // The instrumentation handler is invoked twice - once for starting a request and once when the req finishes
+    // We can use the existence of the end-timestamp to filter out "finishing"-events.
+    if (handlerData.endTimestamp !== undefined) {
+      return;
+    }
 
-  if (shouldInstrumentPageload) {
-    startPageloadSpanCallback({
-      name: currPathname,
-      // pageload should always start at timeOrigin (and needs to be in s, not ms)
-      startTime: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
+    // Only GET requests can be navigating RSC requests
+    if (handlerData.fetchData.method !== 'GET') {
+      return;
+    }
+
+    const parsedNavigatingRscFetchArgs = parseNavigatingRscFetchArgs(handlerData.args);
+
+    if (parsedNavigatingRscFetchArgs === null) {
+      return;
+    }
+
+    const newPathname = parsedNavigatingRscFetchArgs.targetPathname;
+
+    startBrowserTracingNavigationSpan(client, {
+      name: newPathname,
       attributes: {
-        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.nextjs.app_router_instrumentation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
       },
     });
-  }
-
-  if (shouldInstrumentNavigation) {
-    addFetchInstrumentationHandler(handlerData => {
-      // The instrumentation handler is invoked twice - once for starting a request and once when the req finishes
-      // We can use the existence of the end-timestamp to filter out "finishing"-events.
-      if (handlerData.endTimestamp !== undefined) {
-        return;
-      }
-
-      // Only GET requests can be navigating RSC requests
-      if (handlerData.fetchData.method !== 'GET') {
-        return;
-      }
-
-      const parsedNavigatingRscFetchArgs = parseNavigatingRscFetchArgs(handlerData.args);
-
-      if (parsedNavigatingRscFetchArgs === null) {
-        return;
-      }
-
-      const newPathname = parsedNavigatingRscFetchArgs.targetPathname;
-      currPathname = newPathname;
-
-      startNavigationSpanCallback({
-        name: newPathname,
-        attributes: {
-          from: currPathname,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.nextjs.app_router_instrumentation',
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-        },
-      });
-    });
-  }
+  });
 }
 
 function parseNavigatingRscFetchArgs(fetchArgs: unknown[]): null | {

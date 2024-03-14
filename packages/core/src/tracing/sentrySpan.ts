@@ -1,5 +1,4 @@
 import type {
-  Primitive,
   Span,
   SpanAttributeValue,
   SpanAttributes,
@@ -13,76 +12,32 @@ import type {
   Transaction,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { getClient } from '../currentScopes';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { getRootSpan } from '../utils/getRootSpan';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
+  addChildSpanToSpan,
+  getRootSpan,
+  getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
-import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from './spanstatus';
-import { addChildSpanToSpan } from './utils';
-
-/**
- * Keeps track of finished spans for a given transaction
- * @internal
- * @hideconstructor
- * @hidden
- */
-export class SpanRecorder {
-  public spans: SentrySpan[];
-
-  private readonly _maxlen: number;
-
-  public constructor(maxlen: number = 1000) {
-    this._maxlen = maxlen;
-    this.spans = [];
-  }
-
-  /**
-   * This is just so that we don't run out of memory while recording a lot
-   * of spans. At some point we just stop and flush out the start of the
-   * trace tree (i.e.the first n spans with the smallest
-   * start_timestamp).
-   */
-  public add(span: SentrySpan): void {
-    if (this.spans.length > this._maxlen) {
-      // eslint-disable-next-line deprecation/deprecation
-      span.spanRecorder = undefined;
-    } else {
-      this.spans.push(span);
-    }
-  }
-}
 
 /**
  * Span contains all data about a span
  */
 export class SentrySpan implements Span {
   /**
-   * Tags for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  public tags: { [key: string]: Primitive };
-
-  /**
    * Data for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public data: { [key: string]: any };
-
-  /**
-   * List of spans that were finalized
-   *
-   * @deprecated This property will no longer be public. Span recording will be handled internally.
-   */
-  public spanRecorder?: SpanRecorder;
 
   /**
    * @inheritDoc
@@ -105,8 +60,8 @@ export class SentrySpan implements Span {
   private _logMessage?: string;
 
   /**
-   * You should never call the constructor manually, always use `Sentry.startTransaction()`
-   * or call `startChild()` on an existing span.
+   * You should never call the constructor manually, always use `Sentry.startSpan()`
+   * or other span methods.
    * @internal
    * @hideconstructor
    * @hidden
@@ -116,13 +71,11 @@ export class SentrySpan implements Span {
     this._spanId = spanContext.spanId || uuid4().substring(16);
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
     // eslint-disable-next-line deprecation/deprecation
-    this.tags = spanContext.tags ? { ...spanContext.tags } : {};
-    // eslint-disable-next-line deprecation/deprecation
     this.data = spanContext.data ? { ...spanContext.data } : {};
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanContext.origin || 'manual',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });
@@ -277,7 +230,7 @@ export class SentrySpan implements Span {
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startChild(
-    spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>,
+    spanContext: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>> = {},
   ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
@@ -285,14 +238,6 @@ export class SentrySpan implements Span {
       sampled: this._sampled,
       traceId: this._traceId,
     });
-
-    // eslint-disable-next-line deprecation/deprecation
-    childSpan.spanRecorder = this.spanRecorder;
-    // eslint-disable-next-line deprecation/deprecation
-    if (childSpan.spanRecorder) {
-      // eslint-disable-next-line deprecation/deprecation
-      childSpan.spanRecorder.add(childSpan);
-    }
 
     // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
     // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.
@@ -315,22 +260,16 @@ export class SentrySpan implements Span {
       this._logMessage = logMessage;
     }
 
-    return childSpan;
-  }
+    const client = getClient();
+    if (client) {
+      client.emit('spanStart', childSpan);
+      // If it has an endTimestamp, it's already ended
+      if (spanContext.endTimestamp) {
+        client.emit('spanEnd', childSpan);
+      }
+    }
 
-  /**
-   * Sets the tag attribute on the current span.
-   *
-   * Can also be used to unset a tag, by passing `undefined`.
-   *
-   * @param key Tag key
-   * @param value Tag value
-   * @deprecated Use `setAttribute()` instead.
-   */
-  public setTag(key: string, value: Primitive): this {
-    // eslint-disable-next-line deprecation/deprecation
-    this.tags = { ...this.tags, [key]: value };
-    return this;
+    return childSpan;
   }
 
   /**
@@ -359,6 +298,18 @@ export class SentrySpan implements Span {
   /** @inheritdoc */
   public setAttributes(attributes: SpanAttributes): void {
     Object.keys(attributes).forEach(key => this.setAttribute(key, attributes[key]));
+  }
+
+  /**
+   * This should generally not be used,
+   * but we need it for browser tracing where we want to adjust the start time afterwards.
+   * USE THIS WITH CAUTION!
+   *
+   * @hidden
+   * @internal
+   */
+  public updateStartTime(timeInput: SpanTimeInput): void {
+    this._startTime = spanTimeInputToSeconds(timeInput);
   }
 
   /**
@@ -397,6 +348,8 @@ export class SentrySpan implements Span {
     }
 
     this._endTime = spanTimeInputToSeconds(endTimestamp);
+
+    this._onSpanEnded();
   }
 
   /**
@@ -415,8 +368,6 @@ export class SentrySpan implements Span {
       spanId: this._spanId,
       startTimestamp: this._startTime,
       status: this._status,
-      // eslint-disable-next-line deprecation/deprecation
-      tags: this.tags,
       traceId: this._traceId,
     });
   }
@@ -447,8 +398,6 @@ export class SentrySpan implements Span {
       span_id: this._spanId,
       start_timestamp: this._startTime,
       status: getStatusMessage(this._status),
-      // eslint-disable-next-line deprecation/deprecation
-      tags: Object.keys(this.tags).length > 0 ? this.tags : undefined,
       timestamp: this._endTime,
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
@@ -499,16 +448,12 @@ export class SentrySpan implements Span {
 
     return hasData ? data : attributes;
   }
-}
 
-function getStatusMessage(status: SpanStatus | undefined): string | undefined {
-  if (!status || status.code === SPAN_STATUS_UNSET) {
-    return undefined;
+  /** Emit `spanEnd` when the span is ended. */
+  private _onSpanEnded(): void {
+    const client = getClient();
+    if (client) {
+      client.emit('spanEnd', this);
+    }
   }
-
-  if (status.code === SPAN_STATUS_OK) {
-    return 'ok';
-  }
-
-  return status.message || 'unknown_error';
 }

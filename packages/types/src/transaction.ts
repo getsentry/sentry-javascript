@@ -1,7 +1,7 @@
 import type { Context } from './context';
 import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
-import type { ExtractedNodeRequestData, Primitive, WorkerLocation } from './misc';
+import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
 import type { Span, SpanAttributes, SpanContext } from './span';
 
@@ -80,12 +80,6 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Sp
    * @inheritDoc
    */
   startTimestamp: number;
-
-  /**
-   * Tags for the transaction.
-   * @deprecated Use `getSpanAttributes(transaction)` instead.
-   */
-  tags: { [key: string]: Primitive };
 
   /**
    * Data for the transaction.

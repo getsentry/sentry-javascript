@@ -6,7 +6,7 @@ import type {
   ReplayRecordingData,
   ReplayRecordingMode,
   SentryWrappedXMLHttpRequest,
-  Transaction,
+  Span,
   XhrBreadcrumbHint,
 } from '@sentry/types';
 
@@ -236,6 +236,20 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
 }
 
 /**
+ * The options that can be set in the plugin options. `sessionSampleRate` and `errorSampleRate` are added
+ * in the root level of the SDK options as `replaysSessionSampleRate` and `replaysOnErrorSampleRate`.
+ */
+export type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>;
+
+// These are optional for ReplayPluginOptions because the plugin sets default values
+type OptionalReplayPluginOptions = Partial<InitialReplayPluginOptions> & {
+  /**
+   * Mask element attributes that are contained in list
+   */
+  maskAttributes?: string[];
+};
+
+/**
  * Session options that are configurable by the integration configuration
  */
 export interface SessionOptions extends Pick<ReplayPluginOptions, 'sessionSampleRate' | 'stickySession'> {
@@ -279,14 +293,6 @@ export interface ReplayIntegrationPrivacyOptions {
    */
   maskFn?: (s: string) => string;
 }
-
-// These are optional for ReplayPluginOptions because the plugin sets default values
-type OptionalReplayPluginOptions = Partial<ReplayPluginOptions> & {
-  /**
-   * Mask element attributes that are contained in list
-   */
-  maskAttributes?: string[];
-};
 
 export interface DeprecatedPrivacyOptions {
   /**
@@ -478,7 +484,7 @@ export interface ReplayContainer {
   session: Session | undefined;
   recordingMode: ReplayRecordingMode;
   timeouts: Timeouts;
-  lastTransaction?: Transaction;
+  lastActiveSpan?: Span;
   throttledAddEvent: (
     event: RecordingEvent,
     isCheckout?: boolean,

@@ -55,9 +55,9 @@ describe('browserTracingReactRouterV5', () => {
   function createMockBrowserClient(): BrowserClient {
     return new BrowserClient({
       integrations: [],
+      tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
       stackParser: () => [],
-      debug: true,
     });
   }
 
@@ -84,6 +84,18 @@ describe('browserTracingReactRouterV5', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
       },
     });
+  });
+
+  it("updates the scope's `transactionName` on pageload", () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    const history = createMemoryHistory();
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history }));
+
+    client.init();
+
+    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
   });
 
   it('starts a navigation transaction', () => {
@@ -340,5 +352,46 @@ describe('browserTracingReactRouterV5', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
+  });
+
+  it("updates the scope's `transactionName` on a route change", () => {
+    const routes: RouteConfig[] = [
+      {
+        path: '/organizations/:orgid/v1/:teamid',
+      },
+      { path: '/organizations/:orgid' },
+      { path: '/' },
+    ];
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    const history = createMemoryHistory();
+    client.addIntegration(reactRouterV5BrowserTracingIntegration({ history, routes, matchPath }));
+
+    client.init();
+
+    const SentryRoute = withSentryRouting(Route);
+
+    render(
+      <Router history={history as any}>
+        <Switch>
+          <SentryRoute path="/organizations/:orgid/v1/:teamid" component={() => <div>Team</div>} />
+          <SentryRoute path="/organizations/:orgid" component={() => <div>OrgId</div>} />
+          <SentryRoute path="/" component={() => <div>Home</div>} />
+        </Switch>
+      </Router>,
+    );
+
+    act(() => {
+      history.push('/organizations/1234/v1/758');
+    });
+
+    expect(getCurrentScope().getScopeData().transactionName).toBe('/organizations/:orgid/v1/:teamid');
+
+    act(() => {
+      history.push('/organizations/1234');
+    });
+
+    expect(getCurrentScope().getScopeData().transactionName).toBe('/organizations/:orgid');
   });
 });

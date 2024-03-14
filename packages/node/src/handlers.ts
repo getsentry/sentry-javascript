@@ -1,5 +1,7 @@
 import type * as http from 'http';
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import type { Transaction } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -12,7 +14,7 @@ import {
   getIsolationScope,
   hasTracingEnabled,
   setHttpStatus,
-  startTransaction,
+  startInactiveSpan,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
@@ -21,7 +23,6 @@ import type { AddRequestDataToEventOptions } from '@sentry/utils';
 import {
   addRequestDataToTransaction,
   extractPathForTransaction,
-  extractRequestData,
   isString,
   isThenable,
   logger,
@@ -58,37 +59,27 @@ export function tracingHandler(): (
       return next();
     }
 
+    // We depend here on the fact that we update the current scope...
+    // so we keep this legacy behavior here for now
+    const scope = getCurrentScope();
+
     const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    const transaction = continueTrace({ sentryTrace, baggage }, ctx =>
-      // TODO: Refactor this to use `startSpan()`
-      // eslint-disable-next-line deprecation/deprecation
-      startTransaction(
-        {
-          name,
-          op: 'http.server',
-          origin: 'auto.http.node.tracingHandler',
-          ...ctx,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-          },
-          metadata: {
-            // eslint-disable-next-line deprecation/deprecation
-            ...ctx.metadata,
-            // The request should already have been stored in `scope.sdkProcessingMetadata` (which will become
-            // `event.sdkProcessingMetadata` the same way the metadata here will) by `sentryRequestMiddleware`, but on the
-            // off chance someone is using `sentryTracingMiddleware` without `sentryRequestMiddleware`, it doesn't hurt to
-            // be sure
-            request: req,
-          },
+    const transaction = continueTrace({ sentryTrace, baggage }, () => {
+      scope.setPropagationContext(getCurrentScope().getPropagationContext());
+      return startInactiveSpan({
+        name,
+        op: 'http.server',
+        forceTransaction: true,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node.tracingHandler',
         },
-        // extra context passed to the tracesSampler
-        { request: extractRequestData(req) },
-      ),
-    );
+      }) as Transaction;
+    });
 
     // We put the transaction on the scope so users can attach children to it
     // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
+    scope.setSpan(transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -141,6 +132,8 @@ export function requestHandler(
     if (options && options.flushTimeout && options.flushTimeout > 0) {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       const _end = res.end;
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore I've only updated the node types and this package will soon be removed
       res.end = function (chunk?: any | (() => void), encoding?: string | (() => void), cb?: () => void): void {
         void flush(options.flushTimeout)
           .then(() => {

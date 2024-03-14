@@ -1,5 +1,6 @@
-import type { Hub, SentrySpan } from '@sentry/core';
-import type { EventProcessor, SpanContext } from '@sentry/types';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { getClient } from '@sentry/core';
+import type { EventProcessor, SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
@@ -138,7 +139,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
+  public setupOnce(_: (callback: EventProcessor) => void): void {
     const pkg = this.loadDependency();
 
     if (!pkg) {
@@ -147,20 +148,20 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       return;
     }
 
-    this._instrumentOperations(pkg.Collection, this._operations, getCurrentHub);
+    this._instrumentOperations(pkg.Collection, this._operations);
   }
 
   /**
    * Patches original collection methods
    */
-  private _instrumentOperations(collection: MongoCollection, operations: Operation[], getCurrentHub: () => Hub): void {
-    operations.forEach((operation: Operation) => this._patchOperation(collection, operation, getCurrentHub));
+  private _instrumentOperations(collection: MongoCollection, operations: Operation[]): void {
+    operations.forEach((operation: Operation) => this._patchOperation(collection, operation));
   }
 
   /**
    * Patches original collection to utilize our tracing functionality
    */
-  private _patchOperation(collection: MongoCollection, operation: Operation, getCurrentHub: () => Hub): void {
+  private _patchOperation(collection: MongoCollection, operation: Operation): void {
     if (!(operation in collection.prototype)) return;
 
     const getSpanContext = this._getSpanContextFromOperationArguments.bind(this);
@@ -168,21 +169,15 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     fill(collection.prototype, operation, function (orig: () => void | Promise<unknown>) {
       return function (this: unknown, ...args: unknown[]) {
         const lastArg = args[args.length - 1];
-        const hub = getCurrentHub();
-        // eslint-disable-next-line deprecation/deprecation
-        const scope = hub.getScope();
-        // eslint-disable-next-line deprecation/deprecation
-        const client = hub.getClient();
-        // eslint-disable-next-line deprecation/deprecation
-        const parentSpan = scope.getSpan() as SentrySpan | undefined;
+
+        const client = getClient();
 
         const sendDefaultPii = client?.getOptions().sendDefaultPii;
 
         // Check if the operation was passed a callback. (mapReduce requires a different check, as
         // its (non-callback) arguments can also be functions.)
         if (typeof lastArg !== 'function' || (operation === 'mapReduce' && args.length === 2)) {
-          // eslint-disable-next-line deprecation/deprecation
-          const span = parentSpan?.startChild(getSpanContext(this, operation, args, sendDefaultPii));
+          const span = startInactiveSpan(getSpanContext(this, operation, args, sendDefaultPii));
           const maybePromiseOrCursor = orig.call(this, ...args);
 
           if (isThenable(maybePromiseOrCursor)) {
@@ -213,8 +208,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
           }
         }
 
-        // eslint-disable-next-line deprecation/deprecation
-        const span = parentSpan?.startChild(getSpanContext(this, operation, args.slice(0, -1)));
+        const span = startInactiveSpan(getSpanContext(this, operation, args.slice(0, -1)));
 
         return orig.call(this, ...args.slice(0, -1), function (err: Error, result: unknown) {
           span?.end();
@@ -232,19 +226,19 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
     operation: Operation,
     args: unknown[],
     sendDefaultPii: boolean | undefined = false,
-  ): SpanContext {
-    const data: { [key: string]: string } = {
+  ): StartSpanOptions {
+    const attributes: SpanAttributes = {
       'db.system': 'mongodb',
       'db.name': collection.dbName,
       'db.operation': operation,
       'db.mongodb.collection': collection.collectionName,
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `${collection.collectionName}.${operation}`,
     };
-    const spanContext: SpanContext = {
+    const spanContext: StartSpanOptions = {
       op: 'db',
-      // TODO v8: Use `${collection.collectionName}.${operation}`
-      origin: 'auto.db.mongo',
       name: operation,
-      data,
+      attributes,
+      onlyIfParent: true,
     };
 
     // If the operation takes no arguments besides `options` and `callback`, or if argument
@@ -262,11 +256,11 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
       // Special case for `mapReduce`, as the only one accepting functions as arguments.
       if (operation === 'mapReduce') {
         const [map, reduce] = args as { name?: string }[];
-        data[signature[0]] = typeof map === 'string' ? map : map.name || '<anonymous>';
-        data[signature[1]] = typeof reduce === 'string' ? reduce : reduce.name || '<anonymous>';
+        attributes[signature[0]] = typeof map === 'string' ? map : map.name || '<anonymous>';
+        attributes[signature[1]] = typeof reduce === 'string' ? reduce : reduce.name || '<anonymous>';
       } else {
         for (let i = 0; i < signature.length; i++) {
-          data[`db.mongodb.${signature[i]}`] = JSON.stringify(args[i]);
+          attributes[`db.mongodb.${signature[i]}`] = JSON.stringify(args[i]);
         }
       }
     } catch (_oO) {

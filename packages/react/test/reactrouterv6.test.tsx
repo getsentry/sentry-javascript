@@ -68,9 +68,9 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
   function createMockBrowserClient(): BrowserClient {
     return new BrowserClient({
       integrations: [],
+      tracesSampleRate: 1,
       transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
       stackParser: () => [],
-      debug: true,
     });
   }
 
@@ -112,6 +112,32 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
       });
+    });
+
+    it("updates the scope's `transactionName` on a pageload", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="/" element={<div>Home</div>} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -364,6 +390,35 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
         },
       });
     });
+
+    it("updates the scope's `transactionName` on a navigation", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const SentryRoutes = withSentryReactRouterV6Routing(Routes);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <SentryRoutes>
+            <Route path="/about" element={<div>About</div>}>
+              <Route path="/about/:page" element={<div>page</div>} />
+            </Route>
+            <Route path="/" element={<Navigate to="/about/us" />} />
+          </SentryRoutes>
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about/:page');
+    });
   });
 
   describe('wrapUseRoutes', () => {
@@ -406,6 +461,39 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
         },
       });
+    });
+
+    it("updates the scope's `transactionName` on a pageload", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <div>Home</div>,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
     });
 
     it('skips pageload transaction with `instrumentPageLoad: false`', () => {
@@ -874,6 +962,42 @@ describe('reactRouterV6BrowserTracingIntegration', () => {
       expect(mockStartBrowserTracingPageLoadSpan).toHaveBeenCalledTimes(1);
       expect(mockRootSpan.updateName).toHaveBeenLastCalledWith('/tests/:testId/*');
       expect(mockRootSpan.setAttribute).toHaveBeenCalledWith(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    });
+
+    it("updates the scope's `transactionName` on a navigation", () => {
+      const client = createMockBrowserClient();
+      setCurrentClient(client);
+
+      client.addIntegration(
+        reactRouterV6BrowserTracingIntegration({
+          useEffect: React.useEffect,
+          useLocation,
+          useNavigationType,
+          createRoutesFromChildren,
+          matchRoutes,
+        }),
+      );
+      const wrappedUseRoutes = wrapUseRoutes(useRoutes);
+
+      const Routes = () =>
+        wrappedUseRoutes([
+          {
+            path: '/',
+            element: <Navigate to="/about" />,
+          },
+          {
+            path: '/about',
+            element: <div>About</div>,
+          },
+        ]);
+
+      render(
+        <MemoryRouter initialEntries={['/']}>
+          <Routes />
+        </MemoryRouter>,
+      );
+
+      expect(getCurrentScope().getScopeData()?.transactionName).toBe('/about');
     });
   });
 });

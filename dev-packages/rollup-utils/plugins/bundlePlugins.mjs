@@ -9,17 +9,12 @@
  */
 
 import * as childProcess from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-import { fileURLToPath } from 'url';
 
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import replace from '@rollup/plugin-replace';
-import typescript from '@rollup/plugin-typescript';
-import deepMerge from 'deepmerge';
+import terser from '@rollup/plugin-terser';
 import license from 'rollup-plugin-license';
-import { terser } from 'rollup-plugin-terser';
 
 /**
  * Create a plugin to add an identification banner to the top of stand-alone bundles.
@@ -41,10 +36,6 @@ export function makeLicensePlugin(title) {
   plugin.name = 'license';
 
   return plugin;
-}
-
-export function getEs5Polyfills() {
-  return fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../polyfills/es5.js'), 'utf-8');
 }
 
 /**
@@ -133,6 +124,9 @@ export function makeTerserPlugin() {
           // For v7 backwards-compatibility we need to access txn._frozenDynamicSamplingContext
           // TODO (v8): Remove this reserved word
           '_frozenDynamicSamplingContext',
+          // These are used to keep span relationships
+          '_sentryRootSpan',
+          '_sentryChildSpans',
         ],
       },
     },
@@ -140,45 +134,6 @@ export function makeTerserPlugin() {
       comments: false,
     },
   });
-}
-
-/**
- * Create a TypeScript plugin, which will down-compile if necessary, based on the given JS version.
- *
- * @param jsVersion Either `es5` or `es6`
- * @returns An instance of the `typescript` plugin
- */
-export function makeTSPlugin(jsVersion) {
-  const baseTSPluginOptions = {
-    tsconfig: 'tsconfig.json',
-    compilerOptions: {
-      declaration: false,
-      declarationMap: false,
-      paths: {
-        '@sentry/browser': ['../browser/src'],
-        '@sentry/core': ['../core/src'],
-        '@sentry/types': ['../types/src'],
-        '@sentry/utils': ['../utils/src'],
-        '@sentry-internal/integration-shims': ['../integration-shims/src'],
-        '@sentry-internal/tracing': ['../tracing-internal/src'],
-      },
-      baseUrl: '.',
-    },
-    include: ['*.ts+(|x)', '**/*.ts+(|x)', '../**/*.ts+(|x)'],
-  };
-
-  const plugin = typescript(
-    deepMerge(baseTSPluginOptions, {
-      compilerOptions: {
-        target: jsVersion,
-      },
-    }),
-  );
-
-  // give it a nicer name for later, when we'll need to sort the plugins
-  plugin.name = 'typescript';
-
-  return plugin;
 }
 
 // We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in

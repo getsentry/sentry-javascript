@@ -11,6 +11,7 @@ import {
 } from './constants';
 import { ReplayContainer } from './replay';
 import type {
+  InitialReplayPluginOptions,
   RecordingOptions,
   ReplayCanvasIntegrationOptions,
   ReplayConfiguration,
@@ -27,17 +28,29 @@ const DEFAULT_NETWORK_HEADERS = ['content-length', 'content-type', 'accept'];
 
 let _initialized = false;
 
-type InitialReplayPluginOptions = Omit<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'> &
-  Partial<Pick<ReplayPluginOptions, 'sessionSampleRate' | 'errorSampleRate'>>;
-
+/**
+ * Sentry integration for [Session Replay](https://sentry.io/for/session-replay/).
+ *
+ * See the [Replay documentation](https://docs.sentry.io/platforms/javascript/guides/session-replay/) for more information.
+ *
+ * @example
+ *
+ * ```
+ * Sentry.init({
+ *   dsn: '__DSN__',
+ *   integrations: [Sentry.replayIntegration()],
+ * });
+ * ```
+ */
 export const replayIntegration = ((options?: ReplayConfiguration) => {
-  // eslint-disable-next-line deprecation/deprecation
   return new Replay(options);
 }) satisfies IntegrationFn;
 
 /**
- * The main replay integration class, to be passed to `init({  integrations: [] })`.
- * @deprecated Use `replayIntegration()` instead.
+ * Replay integration
+ *
+ * TODO: Rewrite this to be functional integration
+ * Exported for tests.
  */
 export class Replay implements Integration {
   /**
@@ -75,8 +88,6 @@ export class Replay implements Integration {
     useCompression = true,
     workerUrl,
     _experiments = {},
-    sessionSampleRate,
-    errorSampleRate,
     maskAllText = true,
     maskAllInputs = true,
     blockAllMedia = true,
@@ -117,7 +128,6 @@ export class Replay implements Integration {
     // eslint-disable-next-line deprecation/deprecation
     ignoreClass,
   }: ReplayConfiguration = {}) {
-    // eslint-disable-next-line deprecation/deprecation
     this.name = Replay.id;
 
     const privacyOptions = getPrivacyOptions({
@@ -175,8 +185,6 @@ export class Replay implements Integration {
       minReplayDuration: Math.min(minReplayDuration, MIN_REPLAY_DURATION_LIMIT),
       maxReplayDuration: Math.min(maxReplayDuration, MAX_REPLAY_DURATION),
       stickySession,
-      sessionSampleRate,
-      errorSampleRate,
       useCompression,
       workerUrl,
       blockAllMedia,
@@ -196,30 +204,6 @@ export class Replay implements Integration {
 
       _experiments,
     };
-
-    if (typeof sessionSampleRate === 'number') {
-      // eslint-disable-next-line
-      console.warn(
-        `[Replay] You are passing \`sessionSampleRate\` to the Replay integration.
-This option is deprecated and will be removed soon.
-Instead, configure \`replaysSessionSampleRate\` directly in the SDK init options, e.g.:
-Sentry.init({ replaysSessionSampleRate: ${sessionSampleRate} })`,
-      );
-
-      this._initialOptions.sessionSampleRate = sessionSampleRate;
-    }
-
-    if (typeof errorSampleRate === 'number') {
-      // eslint-disable-next-line
-      console.warn(
-        `[Replay] You are passing \`errorSampleRate\` to the Replay integration.
-This option is deprecated and will be removed soon.
-Instead, configure \`replaysOnErrorSampleRate\` directly in the SDK init options, e.g.:
-Sentry.init({ replaysOnErrorSampleRate: ${errorSampleRate} })`,
-      );
-
-      this._initialOptions.errorSampleRate = errorSampleRate;
-    }
 
     if (this._initialOptions.blockAllMedia) {
       // `blockAllMedia` is a more user friendly option to configure blocking
@@ -387,7 +371,11 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
   const client = getClient();
   const opt = client && (client.getOptions() as BrowserClientReplayOptions);
 
-  const finalOptions = { sessionSampleRate: 0, errorSampleRate: 0, ...dropUndefinedKeys(initialOptions) };
+  const finalOptions: ReplayPluginOptions = {
+    sessionSampleRate: 0,
+    errorSampleRate: 0,
+    ...dropUndefinedKeys(initialOptions),
+  };
 
   if (!opt) {
     consoleSandbox(() => {
@@ -397,12 +385,7 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
     return finalOptions;
   }
 
-  if (
-    initialOptions.sessionSampleRate == null && // TODO remove once deprecated rates are removed
-    initialOptions.errorSampleRate == null && // TODO remove once deprecated rates are removed
-    opt.replaysSessionSampleRate == null &&
-    opt.replaysOnErrorSampleRate == null
-  ) {
+  if (opt.replaysSessionSampleRate == null && opt.replaysOnErrorSampleRate == null) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(

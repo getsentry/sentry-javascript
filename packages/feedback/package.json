@@ -7,7 +7,7 @@
   "author": "Sentry",
   "license": "MIT",
   "engines": {
-    "node": ">=14.8"
+    "node": ">=14.18"
   },
   "files": [
     "cjs",
@@ -18,6 +18,19 @@
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
   "types": "build/npm/types/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
+      "require": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/cjs/index.js"
+      }
+    }
+  },
   "typesVersions": {
     "<4.9": {
       "build/npm/types/index.d.ts": [
@@ -31,7 +44,8 @@
   "dependencies": {
     "@sentry/core": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
-    "@sentry/utils": "8.0.0-alpha.2"
+    "@sentry/utils": "8.0.0-alpha.2",
+    "preact": "^10.19.4"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
@@ -40,7 +54,7 @@
     "build:dev": "run-p build:transpile build:types",
     "build:types": "run-s build:types:core build:types:downlevel",
     "build:types:core": "tsc -p tsconfig.types.json",
-    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8",
+    "build:types:downlevel": "yarn downlevel-dts build/npm/types build/npm/types-ts3.8 --to ts3.8 && yarn node ./scripts/shim-preact-export.js",
     "build:watch": "run-p build:transpile:watch build:bundle:watch build:types:watch",
     "build:dev:watch": "run-p build:transpile:watch build:types:watch",
     "build:transpile:watch": "yarn build:transpile --watch",

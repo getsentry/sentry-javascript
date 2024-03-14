@@ -3,6 +3,9 @@ async function run() {
     Sentry.startSpan({ name: 'child_span' }, () => {
       // whatever a user would do here
     });
+
+    // unfinished spans are filtered out
+    Sentry.startInactiveSpan({ name: 'span_4' });
   });
 }
 

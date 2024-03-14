@@ -1,24 +1,10 @@
-/* eslint-disable max-lines */
 import * as os from 'os';
-import type {
-  Context,
-  DsnComponents,
-  DynamicSamplingContext,
-  Envelope,
-  Event,
-  EventEnvelope,
-  EventEnvelopeHeaders,
-  EventItem,
-  SdkInfo,
-  SdkMetadata,
-  StackFrame,
-  StackParser,
-} from '@sentry/types';
+import type { Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import * as Sentry from '@sentry/node-experimental';
-import { GLOBAL_OBJ, createEnvelope, dropUndefinedKeys, dsnToString, forEachEnvelopeItem, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import type { Profile, ProfiledEvent, RawThreadCpuProfile, ThreadCpuProfile } from './types';
@@ -72,67 +58,6 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
         name: THREAD_NAME,
       },
     },
-  };
-}
-
-/**
- * Extract sdk info from from the API metadata
- * @param {SdkMetadata | undefined} metadata
- * @returns {SdkInfo | undefined}
- */
-function getSdkMetadataForEnvelopeHeader(metadata?: SdkMetadata): SdkInfo | undefined {
-  if (!metadata || !metadata.sdk) {
-    return undefined;
-  }
-
-  return { name: metadata.sdk.name, version: metadata.sdk.version } as SdkInfo;
-}
-
-/**
- * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
- * Merge with existing data if any.
- *
- * @param {Event} event
- * @param {SdkInfo | undefined} sdkInfo
- * @returns {Event}
- */
-function enhanceEventWithSdkInfo(event: Event, sdkInfo?: SdkInfo): Event {
-  if (!sdkInfo) {
-    return event;
-  }
-  event.sdk = event.sdk || {};
-  event.sdk.name = event.sdk.name || sdkInfo.name || 'unknown sdk';
-  event.sdk.version = event.sdk.version || sdkInfo.version || 'unknown sdk version';
-  event.sdk.integrations = [...(event.sdk.integrations || []), ...(sdkInfo.integrations || [])];
-  event.sdk.packages = [...(event.sdk.packages || []), ...(sdkInfo.packages || [])];
-  return event;
-}
-
-/**
- *
- * @param {Event} event
- * @param {SdkInfo | undefined} sdkInfo
- * @param {string | undefined} tunnel
- * @param {DsnComponents} dsn
- * @returns {EventEnvelopeHeaders}
- */
-function createEventEnvelopeHeaders(
-  event: Event,
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn: DsnComponents,
-): EventEnvelopeHeaders {
-  const dynamicSamplingContext = event.sdkProcessingMetadata && event.sdkProcessingMetadata['dynamicSamplingContext'];
-
-  return {
-    event_id: event.event_id as string,
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && { dsn: dsnToString(dsn) }),
-    ...(event.type === 'transaction' &&
-      dynamicSamplingContext && {
-        trace: dropUndefinedKeys({ ...dynamicSamplingContext }) as DynamicSamplingContext,
-      }),
   };
 }
 
@@ -272,67 +197,6 @@ function createProfilePayload(
   };
 
   return profile;
-}
-
-/**
- * Creates an envelope from a profiling event.
- * @param {Event} Profile
- * @param {DsnComponents} dsn
- * @param {SdkMetadata} metadata
- * @param {string|undefined} tunnel
- * @returns {Envelope|null}
- */
-export function createProfilingEventEnvelope(
-  event: ProfiledEvent,
-  dsn: DsnComponents,
-  metadata?: SdkMetadata,
-  tunnel?: string,
-): EventEnvelope | null {
-  const sdkInfo = getSdkMetadataForEnvelopeHeader(metadata);
-  enhanceEventWithSdkInfo(event, metadata && metadata.sdk);
-
-  const envelopeHeaders = createEventEnvelopeHeaders(event, sdkInfo, tunnel, dsn);
-  const profile = createProfilingEventFromTransaction(event);
-
-  if (!profile) {
-    return null;
-  }
-
-  const envelopeItem: EventItem = [
-    {
-      type: 'profile',
-    },
-    // @ts-expect-error profile is not part of EventItem yet
-    profile,
-  ];
-
-  return createEnvelope<EventEnvelope>(envelopeHeaders, [envelopeItem]);
-}
-
-/**
- * Check if event metadata contains profile information
- * @param {Event}
- * @returns {boolean}
- */
-export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent {
-  return !!(event.sdkProcessingMetadata && event.sdkProcessingMetadata['profile']);
-}
-
-/**
- * Due to how profiles are attached to event metadata, we may sometimes want to remove them to ensure
- * they are not processed by other Sentry integrations. This can be the case when we cannot construct a valid
- * profile from the data we have or some of the mechanisms to send the event (Hub, Transport etc) are not available to us.
- *
- * @param {Event | ProfiledEvent} event
- * @returns {Event}
- */
-export function maybeRemoveProfileFromSdkMetadata(event: Event | ProfiledEvent): Event {
-  if (!isProfiledTransactionEvent(event)) {
-    return event;
-  }
-
-  delete event.sdkProcessingMetadata.profile;
-  return event;
 }
 
 /**

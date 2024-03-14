@@ -61,7 +61,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             'http.response.status_code': 500,
           },
@@ -169,7 +169,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'GET',
             'http.response.status_code': 500,
@@ -217,7 +217,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,
@@ -265,7 +265,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,
@@ -313,7 +313,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,
@@ -361,7 +361,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,
@@ -409,7 +409,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,
@@ -457,7 +457,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             method: 'POST',
             'http.response.status_code': 500,

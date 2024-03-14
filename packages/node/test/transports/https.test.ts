@@ -1,3 +1,4 @@
+/* eslint-disable deprecation/deprecation */
 import * as http from 'http';
 import * as https from 'https';
 import { createTransport } from '@sentry/core';
@@ -49,7 +50,9 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    res.connection.end();
+    if (res.connection) {
+      res.connection.end();
+    }
   });
 
   testServer.listen(8099);

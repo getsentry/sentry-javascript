@@ -4,7 +4,7 @@
     "module": "esnext",
     "lib": ["webworker", "scripthost"],
     "esModuleInterop": true,
-    "target": "es6",
+    "target": "es2017",
     "strictPropertyInitialization": false
   },
   "include": ["src/**/*.ts"]

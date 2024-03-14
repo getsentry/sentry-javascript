@@ -16,26 +16,30 @@
 
 ## Compatibility
 
-The minimum supported version of SvelteKit is `1.0.0`.
-The SDK works best with Vite 4.2 and newer.
-Older Vite versions might not generate source maps correctly.
+The minimum supported version of SvelteKit is `1.0.0`. The SDK works best with Vite 4.2 and newer. Older Vite versions
+might not generate source maps correctly.
 
 The SDK supports the following SvelteKit adapters:
-- `@sveltejs/adapter-auto` - for Vercel with the Node runtime. Other deployment targets might work but we don't guarantee compatibility.
+
+- `@sveltejs/adapter-auto` - for Vercel with the Node runtime. Other deployment targets might work but we don't
+  guarantee compatibility.
 - `@sveltejs/adapter-vercel` - only for Node (Lambda) runtimes, not yet Vercel's edge runtime
 - `@sveltejs/adapter-node`
 
-If you use the SDK with other adapters, we cannot guarantee that everything works as expected.
-You might need to [manually configure source maps upload](#-configuring-source-maps-upload).
-The SDK is currently not compatible with none-Node server runtimes, such as Vercel's Edge runtime or Cloudflare workers.
+If you use the SDK with other adapters, we cannot guarantee that everything works as expected. You might need to
+[manually configure source maps upload](#-configuring-source-maps-upload). The SDK is currently not compatible with
+none-Node server runtimes, such as Vercel's Edge runtime or Cloudflare workers.
 
 ## General
 
-This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added functionality related to SvelteKit.
+This package is a wrapper around `@sentry/node` for the server and `@sentry/svelte` for the client side, with added
+functionality related to SvelteKit.
 
 ## Automatic Setup
 
-We recommend installing the SDK by running the [Sentry wizard](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install) in the root directory of your project:
+We recommend installing the SDK by running the
+[Sentry wizard](https://docs.sentry.io/platforms/javascript/guides/sveltekit/#install) in the root directory of your
+project:
 
 ```sh
 npx @sentry/wizard@latest -i sveltekit
@@ -61,39 +65,40 @@ If the setup through the wizard doesn't work for you, you can also set up the SD
 
 ### 2. Client-side Setup
 
-The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.dev/docs/hooks) to capture error and performance data.
+The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.dev/docs/hooks) to capture error and
+performance data.
 
-1. If you don't already have a client hooks file, create a new one in  `src/hooks.client.(js|ts)`.
+1. If you don't already have a client hooks file, create a new one in `src/hooks.client.(js|ts)`.
 
 2. On the top of your `hooks.client.(js|ts)` file, initialize the Sentry SDK:
 
    ```javascript
-    // hooks.client.(js|ts)
-    import * as Sentry from '@sentry/sveltekit';
+   // hooks.client.(js|ts)
+   import * as Sentry from '@sentry/sveltekit';
 
-    Sentry.init({
-      dsn: '__DSN__',
-      tracesSampleRate: 1.0,
-      // For instance, initialize Session Replay:
-      replaysSessionSampleRate: 0.1,
-      replaysOnErrorSampleRate: 1.0,
-      integrations: [new Sentry.Replay()],
-    });
+   Sentry.init({
+     dsn: '__DSN__',
+     tracesSampleRate: 1.0,
+     // For instance, initialize Session Replay:
+     replaysSessionSampleRate: 0.1,
+     replaysOnErrorSampleRate: 1.0,
+     integrations: [Sentry.replayIntegration()],
+   });
    ```
 
 3. Add our `handleErrorWithSentry` function to the `handleError` hook:
 
    ```javascript
-    // hooks.client.(js|ts)
-    import { handleErrorWithSentry } from '@sentry/sveltekit';
+   // hooks.client.(js|ts)
+   import { handleErrorWithSentry } from '@sentry/sveltekit';
 
-    const myErrorHandler = (({ error, event }) => {
-      console.error('An error occurred on the client side:', error, event);
-    });
+   const myErrorHandler = ({ error, event }) => {
+     console.error('An error occurred on the client side:', error, event);
+   };
 
-    export const handleError = handleErrorWithSentry(myErrorHandler);
-    // or alternatively, if you don't have a custom error handler:
-    // export const handleError = handleErrorWithSentry();
+   export const handleError = handleErrorWithSentry(myErrorHandler);
+   // or alternatively, if you don't have a custom error handler:
+   // export const handleError = handleErrorWithSentry();
    ```
 
 ### 3. Server-side Setup
@@ -102,47 +107,47 @@ The Sentry SvelteKit SDK mostly relies on [SvelteKit Hooks](https://kit.svelte.d
 
 2. On the top of your `hooks.server.(js|ts)` file, initialize the Sentry SDK:
 
-    ```javascript
-    // hooks.server.(js|ts)
-    import * as Sentry from '@sentry/sveltekit';
+   ```javascript
+   // hooks.server.(js|ts)
+   import * as Sentry from '@sentry/sveltekit';
 
-    Sentry.init({
-      dsn: '__DSN__',
-      tracesSampleRate: 1.0,
-    });
+   Sentry.init({
+     dsn: '__DSN__',
+     tracesSampleRate: 1.0,
+   });
    ```
 
 3. Add our `handleErrorWithSentry` function to the `handleError` hook:
 
    ```javascript
-    // hooks.server.(js|ts)
-    import { handleErrorWithSentry } from '@sentry/sveltekit';
+   // hooks.server.(js|ts)
+   import { handleErrorWithSentry } from '@sentry/sveltekit';
 
-    const myErrorHandler = (({ error, event }) => {
-      console.error('An error occurred on the server side:', error, event);
-    });
+   const myErrorHandler = ({ error, event }) => {
+     console.error('An error occurred on the server side:', error, event);
+   };
 
-    export const handleError = handleErrorWithSentry(myErrorHandler);
-    // or alternatively, if you don't have a custom error handler:
-    // export const handleError = handleErrorWithSentry();
+   export const handleError = handleErrorWithSentry(myErrorHandler);
+   // or alternatively, if you don't have a custom error handler:
+   // export const handleError = handleErrorWithSentry();
    ```
 
 4. Add our request handler to the `handle` hook in `hooks.server.ts`:
 
    ```javascript
-    // hooks.server.(js|ts)
-    import { sentryHandle } from '@sentry/sveltekit';
+   // hooks.server.(js|ts)
+   import { sentryHandle } from '@sentry/sveltekit';
 
-    export const handle = sentryHandle();
-    // or alternatively, if you already have a handler defined, use the `sequence` function
-    // see: https://kit.svelte.dev/docs/modules#sveltejs-kit-hooks-sequence
-    // export const handle = sequence(sentryHandle(), yourHandler());
+   export const handle = sentryHandle();
+   // or alternatively, if you already have a handler defined, use the `sequence` function
+   // see: https://kit.svelte.dev/docs/modules#sveltejs-kit-hooks-sequence
+   // export const handle = sequence(sentryHandle(), yourHandler());
    ```
 
 ### 4. Vite Setup
 
-Add `sentrySvelteKit` to your Vite plugins in  `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time features.
-Make sure that it is added _before_ the `sveltekit` plugin:
+Add `sentrySvelteKit` to your Vite plugins in `vite.config.(js|ts)` file so that the Sentry SDK can apply build-time
+features. Make sure that it is added _before_ the `sveltekit` plugin:
 
 ```javascript
 // vite.config.(js|ts)
@@ -155,7 +160,9 @@ export default {
 };
 ```
 
-This adds the [Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to your Vite config to automatically upload source maps to Sentry.
+This adds the
+[Sentry Vite Plugin](https://github.com/getsentry/sentry-javascript-bundler-plugins/tree/main/packages/vite-plugin) to
+your Vite config to automatically upload source maps to Sentry.
 
 ---
 
@@ -194,8 +201,8 @@ export default {
 ### Configuring Source maps upload
 
 Under `sourceMapsUploadOptions`, you can also specify all additional options supported by the
-[Sentry Vite Plugin](https://www.npmjs.com/package/@sentry/vite-plugin).
-This might be useful if you're using adapters other than the Node adapter or have a more customized build setup.
+[Sentry Vite Plugin](https://www.npmjs.com/package/@sentry/vite-plugin). This might be useful if you're using adapters
+other than the Node adapter or have a more customized build setup.
 
 ```js
 // vite.config.(js|ts)
@@ -244,15 +251,21 @@ export default {
 
 ## Configure Auto-Instrumentation
 
-The SDK mostly relies on [SvelteKit's hooks](https://kit.svelte.dev/docs/hooks) to collect error and performance data. However, SvelteKit doesn't yet offer a hook for universal or server-only `load` function calls. Therefore, the SDK uses a Vite plugin to auto-instrument `load` functions so that you don't have to add a Sentry wrapper to each function manually. Auto-instrumentation is enabled by default, as soon as you add the `sentrySvelteKit()` function call to your `vite.config.(js|ts)`. However, you can customize the behavior, or disable it entirely. In this case, you can still manually wrap specific `load` functions with the `withSentry` function.
+The SDK mostly relies on [SvelteKit's hooks](https://kit.svelte.dev/docs/hooks) to collect error and performance data.
+However, SvelteKit doesn't yet offer a hook for universal or server-only `load` function calls. Therefore, the SDK uses
+a Vite plugin to auto-instrument `load` functions so that you don't have to add a Sentry wrapper to each function
+manually. Auto-instrumentation is enabled by default, as soon as you add the `sentrySvelteKit()` function call to your
+`vite.config.(js|ts)`. However, you can customize the behavior, or disable it entirely. In this case, you can still
+manually wrap specific `load` functions with the `withSentry` function.
 
-Note: The SDK will only auto-instrument `load` functions in `+page` or `+layout` files that do not yet contain any Sentry code.
-If you already have custom Sentry code in such files, you'll have to [manually](#instrument-load-functions-manually) add our wrapper to your `load` functions.
-
+Note: The SDK will only auto-instrument `load` functions in `+page` or `+layout` files that do not yet contain any
+Sentry code. If you already have custom Sentry code in such files, you'll have to
+[manually](#instrument-load-functions-manually) add our wrapper to your `load` functions.
 
 ### Customize Auto-instrumentation
 
-By passing the `autoInstrument` option to `sentrySvelteKit` you can disable auto-instrumentation entirely, or customize which `load` functions should be instrumented:
+By passing the `autoInstrument` option to `sentrySvelteKit` you can disable auto-instrumentation entirely, or customize
+which `load` functions should be instrumented:
 
 ```javascript
 // vite.config.(js|ts)
@@ -275,7 +288,8 @@ export default {
 
 ### Disable Auto-instrumentation
 
-If you set the `autoInstrument` option to `false`, the SDK won't auto-instrument any `load` function. You can still [manually instrument](#instrument-load-functions-manually) specific `load` functions.
+If you set the `autoInstrument` option to `false`, the SDK won't auto-instrument any `load` function. You can still
+[manually instrument](#instrument-load-functions-manually) specific `load` functions.
 
 ```javascript
 // vite.config.(js|ts)
@@ -295,25 +309,27 @@ export default {
 
 ### Instrument `load` Functions Manually
 
-If you don't want to use auto-instrumentation, you can also manually instrument specific `load` functions with our load function wrappers:
+If you don't want to use auto-instrumentation, you can also manually instrument specific `load` functions with our load
+function wrappers:
 
-To instrument your universal `load` functions in `+(page|layout).(js|ts)`, wrap our `wrapLoadWithSentry` function around your load code:
+To instrument your universal `load` functions in `+(page|layout).(js|ts)`, wrap our `wrapLoadWithSentry` function around
+your load code:
 
 ```javascript
 import { wrapLoadWithSentry } from '@sentry/sveltekit';
 
-export const load = wrapLoadWithSentry((event) => {
+export const load = wrapLoadWithSentry(event => {
   //... your load code
 });
 ```
 
-To instrument server `load` functions in `+(page|layout).server.(js|ts)`, wrap our `wrapServerLoadWithSentry` function around your load code:
+To instrument server `load` functions in `+(page|layout).server.(js|ts)`, wrap our `wrapServerLoadWithSentry` function
+around your load code:
 
 ```javascript
 import { wrapServerLoadWithSentry } from '@sentry/sveltekit';
 
-export const load = wrapServerLoadWithSentry((event) => {
+export const load = wrapServerLoadWithSentry(event => {
   //... your server load code
 });
 ```
-

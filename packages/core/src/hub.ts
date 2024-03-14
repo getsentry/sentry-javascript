@@ -3,7 +3,6 @@ import type {
   Breadcrumb,
   BreadcrumbHint,
   Client,
-  CustomSamplingContext,
   Event,
   EventHint,
   Extra,
@@ -16,10 +15,9 @@ import type {
   Session,
   SessionContext,
   SeverityLevel,
-  Transaction,
-  TransactionContext,
   User,
 } from '@sentry/types';
+import { getGlobalSingleton } from '@sentry/utils';
 import { GLOBAL_OBJ, consoleSandbox, dateTimestampInSeconds, isThenable, logger, uuid4 } from '@sentry/utils';
 
 import type { AsyncContextStrategy, Carrier } from './asyncContext';
@@ -439,46 +437,6 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * Starts a new `Transaction` and returns it. This is the entry point to manual tracing instrumentation.
-   *
-   * A tree structure can be built by adding child spans to the transaction, and child spans to other spans. To start a
-   * new child span within the transaction or any span, call the respective `.startChild()` method.
-   *
-   * Every child span must be finished before the transaction is finished, otherwise the unfinished spans are discarded.
-   *
-   * The transaction must be finished with a call to its `.end()` method, at which point the transaction with all its
-   * finished child spans will be sent to Sentry.
-   *
-   * @param context Properties of the new `Transaction`.
-   * @param customSamplingContext Information given to the transaction sampling function (along with context-dependent
-   * default values). See {@link Options.tracesSampler}.
-   *
-   * @returns The transaction which was just started
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  public startTransaction(context: TransactionContext, customSamplingContext?: CustomSamplingContext): Transaction {
-    const result = this._callExtensionMethod<Transaction>('startTransaction', context, customSamplingContext);
-
-    if (DEBUG_BUILD && !result) {
-      // eslint-disable-next-line deprecation/deprecation
-      const client = this.getClient();
-      if (!client) {
-        logger.warn(
-          "Tracing extension 'startTransaction' is missing. You should 'init' the SDK before calling 'startTransaction'",
-        );
-      } else {
-        logger.warn(`Tracing extension 'startTransaction' has not been added. Call 'addTracingExtensions' before calling 'init':
-Sentry.addTracingExtensions();
-Sentry.init({...});
-`);
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * @inheritDoc
    *
    * @deprecated Use top level `captureSession` instead.
@@ -617,25 +575,14 @@ export function getCurrentHub(): HubInterface {
   return acs.getCurrentHub() || getGlobalHub();
 }
 
-let defaultCurrentScope: Scope | undefined;
-let defaultIsolationScope: Scope | undefined;
-
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {
-  if (!defaultCurrentScope) {
-    defaultCurrentScope = new Scope();
-  }
-
-  return defaultCurrentScope;
+  return getGlobalSingleton('defaultCurrentScope', () => new Scope());
 }
 
 /** Get the default isolation scope. */
 export function getDefaultIsolationScope(): Scope {
-  if (!defaultIsolationScope) {
-    defaultIsolationScope = new Scope();
-  }
-
-  return defaultIsolationScope;
+  return getGlobalSingleton('defaultIsolationScope', () => new Scope());
 }
 
 /**

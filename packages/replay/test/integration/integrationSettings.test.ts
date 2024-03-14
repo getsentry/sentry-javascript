@@ -42,26 +42,6 @@ describe('Integration | integrationSettings', () => {
       mockConsole.mockRestore();
     });
 
-    it('works with defining settings in integration', async () => {
-      const { replay } = await mockSdk({
-        replayOptions: { sessionSampleRate: 0.5 },
-        sentryOptions: { replaysSessionSampleRate: undefined },
-      });
-
-      expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
-    it('works with defining 0 in integration but logs warnings', async () => {
-      const { replay } = await mockSdk({
-        replayOptions: { sessionSampleRate: 0 },
-        sentryOptions: { replaysSessionSampleRate: undefined },
-      });
-
-      expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysSessionSampleRate: 0.5 }, replayOptions: {} });
 
@@ -74,26 +54,6 @@ describe('Integration | integrationSettings', () => {
 
       expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(0);
-    });
-
-    it('SDK option takes precedence', async () => {
-      const { replay } = await mockSdk({
-        sentryOptions: { replaysSessionSampleRate: 0.5 },
-        replayOptions: { sessionSampleRate: 0.1 },
-      });
-
-      expect(replay.getOptions().sessionSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
-    it('SDK option takes precedence even when 0', async () => {
-      const { replay } = await mockSdk({
-        sentryOptions: { replaysSessionSampleRate: 0 },
-        replayOptions: { sessionSampleRate: 0.1 },
-      });
-
-      expect(replay.getOptions().sessionSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
     });
   });
 
@@ -108,26 +68,6 @@ describe('Integration | integrationSettings', () => {
       mockConsole.mockRestore();
     });
 
-    it('works with defining settings in integration', async () => {
-      const { replay } = await mockSdk({
-        replayOptions: { errorSampleRate: 0.5 },
-        sentryOptions: { replaysOnErrorSampleRate: undefined },
-      });
-
-      expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
-    it('works with defining 0 in integration', async () => {
-      const { replay } = await mockSdk({
-        replayOptions: { errorSampleRate: 0 },
-        sentryOptions: { replaysOnErrorSampleRate: undefined },
-      });
-
-      expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
     it('works with defining settings in SDK', async () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0.5 }, replayOptions: {} });
 
@@ -140,26 +80,6 @@ describe('Integration | integrationSettings', () => {
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(0);
-    });
-
-    it('SDK option takes precedence', async () => {
-      const { replay } = await mockSdk({
-        sentryOptions: { replaysOnErrorSampleRate: 0.5 },
-        replayOptions: { errorSampleRate: 0.1 },
-      });
-
-      expect(replay.getOptions().errorSampleRate).toBe(0.5);
-      expect(mockConsole).toBeCalledTimes(1);
-    });
-
-    it('SDK option takes precedence even when 0', async () => {
-      const { replay } = await mockSdk({
-        sentryOptions: { replaysOnErrorSampleRate: 0 },
-        replayOptions: { errorSampleRate: 0.1 },
-      });
-
-      expect(replay.getOptions().errorSampleRate).toBe(0);
-      expect(mockConsole).toBeCalledTimes(1);
     });
   });
 

@@ -1,9 +1,9 @@
 import type { BrowserOptions } from '@sentry/react';
-import { dsnFromString, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, dsnFromString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __sentryRewritesTunnelPath__?: string;
 };
 
@@ -17,10 +17,14 @@ export function applyTunnelRouteOption(options: BrowserOptions): void {
     if (!dsnComponents) {
       return;
     }
-    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest\.sentry\.io$/);
+    const sentrySaasDsnMatch = dsnComponents.host.match(/^o(\d+)\.ingest(?:\.([a-z]{2}))?\.sentry\.io$/);
     if (sentrySaasDsnMatch) {
       const orgId = sentrySaasDsnMatch[1];
-      const tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
+      const regionCode = sentrySaasDsnMatch[2];
+      let tunnelPath = `${tunnelRouteOption}?o=${orgId}&p=${dsnComponents.projectId}`;
+      if (regionCode) {
+        tunnelPath += `&r=${regionCode}`;
+      }
       options.tunnel = tunnelPath;
       DEBUG_BUILD && logger.info(`Tunneling events to "${tunnelPath}"`);
     } else {

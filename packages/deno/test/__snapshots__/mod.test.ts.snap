@@ -12,6 +12,7 @@ snapshot[`captureException 1`] = `
     },
     os: {
       name: "{{platform}}",
+      version: "{{version}}",
     },
     runtime: {
       name: "deno",
@@ -47,7 +48,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "?",
               in_app: true,
-              lineno: 47,
+              lineno: 46,
               post_context: [
                 "",
                 "  await delay(200);",
@@ -73,7 +74,7 @@ snapshot[`captureException 1`] = `
               filename: "app:///test/mod.test.ts",
               function: "something",
               in_app: true,
-              lineno: 44,
+              lineno: 43,
               post_context: [
                 "  }",
                 "",
@@ -86,7 +87,7 @@ snapshot[`captureException 1`] = `
               pre_context: [
                 "Deno.test('captureException', async t => {",
                 "  let ev: sentryTypes.Event | undefined;",
-                "  const [, client] = getTestClient(event => {",
+                "  const client = getTestClient(event => {",
                 "    ev = event;",
                 "  });",
                 "",
@@ -122,12 +123,21 @@ snapshot[`captureException 1`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;
 
 snapshot[`captureMessage 1`] = `
 {
+  breadcrumbs: [
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      message: "Error: Some unhandled error",
+      timestamp: 0,
+    },
+  ],
   contexts: {
     app: {
       app_start_time: "{{time}}",
@@ -138,6 +148,7 @@ snapshot[`captureMessage 1`] = `
     },
     os: {
       name: "{{platform}}",
+      version: "{{version}}",
     },
     runtime: {
       name: "deno",
@@ -182,6 +193,168 @@ snapshot[`captureMessage 1`] = `
     ],
     version: "{{version}}",
   },
+  server_name: "{{server}}",
+  timestamp: 0,
+}
+`;
+
+snapshot[`captureMessage twice 1`] = `
+{
+  breadcrumbs: [
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      message: "Error: Some unhandled error",
+      timestamp: 0,
+    },
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      level: "info",
+      message: "Some error message",
+      timestamp: 0,
+    },
+  ],
+  contexts: {
+    app: {
+      app_start_time: "{{time}}",
+    },
+    device: {
+      arch: "{{arch}}",
+      processor_count: 0,
+    },
+    os: {
+      name: "{{platform}}",
+      version: "{{version}}",
+    },
+    runtime: {
+      name: "deno",
+      version: "{{version}}",
+    },
+    trace: {
+      span_id: "{{id}}",
+      trace_id: "{{id}}",
+    },
+    typescript: {
+      name: "TypeScript",
+      version: "{{version}}",
+    },
+    v8: {
+      name: "v8",
+      version: "{{version}}",
+    },
+  },
+  environment: "production",
+  event_id: "{{id}}",
+  level: "info",
+  message: "Some error message",
+  platform: "javascript",
+  sdk: {
+    integrations: [
+      "InboundFilters",
+      "FunctionToString",
+      "LinkedErrors",
+      "Dedupe",
+      "Breadcrumbs",
+      "DenoContext",
+      "ContextLines",
+      "NormalizePaths",
+      "GlobalHandlers",
+    ],
+    name: "sentry.javascript.deno",
+    packages: [
+      {
+        name: "denoland:sentry",
+        version: "{{version}}",
+      },
+    ],
+    version: "{{version}}",
+  },
+  server_name: "{{server}}",
+  timestamp: 0,
+}
+`;
+
+snapshot[`captureMessage twice 2`] = `
+{
+  breadcrumbs: [
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      message: "Error: Some unhandled error",
+      timestamp: 0,
+    },
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      level: "info",
+      message: "Some error message",
+      timestamp: 0,
+    },
+    {
+      category: "sentry.event",
+      event_id: "{{id}}",
+      level: "info",
+      message: "Some error message",
+      timestamp: 0,
+    },
+  ],
+  contexts: {
+    app: {
+      app_start_time: "{{time}}",
+    },
+    device: {
+      arch: "{{arch}}",
+      processor_count: 0,
+    },
+    os: {
+      name: "{{platform}}",
+      version: "{{version}}",
+    },
+    runtime: {
+      name: "deno",
+      version: "{{version}}",
+    },
+    trace: {
+      span_id: "{{id}}",
+      trace_id: "{{id}}",
+    },
+    typescript: {
+      name: "TypeScript",
+      version: "{{version}}",
+    },
+    v8: {
+      name: "v8",
+      version: "{{version}}",
+    },
+  },
+  environment: "production",
+  event_id: "{{id}}",
+  level: "info",
+  message: "Another error message",
+  platform: "javascript",
+  sdk: {
+    integrations: [
+      "InboundFilters",
+      "FunctionToString",
+      "LinkedErrors",
+      "Dedupe",
+      "Breadcrumbs",
+      "DenoContext",
+      "ContextLines",
+      "NormalizePaths",
+      "GlobalHandlers",
+    ],
+    name: "sentry.javascript.deno",
+    packages: [
+      {
+        name: "denoland:sentry",
+        version: "{{version}}",
+      },
+    ],
+    version: "{{version}}",
+  },
+  server_name: "{{server}}",
   timestamp: 0,
 }
 `;

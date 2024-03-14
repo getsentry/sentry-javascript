@@ -14,8 +14,8 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
+import type { Span } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
-import type { Transaction } from './transaction';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
 /**
@@ -169,6 +169,9 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /** Submits the session to Sentry */
   sendSession(session: Session | SessionAggregates): void;
 
+  /** Sends an envelope to Sentry */
+  sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse>;
+
   /**
    * Record on the client that an event got dropped (ie, an event that will not be sent to sentry).
    *
@@ -182,16 +185,21 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /**
-   * Register a callback for transaction start.
-   * Receives the transaction as argument.
+   * Register a callback for whenever a span is started.
+   * Receives the span as argument.
    */
-  on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /**
-   * Register a callback for transaction finish.
-   * Receives the transaction as argument.
+   * Register a callback for whenever a span is ended.
+   * Receives the span as argument.
    */
-  on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /**
+   * Register a callback for when an idle span is allowed to auto-finish.
+   */
+  on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
 
   /**
    * Register a callback for transaction start and finish.
@@ -240,7 +248,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * A hook for the browser tracing integrations to trigger a span start for a page load.
    */
-  on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  on(
+    hook: 'startPageLoadSpan',
+    callback: (
+      options: StartSpanOptions,
+      traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+    ) => void,
+  ): void;
 
   /**
    * A hook for browser tracing integrations to trigger a span for a navigation.
@@ -257,17 +271,16 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   on(hook: 'close', callback: () => void): void;
 
-  /**
-   * Fire a hook event for transaction start.
-   * Expects to be given a transaction as the second argument.
-   */
-  emit(hook: 'startTransaction', transaction: Transaction): void;
+  /** Fire a hook whener a span starts. */
+  emit(hook: 'spanStart', span: Span): void;
+
+  /** Fire a hook whener a span ends. */
+  emit(hook: 'spanEnd', span: Span): void;
 
   /**
-   * Fire a hook event for transaction finish.
-   * Expects to be given a transaction as the second argument.
+   * Fire a hook indicating that an idle span is allowed to auto finish.
    */
-  emit(hook: 'finishTransaction', transaction: Transaction): void;
+  emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /*
    * Fire a hook event for envelope creation and sending. Expects to be given an envelope as the
@@ -314,7 +327,11 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Emit a hook event for browser tracing integrations to trigger a span start for a page load.
    */
-  emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  emit(
+    hook: 'startPageLoadSpan',
+    options: StartSpanOptions,
+    traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+  ): void;
 
   /**
    * Emit a hook event for browser tracing integrations to trigger a span for a navigation.

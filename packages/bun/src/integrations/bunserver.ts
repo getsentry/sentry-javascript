@@ -4,7 +4,6 @@ import {
   Transaction,
   captureException,
   continueTrace,
-  convertIntegrationFnToClass,
   defineIntegration,
   getCurrentScope,
   setHttpStatus,
@@ -25,15 +24,20 @@ const _bunServerIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const bunServerIntegration = defineIntegration(_bunServerIntegration);
-
 /**
  * Instruments `Bun.serve` to automatically create transactions and capture errors.
  *
- * @deprecated Use `bunServerIntegration()` instead.
+ * Enabled by default in the Bun SDK.
+ *
+ * ```js
+ * Sentry.init({
+ *   integrations: [
+ *     Sentry.bunServerIntegration(),
+ *   ],
+ * })
+ * ```
  */
-// eslint-disable-next-line deprecation/deprecation
-export const BunServer = convertIntegrationFnToClass(INTEGRATION_NAME, bunServerIntegration);
+export const bunServerIntegration = defineIntegration(_bunServerIntegration);
 
 /**
  * Instruments Bun.serve by patching it's options.
@@ -82,13 +86,12 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
 
         return continueTrace(
           { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-          ctx => {
+          () => {
             return startSpan(
               {
                 attributes,
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                ...ctx,
               },
               async span => {
                 try {
@@ -96,9 +99,7 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                     typeof serveOptions.fetch
                   >);
                   if (response && response.status) {
-                    if (span) {
-                      setHttpStatus(span, response.status);
-                    }
+                    setHttpStatus(span, response.status);
                     if (span instanceof Transaction) {
                       const scope = getCurrentScope();
                       scope.setContext('response', {

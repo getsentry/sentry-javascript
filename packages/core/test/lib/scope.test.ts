@@ -1,26 +1,19 @@
 import type { Attachment, Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
-  addTracingExtensions,
   applyScopeDataToEvent,
-  getActiveSpan,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  setCurrentClient,
-  setGlobalScope,
-  spanToJSON,
-  startInactiveSpan,
-  startSpan,
   withIsolationScope,
 } from '../../src';
 
-import { withActiveSpan } from '../../src/exports';
 import { Scope } from '../../src/scope';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
+import { clearGlobalScope } from './clear-global-scope';
 
 describe('Scope', () => {
   beforeEach(() => {
-    setGlobalScope(undefined);
+    clearGlobalScope();
   });
 
   it('allows to create & update a scope', () => {
@@ -498,7 +491,7 @@ describe('Scope', () => {
 
   describe('global scope', () => {
     beforeEach(() => {
-      setGlobalScope(undefined);
+      clearGlobalScope();
     });
 
     it('works', () => {
@@ -933,51 +926,6 @@ describe('isolation scope', () => {
           expect(getIsolationScope()).toBe(scope2);
           done();
         });
-      });
-    });
-  });
-});
-
-describe('withActiveSpan()', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
-  beforeEach(() => {
-    const options = getDefaultTestClientOptions({ enableTracing: true });
-    const client = new TestClient(options);
-    setCurrentClient(client);
-    client.init();
-  });
-
-  it('should set the active span within the callback', () => {
-    expect.assertions(2);
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
-
-    expect(getActiveSpan()).not.toBe(inactiveSpan);
-
-    withActiveSpan(inactiveSpan!, () => {
-      expect(getActiveSpan()).toBe(inactiveSpan);
-    });
-  });
-
-  it('should create child spans when calling startSpan within the callback', () => {
-    const inactiveSpan = startInactiveSpan({ name: 'inactive-span' });
-
-    const parentSpanId = withActiveSpan(inactiveSpan!, () => {
-      return startSpan({ name: 'child-span' }, childSpan => {
-        return spanToJSON(childSpan!).parent_span_id;
-      });
-    });
-
-    expect(parentSpanId).toBe(inactiveSpan?.spanContext().spanId);
-  });
-
-  it('when `null` is passed, no span should be active within the callback', () => {
-    expect.assertions(1);
-    startSpan({ name: 'parent-span' }, () => {
-      withActiveSpan(null, () => {
-        expect(getActiveSpan()).toBeUndefined();
       });
     });
   });

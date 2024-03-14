@@ -8,7 +8,8 @@ import { Observable, map } from 'rxjs';
   standalone: true,
   imports: [AsyncPipe],
   template: `
-  <h1>Hello User {{ userId$ | async }}</h1>
+    <h1>Hello User {{ userId$ | async }}</h1>
+    <button id="userErrorBtn" (click)="throwError()">Throw error</button>
   `,
 })
 export class UserComponent {
@@ -16,5 +17,9 @@ export class UserComponent {
 
   constructor(private route: ActivatedRoute) {
     this.userId$ = this.route.paramMap.pipe(map(params => params.get('id') || 'UNKNOWN USER'));
+  }
+
+  throwError() {
+    throw new Error('Error thrown from user page');
   }
 }

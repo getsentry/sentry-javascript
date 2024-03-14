@@ -8,8 +8,7 @@ import { getReplaySnapshot, shouldSkipReplayTest, waitForReplayRunning } from '.
 
 type TestWindow = Window & {
   Sentry: typeof Sentry;
-  // eslint-disable-next-line deprecation/deprecation
-  Replay: Sentry.Replay;
+  Replay: ReturnType<typeof Sentry.replayIntegration>;
 };
 
 sentryTest(

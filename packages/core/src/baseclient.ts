@@ -22,8 +22,8 @@ import type {
   Session,
   SessionAggregates,
   SeverityLevel,
+  Span,
   StartSpanOptions,
-  Transaction,
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
@@ -417,10 +417,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /* eslint-disable @typescript-eslint/unified-signatures */
 
   /** @inheritdoc */
-  public on(hook: 'startTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
-  public on(hook: 'finishTransaction', callback: (transaction: Transaction) => void): void;
+  public on(hook: 'spanEnd', callback: (span: Span) => void): void;
+
+  /** @inheritdoc */
+  public on(hook: 'idleSpanEnableAutoFinish', callback: (span: Span) => void): void;
 
   /** @inheritdoc */
   public on(hook: 'beforeEnvelope', callback: (envelope: Envelope) => void): void;
@@ -447,7 +450,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   ): void;
 
   /** @inheritdoc */
-  public on(hook: 'startPageLoadSpan', callback: (options: StartSpanOptions) => void): void;
+  public on(
+    hook: 'startPageLoadSpan',
+    callback: (
+      options: StartSpanOptions,
+      traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+    ) => void,
+  ): void;
 
   /** @inheritdoc */
   public on(hook: 'startNavigationSpan', callback: (options: StartSpanOptions) => void): void;
@@ -467,10 +476,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /** @inheritdoc */
-  public emit(hook: 'startTransaction', transaction: Transaction): void;
+  public emit(hook: 'spanStart', span: Span): void;
 
   /** @inheritdoc */
-  public emit(hook: 'finishTransaction', transaction: Transaction): void;
+  public emit(hook: 'spanEnd', span: Span): void;
+
+  /** @inheritdoc */
+  public emit(hook: 'idleSpanEnableAutoFinish', span: Span): void;
 
   /** @inheritdoc */
   public emit(hook: 'beforeEnvelope', envelope: Envelope): void;
@@ -494,7 +506,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   public emit(hook: 'beforeSendFeedback', feedback: FeedbackEvent, options?: { includeReplay: boolean }): void;
 
   /** @inheritdoc */
-  public emit(hook: 'startPageLoadSpan', options: StartSpanOptions): void;
+  public emit(
+    hook: 'startPageLoadSpan',
+    options: StartSpanOptions,
+    traceOptions?: { sentryTrace?: string | undefined; baggage?: string | undefined },
+  ): void;
 
   /** @inheritdoc */
   public emit(hook: 'startNavigationSpan', options: StartSpanOptions): void;
@@ -515,7 +531,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> | void {
+  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
@@ -526,6 +542,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     DEBUG_BUILD && logger.error('Transport disabled');
+
+    return resolvedSyncPromise({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */

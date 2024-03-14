@@ -22,8 +22,8 @@ describe('Unit | util | getPrivacyOptions', () => {
         "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
-        "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
+        "unblockSelector": ".custom-unblock",
+        "unmaskTextSelector": ".custom-unmask",
       }
     `);
   });
@@ -48,8 +48,8 @@ describe('Unit | util | getPrivacyOptions', () => {
         "blockSelector": ".custom-block,.deprecated-block-selector,.sentry-block,[data-sentry-block],base[href=\\"/\\"],.deprecated-block-class",
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"],.deprecated-ignore-class",
         "maskTextSelector": ".custom-mask,.deprecated-mask-selector,.sentry-mask,[data-sentry-mask],.deprecated-mask-class",
-        "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
+        "unblockSelector": ".custom-unblock",
+        "unmaskTextSelector": ".custom-unmask",
       }
     `);
   });
@@ -73,8 +73,8 @@ describe('Unit | util | getPrivacyOptions', () => {
         "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
         "maskTextClass": /deprecated-mask-\\*/,
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
-        "unblockSelector": ".custom-unblock,.sentry-unblock,[data-sentry-unblock]",
-        "unmaskTextSelector": ".custom-unmask,.sentry-unmask,[data-sentry-unmask]",
+        "unblockSelector": ".custom-unblock",
+        "unmaskTextSelector": ".custom-unmask",
       }
     `);
   });

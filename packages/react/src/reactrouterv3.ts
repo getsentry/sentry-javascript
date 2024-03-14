@@ -9,16 +9,9 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
 } from '@sentry/core';
-import type {
-  Integration,
-  SpanAttributes,
-  StartSpanOptions,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { Integration, TransactionSource } from '@sentry/types';
 
-import type { Location, ReactRouterInstrumentation } from './types';
+import type { Location } from './types';
 
 // Many of the types below had to be mocked out to prevent typescript issues
 // these types are required for correct functionality.
@@ -64,85 +57,46 @@ export function reactRouterV3BrowserTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const startPageloadCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingPageLoadSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingNavigationSpan(client, startSpanOptions);
-        return undefined;
-      };
-
-      const instrumentation = reactRouterV3Instrumentation(history, routes, match);
-
-      // Now instrument page load & navigation with correct settings
-      instrumentation(startPageloadCallback, instrumentPageLoad, false);
-      instrumentation(startNavigationCallback, false, instrumentNavigation);
-    },
-  };
-}
-
-/**
- * Creates routing instrumentation for React Router v3
- * Works for React Router >= 3.2.0 and < 4.0.0
- *
- * @param history object from the `history` library
- * @param routes a list of all routes, should be
- * @param match `Router.match` utility
- */
-function reactRouterV3Instrumentation(history: HistoryV3, routes: Route[], match: Match): ReactRouterInstrumentation {
-  return (
-    startTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad: boolean = true,
-    startTransactionOnLocationChange: boolean = true,
-  ) => {
-    let activeTransaction: Transaction | undefined;
-    let prevName: string | undefined;
-
-    // Have to use window.location because history.location might not be defined.
-    if (startTransactionOnPageLoad && WINDOW && WINDOW.location) {
-      normalizeTransactionName(
-        routes,
-        WINDOW.location as unknown as Location,
-        match,
-        (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
-          prevName = localName;
-          activeTransaction = startTransaction({
-            name: prevName,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-            },
-          });
-        },
-      );
-    }
-
-    if (startTransactionOnLocationChange && history.listen) {
-      history.listen(location => {
-        if (location.action === 'PUSH' || location.action === 'POP') {
-          if (activeTransaction) {
-            activeTransaction.end();
-          }
-          normalizeTransactionName(routes, location, match, (localName: string, source: TransactionSource = 'url') => {
-            prevName = localName;
-
-            const attributes: SpanAttributes = {
-              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
-            };
-
-            activeTransaction = startTransaction({
-              name: prevName,
-              attributes,
+      if (instrumentPageLoad && WINDOW && WINDOW.location) {
+        normalizeTransactionName(
+          routes,
+          WINDOW.location as unknown as Location,
+          match,
+          (localName: string, source: ReactRouterV3TransactionSource = 'url') => {
+            startBrowserTracingPageLoadSpan(client, {
+              name: localName,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v3',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+              },
             });
-          });
-        }
-      });
-    }
+          },
+        );
+      }
+
+      if (instrumentNavigation && history.listen) {
+        history.listen(location => {
+          if (location.action === 'PUSH' || location.action === 'POP') {
+            normalizeTransactionName(
+              routes,
+              location,
+              match,
+              (localName: string, source: TransactionSource = 'url') => {
+                startBrowserTracingNavigationSpan(client, {
+                  name: localName,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.reactrouter_v3',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+                  },
+                });
+              },
+            );
+          }
+        });
+      }
+    },
   };
 }
 

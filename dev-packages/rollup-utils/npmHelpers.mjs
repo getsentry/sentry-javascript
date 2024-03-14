@@ -17,6 +17,7 @@ import {
   makeSetSDKSourcePlugin,
   makeSucrasePlugin,
 } from './plugins/index.mjs';
+import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
@@ -28,10 +29,11 @@ export function makeBaseNPMConfig(options = {}) {
     hasBundles = false,
     packageSpecificConfig = {},
     addPolyfills = true,
+    sucrase = {},
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills });
+  const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills, ...sucrase });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
@@ -49,6 +51,10 @@ export function makeBaseNPMConfig(options = {}) {
       dir: hasBundles ? 'build/npm' : 'build',
 
       sourcemap: true,
+
+      // Include __esModule property when generating exports
+      // Before the upgrade to Rollup 4 this was included by default and when it was gone it broke tests
+      esModule: true,
 
       // output individual files rather than one big bundle
       preserveModules: true,
@@ -104,6 +110,7 @@ export function makeBaseNPMConfig(options = {}) {
       ...builtinModules,
       ...Object.keys(packageDotJSON.dependencies || {}),
       ...Object.keys(packageDotJSON.peerDependencies || {}),
+      ...Object.keys(packageDotJSON.optionalDependencies || {}),
     ],
   };
 
@@ -117,11 +124,16 @@ export function makeBaseNPMConfig(options = {}) {
   });
 }
 
-export function makeNPMConfigVariants(baseConfig) {
-  const variantSpecificConfigs = [
-    { output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } },
-    { output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm') } },
-  ];
+export function makeNPMConfigVariants(baseConfig, options = {}) {
+  const { emitEsm = true } = options;
+
+  const variantSpecificConfigs = [{ output: { format: 'cjs', dir: path.join(baseConfig.output.dir, 'cjs') } }];
+
+  if (emitEsm) {
+    variantSpecificConfigs.push({
+      output: { format: 'esm', dir: path.join(baseConfig.output.dir, 'esm'), plugins: [makePackageNodeEsm()] },
+    });
+  }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
 }

@@ -68,7 +68,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
-      expect(spanToJSON(span!).status).toBe('internal_error');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
   });
 
@@ -77,7 +77,7 @@ describe('registerErrorHandlers()', () => {
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});
-      expect(spanToJSON(span!).status).toBe('internal_error');
+      expect(spanToJSON(span).status).toBe('internal_error');
     });
   });
 });

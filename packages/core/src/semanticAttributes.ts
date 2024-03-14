@@ -19,3 +19,6 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_OP = 'sentry.op';
  * Use this attribute to represent the origin of a span.
  */
 export const SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN = 'sentry.origin';
+
+/** The reason why an idle span finished. */
+export const SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON = 'sentry.idle_span_finish_reason';
