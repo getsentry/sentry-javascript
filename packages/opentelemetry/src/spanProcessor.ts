@@ -20,7 +20,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
   let scopes = getScopesFromContext(parentContext);
 
   // We need access to the parent span in order to be able to move up the span tree for breadcrumbs
-  if (parentSpan) {
+  if (parentSpan && !parentSpan.spanContext().isRemote) {
     addChildSpanToSpan(parentSpan, span);
   }
 

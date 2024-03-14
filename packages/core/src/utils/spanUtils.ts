@@ -162,8 +162,7 @@ export function spanIsSampled(span: Span): boolean {
   // We align our trace flags with the ones OpenTelemetry use
   // So we also check for sampled the same way they do.
   const { traceFlags } = span.spanContext();
-  // eslint-disable-next-line no-bitwise
-  return Boolean(traceFlags & TRACE_FLAG_SAMPLED);
+  return traceFlags === TRACE_FLAG_SAMPLED;
 }
 
 /** Get the status message to use for a JSON representation of a span. */
