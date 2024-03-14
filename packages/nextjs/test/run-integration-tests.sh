@@ -33,8 +33,8 @@ mv next.config.js next.config.js.bak
 
 for NEXTJS_VERSION in 13; do
   for USE_APPDIR in true false; do
-    if ([ "$NEXTJS_VERSION" -lt "13" ] || [ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
-      # App dir doesn not work on Next.js < 13 or Node.js < 16
+    if ([ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
+      # App dir doesn not work on Node.js < 16
       continue
     fi
 
@@ -77,13 +77,7 @@ for NEXTJS_VERSION in 13; do
     linkcli && linkplugin
     mv -f package.json.bak package.json 2>/dev/null || true
 
-    if [ "$NEXTJS_VERSION" -eq "10" ]; then
-      cat next10.config.template > next.config.js
-    elif [ "$NEXTJS_VERSION" -eq "11" ]; then
-      cat next11.config.template > next.config.js
-    elif [ "$NEXTJS_VERSION" -eq "12" ]; then
-      cat next12.config.template > next.config.js
-    elif [ "$NEXTJS_VERSION" -eq "13" ]; then
+    if [ "$NEXTJS_VERSION" -eq "13" ]; then
       if [ "$USE_APPDIR" == true ]; then
         cat next13.appdir.config.template > next.config.js
       else
