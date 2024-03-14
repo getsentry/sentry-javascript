@@ -1,5 +1,7 @@
 import { expect } from '@playwright/test';
+import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
+import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
 
 type WindowWithSpan = Window & {
   firstWaitingSpan: any;
@@ -13,13 +15,8 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 
-    await page.waitForFunction(
-      () =>
-        typeof window !== 'undefined' &&
-        (window as unknown as WindowWithSpan).firstWaitingSpan &&
-        (window as unknown as WindowWithSpan).secondWaitingSpan &&
-        (window as unknown as WindowWithSpan).thirdWaitingSpan,
-    );
+    const envelope = await getFirstSentryEnvelopeRequest<Event>(page);
+    expect(envelope).toBeDefined();
 
     const firstWaitingSpanValue = await page.evaluate(
       () => (window as unknown as WindowWithSpan).firstWaitingSpan._name,
