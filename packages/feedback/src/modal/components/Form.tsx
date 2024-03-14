@@ -1,7 +1,7 @@
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { JSX, VNode } from 'preact';
+import type { VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import type {
@@ -103,7 +103,7 @@ export function Form({
   );
 
   const handleSubmit = useCallback(
-    async (e: JSX.TargetedSubmitEvent<HTMLFormElement>) => {
+    async (e: SubmitEvent) => {
       try {
         e.preventDefault();
         if (!(e.target instanceof HTMLFormElement)) {
