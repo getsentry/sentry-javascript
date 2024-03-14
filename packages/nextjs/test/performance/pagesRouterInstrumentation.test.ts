@@ -222,7 +222,7 @@ describe('pagesRouterInstrumentNavigation', () => {
     navigatableRoutes?: string[];
     hasNextData: boolean;
   }) {
-    const nextDataContent: NextData = {
+    const nextDataContent: NEXT_DATA = {
       props: pageProperties.props,
       page: pageProperties.route,
       query: pageProperties.query,
