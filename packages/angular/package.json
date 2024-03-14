@@ -9,12 +9,15 @@
   "engines": {
     "node": ">=14.18"
   },
-  "type": "module",
-  "module": "build/fesm2015/sentry-angular.js",
+  "main": "build/esm2020/sentry-angular.mjs",
+  "module": "build/fesm2015/sentry-angular.mjs",
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
+    "@angular/common": ">= 14.x <= 17.x",
+    "@angular/core": ">= 14.x <= 17.x",
+    "@angular/router": ">= 14.x <= 17.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
@@ -26,9 +29,9 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "~13.3.11",
-    "@angular/cli": "^13.3.11",
+    "@angular/cli": "~13.3.11",
     "@angular/common": "~13.4.0",
-    "@angular/compiler": "^13.4.0",
+    "@angular/compiler": "~13.4.0",
     "@angular/compiler-cli": "~13.4.0",
     "@angular/core": "~13.4.0",
     "@angular/platform-browser": "~13.4.0",
@@ -38,7 +41,7 @@
     "rxjs": "7.8.1",
     "typescript": "4.6.4",
     "vitest": "^1.4.0",
-    "zone.js": "~0.14.4"
+    "zone.js": "^0.14.4"
   },
   "scripts": {
     "build": "yarn build:transpile",
@@ -54,8 +57,7 @@
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:unit": "vitest",
-    "test2": "yarn node --experimental-vm-modules $(yarn bin jest)",
-    "test:unit:watch": "jest --watch",
+    "test:unit:watch": "vitest --watch",
     "yalc:publish": "yalc publish build --push --sig"
   },
   "volta": {

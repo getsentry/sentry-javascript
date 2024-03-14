@@ -45,7 +45,6 @@
   },
   "workspaces": [
     "packages/angular",
-    "packages/angular-ivy",
     "packages/astro",
     "packages/aws-serverless",
     "packages/browser",
