@@ -3,7 +3,7 @@
 These docs walk through how to migrate our JavaScript SDKs through different major versions.
 
 - Upgrading from [SDK 4.x to 5.x/6.x](./docs/migration/v4-to-v5_v6.md)
-- Uprading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
+- Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
 - Upgrading from [SDK 7.x to 8.x](./MIGRATION.md#upgrading-from-7x-to-8x)
 
 # Upgrading from 7.x to 8.x
@@ -274,7 +274,7 @@ function middleware(res, req, next) {
 
 You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
 
-To accomodate these changes, we're removed the following APIs:
+To accommodate these changes, we're removed the following APIs:
 
 - [`startTransaction` and `span.startChild`](./MIGRATION.md#deprecate-starttransaction--spanstartchild)
 - [Certain arguments in `startSpan` and `startTransaction`](./MIGRATION.md#deprecate-arguments-for-startspan-apis)
