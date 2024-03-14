@@ -11,7 +11,7 @@ import { suppressTracing } from '@opentelemetry/core';
 import { addTracingExtensions, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
-import { SentryPropagator, makeTraceState } from '../src/propagator';
+import { SentryPropagator, getSamplingDecision, makeTraceState } from '../src/propagator';
 import { getScopesFromContext } from '../src/utils/contextData';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
@@ -67,6 +67,25 @@ describe('SentryPropagator', () => {
             spanId: '6e0c63257de34c92',
             traceFlags: TraceFlags.NONE,
             isRemote: true,
+          },
+          [
+            'sentry-environment=production',
+            'sentry-release=1.0.0',
+            'sentry-public_key=abc',
+            'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          ],
+          'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92',
+        ],
+        [
+          'uses remote spanContext with trace state & without DSC for unsampled remote span',
+          {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            traceState: makeTraceState({
+              sampled: false,
+            }),
           },
           [
             'sentry-environment=production',
@@ -269,6 +288,7 @@ describe('SentryPropagator', () => {
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
+          true,
         ],
         [
           'continues a remote trace with dsc',
@@ -302,6 +322,7 @@ describe('SentryPropagator', () => {
             'sentry-replay_id=dsc_replay_id',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
+          true,
         ],
         [
           'continues an unsampled remote trace without dsc',
@@ -317,7 +338,28 @@ describe('SentryPropagator', () => {
             'sentry-public_key=abc',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
+          'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
+          undefined,
+        ],
+        [
+          'continues an unsampled remote trace with sampled trace state & without dsc',
+          {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            traceState: makeTraceState({
+              sampled: false,
+            }),
+          },
+          [
+            'sentry-environment=production',
+            'sentry-release=1.0.0',
+            'sentry-public_key=abc',
+            'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-0',
+          false,
         ],
         [
           'continues an unsampled remote trace with dsc',
@@ -351,6 +393,40 @@ describe('SentryPropagator', () => {
             'sentry-replay_id=dsc_replay_id',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-0',
+          false,
+        ],
+        [
+          'continues an unsampled remote trace with dsc & sampled trace state',
+          {
+            traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+            spanId: '6e0c63257de34c92',
+            traceFlags: TraceFlags.NONE,
+            isRemote: true,
+            traceState: makeTraceState({
+              sampled: false,
+              parentSpanId: '6e0c63257de34c92',
+              dsc: {
+                transaction: 'sampled-transaction',
+                trace_id: 'dsc_trace_id',
+                public_key: 'dsc_public_key',
+                environment: 'dsc_environment',
+                release: 'dsc_release',
+                sample_rate: '0.5',
+                replay_id: 'dsc_replay_id',
+              },
+            }),
+          },
+          [
+            'sentry-environment=dsc_environment',
+            'sentry-release=dsc_release',
+            'sentry-public_key=dsc_public_key',
+            'sentry-trace_id=dsc_trace_id',
+            'sentry-transaction=sampled-transaction',
+            'sentry-sample_rate=0.5',
+            'sentry-replay_id=dsc_replay_id',
+          ],
+          'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-0',
+          false,
         ],
         [
           'starts a new trace without existing dsc',
@@ -366,8 +442,11 @@ describe('SentryPropagator', () => {
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
+          true,
         ],
-      ])('%s', (_name, spanContext, baggage, sentryTrace) => {
+      ])('%s', (_name, spanContext, baggage, sentryTrace, samplingDecision) => {
+        expect(getSamplingDecision(spanContext)).toBe(samplingDecision);
+
         context.with(trace.setSpanContext(ROOT_CONTEXT, spanContext), () => {
           trace.getTracer('test').startActiveSpan('test', span => {
             propagator.inject(context.active(), carrier, defaultTextMapSetter);
@@ -500,6 +579,35 @@ describe('SentryPropagator', () => {
         traceId: 'd4cda95b652f4a1592b449d5929fda1b',
         traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92' }),
       });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
+    });
+
+    it('sets data from negative sampled sentry trace header on span context', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
+      const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(trace.getSpanContext(context)).toEqual({
+        isRemote: true,
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.NONE,
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92', sampled: false }),
+      });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(false);
+    });
+
+    it('sets data from not sampled sentry trace header on span context', () => {
+      const sentryTraceHeader = 'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92';
+      carrier[SENTRY_TRACE_HEADER] = sentryTraceHeader;
+      const context = propagator.extract(ROOT_CONTEXT, carrier, defaultTextMapGetter);
+      expect(trace.getSpanContext(context)).toEqual({
+        isRemote: true,
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.NONE,
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        traceState: makeTraceState({ parentSpanId: '6e0c63257de34c92' }),
+      });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
 
     it('sets data from sentry trace header on scope', () => {
@@ -517,6 +625,7 @@ describe('SentryPropagator', () => {
         parentSpanId: '6e0c63257de34c92',
         dsc: {},
       });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
 
     it('handles undefined sentry trace header', () => {
@@ -529,6 +638,7 @@ describe('SentryPropagator', () => {
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
       });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
 
     it('sets data from baggage header on span context', () => {
@@ -554,6 +664,7 @@ describe('SentryPropagator', () => {
           },
         }),
       });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(true);
     });
 
     it('sets data from baggage header on scope', () => {
@@ -592,6 +703,7 @@ describe('SentryPropagator', () => {
         traceFlags: TraceFlags.NONE,
         traceId: expect.any(String),
       });
+      expect(getSamplingDecision(trace.getSpanContext(context)!)).toBe(undefined);
     });
 
     it('handles when sentry-trace is an empty array', () => {

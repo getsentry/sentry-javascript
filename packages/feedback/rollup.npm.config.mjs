@@ -12,5 +12,9 @@ export default makeNPMConfigVariants(
         preserveModules: false,
       },
     },
+    sucrase: {
+      jsxPragma: 'h',
+      jsxFragmentPragma: 'Fragment',
+    },
   }),
 );

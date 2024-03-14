@@ -11,13 +11,18 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromClient,
   getRootSpan,
+  spanIsSampled,
+  spanToJSON,
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
+import { getSamplingDecision, makeTraceState } from '../src/propagator';
 
-import { startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
+import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
+import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
@@ -932,6 +937,111 @@ describe('trace', () => {
       });
     });
   });
+
+  describe('propagation', () => {
+    it('picks up the trace context from the scope, if there is no parent', () => {
+      withScope(scope => {
+        const propagationContext = scope.getPropagationContext();
+        const span = startInactiveSpan({ name: 'test span' });
+
+        expect(span).toBeDefined();
+        expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
+        expect(spanToJSON(span).parent_span_id).toEqual(propagationContext.spanId);
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual(
+          getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+        );
+      });
+    });
+
+    it('picks up the trace context from the parent without DSC', () => {
+      withScope(scope => {
+        const propagationContext = scope.getPropagationContext();
+
+        const ctx = trace.setSpanContext(ROOT_CONTEXT, {
+          traceId: '12312012123120121231201212312012',
+          spanId: '1121201211212012',
+          isRemote: false,
+          traceFlags: TraceFlags.SAMPLED,
+          traceState: undefined,
+        });
+
+        context.with(ctx, () => {
+          const span = startInactiveSpan({ name: 'test span' });
+
+          expect(span).toBeDefined();
+          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
+          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+            ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+            trace_id: '12312012123120121231201212312012',
+            transaction: 'test span',
+            sampled: 'true',
+            sample_rate: '1',
+          });
+        });
+      });
+    });
+
+    it('picks up the trace context from the parent with DSC', () => {
+      withScope(() => {
+        const ctx = trace.setSpanContext(ROOT_CONTEXT, {
+          traceId: '12312012123120121231201212312012',
+          spanId: '1121201211212012',
+          isRemote: false,
+          traceFlags: TraceFlags.SAMPLED,
+          traceState: makeTraceState({
+            parentSpanId: '1121201211212011',
+            dsc: {
+              release: '1.0',
+              environment: 'production',
+            },
+          }),
+        });
+
+        context.with(ctx, () => {
+          const span = startInactiveSpan({ name: 'test span' });
+
+          expect(span).toBeDefined();
+          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
+          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+            release: '1.0',
+            environment: 'production',
+          });
+        });
+      });
+    });
+
+    it('picks up the trace context from a remote parent', () => {
+      withScope(() => {
+        const ctx = trace.setSpanContext(ROOT_CONTEXT, {
+          traceId: '12312012123120121231201212312012',
+          spanId: '1121201211212012',
+          isRemote: true,
+          traceFlags: TraceFlags.SAMPLED,
+          traceState: makeTraceState({
+            parentSpanId: '1121201211212011',
+            dsc: {
+              release: '1.0',
+              environment: 'production',
+            },
+          }),
+        });
+
+        context.with(ctx, () => {
+          const span = startInactiveSpan({ name: 'test span' });
+
+          expect(span).toBeDefined();
+          expect(spanToJSON(span).trace_id).toEqual('12312012123120121231201212312012');
+          expect(spanToJSON(span).parent_span_id).toEqual('1121201211212012');
+          expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+            release: '1.0',
+            environment: 'production',
+          });
+        });
+      });
+    });
+  });
 });
 
 describe('trace (tracing disabled)', () => {
@@ -1240,6 +1350,152 @@ describe('trace (sampling)', () => {
         parentSampled: true,
       },
     });
+  });
+});
+
+describe('continueTrace', () => {
+  beforeEach(() => {
+    mockSdkInit({ enableTracing: true });
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+  });
+
+  it('works without trace & baggage data', () => {
+    const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
+      const span = getActiveSpan()!;
+      expect(span).toBeDefined();
+      expect(spanToJSON(span)).toEqual({
+        span_id: '',
+        trace_id: expect.any(String),
+      });
+      expect(getSamplingDecision(span.spanContext())).toBe(undefined);
+      expect(spanIsSampled(span)).toBe(false);
+
+      return getCurrentScope();
+    });
+
+    expect(scope.getPropagationContext()).toEqual({
+      sampled: undefined,
+      spanId: expect.any(String),
+      traceId: expect.any(String),
+    });
+
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
+  });
+
+  it('works with trace data', () => {
+    const scope = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
+        baggage: undefined,
+      },
+      () => {
+        const span = getActiveSpan()!;
+        expect(span).toBeDefined();
+        expect(spanToJSON(span)).toEqual({
+          span_id: '1121201211212012',
+          trace_id: '12312012123120121231201212312012',
+        });
+        expect(getSamplingDecision(span.spanContext())).toBe(false);
+        expect(spanIsSampled(span)).toBe(false);
+
+        return getCurrentScope();
+      },
+    );
+
+    expect(scope.getPropagationContext()).toEqual({
+      dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
+      sampled: false,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
+  });
+
+  it('works with trace & baggage data', () => {
+    const scope = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+        baggage: 'sentry-version=1.0,sentry-environment=production',
+      },
+      () => {
+        const span = getActiveSpan()!;
+        expect(span).toBeDefined();
+        expect(spanToJSON(span)).toEqual({
+          span_id: '1121201211212012',
+          trace_id: '12312012123120121231201212312012',
+        });
+        expect(getSamplingDecision(span.spanContext())).toBe(true);
+        expect(spanIsSampled(span)).toBe(true);
+
+        return getCurrentScope();
+      },
+    );
+
+    expect(scope.getPropagationContext()).toEqual({
+      dsc: {
+        environment: 'production',
+        version: '1.0',
+      },
+      sampled: true,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
+  });
+
+  it('works with trace & 3rd party baggage data', () => {
+    const scope = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
+        baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
+      },
+      () => {
+        const span = getActiveSpan()!;
+        expect(span).toBeDefined();
+        expect(spanToJSON(span)).toEqual({
+          span_id: '1121201211212012',
+          trace_id: '12312012123120121231201212312012',
+        });
+        expect(getSamplingDecision(span.spanContext())).toBe(true);
+        expect(spanIsSampled(span)).toBe(true);
+
+        return getCurrentScope();
+      },
+    );
+
+    expect(scope.getPropagationContext()).toEqual({
+      dsc: {
+        environment: 'production',
+        version: '1.0',
+      },
+      sampled: true,
+      parentSpanId: '1121201211212012',
+      spanId: expect.any(String),
+      traceId: '12312012123120121231201212312012',
+    });
+
+    expect(scope.getScopeData().sdkProcessingMetadata).toEqual({});
+  });
+
+  it('returns response of callback', () => {
+    const result = continueTrace(
+      {
+        sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
+        baggage: undefined,
+      },
+      () => {
+        return 'aha';
+      },
+    );
+
+    expect(result).toEqual('aha');
   });
 });
 

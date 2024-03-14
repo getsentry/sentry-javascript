@@ -65,6 +65,8 @@ describe('Integration | Scope', () => {
               trace: {
                 span_id: spanId,
                 trace_id: traceId,
+                // local span ID from propagation context
+                ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
               },
             }),
           }),
@@ -110,6 +112,8 @@ describe('Integration | Scope', () => {
                 status: 'ok',
                 trace_id: traceId,
                 origin: 'manual',
+                // local span ID from propagation context
+                parent_span_id: expect.any(String),
               },
             }),
             spans: [],
@@ -194,7 +198,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId1,
                   trace_id: traceId1,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -220,7 +225,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId2,
                   trace_id: traceId2,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
