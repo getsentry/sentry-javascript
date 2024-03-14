@@ -52,6 +52,10 @@ export function makeBaseNPMConfig(options = {}) {
 
       sourcemap: true,
 
+      // Include __esModule property when generating exports
+      // Before the upgrade to Rollup 4 this was included by default and when it was gone it broke tests
+      esModule: true,
+
       // output individual files rather than one big bundle
       preserveModules: true,
 

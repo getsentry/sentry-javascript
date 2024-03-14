@@ -58,7 +58,6 @@
   },
   "devDependencies": {
     "astro": "^3.5.0",
-    "rollup": "^3.20.2",
     "vite": "4.0.5"
   },
   "scripts": {
