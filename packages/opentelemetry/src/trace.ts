@@ -253,6 +253,13 @@ function getContextForScope(scope?: Scope): Context {
 }
 
 /**
+ * Continue a trace from `sentry-trace` and `baggage` values.
+ * These values can be obtained from incoming request headers, or in the browser from `<meta name="sentry-trace">`
+ * and `<meta name="baggage">` HTML tags.
+ *
+ * Spans started with `startSpan`, `startSpanManual` and `startInactiveSpan`, within the callback will automatically
+ * be attached to the incoming trace.
+ *
  * This is a custom version of `continueTrace` that is used in OTEL-powered environments.
  * It propagates the trace as a remote span, in addition to setting it on the propagation context.
  */
