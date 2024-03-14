@@ -4,9 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 8.0.0-alpha.3
+## 8.0.0-alpha.4
 
-This is the third Alpha release of the v8 cycle, which includes a variety of breaking changes.
+This is the fourth Alpha release of the v8 cycle, which includes a variety of breaking changes.
 
 Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
 
@@ -130,6 +130,11 @@ New minimum supported browsers:
 - ref(opentelemetry): Remove span metadata handling (#11020)
 
 Work in this release contributed by @MFoster and @jessezhang91. Thank you for your contributions!
+
+## 8.0.0-alpha.3
+
+This alpha was released in an incomplete state. We recommend skipping this release and using the `8.0.0-alpha.4` release
+instead.
 
 ## 8.0.0-alpha.2
 
