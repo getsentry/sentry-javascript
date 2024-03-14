@@ -8,10 +8,7 @@
     "jsxImportSource": "preact",
     "skipLibCheck": true,
     "baseUrl": "./",
-    "paths": {
-      "react": ["./node_modules/preact/compat/"],
-      "react-dom": ["./node_modules/preact/compat/"]
-    }
+    "paths": {}
   },
-  "include": ["src/**/*.ts","src/**/*.tsx"]
+  "include": ["src/**/*.ts","src/**/*.tsx", "global.d.ts"]
 }

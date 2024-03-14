@@ -6,5 +6,6 @@
     "declarationMap": true,
     "emitDeclarationOnly": true,
     "outDir": "build/npm/types"
-  }
+  },
+  "exclude": ["node_modules/preact"]
 }
