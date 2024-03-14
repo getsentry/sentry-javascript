@@ -103,7 +103,7 @@ beforeEach(() => {
   mockCaptureException.mockClear();
 });
 
-describe('handleSentry', () => {
+describe('sentryHandle', () => {
   describe.each([
     // isSync, isError, expectedResponse
     [Type.Sync, true, undefined],
@@ -197,7 +197,7 @@ describe('handleSentry', () => {
       );
     });
 
-    it('creates a transaction from sentry-trace header', async () => {
+    it("creates a transaction from sentry-trace header but doesn't populate a new DSC", async () => {
       const event = mockEvent({
         request: {
           headers: {
@@ -229,6 +229,7 @@ describe('handleSentry', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
+      expect(_span!.metadata!.dynamicSamplingContext).toEqual({});
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
