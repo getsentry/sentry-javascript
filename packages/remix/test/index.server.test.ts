@@ -1,6 +1,6 @@
-import * as SentryNode from '@sentry/node-experimental';
+import * as SentryNode from '@sentry/node';
 
-import { Integrations, init } from '../src/index.server';
+import { init } from '../src/index.server';
 
 const nodeInit = jest.spyOn(SentryNode, 'init');
 
@@ -54,10 +54,5 @@ describe('Server init()', () => {
     init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
 
     expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
-  });
-
-  it('has both node and tracing integrations', () => {
-    expect(Integrations.Apollo).not.toBeUndefined();
-    expect(Integrations.Http).not.toBeUndefined();
   });
 });

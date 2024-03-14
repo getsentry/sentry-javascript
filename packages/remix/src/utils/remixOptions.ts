@@ -1,4 +1,4 @@
-import type { NodeOptions } from '@sentry/node-experimental';
+import type { NodeOptions } from '@sentry/node';
 import type { BrowserOptions } from '@sentry/react';
 import type { Options } from '@sentry/types';
 
