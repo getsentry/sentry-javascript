@@ -673,7 +673,7 @@ function addValueInjectionLoader(
   if (buildContext.isServer) {
     newConfig.module.rules.push({
       // TODO: Find a more bulletproof way of matching. For now this is fine and doesn't hurt anyone. It merely sets some globals.
-      test: /(sentry\.(server|edge)\.config\.(jsx?|tsx?))|(instrumentation.(js|ts))/,
+      test: /(instrumentation.(js|ts))/,
       use: [
         {
           loader: path.resolve(__dirname, 'loaders/valueInjectionLoader.js'),
