@@ -156,6 +156,7 @@ targets:
           - nodejs14.x
           - nodejs16.x
           - nodejs18.x
+          - nodejs20.x
     license: MIT
 
   # CDN Bundle Target
