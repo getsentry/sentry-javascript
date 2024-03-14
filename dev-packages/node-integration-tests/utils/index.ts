@@ -2,7 +2,7 @@ import type * as http from 'http';
 import type { AddressInfo } from 'net';
 import * as path from 'path';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import * as Sentry from '@sentry/node';
+// import * as Sentry from '@sentry/node';
 import type { EnvelopeItemType } from '@sentry/types';
 import { logger, parseSemver } from '@sentry/utils';
 import type { AxiosRequestConfig } from 'axios';
@@ -103,7 +103,7 @@ export const parseEnvelope = (body: string): Array<Record<string, unknown>> => {
  */
 export async function runScenario(url: string): Promise<void> {
   await axios.get(url);
-  await Sentry.flush();
+  // await Sentry.flush();
 }
 
 async function makeRequest(
@@ -215,7 +215,7 @@ export class TestEnv {
       const { data } = await axios.get(url || this.url, { headers });
       return data;
     } finally {
-      await Sentry.flush();
+      // await Sentry.flush();
 
       if (endServer) {
         this.server.close();
