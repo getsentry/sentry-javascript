@@ -18,6 +18,8 @@ export {
   spanHasStatus,
 } from './utils/spanTypes';
 
+export { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 
 export { getActiveSpan } from './utils/getActiveSpan';

@@ -13,7 +13,7 @@ describe('Server Side Rendering', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          status: 'internal_error',
+          status: 'unknown_error',
           data: {
             'http.response.status_code': 500,
           },

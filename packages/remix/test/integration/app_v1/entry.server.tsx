@@ -1,7 +1,5 @@
-import type { EntryContext } from '@remix-run/node';
-import { RemixServer } from '@remix-run/react';
+// it is important this is first!
 import * as Sentry from '@sentry/remix';
-import { renderToString } from 'react-dom/server';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
@@ -10,6 +8,10 @@ Sentry.init({
   // Disabling to test series of envelopes deterministically.
   autoSessionTracking: false,
 });
+
+import type { EntryContext } from '@remix-run/node';
+import { RemixServer } from '@remix-run/react';
+import { renderToString } from 'react-dom/server';
 
 export default function handleRequest(
   request: Request,
