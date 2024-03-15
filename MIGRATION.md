@@ -348,6 +348,7 @@ To make sure these integrations work properly you'll have to change how you
 - [Next.js SDK](./MIGRATION.md#nextjs-sdk)
 - [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
+- [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 
 ### General
 
@@ -613,6 +614,10 @@ Removed top-level exports: `withSentryApi`, `withSentryAPI`, `withSentryGetServe
 `IS_BUILD`, `isBuild`
 
 - [Removal of deprecated API in `@sentry/nextjs`](./MIGRATION.md#removal-of-deprecated-api-in-sentrynextjs)
+- [Updated minimum compatible Next.js version to `13.2.0`](./MIGRATION.md#updated-minimum-compatible-nextjs-version-to-1320)
+- [Merging of the Sentry Webpack Plugin options and SDK Build options](./MIGRATION.md#merging-of-the-sentry-webpack-plugin-options-and-sdk-build-options)
+- [Removal of the `sentry` property in your Next.js options (next.config.js)](./MIGRATION.md#removal-of-the-sentry-property-in-your-nextjs-options-nextconfigjs)
+- [Updated the `@sentry/webpack-plugin` dependency to version 2](./MIGRATION.md#updated-the-sentry-webpack-plugin-dependency-to-version-2)
 
 #### Removal of deprecated API in `@sentry/nextjs`
 
@@ -715,6 +720,8 @@ or look at the TypeScript type definitions of `withSentryConfig`.
 
 ### Astro SDK
 
+- [Removal of `trackHeaders` option for Astro middleware](./MIGRATION.md#removal-of-trackheaders-option-for-astro-middleware)
+
 #### Removal of `trackHeaders` option for Astro middleware
 
 Instead of opting-in via the middleware config, you can configure if headers should be captured via
@@ -733,6 +740,8 @@ Sentry.init({
 ```
 
 ### SvelteKit SDK
+
+- [Breaking `sentrySvelteKit()` changes](./MIGRATION.md#breaking-sentrysveltekit-changes)
 
 #### Breaking `sentrySvelteKit()` changes
 
@@ -805,6 +814,14 @@ sentrySvelteKit({
 
 Important: we DO NOT guarantee stability of `unstable_sentryVitePluginOptions`. They can be removed or updated at any
 time, including breaking changes within the same major version of the SDK.
+
+### AWS Serverless SDK
+
+- [Removal of `rethrowAfterCapture` option](./MIGRATION.md#removal-of-rethrowaftercapture-option)
+
+#### Removal of `rethrowAfterCapture` option
+
+In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no replacement API.
 
 ## 5. Behaviour Changes
 
