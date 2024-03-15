@@ -821,7 +821,8 @@ time, including breaking changes within the same major version of the SDK.
 
 #### Removal of `rethrowAfterCapture` option
 
-In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no replacement API.
+In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no
+replacement API.
 
 ## 5. Behaviour Changes
 
