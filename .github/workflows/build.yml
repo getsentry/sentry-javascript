@@ -385,7 +385,7 @@ jobs:
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
+            ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
 
   job_browser_unit_tests:
     name: Browser Unit Tests
