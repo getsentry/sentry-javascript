@@ -149,9 +149,10 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    // if there is an active transaction, we know that this handle call is nested and hence
-    // we don't create a new domain for it. If we created one, nested server calls would
-    // create new transactions instead of adding a child span to the currently active span.
+    // if there is an active span, we know that this handle call is nested and hence
+    // we don't create a new execution context for it.
+    // If we created one, nested server calls would create new root span instead
+    // of adding a child span to the currently active span.
     if (getActiveSpan()) {
       return instrumentHandle(input, options);
     }
