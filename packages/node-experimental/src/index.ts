@@ -77,6 +77,8 @@ export {
   getSpanDescendants,
   parameterize,
   getClient,
+  // eslint-disable-next-line deprecation/deprecation
+  getCurrentHub,
   getCurrentScope,
   getIsolationScope,
   withScope,

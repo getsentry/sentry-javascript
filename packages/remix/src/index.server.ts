@@ -19,6 +19,8 @@ export {
   captureEvent,
   captureMessage,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
+  getCurrentHub,
   getClient,
   getCurrentScope,
   getGlobalScope,

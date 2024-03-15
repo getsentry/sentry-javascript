@@ -11,6 +11,8 @@ export {
   endSession,
   withMonitor,
   createTransport,
+  // eslint-disable-next-line deprecation/deprecation
+  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
