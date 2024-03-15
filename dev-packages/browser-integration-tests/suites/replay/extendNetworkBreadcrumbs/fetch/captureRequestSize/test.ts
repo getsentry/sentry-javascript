@@ -95,9 +95,7 @@ sentryTest.skip('captures request body size when body is sent', async ({ getLoca
   ]);
 });
 
-// This test is flaky.
-// See https://github.com/getsentry/sentry-javascript/pull/11110
-sentryTest.skip('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
+sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
