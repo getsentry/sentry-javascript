@@ -74,7 +74,7 @@ function getFinalConfigObject(
   if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
     // eslint-disable-next-line no-console
     console.warn(
-      '[@sentry/nextjs] You turned off the `instrumentationHook` option. Note that Sentry will not be initialized if you set it up inside `instrumentation.ts`.',
+      '[@sentry/nextjs] You turned off the `instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.ts`.',
     );
   }
   incomingUserNextConfigObject.experimental = {
