@@ -45,12 +45,6 @@ for NEXTJS_VERSION in 13; do
     export NODE_MAJOR=$NODE_MAJOR
     export USE_APPDIR=$USE_APPDIR
 
-    # Next.js v13 requires at least Node v16
-    if [ "$NODE_MAJOR" -lt "16" ] && [ "$NEXTJS_VERSION" -ge "13" ]; then
-      echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
-      exit 0
-    fi
-
     echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
     rm -rf node_modules .next .env.local 2>/dev/null || true
 
