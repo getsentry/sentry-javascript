@@ -219,8 +219,39 @@ Sentry.init({
 
 ## 3. Performance Monitoring Changes
 
+- [Initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk)
 - [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
 - [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Initializing the Node SDK
+
+If you are using `@sentry/node` or `@sentry/bun`, or a package that depends on it (`@sentry/nextjs`, `@sentry/remix`,
+`@sentry/sveltekit`, `@sentry/`), you will need to initialize the SDK differently. The primary change is to ensure that
+the SDK is initialized as early as possible. See [Initializing the SDK in v8](./docs/v8-initializing.md) on what steps
+to follow.
+
+For example with the Remix SDK, you should initialize the SDK at the top of your `entry.server.tsx` server entrypoint
+before you do anything else.
+
+```js
+// first import Sentry and initialize Sentry
+import * as Sentry from '@sentry/remix';
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  tracesSampleRate: 1,
+  tracePropagationTargets: ['example.org'],
+  // Disabling to test series of envelopes deterministically.
+  autoSessionTracking: false,
+});
+
+// then handle everything else
+import type { EntryContext } from '@remix-run/node';
+import { RemixServer } from '@remix-run/react';
+import { renderToString } from 'react-dom/server';
+
+export const handleError = Sentry.wrapRemixHandleError;
+```
 
 ### Performance Monitoring API
 
@@ -290,7 +321,7 @@ As we added support for OpenTelemetry, we have expanded the automatic instrument
 support for frameworks like Fastify, Nest.js, and Hapi, and expanding support for databases like Prisma and MongoDB via
 Mongoose.
 
-We now support the following integrations out of the box:
+We now support the following integrations out of the box without extra configuration:
 
 - `httpIntegration`: Automatically instruments Node `http` and `https` standard libraries
 - `nativeNodeFetchIntegration`: Automatically instruments top level fetch and undici
@@ -306,6 +337,9 @@ We now support the following integrations out of the box:
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
 
+To make sure these integrations work properly you'll have to change how you
+[initialize the SDK](./docs/v8-initializing.md)
+
 ## 4. Removal of deprecated APIs
 
 - [General](./MIGRATION.md#general)
@@ -320,6 +354,8 @@ We now support the following integrations out of the box:
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
+
+Remove util exports: `timestampWithMs`
 
 - [Deprecation of `Hub` and `getCurrentHub()`](./MIGRATION.md#deprecate-hub)
 - [Removal of class-based integrations](./MIGRATION.md#removal-of-class-based-integrations)
@@ -595,6 +631,11 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `nextRouterInstrumentation` (Replaced by using `browserTracingIntegration`)
 - `IS_BUILD`
 - `isBuild`
+
+#### Updated minimum compatible Next.js version to `13.2.0`
+
+The minimum version of Next.js compatible with the Sentry Next.js SDK has been raised to `13.2.0`. Older versions may
+exhibit bugs or unexpected behaviour.
 
 #### Merging of the Sentry Webpack Plugin options and SDK Build options
 
