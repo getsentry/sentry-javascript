@@ -44,7 +44,6 @@ env:
     ${{ github.workspace }}/packages/ember/*.d.ts
     ${{ github.workspace }}/packages/gatsby/*.d.ts
     ${{ github.workspace }}/packages/core/src/version.ts
-    ${{ github.workspace }}/packages/serverless
     ${{ github.workspace }}/packages/utils/cjs
     ${{ github.workspace }}/packages/utils/esm
 
@@ -385,7 +384,7 @@ jobs:
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
-            ${{ github.workspace }}/packages/serverless/build/aws/dist-serverless/*.zip
+            ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
 
   job_browser_unit_tests:
     name: Browser Unit Tests
