@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs';
 
 /**
  * Outputs a package.json file with {type: module} in the root of the output directory so that Node
