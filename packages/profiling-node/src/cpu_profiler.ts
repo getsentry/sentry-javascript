@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { arch as _arch, platform as _platform } from 'os';
 import { join, resolve } from 'path';
 import { familySync } from 'detect-libc';
@@ -9,10 +8,6 @@ import { threadId } from 'worker_threads';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import type { PrivateV8CpuProfilerBindings, V8CpuProfilerBindings } from './types';
-
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore Rollup shims import.meta.url for CJS
-const requireModule = createRequire(import.meta.url);
 
 const stdlib = familySync();
 const platform = process.env['BUILD_PLATFORM'] || _platform();
@@ -30,13 +25,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   // If a binary path is specified, use that.
   if (env['SENTRY_PROFILER_BINARY_PATH']) {
     const envPath = env['SENTRY_PROFILER_BINARY_PATH'];
-    return requireModule(envPath);
+    return require(envPath);
   }
 
   // If a user specifies a different binary dir, they are in control of the binaries being moved there
   if (env['SENTRY_PROFILER_BINARY_DIR']) {
     const binaryPath = join(resolve(env['SENTRY_PROFILER_BINARY_DIR']), `sentry_cpu_profiler-${identifier}`);
-    return requireModule(`${binaryPath}.node`);
+    return require(`${binaryPath}.node`);
   }
 
   // We need the fallthrough so that in the end, we can fallback to the require dynamice require.
@@ -44,25 +39,25 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (platform === 'darwin') {
     if (arch === 'x64') {
       if (abi === '93') {
-        return requireModule('./sentry_cpu_profiler-darwin-x64-93.node');
+        return require('./sentry_cpu_profiler-darwin-x64-93.node');
       }
       if (abi === '108') {
-        return requireModule('./sentry_cpu_profiler-darwin-x64-108.node');
+        return require('./sentry_cpu_profiler-darwin-x64-108.node');
       }
       if (abi === '115') {
-        return requireModule('./sentry_cpu_profiler-darwin-x64-115.node');
+        return require('./sentry_cpu_profiler-darwin-x64-115.node');
       }
     }
 
     if (arch === 'arm64') {
       if (abi === '93') {
-        return requireModule('./sentry_cpu_profiler-darwin-arm64-93.node');
+        return require('./sentry_cpu_profiler-darwin-arm64-93.node');
       }
       if (abi === '108') {
-        return requireModule('./sentry_cpu_profiler-darwin-arm64-108.node');
+        return require('./sentry_cpu_profiler-darwin-arm64-108.node');
       }
       if (abi === '115') {
-        return requireModule('./sentry_cpu_profiler-darwin-arm64-115.node');
+        return require('./sentry_cpu_profiler-darwin-arm64-115.node');
       }
     }
   }
@@ -70,13 +65,13 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
   if (platform === 'win32') {
     if (arch === 'x64') {
       if (abi === '93') {
-        return requireModule('./sentry_cpu_profiler-win32-x64-93.node');
+        return require('./sentry_cpu_profiler-win32-x64-93.node');
       }
       if (abi === '108') {
-        return requireModule('./sentry_cpu_profiler-win32-x64-108.node');
+        return require('./sentry_cpu_profiler-win32-x64-108.node');
       }
       if (abi === '115') {
-        return requireModule('./sentry_cpu_profiler-win32-x64-115.node');
+        return require('./sentry_cpu_profiler-win32-x64-115.node');
       }
     }
   }
@@ -85,53 +80,53 @@ export function importCppBindingsModule(): PrivateV8CpuProfilerBindings {
     if (arch === 'x64') {
       if (stdlib === 'musl') {
         if (abi === '93') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-musl-93.node');
+          return require('./sentry_cpu_profiler-linux-x64-musl-93.node');
         }
         if (abi === '108') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-musl-108.node');
+          return require('./sentry_cpu_profiler-linux-x64-musl-108.node');
         }
         if (abi === '115') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-musl-115.node');
+          return require('./sentry_cpu_profiler-linux-x64-musl-115.node');
         }
       }
       if (stdlib === 'glibc') {
         if (abi === '93') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-glibc-93.node');
+          return require('./sentry_cpu_profiler-linux-x64-glibc-93.node');
         }
         if (abi === '108') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-glibc-108.node');
+          return require('./sentry_cpu_profiler-linux-x64-glibc-108.node');
         }
         if (abi === '115') {
-          return requireModule('./sentry_cpu_profiler-linux-x64-glibc-115.node');
+          return require('./sentry_cpu_profiler-linux-x64-glibc-115.node');
         }
       }
     }
     if (arch === 'arm64') {
       if (stdlib === 'musl') {
         if (abi === '93') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-musl-93.node');
+          return require('./sentry_cpu_profiler-linux-arm64-musl-93.node');
         }
         if (abi === '108') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-musl-108.node');
+          return require('./sentry_cpu_profiler-linux-arm64-musl-108.node');
         }
         if (abi === '115') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-musl-115.node');
+          return require('./sentry_cpu_profiler-linux-arm64-musl-115.node');
         }
       }
       if (stdlib === 'glibc') {
         if (abi === '93') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
+          return require('./sentry_cpu_profiler-linux-arm64-glibc-93.node');
         }
         if (abi === '108') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
+          return require('./sentry_cpu_profiler-linux-arm64-glibc-108.node');
         }
         if (abi === '115') {
-          return requireModule('./sentry_cpu_profiler-linux-arm64-glibc-115.node');
+          return require('./sentry_cpu_profiler-linux-arm64-glibc-115.node');
         }
       }
     }
   }
-  return requireModule(`${built_from_source_path}.node`);
+  return require(`${built_from_source_path}.node`);
 }
 
 const PrivateCpuProfilerBindings: PrivateV8CpuProfilerBindings = importCppBindingsModule();
