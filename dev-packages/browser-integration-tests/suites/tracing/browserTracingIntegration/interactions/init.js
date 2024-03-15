@@ -11,6 +11,7 @@ Sentry.init({
       _experiments: {
         enableInteractions: true,
       },
+      enableInp: true,
     }),
   ],
   tracesSampleRate: 1,
