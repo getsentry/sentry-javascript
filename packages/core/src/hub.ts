@@ -428,8 +428,7 @@ export class Hub implements HubInterface {
     const client = this.getClient();
     if (!client) return null;
     try {
-      // eslint-disable-next-line deprecation/deprecation
-      return client.getIntegration(integration);
+      return client.getIntegrationByName<T>(integration.id) || null;
     } catch (_oO) {
       DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;

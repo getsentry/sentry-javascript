@@ -4,7 +4,6 @@ import {
   addBreadcrumb,
   captureEvent,
   endSession,
-  getClient,
   getCurrentScope,
   getIsolationScope,
   setContext,
@@ -16,6 +15,7 @@ import {
   startSession,
   withScope,
 } from '@sentry/core';
+import { getClient } from './api';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
@@ -62,7 +62,7 @@ export function getCurrentHub(): Hub {
     setContext,
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      return getClient()?.getIntegrationByName<T>(integration) || null;
+      return getClient().getIntegrationByName<T>(integration.id) || null;
     },
 
     startSession,
@@ -82,7 +82,8 @@ export function getCurrentHub(): Hub {
 
     shouldSendDefaultPii(): boolean {
       const client = getClient();
-      return Boolean(client ? client.getOptions().sendDefaultPii : false);
+      const options = client.getOptions();
+      return Boolean(options.sendDefaultPii);
     },
   };
 }
@@ -95,7 +96,7 @@ function _sendSessionUpdate(): void {
   const client = getClient();
 
   const session = scope.getSession();
-  if (client && session) {
+  if (session) {
     client.captureSession(session);
   }
 }
