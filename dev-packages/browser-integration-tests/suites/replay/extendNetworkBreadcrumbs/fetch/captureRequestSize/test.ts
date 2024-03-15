@@ -35,7 +35,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request] = await Promise.all([
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
       /* eslint-disable */
       fetch('http://localhost:7654/foo', {
@@ -48,6 +48,7 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
       /* eslint-enable */
     }),
     requestPromise,
+    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -67,7 +68,6 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -122,7 +122,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request] = await Promise.all([
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
       /* eslint-disable */
       const blob = new Blob(['<html>Hello world!!</html>'], { type: 'text/html' });
@@ -137,6 +137,7 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
       /* eslint-enable */
     }),
     requestPromise,
+    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -156,7 +157,6 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
