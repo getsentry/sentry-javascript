@@ -254,7 +254,9 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
   ]);
 });
 
-sentryTest('does not capture response body when URL does not match', async ({ getLocalTestPath, page }) => {
+// This test is flaky
+// See: https://github.com/getsentry/sentry-javascript/issues/11136
+sentryTest.skip('does not capture response body when URL does not match', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }

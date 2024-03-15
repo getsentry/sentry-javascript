@@ -7,7 +7,9 @@ import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../.
 
 const bundle = process.env.PW_BUNDLE || '';
 
-sentryTest(
+// This test is flaky so it's skipped for now
+// See https://github.com/getsentry/sentry-javascript/issues/11138
+sentryTest.skip(
   'should capture metrics for LCP instrumentation handlers',
   async ({ browserName, getLocalTestPath, page }) => {
     // This uses a utility that is not exported in CDN bundles
