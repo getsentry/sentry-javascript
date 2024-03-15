@@ -8,7 +8,9 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
+// Skipping because this test is flaky
+// https://github.com/getsentry/sentry-javascript/issues/11062
+sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -250,7 +252,9 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
   ]);
 });
 
-sentryTest('captures request headers as Headers instance', async ({ getLocalTestPath, page, browserName }) => {
+// This test is flaky.
+// See https://github.com/getsentry/sentry-javascript/pull/11110
+sentryTest.skip('captures request headers as Headers instance', async ({ getLocalTestPath, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }

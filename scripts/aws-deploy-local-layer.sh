@@ -13,15 +13,15 @@ set -euo pipefail
 # Remove old distribution directories and zip files.
 echo "Preparing local directories for new build..."
 rm -rf dist-serverless/
-rm -rf ./packages/serverless/build
-rm -rf ./packages/serverless/dist
-rm -rf ./packages/serverless/node_modules
+rm -rf ./packages/aws-serverless/build
+rm -rf ./packages/aws-serverless/dist
+rm -rf ./packages/aws-serverless/node_modules
 
 # Creating Lambda layer
-echo "Creating Lambda layer in ./packages/serverless/build/aws/dist-serverless..."
-cd packages/serverless
+echo "Creating Lambda layer in ./packages/aws-serverless/build/aws/dist-serverless..."
+cd packages/aws-serverless
 yarn build
-echo "Done creating Lambda layer in ./packages/serverless/build/aws/dist-serverless."
+echo "Done creating Lambda layer in ./packages/aws-serverless/build/aws/dist-serverless."
 
 # Deploying zipped Lambda layer to AWS
 ZIP=$(ls build/aws/dist-serverless | grep sentry-node-serverless | head -n 1)
