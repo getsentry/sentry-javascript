@@ -62,7 +62,7 @@ export function getCurrentHub(): Hub {
     setContext,
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      return getClient()?.getIntegrationByName<T>(integration) || null;
+      return getClient()?.getIntegrationByName<T>(integration.id) || null;
     },
 
     startSession,
