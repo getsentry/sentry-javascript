@@ -15,9 +15,6 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@angular/common": ">= 10.x <= 15.x",
-    "@angular/core": ">= 10.x <= 15.x",
-    "@angular/router": ">= 10.x <= 15.x",
     "rxjs": "^6.5.5 || ^7.x"
   },
   "dependencies": {
@@ -28,27 +25,27 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~0.1102.19",
-    "@angular/cli": "^11.2.19",
-    "@angular/common": "~11.2.14",
-    "@angular/compiler": "^11.2.14",
-    "@angular/compiler-cli": "~11.2.14",
-    "@angular/core": "~11.2.14",
-    "@angular/platform-browser": "~11.2.14",
-    "@angular/platform-browser-dynamic": "~11.2.14",
-    "@angular/router": "~11.2.14",
-    "ng-packagr": "^11.2.4",
+    "@angular-devkit/build-angular": "~12.2.18",
+    "@angular/cli": "^12.2.18",
+    "@angular/common": "~12.2.17",
+    "@angular/compiler": "^12.2.17",
+    "@angular/compiler-cli": "~12.2.17",
+    "@angular/core": "~12.2.17",
+    "@angular/platform-browser": "~12.2.17",
+    "@angular/platform-browser-dynamic": "~12.2.17",
+    "@angular/router": "~12.2.17",
+    "ng-packagr": "^12.2.7",
     "rxjs": "6.5.5",
-    "typescript": "4.0.2",
-    "zone.js": "^0.11.8"
+    "typescript": "4.3.5",
+    "zone.js": "~0.11.4"
   },
   "scripts": {
     "build": "yarn build:transpile",
-    "build:transpile": "ng build --prod",
+    "build:transpile": "ng build --configuration production",
     "build:dev": "yarn build",
     "build:watch": "yarn build:transpile:watch",
     "build:dev:watch": "yarn build:watch",
-    "build:transpile:watch": "ng build --prod --watch",
+    "build:transpile:watch": "ng build --configuration production --watch",
     "build:tarball": "npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
     "clean": "rimraf build coverage sentry-angular-*.tgz",
