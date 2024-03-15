@@ -2,13 +2,12 @@ import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, getClient } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor, setupEventContextTrace } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { SentryContextManager } from '../otel/contextManager';
-import { getClient } from './api';
 import type { NodeClient } from './client';
 
 /**

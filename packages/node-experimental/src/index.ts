@@ -25,18 +25,10 @@ export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export {
-  getClient,
-  getSentryRelease,
-  defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
-} from './sdk/api';
+export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
 
 export type { NodeOptions } from './types';
@@ -84,6 +76,7 @@ export {
   setMeasurement,
   getSpanDescendants,
   parameterize,
+  getClient,
   getCurrentScope,
   getIsolationScope,
   withScope,

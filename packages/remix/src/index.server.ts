@@ -19,15 +19,11 @@ export {
   captureEvent,
   captureMessage,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   NodeClient,
   Scope,
