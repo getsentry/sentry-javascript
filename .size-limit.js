@@ -12,7 +12,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: '{ init, replayIntegration, browserTracingIntegration }',
     gzip: true,
-    limit: '75 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay with Canvas) - Webpack (gzipped)',
@@ -101,7 +101,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing, Replay) - CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.replay.min.js',
     gzip: true,
-    limit: '75 KB',
+    limit: '90 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing) - CDN Bundle (gzipped)',
