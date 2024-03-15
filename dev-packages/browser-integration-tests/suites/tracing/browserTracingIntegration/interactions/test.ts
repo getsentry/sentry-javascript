@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event, Measurements, Span, SpanContext, SpanJSON, Transaction } from '@sentry/types';
+import type { Event as SentryEvent, Measurements, Span, SpanContext, SpanJSON, Transaction } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -30,7 +30,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await getFirstSentryEnvelopeRequest<Event>(page);
+  await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
@@ -70,12 +70,12 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     for (let i = 0; i < 4; i++) {
       await wait(100);
       await page.locator('[data-test-id=interaction-button]').click();
-      const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+      const envelope = await getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
       expect(envelope[0].spans).toHaveLength(1);
     }
   },
@@ -97,7 +97,7 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     await page.locator('[data-test-id=annotated-button]').click();
 
@@ -132,7 +132,7 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await getFirstSentryEnvelopeRequest<Event>(page);
+  await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
