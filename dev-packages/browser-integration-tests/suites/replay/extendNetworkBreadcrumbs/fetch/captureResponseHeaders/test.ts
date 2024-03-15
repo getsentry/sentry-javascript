@@ -45,7 +45,7 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
       });
     }),
     requestPromise,
-    ]);
+  ]);
 
   const eventData = envelopeRequestParser(request);
 
@@ -121,7 +121,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
       });
     }),
     requestPromise,
-    ]);
+  ]);
 
   const eventData = envelopeRequestParser(request);
 
@@ -203,7 +203,7 @@ sentryTest('does not capture response headers if URL does not match', async ({ g
       });
     }),
     requestPromise,
-    ]);
+  ]);
 
   const eventData = envelopeRequestParser(request);
 
