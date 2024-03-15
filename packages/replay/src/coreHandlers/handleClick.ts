@@ -16,9 +16,7 @@ import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 import { getClosestInteractive } from './util/domUtils';
 import { onWindowOpen } from './util/onWindowOpen';
 
-type ClickBreadcrumb = Breadcrumb & {
-  timestamp: number;
-};
+type ClickBreadcrumb = Breadcrumb;
 
 interface Click {
   timestamp: number;
@@ -114,8 +112,12 @@ export class ClickDetector implements ReplayClickDetector {
       return;
     }
 
+    const timestampAsNumber = typeof breadcrumb.timestamp === 'string'
+      ? new Date(breadcrumb.timestamp).getTime()
+      : breadcrumb.timestamp || 0;
+
     const newClick: Click = {
-      timestamp: timestampToS(breadcrumb.timestamp),
+      timestamp: timestampToS(timestampAsNumber),
       clickBreadcrumb: breadcrumb,
       // Set this to 0 so we know it originates from the click breadcrumb
       clickCount: 0,
@@ -209,6 +211,9 @@ export class ClickDetector implements ReplayClickDetector {
 
     const isSlowClick = !hadScroll && !hadMutation;
     const { clickCount, clickBreadcrumb } = click;
+    const timestampAsNumber = typeof clickBreadcrumb.timestamp === 'string'
+      ? new Date(clickBreadcrumb.timestamp).getTime()
+      : clickBreadcrumb.timestamp || 0;
 
     // Slow click
     if (isSlowClick) {
@@ -220,7 +225,7 @@ export class ClickDetector implements ReplayClickDetector {
       const breadcrumb: ReplaySlowClickFrame = {
         type: 'default',
         message: clickBreadcrumb.message,
-        timestamp: clickBreadcrumb.timestamp,
+        timestamp: timestampAsNumber,
         category: 'ui.slowClickDetected',
         data: {
           ...clickBreadcrumb.data,
@@ -243,7 +248,7 @@ export class ClickDetector implements ReplayClickDetector {
       const breadcrumb: ReplayMultiClickFrame = {
         type: 'default',
         message: clickBreadcrumb.message,
-        timestamp: clickBreadcrumb.timestamp,
+        timestamp: timestampAsNumber,
         category: 'ui.multiClick',
         data: {
           ...clickBreadcrumb.data,
