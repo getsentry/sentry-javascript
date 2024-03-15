@@ -20,8 +20,6 @@ export {
   getIsolationScope,
   Hub,
   NodeClient,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
   SDK_VERSION,
