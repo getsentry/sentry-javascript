@@ -84,15 +84,15 @@ const defaultOptions = {
   recordDroppedEvent: () => undefined, // noop
 };
 
+afterEach(done => {
+  jest.clearAllMocks();
+
+  if (testServer) {
+    testServer.close(done);
+  }
+});
+
 describe('makeNewHttpsTransport()', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-
-    if (testServer) {
-      testServer.close();
-    }
-  });
-
   describe('.send()', () => {
     it('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {

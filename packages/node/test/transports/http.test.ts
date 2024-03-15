@@ -83,15 +83,15 @@ const defaultOptions = {
 // empty function to keep test output clean
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
+afterEach(done => {
+  jest.clearAllMocks();
+
+  if (testServer) {
+    testServer.close(done);
+  }
+});
+
 describe('makeNewHttpTransport()', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-
-    if (testServer) {
-      testServer.close();
-    }
-  });
-
   describe('.send()', () => {
     it('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {
