@@ -7,6 +7,7 @@ import { DOCUMENT, WINDOW } from '../../constants';
 import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
+import { ImageEditorWrapper } from './imageEditorWrapper';
 
 interface FactoryParams {
   h: typeof hType;
@@ -64,6 +65,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const croppingRef = useRef<HTMLCanvasElement>(null);
     const [croppingRect, setCroppingRect] = useState<Box>({ startx: 0, starty: 0, endx: 0, endy: 0 });
     const [confirmCrop, setConfirmCrop] = useState(false);
+    const [isAnnotating, setIsAnnotating] = useState(false);
 
     useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
@@ -226,6 +228,20 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
         <div class="canvasContainer" ref={canvasContainerRef}>
+          {isAnnotating && (
+            <ImageEditorWrapper
+              src={imageBuffer}
+              onCancel={() => setIsAnnotating(false)}
+              onSubmit={annotatedImage => {
+                setIsAnnotating(false);
+                const ctx = imageBuffer.getContext('2d');
+                if (ctx && annotatedImage) {
+                  ctx.clearRect(0, 0, imageBuffer.width, imageBuffer.height);
+                  ctx.drawImage(annotatedImage, 0, 0);
+                }
+              }}
+            ></ImageEditorWrapper>
+          )}
           <div class="cropButtonContainer" style={{ position: 'absolute' }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
@@ -290,6 +306,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
             </div>
           </div>
         </div>
+        <button onClick={() => setIsAnnotating(true)}>Annotate</button>
       </div>
     );
   };
