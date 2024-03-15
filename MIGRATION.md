@@ -567,11 +567,12 @@ interface Transport {
 
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
 
-Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`
+Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`, `wrap`
 
 - [Removal of the `BrowserTracing` integration](./MIGRATION.md#removal-of-the-browsertracing-integration)
 - [Removal of Offline integration](./MIGRATION.md#removal-of-the-offline-integration)
 - [Removal of `makeXHRTransport` transport](./MIGRATION.md#removal-of-makexhrtransport-transport)
+- [Removal of `wrap` method](./MIGRATION.md#removal-of-wrap-method)
 
 #### Removal of the `BrowserTracing` integration
 
@@ -588,6 +589,10 @@ The `Offline` integration has been removed in favor of the
 
 The `makeXHRTransport` transport has been removed. Only `makeFetchTransport` is available now. This means that the
 Sentry SDK requires the fetch API to be available in the environment.
+
+#### Removal of `wrap` method
+
+The `wrap` method has been removed. There is no replacement API.
 
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 

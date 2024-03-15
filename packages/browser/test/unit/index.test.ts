@@ -5,7 +5,6 @@ import {
   getReportDialogEndpoint,
   inboundFiltersIntegration,
 } from '@sentry/core';
-import type { WrappedFunction } from '@sentry/types';
 import * as utils from '@sentry/utils';
 
 import type { Event } from '../../src';
@@ -23,7 +22,6 @@ import {
   getCurrentScope,
   init,
   showReportDialog,
-  wrap,
 } from '../../src';
 import { getDefaultBrowserClientOptions } from './helper/browser-client-options';
 import { makeSimpleTransport } from './mocks/simpletransport';
@@ -400,67 +398,5 @@ describe('SentryBrowser initialization', () => {
       expect(sdkData.packages?.[0].version).toBe(SDK_VERSION);
       expect(sdkData.version).toBe(SDK_VERSION);
     });
-  });
-});
-
-describe('wrap()', () => {
-  it('should wrap and call function while capturing error', done => {
-    const options = getDefaultBrowserClientOptions({
-      beforeSend: (event: Event): Event | null => {
-        expect(event.exception!.values![0].type).toBe('TypeError');
-        expect(event.exception!.values![0].value).toBe('mkey');
-        done();
-        return null;
-      },
-      dsn,
-    });
-    setCurrentClient(new BrowserClient(options));
-
-    try {
-      // eslint-disable-next-line deprecation/deprecation
-      wrap(() => {
-        throw new TypeError('mkey');
-      });
-    } catch (e) {
-      // no-empty
-    }
-  });
-
-  it('should return result of a function call', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const result = wrap(() => 2);
-    expect(result).toBe(2);
-  });
-
-  it('should allow for passing this and arguments through binding', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const result = wrap(
-      function (this: unknown, a: string, b: number): unknown[] {
-        return [this, a, b];
-      }.bind({ context: 'this' }, 'b', 42),
-    );
-
-    expect((result as unknown[])[0]).toEqual({ context: 'this' });
-    expect((result as unknown[])[1]).toBe('b');
-    expect((result as unknown[])[2]).toBe(42);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const result2 = wrap(
-      function (this: { x: number }): number {
-        return this.x;
-      }.bind({ x: 42 }),
-    );
-
-    expect(result2).toBe(42);
-  });
-
-  it('should ignore frozen functions', () => {
-    const func = Object.freeze(() => 42);
-
-    // eslint-disable-next-line deprecation/deprecation
-    wrap(func);
-
-    expect(func()).toBe(42);
-    expect((func as WrappedFunction).__sentry_wrapped__).toBeUndefined();
   });
 });
