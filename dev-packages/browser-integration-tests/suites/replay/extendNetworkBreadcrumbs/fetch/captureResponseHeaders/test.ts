@@ -37,7 +37,7 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request] = await Promise.all([
+  const [, request, {replayRecordingSnapshots}] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/foo').then(() => {
         // @ts-expect-error Sentry is a global
@@ -45,6 +45,7 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
       });
     }),
     requestPromise,
+    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -63,7 +64,6 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -113,7 +113,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request] = await Promise.all([
+  const [, request, {replayRecordingSnapshots}] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/foo').then(() => {
         // @ts-expect-error Sentry is a global
@@ -121,6 +121,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
       });
     }),
     requestPromise,
+    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -139,7 +140,6 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -195,7 +195,7 @@ sentryTest('does not capture response headers if URL does not match', async ({ g
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request] = await Promise.all([
+  const [, request, {replayRecordingSnapshots}] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/bar').then(() => {
         // @ts-expect-error Sentry is a global
@@ -203,6 +203,7 @@ sentryTest('does not capture response headers if URL does not match', async ({ g
       });
     }),
     requestPromise,
+    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -221,7 +222,6 @@ sentryTest('does not capture response headers if URL does not match', async ({ g
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
