@@ -25,18 +25,18 @@
     "tslib": "^2.4.1"
   },
   "devDependencies": {
-    "@angular-devkit/build-angular": "~12.2.18",
-    "@angular/cli": "^12.2.18",
-    "@angular/common": "~12.2.17",
-    "@angular/compiler": "^12.2.17",
-    "@angular/compiler-cli": "~12.2.17",
-    "@angular/core": "~12.2.17",
-    "@angular/platform-browser": "~12.2.17",
-    "@angular/platform-browser-dynamic": "~12.2.17",
-    "@angular/router": "~12.2.17",
-    "ng-packagr": "^12.2.7",
+    "@angular-devkit/build-angular": "~13.3.11",
+    "@angular/cli": "^13.3.11",
+    "@angular/common": "~13.4.0",
+    "@angular/compiler": "^13.4.0",
+    "@angular/compiler-cli": "~13.4.0",
+    "@angular/core": "~13.4.0",
+    "@angular/platform-browser": "~13.4.0",
+    "@angular/platform-browser-dynamic": "~13.4.0",
+    "@angular/router": "~13.4.0",
+    "ng-packagr": "^13.3.1",
     "rxjs": "6.5.5",
-    "typescript": "4.3.5",
+    "typescript": "4.6.4",
     "zone.js": "~0.11.4"
   },
   "scripts": {
@@ -53,6 +53,7 @@
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
     "test:unit": "jest",
+    "test2": "yarn node --experimental-vm-modules $(yarn bin jest)",
     "test:unit:watch": "jest --watch",
     "yalc:publish": "yalc publish build --push --sig"
   },
