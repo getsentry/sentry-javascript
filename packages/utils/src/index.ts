@@ -36,3 +36,4 @@ export * from './eventbuilder';
 export * from './anr';
 export * from './lru';
 export * from './buildPolyfills';
+export * from './zod-errors';
