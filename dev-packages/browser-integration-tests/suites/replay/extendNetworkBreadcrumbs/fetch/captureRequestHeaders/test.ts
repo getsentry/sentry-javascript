@@ -8,9 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-// Skipping because this test is flaky
-// https://github.com/getsentry/sentry-javascript/issues/11062
-sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -37,18 +35,20 @@ sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPa
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -110,25 +110,27 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-        'X-Custom-Header': 'foo',
-        'X-Test-Header': 'test-value',
-      },
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Cache: 'no-cache',
+          'X-Custom-Header': 'foo',
+          'X-Test-Header': 'test-value',
+        },
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -364,25 +366,27 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/bar', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-        'X-Custom-Header': 'foo',
-        'X-Test-Header': 'test-value',
-      },
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/bar', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Cache: 'no-cache',
+          'X-Custom-Header': 'foo',
+          'X-Test-Header': 'test-value',
+        },
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
