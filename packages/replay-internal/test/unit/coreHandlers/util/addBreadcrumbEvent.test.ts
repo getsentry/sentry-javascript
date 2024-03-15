@@ -47,4 +47,31 @@ describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
       },
     ]);
   });
+
+  it('handles timestamp as string', async () => {
+    const baseTimestampAsISOString = new Date(BASE_TIMESTAMP).toISOString()
+    const breadcrumb: any = {
+      category: 'console',
+      message: 'Test message with timestamp as string',
+      timestamp: baseTimestampAsISOString,
+    };
+
+    const replay = setupReplayContainer();
+    addBreadcrumbEvent(replay, breadcrumb);
+
+    expect((replay.eventBuffer as EventBufferArray).events).toEqual([
+      {
+        type: 5,
+        timestamp: BASE_TIMESTAMP,
+        data: {
+          tag: 'breadcrumb',
+          payload: {
+            category: 'console',
+            message: 'Test message with timestamp as string',
+            timestamp: baseTimestampAsISOString,
+          },
+        },
+      },
+    ]);
+  });
 });

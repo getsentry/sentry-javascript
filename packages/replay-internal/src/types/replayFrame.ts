@@ -14,7 +14,7 @@ import type { ReplayEventTypeCustom } from './rrweb';
 type AnyRecord = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 interface ReplayBaseBreadcrumbFrame {
-  timestamp: number;
+  timestamp: number | string;
   /**
    * For compatibility reasons
    */

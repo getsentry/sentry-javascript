@@ -700,10 +700,13 @@ export class ReplayContainer implements ReplayContainerInterface {
       });
 
       this.addUpdate(() => {
+        const timestampAsNumber = typeof breadcrumb.timestamp === 'string'
+          ? new Date(breadcrumb.timestamp).getTime()
+          : breadcrumb.timestamp || 0;
         // Return `false` if the event _was_ added, as that means we schedule a flush
         return !addEventSync(this, {
           type: ReplayEventTypeCustom,
-          timestamp: breadcrumb.timestamp || 0,
+          timestamp: timestampAsNumber,
           data: {
             tag: 'breadcrumb',
             payload: breadcrumb,
@@ -1003,11 +1006,14 @@ export class ReplayContainer implements ReplayContainerInterface {
    */
   private _createCustomBreadcrumb(breadcrumb: ReplayBreadcrumbFrame): void {
     this.addUpdate(() => {
+      const timestampAsNumber = typeof breadcrumb.timestamp === 'string'
+          ? new Date(breadcrumb.timestamp).getTime()
+          : breadcrumb.timestamp || 0;
       // This should never reject
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
       this.throttledAddEvent({
         type: EventType.Custom,
-        timestamp: breadcrumb.timestamp || 0,
+        timestamp: timestampAsNumber,
         data: {
           tag: 'breadcrumb',
           payload: breadcrumb,

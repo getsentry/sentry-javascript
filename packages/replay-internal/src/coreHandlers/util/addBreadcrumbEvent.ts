@@ -19,13 +19,17 @@ export function addBreadcrumbEvent(replay: ReplayContainer, breadcrumb: Breadcru
   }
 
   replay.addUpdate(() => {
+    const timestampAsNumber = typeof breadcrumb.timestamp === 'string'
+      ? new Date(breadcrumb.timestamp).getTime() / 1000
+      : breadcrumb.timestamp || 0;
+
     // This should never reject
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     replay.throttledAddEvent({
       type: EventType.Custom,
       // TODO: We were converting from ms to seconds for breadcrumbs, spans,
       // but maybe we should just keep them as milliseconds
-      timestamp: (breadcrumb.timestamp || 0) * 1000,
+      timestamp: timestampAsNumber * 1000,
       data: {
         tag: 'breadcrumb',
         // normalize to max. 10 depth and 1_000 properties per object
