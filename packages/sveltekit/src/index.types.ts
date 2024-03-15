@@ -46,7 +46,6 @@ export declare const getClient: typeof clientSdk.getClient;
 // eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 // eslint-disable-next-line deprecation/deprecation
-export declare const makeMain: typeof clientSdk.makeMain;
 export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 

@@ -88,6 +88,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
     "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-replace": "^5.0.5",
