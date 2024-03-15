@@ -37,7 +37,7 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request, {replayRecordingSnapshots}] = await Promise.all([
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/foo').then(() => {
         // @ts-expect-error Sentry is a global
@@ -113,7 +113,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request, {replayRecordingSnapshots}] = await Promise.all([
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/foo').then(() => {
         // @ts-expect-error Sentry is a global
@@ -195,7 +195,7 @@ sentryTest('does not capture response headers if URL does not match', async ({ g
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request, {replayRecordingSnapshots}] = await Promise.all([
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
     page.evaluate(() => {
       fetch('http://localhost:7654/bar').then(() => {
         // @ts-expect-error Sentry is a global
