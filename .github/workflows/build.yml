@@ -278,6 +278,34 @@ jobs:
       # `job_build` can't see `job_install_deps` and what it returned)
       dependency_cache_key: ${{ needs.job_install_deps.outputs.dependency_cache_key }}
 
+  job_size_check:
+    name: Size Check
+    needs: [job_get_metadata, job_build]
+    timeout-minutes: 15
+    runs-on: ubuntu-20.04
+    if:
+      github.event_name == 'pull_request' || needs.job_get_metadata.outputs.is_develop == 'true' ||
+      needs.job_get_metadata.outputs.is_release == 'true'
+    steps:
+      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.HEAD_COMMIT }}
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: 'package.json'
+      - name: Restore caches
+        uses: ./.github/actions/restore-cache
+        env:
+          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
+      - name: Check bundle sizes
+        uses: ./dev-packages/size-limit-gh-action
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Only run comparison against develop if this is a PR
+          comparison_branch: ${{ (github.event_name == 'pull_request' && github.base_ref) ||  ''}}
+
   job_lint:
     name: Lint
     # Even though the linter only checks source code, not built code, it needs the built code in order check that all
