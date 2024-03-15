@@ -187,7 +187,7 @@ async function run() {
     const githubToken = getInput('github_token');
     const threshold = getInput('threshold');
 
-    if (!comparisonBranch && !pr) {
+    if (comparisonBranch && !pr) {
       throw new Error('No PR found. Only pull_request workflows are supported.');
     }
 
