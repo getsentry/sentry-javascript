@@ -30,7 +30,6 @@ export * from './clientreport';
 export * from './ratelimit';
 export * from './baggage';
 export * from './url';
-export * from './userIntegrations';
 export * from './cache';
 export * from './eventbuilder';
 export * from './anr';
