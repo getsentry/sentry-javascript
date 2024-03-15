@@ -530,20 +530,6 @@ export class Hub implements HubInterface {
       client.captureSession(session);
     }
   }
-
-  /**
-   * Calls global extension method and binding current instance to the function call
-   */
-  // @ts-expect-error Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _callExtensionMethod<T>(method: string, ...args: any[]): T {
-    const carrier = getMainCarrier();
-    const sentry = getSentryCarrier(carrier);
-    if (sentry.extensions && typeof sentry.extensions[method] === 'function') {
-      return sentry.extensions[method].apply(this, args);
-    }
-    DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
-  }
 }
 
 /**
