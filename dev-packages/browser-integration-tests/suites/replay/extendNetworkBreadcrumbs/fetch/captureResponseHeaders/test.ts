@@ -157,7 +157,9 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
   ]);
 });
 
-sentryTest('does not capture response headers if URL does not match', async ({ getLocalTestPath, page }) => {
+// This test is flaky so it's skipped for now
+// See https://github.com/getsentry/sentry-javascript/issues/11139
+sentryTest.skip('does not capture response headers if URL does not match', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
