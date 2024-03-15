@@ -2,7 +2,7 @@ import type { IncomingMessage } from 'http';
 import type { Event, EventProcessor } from '@sentry/types';
 import * as sentryUtils from '@sentry/utils';
 import type { RequestDataIntegrationOptions } from '../../../src';
-import { RequestData, setCurrentClient } from '../../../src';
+import { requestDataIntegration, setCurrentClient } from '../../../src';
 
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -16,15 +16,14 @@ const path = '/by/the/trees/';
 const queryString = 'chase=me&please=thankyou';
 
 function initWithRequestDataIntegrationOptions(integrationOptions: RequestDataIntegrationOptions): EventProcessor {
-  // eslint-disable-next-line deprecation/deprecation
-  const requestDataIntegration = new RequestData({
+  const integration = requestDataIntegration({
     ...integrationOptions,
   });
 
   const client = new TestClient(
     getDefaultTestClientOptions({
       dsn: 'https://dogsarebadatkeepingsecrets@squirrelchasers.ingest.sentry.io/12312012',
-      integrations: [requestDataIntegration],
+      integrations: [integration],
     }),
   );
 
