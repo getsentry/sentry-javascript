@@ -87,8 +87,10 @@ const defaultOptions = {
 afterEach(done => {
   jest.clearAllMocks();
 
-  if (testServer) {
+  if (testServer && testServer.listening) {
     testServer.close(done);
+  } else {
+    done();
   }
 });
 
