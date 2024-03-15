@@ -8,7 +8,9 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
+// Skipping because this test is flaky
+// https://github.com/getsentry/sentry-javascript/issues/10395
+sentryTest.skip('captures request body size when body is sent', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -93,7 +95,9 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
   ]);
 });
 
-sentryTest('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
+// This test is flaky.
+// See https://github.com/getsentry/sentry-javascript/pull/11110
+sentryTest.skip('captures request size from non-text request body', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
