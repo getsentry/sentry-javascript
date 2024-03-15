@@ -9,7 +9,7 @@ export function makePackageNodeEsm() {
       this.emitFile({
         type: 'asset',
         fileName: 'package.json',
-        source: '{ "type": "module" }',
+        source: '{ "type": "module", "sideEffects": false }',
       });
     },
   };
