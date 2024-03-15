@@ -188,7 +188,9 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   ]);
 });
 
-sentryTest('captures response size from non-text response body', async ({ getLocalTestPath, page }) => {
+// This test is flaky so it's skipped for now
+// See https://github.com/getsentry/sentry-javascript/issues/11137
+sentryTest.skip('captures response size from non-text response body', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
