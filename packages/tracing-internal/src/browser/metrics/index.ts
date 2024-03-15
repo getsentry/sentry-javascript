@@ -201,14 +201,56 @@ function _trackFID(): () => void {
   });
 }
 
+enum InteractionType {
+  Click = 'click',
+  Hover = 'hover',
+  Drag = 'drag',
+  Press = 'press',
+}
+
+const INP_ENTRY_MAP: Record<string, InteractionType> = {
+  click: InteractionType.Click,
+  pointerdown: InteractionType.Click,
+  pointerup: InteractionType.Click,
+  mousedown: InteractionType.Click,
+  mouseup: InteractionType.Click,
+  touchstart: InteractionType.Click,
+  touchend: InteractionType.Click,
+  mouseover: InteractionType.Hover,
+  mouseout: InteractionType.Hover,
+  mouseenter: InteractionType.Hover,
+  mouseleave: InteractionType.Hover,
+  pointerover: InteractionType.Hover,
+  pointerout: InteractionType.Hover,
+  pointerenter: InteractionType.Hover,
+  pointerleave: InteractionType.Hover,
+  dragstart: InteractionType.Drag,
+  dragend: InteractionType.Drag,
+  drag: InteractionType.Drag,
+  dragenter: InteractionType.Drag,
+  dragleave: InteractionType.Drag,
+  dragover: InteractionType.Drag,
+  drop: InteractionType.Drag,
+  keydown: InteractionType.Press,
+  keyup: InteractionType.Press,
+  keypress: InteractionType.Press,
+  input: InteractionType.Press,
+};
+
 /** Starts tracking the Interaction to Next Paint on the current page. */
 function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.find(e => e.name === 'click' || e.name === 'pointerdown');
+    if (metric.value === undefined) {
+      return;
+    }
+    const entry = metric.entries.find(
+      entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name] !== undefined,
+    );
     const client = getClient();
     if (!entry || !client) {
       return;
     }
+    const InteractionType = INP_ENTRY_MAP[entry.name];
     const options = client.getOptions();
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
@@ -229,7 +271,7 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     const span = new Span({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
-      op: 'ui.interaction.click',
+      op: `ui.interaction.${InteractionType}`,
       name: htmlTreeAsString(entry.target),
       attributes: {
         release: options.release,
