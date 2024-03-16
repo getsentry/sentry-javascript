@@ -289,7 +289,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -347,7 +347,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -396,7 +396,7 @@ describe('Integration | Scope', () => {
 
       expect(initialIsolationScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -439,7 +439,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -499,7 +499,7 @@ describe('Integration | Scope', () => {
       const error = new Error('test error');
       Sentry.captureException(error);
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -547,7 +547,7 @@ describe('Integration | Scope', () => {
 
       expect(initialCurrentScope.getScopeData().tags).toEqual({ tag1: 'val1', tag2: 'val2' });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -593,7 +593,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -636,7 +636,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(
@@ -682,7 +682,7 @@ describe('Integration | Scope', () => {
         });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeSend).toHaveBeenCalledWith(

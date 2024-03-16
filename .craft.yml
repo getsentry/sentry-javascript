@@ -93,7 +93,7 @@ targets:
     includeNames: /^sentry-aws-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/google-cloud-serverless'
-    includeNames: /^sentry-google-cloud-\d.*\.tgz$/
+    includeNames: /^sentry-google-cloud-serverless-\d.*\.tgz$/
   - name: npm
     id: '@sentry/bun'
     includeNames: /^sentry-bun-\d.*\.tgz$/
@@ -145,6 +145,7 @@ targets:
           - nodejs14.x
           - nodejs16.x
           - nodejs18.x
+          - nodejs20.x
     license: MIT
 
   # CDN Bundle Target

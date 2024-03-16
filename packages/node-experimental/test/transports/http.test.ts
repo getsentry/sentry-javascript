@@ -53,14 +53,14 @@ function setupTestServer(
     res.connection?.end();
   });
 
-  testServer.listen(18099);
+  testServer.listen(18101);
 
   return new Promise(resolve => {
     testServer?.on('listening', resolve);
   });
 }
 
-const TEST_SERVER_URL = 'http://localhost:18099';
+const TEST_SERVER_URL = 'http://localhost:18101';
 
 const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
@@ -80,15 +80,17 @@ const defaultOptions = {
 // empty function to keep test output clean
 const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
 
+afterEach(done => {
+  jest.clearAllMocks();
+
+  if (testServer && testServer.listening) {
+    testServer.close(done);
+  } else {
+    done();
+  }
+});
+
 describe('makeNewHttpTransport()', () => {
-  afterEach(() => {
-    jest.clearAllMocks();
-
-    if (testServer) {
-      testServer.close();
-    }
-  });
-
   describe('.send()', () => {
     it('should correctly send envelope to server', async () => {
       await setupTestServer({ statusCode: SUCCESS }, (req, body) => {

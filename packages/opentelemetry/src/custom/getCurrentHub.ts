@@ -62,8 +62,7 @@ export function getCurrentHub(): Hub {
     setContext,
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      // eslint-disable-next-line deprecation/deprecation
-      return getClient()?.getIntegration(integration) || null;
+      return getClient()?.getIntegrationByName<T>(integration.id) || null;
     },
 
     startSession,

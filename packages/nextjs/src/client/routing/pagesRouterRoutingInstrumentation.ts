@@ -7,7 +7,8 @@ import {
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import type { Client, TransactionSource } from '@sentry/types';
 import { browserPerformanceTimeOrigin, logger, stripUrlQueryAndFragment } from '@sentry/utils';
-import type { NEXT_DATA as NextData } from 'next/dist/next-server/lib/utils';
+
+import type { NEXT_DATA } from 'next/dist/shared/lib/utils';
 import RouterImport from 'next/router';
 
 // next/router v10 is CJS
@@ -27,7 +28,7 @@ const globalObject = WINDOW as typeof WINDOW & {
 /**
  * Describes data located in the __NEXT_DATA__ script tag. This tag is present on every page of a Next.js app.
  */
-interface SentryEnhancedNextData extends NextData {
+interface SentryEnhancedNextData extends NEXT_DATA {
   props: {
     pageProps?: {
       _sentryTraceData?: string; // trace parent info, if injected by a data-fetcher
