@@ -1,4 +1,4 @@
-// eslint-disable max-lines
+/* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -118,44 +118,46 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       setConfirmCrop(false);
       const handleMouseMove = makeHandleMouseMove(corner);
       const handleMouseUp = (): void => {
-        croppingRef.current && croppingRef.current.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
       };
 
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
-      croppingRef.current && croppingRef.current.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mousemove', handleMouseMove);
     }
 
     const makeHandleMouseMove = useCallback((corner: string) => {
       return function (e: MouseEvent) {
+        const mouseX = e.clientX - croppingRef.current!.getBoundingClientRect().x;
+        const mouseY = e.clientY - croppingRef.current!.getBoundingClientRect().y;
         switch (corner) {
           case 'topleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.min(e.offsetX, prev.endx - 30),
-              starty: Math.min(e.offsetY, prev.endy - 30),
+              startx: Math.min(Math.max(0, mouseX), prev.endx - 30),
+              starty: Math.min(Math.max(0, mouseY), prev.endy - 30),
             }));
             break;
           case 'topright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.max(e.offsetX, prev.startx + 30),
-              starty: Math.min(e.offsetY, prev.endy - 30),
+              endx: Math.max(Math.min(mouseX, croppingRef.current!.width), prev.startx + 30),
+              starty: Math.min(Math.max(0, mouseY), prev.endy - 30),
             }));
             break;
           case 'bottomleft':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.min(e.offsetX, prev.endx - 30),
-              endy: Math.max(e.offsetY, prev.starty + 30),
+              startx: Math.min(Math.max(0, mouseX), prev.endx - 30),
+              endy: Math.max(Math.min(mouseY, croppingRef.current!.height), prev.starty + 30),
             }));
             break;
           case 'bottomright':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.max(e.offsetX, prev.startx + 30),
-              endy: Math.max(e.offsetY, prev.starty + 30),
+              endx: Math.max(Math.min(mouseX, croppingRef.current!.width), prev.startx + 30),
+              endy: Math.max(Math.min(mouseY, croppingRef.current!.height), prev.starty + 30),
             }));
             break;
         }
@@ -317,6 +319,7 @@ function CropCorner({
         borderRight: corner === 'topright' || corner === 'bottomright' ? 'solid purple' : 'none',
         borderBottom: corner === 'bottomleft' || corner === 'bottomright' ? 'solid purple' : 'none',
         borderWidth: '3px',
+        cursor: corner === 'topleft' || corner === 'bottomright' ? 'nwse-resize' : 'nesw-resize',
       }}
       onMouseDown={e => {
         e.preventDefault();
