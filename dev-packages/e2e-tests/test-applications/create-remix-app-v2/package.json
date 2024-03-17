@@ -36,5 +36,4 @@
   "volta": {
     "extends": "../../package.json"
   }
-
 }

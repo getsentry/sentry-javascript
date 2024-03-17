@@ -1,6 +1,4 @@
-// @ts-expect-error - Importing with `.ts` extention to allow ts-node to find this file
-import { startEventProxyServer } from './event-proxy-server.ts';
-
+import { startEventProxyServer } from '@sentry-internal/event-proxy-server';
 startEventProxyServer({
   port: 3031,
   proxyServerName: 'create-remix-app-express',

@@ -3,21 +3,21 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "remix build",
-    "dev": "remix dev --manual -c \"node --watch-path server.js --watch server.js\"",
+    "build": "remix vite:build",
+    "dev": "node ./server.mjs",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "cross-env NODE_ENV=production node ./server.js",
+    "start": "cross-env NODE_ENV=production node ./server.mjs",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
-    "@sentry/remix": "latest || *",
     "@remix-run/css-bundle": "^2.7.2",
     "@remix-run/express": "^2.7.2",
     "@remix-run/node": "^2.7.2",
     "@remix-run/react": "^2.7.2",
+    "@sentry/remix": "latest || *",
     "compression": "^1.7.4",
     "cross-env": "^7.0.3",
     "express": "^4.18.2",
@@ -28,8 +28,11 @@
     "source-map-support": "^0.5.21"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@playwright/test": "^1.36.2",
     "@remix-run/dev": "^2.7.2",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "@types/compression": "^1.7.2",
     "@types/express": "^4.17.17",
     "@types/morgan": "^1.9.4",
@@ -44,8 +47,9 @@
     "eslint-plugin-jsx-a11y": "^6.7.1",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
-    "ts-node": "10.9.2",
+    "tsx": "4.7.2",
     "typescript": "^5.1.6",
+    "vite-tsconfig-paths": "^4.2.1",
     "wait-port": "1.0.4"
   },
   "volta": {

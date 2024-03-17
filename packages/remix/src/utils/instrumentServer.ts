@@ -286,8 +286,6 @@ function makeWrappedDataFunction(
               }
             }
 
-            span?.end();
-
             return origFn.call(this, args);
           },
           err => {
