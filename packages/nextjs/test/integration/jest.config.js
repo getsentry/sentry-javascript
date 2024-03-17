@@ -4,7 +4,6 @@ module.exports = {
   ...baseConfig,
   testMatch: [`${__dirname}/test/server/**/*.test.ts`],
   testPathIgnorePatterns: [`${__dirname}/test/client`],
-  detectOpenHandles: true,
   forceExit: true,
   testTimeout: 30000,
   setupFilesAfterEnv: [`${__dirname}/jest.setup.js`],
