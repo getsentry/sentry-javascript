@@ -20,6 +20,7 @@ function renderForm({
   messagePlaceholder = 'What is the issue?',
   cancelButtonLabel = 'Cancel!',
   submitButtonLabel = 'Submit!',
+  isRequiredLabel = '(needed!)',
   ...rest
 }: Partial<FormComponentProps> = {}) {
   return Form({
@@ -37,6 +38,7 @@ function renderForm({
     messagePlaceholder,
     cancelButtonLabel,
     submitButtonLabel,
+    isRequiredLabel,
     ...rest,
   }) as NonNullableFields<ReturnType<typeof Form>>;
 }
@@ -89,9 +91,9 @@ describe('Form', () => {
     const nameLabel = formComponent.el.querySelector('label[htmlFor="name"]') as HTMLLabelElement;
     const emailLabel = formComponent.el.querySelector('label[htmlFor="email"]') as HTMLLabelElement;
     const messageLabel = formComponent.el.querySelector('label[htmlFor="message"]') as HTMLLabelElement;
-    expect(nameLabel.textContent).toBe('Name! (required)');
-    expect(emailLabel.textContent).toBe('Email! (required)');
-    expect(messageLabel.textContent).toBe('Description! (required)');
+    expect(nameLabel.textContent).toBe('Name! (needed!)');
+    expect(emailLabel.textContent).toBe('Email! (needed!)');
+    expect(messageLabel.textContent).toBe('Description! (needed!)');
 
     const nameInput = formComponent.el.querySelector('[name="name"]') as HTMLInputElement;
     const emailInput = formComponent.el.querySelector('[name="email"]') as HTMLInputElement;
