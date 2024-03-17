@@ -26,6 +26,14 @@ const init = async () => {
     },
   });
 
+  server.route({
+    method: 'GET',
+    path: '/error',
+    handler: (_request, _h) => {
+      throw new Error('Sentry Test Error');
+    },
+  });
+
   await Sentry.setupHapiErrorHandler(server);
   await server.start();
 
