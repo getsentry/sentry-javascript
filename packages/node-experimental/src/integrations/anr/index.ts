@@ -73,6 +73,7 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
   const options: WorkerStartData = {
     debug: logger.isEnabled(),
     dsn,
+    tunnel: initOptions.tunnel,
     environment: initOptions.environment || 'production',
     release: initOptions.release,
     dist: initOptions.dist,
