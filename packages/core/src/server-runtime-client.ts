@@ -260,16 +260,22 @@ export class ServerRuntimeClient<
       return [samplingContext, spanToTraceContext(rootSpan)];
     }
 
-    const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();
-    const traceContext: TraceContext = {
-      trace_id: traceId,
-      span_id: spanId,
-      parent_span_id: parentSpanId,
-    };
-    if (dsc) {
-      return [dsc, traceContext];
+    const propagationContext = scope.getPropagationContext();
+    if (propagationContext) {
+      const { traceId, spanId, parentSpanId, dsc } = propagationContext;
+
+      const traceContext: TraceContext = {
+        trace_id: traceId,
+        span_id: spanId,
+        parent_span_id: parentSpanId,
+      };
+      if (dsc) {
+        return [dsc, traceContext];
+      }
+
+      return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
     }
 
-    return [getDynamicSamplingContextFromClient(traceId, this), traceContext];
+    return [undefined, undefined]
   }
 }

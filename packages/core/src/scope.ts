@@ -652,10 +652,3 @@ export class Scope implements ScopeInterface {
     }
   }
 }
-
-function generatePropagationContext(): PropagationContext {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
-}

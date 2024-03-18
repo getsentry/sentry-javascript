@@ -17,6 +17,7 @@ import type {
   Integration,
   Outcome,
   ParameterizedString,
+  PropagationContext,
   SdkMetadata,
   Session,
   SessionAggregates,
@@ -41,6 +42,7 @@ import {
   makeDsn,
   rejectedSyncPromise,
   resolvedSyncPromise,
+  uuid4,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -622,17 +624,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      const propagationContext = {
-        ...isolationScope.getPropagationContext(),
-        ...(scope ? scope.getPropagationContext() : undefined),
-      };
+      const propagationContext = isolationScope.getPropagationContext() || (scope ? scope.getPropagationContext() : undefined) || generatePropagationContext();
 
       const trace = evt.contexts && evt.contexts.trace;
       if (!trace && propagationContext) {
         const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
           trace: {
-            trace_id,
+            trace_id ,
             span_id: spanId,
             parent_span_id: parentSpanId,
           },
@@ -877,4 +876,11 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
+}
+
+function generatePropagationContext(): PropagationContext {
+  return {
+    traceId: uuid4(),
+    spanId: uuid4().substring(16),
+  };
 }
