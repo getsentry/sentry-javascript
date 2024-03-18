@@ -85,12 +85,10 @@ function ensureTimestampInSeconds(timestamp: number): number {
 
 /**
  * Convert a span to a JSON representation.
- * Note that all fields returned here are optional and need to be guarded against.
- *
- * Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
- * This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
- * And `spanToJSON` needs the Span class from `span.ts` to check here.
  */
+// Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
+// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
+// And `spanToJSON` needs the Span class from `span.ts` to check here.
 export function spanToJSON(span: Span): Partial<SpanJSON> {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
