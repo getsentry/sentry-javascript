@@ -14,7 +14,9 @@
     "test:assert": "pnpm test:prod"
   },
   "dependencies": {
-    "@sentry/sveltekit": "latest || *"
+    "@sentry/sveltekit": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/core": "latest || *"
   },
   "devDependencies": {
     "@playwright/test": "^1.41.1",

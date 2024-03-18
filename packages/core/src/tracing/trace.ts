@@ -56,6 +56,8 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
     // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
+    console.log(`xx startSpan ${context.op} ${context.name} parentSpan`, parentSpan);
+
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
@@ -250,6 +252,8 @@ function createChildSpanOrTransaction(
     // eslint-disable-next-line deprecation/deprecation
     span = parentSpan.startChild(spanContext);
     addChildSpanToSpan(parentSpan, span);
+
+    console.log('starting child span', spanContext.op);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
     const dsc = getDynamicSamplingContextFromSpan(parentSpan);
@@ -267,6 +271,7 @@ function createChildSpanOrTransaction(
         ...spanContext.metadata,
       },
     });
+    console.log('starting txn (forced)', spanContext.op);
   } else {
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
@@ -284,6 +289,7 @@ function createChildSpanOrTransaction(
         ...spanContext.metadata,
       },
     });
+    console.log('starting txn', spanContext.op);
   }
 
   // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types

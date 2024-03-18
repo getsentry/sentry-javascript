@@ -23,4 +23,6 @@
   <li>
     <a href="/universal-load-fetch">Route with fetch in universal load</a>
   </li>
+  <li>
+    <a href="/server-load-fetch">Route with nested fetch in server load</a>
 </ul>
