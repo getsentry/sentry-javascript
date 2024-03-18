@@ -46,17 +46,17 @@ const constructRect = (box: Box): Rect => {
 };
 
 const getContainedSize = (img: HTMLCanvasElement): Box => {
-  const imgHeight = img.clientHeight;
-  const imgWidth = img.clientWidth;
+  const imgClientHeight = img.clientHeight;
+  const imgClientWidth = img.clientWidth;
   const ratio = img.width / img.height;
-  let width = imgHeight * ratio;
-  let height = imgHeight;
-  if (width > imgWidth) {
-    width = imgWidth;
-    height = imgWidth / ratio;
+  let width = imgClientHeight * ratio;
+  let height = imgClientHeight;
+  if (width > imgClientWidth) {
+    width = imgClientWidth;
+    height = imgClientWidth / ratio;
   }
-  const x = (imgWidth - width) / 2;
-  const y = (imgHeight - height) / 2;
+  const x = (imgClientWidth - width) / 2;
+  const y = (imgClientHeight - height) / 2;
   return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
