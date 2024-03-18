@@ -7,7 +7,13 @@ import { onINP } from './web-vitals/getINP';
 import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
 
-type InstrumentHandlerTypePerformanceObserver = 'longtask' | 'event' | 'navigation' | 'paint' | 'resource';
+type InstrumentHandlerTypePerformanceObserver =
+  | 'longtask'
+  | 'event'
+  | 'navigation'
+  | 'paint'
+  | 'resource'
+  | 'first-input';
 
 type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'inp';
 
@@ -144,7 +150,7 @@ export function addInpInstrumentationHandler(
 }
 
 export function addPerformanceInstrumentationHandler(
-  type: 'event',
+  type: 'event' | 'first-input',
   callback: (data: { entries: ((PerformanceEntry & { target?: unknown | null }) | PerformanceEventTiming)[] }) => void,
 ): CleanupHandlerCallback;
 export function addPerformanceInstrumentationHandler(

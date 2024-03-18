@@ -193,7 +193,7 @@ export class BrowserTracing implements Integration {
   private _collectWebVitals: () => void;
 
   private _hasSetTracePropagationTargets: boolean;
-  private _interactionIdtoRouteNameMapping: InteractionRouteNameMapping;
+  private _interactionIdToRouteNameMapping: InteractionRouteNameMapping;
   private _latestRoute: {
     name: string | undefined;
     context: TransactionContext | undefined;
@@ -235,10 +235,10 @@ export class BrowserTracing implements Integration {
 
     this._collectWebVitals = startTrackingWebVitals();
     /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
-    this._interactionIdtoRouteNameMapping = {};
+    this._interactionIdToRouteNameMapping = {};
 
     if (this.options.enableInp) {
-      startTrackingINP(this._interactionIdtoRouteNameMapping);
+      startTrackingINP(this._interactionIdToRouteNameMapping);
     }
     if (this.options.enableLongTask) {
       startTrackingLongTasks();
@@ -489,7 +489,7 @@ export class BrowserTracing implements Integration {
 
   /** Creates a listener on interaction entries, and maps interactionIds to the origin path of the interaction */
   private _registerInpInteractionListener(): void {
-    addPerformanceInstrumentationHandler('event', ({ entries }) => {
+    const handleEntries = ({ entries }: { entries: PerformanceEntry[] }): void => {
       const client = getClient();
       // We need to get the replay, user, and activeTransaction from the current scope
       // so that we can associate replay id, profile id, and a user display to the span
@@ -502,44 +502,73 @@ export class BrowserTracing implements Integration {
       const activeTransaction = getActiveTransaction();
       const currentScope = getCurrentScope();
       const user = currentScope !== undefined ? currentScope.getUser() : undefined;
-      for (const entry of entries) {
+      entries.forEach(entry => {
         if (isPerformanceEventTiming(entry)) {
+          const interactionId = entry.interactionId;
+          if (interactionId === undefined) {
+            return;
+          }
+          const existingInteraction = this._interactionIdToRouteNameMapping[interactionId];
           const duration = entry.duration;
-          const keys = Object.keys(this._interactionIdtoRouteNameMapping);
+          const startTime = entry.startTime;
+          const keys = Object.keys(this._interactionIdToRouteNameMapping);
           const minInteractionId =
             keys.length > 0
               ? keys.reduce((a, b) => {
-                  return this._interactionIdtoRouteNameMapping[a].duration <
-                    this._interactionIdtoRouteNameMapping[b].duration
+                  return this._interactionIdToRouteNameMapping[a].duration <
+                    this._interactionIdToRouteNameMapping[b].duration
                     ? a
                     : b;
                 })
               : undefined;
-          if (
+          // For a first input event to be considered, we must check that an interaction event does not already exist with the same duration and start time.
+          // This is also checked in the web-vitals library.
+          if (entry.entryType === 'first-input') {
+            const matchingEntry = keys
+              .map(key => this._interactionIdToRouteNameMapping[key])
+              .some(interaction => {
+                return interaction.duration === duration && interaction.startTime === startTime;
+              });
+            if (matchingEntry) {
+              return;
+            }
+          }
+          // Interactions with an id of 0 and are not first-input are not valid.
+          if (!interactionId) {
+            return;
+          }
+          // If the interaction already exists, we want to use the duration of the longest entry, since that is what the INP metric uses.
+          if (existingInteraction) {
+            existingInteraction.duration = Math.max(existingInteraction.duration, duration);
+          } else if (
+            keys.length < MAX_INTERACTIONS ||
             minInteractionId === undefined ||
-            duration > this._interactionIdtoRouteNameMapping[minInteractionId].duration
+            duration > this._interactionIdToRouteNameMapping[minInteractionId].duration
           ) {
-            const interactionId = entry.interactionId;
+            // If the interaction does not exist, we want to add it to the mapping if there is space, or if the duration is longer than the shortest entry.
             const routeName = this._latestRoute.name;
             const parentContext = this._latestRoute.context;
-            if (interactionId && routeName && parentContext) {
-              if (minInteractionId && Object.keys(this._interactionIdtoRouteNameMapping).length >= MAX_INTERACTIONS) {
+            if (routeName && parentContext) {
+              if (minInteractionId && Object.keys(this._interactionIdToRouteNameMapping).length >= MAX_INTERACTIONS) {
                 // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-                delete this._interactionIdtoRouteNameMapping[minInteractionId];
+                delete this._interactionIdToRouteNameMapping[minInteractionId];
               }
-              this._interactionIdtoRouteNameMapping[interactionId] = {
+              this._interactionIdToRouteNameMapping[interactionId] = {
                 routeName,
                 duration,
                 parentContext,
                 user,
                 activeTransaction,
                 replayId,
+                startTime,
               };
             }
           }
         }
-      }
-    });
+      });
+    };
+    addPerformanceInstrumentationHandler('event', handleEntries);
+    addPerformanceInstrumentationHandler('first-input', handleEntries);
   }
 }
 
