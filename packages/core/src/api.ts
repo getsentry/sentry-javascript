@@ -1,4 +1,4 @@
-import type { ClientOptions, DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
+import type { DsnComponents, DsnLike, SdkInfo } from '@sentry/types';
 import { dsnToString, makeDsn, urlEncode } from '@sentry/utils';
 
 const SENTRY_API_VERSION = '7';

@@ -37,7 +37,7 @@ export interface WorkerStartData extends AnrIntegrationOptions {
   debug: boolean;
   sdkMetadata: SdkMetadata;
   dsn: DsnComponents;
-  tunnel: string | undefined
+  tunnel: string | undefined;
   release: string | undefined;
   environment: string;
   dist: string | undefined;
