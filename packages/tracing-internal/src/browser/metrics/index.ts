@@ -202,7 +202,7 @@ function _trackFID(): () => void {
 }
 
 /** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
+function _trackINP(interactionIdToRouteNameMapping: InteractionRouteNameMapping): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
     const entry = metric.entries.find(e => e.name === 'click' || e.name === 'pointerdown');
     const client = getClient();
@@ -214,8 +214,8 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
     const { routeName, parentContext, activeTransaction, user, replayId } =
-      entry.interactionId !== undefined
-        ? interactionIdtoRouteNameMapping[entry.interactionId]
+      entry.interactionId !== undefined && interactionIdToRouteNameMapping[entry.interactionId]
+        ? interactionIdToRouteNameMapping[entry.interactionId]
         : {
             routeName: undefined,
             parentContext: undefined,
