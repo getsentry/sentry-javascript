@@ -201,14 +201,49 @@ function _trackFID(): () => void {
   });
 }
 
+const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
+  click: 'click',
+  pointerdown: 'click',
+  pointerup: 'click',
+  mousedown: 'click',
+  mouseup: 'click',
+  touchstart: 'click',
+  touchend: 'click',
+  mouseover: 'hover',
+  mouseout: 'hover',
+  mouseenter: 'hover',
+  mouseleave: 'hover',
+  pointerover: 'hover',
+  pointerout: 'hover',
+  pointerenter: 'hover',
+  pointerleave: 'hover',
+  dragstart: 'drag',
+  dragend: 'drag',
+  drag: 'drag',
+  dragenter: 'drag',
+  dragleave: 'drag',
+  dragover: 'drag',
+  drop: 'drag',
+  keydown: 'press',
+  keyup: 'press',
+  keypress: 'press',
+  input: 'press',
+};
+
 /** Starts tracking the Interaction to Next Paint on the current page. */
 function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    const entry = metric.entries.find(e => e.name === 'click' || e.name === 'pointerdown');
+    if (metric.value === undefined) {
+      return;
+    }
+    const entry = metric.entries.find(
+      entry => entry.duration === metric.value && INP_ENTRY_MAP[entry.name] !== undefined,
+    );
     const client = getClient();
     if (!entry || !client) {
       return;
     }
+    const interactionType = INP_ENTRY_MAP[entry.name];
     const options = client.getOptions();
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
@@ -229,7 +264,7 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     const span = new Span({
       startTimestamp: startTime,
       endTimestamp: startTime + duration,
-      op: 'ui.interaction.click',
+      op: `ui.interaction.${interactionType}`,
       name: htmlTreeAsString(entry.target),
       attributes: {
         release: options.release,

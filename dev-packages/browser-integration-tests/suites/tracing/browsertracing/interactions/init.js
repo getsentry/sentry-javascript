@@ -12,6 +12,7 @@ Sentry.init({
         enableInteractions: true,
         enableLongTask: false,
       },
+      enableInp: true,
     }),
   ],
   tracesSampleRate: 1,
