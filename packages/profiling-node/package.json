@@ -6,14 +6,18 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
   "author": "Sentry",
   "license": "MIT",
-  "main": "lib/index.js",
+  "main": "lib/cjs/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "import": {
+        "types": "./lib/types/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
       "require": {
         "types": "./lib/types/index.d.ts",
-        "default": "./lib/index.js"
+        "default": "./lib/cjs/index.js"
       }
     }
   },
@@ -73,14 +77,14 @@
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
   },
   "dependencies": {
-    "detect-libc": "^2.0.2",
-    "node-abi": "^3.52.0"
-  },
-  "devDependencies": {
     "@sentry/core": "8.0.0-alpha.2",
     "@sentry/node-experimental": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",
+    "detect-libc": "^2.0.2",
+    "node-abi": "^3.52.0"
+  },
+  "devDependencies": {
     "@types/node": "16.18.70",
     "@types/node-abi": "^3.0.0",
     "clang-format": "^1.8.0",

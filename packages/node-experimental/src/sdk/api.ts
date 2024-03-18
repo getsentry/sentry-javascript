@@ -1,23 +1,8 @@
 // PUBLIC APIS
 
-import { getCurrentScope } from '@sentry/core';
-import type { Client, StackParser } from '@sentry/types';
-import type { Hub } from '@sentry/types';
+import type { StackParser } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser } from '@sentry/utils';
 import { createGetModuleFromFilename } from '../utils/module';
-
-/** Get the currently active client. */
-export function getClient<C extends Client>(): C {
-  const currentScope = getCurrentScope();
-
-  const client = currentScope.getClient();
-  if (client) {
-    return client as C;
-  }
-
-  // TODO otherwise ensure we use a noop client
-  return {} as C;
-}
 
 /**
  * Returns a release dynamically from environment variables.
@@ -55,14 +40,3 @@ export function getSentryRelease(fallback?: string): string | undefined {
 
 /** Node.js stack parser */
 export const defaultStackParser: StackParser = createStackParser(nodeStackLineParser(createGetModuleFromFilename()));
-
-/**
- * This method is a noop and only here to ensure vite-plugin v0.6.0 (which is used by Sveltekit) still works,
- * as that uses this.
- *
- * @deprecated This will be removed before v8 is finalized.
- */
-export function makeMain(hub: Hub): Hub {
-  // noop
-  return hub;
-}

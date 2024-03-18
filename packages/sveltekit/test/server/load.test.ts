@@ -5,14 +5,15 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   addTracingExtensions,
 } from '@sentry/core';
-import { getClient, getCurrentScope, getIsolationScope, init } from '@sentry/node-experimental';
-import * as SentryNode from '@sentry/node-experimental';
-import type { Event } from '@sentry/types';
+import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
+import type { Event, EventEnvelopeHeaders } from '@sentry/types';
 import type { Load, ServerLoad } from '@sveltejs/kit';
 import { error, redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
 
 import { wrapLoadWithSentry, wrapServerLoadWithSentry } from '../../src/server/load';
+import { getDefaultNodeClientOptions } from '../utils';
 
 const mockCaptureException = vi.spyOn(SentryNode, 'captureException').mockImplementation(() => 'xx');
 
@@ -151,7 +152,8 @@ describe.each([
       [504, 1],
     ])('error with status code %s calls captureException %s times', async (code, times) => {
       async function load({ params }) {
-        throw error(code, params.id);
+        // @ts-expect-error - number is not assignable to NumericRange but that's fine here
+        throw error(code, { message: params.id });
       }
 
       const wrappedLoad = wrapLoadWithSentry(load);
@@ -191,7 +193,7 @@ describe.each([
     });
   });
 });
-describe('wrapLoadWithSentry calls trace', () => {
+describe('wrapLoadWithSentry calls `startSpan`', () => {
   async function load({ params }): Promise<ReturnType<Load>> {
     return {
       post: params.id,
@@ -242,7 +244,7 @@ describe('wrapLoadWithSentry calls trace', () => {
   });
 });
 
-describe('wrapServerLoadWithSentry calls trace', () => {
+describe('wrapServerLoadWithSentry calls `startSpan`', () => {
   async function serverLoad({ params }): Promise<ReturnType<ServerLoad>> {
     return {
       post: params.id,
@@ -254,27 +256,45 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     getIsolationScope().clear();
   });
 
-  it('attaches trace data if available', async () => {
-    const transactions: Event[] = [];
+  let client: NodeClient;
 
-    init({
-      enableTracing: true,
-      release: '8.0.0',
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      beforeSendTransaction: event => {
-        transactions.push(event);
-        return null;
+  let txnEvents: Event[] = [];
+
+  beforeEach(() => {
+    txnEvents = [];
+
+    const options = getDefaultNodeClientOptions({
+      tracesSampleRate: 1.0,
+      beforeSendTransaction: evt => {
+        txnEvents.push(evt);
+        return evt;
       },
+      dsn: 'https://public@dsn.ingest.sentry.io/1337',
+      release: '8.0.0',
+      debug: true,
     });
-    const client = getClient()!;
+
+    client = new NodeClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    mockCaptureException.mockClear();
+  });
+
+  it('attaches trace data if available', async () => {
+    let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
+
+    client.on('beforeEnvelope', env => {
+      envelopeHeaders = env[0] as EventEnvelopeHeaders;
+    });
 
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(getServerOnlyArgs());
 
     await client.flush();
 
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    expect(txnEvents).toHaveLength(1);
+    const transaction = txnEvents[0];
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
@@ -289,8 +309,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       trace_id: '1234567890abcdef1234567890abcdef',
       origin: 'auto.function.sveltekit',
     });
+
     expect(transaction.transaction).toEqual('/users/[id]');
-    expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
+
+    expect(envelopeHeaders!.trace).toEqual({
       environment: 'production',
       public_key: 'dogsarebadatkeepingsecrets',
       release: '1.0.0',
@@ -301,26 +323,19 @@ describe('wrapServerLoadWithSentry calls trace', () => {
   });
 
   it("doesn't attach trace data if it's not available", async () => {
-    const transactions: Event[] = [];
+    let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
 
-    init({
-      enableTracing: true,
-      release: '8.0.0',
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      beforeSendTransaction: event => {
-        transactions.push(event);
-        return null;
-      },
+    client.on('beforeEnvelope', env => {
+      envelopeHeaders = env[0] as EventEnvelopeHeaders;
     });
-    const client = getClient()!;
 
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(getServerArgsWithoutTracingHeaders());
 
     await client.flush();
 
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    expect(txnEvents).toHaveLength(1);
+    const transaction = txnEvents[0];
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
@@ -336,7 +351,7 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       origin: 'auto.function.sveltekit',
     });
     expect(transaction.transaction).toEqual('/users/[id]');
-    expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({
+    expect(envelopeHeaders!.trace).toEqual({
       environment: 'production',
       public_key: 'public',
       sample_rate: '1',
@@ -347,26 +362,20 @@ describe('wrapServerLoadWithSentry calls trace', () => {
     });
   });
 
-  it("doesn't attach the DSC data if the baggage header not available", async () => {
-    const transactions: Event[] = [];
+  it("doesn't attach the DSC data if the baggage header is not available", async () => {
+    let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
 
-    init({
-      enableTracing: true,
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      beforeSendTransaction: event => {
-        transactions.push(event);
-        return null;
-      },
+    client.on('beforeEnvelope', env => {
+      envelopeHeaders = env[0] as EventEnvelopeHeaders;
     });
-    const client = getClient()!;
 
     const wrappedLoad = wrapServerLoadWithSentry(serverLoad);
     await wrappedLoad(getServerArgsWithoutBaggageHeader());
 
     await client.flush();
 
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    expect(txnEvents).toHaveLength(1);
+    const transaction = txnEvents[0];
 
     expect(transaction.contexts?.trace).toEqual({
       data: {
@@ -382,22 +391,10 @@ describe('wrapServerLoadWithSentry calls trace', () => {
       origin: 'auto.function.sveltekit',
     });
     expect(transaction.transaction).toEqual('/users/[id]');
-    expect(transaction.sdkProcessingMetadata?.dynamicSamplingContext).toEqual({});
+    expect(envelopeHeaders!.trace).toEqual({});
   });
 
   it('falls back to the raw url if `event.route.id` is not available', async () => {
-    const transactions: Event[] = [];
-
-    init({
-      enableTracing: true,
-      dsn: 'https://public@dsn.ingest.sentry.io/1337',
-      beforeSendTransaction: event => {
-        transactions.push(event);
-        return null;
-      },
-    });
-    const client = getClient()!;
-
     const event = getServerOnlyArgs();
     // @ts-expect-error - this is fine (just tests here)
     delete event.route;
@@ -406,8 +403,8 @@ describe('wrapServerLoadWithSentry calls trace', () => {
 
     await client.flush();
 
-    expect(transactions).toHaveLength(1);
-    const transaction = transactions[0];
+    expect(txnEvents).toHaveLength(1);
+    const transaction = txnEvents[0];
 
     expect(transaction.contexts?.trace).toEqual({
       data: {

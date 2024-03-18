@@ -3,7 +3,7 @@ import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as inspector from 'inspector';
 import { Worker } from 'worker_threads';
-import { NODE_MAJOR, NODE_VERSION } from '../../nodeVersion';
+import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
 import { base64WorkerScript } from './worker-script';
@@ -36,7 +36,7 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
-      if (NODE_MAJOR < 16 || (NODE_MAJOR === 16 && (NODE_VERSION.minor || 0) < 17)) {
+      if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
         throw new Error('ANR detection requires Node 16.17.0 or later');
       }
 

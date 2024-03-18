@@ -39,7 +39,8 @@
   "dependencies": {
     "@sentry-internal/tracing": "8.0.0-alpha.2",
     "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
+    "@sentry/node": "8.0.0-alpha.2",
+    "@sentry/opentelemetry": "8.0.0-alpha.2",
     "@sentry/svelte": "8.0.0-alpha.2",
     "@sentry/types": "8.0.0-alpha.2",
     "@sentry/utils": "8.0.0-alpha.2",
@@ -68,7 +69,7 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:unit": "vitest run",
+    "test:unit": "vitest run --outputDiffMaxLines=2000",
     "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
