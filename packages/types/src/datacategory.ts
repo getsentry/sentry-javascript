@@ -26,7 +26,9 @@ export type DataCategory =
   | 'monitor'
   // Feedback type event (v2)
   | 'feedback'
-  // Unknown data category
-  | 'unknown'
+  // Statsd type event for metrics
+  | 'statsd'
   // Span
-  | 'span';
+  | 'span'
+  // Unknown data category
+  | 'unknown';
