@@ -165,10 +165,8 @@ export class Hub implements HubInterface {
     const top = this.getStackTop();
     top.client = client;
     top.scope.setClient(client);
-    // eslint-disable-next-line deprecation/deprecation
-    if (client && client.setupIntegrations) {
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
+    if (client) {
+      client.init();
     }
   }
 

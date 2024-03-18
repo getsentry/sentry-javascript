@@ -140,12 +140,6 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   addIntegration(integration: Integration): void;
 
   /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  setupIntegrations(forceInitialize?: boolean): void;
-
-  /**
    * Initialize this client.
    * Call this after the client was set on a scope.
    */
