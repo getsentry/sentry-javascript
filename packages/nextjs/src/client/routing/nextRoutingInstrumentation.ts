@@ -1,34 +1,29 @@
 import { WINDOW } from '@sentry/react';
-import type { StartSpanOptions } from '@sentry/types';
+import type { Client } from '@sentry/types';
 
-import { appRouterInstrumentation } from './appRouterRoutingInstrumentation';
-import { pagesRouterInstrumentation } from './pagesRouterRoutingInstrumentation';
-
-type StartSpanCb = (context: StartSpanOptions) => void;
+import { appRouterInstrumentNavigation, appRouterInstrumentPageLoad } from './appRouterRoutingInstrumentation';
+import { pagesRouterInstrumentNavigation, pagesRouterInstrumentPageLoad } from './pagesRouterRoutingInstrumentation';
 
 /**
- * Instruments the Next.js Client Router.
+ * Instruments the Next.js Client Router for page loads.
  */
-export function nextRouterInstrumentation(
-  shouldInstrumentPageload: boolean,
-  shouldInstrumentNavigation: boolean,
-  startPageloadSpanCallback: StartSpanCb,
-  startNavigationSpanCallback: StartSpanCb,
-): void {
+export function nextRouterInstrumentPageLoad(client: Client): void {
   const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
   if (isAppRouter) {
-    appRouterInstrumentation(
-      shouldInstrumentPageload,
-      shouldInstrumentNavigation,
-      startPageloadSpanCallback,
-      startNavigationSpanCallback,
-    );
+    appRouterInstrumentPageLoad(client);
   } else {
-    pagesRouterInstrumentation(
-      shouldInstrumentPageload,
-      shouldInstrumentNavigation,
-      startPageloadSpanCallback,
-      startNavigationSpanCallback,
-    );
+    pagesRouterInstrumentPageLoad(client);
+  }
+}
+
+/**
+ * Instruments the Next.js Client Router for navigation.
+ */
+export function nextRouterInstrumentNavigation(client: Client): void {
+  const isAppRouter = !WINDOW.document.getElementById('__NEXT_DATA__');
+  if (isAppRouter) {
+    appRouterInstrumentNavigation(client);
+  } else {
+    pagesRouterInstrumentNavigation(client);
   }
 }

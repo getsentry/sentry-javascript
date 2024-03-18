@@ -198,7 +198,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (state.error) {
       let element: React.ReactElement | undefined = undefined;
       if (typeof fallback === 'function') {
-        element = fallback({
+        element = React.createElement(fallback, {
           error: state.error,
           componentStack: state.componentStack,
           resetError: this.resetErrorBoundary,

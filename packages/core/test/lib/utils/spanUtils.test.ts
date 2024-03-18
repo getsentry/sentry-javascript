@@ -85,9 +85,11 @@ describe('spanToJSON', () => {
         parentSpanId: '1234',
         spanId: '5678',
         traceId: 'abcd',
-        origin: 'auto',
         startTimestamp: 123,
         endTimestamp: 456,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto',
+        },
       });
       span.setStatus({ code: SPAN_STATUS_OK });
 

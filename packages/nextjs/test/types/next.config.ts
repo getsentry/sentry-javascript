@@ -13,6 +13,4 @@ const config: NextConfig = {
   }),
 };
 
-module.exports = withSentryConfig(config, {
-  validate: true,
-});
+module.exports = withSentryConfig(config);

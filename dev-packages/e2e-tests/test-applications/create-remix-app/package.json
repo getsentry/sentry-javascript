@@ -26,8 +26,11 @@
     "@remix-run/eslint-config": "^1.19.3",
     "@types/react": "^18.0.35",
     "@types/react-dom": "^18.0.11",
+    "@sentry/types": "latest || *",
+    "@sentry/utils": "latest || *",
     "eslint": "^8.38.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "ts-node": "10.9.1"
   },
   "engines": {
     "node": ">=14.18"

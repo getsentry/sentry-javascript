@@ -1,19 +1,12 @@
-import type { Client, Envelope, Event, Transaction } from '@sentry/types';
+import type { Client, Envelope, Event } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import {
-  Scope,
-  addBreadcrumb,
-  getCurrentScope,
-  getIsolationScope,
-  makeSession,
-  setCurrentClient,
-  setGlobalScope,
-} from '../../src';
+import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
 import { makeFakeTransport } from '../mocks/transport';
+import { clearGlobalScope } from './clear-global-scope';
 
 const PUBLIC_DSN = 'https://username@domain/123';
 // eslint-disable-next-line no-var
@@ -49,9 +42,6 @@ jest.mock('@sentry/utils', () => {
     truncate(str: string): string {
       return str;
     },
-    timestampWithMs(): number {
-      return 2020;
-    },
     dateTimestampInSeconds(): number {
       return 2020;
     },
@@ -62,7 +52,7 @@ describe('BaseClient', () => {
   beforeEach(() => {
     TestClient.sendEventCalled = undefined;
     TestClient.instance = undefined;
-    setGlobalScope(undefined);
+    clearGlobalScope();
     getCurrentScope().clear();
     getCurrentScope().setClient(undefined);
     getIsolationScope().clear();
@@ -1935,20 +1925,6 @@ describe('BaseClient', () => {
     ] as const;
 
     describe.each(scenarios)('with client %s', (_, client) => {
-      it('should call a startTransaction hook', () => {
-        expect.assertions(1);
-
-        const mockTransaction = {
-          traceId: '86f39e84263a4de99c326acab3bfe3bd',
-        } as Transaction;
-
-        client.on('startTransaction', transaction => {
-          expect(transaction).toEqual(mockTransaction);
-        });
-
-        client.emit('startTransaction', mockTransaction);
-      });
-
       it('should call a beforeEnvelope hook', () => {
         expect.assertions(1);
 

@@ -55,12 +55,8 @@ interface SpanContext {
   name: string;
   attributes?: SpanAttributes;
   op?: string;
-  // TODO: Not yet implemented, but you should be able to pass a scope to base this off
   scope?: Scope;
-  // TODO: The list below may change a bit...
-  origin?: SpanOrigin;
-  source?: SpanSource;
-  metadata?: Partial<SpanMetadata>;
+  forceTransaction?: boolean;
 }
 ```
 

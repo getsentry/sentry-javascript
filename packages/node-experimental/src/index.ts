@@ -11,7 +11,7 @@ export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejec
 export { anrIntegration } from './integrations/anr';
 
 export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
-export { fastifyIntegration } from './integrations/tracing/fastify';
+export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
 export { graphqlIntegration } from './integrations/tracing/graphql';
 export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
@@ -25,29 +25,23 @@ export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
-export {
-  getClient,
-  getSentryRelease,
-  defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
-} from './sdk/api';
+export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
 export { makeNodeTransport } from './transports';
 export { NodeClient } from './sdk/client';
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHub } from './sdk/hub';
 export { cron } from './cron';
 
 export type { NodeOptions } from './types';
-
-export { getRootSpan } from '@sentry/opentelemetry';
 
 export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
 } from '@sentry/utils';
+
+// These are custom variants that need to be used instead of the core one
+// As they have slightly different implementations
+export { continueTrace } from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
@@ -80,9 +74,11 @@ export {
   setCurrentClient,
   Scope,
   setMeasurement,
-  continueTrace,
   getSpanDescendants,
   parameterize,
+  getClient,
+  // eslint-disable-next-line deprecation/deprecation
+  getCurrentHub,
   getCurrentScope,
   getIsolationScope,
   withScope,
@@ -106,6 +102,7 @@ export {
   startInactiveSpan,
   getActiveSpan,
   withActiveSpan,
+  getRootSpan,
 } from '@sentry/core';
 
 export type {

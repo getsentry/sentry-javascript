@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, spanToJSON } from '@sentry/core';
 import type { Transaction, TransactionContext } from '@sentry/types';
 import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, logger } from '@sentry/utils';
 
@@ -27,9 +27,9 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
       // pageload should always start at timeOrigin (and needs to be in s, not ms)
       startTimestamp: browserPerformanceTimeOrigin ? browserPerformanceTimeOrigin / 1000 : undefined,
       op: 'pageload',
-      origin: 'auto.pageload.browser',
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.browser',
       },
     });
   }
@@ -61,9 +61,9 @@ export function instrumentRoutingWithDefaults<T extends Transaction>(
         activeTransaction = customStartTransaction({
           name: WINDOW.location.pathname,
           op: 'navigation',
-          origin: 'auto.navigation.browser',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.browser',
           },
         });
       }

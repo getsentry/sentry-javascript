@@ -47,12 +47,13 @@ describe('withSentry', () => {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
           },
-          metadata: {
-            request: expect.objectContaining({ url: 'http://dogs.are.great' }),
-          },
         },
         expect.any(Function),
       );
+
+      expect(SentryCore.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
+        request: expect.objectContaining({ url: 'http://dogs.are.great' }),
+      });
     });
   });
 });

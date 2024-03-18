@@ -46,4 +46,5 @@ Add the following config files to your project's root directory:
 }
 ```
 
-For an example of how to use this package in a monorepo, check out this package's own parent repo, https://github.com/getsentry/sentry-javascript.
+For an example of how to use this package in a monorepo, check out this package's own parent repo,
+https://github.com/getsentry/sentry-javascript.

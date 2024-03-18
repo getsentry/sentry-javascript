@@ -72,6 +72,8 @@ describe('Integration | Scope', () => {
               trace: {
                 span_id: spanId,
                 trace_id: traceId,
+                // local span ID from propagation context
+                ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
               },
             },
           }),
@@ -117,6 +119,8 @@ describe('Integration | Scope', () => {
                 status: 'ok',
                 trace_id: traceId,
                 origin: 'manual',
+                // local span ID from propagation context
+                parent_span_id: expect.any(String),
               },
             }),
             spans: [],
@@ -211,6 +215,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId1,
                   trace_id: traceId1,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -236,7 +242,8 @@ describe('Integration | Scope', () => {
               ? {
                   span_id: spanId2,
                   trace_id: traceId2,
-                  parent_span_id: undefined,
+                  // local span ID from propagation context
+                  ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
                 }
               : expect.any(Object),
           }),
@@ -327,16 +334,21 @@ describe('Integration | Scope', () => {
 
       await client.flush();
 
+      expect(spanId1).toBeDefined();
+      expect(spanId2).toBeDefined();
+      expect(traceId1).toBeDefined();
+      expect(traceId2).toBeDefined();
+
       expect(beforeSend).toHaveBeenCalledTimes(2);
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           contexts: expect.objectContaining({
-            trace: spanId1
-              ? {
-                  span_id: spanId1,
-                  trace_id: traceId1,
-                }
-              : expect.any(Object),
+            trace: {
+              span_id: spanId1,
+              trace_id: traceId1,
+              // local span ID from propagation context
+              ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
+            },
           }),
           tags: {
             tag1: 'val1',
@@ -358,13 +370,12 @@ describe('Integration | Scope', () => {
       expect(beforeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           contexts: expect.objectContaining({
-            trace: spanId2
-              ? {
-                  span_id: spanId2,
-                  trace_id: traceId2,
-                  parent_span_id: undefined,
-                }
-              : expect.any(Object),
+            trace: {
+              span_id: spanId2,
+              trace_id: traceId2,
+              // local span ID from propagation context
+              ...(enableTracing ? { parent_span_id: expect.any(String) } : undefined),
+            },
           }),
           tags: {
             tag1: 'val1',

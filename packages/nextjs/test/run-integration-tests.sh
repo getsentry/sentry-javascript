@@ -31,10 +31,10 @@ echo "Running integration tests on Node $NODE_VERSION"
 # make a backup of our config file so we can restore it when we're done
 mv next.config.js next.config.js.bak
 
-for NEXTJS_VERSION in 10 11 12 13; do
+for NEXTJS_VERSION in 13; do
   for USE_APPDIR in true false; do
-    if ([ "$NEXTJS_VERSION" -lt "13" ] || [ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
-      # App dir doesn not work on Next.js < 13 or Node.js < 16
+    if ([ "$NODE_MAJOR" -lt "16" ]) && [ "$USE_APPDIR" == true ]; then
+      # App dir doesn not work on Node.js < 16
       continue
     fi
 
@@ -64,103 +64,58 @@ for NEXTJS_VERSION in 10 11 12 13; do
       sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
     fi
 
-    # Next.js v13 requires React 18.2.0
-    if [ "$NEXTJS_VERSION" -eq "13" ]; then
-      npm i --save react@18.2.0 react-dom@18.2.0
-    fi
-    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node
-    # 10
-    yarn --no-lockfile --ignore-engines --silent >/dev/null 2>&1
+    # Yarn install randomly started failing because it couldn't find some cache  so for now we need to run these two commands which seem to fix it.
+    # It was pretty much this issue: https://github.com/yarnpkg/yarn/issues/5275
+    rm -rf node_modules
+    yarn cache clean
+
+    # We have to use `--ignore-engines` because sucrase claims to need Node 12, even though tests pass just fine on Node 10
+    yarn --no-lockfile --ignore-engines
+
     # if applicable, use local versions of `@sentry/cli` and/or `@sentry/webpack-plugin` (these commands no-op unless
     # LINKED_CLI_REPO and/or LINKED_PLUGIN_REPO are set)
     linkcli && linkplugin
     mv -f package.json.bak package.json 2>/dev/null || true
 
-    SHOULD_RUN_WEBPACK_5=(true)
-    # Only run Webpack 4 tests for Next 10 and Next 11
-    if [ "$NEXTJS_VERSION" -eq "10" ] || [ "$NEXTJS_VERSION" -eq "11" ]; then
-      SHOULD_RUN_WEBPACK_5+=(false)
+    if [ "$NEXTJS_VERSION" -eq "13" ]; then
+      if [ "$USE_APPDIR" == true ]; then
+        cat next13.appdir.config.template > next.config.js
+      else
+        cat next13.config.template > next.config.js
+      fi
     fi
 
-    for RUN_WEBPACK_5 in ${SHOULD_RUN_WEBPACK_5[*]}; do
-      [ "$RUN_WEBPACK_5" == true ] &&
-        WEBPACK_VERSION=5 ||
-        WEBPACK_VERSION=4
+    echo "[nextjs@$NEXTJS_VERSION] Building..."
+    yarn build
 
-      if [ "$NODE_MAJOR" -gt "17" ]; then
-        # Node v17+ does not work with NextJS 10 and 11 because of their legacy openssl use
-        # Ref: https://github.com/vercel/next.js/issues/30078
-        if [ "$NEXTJS_VERSION" -lt "12" ]; then
-          echo "[nextjs@$NEXTJS_VERSION Node $NODE_MAJOR not compatible with NextJS $NEXTJS_VERSION"
-          # Continues the 2nd enclosing loop, which is the outer loop that iterates over the NextJS version
-          continue 2
-        fi
+    # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
+    EXIT_CODE=0
 
-        # Node v18 only with Webpack 5 and above
-        # https://github.com/webpack/webpack/issues/14532#issuecomment-947513562
-        # Context: https://github.com/vercel/next.js/issues/30078#issuecomment-947338268
-        if [ "$WEBPACK_VERSION" -eq "4" ]; then
-          echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Node $NODE_MAJOR not compatible with Webpack $WEBPACK_VERSION"
-          # Continues the 1st enclosing loop, which is the inner loop that iterates over the Webpack version
-          continue
-        fi
+    if [ "$USE_APPDIR" == true ]; then
+      echo "Skipping server tests for appdir"
+    else
+      echo "[nextjs@$NEXTJS_VERSION] Running server tests with options: $args"
+      (cd .. && yarn test:integration:server) || EXIT_CODE=$?
+    fi
 
-      fi
+    if [ $EXIT_CODE -eq 0 ]; then
+      echo "[nextjs@$NEXTJS_VERSION] Server integration tests passed"
+    else
+      echo "[nextjs@$NEXTJS_VERSION] Server integration tests failed"
+      exit 1
+    fi
 
-      # next 10 defaults to webpack 4 and next 11 defaults to webpack 5, but each can use either based on settings
-      if [ "$NEXTJS_VERSION" -eq "10" ]; then
-        sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next10.config.template >next.config.js
-      elif [ "$NEXTJS_VERSION" -eq "11" ]; then
-        sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next11.config.template >next.config.js
-      elif [ "$NEXTJS_VERSION" -eq "12" ]; then
-        sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next12.config.template >next.config.js
-      elif [ "$NEXTJS_VERSION" -eq "13" ]; then
-        if [ "$USE_APPDIR" == true ]; then
-          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.appdir.config.template >next.config.js
-        else
-          sed "s/%RUN_WEBPACK_5%/$RUN_WEBPACK_5/g" <next13.config.template >next.config.js
-        fi
-      fi
-
-      echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Building..."
-      yarn build
-
-      # if the user hasn't passed any args, use the default one, which restricts each test to only outputting success and
-      # failure messages
-      args=$*
-      if [[ ! $args ]]; then
-        args="--silent"
-      fi
-
-      # we keep this updated as we run the tests, so that if it's ever non-zero, we can bail
-      EXIT_CODE=0
-
-      if [ "$USE_APPDIR" == true ]; then
-        echo "Skipping server tests for appdir"
-      else
-        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running server tests with options: $args"
-        (cd .. && yarn test:integration:server) || EXIT_CODE=$?
-      fi
-
+    if [ "$NODE_MAJOR" -lt "14" ]; then
+      echo "[nextjs@$NEXTJS_VERSION] Skipping client tests on Node $NODE_MAJOR"
+    else
+      echo "[nextjs@$NEXTJS_VERSION] Running client tests with options: $args"
+      (cd .. && yarn test:integration:client) || EXIT_CODE=$?
       if [ $EXIT_CODE -eq 0 ]; then
-        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests passed"
+        echo "[nextjs@$NEXTJS_VERSION] Client integration tests passed"
       else
-        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Server integration tests failed"
+        echo "[nextjs@$NEXTJS_VERSION] Client integration tests failed"
         exit 1
       fi
-
-      if [ "$NODE_MAJOR" -lt "14" ]; then
-        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Skipping client tests on Node $NODE_MAJOR"
-      else
-        echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Running client tests with options: $args"
-        (cd .. && yarn test:integration:client) || EXIT_CODE=$?
-        if [ $EXIT_CODE -eq 0 ]; then
-          echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests passed"
-        else
-          echo "[nextjs@$NEXTJS_VERSION | webpack@$WEBPACK_VERSION] Client integration tests failed"
-          exit 1
-        fi
-      fi
-    done
+    fi
   done
 done

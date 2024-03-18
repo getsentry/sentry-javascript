@@ -18,10 +18,11 @@
 
 This SDK officially supports Angular 12 to 17 with Angular's new rendering engine, Ivy.
 
-If you're using Angular 10, 11 or a newer Angular version with View Engine instead of Ivy, please use [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/angular/README.md).
+If you're using Angular 10, 11 or a newer Angular version with View Engine instead of Ivy, please use
+[`@sentry/angular`](https://github.com/getsentry/sentry-javascript/blob/develop/packages/angular/README.md).
 
-If you're using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the SDK to version 6.x.
-Please note that we don't provide any support for Angular versions below 10.
+If you're using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the
+SDK to version 6.x. Please note that we don't provide any support for Angular versions below 10.
 
 ## General
 
@@ -53,8 +54,8 @@ platformBrowserDynamic()
 
 ### ErrorHandler
 
-`@sentry/angular-ivy` exports a function to instantiate an ErrorHandler provider that will automatically send Javascript errors
-captured by the Angular's error handler.
+`@sentry/angular-ivy` exports a function to instantiate an ErrorHandler provider that will automatically send Javascript
+errors captured by the Angular's error handler.
 
 ```javascript
 import { NgModule, ErrorHandler } from '@angular/core';
@@ -89,17 +90,14 @@ initializations.
 
 Registering a Trace Service is a 3-step process.
 
-1. Register and configure the `BrowserTracing` integration, including custom Angular routing
-   instrumentation:
+1. Register and configure the `BrowserTracing` integration, including custom Angular routing instrumentation:
 
 ```javascript
 import { init, browserTracingIntegration } from '@sentry/angular-ivy';
 
 init({
   dsn: '__DSN__',
- integrations: [
-    browserTracingIntegration(),
-  ],
+  integrations: [browserTracingIntegration()],
   tracePropagationTargets: ['localhost', 'https://yourserver.io/api'],
   tracesSampleRate: 1,
 });
@@ -181,39 +179,40 @@ Then, inside your component's template (keep in mind that the directive's name a
 <app-footer trace="footer"></app-footer>
 ```
 
-_TraceClassDecorator:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
+_TraceClass:_ used to track a duration between `OnInit` and `AfterViewInit` lifecycle hooks in components:
 
 ```javascript
 import { Component } from '@angular/core';
-import { TraceClassDecorator } from '@sentry/angular-ivy';
+import { TraceClass } from '@sentry/angular-ivy';
 
 @Component({
   selector: 'layout-header',
   templateUrl: './header.component.html',
 })
-@TraceClassDecorator()
+@TraceClass()
 export class HeaderComponent {
   // ...
 }
 ```
 
-_TraceMethodDecorator:_ used to track a specific lifecycle hooks as point-in-time spans in components:
+_TraceMethod:_ used to track a specific lifecycle hooks as point-in-time spans in components:
 
 ```javascript
 import { Component, OnInit } from '@angular/core';
-import { TraceMethodDecorator } from '@sentry/angular-ivy';
+import { TraceMethod } from '@sentry/angular-ivy';
 
 @Component({
   selector: 'app-footer',
   templateUrl: './footer.component.html',
 })
 export class FooterComponent implements OnInit {
-  @TraceMethodDecorator()
+  @TraceMethod()
   ngOnInit() {}
 }
 ```
 
-You can also add your own custom spans via `startSpan()`. For example, if you'd like to track the duration of Angular boostraping process, you can do it as follows:
+You can also add your own custom spans via `startSpan()`. For example, if you'd like to track the duration of Angular
+boostraping process, you can do it as follows:
 
 ```javascript
 import { enableProdMode } from '@angular/core';
@@ -223,12 +222,13 @@ import { init, startSpan } from '@sentry/angular';
 import { AppModule } from './app/app.module';
 
 // ...
-startSpan({
-  name: 'platform-browser-dynamic',
-  op: 'ui.angular.bootstrap'
+startSpan(
+  {
+    name: 'platform-browser-dynamic',
+    op: 'ui.angular.bootstrap',
   },
   async () => {
     await platformBrowserDynamic().bootstrapModule(AppModule);
-  }
+  },
 );
 ```

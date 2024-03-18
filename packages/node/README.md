@@ -4,27 +4,36 @@
   </a>
 </p>
 
-# Official Sentry SDK for NodeJS
+# Legacy Sentry SDK for NodeJS
 
-[![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm version](https://img.shields.io/npm/v/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
 
 ## Links
 
 - [Official SDK Docs](https://docs.sentry.io/quickstart/)
 - [TypeDoc](http://getsentry.github.io/sentry-javascript/)
 
+## Status
+
+Since v8, this is the _legacy_ SDK, and it will most likely be completely removed before v8 is fully stable. It only
+exists so that Meta-SDKs like `@sentry/nextjs` or `@sentry/sveltekit` can be migrated to the new `@sentry/node`
+step-by-step.
+
+You should instead use [@sentry/node](./../node-experimental/).
+
 ## Usage
 
 To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options. Minimum supported Node version is Node 14.
+hook into the environment. Note that you can turn off almost all side effects using the respective options. Minimum
+supported Node version is Node 14.
 
 ```javascript
 // CJS syntax
-const Sentry = require('@sentry/node');
+const Sentry = require('@sentry/node-experimental');
 // ESM syntax
-import * as Sentry from '@sentry/node';
+import * as Sentry from '@sentry/node-experimental';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -32,8 +41,8 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/node`. Note that these
-functions will not perform any action before you have called `init()`:
+To set context information or send manual events, use the exported functions of `@sentry/node-experimental`. Note that
+these functions will not perform any action before you have called `init()`:
 
 ```javascript
 // Set user information, as well as tags and further extras

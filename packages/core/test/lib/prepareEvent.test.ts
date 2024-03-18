@@ -9,7 +9,7 @@ import type {
   ScopeContext,
 } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser } from '@sentry/utils';
-import { getGlobalScope, getIsolationScope, setGlobalScope } from '../../src';
+import { getGlobalScope, getIsolationScope } from '../../src';
 
 import { Scope } from '../../src/scope';
 import {
@@ -18,6 +18,7 @@ import {
   parseEventHintOrCaptureContext,
   prepareEvent,
 } from '../../src/utils/prepareEvent';
+import { clearGlobalScope } from './clear-global-scope';
 
 describe('applyDebugIds', () => {
   afterEach(() => {
@@ -191,7 +192,7 @@ describe('parseEventHintOrCaptureContext', () => {
 
 describe('prepareEvent', () => {
   beforeEach(() => {
-    setGlobalScope(undefined);
+    clearGlobalScope();
     getIsolationScope().clear();
   });
 

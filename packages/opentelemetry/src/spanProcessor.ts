@@ -2,15 +2,16 @@ import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
+import { addChildSpanToSpan, getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
+import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
 import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
-import { setSpanParent, setSpanScopes } from './utils/spanData';
+import { setSpanScopes } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
@@ -19,8 +20,13 @@ function onSpanStart(span: Span, parentContext: Context): void {
   let scopes = getScopesFromContext(parentContext);
 
   // We need access to the parent span in order to be able to move up the span tree for breadcrumbs
-  if (parentSpan) {
-    setSpanParent(span, parentSpan);
+  if (parentSpan && !parentSpan.spanContext().isRemote) {
+    addChildSpanToSpan(parentSpan, span);
+  }
+
+  // We need this in the span exporter
+  if (parentSpan && parentSpan.spanContext().isRemote) {
+    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE, true);
   }
 
   // The root context does not have scopes stored, so we check for this specifically

@@ -4,6 +4,6 @@
     "test": "ts-node test.ts"
   },
   "dependencies": {
-    "next": "12.3.1"
+    "next": "13.2.0"
   }
 }

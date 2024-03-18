@@ -40,7 +40,6 @@ export interface ScopeData {
   sdkProcessingMetadata: { [key: string]: unknown };
   fingerprint: string[];
   level?: SeverityLevel;
-  /** @deprecated This will be removed in v8. */
   transactionName?: string;
   span?: Span;
 }
@@ -127,7 +126,15 @@ export interface Scope {
   setLevel(level: SeverityLevel): this;
 
   /**
-   * Sets the transaction name on the scope for future events.
+   * Sets the transaction name on the scope so that the name of the transaction
+   * (e.g. taken server route or page location) is attached to future events.
+   *
+   * IMPORTANT: Calling this function does NOT change the name of the currently active
+   * span. If you want to change the name of the active span, use `span.updateName()`
+   * instead.
+   *
+   * By default, the SDK updates the scope's transaction name automatically on sensible
+   * occasions, such as a page navigation or when handling a new request on the server.
    */
   setTransactionName(name?: string): this;
 

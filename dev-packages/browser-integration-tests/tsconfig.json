@@ -5,7 +5,8 @@
     "lib": ["dom", "es2019"],
     "moduleResolution": "node",
     "noEmit": true,
-    "strict": true
+    "strict": true,
+    "allowSyntheticDefaultImports": true
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]

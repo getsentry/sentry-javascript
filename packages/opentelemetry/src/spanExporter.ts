@@ -16,7 +16,7 @@ import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionS
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import { InternalSentrySemanticAttributes } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
@@ -24,7 +24,7 @@ import type { SpanNode } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanMetadata, getSpanScopes } from './utils/spanData';
+import { getSpanScopes } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -153,7 +153,6 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
 
 function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   const { op, description, data, origin = 'manual', source } = getSpanData(span);
-  const metadata = getSpanMetadata(span);
   const capturedSpanScopes = getSpanScopes(span);
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
@@ -197,11 +196,10 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     transaction: description,
     type: 'transaction',
     sdkProcessingMetadata: {
-      sampleRate,
-      ...metadata,
-      capturedSpanScope: capturedSpanScopes?.scope,
-      capturedSpanIsolationScope: capturedSpanScopes?.isolationScope,
       ...dropUndefinedKeys({
+        capturedSpanScope: capturedSpanScopes?.scope,
+        capturedSpanIsolationScope: capturedSpanScopes?.isolationScope,
+        sampleRate,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
       }),
     },
@@ -299,8 +297,8 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   const cleanedData = { ...data };
 
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
-  delete cleanedData[InternalSentrySemanticAttributes.PARENT_SAMPLED];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;

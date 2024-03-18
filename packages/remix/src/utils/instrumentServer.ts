@@ -3,9 +3,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  captureException,
   continueTrace,
+  getActiveSpan,
   getClient,
-  getDynamicSamplingContextFromSpan,
+  getRootSpan,
   handleCallbackErrors,
   hasTracingEnabled,
   setHttpStatus,
@@ -14,7 +16,7 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/core';
-import { captureException, getActiveSpan, getRootSpan } from '@sentry/node-experimental';
+import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
   addExceptionMechanism,
@@ -249,9 +251,9 @@ function makeWrappedDataFunction(
     return startSpan(
       {
         op: `function.remix.${name}`,
-        origin: 'auto.ui.remix',
         name: id,
         attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.remix',
           name,
         },
       },

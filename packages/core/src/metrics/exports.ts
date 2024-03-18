@@ -4,7 +4,7 @@ import type {
   MetricsAggregator as MetricsAggregatorInterface,
   Primitive,
 } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { getGlobalSingleton, logger } from '@sentry/utils';
 import { getCurrentScope } from '../currentScopes';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
@@ -24,11 +24,6 @@ type MetricsAggregatorConstructor = {
 };
 
 /**
- * A metrics aggregator instance per Client.
- */
-let globalMetricsAggregators: WeakMap<Client, MetricsAggregatorInterface> | undefined;
-
-/**
  * Gets the metrics aggregator for a given client.
  * @param client The client for which to get the metrics aggregator.
  * @param Aggregator Optional metrics aggregator class to use to create an aggregator if one does not exist.
@@ -37,9 +32,10 @@ function getMetricsAggregatorForClient(
   client: Client,
   Aggregator: MetricsAggregatorConstructor,
 ): MetricsAggregatorInterface {
-  if (!globalMetricsAggregators) {
-    globalMetricsAggregators = new WeakMap();
-  }
+  const globalMetricsAggregators = getGlobalSingleton<WeakMap<Client, MetricsAggregatorInterface>>(
+    'globalMetricsAggregators',
+    () => new WeakMap(),
+  );
 
   const aggregator = globalMetricsAggregators.get(client);
   if (aggregator) {

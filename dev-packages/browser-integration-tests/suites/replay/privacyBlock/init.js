@@ -8,6 +8,7 @@ window.Replay = Sentry.replayIntegration({
   useCompression: false,
   blockAllMedia: false,
   block: ['link[rel="icon"]', 'video', '.nested-hide'],
+  unmask: ['.sentry-unmask, [data-sentry-unmask]'],
 });
 
 Sentry.init({

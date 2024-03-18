@@ -1,16 +1,15 @@
 import type { Event, Span, StartSpanOptions } from '@sentry/types';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   Scope,
   addTracingExtensions,
-  getCurrentHub,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   getMainCarrier,
   setAsyncContextStrategy,
   setCurrentClient,
-  spanIsSampled,
   spanToJSON,
   withScope,
 } from '../../../src';
@@ -24,7 +23,7 @@ import {
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { getActiveSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
+import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
@@ -83,27 +82,10 @@ describe('startSpan', () => {
       }
     });
 
-    it('should return the same value as the callback if transactions are undefined', async () => {
-      // @ts-expect-error we are force overriding the transaction return to be undefined
-      // The `startTransaction` types are actually wrong - it can return undefined
-      // if tracingExtensions are not enabled
-      // eslint-disable-next-line deprecation/deprecation
-      jest.spyOn(getCurrentHub(), 'startTransaction').mockImplementationOnce(() => undefined);
-
-      try {
-        const result = await startSpan({ name: 'GET users/[id]' }, () => {
-          return callback();
-        });
-        expect(result).toEqual(expected);
-      } catch (e) {
-        expect(e).toEqual(expected);
-      }
-    });
-
     it('creates a transaction', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, () => {
@@ -118,37 +100,10 @@ describe('startSpan', () => {
       expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : undefined);
     });
 
-    it('allows traceparent information to be overriden', async () => {
-      let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
-      });
-      try {
-        await startSpan(
-          {
-            name: 'GET users/[id]',
-            parentSampled: true,
-            traceId: '12345678901234567890123456789012',
-            parentSpanId: '1234567890123456',
-          },
-          () => {
-            return callback();
-          },
-        );
-      } catch (e) {
-        //
-      }
-      expect(_span).toBeDefined();
-
-      expect(spanIsSampled(_span!)).toEqual(true);
-      expect(spanToJSON(_span!).trace_id).toEqual('12345678901234567890123456789012');
-      expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890123456');
-    });
-
     it('allows for transaction to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
         await startSpan({ name: 'GET users/[id]' }, span => {
@@ -164,11 +119,13 @@ describe('startSpan', () => {
 
     it('creates a span with correct description', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
-        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+        await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, () => {
             return callback();
           });
@@ -188,11 +145,13 @@ describe('startSpan', () => {
 
     it('allows for span to be mutated', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+        }
       });
       try {
-        await startSpan({ name: 'GET users/[id]', parentSampled: true }, () => {
+        await startSpan({ name: 'GET users/[id]' }, () => {
           return startSpan({ name: 'SELECT * from users' }, childSpan => {
             if (childSpan) {
               childSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'db.query');
@@ -211,20 +170,21 @@ describe('startSpan', () => {
       expect(spanToJSON(spans[1]).op).toEqual('db.query');
     });
 
-    it.each([
-      { origin: 'auto.http.browser' },
-      { attributes: { 'sentry.origin': 'auto.http.browser' } },
-      // attribute should take precedence over top level origin
-      { origin: 'manual', attributes: { 'sentry.origin': 'auto.http.browser' } },
-    ])('correctly sets the span origin', async () => {
+    it('correctly sets the span origin', async () => {
       let _span: Span | undefined = undefined;
-      client.on('finishTransaction', transaction => {
-        _span = transaction;
+      client.on('spanEnd', span => {
+        _span = span;
       });
       try {
-        await startSpan({ name: 'GET users/[id]', origin: 'auto.http.browser' }, () => {
-          return callback();
-        });
+        await startSpan(
+          {
+            name: 'GET users/[id]',
+            attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser' },
+          },
+          () => {
+            return callback();
+          },
+        );
       } catch (e) {
         //
       }
@@ -465,12 +425,9 @@ describe('startSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    startSpan(
-      { name: 'outer', attributes: { test1: 'aa', test2: 'aa' }, data: { test1: 'bb', test3: 'bb' } },
-      outerSpan => {
-        expect(outerSpan).toBeDefined();
-      },
-    );
+    startSpan({ name: 'outer', attributes: { test1: 'aa', test2: 'aa', test3: 'bb' } }, outerSpan => {
+      expect(outerSpan).toBeDefined();
+    });
 
     expect(tracesSampler).toBeCalledTimes(1);
     expect(tracesSampler).toHaveBeenLastCalledWith({
@@ -1126,18 +1083,9 @@ describe('continueTrace', () => {
   });
 
   it('works without trace & baggage data', () => {
-    const expectedContext = {
-      metadata: {},
-    };
-
-    const result = continueTrace({ sentryTrace: undefined, baggage: undefined }, ctx => {
-      expect(ctx).toEqual(expectedContext);
-      return ctx;
+    const scope = continueTrace({ sentryTrace: undefined, baggage: undefined }, () => {
+      return getCurrentScope();
     });
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       sampled: undefined,
@@ -1149,29 +1097,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {}, // DSC should be an empty object (frozen), because there was an incoming trace
@@ -1185,32 +1119,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace & baggage data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {
-          environment: 'production',
-          version: '1.0',
-        },
-      },
-      parentSampled: true,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production',
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {
@@ -1227,32 +1144,15 @@ describe('continueTrace', () => {
   });
 
   it('works with trace & 3rd party baggage data', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {
-          environment: 'production',
-          version: '1.0',
-        },
-      },
-      parentSampled: true,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    const result = continueTrace(
+    const scope = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-1',
         baggage: 'sentry-version=1.0,sentry-environment=production,dogs=great,cats=boring',
       },
-      ctx => {
-        expect(ctx).toEqual(expectedContext);
-        return ctx;
+      () => {
+        return getCurrentScope();
       },
     );
-
-    expect(result).toEqual(expectedContext);
-
-    const scope = getCurrentScope();
 
     expect(scope.getPropagationContext()).toEqual({
       dsc: {
@@ -1269,45 +1169,17 @@ describe('continueTrace', () => {
   });
 
   it('returns response of callback', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
     const result = continueTrace(
       {
         sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
         baggage: undefined,
       },
-      ctx => {
-        return { ctx };
+      () => {
+        return 'aha';
       },
     );
 
-    expect(result).toEqual({ ctx: expectedContext });
-  });
-
-  it('works without a callback', () => {
-    const expectedContext = {
-      metadata: {
-        dynamicSamplingContext: {},
-      },
-      parentSampled: false,
-      parentSpanId: '1121201211212012',
-      traceId: '12312012123120121231201212312012',
-    };
-
-    // eslint-disable-next-line deprecation/deprecation
-    const ctx = continueTrace({
-      sentryTrace: '12312012123120121231201212312012-1121201211212012-0',
-      baggage: undefined,
-    });
-
-    expect(ctx).toEqual(expectedContext);
+    expect(result).toEqual('aha');
   });
 });
 

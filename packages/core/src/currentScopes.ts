@@ -1,14 +1,9 @@
 import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
+import { getGlobalSingleton } from '@sentry/utils';
 import { getMainCarrier } from './asyncContext';
 import { getAsyncContextStrategy } from './hub';
 import { Scope as ScopeClass } from './scope';
-
-/**
- * The global scope is kept in this module.
- * When accessing it, we'll make sure to set one if none is currently present.
- */
-let globalScope: Scope | undefined;
 
 /**
  * Get the currently active scope.
@@ -34,20 +29,7 @@ export function getIsolationScope(): Scope {
  * This scope is applied to _all_ events.
  */
 export function getGlobalScope(): Scope {
-  if (!globalScope) {
-    globalScope = new ScopeClass();
-  }
-
-  return globalScope;
-}
-
-/**
- * This is mainly needed for tests.
- * DO NOT USE this, as this is an internal API and subject to change.
- * @hidden
- */
-export function setGlobalScope(scope: Scope | undefined): void {
-  globalScope = scope;
+  return getGlobalSingleton('globalScope', () => new ScopeClass());
 }
 
 /**

@@ -29,7 +29,6 @@ const mockStartBrowserTracingPageLoadSpan = jest.fn();
 const mockStartBrowserTracingNavigationSpan = jest.fn();
 
 const mockRootSpan = {
-  updateName: jest.fn(),
   setAttribute: jest.fn(),
   getSpanJSON() {
     return { op: 'pageload' };
@@ -115,6 +114,18 @@ describe('browserTracingReactRouterV3', () => {
     });
   });
 
+  it("updates the scope's `transactionName` on pageload", () => {
+    const client = createMockBrowserClient();
+    setCurrentClient(client);
+
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
+
+    client.init();
+    render(<Router history={history}>{routes}</Router>);
+
+    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+  });
+
   it('starts a navigation transaction', () => {
     const client = createMockBrowserClient();
     setCurrentClient(client);
@@ -191,5 +202,24 @@ describe('browserTracingReactRouterV3', () => {
         [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
       },
     });
+  });
+
+  it("updates the scope's `transactionName` on a navigation", () => {
+    const client = createMockBrowserClient();
+
+    const history = createMemoryHistory();
+    client.addIntegration(reactRouterV3BrowserTracingIntegration({ history, routes: instrumentationRoutes, match }));
+
+    client.init();
+    const { container } = render(<Router history={history}>{routes}</Router>);
+
+    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/');
+
+    act(() => {
+      history.push('/users/123');
+    });
+    expect(container.innerHTML).toContain('123');
+
+    expect(getCurrentScope().getScopeData()?.transactionName).toEqual('/users/:userid');
   });
 });

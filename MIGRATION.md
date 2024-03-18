@@ -3,7 +3,7 @@
 These docs walk through how to migrate our JavaScript SDKs through different major versions.
 
 - Upgrading from [SDK 4.x to 5.x/6.x](./docs/migration/v4-to-v5_v6.md)
-- Uprading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
+- Upgrading from [SDK 6.x to 7.x](./docs/migration/v6-to-v7.md)
 - Upgrading from [SDK 7.x to 8.x](./MIGRATION.md#upgrading-from-7x-to-8x)
 
 # Upgrading from 7.x to 8.x
@@ -48,6 +48,7 @@ We've removed the following packages:
 - [@sentry/hub](./MIGRATION.md#sentryhub)
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
 
 #### @sentry/hub
 
@@ -167,10 +168,90 @@ Integrations that are now exported from `@sentry/node` and `@sentry/browser` (or
 
 The `Transaction` integration has been removed from `@sentry/integrations`. There is no replacement API.
 
+#### @sentry/serverless
+
+`@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`. These new packages have smaller
+bundle size than `@sentry/serverless`, which should improve your serverless cold-start times.
+
+`@sentry/aws-serverless` and `@sentry/google-cloud-serverless` has also been changed to only emit CJS builds. The ESM
+build for the `@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be
+re-added at a later date.
+
+In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
+directly import from the SDK instead.
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.AWSLambda.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/aws-serverless');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
+```js
+// v7
+const Sentry = require('@sentry/serverless');
+
+Sentry.GCPFunction.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+
+// v8
+const Sentry = require('@sentry/google-cloud-serverless');
+
+Sentry.init({
+  dsn: '__DSN__',
+  tracesSampleRate: 1.0,
+});
+```
+
 ## 3. Performance Monitoring Changes
 
+- [Initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk)
 - [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
 - [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Initializing the Node SDK
+
+If you are using `@sentry/node` or `@sentry/bun`, or a package that depends on it (`@sentry/nextjs`, `@sentry/remix`,
+`@sentry/sveltekit`, `@sentry/`), you will need to initialize the SDK differently. The primary change is to ensure that
+the SDK is initialized as early as possible. See [Initializing the SDK in v8](./docs/v8-initializing.md) on what steps
+to follow.
+
+For example with the Remix SDK, you should initialize the SDK at the top of your `entry.server.tsx` server entrypoint
+before you do anything else.
+
+```js
+// first import Sentry and initialize Sentry
+import * as Sentry from '@sentry/remix';
+
+Sentry.init({
+  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  tracesSampleRate: 1,
+  tracePropagationTargets: ['example.org'],
+  // Disabling to test series of envelopes deterministically.
+  autoSessionTracking: false,
+});
+
+// then handle everything else
+import type { EntryContext } from '@remix-run/node';
+import { RemixServer } from '@remix-run/react';
+import { renderToString } from 'react-dom/server';
+
+export const handleError = Sentry.wrapRemixHandleError;
+```
 
 ### Performance Monitoring API
 
@@ -224,7 +305,7 @@ function middleware(res, req, next) {
 
 You can [read more about the new performance APIs here](./docs/v8-new-performance-apis.md).
 
-To accomodate these changes, we're removed the following APIs:
+To accommodate these changes, we're removed the following APIs:
 
 - [`startTransaction` and `span.startChild`](./MIGRATION.md#deprecate-starttransaction--spanstartchild)
 - [Certain arguments in `startSpan` and `startTransaction`](./MIGRATION.md#deprecate-arguments-for-startspan-apis)
@@ -240,7 +321,7 @@ As we added support for OpenTelemetry, we have expanded the automatic instrument
 support for frameworks like Fastify, Nest.js, and Hapi, and expanding support for databases like Prisma and MongoDB via
 Mongoose.
 
-We now support the following integrations out of the box:
+We now support the following integrations out of the box without extra configuration:
 
 - `httpIntegration`: Automatically instruments Node `http` and `https` standard libraries
 - `nativeNodeFetchIntegration`: Automatically instruments top level fetch and undici
@@ -256,6 +337,9 @@ We now support the following integrations out of the box:
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
 
+To make sure these integrations work properly you'll have to change how you
+[initialize the SDK](./docs/v8-initializing.md)
+
 ## 4. Removal of deprecated APIs
 
 - [General](./MIGRATION.md#general)
@@ -270,6 +354,8 @@ We now support the following integrations out of the box:
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
+
+Remove util exports: `timestampWithMs`
 
 - [Deprecation of `Hub` and `getCurrentHub()`](./MIGRATION.md#deprecate-hub)
 - [Removal of class-based integrations](./MIGRATION.md#removal-of-class-based-integrations)
@@ -546,10 +632,48 @@ The following previously deprecated API has been removed from the `@sentry/nextj
 - `IS_BUILD`
 - `isBuild`
 
+#### Updated minimum compatible Next.js version to `13.2.0`
+
+The minimum version of Next.js compatible with the Sentry Next.js SDK has been raised to `13.2.0`. Older versions may
+exhibit bugs or unexpected behaviour.
+
+#### Merging of the Sentry Webpack Plugin options and SDK Build options
+
+With version 8 of the Sentry Next.js SDK, `withSentryConfig` will no longer accept 3 arguments. The second argument
+(holding options for the Sentry Webpack plugin) and the third argument (holding options for SDK build-time
+configuration) should now be passed as one:
+
+```ts
+// OLD
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(
+  nextConfig,
+  {
+    // Your Sentry Webpack Plugin Options...
+  },
+  {
+    // Your Sentry SDK options...
+  },
+);
+
+// NEW
+const nextConfig = {
+  // Your Next.js options...
+};
+
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+  // AND your Sentry SDK options...
+});
+```
+
 #### Removal of the `sentry` property in your Next.js options (next.config.js)
 
 With version 8 of the Sentry Next.js SDK, the SDK will no longer support passing Next.js options with a `sentry`
-property to `withSentryConfig`. Please use the third argument of `withSentryConfig` to configure the SDK instead:
+property to `withSentryConfig`. Please use the second argument of `withSentryConfig` to configure the SDK instead:
 
 ```ts
 // v7
@@ -572,20 +696,24 @@ const nextConfig = {
   // Your Next.js options...
 };
 
-module.exports = withSentryConfig(
-  nextConfig,
-  {
-    // Your Sentry Webpack Plugin Options...
-  },
-  {
-    // Your Sentry SDK options...
-  },
-);
+module.exports = withSentryConfig(nextConfig, {
+  // Your Sentry Webpack Plugin Options...
+  // AND your Sentry SDK options...
+});
 ```
 
 The reason for this change is to have one consistent way of defining the SDK options. We hope that this change will
 reduce confusion when setting up the SDK, with the upside that the explicit option is properly typed and will therefore
 have code completion.
+
+#### Updated the `@sentry/webpack-plugin` dependency to version 2
+
+We bumped the internal usage of `@sentry/webpack-plugin` to a new major version. This comes with multiple upsides like a
+simpler configuration interface and the use of new state of the art Debug ID technology. Debug IDs will simplify the
+setup for source maps in Sentry and will not require you to match stack frame paths to uploaded artifacts anymore.
+
+To see the new options, check out the docs at https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/,
+or look at the TypeScript type definitions of `withSentryConfig`.
 
 ### Astro SDK
 
@@ -739,6 +867,51 @@ Sentry was actually initialized, using `getClient()` will thus not work anymore.
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
 by the Sentry backend by default. You can disable dropping them in your Sentry project settings. If you still want to
 drop specific transactions within the SDK you can either use the `ignoreTransactions` SDK option.
+
+#### Change of Replay default options (`unblock` and `unmask`)
+
+The Replay options `unblock` and `unmask` now have `[]` as default value. This means that if you want to use these
+options, you have to explicitly set them like this:
+
+```js
+Sentry.init({
+  integrations: [
+    Sentry.replayIntegration({
+      unblock: ['.sentry-unblock, [data-sentry-unblock]'],
+      unmask: ['.sentry-unmask, [data-sentry-unmask]'],
+    }),
+  ],
+});
+```
+
+#### Angular Tracing Decorator renaming
+
+The usage of `TraceClassDecorator` and the `TraceMethodDecorator` already implies that those are decorators. The word
+`Decorator` is now removed from the names to avoid multiple mentioning.
+
+Additionally, the `TraceClass` and `TraceMethod` decorators accept an optional `name` parameter to set the transaction
+name. This was added because Angular minifies class and method names, and you might want to set a more descriptive name.
+If nothing provided, the name defaults to `'unnamed'`.
+
+```js
+// v7
+@Sentry.TraceClassDecorator()
+export class HeaderComponent {
+  @Sentry.TraceMethodDecorator()
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+```js
+// v8
+@Sentry.TraceClass({ name: 'HeaderComponent' })
+export class HeaderComponent {
+  @Sentry.TraceMethod({ name: 'ngOnChanges' })
+  ngOnChanges(changes: SimpleChanges) {}
+}
+```
+
+---
 
 # Deprecations in 7.x
 

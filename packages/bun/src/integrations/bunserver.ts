@@ -86,13 +86,12 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
 
         return continueTrace(
           { sentryTrace: request.headers.get('sentry-trace') || '', baggage: request.headers.get('baggage') },
-          ctx => {
+          () => {
             return startSpan(
               {
                 attributes,
                 op: 'http.server',
                 name: `${request.method} ${parsedUrl.path || '/'}`,
-                ...ctx,
               },
               async span => {
                 try {

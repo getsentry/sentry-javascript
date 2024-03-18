@@ -69,14 +69,6 @@ function createUnixTimestampInSecondsFunc(): () => number {
 export const timestampInSeconds = createUnixTimestampInSecondsFunc();
 
 /**
- * Re-exported with an old name for backwards-compatibility.
- * TODO (v8): Remove this
- *
- * @deprecated Use `timestampInSeconds` instead.
- */
-export const timestampWithMs = timestampInSeconds;
-
-/**
  * Internal helper to store what is the source of browserPerformanceTimeOrigin below. For debugging only.
  */
 export let _browserPerformanceTimeOriginMode: string;

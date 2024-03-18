@@ -4,6 +4,138 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.4
+
+This is the fourth Alpha release of the v8 cycle, which includes a variety of breaking changes.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
+
+### Important Changes
+
+- **feat: Set required node version to >=14.18.0 for all packages (#10968)**
+
+The minimum Node version required for the SDK is now `14.18.0`.
+
+- **Serverless SDK Changes**
+  - feat(google-cloud): Add @sentry/google-cloud package (#10993)
+  - feat(v8): Add @sentry/aws-serverless package (#11052)
+  - feat(v8): Rename gcp package to `@sentry/google-cloud-serverless` (#11065)
+
+`@sentry/serverless` is no longer published, and is replaced by two new packages: `@sentry/google-cloud-serverless` and
+`@sentry/aws-serverless`. These packages are now the recommended way to instrument serverless functions. See the
+[migration guide](./MIGRATION.md#sentryserverless) for more details.
+
+- **build(bundles): Use ES2017 for bundles (drop ES5 support) (#10911)**
+
+The Browser SDK and CDN bundles now emits ES2017 compatible code and drops support for IE11. This also means that the
+Browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) requires the fetch API to be available in the
+environment. If you need to support older browsers, please transpile your code to ES5 using babel or similar and add
+required polyfills.
+
+New minimum supported browsers:
+
+- Chrome 58
+- Edge 15
+- Safari/iOS Safari 11
+- Firefox 54
+- Opera 45
+- Samsung Internet 7.2
+
+### Removal/Refactoring of deprecated functionality
+
+- feat(browser): Remove IE parser from the default stack parsers (#11035)
+- feat(bun/v8): Remove all deprecations from Bun SDK (#10971)
+- feat(core): Remove `startTransaction` export (#11015)
+- feat(v8/core): Move addTracingHeadersToFetchRequest and instrumentFetchRequest to core (#10918)
+- feat(v8/deno): Remove deprecations from deno SDK (#10972)
+- feat(v8/remix): Remove remixRouterInstrumentation (#10933)
+- feat(v8/replay): Opt-in options for `unmask` and `unblock` (#11049)
+- feat(v8/tracing): Delete BrowserTracing class (#10919)
+- feat(v8/vercel-edge): Remove vercel-edge sdk deprecations (#10974)
+- feat(replay/v8): Delete deprecated `replaySession` and `errorSampleRates` (#11045)
+- feat(v8): Remove deprecated Replay, Feedback, ReplayCanvas exports (#10814)
+- ref: Remove `spanRecorder` and all related code (#10977)
+- ref: Remove deprecated `origin` field on span start options (#11058)
+- ref: Remove deprecated properties from `startSpan` options (#11054)
+- ref(core): Remove `startTransaction` & `finishTransaction` hooks (#11008)
+- ref(nextjs): Remove `sentry` field in Next.js config as a means of configuration (#10839)
+- ref(nextjs): Remove last internal deprecations (#11019)
+- ref(react): Streamline browser tracing integrations & remove old code (#11012)
+- ref(svelte): Remove `startChild` deprecations (#10956)
+- ref(sveltekit): Update trace propagation & span options (#10838)
+- ref(v8/angular): Remove instrumentAngularRouting and fix tests (#11021)
+
+### Other Changes
+
+- feat: Ensure `getRootSpan()` does not rely on transaction (#10979)
+- feat: Export `getSpanDescendants()` everywhere (#10924)
+- feat: Make ESM output valid Node ESM (#10928)
+- feat: Remove tags from spans & transactions (#10809)
+- feat(angular): Update scope `transactionName` when route is resolved (#11043)
+- feat(angular/v8): Change decorator naming and add `name` parameter (#11057)
+- feat(astro): Update `@sentry/astro` to use OpenTelemetry (#10960)
+- feat(browser): Remove `HttpContext` integration class (#10987)
+- feat(browser): Use idle span for browser tracing (#10957)
+- feat(build): Allow passing Sucrase options for rollup (#10747)
+- feat(build): Core packages into single output files (#11030)
+- feat(core): Allow custom tracing implementations (#11003)
+- feat(core): Allow metrics aggregator per client (#10949)
+- feat(core): Decouple `scope.transactionName` from root spans (#10991)
+- feat(core): Ensure trace APIs always return a span (#10942)
+- feat(core): Implement `startIdleSpan` (#10934)
+- feat(core): Move globals to `__SENTRY__` singleton (#11034)
+- feat(core): Move more scope globals to `__SENTRY__` (#11074)
+- feat(core): Undeprecate setTransactionName (#10966)
+- feat(core): Update `continueTrace` to be callback-only (#11044)
+- feat(core): Update `spanToJSON` to handle OTEL spans (#10922)
+- feat(deps): bump @sentry/cli from 2.29.1 to 2.30.0 (#11024)
+- feat(feedback): New feedback integration with screenshots (#10590)
+- feat(nextjs): Bump Webpack Plugin to version 2 and rework config options (#10978)
+- feat(nextjs): Support Hybrid Cloud DSNs with `tunnelRoute` option (#10959)
+- feat(node): Add `setupFastifyErrorHandler` utility (#11061)
+- feat(node): Rephrase wording in http integration JSDoc (#10947)
+- feat(opentelemetry): Do not use SentrySpan & Transaction classes (#10982)
+- feat(opentelemetry): Remove hub from context (#10983)
+- feat(opentelemetry): Use core `getRootSpan` functionality (#11004)
+- feat(profiling-node): Refactor deprecated methods & non-hook variant (#10984)
+- feat(react): Update scope's `transactionName` in React Router instrumentations (#11048)
+- feat(remix): Refactor to use new performance APIs (#10980)
+- feat(remix): Update remix SDK to be OTEL-powered (#11031)
+- feat(sveltekit): Export `unstable_sentryVitePluginOptions` for full Vite plugin customization (#10930)
+- feat(v8/bun): Update @sentry/bun to use OTEL node (#10997)
+- fix(ember): Ensure browser tracing is correctly lazy loaded (#11026)
+- fix(nextjs): Use passthrough `createReduxEnhancer` on server (#11005)
+- fix(node): Add missing core re-exports (#10931)
+- fix(node): Correct SDK name (#10961)
+- fix(node): Do not assert in vendored proxy code (#11011)
+- fix(node): Export spotlightIntegration from OTEL node (#10973)
+- fix(node): support undici headers as strings or arrays (#10938)
+- fix(opentelemetry): Fix span & sampling propagation (#11092)
+- fix(react): Passes the fallback function through React's createElement function (#10623)
+- fix(react): Set `handled` value in ErrorBoundary depending on fallback (#10989)
+- fix(types): Add `addScopeListener` to `Scope` interface (#10952)
+- fix(types): Add `AttachmentType` and use for envelope `attachment_type` property (#10946)
+- fix(types): Remove usage of `allowSyntheticDefaultImports` (#11073)
+- fix(v8/utils): Stack parser skip frames (not lines of stack string) (#10560)
+- ref(angular): Refactor usage of `startChild` (#11056)
+- ref(browser): Store browser metrics as attributes instead of tags (#10823)
+- ref(browser): Update `scope.transactionName` on pageload and navigation span creation (#10992)
+- ref(browser): Update browser metrics to avoid deprecations (#10943)
+- ref(browser): Update browser profiling to avoid deprecated APIs (#11007)
+- ref(feedback): Move UserFeedback type into feedback.ts (#11032)
+- ref(nextjs): Clean up browser tracing integration (#11022)
+- ref(node-experimental): Refactor usage of `startChild()` (#11047)
+- ref(node): Use new performance APIs in legacy `http` & `undici` (#11055)
+- ref(opentelemetry): Remove parent span map (#11014)
+- ref(opentelemetry): Remove span metadata handling (#11020)
+
+Work in this release contributed by @MFoster and @jessezhang91. Thank you for your contributions!
+
+## 8.0.0-alpha.3
+
+This alpha was released in an incomplete state. We recommend skipping this release and using the `8.0.0-alpha.4` release
+instead.
+
 ## 8.0.0-alpha.2
 
 This alpha release fixes a build problem that prevented 8.0.0-alpha.1 from being properly released.

@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Integration } from '@sentry/types';
+import type { Client, Integration, MetricsAggregator, Scope } from '@sentry/types';
 
 import type { SdkSource } from './env';
 
@@ -54,6 +54,10 @@ export interface InternalGlobal {
       // eslint-disable-next-line @typescript-eslint/ban-types
       [key: string]: Function;
     };
+    globalScope: Scope | undefined;
+    defaultCurrentScope: Scope | undefined;
+    defaultIsolationScope: Scope | undefined;
+    globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
   };
   /**
    * Raw module metadata that is injected by bundler plugins.

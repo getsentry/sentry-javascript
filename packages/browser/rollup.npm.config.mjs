@@ -4,5 +4,13 @@ export default makeNPMConfigVariants(
   makeBaseNPMConfig({
     // packages with bundles have a different build directory structure
     hasBundles: true,
+    packageSpecificConfig: {
+      output: {
+        // set exports to 'named' or 'auto' so that rollup doesn't warn
+        exports: 'named',
+        // set preserveModules to false because we want to bundle everything into one file.
+        preserveModules: false,
+      },
+    },
   }),
 );

@@ -60,8 +60,8 @@ export class SentrySpan implements Span {
   private _logMessage?: string;
 
   /**
-   * You should never call the constructor manually, always use `Sentry.startTransaction()`
-   * or call `startChild()` on an existing span.
+   * You should never call the constructor manually, always use `Sentry.startSpan()`
+   * or other span methods.
    * @internal
    * @hideconstructor
    * @hidden
@@ -75,7 +75,7 @@ export class SentrySpan implements Span {
 
     this._attributes = {};
     this.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanContext.origin || 'manual',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
       [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
       ...spanContext.attributes,
     });

@@ -8,7 +8,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -17,8 +17,6 @@ export {
   captureMessage,
   close,
   flush,
-  // eslint-disable-next-line deprecation/deprecation
-  startTransaction,
   setContext,
   setExtra,
   setExtras,
@@ -45,7 +43,6 @@ export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
-  setGlobalScope,
   withScope,
   withIsolationScope,
   getClient,
@@ -93,6 +90,7 @@ export {
   getStatusMessage,
   getRootSpan,
   getActiveSpan,
+  addChildSpanToSpan,
 } from './utils/spanUtils';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';

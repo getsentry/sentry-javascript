@@ -1,9 +1,8 @@
-import type { SentrySpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import {
   SPAN_STATUS_ERROR,
   addBreadcrumb,
   defineIntegration,
-  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -14,7 +13,14 @@ import {
   setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { EventProcessor, Integration, IntegrationFn, IntegrationFnResult, Span } from '@sentry/types';
+import type {
+  EventProcessor,
+  Integration,
+  IntegrationFn,
+  IntegrationFnResult,
+  Span,
+  SpanAttributes,
+} from '@sentry/types';
 import {
   LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -164,8 +170,7 @@ export class Undici implements Integration {
   }
 
   private _onRequestCreate = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 
@@ -185,9 +190,8 @@ export class Undici implements Integration {
     const clientOptions = client.getOptions();
     const scope = getCurrentScope();
     const isolationScope = getIsolationScope();
-    const parentSpan = getActiveSpan() as SentrySpan;
 
-    const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(parentSpan, request, stringUrl) : undefined;
+    const span = this._shouldCreateSpan(stringUrl) ? createRequestSpan(request, stringUrl) : undefined;
     if (span) {
       request.__sentry_span__ = span;
     }
@@ -224,8 +228,7 @@ export class Undici implements Integration {
   };
 
   private _onRequestEnd = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 
@@ -264,8 +267,7 @@ export class Undici implements Integration {
   };
 
   private _onRequestError = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 
@@ -326,28 +328,24 @@ function setHeadersOnRequest(
   }
 }
 
-function createRequestSpan(
-  activeSpan: SentrySpan | undefined,
-  request: RequestWithSentry,
-  stringUrl: string,
-): Span | undefined {
+function createRequestSpan(request: RequestWithSentry, stringUrl: string): Span {
   const url = parseUrl(stringUrl);
 
   const method = request.method || 'GET';
-  const data: Record<string, unknown> = {
+  const attributes: SpanAttributes = {
     'http.method': method,
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.node.undici',
   };
   if (url.search) {
-    data['http.query'] = url.search;
+    attributes['http.query'] = url.search;
   }
   if (url.hash) {
-    data['http.fragment'] = url.hash;
+    attributes['http.fragment'] = url.hash;
   }
-  // eslint-disable-next-line deprecation/deprecation
-  return activeSpan?.startChild({
+  return startInactiveSpan({
+    onlyIfParent: true,
     op: 'http.client',
-    origin: 'auto.http.node.undici',
     name: `${method} ${getSanitizedUrlString(url)}`,
-    data,
+    attributes,
   });
 }

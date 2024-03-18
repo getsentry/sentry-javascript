@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 // Inspired from Donnie McNeal's solution:
 // https://gist.github.com/wontondon/e8c4bdf2888875e4c755712e99279536
 
@@ -13,17 +12,12 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getClient,
+  getCurrentScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type {
-  Integration,
-  Span,
-  StartSpanOptions,
-  Transaction,
-  TransactionContext,
-  TransactionSource,
-} from '@sentry/types';
+import type { Client, Integration, Span, TransactionSource } from '@sentry/types';
 import { getNumberOfUrlSegments, logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
@@ -46,16 +40,14 @@ import type {
   UseRoutes,
 } from './types';
 
-let activeTransaction: Transaction | undefined;
-
 let _useEffect: UseEffect;
 let _useLocation: UseLocation;
 let _useNavigationType: UseNavigationType;
 let _createRoutesFromChildren: CreateRoutesFromChildren;
 let _matchRoutes: MatchRoutes;
-let _customStartTransaction: (context: TransactionContext) => Transaction | undefined;
-let _startTransactionOnLocationChange: boolean;
 let _stripBasename: boolean = false;
+
+const CLIENTS_WITH_INSTRUMENT_NAVIGATION: Client[] = [];
 
 interface ReactRouterOptions {
   useEffect: UseEffect;
@@ -95,11 +87,6 @@ export function reactRouterV6BrowserTracingIntegration(
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
-      const startNavigationCallback = (startSpanOptions: StartSpanOptions): undefined => {
-        startBrowserTracingNavigationSpan(client, startSpanOptions);
-        return undefined;
-      };
-
       const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
       if (instrumentPageLoad && initPathName) {
         startBrowserTracingPageLoadSpan(client, {
@@ -119,49 +106,10 @@ export function reactRouterV6BrowserTracingIntegration(
       _createRoutesFromChildren = createRoutesFromChildren;
       _stripBasename = stripBasename || false;
 
-      _customStartTransaction = startNavigationCallback;
-      _startTransactionOnLocationChange = instrumentNavigation;
+      if (instrumentNavigation) {
+        CLIENTS_WITH_INSTRUMENT_NAVIGATION.push(client);
+      }
     },
-  };
-}
-
-/**
- * @deprecated Use `reactRouterV6BrowserTracingIntegration()` instead.
- */
-export function reactRouterV6Instrumentation(
-  useEffect: UseEffect,
-  useLocation: UseLocation,
-  useNavigationType: UseNavigationType,
-  createRoutesFromChildren: CreateRoutesFromChildren,
-  matchRoutes: MatchRoutes,
-  stripBasename?: boolean,
-) {
-  return (
-    customStartTransaction: (context: TransactionContext) => Transaction | undefined,
-    startTransactionOnPageLoad = true,
-    startTransactionOnLocationChange = true,
-  ): void => {
-    const initPathName = WINDOW && WINDOW.location && WINDOW.location.pathname;
-    if (startTransactionOnPageLoad && initPathName) {
-      activeTransaction = customStartTransaction({
-        name: initPathName,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.reactrouter_v6',
-        },
-      });
-    }
-
-    _useEffect = useEffect;
-    _useLocation = useLocation;
-    _useNavigationType = useNavigationType;
-    _matchRoutes = matchRoutes;
-    _createRoutesFromChildren = createRoutesFromChildren;
-    _stripBasename = stripBasename || false;
-
-    _customStartTransaction = customStartTransaction;
-    _startTransactionOnLocationChange = startTransactionOnLocationChange;
   };
 }
 
@@ -251,10 +199,15 @@ function updatePageloadTransaction(
     ? matches
     : (_matchRoutes(routes, location, basename) as unknown as RouteMatch[]);
 
-  if (activeRootSpan && branches) {
+  if (branches) {
     const [name, source] = getNormalizedName(routes, location, branches, basename);
-    activeRootSpan.updateName(name);
-    activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+
+    getCurrentScope().setTransactionName(name);
+
+    if (activeRootSpan) {
+      activeRootSpan.updateName(name);
+      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, source);
+    }
   }
 }
 
@@ -267,13 +220,15 @@ function handleNavigation(
 ): void {
   const branches = Array.isArray(matches) ? matches : _matchRoutes(routes, location, basename);
 
-  if (_startTransactionOnLocationChange && (navigationType === 'PUSH' || navigationType === 'POP') && branches) {
-    if (activeTransaction) {
-      activeTransaction.end();
-    }
+  const client = getClient();
+  if (!client || !CLIENTS_WITH_INSTRUMENT_NAVIGATION.includes(client)) {
+    return;
+  }
 
+  if ((navigationType === 'PUSH' || navigationType === 'POP') && branches) {
     const [name, source] = getNormalizedName(routes, location, branches, basename);
-    activeTransaction = _customStartTransaction({
+
+    startBrowserTracingNavigationSpan(client, {
       name,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
@@ -286,18 +241,11 @@ function handleNavigation(
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withSentryReactRouterV6Routing<P extends Record<string, any>, R extends React.FC<P>>(Routes: R): R {
-  if (
-    !_useEffect ||
-    !_useLocation ||
-    !_useNavigationType ||
-    !_createRoutesFromChildren ||
-    !_matchRoutes ||
-    !_customStartTransaction
-  ) {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_createRoutesFromChildren || !_matchRoutes) {
     DEBUG_BUILD &&
       logger.warn(`reactRouterV6Instrumentation was unable to wrap Routes because of one or more missing parameters.
       useEffect: ${_useEffect}. useLocation: ${_useLocation}. useNavigationType: ${_useNavigationType}.
-      createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}. customStartTransaction: ${_customStartTransaction}.`);
+      createRoutesFromChildren: ${_createRoutesFromChildren}. matchRoutes: ${_matchRoutes}.`);
 
     return Routes;
   }
@@ -337,7 +285,7 @@ export function withSentryReactRouterV6Routing<P extends Record<string, any>, R 
 }
 
 export function wrapUseRoutes(origUseRoutes: UseRoutes): UseRoutes {
-  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes || !_customStartTransaction) {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
     DEBUG_BUILD &&
       logger.warn(
         'reactRouterV6Instrumentation was unable to wrap `useRoutes` because of one or more missing parameters.',
@@ -409,7 +357,7 @@ export function wrapCreateBrowserRouter<
 
     router.subscribe((state: RouterState) => {
       const location = state.location;
-      if (_startTransactionOnLocationChange && (state.historyAction === 'PUSH' || state.historyAction === 'POP')) {
+      if (state.historyAction === 'PUSH' || state.historyAction === 'POP') {
         handleNavigation(location, routes, state.historyAction, undefined, basename);
       }
     });
@@ -419,11 +367,6 @@ export function wrapCreateBrowserRouter<
 }
 
 function getActiveRootSpan(): Span | undefined {
-  // Legacy behavior for "old" react router instrumentation
-  if (activeTransaction) {
-    return activeTransaction;
-  }
-
   const span = getActiveSpan();
   const rootSpan = span ? getRootSpan(span) : undefined;
 
