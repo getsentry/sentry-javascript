@@ -750,6 +750,11 @@ The following is an example of how to initialize the serverside SDK in a Next.js
 
    Note that you can initialize the SDK differently depending on which server runtime is being used.
 
+If you are using a
+[Next.js custom server](https://nextjs.org/docs/pages/building-your-application/configuring/custom-server), the
+`instrumentation.ts` hook is not called by Next.js so you need to manually call it yourself from within your server
+code. It is recommended to do so as early as possible in your application lifecycle.
+
 **Why are we making this change?** The very simple reason is that Next.js requires us to set up OpenTelemetry
 instrumentation inside the `register` function of the instrumentation hook. Looking a little bit further into the
 future, we also would like the Sentry SDK to be compatible with [Turbopack](https://turbo.build/pack), which is gonna be

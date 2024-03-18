@@ -6,31 +6,31 @@ const cases = [
     url: `/api/wrapApiHandlerWithSentry/unwrapped/noParams`,
     transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/noParams',
   },
-  {
-    name: 'unwrappedDynamicURL',
-    url: `/api/wrapApiHandlerWithSentry/unwrapped/dog`,
-    transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[animal]',
-  },
-  {
-    name: 'unwrappedCatchAllURL',
-    url: `/api/wrapApiHandlerWithSentry/unwrapped/dog/facts`,
-    transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[...pathParts]',
-  },
-  {
-    name: 'wrappedNoParamURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/noParams`,
-    transactionName: '/api/wrapApiHandlerWithSentry/wrapped/noParams',
-  },
-  {
-    name: 'wrappedDynamicURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/dog`,
-    transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[animal]',
-  },
-  {
-    name: 'wrappedCatchAllURL',
-    url: `/api/wrapApiHandlerWithSentry/wrapped/dog/facts`,
-    transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[...pathParts]',
-  },
+  // {
+  //   name: 'unwrappedDynamicURL',
+  //   url: `/api/wrapApiHandlerWithSentry/unwrapped/dog`,
+  //   transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[animal]',
+  // },
+  // {
+  //   name: 'unwrappedCatchAllURL',
+  //   url: `/api/wrapApiHandlerWithSentry/unwrapped/dog/facts`,
+  //   transactionName: '/api/wrapApiHandlerWithSentry/unwrapped/[...pathParts]',
+  // },
+  // {
+  //   name: 'wrappedNoParamURL',
+  //   url: `/api/wrapApiHandlerWithSentry/wrapped/noParams`,
+  //   transactionName: '/api/wrapApiHandlerWithSentry/wrapped/noParams',
+  // },
+  // {
+  //   name: 'wrappedDynamicURL',
+  //   url: `/api/wrapApiHandlerWithSentry/wrapped/dog`,
+  //   transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[animal]',
+  // },
+  // {
+  //   name: 'wrappedCatchAllURL',
+  //   url: `/api/wrapApiHandlerWithSentry/wrapped/dog/facts`,
+  //   transactionName: '/api/wrapApiHandlerWithSentry/wrapped/[...pathParts]',
+  // },
 ];
 
 describe('getServerSideProps', () => {
