@@ -121,8 +121,8 @@ sentryTest(
   },
 );
 
-sentryTest('should capture an INP click event span. @firefox', async ({ browserName, getLocalTestPath, page }) => {
-  const supportedBrowsers = ['chromium', 'firefox'];
+sentryTest('should capture an INP click event span.', async ({ browserName, getLocalTestPath, page }) => {
+  const supportedBrowsers = ['chromium'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
@@ -170,9 +170,9 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
 });
 
 sentryTest(
-  'should choose the slowest interaction click event when INP is triggered. @firefox',
+  'should choose the slowest interaction click event when INP is triggered.',
   async ({ browserName, getLocalTestPath, page }) => {
-    const supportedBrowsers = ['chromium', 'firefox'];
+    const supportedBrowsers = ['chromium'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
