@@ -20,6 +20,9 @@ function one(name) {
     name,
     num: 5,
   };
+  const bool = false;
+  const num = 0;
+  const str = '';
 
   const ty = new Some();
 
