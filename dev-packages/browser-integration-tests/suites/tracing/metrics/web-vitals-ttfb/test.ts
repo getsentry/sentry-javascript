@@ -14,5 +14,7 @@ sentryTest('should capture TTFB vital.', async ({ getLocalTestPath, page }) => {
 
   expect(eventData.measurements).toBeDefined();
   expect(eventData.measurements?.ttfb?.value).toBeDefined();
+  expect(eventData.measurements?.ttfb?.value).toBeGreaterThan(0);
   expect(eventData.measurements?.['ttfb.requestTime']?.value).toBeDefined();
+  expect(eventData.measurements?.['ttfb.requestTime']?.value).toBeGreaterThan(0);
 });
