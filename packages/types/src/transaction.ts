@@ -74,7 +74,7 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Sp
    * Was this transaction chosen to be sent as part of the sample?
    * @deprecated Use `spanIsSampled(transaction)` instead.
    */
-  sampled?: boolean;
+  sampled?: boolean | undefined;
 
   /**
    * @inheritDoc
