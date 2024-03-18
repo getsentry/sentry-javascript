@@ -9,7 +9,7 @@
   "engines": {
     "node": ">=14.18"
   },
-  "main": "build/bundles/sentry-angular.umd.js",
+  "type": "module",
   "module": "build/fesm2015/sentry-angular.js",
   "publishConfig": {
     "access": "public"
@@ -35,9 +35,10 @@
     "@angular/platform-browser-dynamic": "~13.4.0",
     "@angular/router": "~13.4.0",
     "ng-packagr": "^13.3.1",
-    "rxjs": "6.5.5",
+    "rxjs": "7.8.1",
     "typescript": "4.6.4",
-    "zone.js": "~0.11.4"
+    "vitest": "^1.4.0",
+    "zone.js": "~0.14.4"
   },
   "scripts": {
     "build": "yarn build:transpile",
@@ -52,7 +53,7 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:unit": "jest",
+    "test:unit": "vitest",
     "test2": "yarn node --experimental-vm-modules $(yarn bin jest)",
     "test:unit:watch": "jest --watch",
     "yalc:publish": "yalc publish build --push --sig"
