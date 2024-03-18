@@ -1,5 +1,5 @@
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { applyAggregateErrorsToEvent } from '@sentry/utils';
 import { exceptionFromError } from '../eventbuilder';
 
@@ -36,13 +36,7 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const linkedErrorsIntegration = defineIntegration(_linkedErrorsIntegration);
-
 /**
  * Aggregrate linked errors in an event.
- * @deprecated Use `linkedErrorsIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const LinkedErrors = convertIntegrationFnToClass(INTEGRATION_NAME, linkedErrorsIntegration) as IntegrationClass<
-  Integration & { preprocessEvent: (event: Event, hint: EventHint, client: Client) => void }
-> & { new (options?: { key?: string; limit?: number }): Integration };
+export const linkedErrorsIntegration = defineIntegration(_linkedErrorsIntegration);
