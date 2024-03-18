@@ -9,9 +9,9 @@ sentryTest('should capture TTFB vital.', async ({ getLocalTestPath, page }) => {
     sentryTest.skip();
   }
 
-  page.route('**', async (route) => {
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    route.continue()
+  page.route('**', async route => {
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    route.continue();
   });
 
   const url = await getLocalTestPath({ testDir: __dirname });
