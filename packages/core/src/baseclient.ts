@@ -135,7 +135,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     if (this._dsn) {
-      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(
+        this._dsn,
+        options.tunnel,
+        options._metadata ? options._metadata.sdk : undefined,
+      );
       this._transport = options.transport({
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
