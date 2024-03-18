@@ -98,56 +98,6 @@ export class SentrySpan implements Span {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * The ID of the trace.
-   * @deprecated Use `spanContext().traceId` instead.
-   */
-  public get traceId(): string {
-    return this._traceId;
-  }
-
-  /**
-   * The ID of the trace.
-   * @deprecated You cannot update the traceId of a span after span creation.
-   */
-  public set traceId(traceId: string) {
-    this._traceId = traceId;
-  }
-
-  /**
-   * The ID of the span.
-   * @deprecated Use `spanContext().spanId` instead.
-   */
-  public get spanId(): string {
-    return this._spanId;
-  }
-
-  /**
-   * The ID of the span.
-   * @deprecated You cannot update the spanId of a span after span creation.
-   */
-  public set spanId(spanId: string) {
-    this._spanId = spanId;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `startSpan` functions instead.
-   */
-  public set parentSpanId(string) {
-    this._parentSpanId = string;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
-   */
-  public get parentSpanId(): string | undefined {
-    return this._parentSpanId;
-  }
-
-  /**
    * Was this span chosen to be sent as part of the sample?
    * @deprecated Use `isRecording()` instead.
    */
