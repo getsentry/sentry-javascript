@@ -15,7 +15,6 @@ import type {
   EventProcessor,
   FeedbackEvent,
   Integration,
-  IntegrationClass,
   Outcome,
   ParameterizedString,
   SdkMetadata,
@@ -318,35 +317,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   }
 
   /**
-   * Gets an installed integration by its `id`.
-   *
-   * @returns The installed integration or `undefined` if no integration with that `id` was installed.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegrationById(integrationId: string): Integration | undefined {
-    return this.getIntegrationByName(integrationId);
-  }
-
-  /**
    * Gets an installed integration by its name.
    *
    * @returns The installed integration or `undefined` if no integration with that `name` was installed.
    */
   public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
     return this._integrations[integrationName] as T | undefined;
-  }
-
-  /**
-   * Returns the client's instance of the given integration class, it any.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    try {
-      return (this._integrations[integration.id] as T) || null;
-    } catch (_oO) {
-      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
-      return null;
-    }
   }
 
   /**

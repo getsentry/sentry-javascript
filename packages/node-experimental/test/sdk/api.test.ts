@@ -34,7 +34,7 @@ describe('withActiveSpan()', () => {
 
     inactiveSpan.end();
 
-    await client.flush();
+    await client?.flush();
 
     // The child span should be a child of the inactive span
     expect(beforeSendTransaction).toHaveBeenCalledWith(
@@ -74,7 +74,7 @@ describe('withActiveSpan()', () => {
       });
     });
 
-    await client.flush();
+    await client?.flush();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(2);
 

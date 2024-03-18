@@ -26,8 +26,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   NodeClient,
   Scope,

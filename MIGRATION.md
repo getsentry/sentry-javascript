@@ -355,6 +355,8 @@ Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggreg
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
 
+Remove util exports: `timestampWithMs`
+
 - [Deprecation of `Hub` and `getCurrentHub()`](./MIGRATION.md#deprecate-hub)
 - [Removal of class-based integrations](./MIGRATION.md#removal-of-class-based-integrations)
 - [`tracingOrigins` option replaced with `tracePropagationTargets`](./MIGRATION.md#tracingorigins-has-been-replaced-by-tracepropagationtargets)

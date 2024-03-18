@@ -31,7 +31,7 @@ sentryTest('can manually snapshot canvas', async ({ getLocalTestUrl, page, brows
   expect(incrementalSnapshots).toEqual([]);
 
   await page.evaluate(() => {
-    (window as any).Sentry.getClient().getIntegrationById('ReplayCanvas').snapshot();
+    (window as any).Sentry.getClient().getIntegrationByName('ReplayCanvas').snapshot();
   });
 
   const { incrementalSnapshots: incrementalSnapshotsManual } = getReplayRecordingContent(await reqPromise3);

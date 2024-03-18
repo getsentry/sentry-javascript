@@ -1,6 +1,6 @@
 import { addBreadcrumb, captureException, withIsolationScope, withScope } from '@sentry/core';
 import { startSpan } from '@sentry/opentelemetry';
-import { getClient } from '../../src/sdk/api';
+import { getClient } from '../../src/';
 import type { NodeClient } from '../../src/sdk/client';
 
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
@@ -74,7 +74,7 @@ describe('Integration | breadcrumbs', () => {
         addBreadcrumb({ timestamp: 123456, message: 'test3' });
       });
 
-      await client.flush();
+      await client?.flush();
 
       expect(beforeSend).toHaveBeenCalledTimes(1);
       expect(beforeBreadcrumb).toHaveBeenCalledTimes(4);

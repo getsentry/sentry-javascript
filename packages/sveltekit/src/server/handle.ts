@@ -1,19 +1,19 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  continueTrace,
   getActiveSpan,
-  getDynamicSamplingContextFromSpan,
   getRootSpan,
   setHttpStatus,
   spanToTraceHeader,
   withIsolationScope,
 } from '@sentry/core';
 import { startSpan } from '@sentry/core';
-import { captureException } from '@sentry/node-experimental';
+import { captureException, continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
+
+import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
 import { isHttpError, isRedirect } from '../common/utils';
 import { flushIfServerless, getTracePropagationData } from './utils';
@@ -149,9 +149,10 @@ export function sentryHandle(handlerOptions?: SentryHandleOptions): Handle {
   };
 
   const sentryRequestHandler: Handle = input => {
-    // if there is an active transaction, we know that this handle call is nested and hence
-    // we don't create a new domain for it. If we created one, nested server calls would
-    // create new transactions instead of adding a child span to the currently active span.
+    // if there is an active span, we know that this handle call is nested and hence
+    // we don't create a new execution context for it.
+    // If we created one, nested server calls would create new root span instead
+    // of adding a child span to the currently active span.
     if (getActiveSpan()) {
       return instrumentHandle(input, options);
     }
@@ -181,6 +182,7 @@ async function instrumentHandle(
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.sveltekit',
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
+            'http.method': event.request.method,
           },
           name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
         },
