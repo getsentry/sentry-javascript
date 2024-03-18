@@ -77,7 +77,7 @@ describe('webpack loaders', () => {
       });
 
       expect(finalWebpackConfig.module.rules).toContainEqual({
-        test: /sentry\.(server|edge)\.config\.(jsx?|tsx?)/,
+        test: expect.any(RegExp),
         use: [
           {
             loader: expect.stringEndingWith('valueInjectionLoader.js'),

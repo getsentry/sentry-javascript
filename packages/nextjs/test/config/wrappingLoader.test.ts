@@ -86,7 +86,6 @@ describe('wrappingLoader', () => {
             pageExtensionRegex: DEFAULT_PAGE_EXTENSION_REGEX,
             excludeServerRoutes: [],
             wrappingTargetKind: 'api-route',
-            sentryConfigFilePath: '/my/sentry.server.config.ts',
             vercelCronsConfig: undefined,
             nextjsRequestAsyncStorageModulePath: '/my/request-async-storage.js',
           };

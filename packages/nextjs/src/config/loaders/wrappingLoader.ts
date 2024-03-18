@@ -26,9 +26,6 @@ const middlewareWrapperTemplateCode = fs.readFileSync(middlewareWrapperTemplateP
 
 let showedMissingAsyncStorageModuleWarning = false;
 
-const sentryInitWrapperTemplatePath = path.resolve(__dirname, '..', 'templates', 'sentryInitWrapperTemplate.js');
-const sentryInitWrapperTemplateCode = fs.readFileSync(sentryInitWrapperTemplatePath, { encoding: 'utf8' });
-
 const serverComponentWrapperTemplatePath = path.resolve(
   __dirname,
   '..',
@@ -45,8 +42,7 @@ export type WrappingLoaderOptions = {
   appDir: string | undefined;
   pageExtensionRegex: string;
   excludeServerRoutes: Array<RegExp | string>;
-  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'sentry-init' | 'route-handler';
-  sentryConfigFilePath?: string;
+  wrappingTargetKind: 'page' | 'api-route' | 'middleware' | 'server-component' | 'route-handler';
   vercelCronsConfig?: VercelCronsConfig;
   nextjsRequestAsyncStorageModulePath?: string;
 };
@@ -70,7 +66,6 @@ export default function wrappingLoader(
     pageExtensionRegex,
     excludeServerRoutes = [],
     wrappingTargetKind,
-    sentryConfigFilePath,
     vercelCronsConfig,
     nextjsRequestAsyncStorageModulePath,
   } = 'getOptions' in this ? this.getOptions() : this.query;
@@ -79,28 +74,7 @@ export default function wrappingLoader(
 
   let templateCode: string;
 
-  if (wrappingTargetKind === 'sentry-init') {
-    templateCode = sentryInitWrapperTemplateCode;
-
-    // Absolute paths to the sentry config do not work with Windows: https://github.com/getsentry/sentry-javascript/issues/8133
-    // Se we need check whether `this.resourcePath` is absolute because there is no contract by webpack that says it is absolute.
-    // Examples where `this.resourcePath` could possibly be non-absolute are virtual modules.
-    if (sentryConfigFilePath && path.isAbsolute(this.resourcePath)) {
-      const sentryConfigImportPath = path
-        .relative(path.dirname(this.resourcePath), sentryConfigFilePath)
-        .replace(/\\/g, '/');
-
-      // path.relative() may return something like `sentry.server.config.js` which is not allowed. Imports from the
-      // current directory need to start with './'.This is why we prepend the path with './', which should always again
-      // be a valid relative path.
-      // https://github.com/getsentry/sentry-javascript/issues/8798
-      templateCode = templateCode.replace(/__SENTRY_CONFIG_IMPORT_PATH__/g, `./${sentryConfigImportPath}`);
-    } else {
-      // Bail without doing any wrapping
-      this.callback(null, userCode, userModuleSourceMap);
-      return;
-    }
-  } else if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
+  if (wrappingTargetKind === 'page' || wrappingTargetKind === 'api-route') {
     if (pagesDir === undefined) {
       this.callback(null, userCode, userModuleSourceMap);
       return;

@@ -15,6 +15,8 @@ const config: PlaywrightTestConfig = {
     cwd: path.join(__dirname, 'test', 'integration'),
     command: 'yarn start',
     port: 3000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 };
 
