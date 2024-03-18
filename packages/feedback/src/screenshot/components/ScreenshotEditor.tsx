@@ -46,15 +46,17 @@ const constructRect = (box: Box): Rect => {
 };
 
 const getContainedSize = (img: HTMLCanvasElement): Box => {
+  const imgHeight = img.clientHeight;
+  const imgWidth = img.clientWidth;
   const ratio = img.width / img.height;
-  let width = img.clientHeight * ratio;
-  let height = img.clientHeight;
-  if (width > img.clientWidth) {
-    width = img.clientWidth;
-    height = img.clientWidth / ratio;
+  let width = imgHeight * ratio;
+  let height = imgHeight;
+  if (width > imgWidth) {
+    width = imgWidth;
+    height = imgWidth / ratio;
   }
-  const x = (img.clientWidth - width) / 2;
-  const y = (img.clientHeight - height) / 2;
+  const x = (imgWidth - width) / 2;
+  const y = (imgHeight - height) / 2;
   return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
@@ -215,9 +217,11 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           if (!context) {
             throw new Error('Could not get canvas context');
           }
-          imageBuffer.width = imageSource.videoWidth;
-          imageBuffer.height = imageSource.videoHeight;
-          context.drawImage(imageSource, 0, 0, imageSource.videoWidth, imageSource.videoHeight);
+          const sourceWidth = imageSource.videoWidth;
+          const sourceHeight = imageSource.videoHeight;
+          imageBuffer.width = sourceWidth;
+          imageBuffer.height = sourceHeight;
+          context.drawImage(imageSource, 0, 0, sourceWidth, sourceHeight);
         },
         [imageBuffer],
       ),
