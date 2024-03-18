@@ -32,14 +32,14 @@ export type LoaderThis<Options> = {
    *
    * https://webpack.js.org/api/loaders/#thisasync
    */
-  async: () => undefined |  LoaderCallback;
+  async: () => undefined | LoaderCallback;
 
   /**
    * Return errors, code, and sourcemaps from an asynchronous loader
    *
    * https://webpack.js.org/api/loaders/#thiscallback
    */
-  callback: LoaderCallback
+  callback: LoaderCallback;
 } & (
   | {
       /**

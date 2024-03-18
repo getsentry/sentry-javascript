@@ -11,7 +11,7 @@ describe('init', () => {
     // In our case, the Angular version is 10 because that's the version we use for compilation
     // (and hence the dependency version of Angular core we installed (see package.json))
     expect(setContextSpy).toHaveBeenCalledTimes(1);
-    expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 13 });
+    expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 14 });
   });
 
   describe('filtering out the `BrowserApiErrors` integration', () => {

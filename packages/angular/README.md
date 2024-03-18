@@ -19,7 +19,7 @@
 
 This SDK officially supports Angular 15 to 17.
 
-If you're using an older Angular version please check the 
+If you're using an older Angular version please check the
 [compatibility table in the docs](https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility).
 
 If you're using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the
