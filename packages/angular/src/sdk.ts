@@ -30,7 +30,7 @@ export function init(options: BrowserOptions): void {
 }
 
 function checkAndSetAngularVersion(): void {
-  const ANGULAR_MINIMUM_VERSION = 15;
+  const ANGULAR_MINIMUM_VERSION = 14;
 
   const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : undefined;
 

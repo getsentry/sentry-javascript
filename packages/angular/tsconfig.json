@@ -1,7 +1,9 @@
 {
   "extends": "../../tsconfig.json",
 
-  "include": ["src/**/*"],
+  "include": ["**/*.ts", "src/**/*"],
+
+  "exclude": ["patch-vitest.ts", "setup-test.ts"],
 
   "compilerOptions": {
     // package-specific options
