@@ -28,6 +28,8 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureUserFeedback,
+  createUserFeedbackEnvelope,
   close,
   createTransport,
   flush,
@@ -85,14 +87,12 @@ export {
   winjsStackLineParser,
 } from './stack-parsers';
 export { eventFromException, eventFromMessage, exceptionFromError } from './eventbuilder';
-export { createUserFeedbackEnvelope } from './userfeedback';
 export {
   getDefaultIntegrations,
   forceLoad,
   init,
   onLoad,
   showReportDialog,
-  captureUserFeedback,
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';

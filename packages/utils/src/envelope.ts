@@ -11,6 +11,8 @@ import type {
   EventEnvelopeHeaders,
   SdkInfo,
   SdkMetadata,
+  UserFeedback,
+  UserFeedbackItem,
 } from '@sentry/types';
 
 import { dsnToString } from './dsn';
@@ -188,6 +190,13 @@ export function createAttachmentEnvelopeItem(attachment: Attachment): Attachment
     }),
     buffer,
   ];
+}
+
+/**
+ * Creates feedback envelope items
+ */
+export function createUserFeedbackEnvelopeItem(feedback: UserFeedback): UserFeedbackItem {
+  return [{type: 'user_report'}, feedback];
 }
 
 const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {

@@ -6,7 +6,7 @@ import type { DsnComponents } from './dsn';
 import type { DynamicSamplingContext, Envelope } from './envelope';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
-import type { FeedbackEvent } from './feedback';
+import type { FeedbackEvent, UserFeedback } from './feedback';
 import type { Integration } from './integration';
 import type { ClientOptions } from './options';
 import type { ParameterizedString } from './parameterize';
@@ -65,6 +65,13 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param session Session to be delivered
    */
   captureSession(session: Session): void;
+
+  /**
+   * Sends user feedback to Sentry.
+   *
+   * @param feedback Feedback to be delivered
+   */
+  captureUserFeedback(feedback: UserFeedback, hint?: EventHint): void;
 
   /**
    * Create a cron monitor check in and send it to Sentry. This method is not available on all clients.

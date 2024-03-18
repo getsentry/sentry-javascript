@@ -10,7 +10,6 @@ import type {
   Options,
   ParameterizedString,
   SeverityLevel,
-  UserFeedback,
 } from '@sentry/types';
 import { createClientReportEnvelope, dsnToString, getSDKSource, logger } from '@sentry/utils';
 
@@ -18,7 +17,6 @@ import { DEBUG_BUILD } from './debug-build';
 import { eventFromException, eventFromMessage } from './eventbuilder';
 import { WINDOW } from './helpers';
 import type { BrowserTransportOptions } from './transports/types';
-import { createUserFeedbackEnvelope } from './userfeedback';
 
 /**
  * Configuration options for the Sentry Browser SDK.
@@ -79,26 +77,6 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     hint?: EventHint,
   ): PromiseLike<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
-  }
-
-  /**
-   * Sends user feedback to Sentry.
-   */
-  public captureUserFeedback(feedback: UserFeedback): void {
-    if (!this._isEnabled()) {
-      DEBUG_BUILD && logger.warn('SDK not enabled, will not capture user feedback.');
-      return;
-    }
-
-    const envelope = createUserFeedbackEnvelope(feedback, {
-      metadata: this.getSdkMetadata(),
-      dsn: this.getDsn(),
-      tunnel: this.getOptions().tunnel,
-    });
-
-    // sendEnvelope should not throw
-    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-    this.sendEnvelope(envelope);
   }
 
   /**

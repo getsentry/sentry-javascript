@@ -22,6 +22,7 @@ import type {
   Span,
   Transaction,
   User,
+  UserFeedback,
 } from '@sentry/types';
 import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
@@ -633,6 +634,22 @@ export class Scope implements ScopeInterface {
     }
 
     this._client.captureEvent(event, { ...hint, event_id: eventId }, this);
+
+    return eventId;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public captureUserFeedback(feedback: UserFeedback, hint?: EventHint): string {
+    const eventId = hint && hint.event_id ? hint.event_id : uuid4();
+
+    if (!this._client) {
+      logger.warn('No client configured on scope - will not capture event!');
+      return eventId;
+    }
+
+    this._client.captureUserFeedback(feedback, { ...hint, event_id: eventId });
 
     return eventId;
   }

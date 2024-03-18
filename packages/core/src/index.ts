@@ -8,13 +8,19 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
+export {
+  createEventEnvelope,
+  createSessionEnvelope,
+  createAttachmentEnvelope,
+  createUserFeedbackEnvelope,
+} from './envelope';
 export {
   captureCheckIn,
   withMonitor,
   captureException,
   captureEvent,
   captureMessage,
+  captureUserFeedback,
   close,
   flush,
   setContext,

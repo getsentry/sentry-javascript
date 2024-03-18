@@ -11,11 +11,13 @@ import type {
   SessionAggregates,
   SessionEnvelope,
   SessionItem,
+  UserFeedback,
 } from '@sentry/types';
 import {
   createAttachmentEnvelopeItem,
   createEnvelope,
   createEventEnvelopeHeaders,
+  createUserFeedbackEnvelopeItem,
   dsnToString,
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
@@ -116,4 +118,30 @@ export function createAttachmentEnvelope(
     attachmentItems.push(createAttachmentEnvelopeItem(attachment));
   }
   return createEnvelope<EventEnvelope>(envelopeHeaders, attachmentItems);
+}
+
+/**
+ * Creates an envelope from a user feedback.
+ */
+export function createUserFeedbackEnvelope(
+  feedback: UserFeedback,
+  dsn?: DsnComponents,
+  metadata?: SdkMetadata,
+  tunnel?: string,
+): EventEnvelope {
+  const headers: EventEnvelope[0] = {
+    event_id: feedback.event_id,
+    sent_at: new Date().toISOString(),
+    ...(metadata &&
+      metadata.sdk && {
+        sdk: {
+          name: metadata.sdk.name,
+          version: metadata.sdk.version,
+        },
+      }),
+    ...(!!tunnel && !!dsn && { dsn: dsnToString(dsn) }),
+  };
+  const item = createUserFeedbackEnvelopeItem(feedback);
+
+  return createEnvelope<EventEnvelope>(headers, [item]);
 }

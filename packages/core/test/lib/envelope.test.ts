@@ -1,6 +1,6 @@
 import type { DsnComponents, DynamicSamplingContext, Event } from '@sentry/types';
 
-import { createEventEnvelope } from '../../src/envelope';
+import { createEventEnvelope, createUserFeedbackEnvelope } from '../../src/envelope';
 
 const testDsn: DsnComponents = { protocol: 'https', projectId: 'abc', host: 'testry.io', publicKey: 'pubKey123' };
 
@@ -73,5 +73,65 @@ describe('createEventEnvelope', () => {
       expect(envelopeHeaders.trace).toBeDefined();
       expect(envelopeHeaders.trace).toEqual(trace);
     });
+  });
+});
+
+describe('createUserFeedbackEnvelope', () => {
+  test('creates user feedback envelope header', () => {
+    const envelope = createUserFeedbackEnvelope(
+      {
+        comments: 'Test Comments',
+        email: 'test@email.com',
+        name: 'Test User',
+        event_id: 'testEvent123',
+      },
+      {
+        host: 'testHost',
+        projectId: 'testProjectId',
+        protocol: 'http',
+      },
+      {
+        sdk: {
+          name: 'testSdkName',
+          version: 'testSdkVersion',
+        },
+      },
+      'testTunnel',
+    );
+
+    expect(envelope[0]).toEqual({
+      dsn: 'http://undefined@testHost/undefinedtestProjectId',
+      event_id: 'testEvent123',
+      sdk: {
+        name: 'testSdkName',
+        version: 'testSdkVersion',
+      },
+      sent_at: expect.any(String),
+    });
+  });
+
+  test('creates user feedback envelope item', () => {
+    const envelope = createUserFeedbackEnvelope(
+      {
+        comments: 'Test Comments',
+        email: 'test@email.com',
+        name: 'Test User',
+        event_id: 'testEvent123',
+      }
+    );
+
+    expect(envelope[1]).toEqual([
+      [
+        {
+          type: 'user_report',
+        },
+        {
+          comments: 'Test Comments',
+          email: 'test@email.com',
+          name: 'Test User',
+          event_id: 'testEvent123',
+        },
+      ],
+    ]);
   });
 });

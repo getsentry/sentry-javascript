@@ -5,6 +5,7 @@ import type { Context, Contexts } from './context';
 import type { Event, EventHint } from './event';
 import type { EventProcessor } from './eventprocessor';
 import type { Extra, Extras } from './extra';
+import type { UserFeedback } from './feedback';
 import type { Primitive } from './misc';
 import type { RequestSession, Session } from './session';
 import type { SeverityLevel } from './severity';
@@ -256,7 +257,7 @@ export interface Scope {
   /**
    * Capture a message for this scope.
    *
-   * @param exception The exception to capture.
+   * @param string The message to capture.
    * @param level An optional severity level to report the message with.
    * @param hint Optional additional data to attach to the Sentry event.
    * @returns the id of the captured message.
@@ -271,6 +272,15 @@ export interface Scope {
    * @returns the id of the captured event.
    */
   captureEvent(event: Event, hint?: EventHint): string;
+
+  /**
+   * Capture a Sentry feedback for this scope.
+   *
+   * @param UserFeedback The feedback to capture.
+
+   * @returns the id of the captured feedback.
+   */
+  captureUserFeedback(feedback: UserFeedback, hint?: EventHint): string;
 
   /**
    * Clone all data from this scope into a new scope.

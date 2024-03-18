@@ -26,6 +26,7 @@ import type {
   TransactionEvent,
   Transport,
   TransportMakeRequestResponse,
+  UserFeedback,
 } from '@sentry/types';
 import {
   SentryError,
@@ -46,7 +47,7 @@ import {
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import { createEventEnvelope, createSessionEnvelope } from './envelope';
+import { createEventEnvelope, createSessionEnvelope, createUserFeedbackEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
@@ -235,6 +236,22 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       // After sending, we set init false to indicate it's not the first occurrence
       updateSession(session, { init: false });
     }
+  }
+
+  /**
+   * Sends user feedback to Sentry.
+   */
+  public captureUserFeedback(feedback: UserFeedback, _hint: EventHint = {}): void {
+    const envelope = createUserFeedbackEnvelope(
+      feedback,
+      this.getDsn(),
+      this.getSdkMetadata(),
+      this.getOptions().tunnel,
+    );
+
+    // sendEnvelope should not throw
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    this.sendEnvelope(envelope);
   }
 
   /**

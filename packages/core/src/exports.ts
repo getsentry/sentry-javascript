@@ -13,6 +13,7 @@ import type {
   SessionContext,
   SeverityLevel,
   User,
+  UserFeedback,
 } from '@sentry/types';
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -42,7 +43,7 @@ export function captureException(
 /**
  * Captures a message event and sends it to Sentry.
  *
- * @param exception The exception to capture.
+ * @param string The message to capture.
  * @param captureContext Define the level of the message or pass in additional data to attach to the message.
  * @returns the id of the captured message.
  */
@@ -52,6 +53,16 @@ export function captureMessage(message: string, captureContext?: CaptureContext 
   const level = typeof captureContext === 'string' ? captureContext : undefined;
   const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
   return getCurrentScope().captureMessage(message, level, context);
+}
+
+/**
+ * Captures a feedback event and sends it to Sentry.
+ *
+ * @param UserFeedback The UserFeedback object to capture.
+ * @returns the id of the captured feedback.
+ */
+export function captureUserFeedback(feedback: UserFeedback): string {
+  return getCurrentScope().captureUserFeedback(feedback);
 }
 
 /**
