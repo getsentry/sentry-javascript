@@ -54,4 +54,3 @@ https://github.com/getsentry/sentry-javascript/pull/9690
 TODO
 
 - Add support for TTFB (Time to First Byte)
-

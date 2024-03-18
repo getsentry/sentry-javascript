@@ -536,11 +536,11 @@ function setResourceEntrySizeData(
 }
 
 /**
- * Add ttfb information to measurements
+ * Add ttfb request time information to measurements.
  *
- * Exported for tests
+ * ttfb information is added via vendored web vitals library.
  */
-export function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
+function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
   const navEntry = getNavigationEntry() as TTFBMetric['entries'][number];
   const { responseStart, requestStart } = navEntry;
 
