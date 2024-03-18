@@ -1,13 +1,12 @@
-import { Integrations } from '@sentry/node-experimental';
+import { defineIntegration } from '@sentry/core';
+import { httpIntegration as originalHttpIntegration } from '@sentry/node-experimental';
+import type { IntegrationFn } from '@sentry/types';
 
-/**
- * A custom HTTP integration where we always enable tracing.
- */
-export class Http extends Integrations.Http {
-  public constructor(options?: ConstructorParameters<typeof Integrations.Http>[0]) {
-    super({
-      ...options,
-      tracing: true,
-    });
-  }
-}
+export const customHttpIntegration = ((options?: Parameters<typeof originalHttpIntegration>[0]) => {
+  return originalHttpIntegration({
+    ...options,
+    tracing: true,
+  });
+}) satisfies IntegrationFn;
+
+export const httpIntegration = defineIntegration(customHttpIntegration);

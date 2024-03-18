@@ -1,13 +1,12 @@
-import { Integrations } from '@sentry/node-experimental';
+import { defineIntegration } from '@sentry/core';
+import { onUncaughtExceptionIntegration as originalOnUncaughtExceptionIntegration } from '@sentry/node-experimental';
+import type { IntegrationFn } from '@sentry/types';
 
-/**
- * A custom OnUncaughtException integration that does not exit by default.
- */
-export class OnUncaughtException extends Integrations.OnUncaughtException {
-  public constructor(options?: ConstructorParameters<typeof Integrations.OnUncaughtException>[0]) {
-    super({
-      exitEvenIfOtherHandlersAreRegistered: false,
-      ...options,
-    });
-  }
-}
+export const customOnUncaughtException = ((options?: Parameters<typeof originalOnUncaughtExceptionIntegration>[0]) => {
+  return originalOnUncaughtExceptionIntegration({
+    exitEvenIfOtherHandlersAreRegistered: false,
+    ...options,
+  });
+}) satisfies IntegrationFn;
+
+export const onUncaughtExceptionIntegration = defineIntegration(customOnUncaughtException);
