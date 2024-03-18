@@ -32,7 +32,7 @@ describe('SentrySpan', () => {
       // eslint-disable-next-line deprecation/deprecation
       const span2 = span.startChild();
       expect(spanToJSON(span2).parent_span_id).toBe(span.spanContext().spanId);
-      expect(span.spanContext().traceId).toBe(span.spanContext().traceFlags);
+      expect(span.spanContext().traceId).toBe(span.spanContext().traceId);
       expect(spanIsSampled(span2)).toBe(spanIsSampled(span));
     });
   });
