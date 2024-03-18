@@ -448,7 +448,7 @@ export type BuildContext = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   defaultLoaders: any; // needed for type tests (test:types)
   totalPages: number; // needed for type tests (test:types)
-  nextRuntime?: 'nodejs' | 'edge'; // Added in Next.js 12+
+  nextRuntime: 'nodejs' | 'edge'; // Added in Next.js 12+
 };
 
 /**
