@@ -47,6 +47,7 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
     return handleCallbackErrors(
       () => callback(span),
       () => {
+        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
         if (spanToJSON(span).status === undefined) {
           span.setStatus({ code: SpanStatusCode.ERROR });
         }
@@ -85,6 +86,7 @@ export function startSpanManual<T>(
     return handleCallbackErrors(
       () => callback(span, () => span.end()),
       () => {
+        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
         if (spanToJSON(span).status === undefined) {
           span.setStatus({ code: SpanStatusCode.ERROR });
         }
