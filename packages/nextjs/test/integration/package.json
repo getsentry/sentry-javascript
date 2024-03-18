@@ -8,7 +8,7 @@
     "start": "next start",
     "pretest": "yarn build",
     "test:client": "playwright test",
-    "test:server": "jest --detectOpenHandles --forceExit --runInBand"
+    "test:server": "jest --forceExit --runInBand"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
