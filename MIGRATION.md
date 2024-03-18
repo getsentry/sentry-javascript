@@ -718,9 +718,9 @@ or look at the TypeScript type definitions of `withSentryConfig`.
 #### Updated the recommended way of calling `Sentry.init()`
 
 With version 8 of the SDK we will no longer support the use of `sentry.server.config.ts` and `sentry.edge.config.ts`
-files (note that `sentry.client.config.ts` is still supported and encouraged). Instead, please initialize the Sentry
-Next.js SDK for the serverside in a
+files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
 [Next.js instrumentation hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation).
+**`sentry.client.config.ts|js` is still supported and encouraged for initializing the clientside SDK.**
 
 The following is an example of how to initialize the serverside SDK in a Next.js instrumentation hook:
 
