@@ -109,6 +109,7 @@ export {
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
+  initOpenTelemetry,
 } from '@sentry/node';
 
 export {
