@@ -250,7 +250,6 @@ function createChildSpanOrTransaction(
     // eslint-disable-next-line deprecation/deprecation
     span = parentSpan.startChild(spanContext);
     addChildSpanToSpan(parentSpan, span);
-
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
     const dsc = getDynamicSamplingContextFromSpan(parentSpan);
