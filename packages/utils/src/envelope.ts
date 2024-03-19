@@ -210,8 +210,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   check_in: 'monitor',
   feedback: 'feedback',
   span: 'span',
-  // TODO: This is a temporary workaround until we have a proper data category for metrics
-  statsd: 'unknown',
+  statsd: 'statsd',
 };
 
 /**
