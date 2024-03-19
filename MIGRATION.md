@@ -897,7 +897,8 @@ Removed top-level exports: `InitSentryForEmber`
 
 #### Removal of `InitSentryForEmber` export
 
-The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the SDK.
+The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
+SDK.
 
 ## 5. Behaviour Changes
 
