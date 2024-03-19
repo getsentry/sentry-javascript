@@ -6,9 +6,9 @@
 
 # Sentry Session Replay
 
-[![npm version](https://img.shields.io/npm/v/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/replay.svg)](https://www.npmjs.com/package/@sentry/replay)
+[![npm version](https://img.shields.io/npm/v/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
+[![npm dm](https://img.shields.io/npm/dm/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
+[![npm dt](https://img.shields.io/npm/dt/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
 
 ## Pre-requisites
 
