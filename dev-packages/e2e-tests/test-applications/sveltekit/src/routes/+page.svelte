@@ -25,4 +25,5 @@
   </li>
   <li>
     <a href="/server-load-fetch">Route with nested fetch in server load</a>
+  </li>
 </ul>
