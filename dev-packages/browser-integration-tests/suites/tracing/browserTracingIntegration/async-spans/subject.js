@@ -1,20 +1,20 @@
-import { getActiveSpan, startSpan } from '@sentry/browser';
+import { getActiveSpan, spanToJSON, startSpan } from '@sentry/browser';
 
 const waitForSeconds = seconds => new Promise(res => setTimeout(res, seconds * 1000));
 
 startSpan({ name: 'span 1' }, async () => {
   await waitForSeconds(1);
-  window.firstWaitingSpan = getActiveSpan();
+  window.firstWaitingSpan = spanToJSON(getActiveSpan());
 });
 
 startSpan({ name: 'span 2' }, async () => {
   await waitForSeconds(2);
-  window.secondWaitingSpan = getActiveSpan();
+  window.secondWaitingSpan = spanToJSON(getActiveSpan());
 });
 
 startSpan({ name: 'span 3' }, async () => {
   await waitForSeconds(0.5);
-  window.thirdWaitingSpan = getActiveSpan();
+  window.thirdWaitingSpan = spanToJSON(getActiveSpan());
 });
 
 /**

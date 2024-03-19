@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 type WindowWithSpan = Window & {
   firstWaitingSpan: any;
@@ -12,6 +12,10 @@ type WindowWithSpan = Window & {
 sentryTest(
   'async spans with different durations lead to unexpected behavior in browser (no "asynchronous context tracking")',
   async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
 
@@ -19,13 +23,13 @@ sentryTest(
     expect(envelope).toBeDefined();
 
     const firstWaitingSpanValue = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).firstWaitingSpan._name,
+      () => (window as unknown as WindowWithSpan).firstWaitingSpan.description,
     );
     const secondWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).secondWaitingSpan._name,
+      () => (window as unknown as WindowWithSpan).secondWaitingSpan.description,
     );
     const thirdWaitingSpanName = await page.evaluate(
-      () => (window as unknown as WindowWithSpan).thirdWaitingSpan._name,
+      () => (window as unknown as WindowWithSpan).thirdWaitingSpan.description,
     );
 
     expect(firstWaitingSpanValue).toBe('span 2');
