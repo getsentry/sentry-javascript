@@ -7,14 +7,14 @@ import type { Dialog, FeedbackFormData, FeedbackInternalOptions } from '../types
 import { createDialogStyles } from './components/Dialog.css';
 import { DialogComponent } from './components/DialogContainer';
 
-interface Props {
+interface DialogProps {
   options: FeedbackInternalOptions;
   screenshotIntegration: IFeedbackScreenshotIntegration | undefined;
   sendFeedback: typeof sendFeedbackFn;
   shadow: ShadowRoot;
 }
 
-export function createDialog({ options, screenshotIntegration, sendFeedback, shadow }: Props): Dialog {
+export function createDialog({ options, screenshotIntegration, sendFeedback, shadow }: DialogProps): Dialog {
   const userKey = options.useSentryUser;
   const scope = getCurrentScope();
   const user = scope && scope.getUser();
