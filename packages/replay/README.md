@@ -12,7 +12,7 @@
 
 ## Pre-requisites
 
-`@sentry-internal/replay` requires Node 14+, and browsers newer than IE11.
+`@sentry/replay` requires Node 14+, and browsers newer than IE11.
 
 ## Installation
 

@@ -6,7 +6,7 @@
 
 # Sentry Session Replay Worker
 
-This is an internal package that is used by @sentry/replay. It generates a web worker and converts it to a string, so
+This is an internal package that is used by @sentry-internal/replay. It generates a web worker and converts it to a string, so
 that we can process it easier in replay.
 
 By extracting this into a dedicated (private, internal) package, we can streamline the build of replay.
