@@ -12,6 +12,9 @@ test('server pageload request span has nested request span', async ({ page }) =>
   const serverTxnEvent = await serverTxnEventPromise;
   const spans = serverTxnEvent.spans;
 
+  const outerHttpServerSpan = spans?.find(span => span.op === 'http.server' && span.description === 'GET /server-load-fetch');
+  const innerHttpServerSpan = spans?.find(span => span.op === 'http.server' && span.description === 'GET /api/users');
+
   expect(serverTxnEvent).toMatchObject({
     transaction: 'GET /server-load-fetch',
     tags: { runtime: 'node' },
@@ -25,7 +28,7 @@ test('server pageload request span has nested request span', async ({ page }) =>
     },
   });
 
-  console.log(JSON.stringify(spans, null, 2));
-
   expect(spans).toHaveLength(3);
+  expect(outerHttpServerSpan).toBeDefined();
+  expect(innerHttpServerSpan).toBeDefined();
 });
