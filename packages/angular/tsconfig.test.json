@@ -5,7 +5,7 @@
 
   "compilerOptions": {
     // should include all types from `./tsconfig.json` plus types for all test frameworks used
-    "types": ["jest"]
+    "types": ["vitest/globals"],
 
     // other package-specific, test-specific options
   }

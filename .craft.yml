@@ -50,9 +50,6 @@ targets:
 
   ## 3 Browser-based Packages
   - name: npm
-    id: '@sentry/angular-ivy'
-    includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
-  - name: npm
     id: '@sentry/angular'
     includeNames: /^sentry-angular-\d.*\.tgz$/
   - name: npm
@@ -179,8 +176,6 @@ targets:
         onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/gatsby':
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
-      'npm:@sentry/angular-ivy':
-        onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
       'npm:@sentry/astro':
