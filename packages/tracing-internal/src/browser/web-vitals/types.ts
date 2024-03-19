@@ -172,5 +172,6 @@ export type InteractionRouteNameMapping = {
     user?: User;
     activeTransaction?: Transaction;
     replayId?: string;
+    startTime: number;
   };
 };

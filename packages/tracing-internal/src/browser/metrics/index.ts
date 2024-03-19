@@ -231,7 +231,7 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 };
 
 /** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
+function _trackINP(interactionIdToRouteNameMapping: InteractionRouteNameMapping): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
     if (metric.value === undefined) {
       return;
@@ -248,16 +248,12 @@ function _trackINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping)
     /** Build the INP span, create an envelope from the span, and then send the envelope */
     const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
     const duration = msToSec(metric.value);
-    const { routeName, parentContext, activeTransaction, user, replayId } =
-      entry.interactionId !== undefined
-        ? interactionIdtoRouteNameMapping[entry.interactionId]
-        : {
-            routeName: undefined,
-            parentContext: undefined,
-            activeTransaction: undefined,
-            user: undefined,
-            replayId: undefined,
-          };
+    const interaction =
+      entry.interactionId !== undefined ? interactionIdToRouteNameMapping[entry.interactionId] : undefined;
+    if (interaction === undefined) {
+      return;
+    }
+    const { routeName, parentContext, activeTransaction, user, replayId } = interaction;
     const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
     // eslint-disable-next-line deprecation/deprecation
     const profileId = activeTransaction !== undefined ? activeTransaction.getProfileId() : undefined;
