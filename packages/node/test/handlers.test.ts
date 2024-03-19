@@ -9,6 +9,7 @@ import {
   getMainCarrier,
   mergeScopeData,
   setCurrentClient,
+  spanIsSampled,
   spanToJSON,
   withScope,
 } from '@sentry/core';
@@ -322,12 +323,13 @@ describe('tracingHandler', () => {
       dsc: { version: '1.0', environment: 'production' },
     });
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
-    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-    expect(transaction.parentSpanId).toEqual('1121201211212012');
-    expect(transaction.sampled).toEqual(true);
+    expect(transaction.spanContext().traceId).toEqual('12312012123120121231201212312012');
+    expect(spanToJSON(transaction).parent_span_id).toEqual('1121201211212012');
+    expect(spanIsSampled(transaction)).toEqual(true);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
@@ -341,7 +343,8 @@ describe('tracingHandler', () => {
 
     expect(getPropagationContext().dsc).toEqual({ version: '1.0', environment: 'production' });
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({ version: '1.0', environment: 'production' });
   });
 
@@ -364,7 +367,7 @@ describe('tracingHandler', () => {
   it('puts its transaction on the response object', () => {
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     expect(transaction).toBeDefined();
 
@@ -396,7 +399,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });
@@ -406,7 +409,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });
@@ -416,7 +419,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     expect(spanToJSON(transaction).description).toBe(`${method.toUpperCase()} ${path}`);
   });

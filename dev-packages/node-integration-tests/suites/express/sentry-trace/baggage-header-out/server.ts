@@ -31,7 +31,7 @@ app.get('/test/express', (_req, res) => {
   const traceId = transaction?.spanContext().traceId;
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
   if (traceId) {
-    headers['baggage'] = (headers['baggage'] as string).replace(traceId, '__SENTRY_TRACE_ID__')
+    headers['baggage'] = (headers['baggage'] as string).replace(traceId, '__SENTRY_TRACE_ID__');
   }
   // Responding with the headers outgoing request headers back to the assertions.
   res.send({ test_data: headers });
