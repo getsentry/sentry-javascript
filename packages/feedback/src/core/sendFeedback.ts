@@ -74,7 +74,7 @@ export async function sendFeedback(
       }
 
       // Require valid status codes, otherwise can assume feedback was not sent successfully
-      if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+     if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
         if (response.statusCode === 0) {
           throw new Error(
             'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',

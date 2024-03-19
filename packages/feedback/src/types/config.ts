@@ -135,6 +135,11 @@ export interface FeedbackTextConfiguration {
    * Message after feedback was sent successfully
    */
   successMessageText: string;
+
+  /**
+   * Text which indicates that a field is required
+   */
+  isRequiredText: string;
 }
 
 /**
