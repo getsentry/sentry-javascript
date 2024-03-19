@@ -1471,18 +1471,6 @@ describe('BaseClient', () => {
       global.__SENTRY__ = {};
     });
 
-    test('sets up each integration on `setupIntegrations` call', () => {
-      expect.assertions(2);
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options);
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
-
-      expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
-    });
-
     test('sets up each integration on `init` call', () => {
       expect.assertions(2);
 
@@ -1494,40 +1482,12 @@ describe('BaseClient', () => {
       expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
     });
 
-    test('skips installation for `setupIntegrations()` if DSN is not provided', () => {
-      expect.assertions(2);
-
-      const options = getDefaultTestClientOptions({ integrations: [new TestIntegration()] });
-      const client = new TestClient(options);
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
-
-      expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
-    });
-
     test('skips installation for `init()` if DSN is not provided', () => {
       expect.assertions(2);
 
       const options = getDefaultTestClientOptions({ integrations: [new TestIntegration()] });
       const client = new TestClient(options);
       client.init();
-
-      expect(Object.keys((client as any)._integrations).length).toEqual(0);
-      expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
-    });
-
-    test('skips installation for `setupIntegrations()` if `enabled` is set to `false`', () => {
-      expect.assertions(2);
-
-      const options = getDefaultTestClientOptions({
-        dsn: PUBLIC_DSN,
-        enabled: false,
-        integrations: [new TestIntegration()],
-      });
-      const client = new TestClient(options);
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
@@ -1546,29 +1506,6 @@ describe('BaseClient', () => {
 
       expect(Object.keys((client as any)._integrations).length).toEqual(0);
       expect(client.getIntegrationByName(TestIntegration.id)).toBeFalsy();
-    });
-
-    test('skips installation if integrations are already installed', () => {
-      expect.assertions(4);
-
-      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations: [new TestIntegration()] });
-      const client = new TestClient(options);
-      // note: not the `Client` method `setupIntegrations`, but the free-standing function which that method calls
-      const setupIntegrationsHelper = jest.spyOn(integrationModule, 'setupIntegrations');
-
-      // it should install the first time, because integrations aren't yet installed...
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
-
-      expect(Object.keys((client as any)._integrations).length).toEqual(1);
-      expect(client.getIntegrationByName(TestIntegration.id)).toBeTruthy();
-      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
-
-      // ...but it shouldn't try to install a second time
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
-
-      expect(setupIntegrationsHelper).toHaveBeenCalledTimes(1);
     });
 
     test('does not add integrations twice when calling `init` multiple times', () => {
