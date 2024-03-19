@@ -31,9 +31,9 @@ test('applies withScope scope to thrown error', done => {
           ],
         },
         tags: {
-          'global': 'tag',
-          'local': 'tag', // This tag is missing :(
-        }
+          global: 'tag',
+          local: 'tag', // This tag is missing :(
+        },
       },
     })
     .start(done);

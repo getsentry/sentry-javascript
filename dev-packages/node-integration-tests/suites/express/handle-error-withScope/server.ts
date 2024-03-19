@@ -18,7 +18,7 @@ app.get('/test/express', () => {
   Sentry.withScope(scope => {
     scope.setTag('local', 'tag');
     throw new Error('test_error');
-  })
+  });
 });
 
 app.use(Sentry.Handlers.errorHandler());
