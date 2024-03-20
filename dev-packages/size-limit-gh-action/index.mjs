@@ -219,7 +219,7 @@ async function run() {
       });
       const files = await globber.glob();
 
-      await artifactClient.uploadArtifact(ARTIFACT_NAME, files, process.env);
+      await artifactClient.uploadArtifact(ARTIFACT_NAME, files, __dirname);
 
       return;
     }

@@ -33,7 +33,6 @@ body:
         - '@sentry/browser'
         - '@sentry/astro'
         - '@sentry/angular'
-        - '@sentry/angular-ivy'
         - '@sentry/aws-serverless'
         - '@sentry/bun'
         - '@sentry/deno'

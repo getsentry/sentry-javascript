@@ -8,9 +8,16 @@ import { NAVIGATOR } from '../constants';
  *
  * https://stackoverflow.com/a/58879212
  * https://stackoverflow.com/a/3540295
+ *
+ * `mediaDevices.getDisplayMedia` is also only supported in secure contexts, and return a `mediaDevices is not supported` error, so we should also avoid loading the integration if we can.
+ *
+ * https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia
  */
 export function isScreenshotSupported(): boolean {
   if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(NAVIGATOR.userAgent)) {
+    return false;
+  }
+  if (!isSecureContext) {
     return false;
   }
   return true;

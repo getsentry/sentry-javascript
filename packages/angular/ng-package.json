@@ -1,14 +1,9 @@
 {
-  "$schema": "node_modules/ng-packagr/ng-package.schema.json",
+  "$schema": "./node_modules/ng-packagr/ng-package.schema.json",
   "dest": "build",
   "lib": {
-    "entryFile": "src/index.ts",
-    "umdModuleIds": {
-      "@sentry/browser": "Sentry",
-      "@sentry/utils": "Sentry.util",
-      "@sentry/core": "Sentry.core"
-    }
+    "entryFile": "src/index.ts"
   },
-  "whitelistedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/utils", "@sentry/types", "tslib"],
+  "allowedNonPeerDependencies": ["@sentry/browser", "@sentry/core", "@sentry/utils", "@sentry/types", "tslib"],
   "assets": ["README.md", "LICENSE"]
 }
