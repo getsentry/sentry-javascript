@@ -349,6 +349,7 @@ To make sure these integrations work properly you'll have to change how you
 - [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
+- [Ember SDK](./MIGRATION.md#ember-sdk)
 
 ### General
 
@@ -887,6 +888,17 @@ time, including breaking changes within the same major version of the SDK.
 
 In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no
 replacement API.
+
+### Ember SDK
+
+Removed top-level exports: `InitSentryForEmber`
+
+- [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+
+#### Removal of `InitSentryForEmber` export
+
+The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
+SDK.
 
 ## 5. Behaviour Changes
 
