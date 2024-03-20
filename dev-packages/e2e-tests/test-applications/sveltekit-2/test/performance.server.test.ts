@@ -26,10 +26,12 @@ test('server pageload request span has nested request span for sub request', asy
 
   expect(spans).toHaveLength(2);
 
-  expect(spans).toEqual(expect.arrayContaining([
-    // load span where the server load function initiates the sub request:
-    expect.objectContaining({ op: 'function.sveltekit.server.load', description: '/server-load-fetch' }),
-    // sub request span:
-    expect.objectContaining({ op: 'http.server', description: 'GET /api/users' }),
-  ]))
+  expect(spans).toEqual(
+    expect.arrayContaining([
+      // load span where the server load function initiates the sub request:
+      expect.objectContaining({ op: 'function.sveltekit.server.load', description: '/server-load-fetch' }),
+      // sub request span:
+      expect.objectContaining({ op: 'http.server', description: 'GET /api/users' }),
+    ]),
+  );
 });
