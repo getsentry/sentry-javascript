@@ -3,7 +3,6 @@ import { waitForTransaction } from '../event-proxy-server';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
-    console.log('txnEvent', txnEvent);
     return txnEvent?.transaction === 'GET /server-load-fetch';
   });
 
@@ -25,10 +24,12 @@ test('server pageload request span has nested request span for sub request', asy
     },
   });
 
-  expect(spans).toHaveLength(3);
+  expect(spans).toHaveLength(2);
 
   expect(spans).toEqual(expect.arrayContaining([
-    expect.objectContaining({ op: 'http.server', description: 'GET /server-load-fetch' }),
+    // load span where the server load function initiates the sub request:
+    expect.objectContaining({ op: 'function.sveltekit.server.load', description: '/server-load-fetch' }),
+    // sub request span:
     expect.objectContaining({ op: 'http.server', description: 'GET /api/users' }),
   ]))
 });
