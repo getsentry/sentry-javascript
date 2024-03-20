@@ -43,11 +43,19 @@ describe('hapi auto-instrumentation', () => {
       .makeRequest('get', '/');
   });
 
-  test('CJS - should handle errors in routes.', done => {
+  test('CJS - should handle returned plain errors in routes.', done => {
     createRunner(__dirname, 'scenario.js')
       .expect({ event: EXPECTED_ERROR_EVENT })
       .expectError()
       .start(done)
       .makeRequest('get', '/error');
+  });
+
+  test('CJS - should handle returned Boom errors in routes.', done => {
+    createRunner(__dirname, 'scenario.js')
+      .expect({ event: EXPECTED_ERROR_EVENT })
+      .expectError()
+      .start(done)
+      .makeRequest('get', '/boom-error');
   });
 });
