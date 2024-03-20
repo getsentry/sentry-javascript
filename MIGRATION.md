@@ -597,6 +597,13 @@ Sentry SDK requires the fetch API to be available in the environment.
 
 The `wrap` method has been removed. There is no replacement API.
 
+#### Removal of `@sentry/angular-ivy` package
+
+The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` package now supports Ivy by default and
+requires at least Angular 14. If you are using Angular 13 or lower, we suggest upgrading your Angular version before
+migrating to v8. If you can't upgrade your Angular version to at least Angular 14, you can also continue using the
+`@sentry/angular-ivy@7` SDK. However, v7 of the SDKs will no longer be fully supported going forward.
+
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 
 Removed top-level exports: `enableAnrDetection`, `Anr`, `deepReadDirSync`

@@ -17,14 +17,13 @@
 
 ## Angular Version Compatibility
 
-**Important**: This package is not compatible with Angular 16 or newer. Please use
-[`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy) instead.
+This SDK officially supports Angular 15 to 17.
 
-If you're using Angular 12 or newer, we recommend using `@sentry/angular-ivy` for native support with Angular's
-rendering engine Ivy.
+If you're using an older Angular version please check the
+[compatibility table in the docs](https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility).
 
-This SDK still officially supports Angular 10-15. If you are using an older version of Angular and experience problems
-with the Angular SDK, we recommend downgrading the SDK to version 6.x.
+If you're using an older version of Angular and experience problems with the Angular SDK, we recommend downgrading the
+SDK to version 7.x. Please note that we don't provide any support for Angular versions below 10.
 
 ## General
 
@@ -56,8 +55,8 @@ platformBrowserDynamic()
 
 ### ErrorHandler
 
-`@sentry/angular` exports a function to instantiate ErrorHandler provider that will automatically send Javascript errors
-captured by the Angular's error handler.
+`@sentry/angular` exports a function to instantiate an ErrorHandler provider that will automatically send Javascript
+errors captured by the Angular's error handler.
 
 ```javascript
 import { NgModule, ErrorHandler } from '@angular/core';

@@ -1,5 +1,5 @@
 import { AfterViewInit, Component, OnInit } from '@angular/core';
-import { TraceClass, TraceMethod, TraceModule } from '@sentry/angular-ivy';
+import { TraceClass, TraceMethod, TraceModule } from '@sentry/angular';
 import { SampleComponent } from '../sample-component/sample-component.components';
 
 @Component({
