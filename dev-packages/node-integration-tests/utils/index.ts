@@ -311,7 +311,7 @@ export class TestEnv {
             resolve(reqCount);
           });
         },
-        options.timeout || 1000,
+        options.timeout || 5500, // otel has a sending interval of 5 seconds so we use that plus a little extra
       );
     });
   }

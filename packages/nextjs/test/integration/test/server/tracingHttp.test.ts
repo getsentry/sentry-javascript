@@ -9,12 +9,24 @@ describe('Tracing HTTP', () => {
     // this intercepts the outgoing request made by the route handler (which it makes in order to test span creation)
     nock('http://example.com').get('/').reply(200, 'ok');
 
-    const envelope = await env.getEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       envelopeType: 'transaction',
+      count: 2, // We will receive 2 transactions - one from Next.js instrumentation and one from our SDK
     });
 
-    expect(envelope[2]).toMatchObject({
+    console.debug(JSON.stringify(envelopes));
+
+    const sentryTransactionEnvelope = envelopes.find(envelope => {
+      const envelopeItem = envelope[2];
+      return envelopeItem.transaction === 'GET /api/http';
+    });
+
+    expect(sentryTransactionEnvelope).toBeDefined();
+
+    const envelopeItem = sentryTransactionEnvelope![2];
+
+    expect(envelopeItem).toMatchObject({
       contexts: {
         trace: {
           op: 'http.server',
