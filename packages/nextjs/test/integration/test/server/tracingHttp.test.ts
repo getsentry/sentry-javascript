@@ -15,8 +15,6 @@ describe('Tracing HTTP', () => {
       count: 2, // We will receive 2 transactions - one from Next.js instrumentation and one from our SDK
     });
 
-    console.debug(JSON.stringify(envelopes));
-
     const sentryTransactionEnvelope = envelopes.find(envelope => {
       const envelopeItem = envelope[2];
       return envelopeItem.transaction === 'GET /api/http';
