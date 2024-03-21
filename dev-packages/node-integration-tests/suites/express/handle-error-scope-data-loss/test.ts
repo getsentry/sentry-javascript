@@ -50,6 +50,9 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
   expect(() => runner.makeRequest('get', '/test/withScope')).rejects.toThrow();
 });
 
+/**
+ * This test shows that the isolation scope set tags are applied correctly to the error.
+ */
 test('isolation scope is applied to thrown error caught by global handler', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .ignore('session', 'sessions')
