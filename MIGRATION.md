@@ -349,6 +349,7 @@ To make sure these integrations work properly you'll have to change how you
 - [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
+- [Ember SDK](./MIGRATION.md#ember-sdk)
 
 ### General
 
@@ -596,6 +597,13 @@ Sentry SDK requires the fetch API to be available in the environment.
 #### Removal of `wrap` method
 
 The `wrap` method has been removed. There is no replacement API.
+
+#### Removal of `@sentry/angular-ivy` package
+
+The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` package now supports Ivy by default and
+requires at least Angular 14. If you are using Angular 13 or lower, we suggest upgrading your Angular version before
+migrating to v8. If you can't upgrade your Angular version to at least Angular 14, you can also continue using the
+`@sentry/angular-ivy@7` SDK. However, v7 of the SDKs will no longer be fully supported going forward.
 
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 
@@ -880,6 +888,17 @@ time, including breaking changes within the same major version of the SDK.
 
 In `v6.17.2` the `rethrowAfterCapture` option to `wrapHandler` was deprecated. In `v8` it has been removed. There is no
 replacement API.
+
+### Ember SDK
+
+Removed top-level exports: `InitSentryForEmber`
+
+- [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+
+#### Removal of `InitSentryForEmber` export
+
+The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
+SDK.
 
 ## 5. Behaviour Changes
 

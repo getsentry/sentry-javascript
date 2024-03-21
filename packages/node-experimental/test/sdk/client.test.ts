@@ -13,8 +13,7 @@ import type { Event, EventHint } from '@sentry/types';
 import type { Scope } from '@sentry/types';
 
 import { setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
-import { NodeClient } from '../../src/sdk/client';
-import { initOtel } from '../../src/sdk/initOtel';
+import { NodeClient, initOpenTelemetry } from '../../src';
 import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
@@ -79,7 +78,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       withIsolationScope(isolationScope => {
         isolationScope.setRequestSession({ status: 'ok' });
@@ -96,7 +95,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -117,7 +116,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -138,7 +137,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -159,7 +158,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -187,7 +186,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -223,7 +222,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -244,7 +243,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -263,7 +262,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       // It is required to initialise SessionFlusher to capture Session Aggregates (it is usually initialised
       // by the`requestHandler`)
@@ -284,7 +283,7 @@ describe('NodeClient', () => {
       const client = new NodeClient(options);
       setCurrentClient(client);
       client.init();
-      initOtel();
+      initOpenTelemetry(client);
 
       withIsolationScope(isolationScope => {
         isolationScope.setRequestSession({ status: 'ok' });

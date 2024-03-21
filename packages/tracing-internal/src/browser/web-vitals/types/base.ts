@@ -105,4 +105,4 @@ export interface ReportOpts {
  */
 export type LoadState = 'loading' | 'dom-interactive' | 'dom-content-loaded' | 'complete';
 
-export type StopListening = () => void;
+export type StopListening = undefined | void | (() => void);

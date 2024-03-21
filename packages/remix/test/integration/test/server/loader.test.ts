@@ -19,7 +19,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     assertSentryTransaction(transaction, {
       contexts: {
         trace: {
-          status: 'unknown_error',
+          status: 'internal_error',
           data: {
             'http.response.status_code': 500,
           },
@@ -61,7 +61,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     assertSentryTransaction(transaction, {
       contexts: {
         trace: {
-          status: 'unknown_error',
+          status: 'internal_error',
           data: {
             'http.response.status_code': 500,
           },
@@ -148,7 +148,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
       contexts: {
         trace: {
           op: 'http.server',
-          status: 'unknown_error',
+          status: 'internal_error',
           data: {
             method: 'GET',
             'http.response.status_code': 500,

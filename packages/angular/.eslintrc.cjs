@@ -3,5 +3,5 @@ module.exports = {
     browser: true,
   },
   extends: ['../../.eslintrc.js'],
-  ignorePatterns: ['scripts/**/*'],
+  ignorePatterns: ['setup-test.ts', 'patch-vitest.ts'],
 };

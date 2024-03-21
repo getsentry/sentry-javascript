@@ -101,4 +101,8 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   test('from forked process', done => {
     createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
+
+  test('worker can be stopped and restarted', done => {
+    createRunner(__dirname, 'stop-and-start.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+  });
 });

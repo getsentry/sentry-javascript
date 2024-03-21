@@ -13,16 +13,14 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { Http } from './httpIntegration';
-import { OnUncaughtException } from './onUncaughtExceptionIntegration';
+import { httpIntegration } from './httpIntegration';
+import { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
 
 export * from '@sentry/node-experimental';
 export { captureUnderscoreErrorException } from '../common/_error';
 
 export const Integrations = {
   ...OriginalIntegrations,
-  Http,
-  OnUncaughtException,
 };
 
 const globalWithInjectedValues = global as typeof global & {
@@ -85,8 +83,8 @@ export function init(options: NodeOptions): void {
     ...getDefaultIntegrations(options).filter(
       integration => !['Http', 'OnUncaughtException'].includes(integration.name),
     ),
-    new Http(),
-    new OnUncaughtException(),
+    httpIntegration(),
+    onUncaughtExceptionIntegration(),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default

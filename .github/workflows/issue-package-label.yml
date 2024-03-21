@@ -38,9 +38,6 @@ jobs:
               "@sentry.angular": {
                 "label": "Package: Angular"
               },
-              "@sentry.angular-ivy": {
-                "label": "Package: Angular"
-              },
               "@sentry.bun": {
                 "label": "Package: Bun"
               },

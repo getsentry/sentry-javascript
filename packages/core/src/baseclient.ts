@@ -100,9 +100,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex;
 
-  /** Indicates whether this client's integrations have been set up. */
-  protected _integrationsInitialized: boolean;
-
   /** Number of calls being processed */
   protected _numProcessing: number;
 
@@ -122,7 +119,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected constructor(options: O) {
     this._options = options;
     this._integrations = {};
-    this._integrationsInitialized = false;
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
@@ -301,16 +297,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritDoc */
   public addEventProcessor(eventProcessor: EventProcessor): void {
     this._eventProcessors.push(eventProcessor);
-  }
-
-  /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  public setupIntegrations(forceInitialize?: boolean): void {
-    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._setupIntegrations();
-    }
   }
 
   /** @inheritdoc */
@@ -533,9 +519,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const { integrations } = this._options;
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
-
-    // TODO v8: We don't need this flag anymore
-    this._integrationsInitialized = true;
   }
 
   /** Updates existing session based on the provided event */

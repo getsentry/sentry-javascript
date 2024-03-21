@@ -16,8 +16,8 @@ export const useTakeScreenshot = ({ onBeforeScreenshot, onScreenshot, onAfterScr
       onBeforeScreenshot();
       const stream = await NAVIGATOR.mediaDevices.getDisplayMedia({
         video: {
-          width: WINDOW.innerWidth,
-          height: WINDOW.innerHeight,
+          width: WINDOW.innerWidth * WINDOW.devicePixelRatio,
+          height: WINDOW.innerHeight * WINDOW.devicePixelRatio,
         },
         audio: false,
         // @ts-expect-error experimental flags: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia#prefercurrenttab
