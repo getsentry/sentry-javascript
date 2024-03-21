@@ -10,7 +10,6 @@ import {
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import type { ResourceEntry } from '../../../src/browser/metrics';
-import { _addTtfbToMeasurements } from '../../../src/browser/metrics';
 import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
 import { WINDOW } from '../../../src/browser/types';
 import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
@@ -338,34 +337,6 @@ describe('_addResourceSpans', () => {
         start_timestamp: 445,
       }),
     );
-  });
-});
-
-describe('_addTtfbToMeasurements', () => {
-  it('adds ttfb to measurements', () => {
-    const measurements = {};
-    _addTtfbToMeasurements(measurements, 300, 200, 100);
-    expect(measurements).toEqual({
-      ttfb: {
-        unit: 'millisecond',
-        value: 200000,
-      },
-      'ttfb.requestTime': {
-        unit: 'millisecond',
-        value: 100000,
-      },
-    });
-  });
-
-  it('does not add negative ttfb', () => {
-    const measurements = {};
-    _addTtfbToMeasurements(measurements, 100, 200, 300);
-    expect(measurements).toEqual({
-      ttfb: {
-        unit: 'millisecond',
-        value: 0,
-      },
-    });
   });
 });
 
