@@ -6,6 +6,7 @@ import { onFID } from './web-vitals/getFID';
 import { onINP } from './web-vitals/getINP';
 import { onLCP } from './web-vitals/getLCP';
 import { observe } from './web-vitals/lib/observe';
+import { onTTFB } from './web-vitals/onTTFB';
 
 type InstrumentHandlerTypePerformanceObserver =
   | 'longtask'
@@ -15,7 +16,7 @@ type InstrumentHandlerTypePerformanceObserver =
   | 'resource'
   | 'first-input';
 
-type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'inp';
+type InstrumentHandlerTypeMetric = 'cls' | 'lcp' | 'fid' | 'ttfb' | 'inp';
 
 // We provide this here manually instead of relying on a global, as this is not available in non-browser environements
 // And we do not want to expose such types
@@ -101,6 +102,7 @@ const instrumented: { [key in InstrumentHandlerType]?: boolean } = {};
 let _previousCls: Metric | undefined;
 let _previousFid: Metric | undefined;
 let _previousLcp: Metric | undefined;
+let _previousTtfb: Metric | undefined;
 let _previousInp: Metric | undefined;
 
 /**
@@ -129,6 +131,13 @@ export function addLcpInstrumentationHandler(
   stopOnCallback = false,
 ): CleanupHandlerCallback {
   return addMetricObserver('lcp', callback, instrumentLcp, _previousLcp, stopOnCallback);
+}
+
+/**
+ * Add a callback that will be triggered when a FID metric is available.
+ */
+export function addTtfbInstrumentationHandler(callback: (data: { metric: Metric }) => void): CleanupHandlerCallback {
+  return addMetricObserver('ttfb', callback, instrumentTtfb, _previousTtfb);
 }
 
 /**
@@ -222,6 +231,15 @@ function instrumentLcp(): StopListening {
       metric,
     });
     _previousLcp = metric;
+  });
+}
+
+function instrumentTtfb(): StopListening {
+  return onTTFB(metric => {
+    triggerHandlers('ttfb', {
+      metric,
+    });
+    _previousTtfb = metric;
   });
 }
 

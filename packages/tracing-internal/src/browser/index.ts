@@ -20,4 +20,6 @@ export {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
+  addTtfbInstrumentationHandler,
+  addInpInstrumentationHandler,
 } from './instrument';
