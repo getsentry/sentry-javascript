@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '../event-proxy-server';
 
 test('server pageload request span has nested request span for sub request', async ({ page }) => {
-  const serverTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
+  const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
     return txnEvent?.transaction === 'GET /server-load-fetch';
   });
 
