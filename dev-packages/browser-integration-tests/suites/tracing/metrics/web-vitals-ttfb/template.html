@@ -2,6 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <script>
+      // Simulate a long task to delay the TTFB
+      async function run() {
+        await fetch('https://example.com/path/to/image.png');
+      }
+      run();
+    </script>
   </head>
   <body>
     <div>Rendered</div>

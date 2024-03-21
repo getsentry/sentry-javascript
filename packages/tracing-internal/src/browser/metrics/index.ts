@@ -544,10 +544,10 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
   const navEntry = getNavigationEntry() as TTFBMetric['entries'][number];
   const { responseStart, requestStart } = navEntry;
 
-  if (requestStart <= responseStart) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
+  if (responseStart > requestStart) {
+    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB Request Time');
     _measurements['ttfb.requestTime'] = {
-      value: (responseStart - requestStart) * 1000,
+      value: responseStart - requestStart,
       unit: 'millisecond',
     };
   }
