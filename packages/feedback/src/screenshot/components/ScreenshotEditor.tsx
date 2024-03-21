@@ -71,6 +71,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const [croppingRect, setCroppingRect] = useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = useState(false);
 
+    const cropStyle =
+      croppingRef.current && getComputedStyle(croppingRef.current).getPropertyValue('--crop-foreground');
+
     useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
     }, []);
@@ -115,7 +118,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
 
       // draw selection border
-      ctx.strokeStyle = 'purple';
+      if (cropStyle) {
+        ctx.strokeStyle = cropStyle;
+      }
       ctx.lineWidth = 3;
       ctx.strokeRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
     }, [croppingRect]);
@@ -143,28 +148,28 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         const mouseX = e.clientX - cropBoundingRect.x;
         const mouseY = e.clientY - cropBoundingRect.y;
         switch (corner) {
-          case 'topleft':
+          case 'top-left':
             setCroppingRect(prev => ({
               ...prev,
               startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
               startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'topright':
+          case 'top-right':
             setCroppingRect(prev => ({
               ...prev,
               endX: Math.max(Math.min(mouseX, cropCanvas.width), prev.startX + CROP_BUTTON_OFFSET),
               startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'bottomleft':
+          case 'bottom-left':
             setCroppingRect(prev => ({
               ...prev,
               startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
               endY: Math.max(Math.min(mouseY, cropCanvas.height), prev.startY + CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'bottomright':
+          case 'bottom-right':
             setCroppingRect(prev => ({
               ...prev,
               endX: Math.max(Math.min(mouseX, cropCanvas.width), prev.startX + CROP_BUTTON_OFFSET),
@@ -240,32 +245,32 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     return (
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
-        <div class="canvasContainer" ref={canvasContainerRef}>
-          <div class="cropButtonContainer" style={{ position: 'absolute' }} ref={cropContainerRef}>
+        <div class="container--canvas" ref={canvasContainerRef}>
+          <div class="container--crop-btn" style={{ position: 'absolute' }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
               left={croppingRect.startX}
               top={croppingRect.startY}
               onGrabButton={onGrabButton}
-              corner="topleft"
+              corner="top-left"
             ></CropCorner>
             <CropCorner
               left={croppingRect.endX - CROP_BUTTON_SIZE}
               top={croppingRect.startY}
               onGrabButton={onGrabButton}
-              corner="topright"
+              corner="top-right"
             ></CropCorner>
             <CropCorner
               left={croppingRect.startX}
               top={croppingRect.endY - CROP_BUTTON_SIZE}
               onGrabButton={onGrabButton}
-              corner="bottomleft"
+              corner="bottom-left"
             ></CropCorner>
             <CropCorner
               left={croppingRect.endX - CROP_BUTTON_SIZE}
               top={croppingRect.endY - CROP_BUTTON_SIZE}
               onGrabButton={onGrabButton}
-              corner="bottomright"
+              corner="bottom-right"
             ></CropCorner>
             <div
               style={{
@@ -323,16 +328,10 @@ function CropCorner({
 }): VNode {
   return (
     <button
-      class="crop-btn"
+      class={`${corner} crop-btn`}
       style={{
         top: top,
         left: left,
-        borderTop: corner === 'topleft' || corner === 'topright' ? 'solid purple' : 'none',
-        borderLeft: corner === 'topleft' || corner === 'bottomleft' ? 'solid purple' : 'none',
-        borderRight: corner === 'topright' || corner === 'bottomright' ? 'solid purple' : 'none',
-        borderBottom: corner === 'bottomleft' || corner === 'bottomright' ? 'solid purple' : 'none',
-        borderWidth: `${CROP_BUTTON_BORDER}px`,
-        cursor: corner === 'topleft' || corner === 'bottomright' ? 'nwse-resize' : 'nesw-resize',
       }}
       onMouseDown={e => {
         e.preventDefault();

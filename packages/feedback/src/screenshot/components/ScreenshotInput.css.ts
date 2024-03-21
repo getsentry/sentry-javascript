@@ -16,6 +16,9 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 }
 
 .editor {
+  padding: 10px;
+  padding-top: 65px;
+  padding-bottom: 65px;
   flex-grow: 1;
 
   background-color: ${surface200};
@@ -35,21 +38,16 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
     );
 }
 
-.canvasContainer {
+.container--canvas {
   width: 100%;
   height: 100%;
   position: relative;
 }
 
-.canvasContainer canvas {
+.container--canvas canvas {
   width: 100%;
   height: 100%;
   object-fit: contain;
-}
-
-.cropper {
-  width: 100%;
-  height: 100%;
 }
 
 .crop-btn-group {
@@ -66,6 +64,29 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   height: 30px;
   position: absolute;
   background: none;
+  border: solid var(--crop-foreground);
+  border-width: 3px;
+}
+
+.top-left {
+  cursor: nwse-resize;
+  border-right: none;
+  border-bottom: none;
+}
+.top-right {
+  cursor: nesw-resize;
+  border-left: none;
+  border-bottom: none;
+}
+.bottom-left {
+  cursor: nesw-resize;
+  border-right: none;
+  border-top: none;
+}
+.bottom-right {
+  cursor: nwse-resize;
+  border-left: none;
+  border-top: none;
 }
 `;
 
