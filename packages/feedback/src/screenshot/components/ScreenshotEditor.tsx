@@ -245,8 +245,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     return (
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
-        <div class="container--canvas" ref={canvasContainerRef}>
-          <div class="container--crop-btn" style={{ position: 'absolute' }} ref={cropContainerRef}>
+        <div class="editor__canvas-container" ref={canvasContainerRef}>
+          <div class="editor__crop-container" style={{ position: 'absolute' }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
               left={croppingRect.startX}
@@ -278,7 +278,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                 top: Math.max(0, croppingRect.endY + 8),
                 display: confirmCrop ? 'flex' : 'none',
               }}
-              class="crop-btn-group"
+              class="editor__crop-btn-group"
             >
               <button
                 onClick={e => {
@@ -328,7 +328,7 @@ function CropCorner({
 }): VNode {
   return (
     <button
-      class={`${corner} crop-btn`}
+      class={`editor__crop-corner editor__crop-corner--${corner} `}
       style={{
         top: top,
         left: left,

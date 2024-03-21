@@ -38,19 +38,19 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
     );
 }
 
-.container--canvas {
+.editor__canvas-container {
   width: 100%;
   height: 100%;
   position: relative;
 }
 
-.container--canvas canvas {
+.editor__canvas-container canvas {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.crop-btn-group {
+.editor__crop-btn-group {
   padding: 8px;
   gap: 8px;
   border-radius: var(--form-content-border-radius);
@@ -59,7 +59,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   position: absolute;
 }
 
-.crop-btn {
+.editor__crop-corner {
   width: 30px;
   height: 30px;
   position: absolute;
@@ -68,22 +68,22 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   border-width: 3px;
 }
 
-.top-left {
+.editor__crop-corner--top-left {
   cursor: nwse-resize;
   border-right: none;
   border-bottom: none;
 }
-.top-right {
+.editor__crop-corner--top-right {
   cursor: nesw-resize;
   border-left: none;
   border-bottom: none;
 }
-.bottom-left {
+.editor__crop-corner--bottom-left {
   cursor: nesw-resize;
   border-right: none;
   border-top: none;
 }
-.bottom-right {
+.editor__crop-corner--bottom-right {
   cursor: nwse-resize;
   border-left: none;
   border-top: none;
