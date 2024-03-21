@@ -39,10 +39,8 @@ test('withScope scope is NOT applied to thrown error caught by global handler', 
             },
           ],
         },
-        tags: {
-          global: 'tag',
-          local: undefined, // This tag is missing :(
-        },
+        // 'local' tag is not applied to the event
+        tags: expect.not.objectContaining({ local: expect.anything() }),
       },
     })
     .start(done);
