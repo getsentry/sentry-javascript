@@ -21,6 +21,11 @@ app.get('/test/withScope', () => {
   });
 });
 
+app.get('/test/isolationScope', () => {
+  Sentry.getIsolationScope().setTag('isolation-scope', 'tag');
+  throw new Error('isolation_test_error');
+});
+
 app.use(Sentry.Handlers.errorHandler());
 
 startExpressServerAndSendPortToRunner(app);

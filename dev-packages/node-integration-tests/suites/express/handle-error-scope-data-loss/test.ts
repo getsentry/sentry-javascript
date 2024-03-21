@@ -13,7 +13,7 @@ afterAll(() => {
  *
  * This test nevertheless covers the behavior so that we're aware.
  */
-test('applies withScope scope to thrown error', done => {
+test('withScope scope is NOT applied to thrown error caught by global handler', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .ignore('session', 'sessions')
     .expect({
@@ -48,4 +48,41 @@ test('applies withScope scope to thrown error', done => {
     .start(done);
 
   expect(() => runner.makeRequest('get', '/test/withScope')).rejects.toThrow();
+});
+
+test('isolation scope is applied to thrown error caught by global handler', done => {
+  const runner = createRunner(__dirname, 'server.ts')
+    .ignore('session', 'sessions')
+    .expect({
+      event: {
+        exception: {
+          values: [
+            {
+              mechanism: {
+                type: 'middleware',
+                handled: false,
+              },
+              type: 'Error',
+              value: 'isolation_test_error',
+              stacktrace: {
+                frames: expect.arrayContaining([
+                  expect.objectContaining({
+                    function: expect.any(String),
+                    lineno: expect.any(Number),
+                    colno: expect.any(Number),
+                  }),
+                ]),
+              },
+            },
+          ],
+        },
+        tags: {
+          global: 'tag',
+          'isolation-scope': 'tag',
+        },
+      },
+    })
+    .start(done);
+
+  expect(() => runner.makeRequest('get', '/test/isolationScope')).rejects.toThrow();
 });
