@@ -1,5 +1,5 @@
 import { defineIntegration, getCurrentScope } from '@sentry/core';
-import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
+import type { Contexts, Event, EventHint, IntegrationFn, IntegrationFnResult } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as inspector from 'inspector';
 import { Worker } from 'worker_threads';
@@ -32,32 +32,68 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
 
 const INTEGRATION_NAME = 'Anr';
 
+type AnrInternal = { startWorker: () => void; stopWorker: () => void };
+
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+  let worker: Promise<() => void> | undefined;
+  let client: NodeClient | undefined;
+
   return {
     name: INTEGRATION_NAME,
-    setup(client: NodeClient) {
+    startWorker: () => {
+      if (worker) {
+        return;
+      }
+
+      if (client) {
+        worker = _startWorker(client, options);
+      }
+    },
+    stopWorker: () => {
+      if (worker) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        worker.then(stop => {
+          stop();
+          worker = undefined;
+        });
+      }
+    },
+    setup(initClient: NodeClient) {
       if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
         throw new Error('ANR detection requires Node 16.17.0 or later');
       }
 
-      // setImmediate is used to ensure that all other integrations have been setup
-      setImmediate(() => _startWorker(client, options));
+      client = initClient;
+
+      // setImmediate is used to ensure that all other integrations have had their setup called first.
+      // This allows us to call into all integrations to fetch the full context
+      setImmediate(() => this.startWorker());
     },
-  };
+  } as IntegrationFnResult & AnrInternal;
 }) satisfies IntegrationFn;
 
-export const anrIntegration = defineIntegration(_anrIntegration);
+type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => IntegrationFnResult & AnrInternal;
+
+export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
 /**
  * Starts the ANR worker thread
+ *
+ * @returns A function to stop the worker
  */
-async function _startWorker(client: NodeClient, _options: Partial<AnrIntegrationOptions>): Promise<void> {
-  const contexts = await getContexts(client);
+async function _startWorker(
+  client: NodeClient,
+  integrationOptions: Partial<AnrIntegrationOptions>,
+): Promise<() => void> {
   const dsn = client.getDsn();
 
   if (!dsn) {
-    return;
+    return () => {
+      //
+    };
   }
+
+  const contexts = await getContexts(client);
 
   // These will not be accurate if sent later from the worker thread
   delete contexts.app?.app_memory;
@@ -78,11 +114,11 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
     release: initOptions.release,
     dist: initOptions.dist,
     sdkMetadata,
-    appRootPath: _options.appRootPath,
-    pollInterval: _options.pollInterval || DEFAULT_INTERVAL,
-    anrThreshold: _options.anrThreshold || DEFAULT_HANG_THRESHOLD,
-    captureStackTrace: !!_options.captureStackTrace,
-    staticTags: _options.staticTags || {},
+    appRootPath: integrationOptions.appRootPath,
+    pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
+    anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
+    captureStackTrace: !!integrationOptions.captureStackTrace,
+    staticTags: integrationOptions.staticTags || {},
     contexts,
   };
 
@@ -135,4 +171,9 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
 
   // Ensure this thread can't block app exit
   worker.unref();
+
+  return () => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    worker.terminate();
+  };
 }
