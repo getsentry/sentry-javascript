@@ -1,4 +1,3 @@
-import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
