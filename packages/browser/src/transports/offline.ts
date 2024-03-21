@@ -1,7 +1,8 @@
 import type { OfflineStore, OfflineTransportOptions } from '@sentry/core';
 import { makeOfflineTransport } from '@sentry/core';
-import type { Envelope, InternalBaseTransportOptions, Transport } from '@sentry/types';
+import type { BaseTransportOptions, Envelope, Transport } from '@sentry/types';
 import { parseEnvelope, serializeEnvelope } from '@sentry/utils';
+import { makeFetchTransport } from './fetch';
 
 // 'Store', 'promisifyRequest' and 'createStore' were originally copied from the 'idb-keyval' package before being
 // modified and simplified: https://github.com/jakearchibald/idb-keyval
@@ -141,8 +142,8 @@ function makeIndexedDbOfflineTransport<T>(
 /**
  * Creates a transport that uses IndexedDb to store events when offline.
  */
-export function makeBrowserOfflineTransport<T extends InternalBaseTransportOptions>(
-  createTransport: (options: T) => Transport,
+export function makeBrowserOfflineTransport<T extends BaseTransportOptions>(
+  createTransport: (options: T) => Transport = makeFetchTransport,
 ): (options: T & BrowserOfflineTransportOptions) => Transport {
   return makeIndexedDbOfflineTransport<T>(makeOfflineTransport(createTransport));
 }
