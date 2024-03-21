@@ -222,11 +222,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           if (!context) {
             throw new Error('Could not get canvas context');
           }
-          const sourceWidth = imageSource.videoWidth;
-          const sourceHeight = imageSource.videoHeight;
-          imageBuffer.width = sourceWidth;
-          imageBuffer.height = sourceHeight;
-          context.drawImage(imageSource, 0, 0, sourceWidth, sourceHeight);
+          imageBuffer.width = imageSource.videoWidth;
+          imageBuffer.height = imageSource.videoHeight;
+          context.drawImage(imageSource, 0, 0);
         },
         [imageBuffer],
       ),
