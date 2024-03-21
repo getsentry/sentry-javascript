@@ -51,6 +51,6 @@ https://github.com/getsentry/sentry-javascript/pull/9690
 
 - Added support for INP (Interaction to Next Paint)
 
-https://github.com/getsentry/sentry-javascript/pull/11185
+https://github.com/getsentry/sentry-javascript/pull/11231
 
 - Add support for TTFB (Time to First Byte)
