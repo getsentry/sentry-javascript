@@ -14,7 +14,7 @@ app.use(Sentry.Handlers.requestHandler());
 
 Sentry.setTag('global', 'tag');
 
-app.get('/test/express', () => {
+app.get('/test/withScope', () => {
   Sentry.withScope(scope => {
     scope.setTag('local', 'tag');
     throw new Error('test_error');

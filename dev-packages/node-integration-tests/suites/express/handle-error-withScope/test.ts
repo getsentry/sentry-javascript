@@ -4,6 +4,15 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
+/**
+ * Why does this test exist?
+ *
+ * We recently discovered that errors caught by global handlers will potentially loose scope data from the active scope
+ * where the error was originally thrown in. The simple example in this test (see subject.ts) demonstrates this behavior
+ * (in a Node environment but the same behavior applies to the browser; see the test there).
+ *
+ * This test nevertheless covers the behavior so that we're aware.
+ */
 test('applies withScope scope to thrown error', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .ignore('session', 'sessions')
@@ -32,11 +41,11 @@ test('applies withScope scope to thrown error', done => {
         },
         tags: {
           global: 'tag',
-          local: 'tag', // This tag is missing :(
+          local: undefined, // This tag is missing :(
         },
       },
     })
     .start(done);
 
-  expect(() => runner.makeRequest('get', '/test/express')).rejects.toThrow();
+  expect(() => runner.makeRequest('get', '/test/withScope')).rejects.toThrow();
 });
