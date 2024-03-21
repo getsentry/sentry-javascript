@@ -175,5 +175,6 @@ async function _startWorker(
   return () => {
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     worker.terminate();
+    clearInterval(timer);
   };
 }
