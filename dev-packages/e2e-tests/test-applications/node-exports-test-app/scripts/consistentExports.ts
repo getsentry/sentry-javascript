@@ -64,7 +64,7 @@ const DEPENDENTS: Dependent[] = [
   },
   {
     package: '@sentry/nextjs',
-    compareWith: nodeExperimentalExports,
+    compareWith: nodeExports,
     // Next.js doesn't require explicit exports, so we can just merge top level and `default` exports:
     // @ts-expect-error: `default` is not in the type definition but it's defined
     exports: Object.keys({ ...SentryNextJs, ...SentryNextJs.default }),

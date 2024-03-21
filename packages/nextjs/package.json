@@ -37,7 +37,7 @@
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
     "@sentry/core": "8.0.0-alpha.4",
-    "@sentry/node-experimental": "8.0.0-alpha.4",
+    "@sentry/node": "8.0.0-alpha.4",
     "@sentry/react": "8.0.0-alpha.4",
     "@sentry/types": "8.0.0-alpha.4",
     "@sentry/utils": "8.0.0-alpha.4",

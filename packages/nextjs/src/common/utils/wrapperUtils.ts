@@ -141,6 +141,7 @@ function getOrStartRequestSpan(req: IncomingMessage, res: ServerResponse, name: 
 
   const requestSpan = startInactiveSpan({
     name,
+    forceTransaction: true,
     op: 'http.server',
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
@@ -176,6 +177,7 @@ export async function callDataFetcherTraced<F extends (...args: any[]) => Promis
     {
       op: 'function.nextjs',
       name: `${dataFetchingMethodName} (${parameterizedRoute})`,
+      onlyIfParent: true,
       attributes: {
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',

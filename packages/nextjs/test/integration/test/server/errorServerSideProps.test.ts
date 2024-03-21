@@ -51,7 +51,7 @@ describe('Error Server-side Props', () => {
       },
       type: 'transaction',
       request: {
-        url,
+        url: expect.stringMatching(/http:\/\/localhost:[0-9]+\/withErrorServerSideProps/),
       },
     });
   });

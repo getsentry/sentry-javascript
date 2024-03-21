@@ -94,6 +94,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
             {
               op: 'function.server_action',
               name: `serverAction/${serverActionName}`,
+              forceTransaction: true,
               attributes: {
                 [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               },

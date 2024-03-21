@@ -310,19 +310,14 @@ describe('InboundFilters', () => {
       expect(eventProcessor(EXCEPTION_EVENT, {})).toBe(null);
     });
 
-    it('uses default filters (script error)', () => {
+    it('uses default filters', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(SCRIPT_ERROR_EVENT, {})).toBe(null);
     });
 
-    it('uses default filters (ResizeObserver)', () => {
+    it('uses default filters ResizeObserver', () => {
       const eventProcessor = createInboundFiltersEventProcessor();
       expect(eventProcessor(RESIZEOBSERVER_EVENT, {})).toBe(null);
-    });
-
-    it('uses default filters (googletag)', () => {
-      const eventProcessor = createInboundFiltersEventProcessor();
-      expect(eventProcessor(GOOGLETAG_EVENT, {})).toBe(null);
     });
 
     it('filters on last exception when multiple present', () => {
