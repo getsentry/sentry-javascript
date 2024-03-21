@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.108.0
+
+This release fixes issues with Time to First Byte (TTFB) calculation in the SDK that was introduced with `7.95.0`. It
+also fixes some bugs with Interaction to First Paint (INP) instrumentation. This may impact your Sentry Performance
+Score calculation.
+
+- feat(serverless): Add Node.js 20 to compatible runtimes (#11104)
+- feat(core): Backport `ResizeObserver` and `googletag` default filters (#11210)
+- feat(webvitals): Adds event entry names for INP handler. Also guard against empty metric value
+- fix(metrics): use correct statsd data category (#11187)
+- fix(node): Record local variables with falsy values (v7) (#11190)
+- fix(node): Use unique variable for ANR context transfer (v7) (#11162)
+- fix(node): Time zone handling for `cron` (#11225)
+- fix(tracing): use web-vitals ttfb calculation (#11231)
+- fix(types): Fix incorrect `sampled` type on `Transaction` (#11146)
+- fix(webvitals): Fix mapping not being maintained properly and sometimes not sending INP spans (#11183)
+
+Work in this release contributed by @quisido and @joshkel. Thank you for your contributions!
+
 ## 7.107.0
 
 This release fixes issues with INP instrumentation with the Next.js SDK and adds support for the `enableInp` option in
