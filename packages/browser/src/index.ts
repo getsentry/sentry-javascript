@@ -25,20 +25,20 @@ export { INTEGRATIONS as Integrations };
 
 export {
   // eslint-disable-next-line deprecation/deprecation
-  Replay,
-  replayIntegration,
-  getReplay,
+  InternalReplay as Replay,
+  internalReplayIntegration as replayIntegration,
+  internalGetReplay as getReplay,
 } from '@sentry/replay';
 export type {
-  ReplayEventType,
-  ReplayEventWithTime,
-  ReplayBreadcrumbFrame,
-  ReplayBreadcrumbFrameEvent,
-  ReplayOptionFrameEvent,
-  ReplayFrame,
-  ReplayFrameEvent,
-  ReplaySpanFrame,
-  ReplaySpanFrameEvent,
+  InternalReplayEventType as ReplayEventType,
+  InternalReplayEventWithTime as ReplayEventWithTime,
+  InternalReplayBreadcrumbFrame as ReplayBreadcrumbFrame,
+  InternalReplayBreadcrumbFrameEvent as ReplayBreadcrumbFrameEvent,
+  InternalReplayOptionFrameEvent as ReplayOptionFrameEvent,
+  InternalReplayFrame as ReplayFrame,
+  InternalReplayFrameEvent as ReplayFrameEvent,
+  InternalReplaySpanFrame as ReplaySpanFrame,
+  InternalReplaySpanFrameEvent as ReplaySpanFrameEvent,
 } from '@sentry/replay';
 
 export {
