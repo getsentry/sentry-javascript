@@ -11,6 +11,7 @@ import { useTakeScreenshot } from './useTakeScreenshot';
 const CROP_BUTTON_SIZE = 30;
 const CROP_BUTTON_BORDER = 3;
 const CROP_BUTTON_OFFSET = CROP_BUTTON_SIZE + CROP_BUTTON_BORDER;
+const DPI = WINDOW.devicePixelRatio;
 
 interface FactoryParams {
   h: typeof hType;
@@ -71,9 +72,6 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const [croppingRect, setCroppingRect] = useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = useState(false);
 
-    const cropStyle =
-      croppingRef.current && getComputedStyle(croppingRef.current).getPropertyValue('--crop-foreground');
-
     useEffect(() => {
       WINDOW.addEventListener('resize', resizeCropper, false);
     }, []);
@@ -82,8 +80,14 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       const cropper = croppingRef.current;
       const imageDimensions = constructRect(getContainedSize(imageBuffer));
       if (cropper) {
-        cropper.width = imageDimensions.width;
-        cropper.height = imageDimensions.height;
+        cropper.width = imageDimensions.width * DPI;
+        cropper.height = imageDimensions.height * DPI;
+        cropper.style.width = `${imageDimensions.width}px`;
+        cropper.style.height = `${imageDimensions.height}px`;
+        const ctx = cropper.getContext('2d');
+        if (ctx) {
+          ctx.scale(DPI, DPI);
+        }
       }
 
       const cropButton = cropContainerRef.current;
@@ -107,9 +111,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (!ctx) {
         return;
       }
+
       const imageDimensions = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
-
       ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
 
       // draw gray overlay around the selection
@@ -118,11 +122,12 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
 
       // draw selection border
-      if (cropStyle) {
-        ctx.strokeStyle = cropStyle;
-      }
+      ctx.strokeStyle = '#FFFFFF';
       ctx.lineWidth = 3;
-      ctx.strokeRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
+      ctx.strokeRect(croppingBox.x + 1, croppingBox.y + 1, croppingBox.width - 2, croppingBox.height - 2);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(croppingBox.x + 3, croppingBox.y + 3, croppingBox.width - 6, croppingBox.height - 6);
     }, [croppingRect]);
 
     function onGrabButton(e: Event, corner: string): void {
@@ -158,7 +163,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           case 'top-right':
             setCroppingRect(prev => ({
               ...prev,
-              endX: Math.max(Math.min(mouseX, cropCanvas.width), prev.startX + CROP_BUTTON_OFFSET),
+              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
               startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
             }));
             break;
@@ -166,14 +171,14 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
             setCroppingRect(prev => ({
               ...prev,
               startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
-              endY: Math.max(Math.min(mouseY, cropCanvas.height), prev.startY + CROP_BUTTON_OFFSET),
+              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
             }));
             break;
           case 'bottom-right':
             setCroppingRect(prev => ({
               ...prev,
-              endX: Math.max(Math.min(mouseX, cropCanvas.width), prev.startX + CROP_BUTTON_OFFSET),
-              endY: Math.max(Math.min(mouseY, cropCanvas.height), prev.startY + CROP_BUTTON_OFFSET),
+              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
+              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
             }));
             break;
         }
@@ -247,26 +252,26 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           <div class="editor__crop-container" style={{ position: 'absolute' }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
-              left={croppingRect.startX}
-              top={croppingRect.startY}
+              left={croppingRect.startX - CROP_BUTTON_BORDER}
+              top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="top-left"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE}
-              top={croppingRect.startY}
+              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+              top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="top-right"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.startX}
-              top={croppingRect.endY - CROP_BUTTON_SIZE}
+              left={croppingRect.startX - CROP_BUTTON_BORDER}
+              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="bottom-left"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.endX - CROP_BUTTON_SIZE}
-              top={croppingRect.endY - CROP_BUTTON_SIZE}
+              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
               corner="bottom-right"
             ></CropCorner>
@@ -285,8 +290,8 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                     setCroppingRect({
                       startX: 0,
                       startY: 0,
-                      endX: croppingRef.current.width,
-                      endY: croppingRef.current.height,
+                      endX: croppingRef.current.width / DPI,
+                      endY: croppingRef.current.height / DPI,
                     });
                   }
                   setConfirmCrop(false);

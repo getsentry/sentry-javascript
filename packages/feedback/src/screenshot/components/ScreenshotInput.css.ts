@@ -6,8 +6,8 @@ import { DOCUMENT } from '../../constants';
 export function createScreenshotInputStyles(): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
-  const surface200 = '#FAF9FB';
-  const gray100 = '#F0ECF3';
+  const surface200 = '#1A141F';
+  const gray100 = '#302735';
 
   style.textContent = `
 .dialog__content:has(.editor) {
@@ -64,7 +64,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   height: 30px;
   position: absolute;
   background: none;
-  border: solid var(--crop-foreground);
+  border: solid #FFFFFF;
   border-width: 3px;
 }
 

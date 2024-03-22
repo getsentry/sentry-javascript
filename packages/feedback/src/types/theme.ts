@@ -115,8 +115,4 @@ export interface FeedbackTheme {
    * Border radius for form inputs
    */
   formContentBorderRadius: string;
-  /**
-   * Foreground colour for cropping
-   */
-  cropForeground: string;
 }
