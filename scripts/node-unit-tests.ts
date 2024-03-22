@@ -17,7 +17,6 @@ const DEFAULT_SKIP_TESTS_PACKAGES = [
   '@sentry/angular',
   '@sentry/svelte',
   '@sentry/profiling-node',
-  '@sentry/replay',
   '@sentry-internal/replay',
   '@sentry-internal/replay-canvas',
   '@sentry-internal/replay-worker',

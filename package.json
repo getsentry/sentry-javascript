@@ -65,7 +65,6 @@
     "packages/profiling-node",
     "packages/react",
     "packages/remix",
-    "packages/replay",
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",

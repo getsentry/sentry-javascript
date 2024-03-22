@@ -10,6 +10,9 @@
 [![npm dm](https://img.shields.io/npm/dm/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
 [![npm dt](https://img.shields.io/npm/dt/@sentry-internal/replay.svg)](https://www.npmjs.com/package/@sentry-internal/replay)
 
+This is an internal package that is being re-exported in `@sentry/browser` and other browser-related SDKs like
+`@sentry/react` or `@sentry/vue`.
+
 ## Pre-requisites
 
 `@sentry-internal/replay` requires Node 14+, and browsers newer than IE11.

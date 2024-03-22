@@ -47,7 +47,6 @@
     "@sentry-internal/replay-canvas": "8.0.0-alpha.4",
     "@sentry-internal/tracing": "8.0.0-alpha.4",
     "@sentry/core": "8.0.0-alpha.4",
-    "@sentry/replay": "8.0.0-alpha.4",
     "@sentry/types": "8.0.0-alpha.4",
     "@sentry/utils": "8.0.0-alpha.4"
   },

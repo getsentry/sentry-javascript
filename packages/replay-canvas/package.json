@@ -73,7 +73,7 @@
   },
   "dependencies": {
     "@sentry/core": "8.0.0-alpha.4",
-    "@sentry/replay": "8.0.0-alpha.4",
+    "@sentry-internal/replay": "8.0.0-alpha.4",
     "@sentry/types": "8.0.0-alpha.4",
     "@sentry/utils": "8.0.0-alpha.4"
   },
