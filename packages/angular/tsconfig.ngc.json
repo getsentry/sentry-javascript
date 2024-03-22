@@ -5,9 +5,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es2018",
     "declarationMap": false,
-    "lib": ["dom", "es2017"],
+    "lib": ["dom", "es2018"],
     "baseUrl": "./"
   },
   "angularCompilerOptions": {
