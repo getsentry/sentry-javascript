@@ -1,5 +1,5 @@
 import { defineIntegration, getClient } from '@sentry/core';
-import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -42,7 +42,7 @@ interface PublicFeedbackIntegration {
   closeDialog: () => void;
   removeWidget: () => void;
 }
-export type IFeedbackIntegration = IntegrationFnResult & PublicFeedbackIntegration;
+export type IFeedbackIntegration = Integration & PublicFeedbackIntegration;
 
 export const _feedbackIntegration = (({
   // FeedbackGeneralConfiguration

@@ -1,7 +1,6 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import type { Hub } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
@@ -18,10 +17,8 @@ import {
 } from '@sentry/core';
 import type {
   ClientOptions,
-  EventProcessor,
   Integration,
   IntegrationFn,
-  IntegrationFnResult,
   SanitizedRequestData,
   TracePropagationTargets,
 } from '@sentry/types';
@@ -124,9 +121,8 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
             shouldCreateSpanForRequest,
           }),
   };
-
   // eslint-disable-next-line deprecation/deprecation
-  return new Http(convertedOptions) as unknown as IntegrationFnResult;
+  return new Http(convertedOptions) as unknown as Integration;
 }) satisfies IntegrationFn;
 
 /**
@@ -169,12 +165,9 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(
-    _addGlobalEventProcessor: (callback: EventProcessor) => void,
-    setupOnceGetCurrentHub: () => Hub,
-  ): void {
+  public setupOnce(): void {
     // eslint-disable-next-line deprecation/deprecation
-    const clientOptions = setupOnceGetCurrentHub().getClient<NodeClient>()?.getOptions();
+    const clientOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
 
     // If `tracing` is not explicitly set, we default this based on whether or not tracing is enabled.
     // But for compatibility, we only do that if `enableIfHasTracingEnabled` is set.

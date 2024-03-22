@@ -121,7 +121,7 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: unknown): void {
+  public setupOnce(): void {
     if (!this._router) {
       DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
       return;
