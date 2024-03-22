@@ -1,6 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { EventProcessor, SpanAttributes, StartSpanOptions } from '@sentry/types';
+import type { SpanAttributes, StartSpanOptions } from '@sentry/types';
 import { fill, isThenable, loadModule, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../../common/debug-build';
@@ -139,7 +139,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
-  public setupOnce(_: (callback: EventProcessor) => void): void {
+  public setupOnce(): void {
     const pkg = this.loadDependency();
 
     if (!pkg) {
