@@ -2,7 +2,7 @@ import { EventEmitter } from 'events';
 
 import type { Transport } from '@sentry/types';
 
-import type { NodeClient } from '@sentry/node-experimental';
+import type { NodeClient } from '@sentry/node';
 import { _nodeProfilingIntegration } from '../src/integration';
 
 describe('ProfilingIntegration', () => {

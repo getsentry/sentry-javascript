@@ -3,7 +3,7 @@ import type { Context, Envelope, Event, StackFrame, StackParser } from '@sentry/
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import * as Sentry from '@sentry/node-experimental';
+import * as Sentry from '@sentry/node';
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';

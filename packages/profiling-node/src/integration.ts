@@ -1,5 +1,5 @@
 import { defineIntegration, getCurrentScope, getRootSpan, spanToJSON } from '@sentry/core';
-import type { NodeClient } from '@sentry/node-experimental';
+import type { NodeClient } from '@sentry/node';
 import type { IntegrationFn, Span } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
