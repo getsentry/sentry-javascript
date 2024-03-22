@@ -1,5 +1,6 @@
 import type { Envelope, Transport, TransportMakeRequestResponse } from '@sentry/types';
 
+// eslint-disable-next-line deprecation/deprecation
 import type { Replay as ReplayIntegration } from '../../src';
 import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';

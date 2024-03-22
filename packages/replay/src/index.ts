@@ -24,7 +24,7 @@ const replayIntegration = internalReplayIntegration;
 
 /** @deprecated Use the export from `@sentry/replay` or from framework-specific SDKs like `@sentry/react` or `@sentry/vue` */
 // eslint-disable-next-line deprecation/deprecation
-const Replay = InternalReplay;
+class Replay extends InternalReplay {}
 
 // eslint-disable-next-line deprecation/deprecation
 export { replayIntegration, getReplay, Replay, internalReplayIntegration, internalGetReplay, InternalReplay };
