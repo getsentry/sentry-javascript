@@ -1,5 +1,5 @@
+import { replayIntegration } from '@sentry-internal/replay';
 import * as Sentry from '@sentry/browser';
-import { replayIntegration } from '@sentry/replay';
 
 window.Sentry = Sentry;
 window.Replay = replayIntegration({
