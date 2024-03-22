@@ -168,13 +168,16 @@ function getInjectionData(context: Context): {
   const scope = getScopesFromContext(context)?.scope;
   if (scope) {
     const propagationContext = scope.getPropagationContext();
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
-    return {
-      dynamicSamplingContext,
-      traceId: propagationContext.traceId,
-      spanId: propagationContext.spanId,
-      sampled: propagationContext.sampled,
-    };
+    if (propagationContext) {
+      const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
+      return {
+        dynamicSamplingContext,
+        traceId: propagationContext.traceId,
+        spanId: propagationContext.spanId,
+        sampled: propagationContext.sampled,
+      };
+    }
+    // TODO: is it okay to just fall through here or should we return undefined properties?
   }
 
   // Else, we look at the remote span context

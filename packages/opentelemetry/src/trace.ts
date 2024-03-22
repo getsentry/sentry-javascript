@@ -7,6 +7,7 @@ import {
   SDK_VERSION,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   continueTrace as baseContinueTrace,
+  generatePropagationContext,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -177,7 +178,9 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
     const client = getClient();
 
     if (actualScope && client) {
-      const propagationContext = actualScope.getPropagationContext();
+      // TODO: Is generating a new PC as a fallback correct behavior here?
+      // I'd argue yes b/c everything points to the span to be created being head of trace but not sure yet
+      const propagationContext = actualScope.getPropagationContext() || generatePropagationContext();
       const dynamicSamplingContext =
         propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 

@@ -47,10 +47,7 @@ export {
   withIsolationScope,
   getClient,
 } from './currentScopes';
-export {
-  getMainCarrier,
-  setAsyncContextStrategy,
-} from './asyncContext';
+export { getMainCarrier, setAsyncContextStrategy } from './asyncContext';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
@@ -93,6 +90,7 @@ export {
   addChildSpanToSpan,
 } from './utils/spanUtils';
 export { applySdkMetadata } from './utils/sdkMetadata';
+export { generatePropagationContext } from './utils/propagationContext';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';

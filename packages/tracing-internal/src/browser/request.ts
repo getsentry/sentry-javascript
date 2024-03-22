@@ -1,6 +1,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  generatePropagationContext,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -330,6 +331,9 @@ export function xhrCallback(
 
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
     const { traceId, spanId, sampled, dsc } = {
+      // in case the scope has no propagation context, we just generate a new one to
+      // attach _a_ trace to the outgoing request.
+      ...generatePropagationContext(),
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };

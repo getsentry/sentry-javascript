@@ -10,10 +10,11 @@ import {
   startSpan,
   withIsolationScope,
 } from '@sentry/node';
-import type { Client, Scope, Span, SpanAttributes } from '@sentry/types';
+import type { Client, PropagationContext, Span, SpanAttributes } from '@sentry/types';
 import { addNonEnumerableProperty, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { APIContext, MiddlewareResponseHandler } from 'astro';
 
+import { generatePropagationContext, getIsolationScope } from '@sentry/core';
 import { getTracingMetaTags } from './meta';
 
 type MiddlewareOptions = {
@@ -154,11 +155,17 @@ async function instrumentRequest(
 
             const decoder = new TextDecoder();
 
+            const propagationContext = {
+              ...generatePropagationContext(),
+              ...getIsolationScope().getPropagationContext(),
+              ...scope.getPropagationContext(),
+            };
+
             const newResponseStream = new ReadableStream({
               start: async controller => {
                 for await (const chunk of originalBody) {
                   const html = typeof chunk === 'string' ? chunk : decoder.decode(chunk, { stream: true });
-                  const modifiedHtml = addMetaTagToHead(html, scope, client, span);
+                  const modifiedHtml = addMetaTagToHead(html, propagationContext, client, span);
                   controller.enqueue(new TextEncoder().encode(modifiedHtml));
                 }
                 controller.close();
@@ -182,12 +189,17 @@ async function instrumentRequest(
  * This function optimistically assumes that the HTML coming in chunks will not be split
  * within the <head> tag. If this still happens, we simply won't replace anything.
  */
-function addMetaTagToHead(htmlChunk: string, scope: Scope, client: Client, span?: Span): string {
+function addMetaTagToHead(
+  htmlChunk: string,
+  propagationContext: PropagationContext,
+  client: Client,
+  span?: Span,
+): string {
   if (typeof htmlChunk !== 'string') {
     return htmlChunk;
   }
 
-  const { sentryTrace, baggage } = getTracingMetaTags(span, scope, client);
+  const { sentryTrace, baggage } = getTracingMetaTags(span, propagationContext, client);
   const content = `<head>\n${sentryTrace}\n${baggage}\n`;
   return htmlChunk.replace('<head>', content);
 }

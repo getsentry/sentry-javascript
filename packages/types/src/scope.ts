@@ -36,7 +36,7 @@ export interface ScopeData {
   extra: Extras;
   contexts: Contexts;
   attachments: Attachment[];
-  propagationContext: PropagationContext;
+  propagationContext: PropagationContext | undefined;
   sdkProcessingMetadata: { [key: string]: unknown };
   fingerprint: string[];
   level?: SeverityLevel;

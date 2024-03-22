@@ -28,6 +28,7 @@ describe('sentryMiddleware', () => {
         setPropagationContext: vi.fn(),
         getSpan: getSpanMock,
         setSDKProcessingMetadata: setSDKProcessingMetadataMock,
+        getPropagationContext: vi.fn(),
       } as any;
     });
     vi.spyOn(SentryNode, 'getActiveSpan').mockImplementation(getSpanMock);

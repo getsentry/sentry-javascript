@@ -435,7 +435,7 @@ export class Scope implements ScopeInterface {
     this._session = undefined;
     this._notifyScopeListeners();
     this._attachments = [];
-    this._propagationContext = generatePropagationContext();
+    this._propagationContext = undefined;
     return this;
   }
 
@@ -546,7 +546,6 @@ export class Scope implements ScopeInterface {
    */
   public setSDKProcessingMetadata(newData: { [key: string]: unknown }): this {
     this._sdkProcessingMetadata = { ...this._sdkProcessingMetadata, ...newData };
-
     return this;
   }
 

@@ -4,7 +4,7 @@ import {
   getRootSpan,
   spanToTraceHeader,
 } from '@sentry/core';
-import type { Client, Scope, Span } from '@sentry/types';
+import type { Client, PropagationContext, Span } from '@sentry/types';
 import {
   TRACEPARENT_REGEXP,
   dynamicSamplingContextToSentryBaggageHeader,
@@ -29,10 +29,10 @@ import {
  */
 export function getTracingMetaTags(
   span: Span | undefined,
-  scope: Scope,
+  propagationContext: PropagationContext,
   client: Client | undefined,
 ): { sentryTrace: string; baggage?: string } {
-  const { dsc, sampled, traceId } = scope.getPropagationContext();
+  const { dsc, sampled, traceId } = propagationContext;
   const rootSpan = span && getRootSpan(span);
 
   const sentryTrace = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, undefined, sampled);

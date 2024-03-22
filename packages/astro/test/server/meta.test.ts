@@ -21,11 +21,16 @@ mockedSpan.transaction = {
 
 const mockedClient = {} as any;
 
-const mockedScope = {
-  getPropagationContext: () => ({
-    traceId: '123',
-  }),
-} as any;
+const mockedPropagationContext = {
+  traceId: '12345678901234567890123456789012',
+  sampled: true,
+  spanId: '1234567890123456',
+  dsc: {
+    environment: 'staging',
+    public_key: 'key',
+    trace_id: '12345678901234567890123456789012',
+  },
+};
 
 describe('getTracingMetaTags', () => {
   it('returns the tracing tags from the span, if it is provided', () => {
@@ -34,7 +39,7 @@ describe('getTracingMetaTags', () => {
         environment: 'production',
       });
 
-      const tags = getTracingMetaTags(mockedSpan, mockedScope, mockedClient);
+      const tags = getTracingMetaTags(mockedSpan, mockedPropagationContext, mockedClient);
 
       expect(tags).toEqual({
         sentryTrace: '<meta name="sentry-trace" content="12345678901234567890123456789012-1234567890123456-1"/>',
@@ -44,22 +49,7 @@ describe('getTracingMetaTags', () => {
   });
 
   it('returns propagationContext DSC data if no span is available', () => {
-    const tags = getTracingMetaTags(
-      undefined,
-      {
-        getPropagationContext: () => ({
-          traceId: '12345678901234567890123456789012',
-          sampled: true,
-          spanId: '1234567890123456',
-          dsc: {
-            environment: 'staging',
-            public_key: 'key',
-            trace_id: '12345678901234567890123456789012',
-          },
-        }),
-      } as any,
-      mockedClient,
-    );
+    const tags = getTracingMetaTags(undefined, mockedPropagationContext, mockedClient);
 
     expect(tags).toEqual({
       sentryTrace: expect.stringMatching(
@@ -87,9 +77,8 @@ describe('getTracingMetaTags', () => {
             traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
-        transaction: undefined,
       },
-      mockedScope,
+      mockedPropagationContext,
       mockedClient,
     );
 
@@ -115,9 +104,8 @@ describe('getTracingMetaTags', () => {
             traceFlags: TRACE_FLAG_SAMPLED,
           };
         },
-        transaction: undefined,
       },
-      mockedScope,
+      mockedPropagationContext,
       undefined,
     );
 

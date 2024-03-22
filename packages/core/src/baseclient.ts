@@ -56,6 +56,7 @@ import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
 import { prepareEvent } from './utils/prepareEvent';
+import { generatePropagationContext } from './utils/propagationContext';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
 
@@ -624,14 +625,17 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return evt;
       }
 
-      const propagationContext = isolationScope.getPropagationContext() || (scope ? scope.getPropagationContext() : undefined) || generatePropagationContext();
+      const propagationContext =
+        isolationScope.getPropagationContext() ||
+        (scope ? scope.getPropagationContext() : undefined) ||
+        generatePropagationContext();
 
       const trace = evt.contexts && evt.contexts.trace;
       if (!trace && propagationContext) {
         const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
           trace: {
-            trace_id ,
+            trace_id,
             span_id: spanId,
             parent_span_id: parentSpanId,
           },
@@ -876,11 +880,4 @@ function isErrorEvent(event: Event): event is ErrorEvent {
 
 function isTransactionEvent(event: Event): event is TransactionEvent {
   return event.type === 'transaction';
-}
-
-function generatePropagationContext(): PropagationContext {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }

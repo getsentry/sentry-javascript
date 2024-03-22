@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, generatePropagationContext, startInactiveSpan } from '@sentry/core';
 import {
   SPAN_STATUS_ERROR,
   addBreadcrumb,
@@ -206,6 +206,9 @@ export class Undici implements Integration {
 
     if (shouldAttachTraceData(stringUrl)) {
       const { traceId, spanId, sampled, dsc } = {
+        // in case the scope has no propagation context, we just generate a new one to
+        // attach _a_ trace to the outgoing request.
+        ...generatePropagationContext(),
         ...isolationScope.getPropagationContext(),
         ...scope.getPropagationContext(),
       };

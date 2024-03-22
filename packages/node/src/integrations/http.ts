@@ -1,7 +1,7 @@
 /* eslint-disable max-lines */
 import type * as http from 'http';
 import type * as https from 'https';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, startInactiveSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, generatePropagationContext, startInactiveSpan } from '@sentry/core';
 import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry/core';
 import {
   addBreadcrumb,
@@ -329,6 +329,9 @@ function _createWrappedRequestMethodFactory(
 
       if (client && shouldAttachTraceData(rawRequestUrl)) {
         const { traceId, spanId, sampled, dsc } = {
+          // in case the scope has no propagation context, we just generate a new one to
+          // attach _a_ trace to the outgoing request.
+          ...generatePropagationContext(),
           ...isolationScope.getPropagationContext(),
           ...scope.getPropagationContext(),
         };

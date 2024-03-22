@@ -76,7 +76,12 @@ export function mergeScopeData(data: ScopeData, mergeData: ScopeData): void {
     data.attachments = [...data.attachments, ...attachments];
   }
 
-  data.propagationContext = { ...data.propagationContext, ...propagationContext };
+  if (propagationContext) {
+    data.propagationContext = {
+      ...data.propagationContext,
+      ...propagationContext,
+    };
+  }
 }
 
 /**

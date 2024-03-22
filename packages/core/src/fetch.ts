@@ -16,6 +16,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
+import { generatePropagationContext } from './utils/propagationContext';
 import { spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
@@ -135,6 +136,9 @@ export function addTracingHeadersToFetchRequest(
   const isolationScope = getIsolationScope();
 
   const { traceId, spanId, sampled, dsc } = {
+    // in case the scope has no propagation context, we just generate a new one to
+    // attach _a_ trace to the outgoing request.
+    ...generatePropagationContext(),
     ...isolationScope.getPropagationContext(),
     ...scope.getPropagationContext(),
   };

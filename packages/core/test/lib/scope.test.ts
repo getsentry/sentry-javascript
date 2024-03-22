@@ -8,6 +8,7 @@ import {
 } from '../../src';
 
 import { Scope } from '../../src/scope';
+import { generatePropagationContext } from '../../src/utils/propagationContext';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { clearGlobalScope } from './clear-global-scope';
 
@@ -29,16 +30,14 @@ describe('Scope', () => {
       level: undefined,
       fingerprint: [],
       eventProcessors: [],
-      propagationContext: {
-        traceId: expect.any(String),
-        spanId: expect.any(String),
-      },
+      propagationContext: undefined,
       sdkProcessingMetadata: {},
     });
 
     scope.update({
       tags: { foo: 'bar' },
       extra: { foo2: 'bar2' },
+      propagationContext: generatePropagationContext(),
     });
 
     expect(scope.getScopeData()).toEqual({
@@ -71,6 +70,9 @@ describe('Scope', () => {
       extra: { foo2: 'bar2' },
     });
 
+    const newPropContext = generatePropagationContext();
+    scope.setPropagationContext(newPropContext);
+
     const newScope = scope.clone();
     expect(newScope).toBeInstanceOf(Scope);
     expect(newScope).not.toBe(scope);
@@ -89,25 +91,15 @@ describe('Scope', () => {
       level: undefined,
       fingerprint: [],
       eventProcessors: [],
-      propagationContext: {
-        traceId: expect.any(String),
-        spanId: expect.any(String),
-      },
+      propagationContext: newPropContext,
       sdkProcessingMetadata: {},
     });
   });
 
   describe('init', () => {
-    test('it creates a propagation context', () => {
+    test("it doesn't create a propagation context by default", () => {
       const scope = new Scope();
-
-      expect(scope.getScopeData().propagationContext).toEqual({
-        traceId: expect.any(String),
-        spanId: expect.any(String),
-        sampled: undefined,
-        dsc: undefined,
-        parentSpanId: undefined,
-      });
+      expect(scope.getScopeData().propagationContext).toBeUndefined();
     });
   });
 
@@ -309,23 +301,18 @@ describe('Scope', () => {
 
   test('clear', () => {
     const scope = new Scope();
-    const oldPropagationContext = scope.getScopeData().propagationContext;
     scope.setExtra('a', 2);
     scope.setTag('a', 'b');
     scope.setUser({ id: '1' });
     scope.setFingerprint(['abcd']);
     scope.addBreadcrumb({ message: 'test' });
     scope.setRequestSession({ status: 'ok' });
+    scope.setPropagationContext(generatePropagationContext());
     expect(scope['_extra']).toEqual({ a: 2 });
     scope.clear();
     expect(scope['_extra']).toEqual({});
     expect(scope['_requestSession']).toEqual(undefined);
-    expect(scope['_propagationContext']).toEqual({
-      traceId: expect.any(String),
-      spanId: expect.any(String),
-      sampled: undefined,
-    });
-    expect(scope['_propagationContext']).not.toEqual(oldPropagationContext);
+    expect(scope['_propagationContext']).toBeUndefined();
   });
 
   test('clearBreadcrumbs', () => {
