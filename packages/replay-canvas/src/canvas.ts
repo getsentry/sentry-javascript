@@ -1,6 +1,6 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
+import type { InternalCanvasManagerInterface, InternalCanvasManagerOptions } from '@sentry/replay';
 import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
@@ -8,7 +8,7 @@ interface ReplayCanvasOptions {
   quality: 'low' | 'medium' | 'high';
 }
 
-type GetCanvasManager = (options: CanvasManagerOptions) => CanvasManagerInterface;
+type GetCanvasManager = (options: InternalCanvasManagerOptions) => InternalCanvasManagerInterface;
 export interface ReplayCanvasIntegrationOptions {
   enableManualSnapshot?: boolean;
   recordCanvas: true;
@@ -74,7 +74,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
       return {
         enableManualSnapshot,
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => {
+        getCanvasManager: (options: InternalCanvasManagerOptions) => {
           const manager = new CanvasManager({
             ...options,
             enableManualSnapshot,

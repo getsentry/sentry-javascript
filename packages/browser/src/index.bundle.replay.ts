@@ -6,13 +6,13 @@ import {
   browserTracingIntegration,
   feedbackIntegration,
 } from '@sentry-internal/integration-shims';
-import { Replay, replayIntegration } from '@sentry/replay';
+import { InternalReplay, internalReplayIntegration } from '@sentry/replay';
 
 import * as Sentry from './index.bundle.base';
 
 // TODO (v8): Remove this as it was only needed for backwards compatibility
 // eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.Replay = Replay;
+Sentry.Integrations.Replay = InternalReplay;
 
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.BrowserTracing = BrowserTracing;
@@ -24,8 +24,8 @@ export {
   browserTracingIntegration,
   addTracingExtensions,
   // eslint-disable-next-line deprecation/deprecation
-  Replay,
-  replayIntegration,
+  InternalReplay as Replay,
+  internalReplayIntegration as replayIntegration,
   // eslint-disable-next-line deprecation/deprecation
   Feedback,
   feedbackIntegration,

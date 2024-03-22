@@ -1,6 +1,6 @@
 import { Feedback, feedbackIntegration } from '@sentry-internal/feedback';
 import { BrowserTracing, Span, addExtensionMethods } from '@sentry-internal/tracing';
-import { Replay, replayIntegration } from '@sentry/replay';
+import { InternalReplay, internalReplayIntegration } from '@sentry/replay';
 import { bundleBrowserTracingIntegration as browserTracingIntegration } from './helpers';
 
 import * as Sentry from './index.bundle.base';
@@ -9,7 +9,7 @@ import * as Sentry from './index.bundle.base';
 // We want replay to be available under Sentry.Replay, to be consistent
 // with the NPM package version.
 // eslint-disable-next-line deprecation/deprecation
-Sentry.Integrations.Replay = Replay;
+Sentry.Integrations.Replay = InternalReplay;
 
 // eslint-disable-next-line deprecation/deprecation
 Sentry.Integrations.BrowserTracing = BrowserTracing;
@@ -21,9 +21,9 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   Feedback,
   // eslint-disable-next-line deprecation/deprecation
-  Replay,
+  InternalReplay as Replay,
   feedbackIntegration,
-  replayIntegration,
+  internalReplayIntegration as replayIntegration,
   // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   browserTracingIntegration,

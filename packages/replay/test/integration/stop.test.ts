@@ -1,5 +1,6 @@
 import * as SentryUtils from '@sentry/utils';
 
+// eslint-disable-next-line deprecation/deprecation
 import type { Replay } from '../../src';
 import { WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';

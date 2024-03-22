@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Replay } from '@sentry/replay';
+import type { InternalReplay } from '@sentry/replay';
 import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
@@ -68,7 +68,8 @@ sentryTest(
     expect(
       await page.evaluate(() => {
         // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof InternalReplay> })
+          .Replay;
         // @ts-expect-error private
         const replay = replayIntegration._replay;
         replayIntegration.startBuffering();
@@ -89,7 +90,7 @@ sentryTest(
       reqPromise0,
       page.evaluate(async () => {
         // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: InternalReplay }).Replay;
         await replayIntegration.flush();
       }),
     ]);
@@ -213,7 +214,8 @@ sentryTest(
     expect(
       await page.evaluate(() => {
         // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof InternalReplay> })
+          .Replay;
         // @ts-expect-error private
         const replay = replayIntegration._replay;
         replayIntegration.startBuffering();
@@ -234,7 +236,7 @@ sentryTest(
       reqPromise0,
       page.evaluate(async () => {
         // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: InternalReplay }).Replay;
         await replayIntegration.flush({ continueRecording: false });
       }),
     ]);
@@ -329,7 +331,8 @@ sentryTest(
     expect(
       await page.evaluate(() => {
         // eslint-disable-next-line deprecation/deprecation
-        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof Replay> }).Replay;
+        const replayIntegration = (window as unknown as Window & { Replay: InstanceType<typeof InternalReplay> })
+          .Replay;
         const replay = replayIntegration['_replay'];
         replayIntegration.startBuffering();
         return replay.isEnabled();
@@ -348,7 +351,7 @@ sentryTest(
 
     await page.evaluate(async () => {
       // eslint-disable-next-line deprecation/deprecation
-      const replayIntegration = (window as unknown as Window & { Replay: Replay }).Replay;
+      const replayIntegration = (window as unknown as Window & { Replay: InternalReplay }).Replay;
       replayIntegration['_replay'].getOptions().errorSampleRate = 1.0;
     });
 
