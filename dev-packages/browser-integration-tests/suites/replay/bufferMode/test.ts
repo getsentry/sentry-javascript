@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
-import type { replayIntegration as actualReplayIntegration } from '@sentry/replay';
-import type { ReplayContainer } from '@sentry/replay/build/npm/types/types';
+import type { replayIntegration as actualReplayIntegration } from '@sentry-internal/replay';
+import type { ReplayContainer } from '@sentry-internal/replay/build/npm/types/types';
 
 import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, waitForErrorRequest } from '../../../utils/helpers';

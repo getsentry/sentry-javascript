@@ -43,10 +43,10 @@
   },
   "dependencies": {
     "@sentry-internal/feedback": "8.0.0-alpha.5",
+    "@sentry-internal/replay": "8.0.0-alpha.5",
     "@sentry-internal/replay-canvas": "8.0.0-alpha.5",
     "@sentry-internal/tracing": "8.0.0-alpha.5",
     "@sentry/core": "8.0.0-alpha.5",
-    "@sentry/replay": "8.0.0-alpha.5",
     "@sentry/types": "8.0.0-alpha.5",
     "@sentry/utils": "8.0.0-alpha.5"
   },

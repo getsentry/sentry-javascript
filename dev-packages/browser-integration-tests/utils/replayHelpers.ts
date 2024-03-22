@@ -1,16 +1,16 @@
 import type { Page, Request, Response } from '@playwright/test';
 /* eslint-disable max-lines */
 import type { ReplayCanvasIntegrationOptions } from '@sentry-internal/replay-canvas';
-import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
-import { EventType } from '@sentry-internal/rrweb';
-import type { ReplayEventWithTime } from '@sentry/browser';
 import type {
   InternalEventContext,
   RecordingEvent,
   ReplayContainer,
   ReplayPluginOptions,
   Session,
-} from '@sentry/replay/build/npm/types/types';
+} from '@sentry-internal/replay/build/npm/types/types';
+import type { fullSnapshotEvent, incrementalSnapshotEvent } from '@sentry-internal/rrweb';
+import { EventType } from '@sentry-internal/rrweb';
+import type { ReplayEventWithTime } from '@sentry/browser';
 import type { Breadcrumb, Event, ReplayEvent, ReplayRecordingMode } from '@sentry/types';
 import pako from 'pako';
 

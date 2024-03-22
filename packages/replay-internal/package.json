@@ -1,5 +1,5 @@
 {
-  "name": "@sentry/replay",
+  "name": "@sentry-internal/replay",
   "version": "8.0.0-alpha.5",
   "description": "User replays for Sentry",
   "main": "build/npm/cjs/index.js",
