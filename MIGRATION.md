@@ -24,18 +24,18 @@ stable release of `8.x` comes out).
 to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
 longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
-**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2017+ compatible
+**Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
 fetch API to be available in the environment.
 
 New minimum supported browsers:
 
-- Chrome 58
-- Edge 15
-- Safari/iOS Safari 11
-- Firefox 54
-- Opera 45
-- Samsung Internet 7.2
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
