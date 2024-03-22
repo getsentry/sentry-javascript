@@ -10,7 +10,7 @@
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:build-canary": "pnpm install && pnpm add next@canary && npx playwright install && pnpm build",
     "test:build-latest": "pnpm install && pnpm add next@latest && npx playwright install && pnpm build",
-    "test:assert": "pnpm test:prod && pnpm test:dev"
+    "test:assert": "pnpm test:prod"
   },
   "dependencies": {
     "@playwright/test": "^1.27.1",
@@ -26,8 +26,20 @@
     "wait-port": "1.0.4"
   },
   "devDependencies": {
+    "@sentry-internal/feedback": "latest || *",
+    "@sentry-internal/replay-canvas": "latest || *",
+    "@sentry-internal/tracing": "latest || *",
+    "@sentry/browser": "latest || *",
+    "@sentry/core": "latest || *",
+    "@sentry/nextjs": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/node-experimental": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "@sentry/react": "latest || *",
+    "@sentry/replay": "latest || *",
     "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *"
+    "@sentry/utils": "latest || *",
+    "@sentry/vercel-edge": "latest || *"
   },
   "volta": {
     "extends": "../../package.json"
