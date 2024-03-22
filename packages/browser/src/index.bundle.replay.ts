@@ -4,7 +4,7 @@ import {
   browserTracingIntegrationShim,
   feedbackIntegrationShim,
 } from '@sentry-internal/integration-shims';
-import { replayIntegration } from '@sentry/replay';
+import { replayIntegration } from '@sentry-internal/replay';
 
 export * from './index.bundle.base';
 export {

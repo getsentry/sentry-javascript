@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import type { Event, IntegrationFnResult, StackFrame } from '@sentry/types';
+import type { Event, Integration, StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
 import { contextLinesIntegration } from '../../src';
@@ -9,10 +9,10 @@ import { getError } from '../helper/error';
 
 describe('ContextLines', () => {
   let readFileSpy: jest.SpyInstance;
-  let contextLines: IntegrationFnResult;
+  let contextLines: Integration;
 
   async function addContext(frames: StackFrame[]): Promise<void> {
-    await (contextLines as IntegrationFnResult & { processEvent: (event: Event) => Promise<Event> }).processEvent({
+    await (contextLines as Integration & { processEvent: (event: Event) => Promise<Event> }).processEvent({
       exception: { values: [{ stacktrace: { frames } }] },
     });
   }
@@ -101,7 +101,6 @@ describe('ContextLines', () => {
     });
 
     test('parseStack with no context', async () => {
-      // eslint-disable-next-line deprecation/deprecation
       contextLines = contextLinesIntegration({ frameContextLines: 0 });
 
       expect.assertions(1);
@@ -114,7 +113,6 @@ describe('ContextLines', () => {
 
   test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
-    // eslint-disable-next-line deprecation/deprecation
     contextLines = contextLinesIntegration();
 
     readFileSpy.mockImplementation(() => {
