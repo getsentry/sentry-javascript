@@ -1,6 +1,13 @@
 // TODO (v8): This import can be removed once we only support Node with global URL
 import { URL } from 'url';
-import { convertIntegrationFnToClass, defineIntegration, getCurrentScope } from '@sentry/core';
+import {
+  convertIntegrationFnToClass,
+  defineIntegration,
+  getCurrentScope,
+  getGlobalScope,
+  getIsolationScope,
+  mergeScopeData,
+} from '@sentry/core';
 import type {
   Client,
   Contexts,
@@ -9,9 +16,9 @@ import type {
   Integration,
   IntegrationClass,
   IntegrationFn,
-  IntegrationFnResult,
+  ScopeData,
 } from '@sentry/types';
-import { dynamicRequire, logger } from '@sentry/utils';
+import { GLOBAL_OBJ, dynamicRequire, logger } from '@sentry/utils';
 import type { Worker, WorkerOptions } from 'worker_threads';
 import type { NodeClient } from '../../client';
 import { NODE_VERSION } from '../../nodeVersion';
@@ -29,6 +36,24 @@ type WorkerThreads = {
 
 function log(message: string, ...args: unknown[]): void {
   logger.log(`[ANR] ${message}`, ...args);
+}
+
+function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & { __SENTRY_GET_SCOPES__?: () => ScopeData } {
+  return GLOBAL_OBJ;
+}
+
+/** Fetches merged scope data */
+function getScopeData(): ScopeData {
+  const scope = getGlobalScope().getScopeData();
+  mergeScopeData(scope, getIsolationScope().getScopeData());
+  mergeScopeData(scope, getCurrentScope().getScopeData());
+
+  // We remove attachments because they likely won't serialize well as json
+  scope.attachments = [];
+  // We can't serialize event processor functions
+  scope.eventProcessors = [];
+
+  return scope;
 }
 
 /**
@@ -64,8 +89,17 @@ const INTEGRATION_NAME = 'Anr';
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+  if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
+    throw new Error('ANR detection requires Node 16.17.0 or later');
+  }
+
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
+
+  // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
+  // debugger when it pauses
+  const gbl = globalWithScopeFetchFn();
+  gbl.__SENTRY_GET_SCOPES__ = getScopeData;
 
   return {
     name: INTEGRATION_NAME,
@@ -90,20 +124,16 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       }
     },
     setup(initClient: NodeClient) {
-      if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
-        throw new Error('ANR detection requires Node 16.17.0 or later');
-      }
-
       client = initClient;
 
       // setImmediate is used to ensure that all other integrations have had their setup called first.
       // This allows us to call into all integrations to fetch the full context
       setImmediate(() => this.startWorker());
     },
-  } as IntegrationFnResult & AnrInternal;
+  } as Integration & AnrInternal;
 }) satisfies IntegrationFn;
 
-type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => IntegrationFnResult & AnrInternal;
+type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
