@@ -3,7 +3,7 @@ import { makeBaseBundleConfig, makeBundleConfigVariants } from '@sentry-internal
 const baseBundleConfig = makeBaseBundleConfig({
   bundleType: 'addon',
   entrypoints: ['src/index.ts'],
-  licenseTitle: '@sentry/replay',
+  licenseTitle: '@sentry-internal/replay',
   outputFileBase: () => 'bundles/replay',
 });
 

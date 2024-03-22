@@ -1,6 +1,6 @@
+import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { defineIntegration } from '@sentry/core';
-import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry/replay';
 import type { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {

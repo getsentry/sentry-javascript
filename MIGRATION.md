@@ -577,6 +577,8 @@ Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`, `wra
 - [Removal of Offline integration](./MIGRATION.md#removal-of-the-offline-integration)
 - [Removal of `makeXHRTransport` transport](./MIGRATION.md#removal-of-makexhrtransport-transport)
 - [Removal of `wrap` method](./MIGRATION.md#removal-of-wrap-method)
+- [Removal of `@sentry/angular-ivy` package](./MIGRATION.md#removal-of-sentryangular-ivy-package)
+- [Removal of `@sentry/replay` package](./MIGRATION.md#removal-of-sentryreplay-package)
 
 #### Removal of the `BrowserTracing` integration
 
@@ -604,6 +606,10 @@ The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` packag
 requires at least Angular 14. If you are using Angular 13 or lower, we suggest upgrading your Angular version before
 migrating to v8. If you can't upgrade your Angular version to at least Angular 14, you can also continue using the
 `@sentry/angular-ivy@7` SDK. However, v7 of the SDKs will no longer be fully supported going forward.
+
+#### Removal of `@sentry/replay` package
+
+You can import from `@sentry/browser` (or from a respective SDK package like `@sentry/react` or `@sentry/vue`).
 
 ### Server-side SDKs (Node, Deno, Bun, etc.)
 
@@ -907,6 +913,8 @@ SDK.
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
+- [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
+- [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
 
 #### Updated behaviour of `tracePropagationTargets` in the browser (HTTP tracing headers & CORS)
 
