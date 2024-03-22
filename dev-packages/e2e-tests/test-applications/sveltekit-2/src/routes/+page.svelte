@@ -29,4 +29,10 @@
   <li>
     <a href="/server-load-fetch">Route with nested fetch in server load</a>
   </li>
+  <li>
+    <a href="/nav-1">Navigation span 1</a>
+  </li>
+  <li>
+    <a href="/nav-2">Navigation span 2</a>
+  </li>
 </ul>
