@@ -26,4 +26,7 @@
   <li>
     <a id="redirectLink" href="/redirect1">Redirect</a>
   </li>
+  <li>
+    <a href="/server-load-fetch">Route with nested fetch in server load</a>
+  </li>
 </ul>
