@@ -290,7 +290,7 @@ describe('tracingHandler', () => {
 
     sentryTracingMiddleware(req, res, next);
 
-    const transaction = (res as any).__sentry_transaction;
+    const transaction = (res as any).__sentry_transaction as Transaction;
 
     expect(getPropagationContext()).toEqual({
       traceId: '12312012123120121231201212312012',
@@ -301,9 +301,10 @@ describe('tracingHandler', () => {
     });
 
     // since we have no tracesSampler defined, the default behavior (inherit if possible) applies
-    expect(transaction.traceId).toEqual('12312012123120121231201212312012');
-    expect(transaction.parentSpanId).toEqual('1121201211212012');
-    expect(transaction.sampled).toEqual(false);
+    expect(transaction.spanContext().traceId).toEqual('12312012123120121231201212312012');
+    expect(spanToJSON(transaction).parent_span_id).toEqual('1121201211212012');
+    expect(spanIsSampled(transaction)).toEqual(false);
+    // eslint-disable-next-line deprecation/deprecation
     expect(transaction.metadata?.dynamicSamplingContext).toStrictEqual({});
   });
 
