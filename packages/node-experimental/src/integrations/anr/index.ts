@@ -1,5 +1,5 @@
 import { defineIntegration, getCurrentScope } from '@sentry/core';
-import type { Contexts, Event, EventHint, IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import type { Contexts, Event, EventHint, Integration, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import * as inspector from 'inspector';
 import { Worker } from 'worker_threads';
@@ -69,10 +69,10 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       // This allows us to call into all integrations to fetch the full context
       setImmediate(() => this.startWorker());
     },
-  } as IntegrationFnResult & AnrInternal;
+  } as Integration & AnrInternal;
 }) satisfies IntegrationFn;
 
-type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => IntegrationFnResult & AnrInternal;
+type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
