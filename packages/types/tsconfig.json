@@ -4,6 +4,6 @@
   "include": ["src/**/*"],
 
   "compilerOptions": {
-    "lib": ["es2017"]
+    "lib": ["es2018"]
   }
 }
