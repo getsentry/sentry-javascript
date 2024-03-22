@@ -4,6 +4,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
+    addPolyfills: false,
     packageSpecificConfig: {
       output: { dir: 'lib', preserveModules: false },
       plugins: [commonjs(), esmshim()],

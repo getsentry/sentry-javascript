@@ -9,6 +9,7 @@ export default [
   workerRollupConfig,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
+      addPolyfills: false,
       packageSpecificConfig: {
         output: {
           // set exports to 'named' or 'auto' so that rollup doesn't warn

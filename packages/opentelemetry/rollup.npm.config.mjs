@@ -2,6 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
+    addPolyfills: false,
     packageSpecificConfig: {
       output: {
         // set exports to 'named' or 'auto' so that rollup doesn't warn
