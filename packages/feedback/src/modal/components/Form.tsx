@@ -225,7 +225,11 @@ export function Form({
   );
 }
 
-function LabelText({ label, isRequired, isRequiredText }: { label: string; isRequired: boolean, isRequiredText: string }): VNode {
+function LabelText({
+  label,
+  isRequired,
+  isRequiredText,
+}: { label: string; isRequired: boolean; isRequiredText: string }): VNode {
   return (
     <span class="form__label__text">
       {label}
