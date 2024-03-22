@@ -25,6 +25,7 @@ In addition, the Next.js SDK now requires a minimum Next.js version of `13.2.0`.
 
 ### Removal/Refactoring of deprecated functionality
 
+- feat(aws-serverless): Remove deprecated `rethrowAfterCapture` option (#11126)
 - feat(node): Remove deprecated/duplicate/unused definitions (#11120)
 - feat(v8): Remove deprecated integration methods on client (#11134)
 - feat(v8/browser): Remove class export for linked errors (#11129)
@@ -39,7 +40,6 @@ In addition, the Next.js SDK now requires a minimum Next.js version of `13.2.0`.
 
 ### Other Changes
 
-- feat(aws-serverless): Remove deprecated `rethrowAfterCapture` option (#11126)
 - feat(browser): Make fetch the default transport for offline (#11209)
 - feat(core): Filter out noisy GoogleTag error by default (#11208)
 - feat(deps): Bump @sentry/cli from 2.30.0 to 2.30.2 (#11168)
