@@ -233,7 +233,7 @@ function LabelText({
   return (
     <span class="form__label__text">
       {label}
-      {isRequired && <span class="form__label__text--required">${isRequiredText}</span>}
+      {isRequired && <span class="form__label__text--required">{isRequiredText}</span>}
     </span>
   );
 }
