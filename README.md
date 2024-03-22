@@ -93,8 +93,8 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
-- [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/tree/master/packages/replay): Provides the
-  integration for Session Replay.
+- [`@sentry-internal/replay`](https://github.com/getsentry/sentry-javascript/tree/master/packages/replay-internal):
+  Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and
