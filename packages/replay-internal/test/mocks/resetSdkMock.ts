@@ -1,5 +1,4 @@
-import type { EventProcessor } from '@sentry/types';
-import { getGlobalSingleton, resetInstrumentationHandlers } from '@sentry/utils';
+import { resetInstrumentationHandlers } from '@sentry/utils';
 
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -23,7 +22,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
 
   // Clear all handlers that have been registered
   resetInstrumentationHandlers();
-  getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []).length = 0;
 
   const SentryUtils = await import('@sentry/utils');
   jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
