@@ -43,7 +43,6 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
     isDataRequest: false,
 
     ...override,
-    isSubRequest: false,
   };
 
   return event;
@@ -118,7 +117,6 @@ describe('sentryHandle', () => {
         response = await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
-        // @ts-expect-error - this is fine
         expect(e.message).toEqual(type);
       }
 
@@ -150,6 +148,53 @@ describe('sentryHandle', () => {
 
       const spans = getSpanDescendants(_span!);
       expect(spans).toHaveLength(1);
+    });
+
+    it('[kit>=1.21.0] creates a child span for nested server calls (i.e. if there is an active span)', async () => {
+      let _span: Span | undefined = undefined;
+      let txnCount = 0;
+      client.on('spanEnd', span => {
+        if (span === getRootSpan(span)) {
+          _span = span;
+          ++txnCount;
+        }
+      });
+
+      try {
+        await sentryHandle()({
+          event: mockEvent(),
+          resolve: async _ => {
+            // simulateing a nested load call:
+            await sentryHandle()({
+              event: mockEvent({ route: { id: 'api/users/details/[id]', isSubRequest: true } }),
+              resolve: resolve(type, isError),
+            });
+            return mockResponse;
+          },
+        });
+      } catch (e) {
+        //
+      }
+
+      expect(txnCount).toEqual(1);
+      expect(_span!).toBeDefined();
+
+      expect(spanToJSON(_span!).description).toEqual('GET /users/[id]');
+      expect(spanToJSON(_span!).op).toEqual('http.server');
+      expect(spanToJSON(_span!).status).toEqual(isError ? 'internal_error' : 'ok');
+      expect(spanToJSON(_span!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toEqual('route');
+
+      expect(spanToJSON(_span!).timestamp).toBeDefined();
+
+      const spans = getSpanDescendants(_span!).map(spanToJSON);
+
+      expect(spans).toHaveLength(2);
+      expect(spans).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ op: 'http.server', description: 'GET /users/[id]' }),
+          expect.objectContaining({ op: 'http.server', description: 'GET api/users/details/[id]' }),
+        ]),
+      );
     });
 
     it('creates a child span for nested server calls (i.e. if there is an active span)', async () => {
