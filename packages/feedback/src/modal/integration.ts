@@ -1,5 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { createDialog } from './createDialog';
 
 interface PublicFeedbackModalIntegration {
@@ -8,7 +8,7 @@ interface PublicFeedbackModalIntegration {
 
 const INTEGRATION_NAME = 'FeedbackModal';
 
-export type IFeedbackModalIntegration = IntegrationFnResult & PublicFeedbackModalIntegration;
+export type IFeedbackModalIntegration = Integration & PublicFeedbackModalIntegration;
 
 export const _feedbackModalIntegration = (() => {
   return {

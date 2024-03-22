@@ -14,10 +14,8 @@ import {
   spanToTraceHeader,
 } from '@sentry/core';
 import type {
-  EventProcessor,
   Integration,
   IntegrationFn,
-  IntegrationFnResult,
   Span,
   SpanAttributes,
 } from '@sentry/types';
@@ -82,7 +80,7 @@ export interface UndiciOptions {
 
 const _nativeNodeFetchintegration = ((options?: Partial<UndiciOptions>) => {
   // eslint-disable-next-line deprecation/deprecation
-  return new Undici(options) as unknown as IntegrationFnResult;
+  return new Undici(options) as unknown as Integration;
 }) satisfies IntegrationFn;
 
 export const nativeNodeFetchintegration = defineIntegration(_nativeNodeFetchintegration);
@@ -125,7 +123,7 @@ export class Undici implements Integration {
   /**
    * @inheritDoc
    */
-  public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void): void {
+  public setupOnce(): void {
     // Requires Node 16+ to use the diagnostics_channel API.
     if (NODE_VERSION.major < 16) {
       return;

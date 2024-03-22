@@ -1,5 +1,5 @@
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { createInput } from './createInput';
 
 interface PublicFeedbackScreenshotIntegration {
@@ -8,7 +8,7 @@ interface PublicFeedbackScreenshotIntegration {
 
 const INTEGRATION_NAME = 'FeedbackScreenshot';
 
-export type IFeedbackScreenshotIntegration = IntegrationFnResult & PublicFeedbackScreenshotIntegration;
+export type IFeedbackScreenshotIntegration = Integration & PublicFeedbackScreenshotIntegration;
 
 export const _feedbackScreenshotIntegration = (() => {
   return {
