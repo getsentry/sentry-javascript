@@ -1071,7 +1071,7 @@ jobs:
             'node-experimental-fastify-app',
             'node-hapi-app',
             'node-exports-test-app',
-            'vue-3'
+            'vue-3',
             'webpack-4',
             'webpack-5'
           ]
