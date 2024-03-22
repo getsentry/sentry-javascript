@@ -1,10 +1,10 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  captureException,
   continueTrace,
   startSpan,
-} from '@sentry/core';
-import { captureException } from '@sentry/node-experimental';
+} from '@sentry/node';
 import { addNonEnumerableProperty, objectify } from '@sentry/utils';
 import type { LoadEvent, ServerLoadEvent } from '@sveltejs/kit';
 

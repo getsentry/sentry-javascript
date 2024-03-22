@@ -170,8 +170,7 @@ export class Undici implements Integration {
   }
 
   private _onRequestCreate = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 
@@ -229,8 +228,7 @@ export class Undici implements Integration {
   };
 
   private _onRequestEnd = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 
@@ -269,8 +267,7 @@ export class Undici implements Integration {
   };
 
   private _onRequestError = (message: unknown): void => {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getClient()?.getIntegration(Undici)) {
+    if (!getClient()?.getIntegrationByName('Undici')) {
       return;
     }
 

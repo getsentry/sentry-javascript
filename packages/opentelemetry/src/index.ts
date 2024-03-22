@@ -1,4 +1,3 @@
-import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
@@ -47,7 +46,6 @@ export { getClient } from '@sentry/core';
  * @hidden
  */
 const _INTERNAL = {
-  maybeCaptureExceptionForTimedEvent,
   getRequestSpanData,
 } as const;
 

@@ -37,7 +37,7 @@ import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
-import { initOtel } from './initOtel';
+import { initOpenTelemetry } from './initOtel';
 
 function getCjsOnlyIntegrations(isCjs = typeof require !== 'undefined'): Integration[] {
   return isCjs ? [modulesIntegration()] : [];
@@ -122,7 +122,7 @@ export function init(options: NodeOptions | undefined = {}): void {
   // If users opt-out of this, they _have_ to set up OpenTelemetry themselves
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
-    initOtel();
+    initOpenTelemetry(client);
   }
 
   validateOpenTelemetrySetup();

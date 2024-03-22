@@ -48,10 +48,11 @@ export function wrapGetServerSidePropsWithSentry(
         const activeSpan = getActiveSpan();
         const requestTransaction = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
         if (requestTransaction) {
-          serverSideProps.props._sentryTraceData = spanToTraceHeader(requestTransaction);
+          (serverSideProps.props as Record<string, unknown>)._sentryTraceData = spanToTraceHeader(requestTransaction);
 
           const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestTransaction);
-          serverSideProps.props._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          (serverSideProps.props as Record<string, unknown>)._sentryBaggage =
+            dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
         }
       }
 

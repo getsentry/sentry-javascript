@@ -1,7 +1,7 @@
 import type { Integration } from '@sentry/types';
 
+import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
-import { getClient } from '../../src/sdk/api';
 import type { NodeClient } from '../../src/sdk/client';
 import { init } from '../../src/sdk/init';
 import { cleanupOtel } from '../helpers/mockSdkInit';
@@ -39,7 +39,7 @@ describe('init()', () => {
 
     const client = getClient();
 
-    expect(client.getOptions()).toEqual(
+    expect(client?.getOptions()).toEqual(
       expect.objectContaining({
         integrations: [],
       }),
@@ -114,7 +114,7 @@ describe('init()', () => {
     expect(mockAutoPerformanceIntegrations).toHaveBeenCalledTimes(1);
 
     const client = getClient();
-    expect(client.getOptions()).toEqual(
+    expect(client?.getOptions()).toEqual(
       expect.objectContaining({
         integrations: expect.arrayContaining([mockIntegrations[0], mockIntegrations[1], autoPerformanceIntegration]),
       }),
@@ -126,7 +126,7 @@ describe('init()', () => {
 
     const client = getClient<NodeClient>();
 
-    expect(client.traceProvider).toBeDefined();
+    expect(client?.traceProvider).toBeDefined();
   });
 
   it('allows to opt-out of OpenTelemetry setup', () => {
@@ -134,6 +134,6 @@ describe('init()', () => {
 
     const client = getClient<NodeClient>();
 
-    expect(client.traceProvider).not.toBeDefined();
+    expect(client?.traceProvider).not.toBeDefined();
   });
 });

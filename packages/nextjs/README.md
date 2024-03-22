@@ -17,35 +17,64 @@
 
 ## Compatibility
 
-Currently, the minimum Next.js supported version is `10.0.8`.
+Currently, the minimum Next.js supported version is `11.2.0`.
 
 ## General
 
 This package is a wrapper around `@sentry/node` for the server and `@sentry/react` for the client, with added
 functionality related to Next.js.
 
-To use this SDK, init it in the Sentry config files.
+To use this SDK, initialize it in the Next.js configuration, in the `sentry.client.config.ts|js` file, and in the
+[Next.js Instrumentation Hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation)
+(`instrumentation.ts|js`).
 
 ```javascript
-// sentry.client.config.js
+// next.config.js
+
+const { withSentryConfig } = require('@sentry/nextjs');
+
+const nextConfig = {
+  experimental: {
+    // The instrumentation hook is required for Sentry to work on the serverside
+    instrumentationHook: true,
+  },
+};
+
+// Wrap the Next.js configuration with Sentry
+module.exports = withSentryConfig(nextConfig);
+```
+
+```javascript
+// sentry.client.config.js or .ts
 
 import * as Sentry from '@sentry/nextjs';
 
 Sentry.init({
   dsn: '__DSN__',
-  // ...
+  // Your Sentry configuration for the Browser...
 });
 ```
 
 ```javascript
-// sentry.server.config.js
+// instrumentation.ts
 
 import * as Sentry from '@sentry/nextjs';
 
-Sentry.init({
-  dsn: '__DSN__',
-  // ...
-});
+export function register() {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    Sentry.init({
+      dsn: '__DSN__',
+      // Your Node.js Sentry configuration...
+    });
+  }
+
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    Sentry.init({
+      dsn: '__DSN__',
+      // Your Edge Runtime Sentry configuration...
+    });
+  }
+}
 ```
 
 To set context information or send manual events, use the exported functions of `@sentry/nextjs`.

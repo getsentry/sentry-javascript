@@ -165,10 +165,8 @@ export class Hub implements HubInterface {
     const top = this.getStackTop();
     top.client = client;
     top.scope.setClient(client);
-    // eslint-disable-next-line deprecation/deprecation
-    if (client && client.setupIntegrations) {
-      // eslint-disable-next-line deprecation/deprecation
-      client.setupIntegrations();
+    if (client) {
+      client.init();
     }
   }
 
@@ -428,8 +426,7 @@ export class Hub implements HubInterface {
     const client = this.getClient();
     if (!client) return null;
     try {
-      // eslint-disable-next-line deprecation/deprecation
-      return client.getIntegration(integration);
+      return client.getIntegrationByName<T>(integration.id) || null;
     } catch (_oO) {
       DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Hub`);
       return null;
@@ -529,20 +526,6 @@ export class Hub implements HubInterface {
     if (session && client && client.captureSession) {
       client.captureSession(session);
     }
-  }
-
-  /**
-   * Calls global extension method and binding current instance to the function call
-   */
-  // @ts-expect-error Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private _callExtensionMethod<T>(method: string, ...args: any[]): T {
-    const carrier = getMainCarrier();
-    const sentry = getSentryCarrier(carrier);
-    if (sentry.extensions && typeof sentry.extensions[method] === 'function') {
-      return sentry.extensions[method].apply(this, args);
-    }
-    DEBUG_BUILD && logger.warn(`Extension method ${method} couldn't be found, doing nothing.`);
   }
 }
 

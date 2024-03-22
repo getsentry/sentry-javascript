@@ -169,11 +169,6 @@ function visit(
   return normalized;
 }
 
-/**
- * @deprecated This export will be removed in v8.
- */
-export { visit as walk };
-
 /* eslint-disable complexity */
 /**
  * Stringify the given value. Handles various known special values and types.

@@ -15,7 +15,6 @@ import type {
   EventProcessor,
   FeedbackEvent,
   Integration,
-  IntegrationClass,
   Outcome,
   ParameterizedString,
   SdkMetadata,
@@ -101,9 +100,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex;
 
-  /** Indicates whether this client's integrations have been set up. */
-  protected _integrationsInitialized: boolean;
-
   /** Number of calls being processed */
   protected _numProcessing: number;
 
@@ -123,7 +119,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected constructor(options: O) {
     this._options = options;
     this._integrations = {};
-    this._integrationsInitialized = false;
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
@@ -136,7 +131,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     if (this._dsn) {
-      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(
+        this._dsn,
+        options.tunnel,
+        options._metadata ? options._metadata.sdk : undefined,
+      );
       this._transport = options.transport({
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
@@ -300,31 +299,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     this._eventProcessors.push(eventProcessor);
   }
 
-  /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  public setupIntegrations(forceInitialize?: boolean): void {
-    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._setupIntegrations();
-    }
-  }
-
   /** @inheritdoc */
   public init(): void {
     if (this._isEnabled()) {
       this._setupIntegrations();
     }
-  }
-
-  /**
-   * Gets an installed integration by its `id`.
-   *
-   * @returns The installed integration or `undefined` if no integration with that `id` was installed.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegrationById(integrationId: string): Integration | undefined {
-    return this.getIntegrationByName(integrationId);
   }
 
   /**
@@ -334,19 +313,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    */
   public getIntegrationByName<T extends Integration = Integration>(integrationName: string): T | undefined {
     return this._integrations[integrationName] as T | undefined;
-  }
-
-  /**
-   * Returns the client's instance of the given integration class, it any.
-   * @deprecated Use `getIntegrationByName()` instead.
-   */
-  public getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-    try {
-      return (this._integrations[integration.id] as T) || null;
-    } catch (_oO) {
-      DEBUG_BUILD && logger.warn(`Cannot retrieve integration ${integration.id} from the current Client`);
-      return null;
-    }
   }
 
   /**
@@ -553,9 +519,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const { integrations } = this._options;
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
-
-    // TODO v8: We don't need this flag anymore
-    this._integrationsInitialized = true;
   }
 
   /** Updates existing session based on the provided event */

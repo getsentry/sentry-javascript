@@ -10,6 +10,7 @@ export const SPAN_STATUS_ERROR = 2;
  * @param httpStatus The HTTP response status code.
  * @returns The span status or unknown_error.
  */
+// https://develop.sentry.dev/sdk/event-payloads/span/
 export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatus {
   if (httpStatus < 400 && httpStatus >= 100) {
     return { code: SPAN_STATUS_OK };
@@ -29,6 +30,8 @@ export function getSpanStatusFromHttpCode(httpStatus: number): SpanStatus {
         return { code: SPAN_STATUS_ERROR, message: 'failed_precondition' };
       case 429:
         return { code: SPAN_STATUS_ERROR, message: 'resource_exhausted' };
+      case 499:
+        return { code: SPAN_STATUS_ERROR, message: 'cancelled' };
       default:
         return { code: SPAN_STATUS_ERROR, message: 'invalid_argument' };
     }

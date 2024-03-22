@@ -93,8 +93,6 @@ export {
   onLoad,
   showReportDialog,
   captureUserFeedback,
-  // eslint-disable-next-line deprecation/deprecation
-  wrap,
 } from './sdk';
 
 export { breadcrumbsIntegration } from './integrations/breadcrumbs';

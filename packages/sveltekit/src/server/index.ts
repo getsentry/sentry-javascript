@@ -1,11 +1,9 @@
 // Node SDK exports
-// Unfortunately, we cannot `export * from '@sentry/node-experimental'` because in prod builds,
+// Unfortunately, we cannot `export * from '@sentry/node'` because in prod builds,
 // Vite puts these exports into a `default` property (Sentry.default) rather than
 // on the top - level namespace.
 // Hence, we export everything from the Node SDK explicitly:
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
@@ -15,10 +13,6 @@ export {
   captureCheckIn,
   withMonitor,
   createTransport,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getClient,
   isInitialized,
   getCurrentScope,
@@ -26,8 +20,6 @@ export {
   getIsolationScope,
   Hub,
   NodeClient,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -41,7 +33,6 @@ export {
   setHttpStatus,
   withScope,
   withIsolationScope,
-  autoDiscoverNodePerformanceMonitoringIntegrations,
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
@@ -51,7 +42,6 @@ export {
   addRequestDataToEvent,
   DEFAULT_USER_INCLUDES,
   extractRequestData,
-  Integrations,
   consoleIntegration,
   onUncaughtExceptionIntegration,
   onUnhandledRejectionIntegration,
@@ -63,7 +53,6 @@ export {
   functionToStringIntegration,
   inboundFiltersIntegration,
   linkedErrorsIntegration,
-  Handlers,
   setMeasurement,
   getActiveSpan,
   getRootSpan,
@@ -75,16 +64,15 @@ export {
   cron,
   parameterize,
   createGetModuleFromFilename,
-  hapiErrorPlugin,
   metrics,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/node-experimental';
+} from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports
-export * from '@sentry/node-experimental';
+export * from '@sentry/node';
 
 // -------------------------
 // SvelteKit SDK exports:
