@@ -4,6 +4,67 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.5
+
+This is the fifth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
+
+### Important Changes
+
+- **feat(nextjs): Remove `client.(server|client).config.ts` functionality in favor of `instrumentation.ts` (#11059)**
+  - feat(nextjs): Bump minimum required Next.js version to `13.2.0` (#11097)
+
+With version 8 of the SDK we will no longer support the use of `sentry.server.config.ts` and `sentry.edge.config.ts`
+files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
+[Next.js instrumentation hook](https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation).
+**`sentry.client.config.ts|js` is still supported and encouraged for initializing the clientside SDK.** Please see the
+[Migration Guide](./MIGRATION.md#updated-the-recommended-way-of-calling-sentryinit) for more details.
+
+In addition, the Next.js SDK now requires a minimum Next.js version of `13.2.0`.
+
+### Removal/Refactoring of deprecated functionality
+
+- feat(node): Remove deprecated/duplicate/unused definitions (#11120)
+- feat(v8): Remove deprecated integration methods on client (#11134)
+- feat(v8/browser): Remove class export for linked errors (#11129)
+- feat(v8/browser): Remove deprecated wrap export (#11127)
+- feat(v8/core): Remove deprecated client.setupIntegrations method (#11179)
+- feat(v8/core): Remove deprecated integration classes (#11132)
+- feat(v8/ember): Remove InitSentryForEmber export (#11202)
+- feat(v8/nextjs): Remove usage of class integrations (#11182)
+- feat(v8/replay): Delete deprecated types (#11177)
+- feat(v8/utils): Remove deprecated util functions (#11143)
+- ref(node): Remove class based export for local variable integration (#11128)
+
+### Other Changes
+
+- feat(aws-serverless): Remove deprecated `rethrowAfterCapture` option (#11126)
+- feat(browser): Make fetch the default transport for offline (#11209)
+- feat(core): Filter out noisy GoogleTag error by default (#11208)
+- feat(deps): Bump @sentry/cli from 2.30.0 to 2.30.2 (#11168)
+- feat(nextjs): Prefix webpack plugin log messages with runtime (#11173)
+- feat(node-profiling): Output ESM and remove Sentry deps from output (#11135)
+- feat(node): Allow Anr worker to be stopped and restarted (#11214)
+- feat(node): Support `tunnel` option for ANR (#11163)
+- feat(opentelemetry): Do not capture exceptions for timed events (#11221)
+- feat(serverless): Add Node.js 20 to compatible runtimes (#11103)
+- feat(sveltekit): Switch to Otel-based `@sentry/node` package (#11075)
+- fix(attachments): Add missing `view_hierarchy` attachment type (#11197)
+- fix(build): Ensure tree shaking works properly for ESM output (#11122)
+- fix(feedback): Only allow screenshots in secure contexts (#11188)
+- fix(feedback): Reduce force layout in screenshots (#11181)
+- fix(feedback): Smoother cropping experience and better UI (#11165)
+- fix(feedback): Fix screenshot black bars in Safari (#11233)
+- fix(metrics): use correct statsd data category (#11184)
+- fix(metrics): use web-vitals ttfb calculation (#11185)
+- fix(node): Export `initOpenTelemetry` (#11158)
+- fix(node): Clear ANR timer on stop (#11229)
+- fix(node): Time zone handling for `cron` (#11225)
+- fix(node): Use unique variable for ANR context transfer (#11161)
+- fix(opentelemetry): Do not stomp span error status (#11169)
+- fix(types): Fix incorrect `sampled` type on `Transaction` (#11115)
+
 ## 8.0.0-alpha.4
 
 This is the fourth Alpha release of the v8 cycle, which includes a variety of breaking changes.
