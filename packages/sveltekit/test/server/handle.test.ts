@@ -6,9 +6,9 @@ import {
   spanIsSampled,
   spanToJSON,
 } from '@sentry/core';
-import { NodeClient, setCurrentClient } from '@sentry/node-experimental';
-import * as SentryNode from '@sentry/node-experimental';
-import type { Span } from '@sentry/types';
+import { NodeClient, setCurrentClient } from '@sentry/node';
+import * as SentryNode from '@sentry/node';
+import type { EventEnvelopeHeaders, Span } from '@sentry/types';
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
 import { vi } from 'vitest';
@@ -43,6 +43,7 @@ function mockEvent(override: Record<string, unknown> = {}): Parameters<Handle>[0
     isDataRequest: false,
 
     ...override,
+    isSubRequest: false,
   };
 
   return event;
@@ -103,7 +104,7 @@ beforeEach(() => {
   mockCaptureException.mockClear();
 });
 
-describe('handleSentry', () => {
+describe('sentryHandle', () => {
   describe.each([
     // isSync, isError, expectedResponse
     [Type.Sync, true, undefined],
@@ -117,6 +118,7 @@ describe('handleSentry', () => {
         response = await sentryHandle()({ event: mockEvent(), resolve: resolve(type, isError) });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
+        // @ts-expect-error - this is fine
         expect(e.message).toEqual(type);
       }
 
@@ -197,7 +199,7 @@ describe('handleSentry', () => {
       );
     });
 
-    it('creates a transaction from sentry-trace header', async () => {
+    it("creates a transaction from sentry-trace header but doesn't populate a new DSC", async () => {
       const event = mockEvent({
         request: {
           headers: {
@@ -219,6 +221,11 @@ describe('handleSentry', () => {
         }
       });
 
+      let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
+      client.on('beforeEnvelope', env => {
+        envelopeHeaders = env[0] as EventEnvelopeHeaders;
+      });
+
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
       } catch (e) {
@@ -229,6 +236,7 @@ describe('handleSentry', () => {
       expect(_span!.spanContext().traceId).toEqual('1234567890abcdef1234567890abcdef');
       expect(spanToJSON(_span!).parent_span_id).toEqual('1234567890abcdef');
       expect(spanIsSampled(_span!)).toEqual(true);
+      expect(envelopeHeaders!.trace).toEqual({});
     });
 
     it('creates a transaction with dynamic sampling context from baggage header', async () => {
@@ -261,6 +269,11 @@ describe('handleSentry', () => {
         }
       });
 
+      let envelopeHeaders: EventEnvelopeHeaders | undefined = undefined;
+      client.on('beforeEnvelope', env => {
+        envelopeHeaders = env[0] as EventEnvelopeHeaders;
+      });
+
       try {
         await sentryHandle()({ event, resolve: resolve(type, isError) });
       } catch (e) {
@@ -268,7 +281,7 @@ describe('handleSentry', () => {
       }
 
       expect(_span!).toBeDefined();
-      expect(_span.metadata.dynamicSamplingContext).toEqual({
+      expect(envelopeHeaders!.trace).toEqual({
         environment: 'production',
         release: '1.0.0',
         public_key: 'dogsarebadatkeepingsecrets',
@@ -312,6 +325,7 @@ describe('handleSentry', () => {
         await sentryHandle()({ event, resolve: mockResolve });
       } catch (e) {
         expect(e).toBeInstanceOf(Error);
+        // @ts-expect-error - this is fine
         expect(e.message).toEqual(type);
       }
 

@@ -11,10 +11,13 @@ import {
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
+  addTtfbInstrumentationHandler,
 } from '../instrument';
 import { WINDOW } from '../types';
+import { getNavigationEntry } from '../web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
+import type { TTFBMetric } from '../web-vitals/types/ttfb';
 import { isMeasurementValue, startAndEndSpan } from './utils';
 
 const MAX_INT_AS_BYTES = 2147483647;
@@ -54,11 +57,13 @@ export function startTrackingWebVitals(): () => void {
     const fidCallback = _trackFID();
     const clsCallback = _trackCLS();
     const lcpCallback = _trackLCP();
+    const ttfbCallback = _trackTtfb();
 
     return (): void => {
       fidCallback();
       clsCallback();
       lcpCallback();
+      ttfbCallback();
     };
   }
 
@@ -173,6 +178,18 @@ function _trackFID(): () => void {
   });
 }
 
+function _trackTtfb(): () => void {
+  return addTtfbInstrumentationHandler(({ metric }) => {
+    const entry = metric.entries[metric.entries.length - 1];
+    if (!entry) {
+      return;
+    }
+
+    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
+    _measurements['ttfb'] = { value: metric.value, unit: 'millisecond' };
+  });
+}
+
 /** Add performance related spans to a span */
 export function addPerformanceEntries(span: Span): void {
   const performance = getBrowserPerformanceAPI();
@@ -185,9 +202,6 @@ export function addPerformanceEntries(span: Span): void {
   const timeOrigin = msToSec(browserPerformanceTimeOrigin);
 
   const performanceEntries = performance.getEntries();
-
-  let responseStartTimestamp: number | undefined;
-  let requestStartTimestamp: number | undefined;
 
   const { op, start_timestamp: transactionStartTime } = spanToJSON(span);
 
@@ -203,8 +217,6 @@ export function addPerformanceEntries(span: Span): void {
     switch (entry.entryType) {
       case 'navigation': {
         _addNavigationSpans(span, entry, timeOrigin);
-        responseStartTimestamp = timeOrigin + msToSec(entry.responseStart);
-        requestStartTimestamp = timeOrigin + msToSec(entry.requestStart);
         break;
       }
       case 'mark':
@@ -242,7 +254,7 @@ export function addPerformanceEntries(span: Span): void {
 
   // Measurements are only available for pageload transactions
   if (op === 'pageload') {
-    _addTtfbToMeasurements(_measurements, responseStartTimestamp, requestStartTimestamp, transactionStartTime);
+    _addTtfbRequestTimeToMeasurements(_measurements);
 
     ['fcp', 'fp', 'lcp'].forEach(name => {
       if (!_measurements[name] || !transactionStartTime || timeOrigin >= transactionStartTime) {
@@ -524,39 +536,19 @@ function setResourceEntrySizeData(
 }
 
 /**
- * Add ttfb information to measurements
+ * Add ttfb request time information to measurements.
  *
- * Exported for tests
+ * ttfb information is added via vendored web vitals library.
  */
-export function _addTtfbToMeasurements(
-  _measurements: Measurements,
-  responseStartTimestamp: number | undefined,
-  requestStartTimestamp: number | undefined,
-  transactionStartTime: number | undefined,
-): void {
-  // Generate TTFB (Time to First Byte), which measured as the time between the beginning of the span and the
-  // start of the response in milliseconds
-  if (typeof responseStartTimestamp === 'number' && transactionStartTime) {
-    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB');
-    _measurements['ttfb'] = {
-      // As per https://developer.mozilla.org/en-US/docs/Web/API/PerformanceResourceTiming/responseStart,
-      // responseStart can be 0 if the request is coming straight from the cache.
-      // This might lead us to calculate a negative ttfb if we don't use Math.max here.
-      //
-      // This logic is the same as what is in the web-vitals library to calculate ttfb
-      // https://github.com/GoogleChrome/web-vitals/blob/2301de5015e82b09925238a228a0893635854587/src/onTTFB.ts#L92
-      // TODO(abhi): We should use the web-vitals library instead of this custom calculation.
-      value: Math.max(responseStartTimestamp - transactionStartTime, 0) * 1000,
+function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
+  const navEntry = getNavigationEntry() as TTFBMetric['entries'][number];
+  const { responseStart, requestStart } = navEntry;
+
+  if (requestStart <= responseStart) {
+    DEBUG_BUILD && logger.log('[Measurements] Adding TTFB Request Time');
+    _measurements['ttfb.requestTime'] = {
+      value: responseStart - requestStart,
       unit: 'millisecond',
     };
-
-    if (typeof requestStartTimestamp === 'number' && requestStartTimestamp <= responseStartTimestamp) {
-      // Capture the time spent making the request and receiving the first byte of the response.
-      // This is the time between the start of the request and the start of the response in milliseconds.
-      _measurements['ttfb.requestTime'] = {
-        value: (responseStartTimestamp - requestStartTimestamp) * 1000,
-        unit: 'millisecond',
-      };
-    }
   }
 }

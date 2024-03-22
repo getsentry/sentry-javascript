@@ -151,18 +151,6 @@ describe('Server init()', () => {
         expect(httpIntegration).toBeDefined();
         expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
       });
-
-      it('forces `_tracing = true` even if set to false', () => {
-        init({
-          integrations: [new Integrations.Http({ tracing: false })],
-        });
-
-        const nodeInitOptions = nodeInit.mock.calls[0][0] as ModifiedInitOptions;
-        const httpIntegration = findIntegrationByName(nodeInitOptions.integrations, 'Http');
-
-        expect(httpIntegration).toBeDefined();
-        expect(httpIntegration).toEqual(expect.objectContaining({ _tracing: {} }));
-      });
     });
   });
 });

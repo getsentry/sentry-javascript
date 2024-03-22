@@ -3,7 +3,8 @@ export type AttachmentType =
   | 'event.minidump'
   | 'event.applecrashreport'
   | 'unreal.context'
-  | 'unreal.logs';
+  | 'unreal.logs'
+  | 'event.view_hierarchy';
 
 /**
  * An attachment to an event. This is used to upload arbitrary data to Sentry.

@@ -1,7 +1,7 @@
-import type { Client, Integration, IntegrationClass, IntegrationFn, WrappedFunction } from '@sentry/types';
+import type { Client, IntegrationFn, WrappedFunction } from '@sentry/types';
 import { getOriginalFunction } from '@sentry/utils';
 import { getClient } from '../currentScopes';
-import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+import { defineIntegration } from '../integration';
 
 let originalFunctionToString: () => void;
 
@@ -48,17 +48,3 @@ const _functionToStringIntegration = (() => {
  * ```
  */
 export const functionToStringIntegration = defineIntegration(_functionToStringIntegration);
-
-/**
- * Patch toString calls to return proper name for wrapped functions.
- *
- * @deprecated Use `functionToStringIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const FunctionToString = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  functionToStringIntegration,
-) as IntegrationClass<Integration & { setupOnce: () => void }>;
-
-// eslint-disable-next-line deprecation/deprecation
-export type FunctionToString = typeof FunctionToString;

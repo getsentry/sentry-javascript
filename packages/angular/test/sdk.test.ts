@@ -1,21 +1,21 @@
 import * as SentryBrowser from '@sentry/browser';
-
+import { vi } from 'vitest';
 import { getDefaultIntegrations, init } from '../src/index';
 
 describe('init', () => {
   it('sets the Angular version (if available) in the global scope', () => {
-    const setContextSpy = jest.spyOn(SentryBrowser, 'setContext');
+    const setContextSpy = vi.spyOn(SentryBrowser, 'setContext');
 
     init({});
 
     // In our case, the Angular version is 10 because that's the version we use for compilation
     // (and hence the dependency version of Angular core we installed (see package.json))
     expect(setContextSpy).toHaveBeenCalledTimes(1);
-    expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 10 });
+    expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 14 });
   });
 
   describe('filtering out the `BrowserApiErrors` integration', () => {
-    const browserInitSpy = jest.spyOn(SentryBrowser, 'init');
+    const browserInitSpy = vi.spyOn(SentryBrowser, 'init');
 
     beforeEach(() => {
       browserInitSpy.mockClear();
