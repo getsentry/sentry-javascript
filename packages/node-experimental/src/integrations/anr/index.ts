@@ -26,9 +26,9 @@ function getScopeData(): ScopeData {
   mergeScopeData(scope, getIsolationScope().getScopeData());
   mergeScopeData(scope, getCurrentScope().getScopeData());
 
-  // We remove attachments because they likely won't serialize well
+  // We remove attachments because they likely won't serialize well as json
   scope.attachments = [];
-  // We can serialize event processors
+  // We can't serialize event processor functions
   scope.eventProcessors = [];
 
   return scope;
