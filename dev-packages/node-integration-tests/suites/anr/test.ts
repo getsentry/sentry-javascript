@@ -21,6 +21,15 @@ const EXPECTED_ANR_EVENT = {
       timezone: expect.any(String),
     },
   },
+  user: {
+    email: 'person@home.com',
+  },
+  breadcrumbs: [
+    {
+      timestamp: expect.any(Number),
+      message: 'important message!',
+    },
+  ],
   // and an exception that is our ANR
   exception: {
     values: [
