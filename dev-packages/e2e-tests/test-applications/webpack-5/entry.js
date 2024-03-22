@@ -1,4 +1,4 @@
-import { captureException, init } from '../../../../packages/browser';
+import { captureException, init } from '@sentry/browser';
 
 init({
   dsn: process.env.E2E_TEST_DSN,
