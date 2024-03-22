@@ -1049,6 +1049,7 @@ jobs:
             # 'node-hapi-app',
             'node-exports-test-app',
             'vue-3'
+            'webpack-4'
           ]
         build-command:
           - false
