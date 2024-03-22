@@ -121,6 +121,7 @@ const _httpIntegration = ((options: HttpIntegrationOptions = {}) => {
             shouldCreateSpanForRequest,
           }),
   };
+  // eslint-disable-next-line deprecation/deprecation
   return new Http(convertedOptions) as unknown as Integration;
 }) satisfies IntegrationFn;
 

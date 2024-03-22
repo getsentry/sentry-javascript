@@ -58,4 +58,3 @@ export interface Integration {
  * This is expected to return an integration.
  */
 export type IntegrationFn = (...rest: any[]) => Integration;
-

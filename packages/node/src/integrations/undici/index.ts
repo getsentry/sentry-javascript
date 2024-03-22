@@ -13,12 +13,7 @@ import {
   setHttpStatus,
   spanToTraceHeader,
 } from '@sentry/core';
-import type {
-  Integration,
-  IntegrationFn,
-  Span,
-  SpanAttributes,
-} from '@sentry/types';
+import type { Integration, IntegrationFn, Span, SpanAttributes } from '@sentry/types';
 import {
   LRUMap,
   dynamicSamplingContextToSentryBaggageHeader,
