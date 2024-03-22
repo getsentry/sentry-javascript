@@ -89,6 +89,7 @@ describe('makeOfflineTransport', () => {
         queuedCount += 1;
         return true;
       },
+      url: 'http://localhost',
     });
     const result = await transport.send(ERROR_ENVELOPE);
 

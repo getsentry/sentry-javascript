@@ -100,7 +100,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
           },
           {
             schedule: { type: 'crontab', value: cronString },
-            ...(timeZone ? { timeZone } : {}),
+            timezone: timeZone || undefined,
           },
         );
       }
@@ -132,7 +132,7 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
               },
               {
                 schedule: { type: 'crontab', value: cronString },
-                ...(timeZone ? { timeZone } : {}),
+                timezone: timeZone || undefined,
               },
             );
           };
