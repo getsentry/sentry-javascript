@@ -3,6 +3,7 @@ node_modules/
 packages/*/package-lock.json
 dev-packages/*/package-lock.json
 package-lock.json
+.yarn
 
 # build and test
 # SDK builds
