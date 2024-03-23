@@ -1,4 +1,5 @@
 import type { Agent } from 'https';
+import type { PolymorphicRequest } from '@sentry/types';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable max-lines */
 /* eslint-disable @typescript-eslint/ban-types */
@@ -77,6 +78,16 @@ export type ExpressRequest = Express.Request;
 export type ExpressResponse = Express.Response;
 export type ExpressNextFunction = Express.NextFunction;
 
+export type FastifyRequest = {
+  headers: PolymorphicRequest['headers'];
+  raw: PolymorphicRequest['raw'];
+};
+
+export type FastifyReply = {
+  statusCode: number;
+  send: (d: any) => Promise<unknown>;
+};
+
 export interface Route {
   index: false | undefined;
   caseSensitive?: boolean;
@@ -108,12 +119,7 @@ export type DeferredData = {
 };
 
 export interface MetaFunction {
-  (args: {
-    data: AppData;
-    parentsData: RouteData;
-    params: Params;
-    location: Location;
-  }): HtmlMetaDescriptor;
+  (args: { data: AppData; parentsData: RouteData; params: Params; location: Location }): HtmlMetaDescriptor;
 }
 
 export interface HtmlMetaDescriptor {
@@ -148,11 +154,7 @@ export interface LoaderFunction {
 }
 
 export interface HeadersFunction {
-  (args: {
-    loaderHeaders: Headers;
-    parentHeaders: Headers;
-    actionHeaders: Headers;
-  }): Headers | HeadersInit;
+  (args: { loaderHeaders: Headers; parentHeaders: Headers; actionHeaders: Headers }): Headers | HeadersInit;
 }
 
 export interface ServerRouteModule extends EntryRouteModule {
@@ -232,12 +234,12 @@ export interface AssetsManifest {
   version: string;
 }
 
-export type ExpressRequestHandler = (req: any, res: any, next: any) => Promise<void>;
+export type GenericRequestHandler = (req: any, res: any, next: any) => Promise<void>;
 
-export type ExpressCreateRequestHandler = (this: unknown, options: any) => ExpressRequestHandler;
+export type CreateGenericRequestHandler = (this: unknown, options: any) => GenericRequestHandler;
 
-export interface ExpressCreateRequestHandlerOptions {
-  build: ServerBuild;
+export interface CreateRequestHandlerOptions {
+  build: ServerBuild | (() => ServerBuild) | (() => Promise<ServerBuild>);
   getLoadContext?: GetLoadContextFunction;
   mode?: string;
 }
