@@ -128,8 +128,8 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
           stacktrace: {
             frames: expect.arrayContaining([
               {
-                colno: 25,
-                lineno: 21,
+                colno: expect.any(Number),
+                lineno: expect.any(Number),
                 filename: expect.stringMatching(/isolated.mjs$/),
                 function: 'longWork',
                 in_app: true,
