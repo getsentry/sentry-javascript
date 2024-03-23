@@ -136,6 +136,17 @@ function extractUserData(
 }
 
 /**
+ * For express and koa - available at req.protocol.
+ * For node, nextjs, and fastify - should be learned
+ * via socket encryption status.
+ */
+function extractProto(req: PolymorphicRequest): string {
+  if (req.protocol) return req.protocol;
+  const sock = req.socket || (req.raw && req.raw.socket);
+  return sock && sock.encrypted ? 'https' : 'http';
+}
+
+/**
  * Normalize data from the request object, accounting for framework differences.
  *
  * @param req The request object from which to extract data
@@ -162,23 +173,25 @@ export function extractRequestData(
   };
   // method:
   //   node, express, koa, nextjs: req.method
-  const method = req.method;
+  //   fastify: req.raw.method
+  const method = req.raw ? req.raw.method : req.method;
   // host:
   //   express: req.hostname in > 4 and req.host in < 4
   //   koa: req.host
   //   node, nextjs: req.headers.host
+  //   fastify: req.headers.host
   // Express 4 mistakenly strips off port number from req.host / req.hostname so we can't rely on them
   // See: https://github.com/expressjs/express/issues/3047#issuecomment-236653223
   // Also: https://github.com/getsentry/sentry-javascript/issues/1917
   const host = headers.host || req.hostname || req.host || '<no host>';
-  // protocol:
-  //   node, nextjs: <n/a>
-  //   express, koa: req.protocol
-  const protocol = req.protocol === 'https' || (req.socket && req.socket.encrypted) ? 'https' : 'http';
+
+  const protocol = extractProto(req);
+
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
-  const originalUrl = req.originalUrl || req.url || '';
+  //   fastify: req.raw.url
+  const originalUrl = (req.raw && req.raw.url) || req.originalUrl || req.url || '';
   // absolute url
   const absoluteUrl = originalUrl.startsWith(protocol) ? originalUrl : `${protocol}://${host}${originalUrl}`;
   include.forEach(key => {
@@ -311,7 +324,8 @@ function extractQueryParams(req: PolymorphicRequest): string | Record<string, un
   // url (including path and query string):
   //   node, express: req.originalUrl
   //   koa, nextjs: req.url
-  let originalUrl = req.originalUrl || req.url || '';
+  //   fastify: req.raw.url
+  let originalUrl = req.originalUrl || req.url || (req.raw && req.raw.url) || '';
 
   if (!originalUrl) {
     return;
