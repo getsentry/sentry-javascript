@@ -21,8 +21,8 @@ type SupportedRequest = FastifyRequest | ExpressRequest;
 type SupportedResponse = FastifyReply | ExpressResponse;
 
 export enum SupportedFramework {
-  Express,
-  Fastify,
+  Express = 'express',
+  Fastify = 'fastify',
 }
 
 export type AugmentedResponse = {
@@ -195,7 +195,7 @@ export const prepareWrapCreateRequestHandler = (forFramework: SupportedFramework
   ): (this: unknown, options: CreateRequestHandlerOptions) => GenericRequestHandler {
     return function (this: unknown, opts: CreateRequestHandlerOptions): GenericRequestHandler {
       if (!opts.getLoadContext) opts['getLoadContext'] = () => ({});
-      fill(opts, 'getLoadContext', wrapGetLoadContext('fastify'));
+      fill(opts, 'getLoadContext', wrapGetLoadContext(forFramework));
       const build = typeof opts.build === 'function' ? wrapBuildFn(opts.build) : instrumentBuild(opts.build, true);
       const handler: GenericRequestHandler = createRequestHandler.call(this, { ...opts, build });
       return wrapRequestHandler(handler, forFramework, build);
