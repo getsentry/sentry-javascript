@@ -58,4 +58,12 @@ describe('hapi auto-instrumentation', () => {
       .start(done)
       .makeRequest('get', '/boom-error');
   });
+
+  test('CJS - should handle promise rejections in routes.', done => {
+    createRunner(__dirname, 'scenario.js')
+      .expect({ event: EXPECTED_ERROR_EVENT })
+      .expectError()
+      .start(done)
+      .makeRequest('get', '/promise-error');
+  });
 });
