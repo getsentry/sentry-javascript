@@ -15,7 +15,9 @@ Sentry.init({
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
 });
 
-function longWork() {
+async function longWork() {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   for (let i = 0; i < 20; i++) {
     const salt = crypto.randomBytes(128).toString('base64');
     const hash = crypto.pbkdf2Sync('myPassword', salt, 10000, 512, 'sha512');
@@ -23,25 +25,29 @@ function longWork() {
   }
 }
 
+function neverResolve() {
+  return new Promise(() => {
+    //
+  });
+}
+
 const fns = [
-  () => {},
-  () => {},
-  () => {},
-  () => {},
-  () => {},
-  () => longWork(), // [5]
-  () => {},
-  () => {},
-  () => {},
-  () => {},
+  neverResolve,
+  neverResolve,
+  neverResolve,
+  neverResolve,
+  neverResolve,
+  longWork, // [5]
+  neverResolve,
+  neverResolve,
+  neverResolve,
+  neverResolve,
 ];
 
 for (let id = 0; id < 10; id++) {
-  Sentry.withIsolationScope(() => {
+  Sentry.withIsolationScope(async () => {
     Sentry.setUser({ id });
 
-    setTimeout(() => {
-      fns[id]();
-    }, 1000);
+    await fns[id]();
   });
 }
