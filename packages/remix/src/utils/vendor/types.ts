@@ -65,7 +65,10 @@ export type RemixRequest = Request &
     agent: Agent | ((parsedURL: URL) => Agent) | undefined;
   };
 
-export type AppLoadContext = Record<string, unknown> & { __sentry_express_wrapped__?: boolean };
+export type AppLoadContext = Record<string, unknown> & {
+  __sentry_express_wrapped__?: boolean;
+  __sentry_fastify_wrapped__?: boolean;
+};
 export type AppData = any;
 export type RequestHandler = (request: RemixRequest, loadContext?: AppLoadContext) => Promise<Response>;
 export type CreateRequestHandlerFunction = (this: unknown, build: ServerBuild, ...args: any[]) => RequestHandler;
