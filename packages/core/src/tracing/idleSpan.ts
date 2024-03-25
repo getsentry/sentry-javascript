@@ -5,8 +5,8 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { _setSpanForScope } from '../utils/spanOnScope';
 import {
-  _setSpanForScope,
   getActiveSpan,
   getSpanDescendants,
   removeChildSpanFromSpan,

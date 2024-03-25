@@ -26,7 +26,7 @@ import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/ut
 
 import { updateSession } from './session';
 import type { SentrySpan } from './tracing/sentrySpan';
-import { _getSpanForScope, _setSpanForScope } from './utils/spanUtils';
+import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.

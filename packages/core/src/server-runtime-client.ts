@@ -24,7 +24,8 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
 } from './tracing';
-import { _getSpanForScope, getRootSpan, spanToTraceContext } from './utils/spanUtils';
+import { _getSpanForScope } from './utils/spanOnScope';
+import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
   platform?: string;

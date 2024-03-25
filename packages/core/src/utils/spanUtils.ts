@@ -1,7 +1,6 @@
 import type {
   MeasurementUnit,
   Primitive,
-  Scope,
   Span,
   SpanAttributes,
   SpanJSON,
@@ -24,6 +23,7 @@ import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -240,33 +240,6 @@ export function getSpanDescendants(span: SpanWithPotentialChildren): Span[] {
  */
 export function getRootSpan(span: SpanWithPotentialChildren): Span {
   return span[ROOT_SPAN_FIELD] || span;
-}
-
-const SCOPE_SPAN_FIELD = '_sentrySpan';
-
-type ScopeWithMaybeSpan = Scope & {
-  [SCOPE_SPAN_FIELD]?: Span;
-};
-
-/**
- * Set the active span for a given scope.
- * NOTE: This should NOT be used directly, but is only used internally by the trace methods.
- */
-export function _setSpanForScope(scope: Scope, span: Span | undefined): void {
-  if (span) {
-    addNonEnumerableProperty(scope as ScopeWithMaybeSpan, SCOPE_SPAN_FIELD, span);
-  } else {
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-    delete (scope as ScopeWithMaybeSpan)[SCOPE_SPAN_FIELD];
-  }
-}
-
-/**
- * Get the active span for a given scope.
- * NOTE: This should NOT be used directly, but is only used internally by the trace methods.
- */
-export function _getSpanForScope(scope: ScopeWithMaybeSpan): Span | undefined {
-  return scope[SCOPE_SPAN_FIELD];
 }
 
 /**

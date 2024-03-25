@@ -9,9 +9,8 @@ import { getAsyncContextStrategy, getCurrentHub } from '../hub';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import {
-  _getSpanForScope,
-  _setSpanForScope,
   addChildSpanToSpan,
   getActiveSpan,
   spanIsSampled,

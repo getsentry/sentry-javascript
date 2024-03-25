@@ -23,7 +23,8 @@ import {
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { _setSpanForScope, getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
+import { _setSpanForScope } from '../../../src/utils/spanOnScope';
+import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 beforeAll(() => {
