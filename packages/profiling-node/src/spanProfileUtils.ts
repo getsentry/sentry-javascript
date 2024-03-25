@@ -1,5 +1,5 @@
 import { spanIsSampled, spanToJSON } from '@sentry/core';
-import type { NodeClient } from '@sentry/node-experimental';
+import type { NodeClient } from '@sentry/node';
 import type { CustomSamplingContext, Span } from '@sentry/types';
 import { logger, uuid4 } from '@sentry/utils';
 
