@@ -5,12 +5,14 @@ import type { IntegrationFn } from '@sentry/types';
 
 interface ReplayCanvasOptions {
   enableManualSnapshot?: boolean;
+  maxCanvasSize?: [width: number, height: number];
   quality: 'low' | 'medium' | 'high';
 }
 
 type GetCanvasManager = (options: CanvasManagerOptions) => CanvasManagerInterface;
 export interface ReplayCanvasIntegrationOptions {
   enableManualSnapshot?: boolean;
+  maxCanvasSize?: number;
   recordCanvas: true;
   getCanvasManager: GetCanvasManager;
   sampling: {
@@ -59,6 +61,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
   const _canvasOptions = {
     quality: options.quality || 'medium',
     enableManualSnapshot: options.enableManualSnapshot,
+    maxCanvasSize: options.maxCanvasSize || [1280, 1280],
   };
 
   let canvasManagerResolve: (value: CanvasManager) => void;
@@ -67,15 +70,16 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
   return {
     name: INTEGRATION_NAME,
     getOptions(): ReplayCanvasIntegrationOptions {
-      const { quality, enableManualSnapshot } = _canvasOptions;
+      const { quality, enableManualSnapshot, maxCanvasSize } = _canvasOptions;
 
       return {
         enableManualSnapshot,
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => {
+        getCanvasManager: (getCanvasManagerOptions: CanvasManagerOptions) => {
           const manager = new CanvasManager({
-            ...options,
+            ...getCanvasManagerOptions,
             enableManualSnapshot,
+            maxCanvasSize,
             errorHandler: (err: unknown) => {
               try {
                 if (typeof err === 'object') {
