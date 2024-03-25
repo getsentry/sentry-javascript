@@ -339,7 +339,7 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
 
   // eslint-disable-next-line deprecation/deprecation
   const transaction = new Transaction({ ...transactionContext, sampled }, getCurrentHub());
-  if (sampleRate) {
+  if (sampleRate !== undefined) {
     transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
