@@ -9,6 +9,7 @@ Sentry.init({
 });
 
 const Hapi = require('@hapi/hapi');
+const Boom = require('@hapi/boom');
 
 const port = 5999;
 
@@ -23,6 +24,30 @@ const init = async () => {
     path: '/',
     handler: (_request, _h) => {
       return 'Hello World!';
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/error',
+    handler: (_request, _h) => {
+      return new Error('Sentry Test Error');
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/boom-error',
+    handler: (_request, _h) => {
+      return new Boom.Boom('Sentry Test Error');
+    },
+  });
+
+  server.route({
+    method: 'GET',
+    path: '/promise-error',
+    handler: async (_request, _h) => {
+      return Promise.reject(new Error('Sentry Test Error'));
     },
   });
 
