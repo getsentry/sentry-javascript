@@ -204,60 +204,6 @@ export class Rectangle extends Tool {
   }
 }
 
-class PenDrawing extends Drawing {
-  private lastPoint: IPoint = { x: 0, y: 0 };
-  private boundingBox: Rect = { x: 0, y: 0, width: 0, height: 0 };
-
-  getBoundingBox(): Rect {
-    const rect = translateRect(this.boundingBox, this.translate);
-    return {
-      ...rect,
-      width: rect.width * this.scalingFactorX,
-      height: rect.height * this.scalingFactorY,
-    };
-  }
-
-  get topLeftPoint() {
-    return Point.fromNumber(this.boundingBox.x, this.boundingBox.y);
-  }
-
-  get bottomRightPoint() {
-    return Point.fromNumber(this.boundingBox.x + this.boundingBox.width, this.boundingBox.y + this.boundingBox.height);
-  }
-
-  start = (point: IPoint) => {
-    super.start(point);
-    this.path.moveTo(point.x, point.y);
-    this.lastPoint = point;
-    this.boundingBox = getPointsBoundingBox([point]);
-  };
-
-  draw = (point: IPoint) => {
-    super.draw(point);
-    // Smooth the line
-    if (Point.distance(this.lastPoint, point) < 5) {
-      return;
-    }
-    this.lastPoint = point;
-    this.path.lineTo(point.x, point.y);
-    this.boundingBox = updateBoundingBox(this.boundingBox, [point]);
-  };
-
-  end = (point: IPoint) => {
-    this.path.lineTo(point.x, point.y);
-    this.boundingBox = updateBoundingBox(this.boundingBox, [point]);
-  };
-}
-
-/**
- *
- */
-export class Pen extends Tool {
-  constructor() {
-    super(PenDrawing);
-  }
-}
-
 class ArrowDrawing extends Drawing {
   get isValid() {
     return Point.distance(this.startPoint, this.endPoint) > 0;

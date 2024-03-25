@@ -12,15 +12,15 @@ export function createScreenshotAnnotateStyles(): HTMLStyleElement {
   style.textContent = `
   .canvas {
     cursor: crosshair;
-    max-width: 100vw;
-    max-height: 100vh;
+    max-width: 100%;
+    max-height: 100%;
   }
 
   .container {
     position: fixed;
     z-index: 10000;
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    width: 100%;
     top: 0;
     left: 0;
     background-color: rgba(240, 236, 243, 1);
@@ -88,7 +88,7 @@ export function createScreenshotAnnotateStyles(): HTMLStyleElement {
       background-color: rgba(43, 34, 51, 0.06);
     }
     &:active {
-      background-color: rgba(108, 95, 199, 1) !important;\
+      background-color: rgba(108, 95, 199, 1) !important;
       color: white;
     }
   }

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { h } from 'preact';
 
 import { ImageEditor } from './imageEditor';
-import { Arrow, Pen, Rectangle } from './tool';
+import { Arrow, Rectangle } from './tool';
 
 interface Params {
   canvas: HTMLCanvasElement | null;
@@ -10,8 +10,8 @@ interface Params {
   onLoad?: () => void;
 }
 
-export type ToolKey = 'arrow' | 'pen' | 'rectangle' | 'select';
-export const Tools: ToolKey[] = ['arrow', 'pen', 'rectangle', 'select'];
+export type ToolKey = 'arrow' | 'rectangle' | 'select';
+export const Tools: ToolKey[] = ['arrow', 'rectangle', 'select'];
 
 export function useImageEditor({ canvas, image, onLoad }: Params) {
   const editorRef = useRef<ImageEditor | null>(null);
@@ -39,12 +39,10 @@ export function useImageEditor({ canvas, image, onLoad }: Params) {
         case 'arrow':
           editorRef.current.tool = new Arrow();
           break;
-        case 'pen':
-          editorRef.current.tool = new Pen();
-          break;
         case 'rectangle':
           editorRef.current.tool = new Rectangle();
           break;
+        case 'select':
         default:
           editorRef.current.tool = null;
           break;

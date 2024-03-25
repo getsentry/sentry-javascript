@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks'
 import { h } from 'preact';
 import type { ToolKey } from './useImageEditor';
 import { Tools, useImageEditor } from './useImageEditor';
-import { ArrowIcon, HandIcon, PenIcon, RectangleIcon } from './useImageEditor/icons';
+import { ArrowIcon, HandIcon, RectangleIcon } from './useImageEditor/icons';
 import { WINDOW } from './../../constants';
 import type { ComponentType } from 'preact';
 import { createScreenshotAnnotateStyles } from './imageEditorWrapper.css';
@@ -21,7 +21,6 @@ interface ImageEditorWrapperProps {
 
 const iconMap: Record<ToolKey, ComponentType> = {
   arrow: ArrowIcon,
-  pen: PenIcon,
   rectangle: RectangleIcon,
   select: HandIcon,
 };
@@ -50,12 +49,6 @@ const getCanvasRenderSize = (canvas: HTMLCanvasElement, containerElement: HTMLDi
   return { width, height };
 };
 
-const srcToImage = (src: string): HTMLImageElement => {
-  const image = new Image();
-  image.src = src;
-  return image;
-};
-
 function ToolIcon({ tool }: { tool: ToolKey }) {
   const Icon = tool ? iconMap[tool] : HandIcon;
   return <Icon />;
@@ -76,7 +69,6 @@ export function ImageEditorWrapper({ src, onCancel, onSubmit }: ImageEditorWrapp
     canvas.style.height = `${height}px`;
   }, [canvas]);
 
-  // const image = useMemo(() => srcToImage(src), [src]);
   const { selectedTool, setSelectedTool, selectedColor, setSelectedColor, getBlob } = useImageEditor({
     canvas,
     image: src,
@@ -99,17 +91,19 @@ export function ImageEditorWrapper({ src, onCancel, onSubmit }: ImageEditorWrapp
           <canvas class="canvas" ref={setCanvas} />
         </div>
         <div class="toolbar">
-          <button class="cancelButton" onClick={() => onCancel()}>
+          <button class="btn btn--default" onClick={() => onCancel()}>
             Cancel
           </button>
           <div class="flexSpacer" />
           <div class="toolbarGroup">
             {Tools.map(tool => (
               <button
-                class="toolButton"
+                class={`btn ${tool === selectedTool ? 'btn--primary' : 'btn--default'}`}
                 key={tool}
-                // active={selectedTool === tool}
-                onClick={() => setSelectedTool(tool)}
+                onClick={e => {
+                  e.preventDefault();
+                  setSelectedTool(tool);
+                }}
               >
                 <ToolIcon tool={tool} />
               </button>
@@ -129,7 +123,7 @@ export function ImageEditorWrapper({ src, onCancel, onSubmit }: ImageEditorWrapp
             </label>
           </div>
           <div />
-          <button class="submitButton" onClick={async () => onSubmit(canvas)}>
+          <button class="btn btn--primary" onClick={async () => onSubmit(canvas)}>
             Save
           </button>
         </div>
