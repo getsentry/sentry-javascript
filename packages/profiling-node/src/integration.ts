@@ -128,7 +128,7 @@ export const _nodeProfilingIntegration = (() => {
 
           // Remove the profile from the queue.
           PROFILE_QUEUE.splice(profileIndex, 1);
-          const profile = createProfilingEvent(cpuProfile, profiledTransaction);
+          const profile = createProfilingEvent(client, cpuProfile, profiledTransaction);
 
           if (client.emit && profile) {
             const integrations =
