@@ -39,7 +39,7 @@
     "@sentry/node-experimental": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@sentry/react": "latest || *",
-    "@sentry/replay": "latest || *",
+    "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "@sentry/vercel-edge": "latest || *"
