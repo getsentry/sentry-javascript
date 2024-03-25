@@ -178,7 +178,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     data: attributes,
     origin,
     op,
-    status: getStatusMessage(status),
+    status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
   });
 
   const transactionEvent: TransactionEvent = {
@@ -252,7 +252,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     start_timestamp: convertOtelTimeToSeconds(startTime),
     // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
     timestamp: convertOtelTimeToSeconds(endTime) || undefined,
-    status: getStatusMessage(status),
+    status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
     _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
