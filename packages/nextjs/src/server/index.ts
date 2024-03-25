@@ -115,22 +115,23 @@ export function init(options: NodeOptions): void {
 
   const filterLowQualityTransactions: EventProcessor = event => {
     if (event.type === 'transaction') {
-      /** This function filters transactions for requests to the Next.js static assets as those requests lead to a lot of noise in the Sentry dashboard.
-       * By setting the next.config.js options `basePath` and `assetPrefix`, the path to the static assets might be changed.
-       * This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
-       */
-      if (event.transaction?.match(/GET \/_next\/static\/.*/)) {
+      // Filter out transactions for static assets
+      // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
+      // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
+      if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
         return null;
       }
 
+      // Filter out transactions for requests to the tunnel route
       if (
         globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
         event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
       ) {
-        // Filter out transactions for requests to the tunnel route
         return null;
-      } else if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
-        // Filter out requests to resolve source maps for stack frames in dev mode
+      }
+
+      // Filter out requests to resolve source maps for stack frames in dev mode
+      if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
         return null;
       }
 
