@@ -16,7 +16,7 @@
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/node": "latest || *",
-    "@sentry/replay": "latest || *",
+    "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "@sentry/wasm": "latest || *"

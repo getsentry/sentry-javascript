@@ -9,12 +9,14 @@ Sentry.init({
 });
 
 class Some {
-  two(name) {
-    throw new Error('Enough!');
+  async two(name) {
+    return new Promise((_, reject) => {
+      reject(new Error('Enough!'));
+    });
   }
 }
 
-function one(name) {
+async function one(name) {
   const arr = [1, '2', null];
   const obj = {
     name,
@@ -30,12 +32,12 @@ function one(name) {
 
   const ty = new Some();
 
-  ty.two(name);
+  await ty.two(name);
 }
 
-setTimeout(() => {
+setTimeout(async () => {
   try {
-    one('some name');
+    await one('some name');
   } catch (e) {
     Sentry.captureException(e);
   }

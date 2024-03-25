@@ -1,4 +1,4 @@
-import type { Client, Integration, IntegrationFnResult } from '@sentry/types';
+import type { Client, Integration } from '@sentry/types';
 import { captureCheckIn, getCurrentScope, setCurrentClient } from '../../src';
 
 import { installedIntegrations } from '../../src/integration';
@@ -43,20 +43,20 @@ describe('SDK', () => {
         name: 'integration1',
         setupOnce: jest.fn(() => list.push('setupOnce1')),
         afterAllSetup: jest.fn(() => list.push('afterAllSetup1')),
-      } satisfies IntegrationFnResult;
+      } satisfies Integration;
 
       const integration2 = {
         name: 'integration2',
         setupOnce: jest.fn(() => list.push('setupOnce2')),
         setup: jest.fn(() => list.push('setup2')),
         afterAllSetup: jest.fn(() => list.push('afterAllSetup2')),
-      } satisfies IntegrationFnResult;
+      } satisfies Integration;
 
       const integration3 = {
         name: 'integration3',
         setupOnce: jest.fn(() => list.push('setupOnce3')),
         setup: jest.fn(() => list.push('setup3')),
-      } satisfies IntegrationFnResult;
+      } satisfies Integration;
 
       const integrations: Integration[] = [integration1, integration2, integration3];
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, integrations });

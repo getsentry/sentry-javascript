@@ -30,7 +30,7 @@
     "@sentry/node": "file:../../../node-experimental",
     "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
-    "@sentry/replay": "file:../../../replay",
+    "@sentry-internal/replay": "file:../../../replay-internal",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
     "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry-internal/feedback": "file:../../../feedback",
