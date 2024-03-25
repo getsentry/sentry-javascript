@@ -23,6 +23,12 @@ files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
 
 In addition, the Next.js SDK now requires a minimum Next.js version of `13.2.0`.
 
+- **feat(v8/angular): Merge angular and angular-ivy packages and start Angular support at v14 (#11091)**
+
+The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` package now supports Ivy by default and
+requires at least Angular 14. See the [Migration Guide](./MIGRATION.md#removal-of-sentryangular-ivy-package) for more
+details.
+
 ### Removal/Refactoring of deprecated functionality
 
 - feat(aws-serverless): Remove deprecated `rethrowAfterCapture` option (#11126)

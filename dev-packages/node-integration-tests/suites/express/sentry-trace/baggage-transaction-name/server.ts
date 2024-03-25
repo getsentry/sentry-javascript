@@ -32,13 +32,9 @@ app.use(cors());
 app.get('/test/express', (_req, res) => {
   // eslint-disable-next-line deprecation/deprecation
   const transaction = Sentry.getCurrentScope().getTransaction();
-  if (transaction) {
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.traceId = '86f39e84263a4de99c326acab3bfe3bd';
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-  }
-  const headers = http.get('http://somewhere.not.sentry/').getHeaders();
+  transaction?.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
 
+  const headers = http.get('http://somewhere.not.sentry/').getHeaders();
   // Responding with the headers outgoing request headers back to the assertions.
   res.send({ test_data: headers });
 });

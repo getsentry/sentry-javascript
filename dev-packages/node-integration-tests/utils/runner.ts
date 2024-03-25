@@ -126,6 +126,7 @@ export function createRunner(...paths: string[]) {
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
+  let expectError = false;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -134,6 +135,10 @@ export function createRunner(...paths: string[]) {
   return {
     expect: function (expected: Expected) {
       expectedEnvelopes.push(expected);
+      return this;
+    },
+    expectError: function () {
+      expectError = true;
       return this;
     },
     withFlags: function (...args: string[]) {
@@ -347,7 +352,18 @@ export function createRunner(...paths: string[]) {
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
-          if (method === 'get') {
+          if (expectError) {
+            try {
+              if (method === 'get') {
+                await axios.get(url, { headers });
+              } else {
+                await axios.post(url, { headers });
+              }
+            } catch (e) {
+              return;
+            }
+            return;
+          } else if (method === 'get') {
             return (await axios.get(url, { headers })).data;
           } else {
             return (await axios.post(url, { headers })).data;

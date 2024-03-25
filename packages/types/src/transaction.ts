@@ -57,19 +57,7 @@ export interface TraceparentData {
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Span {
-  /**
-   * The ID of the transaction.
-   * @deprecated Use `spanContext().spanId` instead.
-   */
-  spanId: string;
-
-  /**
-   * The ID of the trace.
-   * @deprecated Use `spanContext().traceId` instead.
-   */
-  traceId: string;
-
+export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
    * Was this transaction chosen to be sent as part of the sample?
    * @deprecated Use `spanIsSampled(transaction)` instead.

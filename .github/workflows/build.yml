@@ -1048,7 +1048,8 @@ jobs:
             # TODO(v8): Re-enable hapi tests
             # 'node-hapi-app',
             'node-exports-test-app',
-            'vue-3'
+            'vue-3',
+            'webpack-5'
           ]
         build-command:
           - false
