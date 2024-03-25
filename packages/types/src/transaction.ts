@@ -59,12 +59,6 @@ export interface TraceparentData {
  */
 export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
-   * Was this transaction chosen to be sent as part of the sample?
-   * @deprecated Use `spanIsSampled(transaction)` instead.
-   */
-  sampled?: boolean | undefined;
-
-  /**
    * @inheritDoc
    */
   startTimestamp: number;

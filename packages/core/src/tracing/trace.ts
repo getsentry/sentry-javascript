@@ -14,6 +14,7 @@ import { getMainCarrier } from '../asyncContext';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy, getCurrentHub } from '../hub';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import {
@@ -325,9 +326,7 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  // eslint-disable-next-line deprecation/deprecation
-  let transaction = new Transaction(transactionContext, getCurrentHub());
-  transaction = sampleTransaction(transaction, options, {
+  const [sampled, sampleRate] = sampleTransaction(transactionContext, options, {
     name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
@@ -337,8 +336,16 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
       ...transactionContext.attributes,
     },
   });
+
+  // eslint-disable-next-line deprecation/deprecation
+  const transaction = new Transaction({ ...transactionContext, sampled }, getCurrentHub());
+  if (sampleRate) {
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
+  }
+
   if (client) {
     client.emit('spanStart', transaction);
   }
+
   return transaction;
 }
