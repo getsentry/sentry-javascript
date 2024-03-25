@@ -16,6 +16,7 @@ import type {
   Integration,
   IntegrationClass,
   IntegrationFn,
+  IntegrationFnResult,
   ScopeData,
 } from '@sentry/types';
 import { GLOBAL_OBJ, dynamicRequire, logger } from '@sentry/utils';
@@ -130,10 +131,10 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       // This allows us to call into all integrations to fetch the full context
       setImmediate(() => this.startWorker());
     },
-  } as Integration & AnrInternal;
+  } as IntegrationFnResult & AnrInternal;
 }) satisfies IntegrationFn;
 
-type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
+type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => IntegrationFnResult & AnrInternal;
 
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
