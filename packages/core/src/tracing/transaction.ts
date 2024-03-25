@@ -97,9 +97,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   public get metadata(): TransactionMetadata {
     // We merge attributes in for backwards compatibility
     return {
-      // Defaults
-      spanMetadata: {},
-
       // Legacy metadata
       ...this._metadata,
 
