@@ -6,7 +6,7 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('start-span').addEventListener('click', () => {
-  const span = Sentry.startBrowserTracingNavigationSpan({ name: 'test-span' });
+  const span = Sentry.startBrowserTracingNavigationSpan(Sentry.getClient(), { name: 'test-span' });
   window.span = span;
 });
 
