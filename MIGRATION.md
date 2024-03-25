@@ -350,6 +350,7 @@ To make sure these integrations work properly you'll have to change how you
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
+- [Svelte SDK](./MIGRATION.md#svelte-sdk)
 
 ### General
 
@@ -926,6 +927,42 @@ Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+### Svelte SDK
+
+Removed top-level exports: `componentTrackingPreprocessor`
+
+#### Removal of `componentTrackingPreprocessor` export
+
+The `componentTrackingPreprocessor` export has been removed. You should instead use `withSentryConfig` to configure
+component tracking.
+
+```js
+// v7 - svelte.config.js
+import { componentTrackingPreprocessor } from '@sentry/svelte';
+
+const config = {
+  preprocess: [
+    componentTrackingPreprocessor(),
+    // ...
+  ],
+  // ...
+};
+
+export default config;
+```
+
+```js
+// v8 - svelte.config.js
+import { withSentryConfig } from "@sentry/svelte";
+
+const config = {
+  // Your svelte config
+  compilerOptions: {...},
+};
+
+export default withSentryConfig(config);
+```
 
 ## 5. Behaviour Changes
 
