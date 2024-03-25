@@ -151,7 +151,7 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
 export function makeCodeCovPlugin() {
   const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
   return codecovRollupPlugin({
-    enableBundleAnalysis: process.env.GITHUB_ACTIONS === 'true' && process.env.CODECOV_TOKEN,
+    enableBundleAnalysis: process.env.GITHUB_ACTIONS === 'true' && process.env.CODECOV_TOKEN !== undefined,
     bundleName: packageJson.name,
     uploadToken: process.env.CODECOV_TOKEN,
   });
