@@ -7,7 +7,7 @@ describe('Tracing HTTP', () => {
     const url = `${env.url}/api/http`;
 
     // this intercepts the outgoing request made by the route handler (which it makes in order to test span creation)
-    nock('http://example.com').get('/').reply(200, 'ok');
+    nock('http://example.com/').get('/').reply(200, 'ok');
 
     const envelopes = await env.getMultipleEnvelopeRequest({
       url,

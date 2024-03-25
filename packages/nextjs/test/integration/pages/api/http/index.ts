@@ -1,19 +1,17 @@
 import { get } from 'http';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const handler = async (_req: NextApiRequest, res: NextApiResponse): Promise<void> => {
+export default (_req: NextApiRequest, res: NextApiResponse) => {
   // make an outgoing request in order to test that the `Http` integration creates a span
-  await new Promise<void>(resolve =>
-    get('http://example.com/', message => {
-      message.on('data', () => {
-        // Noop consuming some data so that request can close :)
-      });
+  get('http://example.com/', message => {
+    message.on('data', () => {
+      // Noop consuming some data so that request can close :)
+    });
 
-      message.on('close', resolve);
-    }),
-  );
-
-  res.status(200).json({});
+    message.on('close', () => {
+      setTimeout(() => {
+        res.status(200).json({});
+      }, 1000);
+    });
+  });
 };
-
-export default handler;
