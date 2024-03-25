@@ -918,7 +918,7 @@ replacement API.
 
 ### Ember SDK
 
-Removed top-level exports: `InitSentryForEmber`
+Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
 
