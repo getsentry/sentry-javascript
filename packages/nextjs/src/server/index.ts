@@ -115,12 +115,13 @@ export function init(options: NodeOptions): void {
 
   const filterLowQualityTransactions: EventProcessor = event => {
     if (event.type === 'transaction') {
-      // TODO:
-      // - Next.js automatically creates spans for ALL resources. This can be noisy but we let the noise live for now. We may want to filter the transactions for certain resources, like static assets, in the future.
-      // - When, and if we should decide to filter these transactions, good consideration needs to be put into how to filter them. The path for static assets depends on the `basePath` and `assetPrefix` options.
-      // if (event.transaction?.match(/GET \/.*\/static\/.*.js/)) {
-      //   return null;
-      // }
+      /** This function filters transactions for requests to the Next.js static assets as those requests lead to a lot of noise in the Sentry dashboard.
+       * By setting the next.config.js options `basePath` and `assetPrefix`, the path to the static assets might be changed.
+       * This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
+       */
+      if (event.transaction?.match(/GET \/_next\/static\/.*/)) {
+        return null;
+      }
 
       if (
         globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
