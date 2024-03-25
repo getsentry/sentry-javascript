@@ -69,6 +69,7 @@ export function createDialog({ options, screenshotIntegration, sendFeedback, sha
         defaultName={(userKey && user && user[userKey.name]) || ''}
         defaultEmail={(userKey && user && user[userKey.email]) || ''}
         successMessageText={options.successMessageText}
+        isRequiredText={options.isRequiredText}
         onFormClose={() => {
           renderContent(false);
           options.onFormClose && options.onFormClose();
