@@ -3,7 +3,11 @@ import { NextApiRequest, NextApiResponse } from 'next';
 
 const handler = async (_req: NextApiRequest, res: NextApiResponse): Promise<void> => {
   // make an outgoing request in order to test that the `Http` integration creates a span
-  await new Promise(resolve => get('http://example.com', resolve));
+  await new Promise(resolve =>
+    get('http://example.com', res => {
+      res.on('close', resolve);
+    }),
+  );
 
   res.status(200).json({});
 };
