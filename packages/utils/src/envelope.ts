@@ -72,7 +72,7 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
  * Encode a string to UTF8 array.
  */
 function encodeUTF8(input: string): Uint8Array {
-  return GLOBAL_OBJ.__SENTRY__.encodePolyfill
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.encodePolyfill
     ? GLOBAL_OBJ.__SENTRY__.encodePolyfill(input)
     : new TextEncoder().encode(input);
 }
@@ -81,7 +81,7 @@ function encodeUTF8(input: string): Uint8Array {
  * Decode a UTF8 array to string.
  */
 function decodeUTF8(input: Uint8Array): string {
-  return GLOBAL_OBJ.__SENTRY__.decodePolyfill
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.decodePolyfill
     ? GLOBAL_OBJ.__SENTRY__.decodePolyfill(input)
     : new TextDecoder().decode(input);
 }
