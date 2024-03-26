@@ -356,7 +356,7 @@ To make sure these integrations work properly you'll have to change how you
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
-`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`
+`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`, `getActiveTransaction`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
 
