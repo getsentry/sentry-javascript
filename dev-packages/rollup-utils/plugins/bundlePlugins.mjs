@@ -127,6 +127,7 @@ export function makeTerserPlugin() {
           // These are used to keep span relationships
           '_sentryRootSpan',
           '_sentryChildSpans',
+          '_sentrySpan',
         ],
       },
     },
