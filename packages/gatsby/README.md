@@ -26,10 +26,10 @@ module.exports = {
 Then configure your `Sentry.init` call:
 
 ```javascript
-import * as Sentry from "@sentry/gatsby";
+import * as Sentry from '@sentry/gatsby';
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: '__PUBLIC_DSN__',
   integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
 
   // Set tracesSampleRate to 1.0 to capture 100%
@@ -43,11 +43,12 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0,
 
   // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
 });
 ```
 
-The Gatsby SDK also automatically sets up sourcemaps uploading for you. To disable this functionality, set the `enableClientWebpackPlugin` option to be `false`.
+The Gatsby SDK also automatically sets up sourcemaps uploading for you. To disable this functionality, set the
+`enableClientWebpackPlugin` option to be `false`.
 
 ```javascript
 module.exports = {
@@ -57,7 +58,7 @@ module.exports = {
       resolve: '@sentry/gatsby',
       options: {
         enableClientWebpackPlugin: false,
-      }
+      },
     },
     // ...
   ],

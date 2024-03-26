@@ -9,6 +9,6 @@ import type { GatsbyOptions } from './utils/types';
 export function init(options: GatsbyOptions): void {
   applySdkMetadata(options, 'gatsby');
   reactInit({
-    ...options
+    ...options,
   });
 }

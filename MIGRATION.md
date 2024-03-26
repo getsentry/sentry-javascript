@@ -985,7 +985,8 @@ export default withSentryConfig(config);
 
 #### Removal of Gatsby Initialization via plugin options
 
-In v8, we are removing the ability to initialize the Gatsby SDK via plugin options. Instead, you should create a `sentry.config.js` file in the root of your project and initialize the SDK there.
+In v8, we are removing the ability to initialize the Gatsby SDK via plugin options. Instead, you should create a
+`sentry.config.js` file in the root of your project and initialize the SDK there.
 
 ```js
 // v7 - gatsby-config.js
@@ -1016,14 +1017,15 @@ module.exports = {
 };
 
 // v8 - sentry.config.js
-import * as Sentry from "@sentry/gatsby";
+import * as Sentry from '@sentry/gatsby';
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: '__PUBLIC_DSN__',
 });
 ```
 
-We've also added `enableClientWebpackPlugin` which allows you to enable or disable the `@sentry/webpack-plugin` in the client-side build. By default, it is enabled.
+We've also added `enableClientWebpackPlugin` which allows you to enable or disable the `@sentry/webpack-plugin` in the
+client-side build. By default, it is enabled.
 
 ```js
 // v8 - gatsby-config.js
@@ -1034,7 +1036,7 @@ module.exports = {
       resolve: '@sentry/gatsby',
       options: {
         enableClientWebpackPlugin: false,
-      }
+      },
     },
     // ...
   ],
@@ -1043,7 +1045,8 @@ module.exports = {
 
 #### Automatic adding of `browserTracingIntegration` for Gatsby
 
-The Gatsby SDK no longer adds the `browserTracingIntegration` automatically. If you want to enable tracing in the browser, you need to add it manually. Make sure to also configured a `tracePropagationTargets` value.
+The Gatsby SDK no longer adds the `browserTracingIntegration` automatically. If you want to enable tracing in the
+browser, you need to add it manually. Make sure to also configured a `tracePropagationTargets` value.
 
 ```js
 // v7 - gatsby-config.js
@@ -1074,10 +1077,10 @@ module.exports = {
 };
 
 // v8 - sentry.config.js
-import * as Sentry from "@sentry/gatsby";
+import * as Sentry from '@sentry/gatsby';
 
 Sentry.init({
-  dsn: "__PUBLIC_DSN__",
+  dsn: '__PUBLIC_DSN__',
   integrations: [Sentry.browserTracingIntegration()],
 
   // Set tracesSampleRate to 1.0 to capture 100%
@@ -1086,7 +1089,7 @@ Sentry.init({
   tracesSampleRate: 1.0,
 
   // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
-  tracePropagationTargets: ["localhost", /^https:\/\/yourserver\.io\/api/],
+  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
 });
 ```
 
