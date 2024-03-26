@@ -63,8 +63,6 @@ export function showReportDialog(): void {
   return;
 }
 
-const IS_VERCEL = !!process.env.VERCEL;
-
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
   addTracingExtensions();
@@ -172,12 +170,6 @@ export function init(options: NodeOptions): void {
       { id: 'NextFilterSentrySpans' },
     ),
   );
-
-  // TODO(v8): Remove these tags
-  setTag('runtime', 'node');
-  if (IS_VERCEL) {
-    setTag('vercel', true);
-  }
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
