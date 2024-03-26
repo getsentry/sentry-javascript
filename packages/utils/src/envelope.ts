@@ -16,6 +16,7 @@ import type {
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
+import { GLOBAL_OBJ } from './worldwide';
 
 /**
  * Creates an envelope.
@@ -71,14 +72,18 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
  * Encode a string to UTF8 array.
  */
 function encodeUTF8(input: string): Uint8Array {
-  return new TextEncoder().encode(input);
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.encodePolyfill
+    ? GLOBAL_OBJ.__SENTRY__.encodePolyfill(input)
+    : new TextEncoder().encode(input);
 }
 
 /**
  * Decode a UTF8 array to string.
  */
 function decodeUTF8(input: Uint8Array): string {
-  return new TextDecoder().decode(input);
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.decodePolyfill
+    ? GLOBAL_OBJ.__SENTRY__.decodePolyfill(input)
+    : new TextDecoder().decode(input);
 }
 
 /**
