@@ -9,7 +9,9 @@ export default (_req: NextApiRequest, res: NextApiResponse) => {
     });
 
     message.on('end', () => {
-      res.status(200).json({ message: 'Hello from Next.js!' });
+      setTimeout(() => {
+        res.status(200).json({ message: 'Hello from Next.js!' });
+      }, 500);
     });
   });
 };
