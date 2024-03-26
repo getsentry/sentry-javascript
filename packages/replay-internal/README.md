@@ -212,20 +212,6 @@ The following options can be configured as options to the integration, in `Sentr
 | unmask        | Array<string>            | []                                     | Unmask all elements that match the given DOM selectors. Useful when using `maskAllText`. See [privacy](#masking) section for an example.     |
 | ignore        | Array<string>            | `.sentry-ignore, [data-sentry-ignore]` | Ignores all events on the matching input fields. See [privacy](#ignoring) section for an example.                                            |
 
-#### Deprecated options
-
-In order to streamline our privacy options, the following have been deprecated in favor for the respective options
-above.
-
-| deprecated key   | replaced by | description                                                                                                                                      |
-| ---------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| maskInputOptions | mask        | Use CSS selectors in `mask` in order to mask all inputs of a certain type. For example, `input[type="address"]`                                  |
-| blockSelector    | block       | The selector(s) can be moved directly in the `block` array.                                                                                      |
-| blockClass       | block       | Convert the class name to a CSS selector and add to `block` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is.  |
-| maskClass        | mask        | Convert the class name to a CSS selector and add to `mask` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is.   |
-| maskSelector     | mask        | The selector(s) can be moved directly in the `mask` array.                                                                                       |
-| ignoreClass      | ignore      | Convert the class name to a CSS selector and add to `ignore` array. For example, `first-name` becomes `.first-name`. Regexes can be moved as-is. |
-
 ## Privacy
 
 There are several ways to deal with PII. By default, the integration will mask all text content with `*` and block all

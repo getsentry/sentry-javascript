@@ -49,6 +49,7 @@ We've removed the following packages:
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
 - [@sentry/serverless](./MIGRATION.md#sentryserverless)
+- [@sentry/replay](./MIGRATION.md#sentryreplay)
 
 #### @sentry/hub
 
@@ -215,6 +216,20 @@ Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
 });
+```
+
+#### @sentry/replay
+
+`@sentry/replay` has been removed and will no longer be published. You can import replay functionality and the replay
+integration directly from the Browser SDK or browser framework-specific packages like `@sentry/react`.
+
+```js
+// v7
+import { Replay } from '@sentry/replay';
+```
+
+```js
+import { replayIntegration } from '@sentry/browser';
 ```
 
 ## 3. Performance Monitoring Changes
@@ -1659,7 +1674,7 @@ Sentry.init({
 ## Replay options changed (since 7.35.0) - #6645
 
 Some options for replay have been deprecated in favor of new APIs. See
-[Replay Migration docs](./packages/replay/MIGRATION.md#upgrading-replay-from-7340-to-7350) for details.
+[Replay Migration docs](./docs/migration/replay.md#upgrading-replay-from-7340-to-7350---6645) for details.
 
 ## Renaming of Next.js wrapper methods (since 7.31.0) - #6790
 
@@ -1697,4 +1712,4 @@ This release deprecates `@sentry/hub` and all of it's exports. All of the `@sent
 # Upgrading Sentry Replay (beta, 7.24.0)
 
 For details on upgrading Replay in its beta phase, please view the
-[dedicated Replay MIGRATION docs](./packages/replay/MIGRATION.md).
+[dedicated Replay MIGRATION docs](./docs/migration/replay.md).

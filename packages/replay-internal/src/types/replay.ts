@@ -294,37 +294,9 @@ export interface ReplayIntegrationPrivacyOptions {
   maskFn?: (s: string) => string;
 }
 
-export interface DeprecatedPrivacyOptions {
-  /**
-   * @deprecated Use `block` which accepts an array of CSS selectors
-   */
-  blockSelector?: RecordingOptions['blockSelector'];
-  /**
-   * @deprecated Use `block` which accepts an array of CSS selectors
-   */
-  blockClass?: RecordingOptions['blockClass'];
-  /**
-   * @deprecated Use `ignore` which accepts an array of CSS selectors
-   */
-  ignoreClass?: RecordingOptions['ignoreClass'];
-  /**
-   * @deprecated  Use `mask` which accepts an array of CSS selectors
-   */
-  maskInputOptions?: RecordingOptions['maskInputOptions'];
-  /**
-   * @deprecated Use `mask` which accepts an array of CSS selectors
-   */
-  maskTextClass?: RecordingOptions['maskTextClass'];
-  /**
-   * @deprecated Use `mask` which accepts an array of CSS selectors
-   */
-  maskTextSelector?: RecordingOptions['maskTextSelector'];
-}
-
 export interface ReplayConfiguration
   extends ReplayIntegrationPrivacyOptions,
     OptionalReplayPluginOptions,
-    DeprecatedPrivacyOptions,
     Pick<RecordingOptions, 'maskAllText' | 'maskAllInputs'> {}
 
 interface CommonEventContext {
