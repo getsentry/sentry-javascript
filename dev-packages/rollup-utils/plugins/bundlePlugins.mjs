@@ -129,7 +129,7 @@ export function makeTerserPlugin() {
           '_sentryChildSpans',
           '_sentrySpan',
           '_sentryScope',
-          '_sentryIsolationScope'
+          '_sentryIsolationScope',
         ],
       },
     },
