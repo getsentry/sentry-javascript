@@ -33,8 +33,6 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   getGlobalHub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,

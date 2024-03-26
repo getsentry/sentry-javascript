@@ -28,8 +28,6 @@ export declare const defaultStackParser: StackParser;
 declare const runtime: 'client' | 'server';
 
 // eslint-disable-next-line deprecation/deprecation
-export declare const makeMain: typeof clientSdk.makeMain;
-// eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 export declare const getClient: typeof clientSdk.getClient;
 export declare const continueTrace: typeof clientSdk.continueTrace;

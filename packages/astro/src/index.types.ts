@@ -23,8 +23,6 @@ export declare function close(timeout?: number | undefined): PromiseLike<boolean
 export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
 
 // eslint-disable-next-line deprecation/deprecation
-export declare const makeMain: typeof clientSdk.makeMain;
-// eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 export declare const getClient: typeof clientSdk.getClient;
 export declare const continueTrace: typeof clientSdk.continueTrace;
