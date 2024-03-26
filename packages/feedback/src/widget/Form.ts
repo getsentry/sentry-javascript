@@ -177,7 +177,8 @@ export function Form({
               'span',
               { className: 'form__label__text' },
               nameLabel,
-              isNameRequired && createElement('span', { className: 'form__label__text--required' }, ` ${isRequiredLabel}`),
+              isNameRequired &&
+                createElement('span', { className: 'form__label__text--required' }, ` ${isRequiredLabel}`),
             ),
             nameEl,
           ],
@@ -196,7 +197,8 @@ export function Form({
               'span',
               { className: 'form__label__text' },
               emailLabel,
-              isEmailRequired && createElement('span', { className: 'form__label__text--required' }, ` ${isRequiredLabel}`),
+              isEmailRequired &&
+                createElement('span', { className: 'form__label__text--required' }, ` ${isRequiredLabel}`),
             ),
             emailEl,
           ],
