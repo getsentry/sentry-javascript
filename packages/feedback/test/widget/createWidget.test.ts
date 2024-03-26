@@ -3,7 +3,7 @@ import {
   CANCEL_BUTTON_LABEL,
   DEFAULT_THEME,
   EMAIL_LABEL,
-  EMAIL_PLACEHOLDER, ERROR_MESSAGE_TEXT,
+  EMAIL_PLACEHOLDER,
   FORM_TITLE,
   IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
@@ -50,7 +50,6 @@ const DEFAULT_OPTIONS = {
   nameLabel: NAME_LABEL,
   isRequiredLabel: IS_REQUIRED_LABEL,
   successMessageText: SUCCESS_MESSAGE_TEXT,
-  // errorMessageText: ERROR_MESSAGE_TEXT,
 
   onFormClose: jest.fn(),
   onFormOpen: jest.fn(),

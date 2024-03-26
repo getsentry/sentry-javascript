@@ -7,7 +7,6 @@ import {
   DEFAULT_THEME,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
-  // ERROR_MESSAGE_TEXT,
   FORM_TITLE,
   IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
@@ -109,7 +108,6 @@ export class Feedback implements Integration {
     nameLabel = NAME_LABEL,
     isRequiredLabel = IS_REQUIRED_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
-    // errorMessageText = ERROR_MESSAGE_TEXT,
 
     onFormClose,
     onFormOpen,
@@ -158,7 +156,6 @@ export class Feedback implements Integration {
       namePlaceholder,
       isRequiredLabel,
       successMessageText,
-      // errorMessageText,
 
       onFormClose,
       onFormOpen,

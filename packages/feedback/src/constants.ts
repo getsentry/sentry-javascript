@@ -72,7 +72,6 @@ export const NAME_PLACEHOLDER = 'Your Name';
 export const NAME_LABEL = 'Name';
 export const IS_REQUIRED_LABEL = '(required)';
 export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
-export const ERROR_MESSAGE_TEXT = 'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.';
 
 export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';
