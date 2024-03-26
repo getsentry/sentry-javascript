@@ -53,7 +53,7 @@ function wrapExpressRequestHandler(
           return resolvedBuild.then(resolved => {
             routes = createRoutes(resolved.routes);
 
-            startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
+            startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
           });
         } else {
           routes = createRoutes(resolvedBuild.routes);
@@ -64,7 +64,7 @@ function wrapExpressRequestHandler(
         routes = createRoutes(build.routes);
       }
 
-      return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, hub, url);
+      return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
     });
   };
 }
