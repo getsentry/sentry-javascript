@@ -29,6 +29,7 @@ export interface Props
     | 'showEmail'
     | 'showName'
     | 'submitButtonLabel'
+    | 'isRequiredText'
   > {
   defaultEmail: string;
   defaultName: string;
@@ -66,6 +67,7 @@ export function Form({
   showEmail,
   showName,
   submitButtonLabel,
+  isRequiredText,
   screenshotInput,
 }: Props): VNode {
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
@@ -145,7 +147,7 @@ export function Form({
 
           {showName ? (
             <label for="name" class="form__label">
-              <LabelText label={nameLabel} isRequired={isNameRequired} />
+              <LabelText label={nameLabel} isRequiredText={isRequiredText} isRequired={isNameRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultName}
@@ -162,7 +164,7 @@ export function Form({
 
           {showEmail ? (
             <label for="email" class="form__label">
-              <LabelText label={emailLabel} isRequired={isEmailRequired} />
+              <LabelText label={emailLabel} isRequiredText={isRequiredText} isRequired={isEmailRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultEmail}
@@ -178,7 +180,7 @@ export function Form({
           )}
 
           <label for="message" class="form__label">
-            <LabelText label={messageLabel} isRequired />
+            <LabelText label={messageLabel} isRequiredText={isRequiredText} isRequired />
             <textarea
               autoFocus
               class="form__input form__input--textarea"
@@ -223,11 +225,15 @@ export function Form({
   );
 }
 
-function LabelText({ label, isRequired }: { label: string; isRequired: boolean }): VNode {
+function LabelText({
+  label,
+  isRequired,
+  isRequiredText,
+}: { label: string; isRequired: boolean; isRequiredText: string }): VNode {
   return (
     <span class="form__label__text">
       {label}
-      {isRequired && <span class="form__label__text--required">(required)</span>}
+      {isRequired && <span class="form__label__text--required">{isRequiredText}</span>}
     </span>
   );
 }

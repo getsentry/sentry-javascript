@@ -1,24 +1,7 @@
 import type { Event, EventHint, EventProcessor } from '@sentry/types';
-import { SyncPromise, getGlobalSingleton, isThenable, logger } from '@sentry/utils';
+import { SyncPromise, isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-
-/**
- * Returns the global event processors.
- * @deprecated Global event processors will be removed in v8.
- */
-export function getGlobalEventProcessors(): EventProcessor[] {
-  return getGlobalSingleton<EventProcessor[]>('globalEventProcessors', () => []);
-}
-
-/**
- * Add a EventProcessor to be kept globally.
- * @deprecated Use `addEventProcessor` instead. Global event processors will be removed in v8.
- */
-export function addGlobalEventProcessor(callback: EventProcessor): void {
-  // eslint-disable-next-line deprecation/deprecation
-  getGlobalEventProcessors().push(callback);
-}
 
 /**
  * Process an array of event processors, returning the processed event (or `null` if the event was dropped).

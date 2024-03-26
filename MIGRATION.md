@@ -355,7 +355,7 @@ To make sure these integrations work properly you'll have to change how you
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
-`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
+`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
 
@@ -370,6 +370,7 @@ Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `t
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
 - [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
 - [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
+- [Remove `addGlobalEventProcessor` in favor of `addEventProcessor`](./MIGRATION.md#remove-addglobaleventprocessor-in-favor-of-addeventprocessor)
 
 #### Deprecation of `Hub` and `getCurrentHub()`
 
@@ -540,7 +541,7 @@ addGlobalEventProcessor(event => {
 
 ```js
 // v8
-addEventProcessor(event => {
+Sentry.getGlobalScope().addEventProcessor(event => {
   delete event.extra;
   return event;
 });
@@ -567,6 +568,26 @@ interface Transport {
 interface Transport {
   send(event: Event): Promise<TransportMakeRequestResponse>;
 }
+```
+
+#### Remove `addGlobalEventProcessor` in favor of `addEventProcessor`
+
+In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
+
+```js
+// v7
+addGlobalEventProcessor(event => {
+  delete event.extra;
+  return event;
+});
+```
+
+```js
+// v8
+addEventProcessor(event => {
+  delete event.extra;
+  return event;
+});
 ```
 
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
@@ -897,7 +918,7 @@ replacement API.
 
 ### Ember SDK
 
-Removed top-level exports: `InitSentryForEmber`
+Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
 

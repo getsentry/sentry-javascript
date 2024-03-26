@@ -78,7 +78,7 @@
   },
   "dependencies": {
     "@sentry/core": "8.0.0-alpha.5",
-    "@sentry/node-experimental": "8.0.0-alpha.5",
+    "@sentry/node": "8.0.0-alpha.5",
     "@sentry/types": "8.0.0-alpha.5",
     "@sentry/utils": "8.0.0-alpha.5",
     "detect-libc": "^2.0.2",

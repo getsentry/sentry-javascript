@@ -13,7 +13,7 @@ import { GLOBAL_OBJ, addExceptionMechanism, dateTimestampInSeconds, normalize, t
 
 import { DEFAULT_ENVIRONMENT } from '../constants';
 import { getGlobalScope } from '../currentScopes';
-import { getGlobalEventProcessors, notifyEventProcessors } from '../eventProcessors';
+import { notifyEventProcessors } from '../eventProcessors';
 import { Scope } from '../scope';
 import { applyScopeDataToEvent, mergeScopeData } from './applyScopeDataToEvent';
 
@@ -34,8 +34,6 @@ export type ExclusiveEventHintOrCaptureContext =
  *
  * Information that is already present in the event is never overwritten. For
  * nested objects, such as the context, keys are merged.
- *
- * Note: This also triggers callbacks for `addGlobalEventProcessor`, but not `beforeSend`.
  *
  * @param event The original event.
  * @param hint May contain additional information about the original exception.
@@ -99,11 +97,8 @@ export function prepareEvent(
 
   applyScopeDataToEvent(prepared, data);
 
-  // TODO (v8): Update this order to be: Global > Client > Scope
   const eventProcessors = [
     ...clientEventProcessors,
-    // eslint-disable-next-line deprecation/deprecation
-    ...getGlobalEventProcessors(),
     // Run scope event processors _after_ all other processors
     ...data.eventProcessors,
   ];

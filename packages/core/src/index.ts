@@ -54,11 +54,7 @@ export {
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
-export {
-  notifyEventProcessors,
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
-} from './eventProcessors';
+export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
