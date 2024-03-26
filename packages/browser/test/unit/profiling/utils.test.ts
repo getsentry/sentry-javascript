@@ -1,5 +1,4 @@
 import { TextDecoder, TextEncoder } from 'util';
-// @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
 // @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
 const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
@@ -19,31 +18,23 @@ const makeJSProfile = (partial: Partial<JSSelfProfile> = {}): JSSelfProfile => {
   };
 };
 
-// @ts-expect-error store a reference so we can reset it later
 const globalDocument = global.document;
-// @ts-expect-error store a reference so we can reset it later
 const globalWindow = global.window;
-// @ts-expect-error store a reference so we can reset it later
 const globalLocation = global.location;
 
 describe('convertJSSelfProfileToSampledFormat', () => {
   beforeEach(() => {
     const dom = new JSDOM();
-    // @ts-expect-error need to override global document
     global.document = dom.window.document;
     // @ts-expect-error need to override global document
     global.window = dom.window;
-    // @ts-expect-error need to override global document
     global.location = dom.window.location;
   });
 
   // Reset back to previous values
   afterEach(() => {
-    // @ts-expect-error need to override global document
     global.document = globalDocument;
-    // @ts-expect-error need to override global document
     global.window = globalWindow;
-    // @ts-expect-error need to override global document
     global.location = globalLocation;
   });
 
