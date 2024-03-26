@@ -39,9 +39,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
   private _trimEnd?: boolean | undefined;
 
-  // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
-  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
-
   private _metadata: Partial<TransactionMetadata>;
 
   /**
@@ -78,14 +75,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     // TODO (v8): Replace this with another way to set the root span
     // eslint-disable-next-line deprecation/deprecation
     this.transaction = this;
-
-    // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
-    // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
-    if (incomingDynamicSamplingContext) {
-      // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
-      this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
-    }
   }
 
   // This sadly conflicts with the getter/setter ordering :(
