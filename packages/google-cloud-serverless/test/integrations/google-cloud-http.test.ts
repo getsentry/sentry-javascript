@@ -4,7 +4,7 @@ import { BigQuery } from '@google-cloud/bigquery';
 import * as nock from 'nock';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
-import { NodeClient, createTransport, setCurrentClient } from '@sentry/node-experimental';
+import { NodeClient, createTransport, setCurrentClient } from '@sentry/node';
 import { googleCloudHttpIntegration } from '../../src/integrations/google-cloud-http';
 
 const mockSpanEnd = jest.fn();
