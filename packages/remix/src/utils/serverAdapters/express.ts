@@ -1,6 +1,6 @@
-import { getClient, getCurrentHub, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
+import { getClient, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node';
-import type { Hub, Span } from '@sentry/types';
+import type { Span } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -35,8 +35,6 @@ function wrapExpressRequestHandler(
       res.end = wrapEndMethod(res.end);
 
       const request = extractRequestData(req);
-      // eslint-disable-next-line deprecation/deprecation
-      const hub = getCurrentHub();
       const options = getClient()?.getOptions();
 
       isolationScope.setSDKProcessingMetadata({ request });
@@ -60,16 +58,7 @@ function wrapExpressRequestHandler(
         } else {
           routes = createRoutes(resolvedBuild.routes);
 
-          return startRequestHandlerTransactionWithRoutes.call(
-            this,
-            origRequestHandler,
-            routes,
-            req,
-            res,
-            next,
-            hub,
-            url,
-          );
+          return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
         }
       } else {
         routes = createRoutes(build.routes);
@@ -87,7 +76,6 @@ function startRequestHandlerTransactionWithRoutes(
   req: ExpressRequest,
   res: ExpressResponse,
   next: ExpressNextFunction,
-  hub: Hub,
   url: URL,
 ): unknown {
   const [name, source] = getTransactionName(routes, url);
@@ -154,7 +142,6 @@ export function wrapExpressCreateRequestHandler(
   origCreateRequestHandler: ExpressCreateRequestHandler,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): (options: any) => ExpressRequestHandler {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function (this: unknown, options: ExpressCreateRequestHandlerOptions): ExpressRequestHandler {
     if (!('getLoadContext' in options)) {
       options['getLoadContext'] = () => ({});

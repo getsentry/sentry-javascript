@@ -1,12 +1,4 @@
-import type {
-  ClientOptions,
-  Hub,
-  Scope,
-  Span,
-  SpanTimeInput,
-  StartSpanOptions,
-  TransactionContext,
-} from '@sentry/types';
+import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
@@ -52,14 +44,12 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
 
   return withScope(context.scope, scope => {
     // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction(hub, {
+      : createChildSpanOrTransaction({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -104,14 +94,12 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
 
   return withScope(context.scope, scope => {
     // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction(hub, {
+      : createChildSpanOrTransaction({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -155,8 +143,6 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
   }
 
   const spanContext = normalizeContext(context);
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
   const parentSpan = context.scope
     ? // eslint-disable-next-line deprecation/deprecation
       (context.scope.getSpan() as SentrySpan | undefined)
@@ -170,7 +156,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
 
   const scope = context.scope || getCurrentScope();
 
-  return createChildSpanOrTransaction(hub, {
+  return createChildSpanOrTransaction({
     parentSpan,
     spanContext,
     forceTransaction: context.forceTransaction,
@@ -225,20 +211,17 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
   });
 }
 
-function createChildSpanOrTransaction(
-  hub: Hub,
-  {
-    parentSpan,
-    spanContext,
-    forceTransaction,
-    scope,
-  }: {
-    parentSpan: SentrySpan | undefined;
-    spanContext: TransactionContext;
-    forceTransaction?: boolean;
-    scope: Scope;
-  },
-): Span {
+function createChildSpanOrTransaction({
+  parentSpan,
+  spanContext,
+  forceTransaction,
+  scope,
+}: {
+  parentSpan: SentrySpan | undefined;
+  spanContext: TransactionContext;
+  forceTransaction?: boolean;
+  scope: Scope;
+}): Span {
   if (!hasTracingEnabled()) {
     return new SentryNonRecordingSpan();
   }
