@@ -46,6 +46,7 @@ export class SentrySpanExporter {
     if (getLocalParentId(span)) {
       const openSpanCount = this._finishedSpans.length;
       DEBUG_BUILD && logger.log(`SpanExporter has ${openSpanCount} unsent spans remaining`);
+      this._cleanupOldSpans();
       return;
     }
 
@@ -72,17 +73,7 @@ export class SentrySpanExporter {
     DEBUG_BUILD &&
       logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
 
-    this._finishedSpans = remainingSpans.filter(span => {
-      const shouldDrop = shouldCleanupSpan(span, 5 * 60);
-      DEBUG_BUILD &&
-        shouldDrop &&
-        logger.log(
-          `SpanExporter dropping span ${span.name} (${
-            span.spanContext().spanId
-          }) because it is pending for more than 5 minutes.`,
-        );
-      return !shouldDrop;
-    });
+    this._cleanupOldSpans(remainingSpans);
   }
 
   /** Clear the exporter. */
@@ -97,6 +88,24 @@ export class SentrySpanExporter {
       clearTimeout(this._flushTimeout);
       this._flushTimeout = undefined;
     }
+  }
+
+  /**
+   * Remove any span that is older than 5min.
+   * We do this to avoid leaking memory.
+   */
+  private _cleanupOldSpans(spans = this._finishedSpans): void {
+    this._finishedSpans = spans.filter(span => {
+      const shouldDrop = shouldCleanupSpan(span, 5 * 60);
+      DEBUG_BUILD &&
+        shouldDrop &&
+        logger.log(
+          `SpanExporter dropping span ${span.name} (${
+            span.spanContext().spanId
+          }) because it is pending for more than 5 minutes.`,
+        );
+      return !shouldDrop;
+    });
   }
 }
 

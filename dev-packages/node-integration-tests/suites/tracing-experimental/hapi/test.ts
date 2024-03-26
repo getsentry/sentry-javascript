@@ -45,6 +45,11 @@ describe('hapi auto-instrumentation', () => {
 
   test('CJS - should handle returned plain errors in routes.', done => {
     createRunner(__dirname, 'scenario.js')
+      .expect({
+        transaction: {
+          transaction: 'GET /error',
+        },
+      })
       .expect({ event: EXPECTED_ERROR_EVENT })
       .expectError()
       .start(done)
@@ -53,6 +58,11 @@ describe('hapi auto-instrumentation', () => {
 
   test('CJS - should handle returned Boom errors in routes.', done => {
     createRunner(__dirname, 'scenario.js')
+      .expect({
+        transaction: {
+          transaction: 'GET /boom-error',
+        },
+      })
       .expect({ event: EXPECTED_ERROR_EVENT })
       .expectError()
       .start(done)
@@ -61,6 +71,11 @@ describe('hapi auto-instrumentation', () => {
 
   test('CJS - should handle promise rejections in routes.', done => {
     createRunner(__dirname, 'scenario.js')
+      .expect({
+        transaction: {
+          transaction: 'GET /promise-error',
+        },
+      })
       .expect({ event: EXPECTED_ERROR_EVENT })
       .expectError()
       .start(done)
