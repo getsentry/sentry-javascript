@@ -43,8 +43,12 @@ describe('envelope', () => {
         name: 'with TextEncoder/Decoder polyfill',
         before: () => {
           GLOBAL_OBJ.__SENTRY__ = {} as InternalGlobal['__SENTRY__'];
-          GLOBAL_OBJ.__SENTRY__.encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) => (new TextEncoder()).encode(input));
-          GLOBAL_OBJ.__SENTRY__.decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) => (new TextDecoder()).decode(input));
+          GLOBAL_OBJ.__SENTRY__.encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) =>
+            new TextEncoder().encode(input),
+          );
+          GLOBAL_OBJ.__SENTRY__.decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) =>
+            new TextDecoder().decode(input),
+          );
         },
         after: () => {
           expect(GLOBAL_OBJ.__SENTRY__.encodePolyfill).toHaveBeenCalled();
