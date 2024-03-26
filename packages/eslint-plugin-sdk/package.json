@@ -21,17 +21,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "requireindex": "~1.1.0"
-  },
-  "devDependencies": {
-    "mocha": "^6.2.0"
-  },
+  "dependencies": {},
   "scripts": {
     "clean": "yarn rimraf sentry-internal-eslint-plugin-sdk-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "mocha test --recursive",
+    "test": "vitest run",
+    "test:watch": "vitest --watch",
     "build:tarball": "npm pack",
     "circularDepCheck": "madge --circular src/index.js"
   },

@@ -59,5 +59,11 @@ module.exports = {
         'no-console': 'off',
       },
     },
+    {
+      files: ['vite.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
+      },
+    },
   ],
 };
