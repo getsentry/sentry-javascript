@@ -315,7 +315,7 @@ export class TestEnv {
             resolve(reqCount);
           });
         },
-        options.timeout || 15_000, // OTEL has a sending interval of 5 seconds. 15 seconds may seem excessive but if CI lags, this has the potential to flake like crazy.
+        options.timeout || 1000,
       );
     });
   }
