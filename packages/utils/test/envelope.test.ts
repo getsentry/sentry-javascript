@@ -25,6 +25,10 @@ describe('envelope', () => {
   });
 
   describe('serializeEnvelope and parseEnvelope', () => {
+    afterEach(() => {
+      delete (GLOBAL_OBJ as Partial<InternalGlobal>).__SENTRY__;
+    });
+
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
       const serializedEnvelope = serializeEnvelope(env);
