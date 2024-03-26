@@ -36,7 +36,6 @@
     "@sentry/core": "latest || *",
     "@sentry/nextjs": "latest || *",
     "@sentry/node": "latest || *",
-    "@sentry/node-experimental": "latest || *",
     "@sentry/opentelemetry": "latest || *",
     "@sentry/react": "latest || *",
     "@sentry-internal/replay": "latest || *",
