@@ -368,7 +368,7 @@ export async function getArtifactsForBranchAndWorkflow(octokit, { owner, repo, w
     repo,
     workflow_id,
     branch,
-    status: 'success',
+    status: 'completed',
     per_page: DEFAULT_PAGE_LIMIT,
     event: 'push',
   })) {
