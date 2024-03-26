@@ -1,7 +1,6 @@
 import type { Context } from '@opentelemetry/api';
-import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
-import type { Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { ROOT_CONTEXT, TraceFlags, trace } from '@opentelemetry/api';
+import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
 import { addChildSpanToSpan, getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
@@ -46,20 +45,35 @@ function onSpanStart(span: Span, parentContext: Context): void {
   client?.emit('spanStart', span);
 }
 
-function onSpanEnd(span: Span): void {
+function onSpanEnd(span: ReadableSpan): void {
   const client = getClient();
-  client?.emit('spanEnd', span);
+  client?.emit('spanEnd', span as Span);
 }
 
 /**
  * Converts OpenTelemetry Spans to Sentry Spans and sends them to Sentry via
  * the Sentry SDK.
  */
-export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProcessorInterface {
-  public constructor() {
-    super(new SentrySpanExporter());
+export class SentrySpanProcessor implements SpanProcessorInterface {
+  private _exporter: SentrySpanExporter;
 
+  public constructor() {
     setIsSetup('SentrySpanProcessor');
+    this._exporter = new SentrySpanExporter();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async forceFlush(): Promise<void> {
+    this._exporter.flush();
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public async shutdown(): Promise<void> {
+    this._exporter.clear();
   }
 
   /**
@@ -72,29 +86,19 @@ export class SentrySpanProcessor extends BatchSpanProcessor implements SpanProce
     // once we decoupled opentelemetry from SentrySpan
 
     DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
-
-    return super.onStart(span, parentContext);
   }
 
   /** @inheritDoc */
-  public onEnd(span: Span): void {
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
-
-    if (!this._shouldSendSpanToSentry(span)) {
-      // Prevent this being called to super.onEnd(), which would pass this to the span exporter
+  public onEnd(span: ReadableSpan): void {
+    if (span.spanContext().traceFlags !== TraceFlags.SAMPLED) {
+      DEBUG_BUILD && logger.log(`[Tracing] Finishing unsampled span "${span.name}" (${span.spanContext().spanId})`);
       return;
     }
 
+    DEBUG_BUILD && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
+
     onSpanEnd(span);
 
-    return super.onEnd(span);
-  }
-
-  /**
-   * You can overwrite this in a sub class to implement custom behavior for dropping spans.
-   * If you return `false` here, the span will not be passed to the exporter and thus not be sent.
-   */
-  protected _shouldSendSpanToSentry(_span: Span): boolean {
-    return true;
+    this._exporter.export(span);
   }
 }
