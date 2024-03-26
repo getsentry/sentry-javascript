@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '../event-proxy-server';
 
-test('Should send a transaction with a fetch span', async ({ request }) => {
+test('Should send a transaction with a http span', async ({ request }) => {
   const transactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
     return transactionEvent?.transaction === 'GET /api/request-instrumentation';
   });
