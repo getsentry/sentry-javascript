@@ -244,7 +244,8 @@ function makeWrappedDataFunction(
   manuallyInstrumented: boolean,
 ): DataFunction {
   return async function (this: unknown, args: DataFunctionArgs): Promise<Response | AppData> {
-    if (args.context.__sentry_express_wrapped__ && !manuallyInstrumented) {
+    const alreadyWrapped = args.context.__sentry_express_wrapped__ || args.context.__sentry_fastify_wrapped__;
+    if (alreadyWrapped && !manuallyInstrumented) {
       return origFn.call(this, args);
     }
 
@@ -424,9 +425,9 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
   const routes = createRoutes(build.routes);
 
   return async function (this: unknown, request: RemixRequest, loadContext?: AppLoadContext): Promise<Response> {
-    // This means that the request handler of the adapter (ex: express) is already wrapped.
+    // This means that the request handler of the adapter (ex: express or fastify) is already wrapped.
     // So we don't want to double wrap it.
-    if (loadContext?.__sentry_express_wrapped__) {
+    if (loadContext?.__sentry_express_wrapped__ || loadContext?.__sentry_fastify_wrapped__) {
       return origRequestHandler.call(this, request, loadContext);
     }
 

@@ -17,6 +17,7 @@ export type PolymorphicRequest = BaseRequest &
   BrowserRequest &
   NodeRequest &
   ExpressRequest &
+  FastifyRequest &
   KoaRequest &
   NextjsRequest;
 
@@ -76,4 +77,13 @@ type ExpressRequest = NodeRequest & {
     [key: string]: any;
   };
   _reconstructedRoute?: string;
+};
+
+type FastifyRequest = {
+  id?: string;
+  headers?: {
+    [key: string]: string | string[] | undefined;
+  };
+  body?: unknown;
+  raw?: NodeRequest;
 };
