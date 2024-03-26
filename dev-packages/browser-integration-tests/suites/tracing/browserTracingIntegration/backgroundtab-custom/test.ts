@@ -10,7 +10,7 @@ sentryTest('should finish a custom transaction when the page goes background', a
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  page.goto(url);
+  await page.goto(url);
 
   await page.locator('#start-span').click();
   const spanJsonBefore: SpanJSON = await page.evaluate('window.getSpanJson()');

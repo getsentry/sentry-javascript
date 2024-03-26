@@ -1,6 +1,10 @@
 // This is exported so the loader does not fail when switching off Replay
 import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
-import { browserTracingIntegration } from '@sentry-internal/tracing';
+import {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry-internal/tracing';
 import { addTracingExtensions } from '@sentry/core';
 
 // We are patching the global object with our hub extension methods
@@ -21,6 +25,8 @@ export {
   replayIntegrationShim as replayIntegration,
   browserTracingIntegration,
   addTracingExtensions,
+  startBrowserTracingPageLoadSpan,
+  startBrowserTracingNavigationSpan,
 };
 
 export * from './index.bundle.base';
