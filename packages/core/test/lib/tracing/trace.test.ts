@@ -354,6 +354,7 @@ describe('startSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -679,6 +680,7 @@ describe('startSpanManual', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -932,6 +934,7 @@ describe('startInactiveSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,

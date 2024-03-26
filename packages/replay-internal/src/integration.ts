@@ -114,19 +114,6 @@ export class Replay implements Integration {
 
     beforeAddRecordingEvent,
     beforeErrorSampling,
-
-    // eslint-disable-next-line deprecation/deprecation
-    blockClass,
-    // eslint-disable-next-line deprecation/deprecation
-    blockSelector,
-    // eslint-disable-next-line deprecation/deprecation
-    maskInputOptions,
-    // eslint-disable-next-line deprecation/deprecation
-    maskTextClass,
-    // eslint-disable-next-line deprecation/deprecation
-    maskTextSelector,
-    // eslint-disable-next-line deprecation/deprecation
-    ignoreClass,
   }: ReplayConfiguration = {}) {
     this.name = Replay.id;
 
@@ -136,17 +123,12 @@ export class Replay implements Integration {
       block,
       unblock,
       ignore,
-      blockClass,
-      blockSelector,
-      maskTextClass,
-      maskTextSelector,
-      ignoreClass,
     });
 
     this._recordingOptions = {
       maskAllInputs,
       maskAllText,
-      maskInputOptions: { ...(maskInputOptions || {}), password: true },
+      maskInputOptions: { password: true },
       maskTextFn: maskFn,
       maskInputFn: maskFn,
       maskAttributeFn: (key: string, value: string, el: HTMLElement): string =>

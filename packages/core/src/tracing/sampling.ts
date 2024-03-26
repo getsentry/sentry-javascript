@@ -1,11 +1,8 @@
-import type { Options, SamplingContext } from '@sentry/types';
+import type { Options, SamplingContext, TransactionContext } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
-import { spanToJSON } from '../utils/spanUtils';
-import type { Transaction } from './transaction';
 
 /**
  * Makes a sampling decision for the given transaction and stores it on the transaction.
@@ -16,24 +13,21 @@ import type { Transaction } from './transaction';
  * This method muttes the given `transaction` and will set the `sampled` value on it.
  * It returns the same transaction, for convenience.
  */
-export function sampleTransaction<T extends Transaction>(
-  transaction: T,
+export function sampleTransaction(
+  transactionContext: TransactionContext,
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
-): T {
+): [sampled: boolean, sampleRate?: number] {
   // nothing to do if tracing is not enabled
   if (!hasTracingEnabled(options)) {
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.sampled = false;
-    return transaction;
+    return [false];
   }
 
-  // if the user has forced a sampling decision by passing a `sampled` value in their transaction context, go with that
-  // eslint-disable-next-line deprecation/deprecation
-  if (transaction.sampled !== undefined) {
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(transaction.sampled));
-    return transaction;
+  const transactionContextSampled = transactionContext.sampled;
+  // if the user has forced a sampling decision by passing a `sampled` value in
+  // their transaction context, go with that.
+  if (transactionContextSampled !== undefined) {
+    return [transactionContextSampled, Number(transactionContextSampled)];
   }
 
   // we would have bailed already if neither `tracesSampler` nor `tracesSampleRate` nor `enableTracing` were defined, so one of these should
@@ -41,25 +35,20 @@ export function sampleTransaction<T extends Transaction>(
   let sampleRate;
   if (typeof options.tracesSampler === 'function') {
     sampleRate = options.tracesSampler(samplingContext);
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(sampleRate));
   } else if (samplingContext.parentSampled !== undefined) {
     sampleRate = samplingContext.parentSampled;
   } else if (typeof options.tracesSampleRate !== 'undefined') {
     sampleRate = options.tracesSampleRate;
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, Number(sampleRate));
   } else {
     // When `enableTracing === true`, we use a sample rate of 100%
     sampleRate = 1;
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
   // Since this is coming from the user (or from a function provided by the user), who knows what we might get. (The
   // only valid values are booleans or numbers between 0 and 1.)
   if (!isValidSampleRate(sampleRate)) {
     DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.sampled = false;
-    return transaction;
+    return [false];
   }
 
   // if the function returned 0 (or false), or if `tracesSampleRate` is 0, it's a sign the transaction should be dropped
@@ -72,40 +61,31 @@ export function sampleTransaction<T extends Transaction>(
             : 'a negative sampling decision was inherited or tracesSampleRate is set to 0'
         }`,
       );
-    // eslint-disable-next-line deprecation/deprecation
-    transaction.sampled = false;
-    return transaction;
+    return [false, Number(sampleRate)];
   }
 
   // Now we roll the dice. Math.random is inclusive of 0, but not of 1, so strict < is safe here. In case sampleRate is
   // a boolean, the < comparison will cause it to be automatically cast to 1 if it's true and 0 if it's false.
-  // eslint-disable-next-line deprecation/deprecation
-  transaction.sampled = Math.random() < (sampleRate as number | boolean);
+  const shouldSample = Math.random() < sampleRate;
 
   // if we're not going to keep it, we're done
-  // eslint-disable-next-line deprecation/deprecation
-  if (!transaction.sampled) {
+  if (!shouldSample) {
     DEBUG_BUILD &&
       logger.log(
         `[Tracing] Discarding transaction because it's not included in the random sample (sampling rate = ${Number(
           sampleRate,
         )})`,
       );
-    return transaction;
+    return [false, Number(sampleRate)];
   }
 
-  if (DEBUG_BUILD) {
-    const { op, description } = spanToJSON(transaction);
-    logger.log(`[Tracing] starting ${op} transaction - ${description}`);
-  }
-
-  return transaction;
+  return [true, Number(sampleRate)];
 }
 
 /**
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
  */
-function isValidSampleRate(rate: unknown): boolean {
+function isValidSampleRate(rate: unknown): rate is number | boolean {
   // we need to check NaN explicitly because it's of type 'number' and therefore wouldn't get caught by this typecheck
   if (isNaN(rate) || !(typeof rate === 'number' || typeof rate === 'boolean')) {
     DEBUG_BUILD &&

@@ -19,8 +19,10 @@ const defaultTrackComponentOptions: {
 /**
  * Tracks the Svelte component's intialization and mounting operation as well as
  * updates and records them as spans.
+ *
  * This function is injected automatically into your Svelte components' code
- * if you are using the Sentry componentTrackingPreprocessor.
+ * if you are using the withSentryConfig wrapper.
+ *
  * Alternatively, you can call it yourself if you don't want to use the preprocessor.
  */
 export function trackComponent(options?: TrackComponentOptions): void {

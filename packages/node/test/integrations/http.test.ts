@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as https from 'https';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getSpanDescendants, makeMain, startSpan } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, getSpanDescendants, startSpan } from '@sentry/core';
 import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core';
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
@@ -346,8 +346,6 @@ describe('tracing', () => {
       client.init();
       // eslint-disable-next-line deprecation/deprecation
       const hub = getCurrentHub();
-      // eslint-disable-next-line deprecation/deprecation
-      makeMain(hub);
 
       return hub;
     }

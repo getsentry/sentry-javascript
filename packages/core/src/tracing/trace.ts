@@ -1,12 +1,4 @@
-import type {
-  ClientOptions,
-  Hub,
-  Scope,
-  Span,
-  SpanTimeInput,
-  StartSpanOptions,
-  TransactionContext,
-} from '@sentry/types';
+import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
 
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
@@ -14,6 +6,7 @@ import { getMainCarrier } from '../asyncContext';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy, getCurrentHub } from '../hub';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import {
@@ -52,14 +45,12 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
 
   return withScope(context.scope, scope => {
     // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction(hub, {
+      : createChildSpanOrTransaction({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -104,14 +95,12 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
 
   return withScope(context.scope, scope => {
     // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHub();
-    // eslint-disable-next-line deprecation/deprecation
     const parentSpan = scope.getSpan() as SentrySpan | undefined;
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction(hub, {
+      : createChildSpanOrTransaction({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -155,8 +144,6 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
   }
 
   const spanContext = normalizeContext(context);
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
   const parentSpan = context.scope
     ? // eslint-disable-next-line deprecation/deprecation
       (context.scope.getSpan() as SentrySpan | undefined)
@@ -170,7 +157,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
 
   const scope = context.scope || getCurrentScope();
 
-  return createChildSpanOrTransaction(hub, {
+  return createChildSpanOrTransaction({
     parentSpan,
     spanContext,
     forceTransaction: context.forceTransaction,
@@ -225,20 +212,17 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
   });
 }
 
-function createChildSpanOrTransaction(
-  hub: Hub,
-  {
-    parentSpan,
-    spanContext,
-    forceTransaction,
-    scope,
-  }: {
-    parentSpan: SentrySpan | undefined;
-    spanContext: TransactionContext;
-    forceTransaction?: boolean;
-    scope: Scope;
-  },
-): Span {
+function createChildSpanOrTransaction({
+  parentSpan,
+  spanContext,
+  forceTransaction,
+  scope,
+}: {
+  parentSpan: SentrySpan | undefined;
+  spanContext: TransactionContext;
+  forceTransaction?: boolean;
+  scope: Scope;
+}): Span {
   if (!hasTracingEnabled()) {
     return new SentryNonRecordingSpan();
   }
@@ -325,9 +309,7 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  // eslint-disable-next-line deprecation/deprecation
-  let transaction = new Transaction(transactionContext, getCurrentHub());
-  transaction = sampleTransaction(transaction, options, {
+  const [sampled, sampleRate] = sampleTransaction(transactionContext, options, {
     name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
@@ -337,8 +319,16 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
       ...transactionContext.attributes,
     },
   });
+
+  // eslint-disable-next-line deprecation/deprecation
+  const transaction = new Transaction({ ...transactionContext, sampled }, getCurrentHub());
+  if (sampleRate !== undefined) {
+    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
+  }
+
   if (client) {
     client.emit('spanStart', transaction);
   }
+
   return transaction;
 }
