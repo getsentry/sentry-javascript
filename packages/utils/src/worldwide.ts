@@ -57,6 +57,8 @@ export interface InternalGlobal {
     defaultCurrentScope: Scope | undefined;
     defaultIsolationScope: Scope | undefined;
     globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
+    encodePolyfill?: (input: string) => Uint8Array;
+    decodePolyfill?: (input: Uint8Array) => string;
   };
   /**
    * Raw module metadata that is injected by bundler plugins.
