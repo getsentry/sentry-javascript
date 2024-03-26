@@ -1,4 +1,4 @@
-import { DOCUMENT, CROP_COLOR } from '../../constants';
+import { CROP_COLOR, DOCUMENT } from '../../constants';
 
 /**
  * Creates <style> element for widget dialog
