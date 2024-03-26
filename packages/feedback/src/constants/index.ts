@@ -26,3 +26,5 @@ export const FEEDBACK_WIDGET_SOURCE = 'widget';
 export const FEEDBACK_API_SOURCE = 'api';
 
 export const SUCCESS_MESSAGE_TIMEOUT = 5000;
+
+export const CROP_COLOR = '#ffffff';

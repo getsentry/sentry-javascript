@@ -1,4 +1,4 @@
-import { DOCUMENT } from '../../constants';
+import { DOCUMENT, CROP_COLOR } from '../../constants';
 
 /**
  * Creates <style> element for widget dialog
@@ -64,7 +64,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   height: 30px;
   position: absolute;
   background: none;
-  border: var(--crop-corner-border);
+  border: 3px solid ${CROP_COLOR};
 }
 
 .editor__crop-corner--top-left {
