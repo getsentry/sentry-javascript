@@ -1,4 +1,4 @@
-import type * as http from 'http';
+import * as http from 'http';
 import type { AddressInfo } from 'net';
 import * as path from 'path';
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -212,7 +212,11 @@ export class TestEnv {
     endServer: boolean = true,
   ): Promise<unknown> {
     try {
-      const { data } = await axios.get(url || this.url, { headers });
+      const { data } = await axios.get(url || this.url, {
+        headers,
+        // KeepAlive false to work around a Node 20 bug with ECONNRESET: https://github.com/axios/axios/issues/5929
+        httpAgent: new http.Agent({ keepAlive: false }),
+      });
       return data;
     } finally {
       await Sentry.flush();
