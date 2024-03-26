@@ -8,7 +8,6 @@ export function register() {
       tunnel: `http://localhost:3031/`, // proxy server
       tracesSampleRate: 1.0,
       sendDefaultPii: true,
-      debug: true,
       transportOptions: {
         // We are doing a lot of events at once in this test
         bufferSize: 1000,
