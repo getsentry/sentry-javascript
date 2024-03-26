@@ -1,5 +1,5 @@
 # This Dockerfile exists for the purpose of using a specific node/npm version (ie. the same we use in CI) to run npm publish with
-ARG NODE_VERSION=18.17.1
+ARG NODE_VERSION=18.18.0
 FROM node:${NODE_VERSION}
 
 WORKDIR /sentry-javascript/dev-packages/e2e-tests

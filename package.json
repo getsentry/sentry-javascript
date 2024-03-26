@@ -40,7 +40,7 @@
     "yalc:publish": "lerna run yalc:publish"
   },
   "volta": {
-    "node": "18.17.0",
+    "node": "18.18.0",
     "yarn": "1.22.19"
   },
   "workspaces": [
@@ -86,6 +86,7 @@
   ],
   "devDependencies": {
     "@biomejs/biome": "^1.4.0",
+    "@codecov/rollup-plugin": "0.0.1-beta.5",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-esm-shim": "^0.1.5",
     "@rollup/plugin-json": "^6.1.0",
