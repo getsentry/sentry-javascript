@@ -116,7 +116,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   if (
                     process.env.NODE_ENV === 'development' &&
                     !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR &&
-                    !res.finished
+                    !res.writableEnded
                   ) {
                     consoleSandbox(() => {
                       // eslint-disable-next-line no-console
