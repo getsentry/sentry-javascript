@@ -184,7 +184,7 @@ function wrapEndMethod(origEnd: ResponseEndMethod): WrappedResponseEndMethod {
     await finishSentryProcessing(this);
 
     return origEnd.call(this, ...args);
-  };
+  } as unknown as WrappedResponseEndMethod;
 }
 
 /**

@@ -6,4 +6,5 @@ Sentry.init({
   integrations: [],
   tracesSampleRate: 1,
   tunnel: 'http://localhost:3031/', // proxy server
+  tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
 });

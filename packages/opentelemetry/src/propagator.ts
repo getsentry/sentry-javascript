@@ -2,15 +2,20 @@ import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
+import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
-import type { DynamicSamplingContext, PropagationContext } from '@sentry/types';
+import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 import {
+  LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  logger,
   propagationContextFromHeaders,
+  stringMatchesSomePattern,
 } from '@sentry/utils';
 
 import {
@@ -20,6 +25,7 @@ import {
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
 } from './constants';
+import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
 
@@ -46,9 +52,15 @@ export function getPropagationContextFromSpanContext(spanContext: SpanContext): 
  * Injects and extracts `sentry-trace` and `baggage` headers from carriers.
  */
 export class SentryPropagator extends W3CBaggagePropagator {
+  /** A map of URLs that have already been checked for if they match tracePropagationTargets. */
+  private _urlMatchesTargetsMap: LRUMap<string, boolean>;
+
   public constructor() {
     super();
     setIsSetup('SentryPropagator');
+
+    // We're caching results so we don't have to recompute regexp every time we create a request.
+    this._urlMatchesTargetsMap = new LRUMap<string, boolean>(100);
   }
 
   /**
@@ -56,6 +68,20 @@ export class SentryPropagator extends W3CBaggagePropagator {
    */
   public inject(context: Context, carrier: unknown, setter: TextMapSetter): void {
     if (isTracingSuppressed(context)) {
+      DEBUG_BUILD && logger.log('[Tracing] Not injecting trace data for url because tracing is suppressed.');
+      return;
+    }
+
+    const activeSpan = trace.getSpan(context);
+    const url = activeSpan && spanToJSON(activeSpan).data?.[SemanticAttributes.HTTP_URL];
+    const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
+    if (
+      typeof url === 'string' &&
+      tracePropagationTargets &&
+      !this._shouldInjectTraceData(tracePropagationTargets, url)
+    ) {
+      DEBUG_BUILD &&
+        logger.log('[Tracing] Not injecting trace data for url because it does not matchTracePropagationTargets:', url);
       return;
     }
 
@@ -111,6 +137,22 @@ export class SentryPropagator extends W3CBaggagePropagator {
    */
   public fields(): string[] {
     return [SENTRY_TRACE_HEADER, SENTRY_BAGGAGE_HEADER];
+  }
+
+  /** If we want to inject trace data for a given URL. */
+  private _shouldInjectTraceData(tracePropagationTargets: Options['tracePropagationTargets'], url: string): boolean {
+    if (tracePropagationTargets === undefined) {
+      return true;
+    }
+
+    const cachedDecision = this._urlMatchesTargetsMap.get(url);
+    if (cachedDecision !== undefined) {
+      return cachedDecision;
+    }
+
+    const decision = stringMatchesSomePattern(url, tracePropagationTargets);
+    this._urlMatchesTargetsMap.set(url, decision);
+    return decision;
   }
 }
 

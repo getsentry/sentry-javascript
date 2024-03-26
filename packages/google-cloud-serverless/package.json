@@ -48,7 +48,7 @@
     "@google-cloud/common": "^3.4.1",
     "@google-cloud/functions-framework": "^1.7.1",
     "@google-cloud/pubsub": "^2.5.0",
-    "@types/node": "^14.6.4",
+    "@types/node": "^14.18.0",
     "find-up": "^5.0.0",
     "google-gax": "^2.9.0",
     "nock": "^13.0.4",
