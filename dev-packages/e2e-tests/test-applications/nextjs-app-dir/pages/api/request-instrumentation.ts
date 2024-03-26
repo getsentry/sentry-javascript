@@ -8,8 +8,8 @@ export default (_req: NextApiRequest, res: NextApiResponse) => {
       // Noop consuming some data so that request can close :)
     });
 
-    message.on('close', () => {
-      res.status(200).json({});
+    message.on('end', () => {
+      res.status(200).json({ message: 'Hello from Next.js!' });
     });
   });
 };
