@@ -122,6 +122,18 @@ function parseOriginalCodeFrame(codeFrame: string): {
  * in the dev overlay.
  */
 export async function devErrorSymbolicationEventProcessor(event: Event, hint: EventHint): Promise<Event | null> {
+  // Filter out spans for requests resolving source maps for stack frames in dev mode
+  if (event.type === 'transaction') {
+    event.spans = event.spans?.filter(span => {
+      const httpUrlAttribute: unknown = span.data?.['http.url'];
+      if (typeof httpUrlAttribute === 'string') {
+        return !httpUrlAttribute.includes('__nextjs_original-stack-frame');
+      }
+
+      return true;
+    });
+  }
+
   // Due to changes across Next.js versions, there are a million things that can go wrong here so we just try-catch the  // entire event processor.Symbolicated stack traces are just a nice to have.
   try {
     if (hint.originalException && hint.originalException instanceof Error && hint.originalException.stack) {

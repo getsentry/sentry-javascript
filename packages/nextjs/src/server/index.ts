@@ -113,60 +113,65 @@ export function init(options: NodeOptions): void {
 
   nodeInit(opts);
 
-  const filterLowQualityTransactions: EventProcessor = event => {
-    if (event.type === 'transaction') {
-      // Filter out transactions for static assets
-      // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
-      // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
-      if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
-        return null;
-      }
+  addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type === 'transaction') {
+          // Filter out transactions for static assets
+          // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
+          // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
+          if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
+            return null;
+          }
 
-      // Filter out transactions for requests to the tunnel route
-      if (
-        globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
-        event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
-      ) {
-        return null;
-      }
+          // Filter out transactions for requests to the tunnel route
+          if (
+            globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
+            event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
+          ) {
+            return null;
+          }
 
-      // Filter out requests to resolve source maps for stack frames in dev mode
-      if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
-        return null;
-      }
+          // Filter out requests to resolve source maps for stack frames in dev mode
+          if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
+            return null;
+          }
 
-      return event;
-    } else {
-      return event;
-    }
-  };
-  filterLowQualityTransactions.id = 'NextLowQualityTransactionsFilter';
-  addEventProcessor(filterLowQualityTransactions);
+          // Filter out /404 transactions for pages-router which seem to be created excessively
+          if (event.transaction === '/404') {
+            return null;
+          }
 
-  const filterSentrySpans: EventProcessor = event => {
-    if (event.type === 'transaction') {
-      event.spans = event.spans?.filter(span => {
-        // Filter out spans for Sentry event sends
-        const httpTargetAttribute: unknown = span.data?.['http.target'];
-        if (typeof httpTargetAttribute === 'string') {
-          // TODO: Find a more robust matching logic
-          return !httpTargetAttribute.includes('sentry_client') && !httpTargetAttribute.includes('sentry_key');
+          return event;
+        } else {
+          return event;
+        }
+      }) satisfies EventProcessor,
+      { id: 'NextLowQualityTransactionsFilter' },
+    ),
+  );
+
+  addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type === 'transaction') {
+          event.spans = event.spans?.filter(span => {
+            // Filter out spans for Sentry event sends
+            const httpTargetAttribute: unknown = span.data?.['http.target'];
+            if (typeof httpTargetAttribute === 'string') {
+              // TODO: Find a more robust matching logic - We likely want to use the OTEL SDK's `suppressTracing` in our transport, if we end up using it, we can delete this filtering logic here.
+              return !httpTargetAttribute.includes('sentry_client') && !httpTargetAttribute.includes('sentry_key');
+            }
+
+            return true;
+          });
         }
 
-        // Filter out requests to resolve source maps for stack frames in dev mode
-        const httpUrlAttribute: unknown = span.data?.['http.url'];
-        if (typeof httpUrlAttribute === 'string') {
-          return !httpUrlAttribute.includes('__nextjs_original-stack-frame');
-        }
-
-        return true;
-      });
-    }
-
-    return event;
-  };
-  filterSentrySpans.id = 'NextFilterSentrySpans';
-  addEventProcessor(filterSentrySpans);
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'NextFilterSentrySpans' },
+    ),
+  );
 
   // TODO(v8): Remove these tags
   setTag('runtime', 'node');
