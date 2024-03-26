@@ -9,7 +9,7 @@
 
     // other package-specific, test-specific options
 
-    // Needed to parse ESM from gatsby-browser.js
+    // Needed to parse ESM from gatsby js files
     "allowJs": true
   }
 }

@@ -1,48 +1,25 @@
 const fs = require('fs');
 
-const SentryWebpackPlugin = require('@sentry/webpack-plugin');
+const { sentryWebpackPlugin } = require('@sentry/webpack-plugin');
 
-const sentryRelease = JSON.stringify(
-  // Always read first as Sentry takes this as precedence
-  process.env.SENTRY_RELEASE ||
-    // GitHub Actions - https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables#default-environment-variables
-    process.env.GITHUB_SHA ||
-    // Netlify - https://docs.netlify.com/configure-builds/environment-variables/#build-metadata
-    process.env.COMMIT_REF ||
-    // Vercel - https://vercel.com/docs/v2/build-step#system-environment-variables
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    // Zeit (now known as Vercel)
-    process.env.ZEIT_GITHUB_COMMIT_SHA ||
-    process.env.ZEIT_GITLAB_COMMIT_SHA ||
-    process.env.ZEIT_BITBUCKET_COMMIT_SHA ||
-    undefined,
-);
-
-const sentryDsn = JSON.stringify(process.env.SENTRY_DSN || '');
 const SENTRY_USER_CONFIG = ['./sentry.config.js', './sentry.config.ts'];
 
-exports.onCreateWebpackConfig = ({ plugins, getConfig, actions }) => {
-  actions.setWebpackConfig({
-    plugins: [
-      plugins.define({
-        __SENTRY_RELEASE__: sentryRelease,
-        __SENTRY_DSN__: sentryDsn,
-      }),
-    ],
-  });
-
-  if (process.env.NODE_ENV === 'production') {
+exports.onCreateWebpackConfig = ({ getConfig, actions }, options) => {
+  const enableClientWebpackPlugin = options.enableClientWebpackPlugin !== false;
+  if (process.env.NODE_ENV === 'production' && enableClientWebpackPlugin) {
     actions.setWebpackConfig({
       plugins: [
-        new SentryWebpackPlugin({
-          // Only include files from the build output directory
-          include: 'public',
-          // Ignore files that aren't users' source code related
-          ignore: [
-            'polyfill-*', // related to polyfills
-            'framework-*', // related to the frameworks (e.g. React)
-            'webpack-runtime-*', // related to Webpack
-          ],
+        sentryWebpackPlugin({
+          sourcemaps: {
+            // Only include files from the build output directory
+            assets: ['public'],
+            // Ignore files that aren't users' source code related
+            ignore: [
+              'polyfill-*', // related to polyfills
+              'framework-*', // related to the frameworks (e.g. React)
+              'webpack-runtime-*', // related to Webpack
+            ],
+          },
           // Handle sentry-cli configuration errors when the user has not done it not to break
           // the build.
           errorHandler(err, invokeErr) {

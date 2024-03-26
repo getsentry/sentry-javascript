@@ -6,7 +6,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-const PACKAGE_ASSETS = ['gatsby-browser.js', 'gatsby-browser.d.ts', 'gatsby-node.js', 'gatsby-node.d.ts'];
+const PACKAGE_ASSETS = ['gatsby-node.js', 'gatsby-node.d.ts'];
 
 export function prepack(buildDir: string): boolean {
   // copy package-specific assets to build dir
