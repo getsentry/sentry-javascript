@@ -48,7 +48,6 @@ describe('withSentryConfig', () => {
   });
 
   it("doesn't add Sentry preprocessors that were already added by the users", () => {
-    // eslint-disable-next-line deprecation/deprecation
     const sentryPreproc = componentTrackingPreprocessor();
     const originalConfig = {
       compilerOptions: {
