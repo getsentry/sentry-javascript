@@ -1,6 +1,7 @@
 import { ProxyTracerProvider, context, propagation, trace } from '@opentelemetry/api';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import { getClient, getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
+import type { NodeClient } from '../../src';
 
 import { init } from '../../src/sdk/init';
 import type { NodeClientOptions } from '../../src/types';
@@ -36,7 +37,7 @@ export function cleanupOtel(_provider?: BasicTracerProvider): void {
 }
 
 export function getProvider(_provider?: BasicTracerProvider): BasicTracerProvider | undefined {
-  let provider = _provider || trace.getTracerProvider();
+  let provider = _provider || getClient<NodeClient>()?.traceProvider || trace.getTracerProvider();
 
   if (provider instanceof ProxyTracerProvider) {
     provider = provider.getDelegate();

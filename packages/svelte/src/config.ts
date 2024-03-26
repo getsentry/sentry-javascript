@@ -33,8 +33,6 @@ export function withSentryConfig(
 
   const shouldTrackComponents = mergedOptions.componentTracking && mergedOptions.componentTracking.trackComponents;
   if (shouldTrackComponents) {
-    // TODO(v8): Remove eslint rule
-    // eslint-disable-next-line deprecation/deprecation
     const firstPassPreproc: SentryPreprocessorGroup = componentTrackingPreprocessor(mergedOptions.componentTracking);
     sentryPreprocessors.set(firstPassPreproc.sentryId || '', firstPassPreproc);
   }

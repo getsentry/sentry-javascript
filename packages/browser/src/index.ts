@@ -70,8 +70,6 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
-  // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
