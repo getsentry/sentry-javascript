@@ -72,7 +72,7 @@ Sentry.init({
 
 // Sometime later
 const { Replay } = await import('@sentry/browser');
-const client = Sentry.getCurrentHub().getClient<BrowserClient>();
+const client = Sentry.getClient<BrowserClient>();
 
 // Client can be undefined
 client?.addIntegration(Sentry.replayIntegration());
@@ -105,7 +105,7 @@ Sentry.init({
   integrations: [replay]
 });
 
-const client = Sentry.getCurrentHub().getClient<BrowserClient>();
+const client = Sentry.getClient<BrowserClient>();
 
 // Add replay integration, will start recoring
 client?.addIntegration(replay);

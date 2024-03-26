@@ -6,7 +6,6 @@ import { defineIntegration, getIsolationScope, hasTracingEnabled } from '@sentry
 import {
   addBreadcrumb,
   getClient,
-  getCurrentHub,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
@@ -166,8 +165,7 @@ export class Http implements Integration {
    * @inheritDoc
    */
   public setupOnce(): void {
-    // eslint-disable-next-line deprecation/deprecation
-    const clientOptions = getCurrentHub().getClient<NodeClient>()?.getOptions();
+    const clientOptions = getClient<NodeClient>()?.getOptions();
 
     // If `tracing` is not explicitly set, we default this based on whether or not tracing is enabled.
     // But for compatibility, we only do that if `enableIfHasTracingEnabled` is set.
@@ -275,8 +273,7 @@ function _createWrappedRequestMethodFactory(
     req: http.ClientRequest,
     res?: http.IncomingMessage,
   ): void {
-    // eslint-disable-next-line deprecation/deprecation
-    if (!getCurrentHub().getIntegration(Http)) {
+    if (!getClient()?.getIntegrationByName('Http')) {
       return;
     }
 
