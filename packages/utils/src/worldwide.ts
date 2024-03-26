@@ -46,7 +46,6 @@ export interface InternalGlobal {
    */
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
-    globalEventProcessors: any;
     hub: any;
     logger: any;
     extensions?: {

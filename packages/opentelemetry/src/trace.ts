@@ -12,6 +12,7 @@ import {
   getDynamicSamplingContextFromClient,
   getRootSpan,
   handleCallbackErrors,
+  spanToJSON,
 } from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
 import { continueTraceAsRemoteSpan, getSamplingDecision, makeTraceState } from './propagator';
@@ -46,7 +47,10 @@ export function startSpan<T>(options: OpenTelemetrySpanContext, callback: (span:
     return handleCallbackErrors(
       () => callback(span),
       () => {
-        span.setStatus({ code: SpanStatusCode.ERROR });
+        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+        if (spanToJSON(span).status === undefined) {
+          span.setStatus({ code: SpanStatusCode.ERROR });
+        }
       },
       () => span.end(),
     );
@@ -82,7 +86,10 @@ export function startSpanManual<T>(
     return handleCallbackErrors(
       () => callback(span, () => span.end()),
       () => {
-        span.setStatus({ code: SpanStatusCode.ERROR });
+        // Only set the span status to ERROR when there wasn't any status set before, in order to avoid stomping useful span statuses
+        if (spanToJSON(span).status === undefined) {
+          span.setStatus({ code: SpanStatusCode.ERROR });
+        }
       },
     );
   });

@@ -20,8 +20,6 @@ export type { BrowserOptions } from './client';
 export type { ReportDialogOptions } from './sdk';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,

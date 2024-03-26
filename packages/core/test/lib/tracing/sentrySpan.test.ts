@@ -1,7 +1,13 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
+import {
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+  spanIsSampled,
+  spanToJSON,
+  spanToTraceContext,
+} from '../../../src/utils/spanUtils';
 
 describe('SentrySpan', () => {
   describe('name', () => {
@@ -25,9 +31,9 @@ describe('SentrySpan', () => {
       const span = new SentrySpan({ sampled: true });
       // eslint-disable-next-line deprecation/deprecation
       const span2 = span.startChild();
-      expect((span2 as any).parentSpanId).toBe((span as any).spanId);
-      expect((span2 as any).traceId).toBe((span as any).traceId);
-      expect((span2 as any).sampled).toBe((span as any).sampled);
+      expect(spanToJSON(span2).parent_span_id).toBe(span.spanContext().spanId);
+      expect(span.spanContext().traceId).toBe(span.spanContext().traceId);
+      expect(spanIsSampled(span2)).toBe(spanIsSampled(span));
     });
   });
 
@@ -58,8 +64,13 @@ describe('SentrySpan', () => {
     });
 
     test('with parent', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
-      const spanB = new SentrySpan({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
+      const spanB = new SentrySpan({
+        traceId: 'c',
+        spanId: 'd',
+        sampled: false,
+        parentSpanId: spanA.spanContext().spanId,
+      });
       const serialized = spanToJSON(spanB);
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
@@ -67,9 +78,9 @@ describe('SentrySpan', () => {
     });
 
     test('should drop all `undefined` values', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
       const spanB = new SentrySpan({
-        parentSpanId: spanA.spanId,
+        parentSpanId: spanA.spanContext().spanId,
         spanId: 'd',
         traceId: 'c',
       });

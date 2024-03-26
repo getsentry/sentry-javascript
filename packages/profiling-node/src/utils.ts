@@ -1,13 +1,12 @@
 import * as os from 'os';
-import type { Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import * as Sentry from '@sentry/node-experimental';
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import type { Profile, ProfiledEvent, RawThreadCpuProfile, ThreadCpuProfile } from './types';
+import type { Profile, RawThreadCpuProfile, ThreadCpuProfile } from './types';
 import type { DebugImage } from './types';
 
 // We require the file because if we import it, it will be included in the bundle.
@@ -62,58 +61,17 @@ export function enrichWithThreadInformation(profile: ThreadCpuProfile | RawThrea
 }
 
 /**
- * Creates a profiling event envelope from a Sentry event. If profile does not pass
- * validation, returns null.
- * @param {Event}
- * @returns {Profile | null}
- */
-export function createProfilingEventFromTransaction(event: ProfiledEvent): Profile | null {
-  if (event.type !== 'transaction') {
-    // createProfilingEventEnvelope should only be called for transactions,
-    // we type guard this behavior with isProfiledTransactionEvent.
-    throw new TypeError('Profiling events may only be attached to transactions, this should never occur.');
-  }
-
-  const rawProfile = event.sdkProcessingMetadata['profile'];
-  if (rawProfile === undefined || rawProfile === null) {
-    throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile. Got ${rawProfile} instead.`,
-    );
-  }
-
-  if (!rawProfile.profile_id) {
-    throw new TypeError(
-      `Cannot construct profiling event envelope without a valid profile id. Got ${rawProfile.profile_id} instead.`,
-    );
-  }
-
-  if (!isValidProfile(rawProfile)) {
-    return null;
-  }
-
-  return createProfilePayload(rawProfile, {
-    release: event.release ?? '',
-    environment: event.environment ?? '',
-    event_id: event.event_id ?? '',
-    transaction: event.transaction ?? '',
-    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
-    trace_id: event.contexts?.['trace']?.['trace_id'] ?? '',
-    profile_id: rawProfile.profile_id,
-  });
-}
-
-/**
  * Creates a profiling envelope item, if the profile does not pass validation, returns null.
  * @param {RawThreadCpuProfile}
  * @param {Event}
  * @returns {Profile | null}
  */
-export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event): Profile | null {
+export function createProfilingEvent(client: Client, profile: RawThreadCpuProfile, event: Event): Profile | null {
   if (!isValidProfile(profile)) {
     return null;
   }
 
-  return createProfilePayload(profile, {
+  return createProfilePayload(client, profile, {
     release: event.release ?? '',
     environment: event.environment ?? '',
     event_id: event.event_id ?? '',
@@ -132,6 +90,7 @@ export function createProfilingEvent(profile: RawThreadCpuProfile, event: Event)
  */
 
 function createProfilePayload(
+  client: Client,
   cpuProfile: RawThreadCpuProfile,
   {
     release,
@@ -185,7 +144,7 @@ function createProfilePayload(
       is_emulator: false,
     },
     debug_meta: {
-      images: applyDebugMetadata(cpuProfile.resources),
+      images: applyDebugMetadata(client, cpuProfile.resources),
     },
     profile: enrichedThreadProfile,
     transaction: {
@@ -310,18 +269,13 @@ const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[
  * @param {string[]} resource_paths
  * @returns {DebugImage[]}
  */
-export function applyDebugMetadata(resource_paths: ReadonlyArray<string>): DebugImage[] {
+export function applyDebugMetadata(client: Client, resource_paths: ReadonlyArray<string>): DebugImage[] {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
-
   if (!debugIdMap) {
     return [];
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = Sentry.getCurrentHub();
-  // eslint-disable-next-line deprecation/deprecation
-  const client = hub.getClient();
-  const options = client && client.getOptions();
+  const options = client.getOptions();
 
   if (!options || !options.stackParser) {
     return [];
