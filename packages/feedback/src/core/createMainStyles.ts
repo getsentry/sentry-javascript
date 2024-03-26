@@ -33,6 +33,8 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
 
   --form-border-radius: ${theme.formBorderRadius};
   --form-content-border-radius: ${theme.formContentBorderRadius};
+
+  --crop-corner-border: ${theme.cropCornerBorder};
   `;
 }
 

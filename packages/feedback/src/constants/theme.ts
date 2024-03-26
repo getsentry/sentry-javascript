@@ -37,6 +37,8 @@ export const LIGHT_THEME = {
 
   formBorderRadius: '20px',
   formContentBorderRadius: '6px',
+
+  cropCornerBorder: '3px solid #ffffff',
 };
 
 export const DEFAULT_THEME = {

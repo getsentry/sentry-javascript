@@ -64,8 +64,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   height: 30px;
   position: absolute;
   background: none;
-  border: solid #FFFFFF;
-  border-width: 3px;
+  border: var(--crop-corner-border);
 }
 
 .editor__crop-corner--top-left {
