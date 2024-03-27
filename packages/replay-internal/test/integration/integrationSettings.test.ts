@@ -37,6 +37,19 @@ describe('Integration | integrationSettings', () => {
       expect(replay.getOptions().sessionSampleRate).toBe(0);
       expect(mockConsole).toBeCalledTimes(0);
     });
+
+    it('works with defining a string rate in SDK', async () => {
+      const { replay } = await mockSdk({
+        sentryOptions: {
+          // @ts-expect-error We want to test setting a string here
+          replaysSessionSampleRate: '0.5',
+        },
+        replayOptions: {},
+      });
+
+      expect(replay.getOptions().sessionSampleRate).toStrictEqual(0.5);
+      expect(mockConsole).toBeCalledTimes(0);
+    });
   });
 
   describe('replaysOnErrorSampleRate', () => {
@@ -61,6 +74,19 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ sentryOptions: { replaysOnErrorSampleRate: 0 }, replayOptions: {} });
 
       expect(replay.getOptions().errorSampleRate).toBe(0);
+      expect(mockConsole).toBeCalledTimes(0);
+    });
+
+    it('works with defining a string rate in SDK', async () => {
+      const { replay } = await mockSdk({
+        sentryOptions: {
+          // @ts-expect-error We want to test setting a string here
+          replaysOnErrorSampleRate: '0.5',
+        },
+        replayOptions: {},
+      });
+
+      expect(replay.getOptions().errorSampleRate).toStrictEqual(0.5);
       expect(mockConsole).toBeCalledTimes(0);
     });
   });

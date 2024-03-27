@@ -4,7 +4,6 @@ import {
   isError,
   isErrorEvent,
   isInstanceOf,
-  isNaN,
   isPlainObject,
   isPrimitive,
   isThenable,
@@ -119,21 +118,6 @@ describe('isInstanceOf()', () => {
     expect(isInstanceOf(new Error('wat'), 'wat')).toEqual(false);
     expect(isInstanceOf(new Error('wat'), null)).toEqual(false);
     expect(isInstanceOf(new Error('wat'), undefined)).toEqual(false);
-  });
-});
-
-describe('isNaN()', () => {
-  test('should work as advertised', () => {
-    expect(isNaN(NaN)).toEqual(true);
-
-    expect(isNaN(null)).toEqual(false);
-    expect(isNaN(true)).toEqual(false);
-    expect(isNaN('foo')).toEqual(false);
-    expect(isNaN(42)).toEqual(false);
-    expect(isNaN({})).toEqual(false);
-    expect(isNaN([])).toEqual(false);
-    expect(isNaN(new Error('foo'))).toEqual(false);
-    expect(isNaN(new Date())).toEqual(false);
   });
 });
 

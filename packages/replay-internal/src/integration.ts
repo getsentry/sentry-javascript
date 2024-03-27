@@ -1,4 +1,4 @@
-import { getClient } from '@sentry/core';
+import { getClient, parseSampleRate } from '@sentry/core';
 import type { BrowserClientReplayOptions, Integration, IntegrationFn } from '@sentry/types';
 import { consoleSandbox, dropUndefinedKeys, isBrowser } from '@sentry/utils';
 
@@ -367,7 +367,10 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
     return finalOptions;
   }
 
-  if (opt.replaysSessionSampleRate == null && opt.replaysOnErrorSampleRate == null) {
+  const replaysSessionSampleRate = parseSampleRate(opt.replaysSessionSampleRate);
+  const replaysOnErrorSampleRate = parseSampleRate(opt.replaysOnErrorSampleRate);
+
+  if (replaysSessionSampleRate == null && replaysOnErrorSampleRate == null) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
@@ -376,12 +379,12 @@ function loadReplayOptionsFromClient(initialOptions: InitialReplayPluginOptions)
     });
   }
 
-  if (typeof opt.replaysSessionSampleRate === 'number') {
-    finalOptions.sessionSampleRate = opt.replaysSessionSampleRate;
+  if (replaysSessionSampleRate != null) {
+    finalOptions.sessionSampleRate = replaysSessionSampleRate;
   }
 
-  if (typeof opt.replaysOnErrorSampleRate === 'number') {
-    finalOptions.errorSampleRate = opt.replaysOnErrorSampleRate;
+  if (replaysOnErrorSampleRate != null) {
+    finalOptions.errorSampleRate = replaysOnErrorSampleRate;
   }
 
   return finalOptions;
