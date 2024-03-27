@@ -17,3 +17,4 @@ export {
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
+export { sampleSpan } from './sampling';

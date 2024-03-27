@@ -86,6 +86,7 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
 } from './utils/spanUtils';
+export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';

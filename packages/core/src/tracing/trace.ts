@@ -18,7 +18,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-import { sampleTransaction } from './sampling';
+import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import type { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
@@ -301,7 +301,7 @@ function _startTransaction(transactionContext: TransactionArguments): Transactio
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
-  const [sampled, sampleRate] = sampleTransaction(transactionContext, options, {
+  const [sampled, sampleRate] = sampleSpan(options, {
     name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
