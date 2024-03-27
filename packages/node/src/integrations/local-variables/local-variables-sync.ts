@@ -1,11 +1,11 @@
-import { defineIntegration, getClient } from '@sentry/core';
-import type { Event, Exception, IntegrationFn, StackParser } from '@sentry/types';
+/* eslint-disable max-lines */
+import { convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
+import type { Event, Exception, Integration, IntegrationClass, IntegrationFn, StackParser } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import type { Debugger, InspectorNotification, Runtime } from 'inspector';
-import { Session } from 'inspector';
+import type { Debugger, InspectorNotification, Runtime, Session } from 'inspector';
+import type { NodeClient } from '../../client';
 
-import { NODE_MAJOR } from '../../nodeVersion';
-import type { NodeClient } from '../../sdk/client';
+import { NODE_VERSION } from '../../nodeVersion';
 import type {
   FrameVariables,
   LocalVariablesIntegrationOptions,
@@ -79,6 +79,22 @@ class AsyncSession implements DebugSession {
 
   /** Throws if inspector API is not available */
   public constructor() {
+    /*
+    TODO: We really should get rid of this require statement below for a couple of reasons:
+    1. It makes the integration unusable in the SvelteKit SDK, as it's not possible to use `require`
+       in SvelteKit server code (at least not by default).
+    2. Throwing in a constructor is bad practice
+
+    More context for a future attempt to fix this:
+    We already tried replacing it with import but didn't get it to work because of async problems.
+    We still called import in the constructor but assigned to a promise which we "awaited" in
+    `configureAndConnect`. However, this broke the Node integration tests as no local variables
+    were reported any more. We probably missed a place where we need to await the promise, too.
+    */
+
+    // Node can be built without inspector support so this can throw
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Session } = require('inspector');
     this._session = new Session();
   }
 
@@ -288,16 +304,14 @@ const _localVariablesSyncIntegration = ((
       return;
     }
 
-    // Filter out frames where the function name is `new Promise` since these are in the error.stack frames
-    // but do not appear in the debugger call frames
-    const frames = (exception.stacktrace?.frames || []).filter(frame => frame.function !== 'new Promise');
+    const frameCount = exception.stacktrace?.frames?.length || 0;
 
-    for (let i = 0; i < frames.length; i++) {
+    for (let i = 0; i < frameCount; i++) {
       // Sentry frames are in reverse order
-      const frameIndex = frames.length - i - 1;
+      const frameIndex = frameCount - i - 1;
 
       // Drop out if we run out of frames to match up
-      if (!frames[frameIndex] || !cachedFrame[i]) {
+      if (!exception?.stacktrace?.frames?.[frameIndex] || !cachedFrame[i]) {
         break;
       }
 
@@ -305,14 +319,14 @@ const _localVariablesSyncIntegration = ((
         // We need to have vars to add
         cachedFrame[i].vars === undefined ||
         // We're not interested in frames that are not in_app because the vars are not relevant
-        frames[frameIndex].in_app === false ||
+        exception.stacktrace.frames[frameIndex].in_app === false ||
         // The function names need to match
-        !functionNamesMatch(frames[frameIndex].function, cachedFrame[i].function)
+        !functionNamesMatch(exception.stacktrace.frames[frameIndex].function, cachedFrame[i].function)
       ) {
         continue;
       }
 
-      frames[frameIndex].vars = cachedFrame[i].vars;
+      exception.stacktrace.frames[frameIndex].vars = cachedFrame[i].vars;
     }
   }
 
@@ -333,7 +347,7 @@ const _localVariablesSyncIntegration = ((
       if (session && clientOptions?.includeLocalVariables) {
         // Only setup this integration if the Node version is >= v18
         // https://github.com/getsentry/sentry-javascript/issues/7697
-        const unsupportedNodeVersion = NODE_MAJOR < 18;
+        const unsupportedNodeVersion = NODE_VERSION.major < 18;
 
         if (unsupportedNodeVersion) {
           logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
@@ -386,7 +400,19 @@ const _localVariablesSyncIntegration = ((
   };
 }) satisfies IntegrationFn;
 
+export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);
+
 /**
  * Adds local variables to exception frames.
+ * @deprecated Use `localVariablesSyncIntegration()` instead.
  */
-export const localVariablesSyncIntegration = defineIntegration(_localVariablesSyncIntegration);
+// eslint-disable-next-line deprecation/deprecation
+export const LocalVariablesSync = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  localVariablesSyncIntegration,
+) as IntegrationClass<Integration & { processEvent: (event: Event) => Event; setup: (client: NodeClient) => void }> & {
+  new (options?: LocalVariablesIntegrationOptions, session?: DebugSession): Integration;
+};
+
+// eslint-disable-next-line deprecation/deprecation
+export type LocalVariablesSync = typeof LocalVariablesSync;

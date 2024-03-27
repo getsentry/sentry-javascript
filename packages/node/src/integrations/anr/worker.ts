@@ -1,12 +1,11 @@
 import {
-  applyScopeDataToEvent,
   createEventEnvelope,
   createSessionEnvelope,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
   updateSession,
 } from '@sentry/core';
-import type { Event, ScopeData, Session, StackFrame } from '@sentry/types';
+import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
 import {
   callFrameToStackFrame,
   normalizeUrlToBase,
@@ -17,11 +16,12 @@ import {
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
 
+import { createGetModuleFromFilename } from '../../module';
 import { makeNodeTransport } from '../../transports';
-import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';
 
 type VoidFunction = () => void;
+type InspectorSessionNodeV12 = InspectorSession & { connectToMainThread: VoidFunction };
 
 const options: WorkerStartData = workerData;
 let session: Session | undefined;
@@ -34,7 +34,7 @@ function log(msg: string): void {
   }
 }
 
-const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn, options.tunnel, options.sdkMetadata.sdk);
+const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn);
 const transport = makeNodeTransport({
   url,
   recordDroppedEvent: () => {
@@ -48,7 +48,7 @@ async function sendAbnormalSession(): Promise<void> {
     log('Sending abnormal session');
     updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
 
-    const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata, options.tunnel);
+    const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata);
     // Log the envelope so to aid in testing
     log(JSON.stringify(envelope));
 
@@ -87,23 +87,7 @@ function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[]
   return strippedFrames;
 }
 
-function applyScopeToEvent(event: Event, scope: ScopeData): void {
-  applyScopeDataToEvent(event, scope);
-
-  if (!event.contexts?.trace) {
-    const { traceId, spanId, parentSpanId } = scope.propagationContext;
-    event.contexts = {
-      trace: {
-        trace_id: traceId,
-        span_id: spanId,
-        parent_span_id: parentSpanId,
-      },
-      ...event.contexts,
-    };
-  }
-}
-
-async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
+async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext): Promise<void> {
   if (hasSentAnrEvent) {
     return;
   }
@@ -116,7 +100,7 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
 
   const event: Event = {
     event_id: uuid4(),
-    contexts: options.contexts,
+    contexts: { ...options.contexts, trace: traceContext },
     release: options.release,
     environment: options.environment,
     dist: options.dist,
@@ -136,19 +120,15 @@ async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<v
     tags: options.staticTags,
   };
 
-  if (scope) {
-    applyScopeToEvent(event, scope);
-  }
-
-  const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata, options.tunnel);
-  // Log the envelope to aid in testing
+  const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
+  // Log the envelope so to aid in testing
   log(JSON.stringify(envelope));
 
   await transport.send(envelope);
   await transport.flush(2000);
 
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
+  // Delay for 5 seconds so that stdio can flush in the main event loop ever restarts.
+  // This is mainly for the benefit of logging/debugging issues.
   setTimeout(() => {
     process.exit(0);
   }, 5_000);
@@ -159,7 +139,7 @@ let debuggerPause: VoidFunction | undefined;
 if (options.captureStackTrace) {
   log('Connecting to debugger');
 
-  const session = new InspectorSession();
+  const session = new InspectorSession() as InspectorSessionNodeV12;
   session.connectToMainThread();
 
   log('Connected to debugger');
@@ -192,23 +172,20 @@ if (options.captureStackTrace) {
         'Runtime.evaluate',
         {
           // Grab the trace context from the current scope
-          expression: 'global.__SENTRY_GET_SCOPES__();',
+          expression:
+            'const ctx = __SENTRY__.acs?.getCurrentScope().getPropagationContext() || {}; ctx.traceId + "-" + ctx.spanId + "-" + ctx.parentSpanId',
           // Don't re-trigger the debugger if this causes an error
           silent: true,
-          // Serialize the result to json otherwise only primitives are supported
-          returnByValue: true,
         },
-        (err, param) => {
-          if (err) {
-            log(`Error executing script: '${err.message}'`);
-          }
-
-          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
+        (_, param) => {
+          const traceId = param && param.result ? (param.result.value as string) : '--';
+          const [trace_id, span_id, parent_span_id] = traceId.split('-') as (string | undefined)[];
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');
 
-          sendAnrEvent(stackFrames, scopes).then(null, () => {
+          const context = trace_id?.length && span_id?.length ? { trace_id, span_id, parent_span_id } : undefined;
+          sendAnrEvent(stackFrames, context).then(null, () => {
             log('Sending ANR event failed.');
           });
         },
