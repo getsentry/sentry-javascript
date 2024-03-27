@@ -48,7 +48,7 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   const routehandlerTransaction = await routehandlerTransactionPromise;
   const routehandlerError = await errorEventPromise;
 
-  expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
+  expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');

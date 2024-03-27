@@ -10,6 +10,7 @@ import deepMerge from 'deepmerge';
 
 import {
   makeCleanupPlugin,
+  makeCodeCovPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
   makeNodeResolvePlugin,
@@ -42,6 +43,8 @@ export function makeBaseNPMConfig(options = {}) {
     excludeShadowDom: undefined,
     excludeIframe: undefined,
   });
+
+  const codecovPlugin = makeCodeCovPlugin();
 
   const defaultBaseConfig = {
     input: entrypoints,
@@ -103,6 +106,7 @@ export function makeBaseNPMConfig(options = {}) {
       debugBuildStatementReplacePlugin,
       rrwebBuildPlugin,
       cleanupPlugin,
+      codecovPlugin,
     ],
 
     // don't include imported modules from outside the package in the final output

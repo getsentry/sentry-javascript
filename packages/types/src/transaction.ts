@@ -57,25 +57,7 @@ export interface TraceparentData {
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends Omit<TransactionContext, 'name' | 'op'>, Span {
-  /**
-   * The ID of the transaction.
-   * @deprecated Use `spanContext().spanId` instead.
-   */
-  spanId: string;
-
-  /**
-   * The ID of the trace.
-   * @deprecated Use `spanContext().traceId` instead.
-   */
-  traceId: string;
-
-  /**
-   * Was this transaction chosen to be sent as part of the sample?
-   * @deprecated Use `spanIsSampled(transaction)` instead.
-   */
-  sampled?: boolean | undefined;
-
+export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
    * @inheritDoc
    */
@@ -198,12 +180,6 @@ export interface TransactionMetadata {
   /** For transactions tracing server-side request handling, the path of the request being tracked. */
   /** TODO: If we rm -rf `instrumentServer`, this can go, too */
   requestPath?: string;
-
-  /**
-   * Metadata for the transaction's spans, keyed by spanId.
-   * @deprecated This will be removed in v8.
-   */
-  spanMetadata: { [spanId: string]: { [key: string]: unknown } };
 }
 
 /**

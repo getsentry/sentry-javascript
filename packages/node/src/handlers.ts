@@ -29,6 +29,7 @@ import {
   normalize,
 } from '@sentry/utils';
 
+import { _setSpanForScope } from './_setSpanForScope';
 import type { NodeClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
 import { isAutoSessionTrackingEnabled } from './sdk';
@@ -78,8 +79,7 @@ export function tracingHandler(): (
     });
 
     // We put the transaction on the scope so users can attach children to it
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(transaction);
+    _setSpanForScope(getCurrentScope(), transaction);
 
     // We also set __sentry_transaction on the response so people can grab the transaction there to add
     // spans to it later.
@@ -232,8 +232,7 @@ export function errorHandler(options?: {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const transaction = (res as any).__sentry_transaction as Span;
         if (transaction && !getActiveSpan()) {
-          // eslint-disable-next-line deprecation/deprecation
-          _scope.setSpan(transaction);
+          _setSpanForScope(_scope, transaction);
         }
 
         const client = getClient<NodeClient>();

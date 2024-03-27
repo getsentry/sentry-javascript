@@ -24,6 +24,7 @@ import {
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
 } from './tracing';
+import { _getSpanForScope } from './utils/spanOnScope';
 import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -252,8 +253,7 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const span = scope.getSpan();
+    const span = _getSpanForScope(scope);
     if (span) {
       const rootSpan = getRootSpan(span);
       const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);

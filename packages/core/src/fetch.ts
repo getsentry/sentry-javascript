@@ -127,11 +127,8 @@ export function addTracingHeadersToFetchRequest(
         }
       | PolymorphicRequestHeaders;
   },
-  requestSpan?: Span,
+  span?: Span,
 ): PolymorphicRequestHeaders | undefined {
-  // eslint-disable-next-line deprecation/deprecation
-  const span = requestSpan || scope.getSpan();
-
   const isolationScope = getIsolationScope();
 
   const { traceId, spanId, sampled, dsc } = {

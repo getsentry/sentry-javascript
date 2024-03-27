@@ -271,6 +271,9 @@ jobs:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
+        # Set the CODECOV_TOKEN for Bundle Analysis
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
@@ -1049,7 +1052,8 @@ jobs:
             # 'node-hapi-app',
             'node-exports-test-app',
             'vue-3',
-            'webpack-4'
+            'webpack-4',
+            'webpack-5'
           ]
         build-command:
           - false

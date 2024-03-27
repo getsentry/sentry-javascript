@@ -1,4 +1,3 @@
-import nock from 'nock';
 import { NextTestEnv } from './utils/helpers';
 
 describe('Tracing HTTP', () => {
@@ -6,15 +5,22 @@ describe('Tracing HTTP', () => {
     const env = await NextTestEnv.init();
     const url = `${env.url}/api/http`;
 
-    // this intercepts the outgoing request made by the route handler (which it makes in order to test span creation)
-    nock('http://example.com').get('/').reply(200, 'ok');
-
-    const envelope = await env.getEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       envelopeType: 'transaction',
+      count: 2, // We will receive 2 transactions - one from Next.js instrumentation and one from our SDK
     });
 
-    expect(envelope[2]).toMatchObject({
+    const sentryTransactionEnvelope = envelopes.find(envelope => {
+      const envelopeItem = envelope[2];
+      return envelopeItem.transaction === 'GET /api/http';
+    });
+
+    expect(sentryTransactionEnvelope).toBeDefined();
+
+    const envelopeItem = sentryTransactionEnvelope![2];
+
+    expect(envelopeItem).toMatchObject({
       contexts: {
         trace: {
           op: 'http.server',
@@ -24,16 +30,6 @@ describe('Tracing HTTP', () => {
           },
         },
       },
-      spans: [
-        {
-          description: 'GET http://example.com/',
-          op: 'http.client',
-          status: 'ok',
-          data: {
-            'http.response.status_code': 200,
-          },
-        },
-      ],
       transaction: 'GET /api/http',
       transaction_info: {
         source: 'route',

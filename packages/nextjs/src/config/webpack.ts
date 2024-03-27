@@ -3,7 +3,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getSentryRelease } from '@sentry/node-experimental';
+import { getSentryRelease } from '@sentry/node';
 import { arrayify, escapeStringForRegex, loadModule, logger } from '@sentry/utils';
 import * as chalk from 'chalk';
 import { sync as resolveSync } from 'resolve';
@@ -59,6 +59,10 @@ export function constructWebpackConfigFunction(
   ): WebpackConfigObject {
     const { isServer, dev: isDev, dir: projectDir } = buildContext;
     const runtime = isServer ? (buildContext.nextRuntime === 'edge' ? 'edge' : 'server') : 'client';
+
+    if (runtime !== 'client') {
+      warnAboutDeprecatedConfigFiles(projectDir, runtime);
+    }
 
     let rawNewConfig = { ...incomingConfig };
 
@@ -508,25 +512,23 @@ async function addSentryToClientEntryProperty(
  * Searches for old `sentry.(server|edge).config.ts` files and warns if it finds any.
  *
  * @param projectDir The root directory of the project, where config files would be located
- * @param platform Either "server", "client" or "edge", so that we know which file to look for
+ * @param platform Either "server" or "edge", so that we know which file to look for
  */
-export function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' | 'client' | 'edge'): void {
+function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' | 'edge'): void {
   const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
 
   for (const filename of possibilities) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
-      if (platform === 'server' || platform === 'edge') {
-        // eslint-disable-next-line no-console
-        console.warn(
-          `[@sentry/nextjs] It seems you have configured a \`${filename}\` file. You need to put this file's content into a Next.js instrumentation hook instead! Read more: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation`,
-        );
-      }
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[@sentry/nextjs] It appears you've configured a \`${filename}\` file. Please ensure to put this file's content into the \`register()\` function of a Next.js instrumentation hook instead. To ensure correct functionality of the SDK, \`Sentry.init\` must be called inside \`instrumentation.ts\`. Learn more about setting up an instrumentation hook in Next.js: https://nextjs.org/docs/app/building-your-application/optimizing/instrumentation. You can safely delete the \`${filename}\` file afterward.`,
+      );
     }
   }
 }
 
 /**
- * Searches for a `sentry.client.config.ts|js` file and returns it's file name if it finds one. (ts being prioritized)
+ * Searches for a `sentry.client.config.ts|js` file and returns its file name if it finds one. (ts being prioritized)
  *
  * @param projectDir The root directory of the project, where config files would be located
  */

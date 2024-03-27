@@ -4,6 +4,51 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.6
+
+This is the sixth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
+
+### Important Changes
+
+- **feat(nextjs): Use OpenTelemetry for performance monitoring and tracing (#11016)**
+
+We now use OpenTelemetry under the hood to power performance monitoring and tracing in the Next.js SDK.
+
+### Removal/Refactoring of deprecated functionality
+
+- feat(v8): Remove addGlobalEventProcessor (#11255)
+- feat(v8): Remove deprecated span id fields (#11180)
+- feat(v8): Remove makeMain export (#11278)
+- feat(v8/core): Remove deprecated span.sampled (#11274)
+- feat(v8/core): Remove getActiveTransaction (#11280)
+- feat(v8/core): Remove spanMetadata field (#11271)
+- feat(v8/ember): Remove deprecated StartTransactionFunction (#11270)
+- feat(v8/replay): Remove deprecated replay options (#11268)
+- feat(v8/svelte): Remove deprecated componentTrackingPreprocessor export (#11277)
+- ref: Remove more usages of getCurrentHub in the codebase (#11281)
+- ref(core): Remove `scope.setSpan()` and `scope.getSpan()` methods (#11051)
+- ref(profiling-node): Remove usage of getCurrentHub (#11275)
+- ref(v8): change integration.setupOnce signature (#11238)
+
+### Other Changes
+
+- feat(feedback): Make "required" text for input elements configurable (#11152) (#11153)
+- feat(feedback): Update user feedback screenshot and cropping to align with designs (#11227)
+- feat(nextjs): Remove `runtime` and `vercel` tags (#11291)
+- feat(node): Add scope to ANR events (#11256)
+- feat(node): Do not include `prismaIntegration` by default (#11265)
+- feat(node): Ensure `tracePropagationTargets` are respected (#11285)
+- feat(node): Simplify `SentrySpanProcessor` (#11273)
+- feat(profiling): Use OTEL powered node package (#11239)
+- feat(utils): Allow text encoder/decoder polyfill from global **SENTRY** (#11283)
+- fix(nextjs): Show misconfiguration warning (no `instrumentation.ts`) (#11266)
+- fix(node): Add logs when node-fetch cannot be instrumented (#11289)
+- fix(node): Skip capturing Hapi Boom error responses. (#11151)
+- fix(node): Use `suppressTracing` to avoid capturing otel spans (#11288)
+- fix(opentelemetry): Do not stomp span status when `startSpan` callback throws (#11170)
+
 ## 8.0.0-alpha.5
 
 This is the fifth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
@@ -22,6 +67,12 @@ files. Instead, please initialize the Sentry Next.js SDK for the serverside in a
 [Migration Guide](./MIGRATION.md#updated-the-recommended-way-of-calling-sentryinit) for more details.
 
 In addition, the Next.js SDK now requires a minimum Next.js version of `13.2.0`.
+
+- **feat(v8/angular): Merge angular and angular-ivy packages and start Angular support at v14 (#11091)**
+
+The `@sentry/angular-ivy` package has been removed. The `@sentry/angular` package now supports Ivy by default and
+requires at least Angular 14. See the [Migration Guide](./MIGRATION.md#removal-of-sentryangular-ivy-package) for more
+details.
 
 ### Removal/Refactoring of deprecated functionality
 
@@ -454,6 +505,25 @@ We have also removed or updated a variety of deprecated APIs.
 - ref: Remove deprecated `showReportDialog` APIs (#10609)
 - ref: Remove usage of span tags (#10808)
 - ref: Remove user segment (#10575)
+
+## 7.108.0
+
+This release fixes issues with Time to First Byte (TTFB) calculation in the SDK that was introduced with `7.95.0`. It
+also fixes some bugs with Interaction to First Paint (INP) instrumentation. This may impact your Sentry Performance
+Score calculation.
+
+- feat(serverless): Add Node.js 20 to compatible runtimes (#11104)
+- feat(core): Backport `ResizeObserver` and `googletag` default filters (#11210)
+- feat(webvitals): Adds event entry names for INP handler. Also guard against empty metric value
+- fix(metrics): use correct statsd data category (#11187)
+- fix(node): Record local variables with falsy values (v7) (#11190)
+- fix(node): Use unique variable for ANR context transfer (v7) (#11162)
+- fix(node): Time zone handling for `cron` (#11225)
+- fix(tracing): use web-vitals ttfb calculation (#11231)
+- fix(types): Fix incorrect `sampled` type on `Transaction` (#11146)
+- fix(webvitals): Fix mapping not being maintained properly and sometimes not sending INP spans (#11183)
+
+Work in this release contributed by @quisido and @joshkel. Thank you for your contributions!
 
 ## 7.107.0
 

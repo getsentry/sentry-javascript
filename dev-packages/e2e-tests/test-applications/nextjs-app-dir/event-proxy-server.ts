@@ -147,7 +147,7 @@ export async function waitForRequest(
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
-    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
+    const request = http.request(`http://127.0.0.1:${eventCallbackServerPort}/`, {}, response => {
       let eventContents = '';
 
       response.on('error', err => {

@@ -49,6 +49,7 @@ We've removed the following packages:
 - [@sentry/tracing](./MIGRATION.md#sentrytracing)
 - [@sentry/integrations](./MIGRATION.md#sentryintegrations)
 - [@sentry/serverless](./MIGRATION.md#sentryserverless)
+- [@sentry/replay](./MIGRATION.md#sentryreplay)
 
 #### @sentry/hub
 
@@ -217,6 +218,20 @@ Sentry.init({
 });
 ```
 
+#### @sentry/replay
+
+`@sentry/replay` has been removed and will no longer be published. You can import replay functionality and the replay
+integration directly from the Browser SDK or browser framework-specific packages like `@sentry/react`.
+
+```js
+// v7
+import { Replay } from '@sentry/replay';
+```
+
+```js
+import { replayIntegration } from '@sentry/browser';
+```
+
 ## 3. Performance Monitoring Changes
 
 - [Initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk)
@@ -350,12 +365,13 @@ To make sure these integrations work properly you'll have to change how you
 - [Astro SDK](./MIGRATION.md#astro-sdk)
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
+- [Svelte SDK](./MIGRATION.md#svelte-sdk)
 
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
 `Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
-`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`
+`addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`, `getActiveTransaction`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
 
@@ -370,6 +386,7 @@ Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `t
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
 - [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
 - [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
+- [Remove `addGlobalEventProcessor` in favor of `addEventProcessor`](./MIGRATION.md#remove-addglobaleventprocessor-in-favor-of-addeventprocessor)
 
 #### Deprecation of `Hub` and `getCurrentHub()`
 
@@ -540,7 +557,7 @@ addGlobalEventProcessor(event => {
 
 ```js
 // v8
-addEventProcessor(event => {
+Sentry.getGlobalScope().addEventProcessor(event => {
   delete event.extra;
   return event;
 });
@@ -567,6 +584,26 @@ interface Transport {
 interface Transport {
   send(event: Event): Promise<TransportMakeRequestResponse>;
 }
+```
+
+#### Remove `addGlobalEventProcessor` in favor of `addEventProcessor`
+
+In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
+
+```js
+// v7
+addGlobalEventProcessor(event => {
+  delete event.extra;
+  return event;
+});
+```
+
+```js
+// v8
+addEventProcessor(event => {
+  delete event.extra;
+  return event;
+});
 ```
 
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)
@@ -897,7 +934,7 @@ replacement API.
 
 ### Ember SDK
 
-Removed top-level exports: `InitSentryForEmber`
+Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
 
@@ -905,6 +942,42 @@ Removed top-level exports: `InitSentryForEmber`
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+### Svelte SDK
+
+Removed top-level exports: `componentTrackingPreprocessor`
+
+#### Removal of `componentTrackingPreprocessor` export
+
+The `componentTrackingPreprocessor` export has been removed. You should instead use `withSentryConfig` to configure
+component tracking.
+
+```js
+// v7 - svelte.config.js
+import { componentTrackingPreprocessor } from '@sentry/svelte';
+
+const config = {
+  preprocess: [
+    componentTrackingPreprocessor(),
+    // ...
+  ],
+  // ...
+};
+
+export default config;
+```
+
+```js
+// v8 - svelte.config.js
+import { withSentryConfig } from "@sentry/svelte";
+
+const config = {
+  // Your svelte config
+  compilerOptions: {...},
+};
+
+export default withSentryConfig(config);
+```
 
 ## 5. Behaviour Changes
 
@@ -1601,7 +1674,7 @@ Sentry.init({
 ## Replay options changed (since 7.35.0) - #6645
 
 Some options for replay have been deprecated in favor of new APIs. See
-[Replay Migration docs](./packages/replay/MIGRATION.md#upgrading-replay-from-7340-to-7350) for details.
+[Replay Migration docs](./docs/migration/replay.md#upgrading-replay-from-7340-to-7350---6645) for details.
 
 ## Renaming of Next.js wrapper methods (since 7.31.0) - #6790
 
@@ -1639,4 +1712,4 @@ This release deprecates `@sentry/hub` and all of it's exports. All of the `@sent
 # Upgrading Sentry Replay (beta, 7.24.0)
 
 For details on upgrading Replay in its beta phase, please view the
-[dedicated Replay MIGRATION docs](./packages/replay/MIGRATION.md).
+[dedicated Replay MIGRATION docs](./docs/migration/replay.md).

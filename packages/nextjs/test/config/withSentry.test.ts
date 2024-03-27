@@ -27,7 +27,10 @@ describe('withSentry', () => {
         this.end();
       },
       end: function (this: AugmentedNextApiResponse) {
+        // eslint-disable-next-line deprecation/deprecation
         this.finished = true;
+        // @ts-expect-error This is a mock
+        this.writableEnded = true;
       },
     } as unknown as AugmentedNextApiResponse;
   });
@@ -40,14 +43,14 @@ describe('withSentry', () => {
     it('starts a transaction and sets metadata when tracing is enabled', async () => {
       await wrappedHandlerNoError(req, res);
       expect(startSpanManualSpy).toHaveBeenCalledWith(
-        {
+        expect.objectContaining({
           name: 'GET /my-parameterized-route',
           op: 'http.server',
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
           },
-        },
+        }),
         expect.any(Function),
       );
 

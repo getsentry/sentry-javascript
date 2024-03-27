@@ -8,13 +8,12 @@ import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, Session, SessionAggregates } from './session';
-import type { Transaction } from './transaction';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
 // Based on https://github.com/getsentry/relay/blob/b23b8d3b2360a54aaa4d19ecae0231201f31df5e/relay-sampling/src/lib.rs#L685-L707
 export type DynamicSamplingContext = {
-  trace_id: Transaction['traceId'];
+  trace_id: string;
   public_key: DsnComponents['publicKey'];
   sample_rate?: string;
   release?: string;

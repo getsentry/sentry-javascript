@@ -1,4 +1,4 @@
-import { DOCUMENT } from '../../constants';
+import { CROP_COLOR, DOCUMENT } from '../../constants';
 
 /**
  * Creates <style> element for widget dialog
@@ -6,8 +6,8 @@ import { DOCUMENT } from '../../constants';
 export function createScreenshotInputStyles(): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
-  const surface200 = '#FAF9FB';
-  const gray100 = '#F0ECF3';
+  const surface200 = '#1A141F';
+  const gray100 = '#302735';
 
   style.textContent = `
 .dialog__content:has(.editor) {
@@ -16,6 +16,9 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 }
 
 .editor {
+  padding: 10px;
+  padding-top: 65px;
+  padding-bottom: 65px;
   flex-grow: 1;
 
   background-color: ${surface200};
@@ -35,24 +38,19 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
     );
 }
 
-.canvasContainer {
+.editor__canvas-container {
   width: 100%;
   height: 100%;
   position: relative;
 }
 
-.canvasContainer canvas {
+.editor__canvas-container canvas {
   width: 100%;
   height: 100%;
   object-fit: contain;
 }
 
-.cropper {
-  width: 100%;
-  height: 100%;
-}
-
-.crop-btn-group {
+.editor__crop-btn-group {
   padding: 8px;
   gap: 8px;
   border-radius: var(--form-content-border-radius);
@@ -61,11 +59,33 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   position: absolute;
 }
 
-.crop-btn {
+.editor__crop-corner {
   width: 30px;
   height: 30px;
   position: absolute;
   background: none;
+  border: 3px solid ${CROP_COLOR};
+}
+
+.editor__crop-corner--top-left {
+  cursor: nwse-resize;
+  border-right: none;
+  border-bottom: none;
+}
+.editor__crop-corner--top-right {
+  cursor: nesw-resize;
+  border-left: none;
+  border-bottom: none;
+}
+.editor__crop-corner--bottom-left {
+  cursor: nesw-resize;
+  border-right: none;
+  border-top: none;
+}
+.editor__crop-corner--bottom-right {
+  cursor: nwse-resize;
+  border-left: none;
+  border-top: none;
 }
 `;
 

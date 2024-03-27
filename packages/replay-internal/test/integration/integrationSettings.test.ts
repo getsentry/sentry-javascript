@@ -11,24 +11,6 @@ describe('Integration | integrationSettings', () => {
 
       expect(replay['_recordingOptions'].blockSelector).toBe('.sentry-block,[data-sentry-block],base[href="/"]');
     });
-
-    it('sets the correct configuration when `blockSelector` is empty and `blockAllMedia` is enabled', async () => {
-      const { replay } = await mockSdk({ replayOptions: { blockSelector: '' } });
-
-      expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '",.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
-      );
-    });
-
-    it('preserves `blockSelector` when `blockAllMedia` is enabled', async () => {
-      const { replay } = await mockSdk({
-        replayOptions: { blockSelector: '[data-test-blockSelector]' },
-      });
-
-      expect(replay['_recordingOptions'].blockSelector).toMatchInlineSnapshot(
-        '"[data-test-blockSelector],.sentry-block,[data-sentry-block],base[href=\\"/\\"],img,image,svg,video,object,picture,embed,map,audio,link[rel=\\"icon\\"],link[rel=\\"apple-touch-icon\\"]"',
-      );
-    });
   });
 
   describe('replaysSessionSampleRate', () => {
@@ -123,14 +105,6 @@ describe('Integration | integrationSettings', () => {
       const { replay } = await mockSdk({ replayOptions: { maskAllText: false } });
 
       expect(replay['_recordingOptions'].maskAllText).toBe(false);
-    });
-  });
-
-  describe('maskTextSelector', () => {
-    it('can have custom mask selector', async () => {
-      const { replay } = await mockSdk({ replayOptions: { maskTextSelector: '[custom]' } });
-
-      expect(replay['_recordingOptions'].maskTextSelector).toBe('[custom],.sentry-mask,[data-sentry-mask]');
     });
   });
 

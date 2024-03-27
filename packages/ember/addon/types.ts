@@ -1,5 +1,4 @@
 import type { BrowserOptions, browserTracingIntegration } from '@sentry/browser';
-import type { Transaction, TransactionContext } from '@sentry/types';
 
 type BrowserTracingOptions = Parameters<typeof browserTracingIntegration>[0];
 
@@ -31,8 +30,6 @@ export interface EmberRouterMain {
     rootURL: string;
   };
 }
-/** @deprecated This will be removed in v8. */
-export type StartTransactionFunction = (context: TransactionContext) => Transaction | undefined;
 
 export type GlobalConfig = {
   __sentryEmberConfig: EmberSentryConfig['sentry'];

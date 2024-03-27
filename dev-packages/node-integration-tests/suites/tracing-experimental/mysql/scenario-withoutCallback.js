@@ -24,7 +24,7 @@ connection.connect(function (err) {
   }
 });
 
-Sentry.startSpan(
+Sentry.startSpanManual(
   {
     op: 'transaction',
     name: 'Test Transaction',

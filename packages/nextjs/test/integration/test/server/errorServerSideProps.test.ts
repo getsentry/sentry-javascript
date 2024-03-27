@@ -19,9 +19,6 @@ describe('Error Server-side Props', () => {
           },
         ],
       },
-      tags: {
-        runtime: 'node',
-      },
       request: {
         url,
         method: 'GET',
@@ -33,12 +30,22 @@ describe('Error Server-side Props', () => {
     const env = await NextTestEnv.init();
     const url = `${env.url}/withErrorServerSideProps`;
 
-    const envelope = await env.getEnvelopeRequest({
+    const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       envelopeType: 'transaction',
+      count: 2, // We will receive 2 transactions - one from Next.js instrumentation and one from our SDK
     });
 
-    expect(envelope[2]).toMatchObject({
+    const sentryTransactionEnvelope = envelopes.find(envelope => {
+      const envelopeItem = envelope[2];
+      return envelopeItem.transaction === '/withErrorServerSideProps';
+    });
+
+    expect(sentryTransactionEnvelope).toBeDefined();
+
+    const envelopeItem = sentryTransactionEnvelope![2];
+
+    expect(envelopeItem).toMatchObject({
       contexts: {
         trace: {
           op: 'http.server',
@@ -51,7 +58,7 @@ describe('Error Server-side Props', () => {
       },
       type: 'transaction',
       request: {
-        url,
+        url: expect.stringMatching(/http:\/\/localhost:[0-9]+\/withErrorServerSideProps/),
       },
     });
   });

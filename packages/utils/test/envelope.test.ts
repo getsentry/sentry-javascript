@@ -7,6 +7,8 @@ import {
   parseEnvelope,
   serializeEnvelope,
 } from '../src/envelope';
+import type { InternalGlobal } from '../src/worldwide';
+import { GLOBAL_OBJ } from '../src/worldwide';
 
 describe('envelope', () => {
   describe('createEnvelope()', () => {
@@ -23,6 +25,10 @@ describe('envelope', () => {
   });
 
   describe('serializeEnvelope and parseEnvelope', () => {
+    afterEach(() => {
+      delete (GLOBAL_OBJ as Partial<InternalGlobal>).__SENTRY__;
+    });
+
     it('serializes an envelope', () => {
       const env = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, []);
       const serializedEnvelope = serializeEnvelope(env);
@@ -32,7 +38,29 @@ describe('envelope', () => {
       expect(headers).toEqual({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' });
     });
 
-    it('serializes an envelope with attachments', () => {
+    test.each([
+      {
+        name: 'with TextEncoder/Decoder polyfill',
+        before: () => {
+          GLOBAL_OBJ.__SENTRY__ = {} as InternalGlobal['__SENTRY__'];
+          GLOBAL_OBJ.__SENTRY__.encodePolyfill = jest.fn<Uint8Array, [string]>((input: string) =>
+            new TextEncoder().encode(input),
+          );
+          GLOBAL_OBJ.__SENTRY__.decodePolyfill = jest.fn<string, [Uint8Array]>((input: Uint8Array) =>
+            new TextDecoder().decode(input),
+          );
+        },
+        after: () => {
+          expect(GLOBAL_OBJ.__SENTRY__.encodePolyfill).toHaveBeenCalled();
+          expect(GLOBAL_OBJ.__SENTRY__.decodePolyfill).toHaveBeenCalled();
+        },
+      },
+      {
+        name: 'with default TextEncoder/Decoder',
+      },
+    ])('serializes an envelope with attachments $name', ({ before, after }) => {
+      before?.();
+
       const items: EventEnvelope[1] = [
         [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }],
         [{ type: 'attachment', filename: 'bar.txt', length: 6 }, Uint8Array.from([1, 2, 3, 4, 5, 6])],
@@ -43,8 +71,6 @@ describe('envelope', () => {
         { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' },
         items,
       );
-
-      expect.assertions(6);
 
       const serializedEnvelope = serializeEnvelope(env);
       expect(serializedEnvelope).toBeInstanceOf(Uint8Array);
@@ -61,6 +87,8 @@ describe('envelope', () => {
         { type: 'attachment', filename: 'foo.txt', length: 6 },
         Uint8Array.from([7, 8, 9, 10, 11, 12]),
       ]);
+
+      after?.();
     });
 
     it("doesn't throw when being passed a an envelope that contains a circular item payload", () => {

@@ -614,7 +614,6 @@ describe('Integration | Transactions', () => {
 
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
 
-    const client = Sentry.getClient()!;
     const provider = getProvider();
     const multiSpanProcessor = provider?.activeSpanProcessor as
       | (SpanProcessor & { _spanProcessors?: SpanProcessor[] })
@@ -645,24 +644,19 @@ describe('Integration | Transactions', () => {
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
     });
 
-    // Nothing added to exporter yet
-    expect(exporter['_finishedSpans'].length).toBe(0);
+    jest.advanceTimersByTime(1);
 
-    void client.flush(5_000);
-    jest.advanceTimersByTime(5_000);
-
-    // Now the child-spans have been added to the exporter, but they are pending since they are waiting for their parant
+    // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
     expect(exporter['_finishedSpans'].length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
 
     // Now wait for 5 mins
-    jest.advanceTimersByTime(5 * 60 * 1_000);
+    jest.advanceTimersByTime(5 * 60 * 1_000 + 1);
 
     // Adding another span will trigger the cleanup
     Sentry.startSpan({ name: 'other span' }, () => {});
 
-    void client.flush(5_000);
-    jest.advanceTimersByTime(5_000);
+    jest.advanceTimersByTime(1);
 
     // Old spans have been cleared away
     expect(exporter['_finishedSpans'].length).toBe(0);
@@ -672,7 +666,8 @@ describe('Integration | Transactions', () => {
 
     expect(logs).toEqual(
       expect.arrayContaining([
-        'SpanExporter exported 0 spans, 2 unsent spans remaining',
+        'SpanExporter has 1 unsent spans remaining',
+        'SpanExporter has 2 unsent spans remaining',
         'SpanExporter exported 1 spans, 2 unsent spans remaining',
         `SpanExporter dropping span inner span 1 (${innerSpan1Id}) because it is pending for more than 5 minutes.`,
         `SpanExporter dropping span inner span 2 (${innerSpan2Id}) because it is pending for more than 5 minutes.`,
