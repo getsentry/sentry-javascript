@@ -273,7 +273,7 @@ export function createRunner(...paths: string[]) {
           });
 
           if (ensureNoErrorOutput) {
-            child.stderr.on('data', (data: Buffer) => {
+            child.stderr?.on('data', (data: Buffer) => {
               const output = data.toString();
               complete(new Error(`Expected no error output but got: '${output}'`));
             });
@@ -319,7 +319,7 @@ export function createRunner(...paths: string[]) {
           }
 
           let buffer = Buffer.alloc(0);
-          child.stdout.on('data', (data: Buffer) => {
+          child.stdout?.on('data', (data: Buffer) => {
             // This is horribly memory inefficient but it's only for tests
             buffer = Buffer.concat([buffer, data]);
 

@@ -6,6 +6,7 @@ const http = require('http');
 
 const app = fastify();
 const port = 3030;
+const port2 = 3040;
 
 Sentry.setupFastifyErrorHandler(app);
 
@@ -17,20 +18,22 @@ app.get('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-inbound-headers', function (req, res) {
+app.get('/test-inbound-headers/:id', function (req, res) {
   const headers = req.headers;
 
-  res.send({ headers });
+  res.send({ headers, id: req.params.id });
 });
 
-app.get('/test-outgoing-http', async function (req, res) {
-  const data = await makeHttpRequest('http://localhost:3030/test-inbound-headers');
+app.get('/test-outgoing-http/:id', async function (req, res) {
+  const id = req.params.id;
+  const data = await makeHttpRequest(`http://localhost:3030/test-inbound-headers/${id}`);
 
   res.send(data);
 });
 
-app.get('/test-outgoing-fetch', async function (req, res) {
-  const response = await fetch('http://localhost:3030/test-inbound-headers');
+app.get('/test-outgoing-fetch/:id', async function (req, res) {
+  const id = req.params.id;
+  const response = await fetch(`http://localhost:3030/test-inbound-headers/${id}`);
   const data = await response.json();
 
   res.send(data);
@@ -56,7 +59,47 @@ app.get('/test-exception', async function (req, res) {
   throw new Error('This is an exception');
 });
 
+app.get('/test-outgoing-fetch-external-allowed', async function (req, res) {
+  const fetchResponse = await fetch(`http://localhost:${port2}/external-allowed`);
+  const data = await fetchResponse.json();
+
+  res.send(data);
+});
+
+app.get('/test-outgoing-fetch-external-disallowed', async function (req, res) {
+  const fetchResponse = await fetch(`http://localhost:${port2}/external-disallowed`);
+  const data = await fetchResponse.json();
+
+  res.send(data);
+});
+
+app.get('/test-outgoing-http-external-allowed', async function (req, res) {
+  const data = await makeHttpRequest(`http://localhost:${port2}/external-allowed`);
+  res.send(data);
+});
+
+app.get('/test-outgoing-http-external-disallowed', async function (req, res) {
+  const data = await makeHttpRequest(`http://localhost:${port2}/external-disallowed`);
+  res.send(data);
+});
+
 app.listen({ port: port });
+
+// A second app so we can test header propagation between external URLs
+const app2 = fastify();
+app2.get('/external-allowed', function (req, res) {
+  const headers = req.headers;
+
+  res.send({ headers, route: '/external-allowed' });
+});
+
+app2.get('/external-disallowed', function (req, res) {
+  const headers = req.headers;
+
+  res.send({ headers, route: '/external-disallowed' });
+});
+
+app2.listen({ port: port2 });
 
 function makeHttpRequest(url) {
   return new Promise(resolve => {
@@ -67,9 +110,16 @@ function makeHttpRequest(url) {
         httpRes.on('data', chunk => {
           data.push(chunk);
         });
+        httpRes.on('error', error => {
+          resolve({ error: error.message, url });
+        });
         httpRes.on('end', () => {
-          const json = JSON.parse(Buffer.concat(data).toString());
-          resolve(json);
+          try {
+            const json = JSON.parse(Buffer.concat(data).toString());
+            resolve(json);
+          } catch {
+            resolve({ data: Buffer.concat(data).toString(), url });
+          }
         });
       })
       .end();

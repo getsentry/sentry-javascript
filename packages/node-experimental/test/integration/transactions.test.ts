@@ -644,6 +644,8 @@ describe('Integration | Transactions', () => {
       await new Promise(resolve => setTimeout(resolve, 10 * 60 * 1000));
     });
 
+    jest.advanceTimersByTime(1);
+
     // Child-spans have been added to the exporter, but they are pending since they are waiting for their parant
     expect(exporter['_finishedSpans'].length).toBe(2);
     expect(beforeSendTransaction).toHaveBeenCalledTimes(0);
