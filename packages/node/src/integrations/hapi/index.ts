@@ -16,6 +16,7 @@ import {
 
 import type { IntegrationFn } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+import { _setSpanForScope } from '../../_setSpanForScope';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -84,8 +85,7 @@ export const hapiTracingPlugin = {
         },
       );
 
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(transaction);
+      _setSpanForScope(getCurrentScope(), transaction);
 
       return h.continue;
     });

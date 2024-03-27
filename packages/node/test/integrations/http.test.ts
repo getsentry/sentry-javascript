@@ -11,6 +11,7 @@ import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
 
 import type { Breadcrumb } from '../../src';
+import { _setSpanForScope } from '../../src/_setSpanForScope';
 import { NodeClient } from '../../src/client';
 import {
   Http as HttpIntegration,
@@ -32,8 +33,7 @@ describe('tracing', () => {
   });
 
   afterEach(() => {
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(undefined);
+    _setSpanForScope(getCurrentScope(), undefined);
   });
 
   function createTransactionOnScope(
@@ -54,9 +54,7 @@ describe('tracing', () => {
     });
 
     expect(transaction).toBeInstanceOf(Transaction);
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(transaction);
-
+    _setSpanForScope(getCurrentScope(), transaction);
     return transaction;
   }
 
@@ -353,8 +351,7 @@ describe('tracing', () => {
     function createTransactionAndPutOnScope() {
       addTracingExtensions();
       const transaction = startInactiveSpan({ name: 'dogpark' });
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(transaction);
+      _setSpanForScope(getCurrentScope(), transaction);
       return transaction;
     }
 

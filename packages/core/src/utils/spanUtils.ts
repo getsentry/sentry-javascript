@@ -23,6 +23,7 @@ import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -251,8 +252,7 @@ export function getActiveSpan(): Span | undefined {
     return acs.getActiveSpan();
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getSpan();
+  return _getSpanForScope(getCurrentScope());
 }
 
 /**
