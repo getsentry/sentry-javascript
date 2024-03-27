@@ -1,11 +1,11 @@
-import { captureException, defineIntegration } from '@sentry/core';
+import { captureException, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
+import type { NodeClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
-import type { NodeClient } from '../sdk/client';
-import { logAndExitProcess } from '../utils/errorhandling';
+import { logAndExitProcess } from './utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
@@ -54,10 +54,27 @@ const _onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOp
   };
 }) satisfies IntegrationFn;
 
-/**
- * Add a global exception handler.
- */
 export const onUncaughtExceptionIntegration = defineIntegration(_onUncaughtExceptionIntegration);
+
+/**
+ * Global Exception handler.
+ * @deprecated Use `onUncaughtExceptionIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const OnUncaughtException = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  onUncaughtExceptionIntegration,
+) as IntegrationClass<Integration & { setup: (client: NodeClient) => void }> & {
+  new (
+    options?: Partial<{
+      exitEvenIfOtherHandlersAreRegistered: boolean;
+      onFatalError?(this: void, firstError: Error, secondError?: Error): void;
+    }>,
+  ): Integration;
+};
+
+// eslint-disable-next-line deprecation/deprecation
+export type OnUncaughtException = typeof OnUncaughtException;
 
 type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 
@@ -86,19 +103,20 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
       // exit behaviour of the SDK accordingly:
       // - If other listeners are attached, do not exit.
       // - If the only listener attached is ours, exit.
-      const userProvidedListenersCount = (global.process.listeners('uncaughtException') as TaggedListener[]).filter(
-        listener => {
+      const userProvidedListenersCount = (
+        global.process.listeners('uncaughtException') as TaggedListener[]
+      ).reduce<number>((acc, listener) => {
+        if (
           // There are 3 listeners we ignore:
-          return (
-            // as soon as we're using domains this listener is attached by node itself
-            listener.name !== 'domainUncaughtExceptionClear' &&
-            // the handler we register for tracing
-            listener.tag !== 'sentry_tracingErrorCallback' &&
-            // the handler we register in this integration
-            (listener as ErrorHandler)._errorHandler !== true
-          );
-        },
-      ).length;
+          listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
+          (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
+          (listener as ErrorHandler)._errorHandler // the handler we register in this integration
+        ) {
+          return acc;
+        } else {
+          return acc + 1;
+        }
+      }, 0);
 
       const processWouldExit = userProvidedListenersCount === 0;
       const shouldApplyFatalHandlingLogic = options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;

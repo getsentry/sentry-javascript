@@ -32,8 +32,6 @@ import type * as http from 'http';
 import type { OutgoingHttpHeaders } from 'http';
 import * as net from 'net';
 import * as tls from 'tls';
-// TODO (v8): Remove this when Node < 12 is no longer supported
-import { URL } from 'url';
 import { logger } from '@sentry/utils';
 import { Agent } from './base';
 import type { AgentConnectOpts } from './base';

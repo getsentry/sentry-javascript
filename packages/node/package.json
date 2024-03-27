@@ -1,9 +1,9 @@
 {
-  "name": "@sentry/node-experimental",
+  "name": "@sentry/node",
   "version": "8.0.0-alpha.7",
-  "description": "The old version of Sentry SDK for Node.js, without OpenTelemetry support.",
+  "description": "Sentry Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-experimental",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
@@ -42,22 +42,39 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "8.0.0-alpha.7",
+    "@opentelemetry/api": "1.7.0",
+    "@opentelemetry/context-async-hooks": "1.21.0",
+    "@opentelemetry/core": "1.21.0",
+    "@opentelemetry/instrumentation": "0.48.0",
+    "@opentelemetry/instrumentation-express": "0.35.0",
+    "@opentelemetry/instrumentation-fastify": "0.33.0",
+    "@opentelemetry/instrumentation-graphql": "0.37.0",
+    "@opentelemetry/instrumentation-hapi": "0.34.0",
+    "@opentelemetry/instrumentation-http": "0.48.0",
+    "@opentelemetry/instrumentation-koa": "0.37.0",
+    "@opentelemetry/instrumentation-mongodb": "0.39.0",
+    "@opentelemetry/instrumentation-mongoose": "0.35.0",
+    "@opentelemetry/instrumentation-mysql": "0.35.0",
+    "@opentelemetry/instrumentation-mysql2": "0.35.0",
+    "@opentelemetry/instrumentation-nestjs-core": "0.34.0",
+    "@opentelemetry/instrumentation-pg": "0.38.0",
+    "@opentelemetry/resources": "1.21.0",
+    "@opentelemetry/sdk-trace-base": "1.21.0",
+    "@opentelemetry/semantic-conventions": "1.21.0",
+    "@prisma/instrumentation": "5.9.0",
     "@sentry/core": "8.0.0-alpha.7",
+    "@sentry/opentelemetry": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7"
   },
   "devDependencies": {
-    "@types/cookie": "0.5.2",
-    "@types/express": "^4.17.14",
-    "@types/lru-cache": "^5.1.0",
-    "@types/node": "14.18.63",
-    "express": "^4.17.1",
-    "nock": "^13.0.5",
-    "undici": "^5.21.0"
+    "@types/node": "^14.18.0"
+  },
+  "optionalDependencies": {
+    "opentelemetry-instrumentation-fetch-node": "1.1.2"
   },
   "scripts": {
-    "build": "run-s build:transpile build:types",
+    "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "run-s build:types:core build:types:downlevel",
@@ -69,26 +86,16 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-node-*.tgz",
+    "clean": "rimraf build coverage sentry-node-experimental-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "run-s test:jest test:express test:webpack test:release-health",
-    "test:express": "node test/manual/express-scope-separation/start.js",
+    "test": "yarn test:jest",
     "test:jest": "jest",
-    "test:release-health": "node test/manual/release-health/runner.js",
-    "test:webpack": "cd test/manual/webpack-async-context/ && yarn --silent --ignore-engines && node npm-build.js",
     "test:watch": "jest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {
     "extends": "../../package.json"
-  },
-  "madge": {
-    "detectiveOptions": {
-      "ts": {
-        "skipTypeImports": true
-      }
-    }
   },
   "sideEffects": false
 }

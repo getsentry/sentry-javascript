@@ -1,4 +1,3 @@
-/* eslint-disable deprecation/deprecation */
 import * as http from 'http';
 import * as https from 'https';
 import { createTransport } from '@sentry/core';
@@ -50,19 +49,18 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    if (res.connection) {
-      res.connection.end();
-    }
+    // eslint-disable-next-line deprecation/deprecation
+    res.connection?.end();
   });
 
-  testServer.listen(8099);
+  testServer.listen(8100);
 
   return new Promise(resolve => {
     testServer?.on('listening', resolve);
   });
 }
 
-const TEST_SERVER_URL = 'https://localhost:8099';
+const TEST_SERVER_URL = 'https://localhost:8100';
 
 const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
