@@ -23,6 +23,7 @@ function renderDialog({
   messagePlaceholder = 'What is the issue?',
   cancelButtonLabel = 'Cancel!',
   submitButtonLabel = 'Submit!',
+  isRequiredLabel = '(needed!)',
   ...rest
 }: Partial<DialogProps> = {}) {
   return Dialog({
@@ -44,6 +45,7 @@ function renderDialog({
     messagePlaceholder,
     cancelButtonLabel,
     submitButtonLabel,
+    isRequiredLabel,
     ...rest,
   }) as NonNullableFields<ReturnType<typeof Dialog>>;
 }

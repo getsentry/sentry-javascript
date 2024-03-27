@@ -70,6 +70,7 @@ export const MESSAGE_PLACEHOLDER = "What's the bug? What did you expect?";
 export const MESSAGE_LABEL = 'Description';
 export const NAME_PLACEHOLDER = 'Your Name';
 export const NAME_LABEL = 'Name';
+export const IS_REQUIRED_LABEL = '(required)';
 export const SUCCESS_MESSAGE_TEXT = 'Thank you for your report!';
 
 export const FEEDBACK_WIDGET_SOURCE = 'widget';

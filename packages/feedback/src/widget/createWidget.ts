@@ -200,6 +200,7 @@ export function createWidget({
         messagePlaceholder: options.messagePlaceholder,
         nameLabel: options.nameLabel,
         namePlaceholder: options.namePlaceholder,
+        isRequiredLabel: options.isRequiredLabel,
         defaultName: (userKey && user && user[userKey.name]) || '',
         defaultEmail: (userKey && user && user[userKey.email]) || '',
         onClosed: () => {
