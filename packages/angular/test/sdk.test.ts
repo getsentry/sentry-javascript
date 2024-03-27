@@ -1,6 +1,6 @@
 import * as SentryBrowser from '@sentry/browser';
 import { vi } from 'vitest';
-import { getDefaultIntegrations, init } from '../src/index';
+import { getDefaultIntegrations, init } from '../src/sdk';
 
 describe('init', () => {
   it('sets the Angular version (if available) in the global scope', () => {
@@ -14,39 +14,16 @@ describe('init', () => {
     expect(setContextSpy).toHaveBeenCalledWith('angular', { version: 14 });
   });
 
-  describe('filtering out the `BrowserApiErrors` integration', () => {
-    const browserInitSpy = vi.spyOn(SentryBrowser, 'init');
+  it('does not include the BrowserApiErrors integration', () => {
+    const browserDefaultIntegrationsWithoutBrowserApiErrors = SentryBrowser.getDefaultIntegrations()
+      .filter(i => i.name !== 'BrowserApiErrors')
+      .map(i => i.name)
+      .sort();
 
-    beforeEach(() => {
-      browserInitSpy.mockClear();
-    });
+    const angularDefaultIntegrations = getDefaultIntegrations()
+      .map(i => i.name)
+      .sort();
 
-    it('filters if `defaultIntegrations` is not set', () => {
-      init({});
-
-      expect(browserInitSpy).toHaveBeenCalledTimes(1);
-
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).not.toContainEqual(expect.objectContaining({ name: 'BrowserApiErrors' }));
-    });
-
-    it("doesn't filter if `defaultIntegrations` is set to `false`", () => {
-      init({ defaultIntegrations: false });
-
-      expect(browserInitSpy).toHaveBeenCalledTimes(1);
-
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).toEqual(false);
-    });
-
-    it("doesn't filter if `defaultIntegrations` is overwritten", () => {
-      const defaultIntegrations = getDefaultIntegrations({});
-      init({ defaultIntegrations });
-
-      expect(browserInitSpy).toHaveBeenCalledTimes(1);
-
-      const options = browserInitSpy.mock.calls[0][0] || {};
-      expect(options.defaultIntegrations).toEqual(defaultIntegrations);
-    });
+    expect(angularDefaultIntegrations).toEqual(browserDefaultIntegrationsWithoutBrowserApiErrors);
   });
 });
