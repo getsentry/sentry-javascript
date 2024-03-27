@@ -1,4 +1,4 @@
-import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -62,8 +62,6 @@ export function withErrorBoundary<P extends Record<string, any>>(
 export function showReportDialog(): void {
   return;
 }
-
-const IS_VERCEL = !!process.env.VERCEL;
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
@@ -172,12 +170,6 @@ export function init(options: NodeOptions): void {
       { id: 'NextFilterSentrySpans' },
     ),
   );
-
-  // TODO(v8): Remove these tags
-  setTag('runtime', 'node');
-  if (IS_VERCEL) {
-    setTag('vercel', true);
-  }
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);

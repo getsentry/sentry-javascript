@@ -70,14 +70,6 @@ describe('Server init()', () => {
     expect(nodeInit).toHaveBeenCalledTimes(1);
   });
 
-  it('sets runtime on scope', () => {
-    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({});
-
-    init({ dsn: 'https://public@dsn.ingest.sentry.io/1337' });
-
-    expect(SentryNode.getIsolationScope().getScopeData().tags).toEqual({ runtime: 'node' });
-  });
-
   // TODO: test `vercel` tag when running on Vercel
   // Can't just add the test and set env variables, since the value in `index.server.ts`
   // is resolved when importing.
