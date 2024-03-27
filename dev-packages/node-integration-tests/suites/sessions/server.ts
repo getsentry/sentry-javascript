@@ -1,16 +1,14 @@
-/* eslint-disable no-console */
 import type { SessionFlusher } from '@sentry/core';
-import * as Sentry from '@sentry/node-experimental';
-import express from 'express';
-
-const app = express();
+import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
 });
 
-app.use(Sentry.Handlers.requestHandler());
+import express from 'express';
+
+const app = express();
 
 // ### Taken from manual tests ###
 // Hack that resets the 60s default flush interval, and replaces it with just a one second interval
@@ -52,6 +50,6 @@ app.get('/test/error_handled', (_req, res) => {
   res.send('Crash!');
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 export default app;

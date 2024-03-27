@@ -1,11 +1,12 @@
-import * as http from 'http';
-import * as Sentry from '@sentry/node-experimental';
+import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
   tracesSampleRate: 1.0,
 });
+
+import * as http from 'http';
 
 // eslint-disable-next-line @typescript-eslint/no-floating-promises
 Sentry.startSpan({ name: 'test_transaction' }, async () => {

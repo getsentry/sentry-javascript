@@ -118,7 +118,6 @@ jobs:
             node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-experimental/**'
               - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
@@ -135,7 +134,6 @@ jobs:
             profiling_node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:

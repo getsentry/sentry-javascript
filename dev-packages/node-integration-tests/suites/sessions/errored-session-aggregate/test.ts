@@ -2,7 +2,9 @@ import path from 'path';
 
 import { TestEnv } from '../../../utils';
 
-test('should aggregate successful, crashed and erroneous sessions', async () => {
+// TODO: Convert this test to the new test runner
+// eslint-disable-next-line jest/no-disabled-tests
+test.skip('should aggregate successful, crashed and erroneous sessions', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const aggregateSessionEnvelope = await Promise.race([
