@@ -7,6 +7,10 @@
  * Sucrase plugin docs: https://github.com/rollup/plugins/tree/master/packages/sucrase
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { codecovRollupPlugin } from '@codecov/rollup-plugin';
 import json from '@rollup/plugin-json';
 import replace from '@rollup/plugin-replace';
 import sucrase from '@rollup/plugin-sucrase';
@@ -135,6 +139,21 @@ export function makeRrwebBuildPlugin({ excludeShadowDom, excludeIframe } = {}) {
   return replace({
     preventAssignment: true,
     values,
+  });
+}
+
+/**
+ * Plugin that uploads bundle analysis to codecov.
+ *
+ * @param type The type of bundle being uploaded.
+ * @param prefix The prefix for the codecov bundle name. Defaults to 'npm'.
+ */
+export function makeCodeCovPlugin() {
+  const packageJson = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
+  return codecovRollupPlugin({
+    enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+    bundleName: packageJson.name,
+    uploadToken: process.env.CODECOV_TOKEN,
   });
 }
 

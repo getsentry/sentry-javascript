@@ -51,13 +51,14 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         );
 
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
-        isolationScope.setPropagationContext(propagationContext);
+
         getCurrentScope().setPropagationContext(propagationContext);
 
         return startSpanManual(
           {
             op: 'function.nextjs',
             name: `${componentType} Server Component (${componentRoute})`,
+            forceTransaction: true,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',

@@ -23,6 +23,7 @@ import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
+import { _getSpanForScope } from './spanOnScope';
 
 // These are aligned with OpenTelemetry trace flags
 export const TRACE_FLAG_NONE = 0x0;
@@ -85,12 +86,10 @@ function ensureTimestampInSeconds(timestamp: number): number {
 
 /**
  * Convert a span to a JSON representation.
- * Note that all fields returned here are optional and need to be guarded against.
- *
- * Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
- * This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
- * And `spanToJSON` needs the Span class from `span.ts` to check here.
  */
+// Note: Because of this, we currently have a circular type dependency (which we opted out of in package.json).
+// This is not avoidable as we need `spanToJSON` in `spanUtils.ts`, which in turn is needed by `span.ts` for backwards compatibility.
+// And `spanToJSON` needs the Span class from `span.ts` to check here.
 export function spanToJSON(span: Span): Partial<SpanJSON> {
   if (spanIsSentrySpan(span)) {
     return span.getSpanJSON();
@@ -253,8 +252,7 @@ export function getActiveSpan(): Span | undefined {
     return acs.getActiveSpan();
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  return getCurrentScope().getSpan();
+  return _getSpanForScope(getCurrentScope());
 }
 
 /**

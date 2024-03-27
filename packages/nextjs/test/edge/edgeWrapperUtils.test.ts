@@ -3,9 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import { withEdgeWrapping } from '../../src/common/utils/edgeWrapperUtils';
 
-// @ts-expect-error Request does not exist on type Global
 const origRequest = global.Request;
-// @ts-expect-error Response does not exist on type Global
 const origResponse = global.Response;
 
 // @ts-expect-error Request does not exist on type Global
@@ -21,9 +19,7 @@ global.Request = class Request {
 global.Response = class Request {};
 
 afterAll(() => {
-  // @ts-expect-error Request does not exist on type Global
   global.Request = origRequest;
-  // @ts-expect-error Response does not exist on type Global
   global.Response = origResponse;
 });
 

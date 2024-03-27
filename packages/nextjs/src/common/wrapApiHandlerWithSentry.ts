@@ -87,6 +87,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
               {
                 name: `${reqMethod}${reqPath}`,
                 op: 'http.server',
+                forceTransaction: true,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',
@@ -115,7 +116,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
                   if (
                     process.env.NODE_ENV === 'development' &&
                     !process.env.SENTRY_IGNORE_API_RESOLUTION_ERROR &&
-                    !res.finished
+                    !res.writableEnded
                   ) {
                     consoleSandbox(() => {
                       // eslint-disable-next-line no-console

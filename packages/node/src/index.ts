@@ -21,8 +21,6 @@ export type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sen
 export type { NodeOptions } from './types';
 
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
   addEventProcessor,
   addBreadcrumb,
   addIntegration,
@@ -33,8 +31,6 @@ export {
   createTransport,
   flush,
   // eslint-disable-next-line deprecation/deprecation
-  getActiveTransaction,
-  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
   getClient,
   isInitialized,
@@ -42,8 +38,6 @@ export {
   getGlobalScope,
   getIsolationScope,
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
   setCurrentClient,
   Scope,
   SDK_VERSION,

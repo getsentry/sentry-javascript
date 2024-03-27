@@ -9,7 +9,6 @@ describe('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
   beforeEach(() => {
     const dom = new JSDOM();
-    // @ts-expect-error need to override global document
     global.document = dom.window.document;
 
     const options = getDefaultClientOptions({ tracesSampleRate: 1 });
@@ -19,7 +18,6 @@ describe('registerBackgroundTabDetection', () => {
 
     addTracingExtensions();
 
-    // @ts-expect-error need to override global document
     global.document.addEventListener = jest.fn((event, callback) => {
       events[event] = callback;
     });

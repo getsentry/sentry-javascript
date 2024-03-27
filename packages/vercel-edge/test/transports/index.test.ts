@@ -25,13 +25,10 @@ class Headers {
 
 const mockFetch = jest.fn();
 
-// @ts-expect-error fetch is not on global
 const oldFetch = global.fetch;
-// @ts-expect-error fetch is not on global
 global.fetch = mockFetch;
 
 afterAll(() => {
-  // @ts-expect-error fetch is not on global
   global.fetch = oldFetch;
 });
 

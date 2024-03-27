@@ -1,3 +1,4 @@
+import type { Event } from '@sentry/types';
 import { getActiveSpan, getClient, startInactiveSpan, startSpan, withActiveSpan } from '../../src';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -64,7 +65,11 @@ describe('withActiveSpan()', () => {
   });
 
   it('when `null` is passed, should start a new trace for new spans', async () => {
-    const beforeSendTransaction = jest.fn(() => null);
+    const transactions: Event[] = [];
+    const beforeSendTransaction = jest.fn((event: Event) => {
+      transactions.push(event);
+      return null;
+    });
     mockSdkInit({ enableTracing: true, beforeSendTransaction });
     const client = getClient();
 

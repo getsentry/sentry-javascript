@@ -16,15 +16,12 @@ import {
 
 import type { IntegrationFn } from '@sentry/types';
 import { dynamicSamplingContextToSentryBaggageHeader, fill } from '@sentry/utils';
+import { _setSpanForScope } from '../../_setSpanForScope';
 
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
 function isResponseObject(response: ResponseObject | Boom): response is ResponseObject {
   return response && (response as ResponseObject).statusCode !== undefined;
-}
-
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
 }
 
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
@@ -54,9 +51,7 @@ export const hapiErrorPlugin = {
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
       }
 
@@ -90,8 +85,7 @@ export const hapiTracingPlugin = {
         },
       );
 
-      // eslint-disable-next-line deprecation/deprecation
-      getCurrentScope().setSpan(transaction);
+      _setSpanForScope(getCurrentScope(), transaction);
 
       return h.continue;
     });

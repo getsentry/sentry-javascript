@@ -203,23 +203,6 @@ describe('Scope', () => {
       expect(scope['_user']).toEqual({});
     });
 
-    test('setSpan', () => {
-      const scope = new Scope();
-      const span = { fake: 'span' } as any;
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(span);
-      expect(scope['_span']).toEqual(span);
-    });
-
-    test('setSpan with no value unsets it', () => {
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan({ fake: 'span' } as any);
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan();
-      expect(scope['_span']).toEqual(undefined);
-    });
-
     test('setProcessingMetadata', () => {
       const scope = new Scope();
       scope.setSDKProcessingMetadata({ dogs: 'are great!' });

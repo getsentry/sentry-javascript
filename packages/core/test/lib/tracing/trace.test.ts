@@ -23,6 +23,7 @@ import {
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
+import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -259,8 +260,7 @@ describe('startSpan', () => {
 
     const manualScope = initialScope.clone();
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    _setSpanForScope(manualScope, parentSpan);
 
     startSpan({ name: 'GET users/[id]', scope: manualScope }, span => {
       expect(getCurrentScope()).not.toBe(initialScope);
@@ -354,6 +354,7 @@ describe('startSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -575,8 +576,7 @@ describe('startSpanManual', () => {
 
     const manualScope = initialScope.clone();
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    _setSpanForScope(manualScope, parentSpan);
 
     startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
@@ -679,6 +679,7 @@ describe('startSpanManual', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -840,8 +841,7 @@ describe('startInactiveSpan', () => {
 
     const manualScope = initialScope.clone();
     const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    _setSpanForScope(manualScope, parentSpan);
 
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
@@ -932,6 +932,7 @@ describe('startInactiveSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -1206,11 +1207,11 @@ describe('getActiveSpan', () => {
 
   it('works with an active span on the scope', () => {
     const activeSpan = new SentrySpan({ spanId: 'aha' });
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(activeSpan);
 
-    const span = getActiveSpan();
-    expect(span).toBe(activeSpan);
+    withActiveSpan(activeSpan, () => {
+      const span = getActiveSpan();
+      expect(span).toBe(activeSpan);
+    });
   });
 
   it('uses implementation from ACS, if it exists', () => {

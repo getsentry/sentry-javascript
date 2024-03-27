@@ -62,7 +62,6 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     contextLinesIntegration(),
     localVariablesIntegration(),
     nodeContextIntegration(),
-    httpIntegration(),
     ...getCjsOnlyIntegrations(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];

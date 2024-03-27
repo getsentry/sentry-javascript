@@ -5,6 +5,8 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { addBreadcrumb, defineIntegration } from '@sentry/core';
 import { _INTERNAL, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../debug-build';
 import { NODE_MAJOR } from '../nodeVersion';
 
 import { addOriginToSpan } from '../utils/addOriginToSpan';
@@ -28,8 +30,9 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
   async function getInstrumentation(): Promise<[Instrumentation] | void> {
-    // Only add NodeFetch if Node >= 16, as previous versions do not support it
-    if (NODE_MAJOR < 16) {
+    // Only add NodeFetch if Node >= 18, as previous versions do not support it
+    if (NODE_MAJOR < 18) {
+      DEBUG_BUILD && logger.log('NodeFetch is not supported on Node < 18, skipping instrumentation...');
       return;
     }
 
@@ -53,6 +56,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
       ];
     } catch (error) {
       // Could not load instrumentation
+      DEBUG_BUILD && logger.log('Could not load NodeFetch instrumentation.');
     }
   }
 

@@ -530,18 +530,6 @@ export class Hub implements HubInterface {
 }
 
 /**
- * Replaces the current main hub with the passed one on the global object
- *
- * @returns The old replaced hub
- *
- * @deprecated Use `setCurrentClient()` instead.
- */
-export function makeMain(hub: HubInterface): HubInterface {
-  // noop!
-  return hub;
-}
-
-/**
  * Returns the default hub instance.
  *
  * If a hub is already registered in the global carrier but this module

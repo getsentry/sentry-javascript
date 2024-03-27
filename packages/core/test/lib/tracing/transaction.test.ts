@@ -32,15 +32,12 @@ describe('transaction', () => {
     /* eslint-disable deprecation/deprecation */
     it('works with defaults', () => {
       const transaction = new Transaction({ name: 'span name' });
-      expect(transaction.metadata).toEqual({
-        spanMetadata: {},
-      });
+      expect(transaction.metadata).toEqual({});
     });
 
     it('allows to set metadata in constructor', () => {
       const transaction = new Transaction({ name: 'span name', metadata: { request: {} } });
       expect(transaction.metadata).toEqual({
-        spanMetadata: {},
         request: {},
       });
     });
@@ -57,7 +54,6 @@ describe('transaction', () => {
 
       expect(transaction.metadata).toEqual({
         sampleRate: 0.5,
-        spanMetadata: {},
         request: {},
       });
 
@@ -74,7 +70,6 @@ describe('transaction', () => {
       transaction.setMetadata({ request: {} });
 
       expect(transaction.metadata).toEqual({
-        spanMetadata: {},
         request: {},
       });
     });

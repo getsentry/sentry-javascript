@@ -1,5 +1,5 @@
 import { defineIntegration, getClient } from '@sentry/core';
-import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -9,6 +9,7 @@ import {
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
+  IS_REQUIRED_TEXT,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
@@ -42,7 +43,7 @@ interface PublicFeedbackIntegration {
   closeDialog: () => void;
   removeWidget: () => void;
 }
-export type IFeedbackIntegration = IntegrationFnResult & PublicFeedbackIntegration;
+export type IFeedbackIntegration = Integration & PublicFeedbackIntegration;
 
 export const _feedbackIntegration = (({
   // FeedbackGeneralConfiguration
@@ -76,6 +77,7 @@ export const _feedbackIntegration = (({
   nameLabel = NAME_LABEL,
   namePlaceholder = NAME_PLACEHOLDER,
   successMessageText = SUCCESS_MESSAGE_TEXT,
+  isRequiredText = IS_REQUIRED_TEXT,
 
   // FeedbackCallbacks
   onFormOpen,
@@ -116,6 +118,7 @@ export const _feedbackIntegration = (({
     nameLabel,
     namePlaceholder,
     successMessageText,
+    isRequiredText,
 
     onFormClose,
     onFormOpen,

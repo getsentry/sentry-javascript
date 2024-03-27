@@ -1,8 +1,6 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import type { ExportResult } from '@opentelemetry/core';
-import { ExportResultCode } from '@opentelemetry/core';
-import type { ReadableSpan, SpanExporter } from '@opentelemetry/sdk-trace-base';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { captureEvent, getMetricSummaryJsonForSpan } from '@sentry/core';
 import {
@@ -21,6 +19,7 @@ import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
 import type { SpanNode } from './utils/groupSpansWithParents';
+import { getLocalParentId } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
@@ -31,38 +30,72 @@ type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
-export class SentrySpanExporter implements SpanExporter {
+export class SentrySpanExporter {
+  private _flushTimeout: ReturnType<typeof setTimeout> | undefined;
   private _finishedSpans: ReadableSpan[];
-  private _stopped: boolean;
 
   public constructor() {
-    this._stopped = false;
     this._finishedSpans = [];
   }
 
-  /** @inheritDoc */
-  public export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
-    if (this._stopped) {
-      return resultCallback({
-        code: ExportResultCode.FAILED,
-        error: new Error('Exporter has been stopped'),
-      });
+  /** Export a single span. */
+  public export(span: ReadableSpan): void {
+    this._finishedSpans.push(span);
+
+    // If the span has a local parent ID, we don't need to export anything just yet
+    if (getLocalParentId(span)) {
+      const openSpanCount = this._finishedSpans.length;
+      DEBUG_BUILD && logger.log(`SpanExporter has ${openSpanCount} unsent spans remaining`);
+      this._cleanupOldSpans();
+      return;
     }
 
-    const openSpanCount = this._finishedSpans.length;
-    const newSpanCount = spans.length;
+    this._clearTimeout();
 
-    this._finishedSpans.push(...spans);
+    // If we got a parent span, we try to send the span tree
+    // Wait a tick for this, to ensure we avoid race conditions
+    this._flushTimeout = setTimeout(() => {
+      this.flush();
+    }, 1);
+  }
+
+  /** Try to flush any pending spans immediately. */
+  public flush(): void {
+    this._clearTimeout();
+
+    const openSpanCount = this._finishedSpans.length;
 
     const remainingSpans = maybeSend(this._finishedSpans);
 
     const remainingOpenSpanCount = remainingSpans.length;
-    const sentSpanCount = openSpanCount + newSpanCount - remainingOpenSpanCount;
+    const sentSpanCount = openSpanCount - remainingOpenSpanCount;
 
     DEBUG_BUILD &&
       logger.log(`SpanExporter exported ${sentSpanCount} spans, ${remainingOpenSpanCount} unsent spans remaining`);
 
-    this._finishedSpans = remainingSpans.filter(span => {
+    this._cleanupOldSpans(remainingSpans);
+  }
+
+  /** Clear the exporter. */
+  public clear(): void {
+    this._finishedSpans = [];
+    this._clearTimeout();
+  }
+
+  /** Clear the flush timeout. */
+  private _clearTimeout(): void {
+    if (this._flushTimeout) {
+      clearTimeout(this._flushTimeout);
+      this._flushTimeout = undefined;
+    }
+  }
+
+  /**
+   * Remove any span that is older than 5min.
+   * We do this to avoid leaking memory.
+   */
+  private _cleanupOldSpans(spans = this._finishedSpans): void {
+    this._finishedSpans = spans.filter(span => {
       const shouldDrop = shouldCleanupSpan(span, 5 * 60);
       DEBUG_BUILD &&
         shouldDrop &&
@@ -72,23 +105,6 @@ export class SentrySpanExporter implements SpanExporter {
           }) because it is pending for more than 5 minutes.`,
         );
       return !shouldDrop;
-    });
-
-    resultCallback({ code: ExportResultCode.SUCCESS });
-  }
-
-  /** @inheritDoc */
-  public shutdown(): Promise<void> {
-    const forceFlush = this.forceFlush();
-    this._stopped = true;
-    this._finishedSpans = [];
-    return forceFlush;
-  }
-
-  /** @inheritDoc */
-  public forceFlush(): Promise<void> {
-    return new Promise(resolve => {
-      this.export(this._finishedSpans, () => resolve());
     });
   }
 }
@@ -132,8 +148,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
     .filter((span): span is ReadableSpan => !!span);
 }
 
+function nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
+  return !!node.span && !node.parentNode;
+}
+
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
-  return nodes.filter((node): node is SpanNodeCompleted => !!node.span && !node.parentNode);
+  return nodes.filter(nodeIsCompletedRootNode);
 }
 
 function shouldCleanupSpan(span: ReadableSpan, maxStartTimeOffsetSeconds: number): boolean {
@@ -178,7 +198,7 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     data: attributes,
     origin,
     op,
-    status: getStatusMessage(status),
+    status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
   });
 
   const transactionEvent: TransactionEvent = {
@@ -252,7 +272,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     start_timestamp: convertOtelTimeToSeconds(startTime),
     // This is [0,0] by default in OTEL, in which case we want to interpret this as no end time
     timestamp: convertOtelTimeToSeconds(endTime) || undefined,
-    status: getStatusMessage(status),
+    status: getStatusMessage(status), // As per protocol, span status is allowed to be undefined
     op,
     origin,
     _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),

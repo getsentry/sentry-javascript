@@ -47,6 +47,7 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
           {
             name: options.spanDescription,
             op: options.spanOp,
+            forceTransaction: true,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',

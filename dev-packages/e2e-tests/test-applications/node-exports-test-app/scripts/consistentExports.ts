@@ -58,13 +58,11 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
-      // legacy, to be removed...
-      'makeMain',
     ],
   },
   {
     package: '@sentry/nextjs',
-    compareWith: nodeExperimentalExports,
+    compareWith: nodeExports,
     // Next.js doesn't require explicit exports, so we can just merge top level and `default` exports:
     // @ts-expect-error: `default` is not in the type definition but it's defined
     exports: Object.keys({ ...SentryNextJs, ...SentryNextJs.default }),
@@ -79,8 +77,6 @@ const DEPENDENTS: Dependent[] = [
     compareWith: nodeExports,
     exports: Object.keys(SentryAWS),
     ignoreExports: [
-      // legacy, to be removed...
-      'makeMain',
       // Not needed for Serverless
       'setupFastifyErrorHandler',
     ],
@@ -90,8 +86,6 @@ const DEPENDENTS: Dependent[] = [
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
     ignoreExports: [
-      // legacy, to be removed...
-      'makeMain',
       // Not needed for Serverless
       'setupFastifyErrorHandler',
     ],
