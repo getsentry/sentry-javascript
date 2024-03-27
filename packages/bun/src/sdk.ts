@@ -66,7 +66,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const { addBreadcrumb } = require('@sentry/node-experimental');
+ * const { addBreadcrumb } = require('@sentry/node');
  * addBreadcrumb({
  *   message: 'My Breadcrumb',
  *   // ...
@@ -76,7 +76,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
  * @example
  * ```
  *
- * const Sentry = require('@sentry/node-experimental');
+ * const Sentry = require('@sentry/node');
  * Sentry.captureMessage('Hello, world!');
  * Sentry.captureException(new Error('Good bye'));
  * Sentry.captureEvent({
