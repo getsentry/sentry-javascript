@@ -14,7 +14,10 @@ import type { SpanJSON, SpanOrigin, TraceContext, TransactionEvent, TransactionS
 import { dropUndefinedKeys, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE,
+  SEMANTIC_ATTRIBUTE_SENTRY_PROMOTE_TO_TRANSACTION,
+} from './semanticAttributes';
 import { convertOtelTimeToSeconds } from './utils/convertOtelTimeToSeconds';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getRequestSpanData } from './utils/getRequestSpanData';
@@ -149,7 +152,7 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 }
 
 function nodeIsCompletedRootNode(node: SpanNode): node is SpanNodeCompleted {
-  return !!node.span && !node.parentNode;
+  return (!!node.span && !node.parentNode) || !!node.span?.attributes[SEMANTIC_ATTRIBUTE_SENTRY_PROMOTE_TO_TRANSACTION];
 }
 
 function getCompletedRootNodes(nodes: SpanNode[]): SpanNodeCompleted[] {
@@ -319,6 +322,7 @@ function removeSentryAttributes(data: Record<string, unknown>): Record<string, u
   /* eslint-disable @typescript-eslint/no-dynamic-delete */
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE];
   delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE];
+  delete cleanedData[SEMANTIC_ATTRIBUTE_SENTRY_PROMOTE_TO_TRANSACTION];
   /* eslint-enable @typescript-eslint/no-dynamic-delete */
 
   return cleanedData;
