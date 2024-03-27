@@ -1,12 +1,12 @@
 import { createRateLimiter } from '../../src/integrations/local-variables/common';
 import { createCallbackList } from '../../src/integrations/local-variables/local-variables-sync';
-import { NODE_VERSION } from '../../src/nodeVersion';
+import { NODE_MAJOR } from '../../src/nodeVersion';
 
 jest.setTimeout(20_000);
 
 const describeIf = (condition: boolean) => (condition ? describe : describe.skip);
 
-describeIf(NODE_VERSION.major >= 18)('LocalVariables', () => {
+describeIf(NODE_MAJOR >= 18)('LocalVariables', () => {
   describe('createCallbackList', () => {
     it('Should call callbacks in reverse order', done => {
       const log: number[] = [];

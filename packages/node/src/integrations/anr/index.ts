@@ -1,37 +1,41 @@
-// TODO (v8): This import can be removed once we only support Node with global URL
-import { URL } from 'url';
-import { defineIntegration, getCurrentScope } from '@sentry/core';
-import type { Contexts, Event, EventHint, IntegrationFn } from '@sentry/types';
-import { dynamicRequire, logger } from '@sentry/utils';
-import type { Worker, WorkerOptions } from 'worker_threads';
-import type { NodeClient } from '../../client';
+import { defineIntegration, mergeScopeData } from '@sentry/core';
+import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import * as inspector from 'inspector';
+import { Worker } from 'worker_threads';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '../..';
 import { NODE_VERSION } from '../../nodeVersion';
+import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
 import { base64WorkerScript } from './worker-script';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
 
-type WorkerNodeV14 = Worker & { new (filename: string | URL, options?: WorkerOptions): Worker };
-
-type WorkerThreads = {
-  Worker: WorkerNodeV14;
-};
-
 function log(message: string, ...args: unknown[]): void {
   logger.log(`[ANR] ${message}`, ...args);
 }
 
-/**
- * We need to use dynamicRequire because worker_threads is not available in node < v12 and webpack error will when
- * targeting those versions
- */
-function getWorkerThreads(): WorkerThreads {
-  return dynamicRequire(module, 'worker_threads');
+function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & { __SENTRY_GET_SCOPES__?: () => ScopeData } {
+  return GLOBAL_OBJ;
+}
+
+/** Fetches merged scope data */
+function getScopeData(): ScopeData {
+  const scope = getGlobalScope().getScopeData();
+  mergeScopeData(scope, getIsolationScope().getScopeData());
+  mergeScopeData(scope, getCurrentScope().getScopeData());
+
+  // We remove attachments because they likely won't serialize well as json
+  scope.attachments = [];
+  // We can't serialize event processor functions
+  scope.eventProcessors = [];
+
+  return scope;
 }
 
 /**
- * Gets contexts by calling all event processors. This relies on being called after all integrations are setup
+ * Gets contexts by calling all event processors. This shouldn't be called until all integrations are setup
  */
 async function getContexts(client: NodeClient): Promise<Contexts> {
   let event: Event | null = { message: 'ANR' };
@@ -45,39 +49,75 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
-interface InspectorApi {
-  open: (port: number) => void;
-  url: () => string | undefined;
-}
-
 const INTEGRATION_NAME = 'Anr';
 
+type AnrInternal = { startWorker: () => void; stopWorker: () => void };
+
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+  if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
+    throw new Error('ANR detection requires Node 16.17.0 or later');
+  }
+
+  let worker: Promise<() => void> | undefined;
+  let client: NodeClient | undefined;
+
+  // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
+  // debugger when it pauses
+  const gbl = globalWithScopeFetchFn();
+  gbl.__SENTRY_GET_SCOPES__ = getScopeData;
+
   return {
     name: INTEGRATION_NAME,
-    setup(client: NodeClient) {
-      if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
-        throw new Error('ANR detection requires Node 16.17.0 or later');
+    startWorker: () => {
+      if (worker) {
+        return;
       }
 
-      // setImmediate is used to ensure that all other integrations have been setup
-      setImmediate(() => _startWorker(client, options));
+      if (client) {
+        worker = _startWorker(client, options);
+      }
     },
-  };
+    stopWorker: () => {
+      if (worker) {
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        worker.then(stop => {
+          stop();
+          worker = undefined;
+        });
+      }
+    },
+    setup(initClient: NodeClient) {
+      client = initClient;
+
+      // setImmediate is used to ensure that all other integrations have had their setup called first.
+      // This allows us to call into all integrations to fetch the full context
+      setImmediate(() => this.startWorker());
+    },
+  } as Integration & AnrInternal;
 }) satisfies IntegrationFn;
 
-export const anrIntegration = defineIntegration(_anrIntegration);
+type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
+
+export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
 
 /**
  * Starts the ANR worker thread
+ *
+ * @returns A function to stop the worker
  */
-async function _startWorker(client: NodeClient, _options: Partial<AnrIntegrationOptions>): Promise<void> {
-  const contexts = await getContexts(client);
+async function _startWorker(
+  client: NodeClient,
+  integrationOptions: Partial<AnrIntegrationOptions>,
+): Promise<() => void> {
   const dsn = client.getDsn();
 
   if (!dsn) {
-    return;
+    return () => {
+      //
+    };
   }
+
+  const contexts = await getContexts(client);
 
   // These will not be accurate if sent later from the worker thread
   delete contexts.app?.app_memory;
@@ -93,27 +133,24 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
   const options: WorkerStartData = {
     debug: logger.isEnabled(),
     dsn,
+    tunnel: initOptions.tunnel,
     environment: initOptions.environment || 'production',
     release: initOptions.release,
     dist: initOptions.dist,
     sdkMetadata,
-    appRootPath: _options.appRootPath,
-    pollInterval: _options.pollInterval || DEFAULT_INTERVAL,
-    anrThreshold: _options.anrThreshold || DEFAULT_HANG_THRESHOLD,
-    captureStackTrace: !!_options.captureStackTrace,
-    staticTags: _options.staticTags || {},
+    appRootPath: integrationOptions.appRootPath,
+    pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
+    anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
+    captureStackTrace: !!integrationOptions.captureStackTrace,
+    staticTags: integrationOptions.staticTags || {},
     contexts,
   };
 
   if (options.captureStackTrace) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const inspector: InspectorApi = require('inspector');
     if (!inspector.url()) {
       inspector.open(0);
     }
   }
-
-  const { Worker } = getWorkerThreads();
 
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
     workerData: options,
@@ -158,4 +195,10 @@ async function _startWorker(client: NodeClient, _options: Partial<AnrIntegration
 
   // Ensure this thread can't block app exit
   worker.unref();
+
+  return () => {
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    worker.terminate();
+    clearInterval(timer);
+  };
 }
