@@ -1,4 +1,4 @@
-import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionArguments } from '@sentry/types';
 
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
@@ -211,7 +211,7 @@ function createChildSpanOrTransaction({
   scope,
 }: {
   parentSpan: SentrySpan | undefined;
-  spanContext: TransactionContext;
+  spanContext: TransactionArguments;
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
@@ -275,15 +275,15 @@ function createChildSpanOrTransaction({
 }
 
 /**
- * This converts StartSpanOptions to TransactionContext.
+ * This converts StartSpanOptions to TransactionArguments.
  * For the most part (for now) we accept the same options,
  * but some of them need to be transformed.
  *
  * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
  */
-function normalizeContext(context: StartSpanOptions): TransactionContext {
+function normalizeContext(context: StartSpanOptions): TransactionArguments {
   if (context.startTime) {
-    const ctx: TransactionContext & { startTime?: SpanTimeInput } = { ...context };
+    const ctx: TransactionArguments & { startTime?: SpanTimeInput } = { ...context };
     ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
     delete ctx.startTime;
     return ctx;
@@ -297,7 +297,7 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startTransaction(transactionContext: TransactionContext): Transaction {
+function _startTransaction(transactionContext: TransactionArguments): Transaction {
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
@@ -305,11 +305,7 @@ function _startTransaction(transactionContext: TransactionContext): Transaction 
     name: transactionContext.name,
     parentSampled: transactionContext.parentSampled,
     transactionContext,
-    attributes: {
-      // eslint-disable-next-line deprecation/deprecation
-      ...transactionContext.data,
-      ...transactionContext.attributes,
-    },
+    attributes: transactionContext.attributes,
   });
 
   // eslint-disable-next-line deprecation/deprecation

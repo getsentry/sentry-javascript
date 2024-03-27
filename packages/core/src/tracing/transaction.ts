@@ -8,7 +8,7 @@ import type {
   SpanJSON,
   SpanTimeInput,
   Transaction as TransactionInterface,
-  TransactionContext,
+  TransactionArguments,
   TransactionEvent,
   TransactionMetadata,
   TransactionSource,
@@ -52,7 +52,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
    *
    * @deprecated Transactions will be removed in v8. Use spans instead.
    */
-  public constructor(transactionContext: TransactionContext, hub?: Hub) {
+  public constructor(transactionContext: TransactionArguments, hub?: Hub) {
     super(transactionContext);
     this._measurements = {};
     this._contexts = {};
@@ -170,7 +170,7 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   /**
    * @inheritDoc
    */
-  public toContext(): TransactionContext {
+  public toContext(): TransactionArguments {
     // eslint-disable-next-line deprecation/deprecation
     const spanContext = super.toContext();
 

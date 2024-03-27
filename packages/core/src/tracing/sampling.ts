@@ -1,4 +1,4 @@
-import type { Options, SamplingContext, TransactionContext } from '@sentry/types';
+import type { Options, SamplingContext, TransactionArguments } from '@sentry/types';
 import { isNaN, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -14,7 +14,7 @@ import { hasTracingEnabled } from '../utils/hasTracingEnabled';
  * It returns the same transaction, for convenience.
  */
 export function sampleTransaction(
-  transactionContext: TransactionContext,
+  transactionContext: TransactionArguments,
   options: Pick<Options, 'tracesSampleRate' | 'tracesSampler' | 'enableTracing'>,
   samplingContext: SamplingContext,
 ): [sampled: boolean, sampleRate?: number] {
