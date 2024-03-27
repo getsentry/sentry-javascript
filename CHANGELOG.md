@@ -4,9 +4,9 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 8.0.0-alpha.6
+## 8.0.0-alpha.7
 
-This is the sixth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
+This is the seventh alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
 
 Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
 
@@ -15,6 +15,14 @@ Read the [in-depth migration guide](./MIGRATION.md) to find out how to address a
 - **feat(nextjs): Use OpenTelemetry for performance monitoring and tracing (#11016)**
 
 We now use OpenTelemetry under the hood to power performance monitoring and tracing in the Next.js SDK.
+
+- **feat(v8/gatsby): Update SDK initialization for gatsby (#11292)**
+
+In v8, you cannot initialize the SDK anymore via Gatsby plugin options. Instead, you have to configure the SDK in a
+`sentry.config.js` file.
+
+We also removed the automatic initialization of `browserTracingIntegration`. You now have to add this integration
+yourself.
 
 ### Removal/Refactoring of deprecated functionality
 
@@ -31,6 +39,7 @@ We now use OpenTelemetry under the hood to power performance monitoring and trac
 - ref(core): Remove `scope.setSpan()` and `scope.getSpan()` methods (#11051)
 - ref(profiling-node): Remove usage of getCurrentHub (#11275)
 - ref(v8): change integration.setupOnce signature (#11238)
+- ref: remove node-experimental references (#11290)
 
 ### Other Changes
 
@@ -48,6 +57,10 @@ We now use OpenTelemetry under the hood to power performance monitoring and trac
 - fix(node): Skip capturing Hapi Boom error responses. (#11151)
 - fix(node): Use `suppressTracing` to avoid capturing otel spans (#11288)
 - fix(opentelemetry): Do not stomp span status when `startSpan` callback throws (#11170)
+
+## 8.0.0-alpha.6
+
+This version did not publish correctly due to a configuration issue.
 
 ## 8.0.0-alpha.5
 
