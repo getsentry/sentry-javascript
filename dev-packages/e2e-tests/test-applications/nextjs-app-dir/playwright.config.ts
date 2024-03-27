@@ -73,6 +73,8 @@ const config: PlaywrightTestConfig = {
           ? `pnpm wait-port ${eventProxyPort} && pnpm next dev -p ${nextPort}`
           : `pnpm wait-port ${eventProxyPort} && pnpm next start -p ${nextPort}`,
       port: nextPort,
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
   ],
 };

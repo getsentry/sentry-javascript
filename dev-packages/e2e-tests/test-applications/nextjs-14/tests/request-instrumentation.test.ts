@@ -13,7 +13,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.node.undici',
+        'next.span_type': 'AppRender.fetch', // This span is created by Next.js own fetch instrumentation
       }),
       description: 'GET http://example.com/',
     }),
@@ -24,7 +24,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.node.http',
+        'sentry.origin': 'auto.http.otel.http',
       }),
       description: 'GET http://example.com/',
     }),

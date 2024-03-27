@@ -19,6 +19,10 @@ export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
 ): void;
 
+export declare const getClient: typeof clientSdk.getClient;
+export declare const getRootSpan: typeof serverSdk.getRootSpan;
+export declare const continueTrace: typeof clientSdk.continueTrace;
+
 export declare const Integrations: undefined; // TODO(v8): Remove this line. Can only be done when dependencies don't export `Integrations` anymore.
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;

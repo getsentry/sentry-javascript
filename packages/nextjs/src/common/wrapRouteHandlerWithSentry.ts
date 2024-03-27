@@ -1,6 +1,7 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SPAN_STATUS_ERROR,
   addTracingExtensions,
   captureException,
   continueTrace,
@@ -11,7 +12,7 @@ import {
 } from '@sentry/core';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
-import { isRedirectNavigationError } from './nextNavigationErrorUtils';
+import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
@@ -46,6 +47,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                 {
                   op: 'http.server',
                   name: `${method} ${parameterizedRoute}`,
+                  forceTransaction: true,
                   attributes: {
                     [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                     [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
@@ -56,7 +58,11 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                     () => originalFunction.apply(thisArg, args),
                     error => {
                       // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                      if (!isRedirectNavigationError(error)) {
+                      if (isRedirectNavigationError(error)) {
+                        // Don't do anything
+                      } else if (isNotFoundNavigationError(error)) {
+                        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                      } else {
                         captureException(error, {
                           mechanism: {
                             handled: false,
@@ -67,7 +73,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                   );
 
                   try {
-                    span && setHttpStatus(span, response.status);
+                    if (span && response.status) {
+                      setHttpStatus(span, response.status);
+                    }
                   } catch {
                     // best effort - response may be undefined?
                   }

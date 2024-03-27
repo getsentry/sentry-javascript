@@ -110,6 +110,7 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
   initOpenTelemetry,
+  spanToJSON,
 } from '@sentry/node';
 
 export {

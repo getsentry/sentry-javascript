@@ -87,6 +87,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
               {
                 name: `${reqMethod}${reqPath}`,
                 op: 'http.server',
+                forceTransaction: true,
                 attributes: {
                   [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
                   [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.nextjs',

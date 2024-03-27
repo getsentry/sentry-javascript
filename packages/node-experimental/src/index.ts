@@ -104,6 +104,7 @@ export {
   getActiveSpan,
   withActiveSpan,
   getRootSpan,
+  spanToJSON,
 } from '@sentry/core';
 
 export type {

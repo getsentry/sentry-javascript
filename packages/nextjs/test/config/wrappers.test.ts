@@ -40,14 +40,14 @@ describe('data-fetching function wrappers should create spans', () => {
     await wrappedOriginal({ req, res } as any);
 
     expect(startSpanManualSpy).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         name: 'getServerSideProps (/tricks/[trickName])',
         op: 'function.nextjs',
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
         },
-      },
+      }),
       expect.any(Function),
     );
   });

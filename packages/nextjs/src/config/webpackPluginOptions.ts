@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { getSentryRelease } from '@sentry/node-experimental';
+import { getSentryRelease } from '@sentry/node';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
 
