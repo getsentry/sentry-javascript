@@ -98,22 +98,6 @@ export class SentrySpan implements Span {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * Was this span chosen to be sent as part of the sample?
-   * @deprecated Use `isRecording()` instead.
-   */
-  public get sampled(): boolean | undefined {
-    return this._sampled;
-  }
-
-  /**
-   * Was this span chosen to be sent as part of the sample?
-   * @deprecated You cannot update the sampling decision of a span after span creation.
-   */
-  public set sampled(sampled: boolean | undefined) {
-    this._sampled = sampled;
-  }
-
-  /**
    * Attributes for the span.
    * @deprecated Use `spanToJSON(span).atttributes` instead.
    */

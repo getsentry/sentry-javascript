@@ -57,6 +57,10 @@ export interface InternalGlobal {
     defaultCurrentScope: Scope | undefined;
     defaultIsolationScope: Scope | undefined;
     globalMetricsAggregators: WeakMap<Client, MetricsAggregator> | undefined;
+    /** Overwrites TextEncoder used in `@sentry/utils`, need for `react-native@0.73` and older */
+    encodePolyfill?: (input: string) => Uint8Array;
+    /** Overwrites TextDecoder used in `@sentry/utils`, need for `react-native@0.73` and older */
+    decodePolyfill?: (input: Uint8Array) => string;
   };
   /**
    * Raw module metadata that is injected by bundler plugins.

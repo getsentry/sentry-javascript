@@ -58,8 +58,6 @@ const DEPENDENTS: Dependent[] = [
     ignoreExports: [
       // not supported in bun:
       'NodeClient',
-      // legacy, to be removed...
-      'makeMain',
     ],
   },
   {
@@ -79,8 +77,6 @@ const DEPENDENTS: Dependent[] = [
     compareWith: nodeExports,
     exports: Object.keys(SentryAWS),
     ignoreExports: [
-      // legacy, to be removed...
-      'makeMain',
       // Not needed for Serverless
       'setupFastifyErrorHandler',
     ],
@@ -90,8 +86,6 @@ const DEPENDENTS: Dependent[] = [
     compareWith: nodeExports,
     exports: Object.keys(SentryGoogleCloud),
     ignoreExports: [
-      // legacy, to be removed...
-      'makeMain',
       // Not needed for Serverless
       'setupFastifyErrorHandler',
     ],
