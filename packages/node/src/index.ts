@@ -111,6 +111,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  zodErrorsIntegration,
 } from '@sentry/core';
 
 export { consoleIntegration } from './integrations/console';
