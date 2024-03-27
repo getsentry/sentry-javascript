@@ -69,7 +69,7 @@
     "build:types:watch": "tsc -p tsconfig.types.json --watch",
     "build:tarball": "ts-node ../../scripts/prepack.ts && npm pack ./build",
     "circularDepCheck": "madge --circular src/index.ts",
-    "clean": "rimraf build coverage sentry-node-*.tgz",
+    "clean": "rimraf build coverage sentry-node-experimental-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "run-s test:jest test:express test:webpack test:release-health",
