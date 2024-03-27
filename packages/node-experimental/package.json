@@ -3,7 +3,7 @@
   "version": "8.0.0-alpha.5",
   "description": "The old version of Sentry SDK for Node.js, without OpenTelemetry support.",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
-  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node-experimental",
   "author": "Sentry",
   "license": "MIT",
   "engines": {
