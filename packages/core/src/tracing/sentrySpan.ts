@@ -174,7 +174,7 @@ export class SentrySpan implements Span {
 
     const rootSpan = getRootSpan(this);
     // TODO: still set span.transaction here until we have a more permanent solution
-    // Probably similarly to the weakmap we hold in node-experimental
+    // Probably similarly to the weakmap we hold in node
     // eslint-disable-next-line deprecation/deprecation
     childSpan.transaction = rootSpan as Transaction;
 
