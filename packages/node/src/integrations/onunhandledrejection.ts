@@ -1,7 +1,8 @@
-import { captureException, defineIntegration, getClient } from '@sentry/core';
-import type { Client, IntegrationFn } from '@sentry/types';
+import { captureException, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
+import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
-import { logAndExitProcess } from '../utils/errorhandling';
+
+import { logAndExitProcess } from './utils/errorhandling';
 
 type UnhandledRejectionMode = 'none' | 'warn' | 'strict';
 
@@ -26,10 +27,22 @@ const _onUnhandledRejectionIntegration = ((options: Partial<OnUnhandledRejection
   };
 }) satisfies IntegrationFn;
 
-/**
- * Add a global promise rejection handler.
- */
 export const onUnhandledRejectionIntegration = defineIntegration(_onUnhandledRejectionIntegration);
+
+/**
+ * Global Promise Rejection handler.
+ * @deprecated Use `onUnhandledRejectionIntegration()` instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const OnUnhandledRejection = convertIntegrationFnToClass(
+  INTEGRATION_NAME,
+  onUnhandledRejectionIntegration,
+) as IntegrationClass<Integration & { setup: (client: Client) => void }> & {
+  new (options?: Partial<{ mode: UnhandledRejectionMode }>): Integration;
+};
+
+// eslint-disable-next-line deprecation/deprecation
+export type OnUnhandledRejection = typeof OnUnhandledRejection;
 
 /**
  * Send an exception with reason

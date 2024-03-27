@@ -1,6 +1,7 @@
-import type { ClientOptions, Options, SamplingContext, TracePropagationTargets } from '@sentry/types';
+import type { Span as WriteableSpan } from '@opentelemetry/api';
+import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
+import type { ClientOptions, Options, SamplingContext, Scope, Span, TracePropagationTargets } from '@sentry/types';
 
-import type { NodeClient } from './client';
 import type { NodeTransportOptions } from './transports';
 
 export interface BaseNodeOptions {
@@ -52,14 +53,6 @@ export interface BaseNodeOptions {
   includeLocalVariables?: boolean;
 
   /**
-   * Specify a custom NodeClient to be used. Must extend NodeClient!
-   * This is not a public, supported API, but used internally only.
-   *
-   * @hidden
-   *  */
-  clientClass?: typeof NodeClient;
-
-  /**
    * If you use Spotlight by Sentry during development, use
    * this option to forward captured Sentry events to Spotlight.
    *
@@ -71,23 +64,15 @@ export interface BaseNodeOptions {
    */
   spotlight?: boolean | string;
 
-  // TODO (v8): Remove this in v8
   /**
-   * @deprecated Moved to constructor options of the `Http` and `Undici` integration.
-   * @example
-   * ```js
-   * Sentry.init({
-   *   integrations: [
-   *     new Sentry.Integrations.Http({
-   *       tracing: {
-   *         shouldCreateSpanForRequest: (url: string) => false,
-   *       }
-   *     });
-   *   ],
-   * });
-   * ```
+   * If this is set to true, the SDK will not set up OpenTelemetry automatically.
+   * In this case, you _have_ to ensure to set it up correctly yourself, including:
+   * * The `SentrySpanProcessor`
+   * * The `SentryPropagator`
+   * * The `SentryContextManager`
+   * * The `SentrySampler`
    */
-  shouldCreateSpanForRequest?(this: void, url: string): boolean;
+  skipOpenTelemetrySetup?: boolean;
 
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
@@ -104,3 +89,19 @@ export interface NodeOptions extends Options<NodeTransportOptions>, BaseNodeOpti
  * @see NodeClient for more information.
  */
 export interface NodeClientOptions extends ClientOptions<NodeTransportOptions>, BaseNodeOptions {}
+
+export interface CurrentScopes {
+  scope: Scope;
+  isolationScope: Scope;
+}
+
+/**
+ * The base `Span` type is basically a `WriteableSpan`.
+ * There are places where we basically want to allow passing _any_ span,
+ * so in these cases we type this as `AbstractSpan` which could be either a regular `Span` or a `ReadableSpan`.
+ * You'll have to make sur to check revelant fields before accessing them.
+ *
+ * Note that technically, the `Span` exported from `@opentelemwetry/sdk-trace-base` matches this,
+ * but we cannot be 100% sure that we are actually getting such a span, so this type is more defensive.
+ */
+export type AbstractSpan = WriteableSpan | ReadableSpan | Span;

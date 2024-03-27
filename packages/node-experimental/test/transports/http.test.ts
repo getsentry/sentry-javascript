@@ -1,6 +1,4 @@
-/* eslint-disable deprecation/deprecation */
 import * as http from 'http';
-
 import { createGunzip } from 'zlib';
 import { createTransport } from '@sentry/core';
 import type { EventEnvelope, EventItem } from '@sentry/types';
@@ -51,19 +49,18 @@ function setupTestServer(
     res.end();
 
     // also terminate socket because keepalive hangs connection a bit
-    if (res.connection) {
-      res.connection.end();
-    }
+    // eslint-disable-next-line deprecation/deprecation
+    res.connection?.end();
   });
 
-  testServer.listen(18099);
+  testServer.listen(18101);
 
   return new Promise(resolve => {
     testServer?.on('listening', resolve);
   });
 }
 
-const TEST_SERVER_URL = 'http://localhost:18099';
+const TEST_SERVER_URL = 'http://localhost:18101';
 
 const EVENT_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2', sent_at: '123' }, [
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,

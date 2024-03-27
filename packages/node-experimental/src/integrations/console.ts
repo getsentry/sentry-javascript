@@ -1,6 +1,6 @@
 import * as util from 'util';
-import { addBreadcrumb, convertIntegrationFnToClass, defineIntegration, getClient } from '@sentry/core';
-import type { Client, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
 
 const INTEGRATION_NAME = 'Console';
@@ -30,16 +30,7 @@ const _consoleIntegration = (() => {
   };
 }) satisfies IntegrationFn;
 
-export const consoleIntegration = defineIntegration(_consoleIntegration);
-
 /**
- * Console module integration.
- * @deprecated Use `consoleIntegration()` instead.
+ * Capture console logs as breadcrumbs.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const Console = convertIntegrationFnToClass(INTEGRATION_NAME, consoleIntegration) as IntegrationClass<
-  Integration & { setup: (client: Client) => void }
->;
-
-// eslint-disable-next-line deprecation/deprecation
-export type Console = typeof Console;
+export const consoleIntegration = defineIntegration(_consoleIntegration);
