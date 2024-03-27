@@ -2,9 +2,9 @@ import * as http from 'http';
 import type { Envelope, EventEnvelope } from '@sentry/types';
 import { createEnvelope, logger } from '@sentry/utils';
 
-import { NodeClient, spotlightIntegration } from '../../src';
-import { Spotlight } from '../../src/integrations';
-import { getDefaultNodeClientOptions } from '../helper/node-client-options';
+import { spotlightIntegration } from '../../src/integrations/spotlight';
+import { NodeClient } from '../../src/sdk/client';
+import { getDefaultNodeClientOptions } from '../helpers/getDefaultNodeClientOptions';
 
 describe('Spotlight', () => {
   const loggerSpy = jest.spyOn(logger, 'warn');
@@ -17,12 +17,9 @@ describe('Spotlight', () => {
   const options = getDefaultNodeClientOptions();
   const client = new NodeClient(options);
 
-  it('has a name and id', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const integration = new Spotlight();
+  it('has a name', () => {
+    const integration = spotlightIntegration();
     expect(integration.name).toEqual('Spotlight');
-    // eslint-disable-next-line deprecation/deprecation
-    expect(Spotlight.id).toEqual('Spotlight');
   });
 
   it('registers a callback on the `beforeEnvelope` hook', () => {
