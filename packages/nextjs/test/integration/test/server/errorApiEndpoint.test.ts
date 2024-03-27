@@ -19,9 +19,6 @@ describe('Error API Endpoints', () => {
           },
         ],
       },
-      tags: {
-        runtime: 'node',
-      },
       request: {
         url,
         method: 'GET',

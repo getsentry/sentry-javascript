@@ -19,9 +19,6 @@ describe('Error Server-side Props', () => {
           },
         ],
       },
-      tags: {
-        runtime: 'node',
-      },
       request: {
         url,
         method: 'GET',
