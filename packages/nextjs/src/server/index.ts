@@ -75,8 +75,9 @@ export function init(options: NodeOptions): void {
     ...getDefaultIntegrations(options).filter(
       integration =>
         integration.name !== 'OnUncaughtException' &&
-        // Next.js comes with its own Node-Fetch and Http instrumentation, so we shouldn't add ours on-top
+        // Next.js comes with its own Node-Fetch instrumentation, so we shouldn't add ours on-top
         integration.name !== 'NodeFetch' &&
+        // Next.js comes with its own Http instrumentation for OTel which lead to double spans for route handler requests
         integration.name !== 'Http',
     ),
     onUncaughtExceptionIntegration(),
