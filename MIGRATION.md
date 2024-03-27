@@ -39,7 +39,9 @@ New minimum supported browsers:
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
-**React**: We no longer support React 15 in version 8 of the React SDK.
+**React**: The Next.js SDK now supports React 16+
+
+**Next.js**: The Next.js SDK now supports Next.js 13.2.0+
 
 ## 2. Package removal
 
@@ -977,6 +979,118 @@ const config = {
 };
 
 export default withSentryConfig(config);
+```
+
+### Gatsby SDK
+
+#### Removal of Gatsby Initialization via plugin options
+
+In v8, we are removing the ability to initialize the Gatsby SDK via plugin options. Instead, you should create a
+`sentry.config.js` file in the root of your project and initialize the SDK there.
+
+```js
+// v7 - gatsby-config.js
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+      options: {
+        dsn: process.env.SENTRY_DSN,
+      },
+    },
+    // ...
+  ],
+};
+```
+
+```js
+// v8 - gatsby-config.js
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+    },
+    // ...
+  ],
+};
+
+// v8 - sentry.config.js
+import * as Sentry from '@sentry/gatsby';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+});
+```
+
+We've also added `enableClientWebpackPlugin` which allows you to enable or disable the `@sentry/webpack-plugin` in the
+client-side build. By default, it is enabled.
+
+```js
+// v8 - gatsby-config.js
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+      options: {
+        enableClientWebpackPlugin: false,
+      },
+    },
+    // ...
+  ],
+};
+```
+
+#### Automatic adding of `browserTracingIntegration` for Gatsby
+
+The Gatsby SDK no longer adds the `browserTracingIntegration` automatically. If you want to enable tracing in the
+browser, you need to add it manually. Make sure to also configured a `tracePropagationTargets` value.
+
+```js
+// v7 - gatsby-config.js
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+      options: {
+        tracesSampleRate: 1.0,
+      },
+    },
+    // ...
+  ],
+};
+```
+
+```js
+// v8 - gatsby-config.js
+module.exports = {
+  // ...
+  plugins: [
+    {
+      resolve: '@sentry/gatsby',
+    },
+    // ...
+  ],
+};
+
+// v8 - sentry.config.js
+import * as Sentry from '@sentry/gatsby';
+
+Sentry.init({
+  dsn: '__PUBLIC_DSN__',
+  integrations: [Sentry.browserTracingIntegration()],
+
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+
+  // Set `tracePropagationTargets` to control for which URLs distributed tracing should be enabled
+  tracePropagationTargets: ['localhost', /^https:\/\/yourserver\.io\/api/],
+});
 ```
 
 ## 5. Behaviour Changes

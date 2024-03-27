@@ -32,6 +32,9 @@
     "types-ts3.8"
   ],
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
     "build:transpile": "rollup -c rollup.npm.config.mjs",

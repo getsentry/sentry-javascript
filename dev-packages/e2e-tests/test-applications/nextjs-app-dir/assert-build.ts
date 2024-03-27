@@ -31,8 +31,8 @@ const buildStderr = fs.readFileSync('.tmp_build_stderr', 'utf-8');
 assert.match(buildStdout, /○ \/client-component/);
 assert.match(buildStdout, /● \/client-component\/parameter\/\[\.\.\.parameters\]/);
 assert.match(buildStdout, /● \/client-component\/parameter\/\[parameter\]/);
-assert.match(buildStdout, /λ \/server-component/);
-assert.match(buildStdout, /λ \/server-component\/parameter\/\[\.\.\.parameters\]/);
-assert.match(buildStdout, /λ \/server-component\/parameter\/\[parameter\]/);
+assert.match(buildStdout, /(λ|ƒ) \/server-component/);
+assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[\.\.\.parameters\]/);
+assert.match(buildStdout, /(λ|ƒ) \/server-component\/parameter\/\[parameter\]/);
 
 export {};
