@@ -1,4 +1,4 @@
-import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
+import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
