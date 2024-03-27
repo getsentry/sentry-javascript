@@ -13,7 +13,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { Span, StartSpanOptions, TransactionArguments } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -52,7 +52,7 @@ let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
 
-let _customStartTransaction: ((context: TransactionContext) => Span | undefined) | undefined;
+let _customStartTransaction: ((context: TransactionArguments) => Span | undefined) | undefined;
 let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
@@ -220,7 +220,7 @@ export function setGlobals({
   useLocation?: UseLocation;
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
-  customStartTransaction?: (context: TransactionContext) => Span | undefined;
+  customStartTransaction?: (context: TransactionArguments) => Span | undefined;
 }): void {
   _useEffect = useEffect;
   _useLocation = useLocation;

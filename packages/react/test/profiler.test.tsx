@@ -1,5 +1,5 @@
 import { SentrySpan } from '@sentry/core';
-import type { SpanContext } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/types';
 import { render } from '@testing-library/react';
 import { renderHook } from '@testing-library/react-hooks';
 // biome-ignore lint/nursery/noUnusedImports: Need React import for JSX
@@ -8,7 +8,7 @@ import * as React from 'react';
 import { REACT_MOUNT_OP, REACT_RENDER_OP, REACT_UPDATE_OP } from '../src/constants';
 import { UNKNOWN_COMPONENT, useProfiler, withProfiler } from '../src/profiler';
 
-const mockStartInactiveSpan = jest.fn((spanArgs: SpanContext) => ({ ...spanArgs }));
+const mockStartInactiveSpan = jest.fn((spanArgs: StartSpanOptions) => ({ ...spanArgs }));
 const mockFinish = jest.fn();
 
 class MockSpan extends SentrySpan {
@@ -22,7 +22,7 @@ let activeSpan: Record<string, any>;
 jest.mock('@sentry/browser', () => ({
   ...jest.requireActual('@sentry/browser'),
   getActiveSpan: () => activeSpan,
-  startInactiveSpan: (ctx: SpanContext) => {
+  startInactiveSpan: (ctx: StartSpanOptions) => {
     mockStartInactiveSpan(ctx);
     return new MockSpan(ctx);
   },

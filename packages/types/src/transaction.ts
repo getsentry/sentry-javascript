@@ -3,12 +3,12 @@ import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
-import type { Span, SpanAttributes, SpanContext } from './span';
+import type { SentrySpanArguments, Span, SpanAttributes } from './span';
 
 /**
  * Interface holding Transaction-specific properties
  */
-export interface TransactionContext extends SpanContext {
+export interface TransactionArguments extends SentrySpanArguments {
   /**
    * Human-readable identifier for the transaction
    */
@@ -57,17 +57,11 @@ export interface TraceparentData {
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
+export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
    * @inheritDoc
    */
   startTimestamp: number;
-
-  /**
-   * Data for the transaction.
-   * @deprecated Use `getSpanAttributes(transaction)` instead.
-   */
-  data: { [key: string]: any };
 
   /**
    * Attributes for the transaction.
@@ -99,10 +93,10 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 's
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 
   /**
-   * Returns the current transaction properties as a `TransactionContext`.
+   * Returns the current transaction properties as a `TransactionArguments`.
    * @deprecated Use `toJSON()` or access the fields directly instead.
    */
-  toContext(): TransactionContext;
+  toContext(): TransactionArguments;
 
   /**
    * Set metadata for this transaction.
@@ -123,7 +117,9 @@ export interface Transaction extends Omit<TransactionContext, 'name' | 'op' | 's
    *
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
-  startChild(spanContext?: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>>): Span;
+  startChild(
+    spanContext?: Pick<SentrySpanArguments, Exclude<keyof SentrySpanArguments, 'sampled' | 'traceId' | 'parentSpanId'>>,
+  ): Span;
 }
 
 /**
@@ -142,7 +138,7 @@ export interface SamplingContext extends CustomSamplingContext {
   /**
    * Context data with which transaction being sampled was created
    */
-  transactionContext: TransactionContext;
+  transactionContext: TransactionArguments;
 
   /**
    * Sampling decision from the parent transaction, if any.

@@ -90,7 +90,7 @@ export type {
 export type { SeverityLevel } from './severity';
 export type {
   Span,
-  SpanContext,
+  SentrySpanArguments,
   SpanOrigin,
   SpanAttributeValue,
   SpanAttributes,
@@ -110,7 +110,7 @@ export type {
   SamplingContext,
   TraceparentData,
   Transaction,
-  TransactionContext,
+  TransactionArguments,
   TransactionMetadata,
   TransactionSource,
 } from './transaction';

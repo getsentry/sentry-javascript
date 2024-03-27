@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event, SpanContext, SpanJSON } from '@sentry/types';
+import type { Contexts, Event, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -11,7 +11,7 @@ import {
 
 type TransactionJSON = SpanJSON & {
   spans: SpanJSON[];
-  contexts: SpanContext;
+  contexts: Contexts;
   platform: string;
   type: string;
 };

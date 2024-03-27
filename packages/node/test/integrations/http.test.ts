@@ -5,7 +5,7 @@ import { getCurrentHub, getIsolationScope, setCurrentClient } from '@sentry/core
 import { Transaction } from '@sentry/core';
 import { getCurrentScope, setUser, spanToJSON, startInactiveSpan } from '@sentry/core';
 import { addTracingExtensions } from '@sentry/core';
-import type { TransactionContext } from '@sentry/types';
+import type { TransactionArguments } from '@sentry/types';
 import { TRACEPARENT_REGEXP } from '@sentry/utils';
 import * as nock from 'nock';
 import { HttpsProxyAgent } from '../../src/proxy';
@@ -38,7 +38,7 @@ describe('tracing', () => {
 
   function createTransactionOnScope(
     customOptions: Partial<NodeClientOptions> = {},
-    customContext?: Partial<TransactionContext>,
+    customContext?: Partial<TransactionArguments>,
   ) {
     setupMockHub(customOptions);
     addTracingExtensions();

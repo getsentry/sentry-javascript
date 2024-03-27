@@ -1,8 +1,8 @@
 import type {
+  SentrySpanArguments,
   Span,
   SpanAttributeValue,
   SpanAttributes,
-  SpanContext,
   SpanContextData,
   SpanJSON,
   SpanOrigin,
@@ -33,13 +33,6 @@ import {
  */
 export class SentrySpan implements Span {
   /**
-   * Data for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data: { [key: string]: any };
-
-  /**
    * @inheritDoc
    * @deprecated Use top level `Sentry.getRootSpan()` instead
    */
@@ -66,12 +59,10 @@ export class SentrySpan implements Span {
    * @hideconstructor
    * @hidden
    */
-  public constructor(spanContext: SpanContext = {}) {
+  public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = spanContext.data ? { ...spanContext.data } : {};
 
     this._attributes = {};
     this.setAttributes({
@@ -164,7 +155,10 @@ export class SentrySpan implements Span {
    * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
    */
   public startChild(
-    spanContext: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>> = {},
+    spanContext: Pick<
+      SentrySpanArguments,
+      Exclude<keyof SentrySpanArguments, 'sampled' | 'traceId' | 'parentSpanId'>
+    > = {},
   ): Span {
     const childSpan = new SentrySpan({
       ...spanContext,
@@ -204,19 +198,6 @@ export class SentrySpan implements Span {
     }
 
     return childSpan;
-  }
-
-  /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
-   * @deprecated Use `setAttribute()` instead.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setData(key: string, value: any): this {
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = { ...this.data, [key]: value };
-    return this;
   }
 
   /** @inheritdoc */
@@ -291,9 +272,9 @@ export class SentrySpan implements Span {
    *
    * @deprecated Use `spanToJSON()` or access the fields directly instead.
    */
-  public toContext(): SpanContext {
+  public toContext(): SentrySpanArguments {
     return dropUndefinedKeys({
-      data: this._getData(),
+      data: this._attributes,
       name: this._name,
       endTimestamp: this._endTime,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
@@ -325,7 +306,7 @@ export class SentrySpan implements Span {
    */
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
-      data: this._getData(),
+      data: this._attributes,
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parent_span_id: this._parentSpanId,
@@ -350,37 +331,6 @@ export class SentrySpan implements Span {
    */
   public toJSON(): SpanJSON {
     return this.getSpanJSON();
-  }
-
-  /**
-   * Get the merged data for this span.
-   * For now, this combines `data` and `attributes` together,
-   * until eventually we can ingest `attributes` directly.
-   */
-  private _getData():
-    | {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [key: string]: any;
-      }
-    | undefined {
-    // eslint-disable-next-line deprecation/deprecation
-    const { data, _attributes: attributes } = this;
-
-    const hasData = Object.keys(data).length > 0;
-    const hasAttributes = Object.keys(attributes).length > 0;
-
-    if (!hasData && !hasAttributes) {
-      return undefined;
-    }
-
-    if (hasData && hasAttributes) {
-      return {
-        ...data,
-        ...attributes,
-      };
-    }
-
-    return hasData ? data : attributes;
   }
 
   /** Emit `spanEnd` when the span is ended. */

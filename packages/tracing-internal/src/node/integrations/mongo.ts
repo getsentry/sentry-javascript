@@ -219,7 +219,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   }
 
   /**
-   * Form a SpanContext based on the user input to a given operation.
+   * Form a SentrySpanArguments based on the user input to a given operation.
    */
   private _getSpanContextFromOperationArguments(
     collection: MongoCollection,
