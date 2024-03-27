@@ -13,7 +13,7 @@ Sentry.init({
 // express must be required after Sentry is initialized
 const express = require('express');
 const cors = require('cors');
-const {  startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
+const { startExpressServerAndSendPortToRunner } = require('@sentry-internal/node-integration-tests');
 
 const app = express();
 
