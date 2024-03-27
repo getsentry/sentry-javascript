@@ -8,6 +8,7 @@ import type { Client } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpanContext, getSamplingDecision } from './propagator';
 import { setIsSetup } from './utils/setupCheck';
@@ -29,7 +30,7 @@ export class SentrySampler implements Sampler {
     traceId: string,
     spanName: string,
     _spanKind: unknown,
-    spanAttributes: unknown,
+    spanAttributes: SpanAttributes,
     _links: unknown,
   ): SamplingResult {
     const options = this._client.getOptions();
@@ -69,6 +70,15 @@ export class SentrySampler implements Sampler {
     const attributes: Attributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
+
+    const method = `${spanAttributes[SemanticAttributes.HTTP_METHOD]}`.toUpperCase();
+    if (method === 'OPTIONS' || method === 'HEAD') {
+      return {
+        decision: SamplingDecision.NOT_RECORD,
+        attributes,
+        traceState: traceState.set(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, '1'),
+      };
+    }
 
     if (!sampled) {
       return {
