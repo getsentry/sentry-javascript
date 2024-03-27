@@ -1,10 +1,9 @@
-/* eslint-disable max-lines */
 import { execFile } from 'child_process';
 import { readFile, readdir } from 'fs';
 import * as os from 'os';
 import { join } from 'path';
 import { promisify } from 'util';
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { defineIntegration } from '@sentry/core';
 import type {
   AppContext,
   CloudResourceContext,
@@ -12,13 +11,10 @@ import type {
   CultureContext,
   DeviceContext,
   Event,
-  Integration,
-  IntegrationClass,
   IntegrationFn,
   OsContext,
 } from '@sentry/types';
 
-// TODO: Required until we drop support for Node v8
 export const readFileAsync = promisify(readFile);
 export const readDirAsync = promisify(readdir);
 
@@ -108,27 +104,10 @@ const _nodeContextIntegration = ((options: ContextOptions = {}) => {
   };
 }) satisfies IntegrationFn;
 
-export const nodeContextIntegration = defineIntegration(_nodeContextIntegration);
-
 /**
- * Add node modules / packages to the event.
- * @deprecated Use `nodeContextIntegration()` instead.
+ * Capture context about the environment and the device that the client is running on, to events.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const Context = convertIntegrationFnToClass(INTEGRATION_NAME, nodeContextIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Promise<Event> }
-> & {
-  new (options?: {
-    app?: boolean;
-    os?: boolean;
-    device?: { cpu?: boolean; memory?: boolean } | boolean;
-    culture?: boolean;
-    cloudResource?: boolean;
-  }): Integration;
-};
-
-// eslint-disable-next-line deprecation/deprecation
-export type Context = typeof Context;
+export const nodeContextIntegration = defineIntegration(_nodeContextIntegration);
 
 /**
  * Updates the context with dynamic values that can change

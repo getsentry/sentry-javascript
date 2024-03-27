@@ -1,4 +1,4 @@
-import { promises } from 'fs';
+import { readFile } from 'fs';
 import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { LRUMap, addContextToFrame } from '@sentry/utils';
@@ -7,7 +7,15 @@ const FILE_CONTENT_CACHE = new LRUMap<string, string[] | null>(100);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
 
-const readFileAsync = promises.readFile;
+// TODO: Replace with promisify when minimum supported node >= v8
+function readTextFileAsync(path: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    readFile(path, 'utf8', (err, data) => {
+      if (err) reject(err);
+      else resolve(data);
+    });
+  });
+}
 
 /**
  * Resets the file cache. Exists for testing purposes.
@@ -27,8 +35,7 @@ interface ContextLinesOptions {
   frameContextLines?: number;
 }
 
-/** Exported only for tests, as a type-safe variant. */
-export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
+const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => {
   const contextLines = options.frameContextLines !== undefined ? options.frameContextLines : DEFAULT_LINES_OF_CONTEXT;
 
   return {
@@ -39,9 +46,6 @@ export const _contextLinesIntegration = ((options: ContextLinesOptions = {}) => 
   };
 }) satisfies IntegrationFn;
 
-/**
- * Capture the lines before and after the frame's context.
- */
 export const contextLinesIntegration = defineIntegration(_contextLinesIntegration);
 
 async function addSourceContext(event: Event, contextLines: number): Promise<Event> {
@@ -135,7 +139,7 @@ async function _readSourceFile(filename: string): Promise<string[] | null> {
   // If we made it to here, it means that our file is not cache nor marked as failed, so attempt to read it
   let content: string[] | null = null;
   try {
-    const rawFileContents = await readFileAsync(filename, 'utf-8');
+    const rawFileContents = await readTextFileAsync(filename);
     content = rawFileContents.split('\n');
   } catch (_) {
     // if we fail, we will mark the file as null in the cache and short circuit next time we try to read it
