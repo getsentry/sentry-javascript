@@ -1,7 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import { init as reactInit } from '@sentry/react';
 
-import { getIntegrationsFromOptions } from './utils/integrations';
 import type { GatsbyOptions } from './utils/types';
 
 /**
@@ -9,9 +8,7 @@ import type { GatsbyOptions } from './utils/types';
  */
 export function init(options: GatsbyOptions): void {
   applySdkMetadata(options, 'gatsby');
-  const integrations = getIntegrationsFromOptions(options);
   reactInit({
     ...options,
-    integrations,
   });
 }

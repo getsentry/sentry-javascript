@@ -18,9 +18,7 @@
     "esm",
     "types",
     "types-ts3.8",
-    "gatsby-browser.js",
     "gatsby-node.js",
-    "gatsby-browser.d.ts",
     "gatsby-node.d.ts"
   ],
   "main": "build/cjs/index.js",
@@ -54,7 +52,7 @@
     "@sentry/react": "8.0.0-alpha.5",
     "@sentry/types": "8.0.0-alpha.5",
     "@sentry/utils": "8.0.0-alpha.5",
-    "@sentry/webpack-plugin": "1.19.0"
+    "@sentry/webpack-plugin": "2.16.0"
   },
   "peerDependencies": {
     "gatsby": "^2.0.0 || ^3.0.0 || ^4.0.0 || ^5.0.0",
