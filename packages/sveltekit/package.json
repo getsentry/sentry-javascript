@@ -70,7 +70,7 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "test": "yarn test:unit",
-    "test:unit": "vitest run --outputDiffMaxLines=2000",
+    "test:unit": "vitest run",
     "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
