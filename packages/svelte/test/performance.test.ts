@@ -33,7 +33,7 @@ describe('Sentry.trackComponent()', () => {
     });
   });
 
-  it('creates nested init and update spans on component initialization', async () => {
+  it('creates init and update spans on component initialization', async () => {
     startSpan({ name: 'outer' }, span => {
       expect(span).toBeDefined();
       render(DummyComponent, { props: { options: {} } });
@@ -73,7 +73,7 @@ describe('Sentry.trackComponent()', () => {
       description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
-      parent_span_id: initSpanId,
+      parent_span_id: rootSpanId,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -128,7 +128,7 @@ describe('Sentry.trackComponent()', () => {
       description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
-      parent_span_id: initSpanId,
+      parent_span_id: rootSpanId,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
