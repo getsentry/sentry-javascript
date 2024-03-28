@@ -1,3 +1,5 @@
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-nocheck These are only tests
 /* eslint-disable @typescript-eslint/naming-convention */
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 import { loggingTransport, sendPortToRunner } from '@sentry-internal/node-integration-tests';
@@ -45,7 +47,7 @@ class AppModule {}
 
 async function init(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  await app.listen();
+  await app.listen(port);
   sendPortToRunner(port);
 }
 
