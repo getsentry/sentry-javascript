@@ -59,7 +59,6 @@
     "@sentry/react": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7",
-    "import-in-the-middle": "1.7.1",
     "glob": "^10.3.4",
     "yargs": "^17.6.0"
   },

@@ -60,8 +60,7 @@
     "@sentry/node": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7",
-    "@sentry/vite-plugin": "^2.14.2",
-    "import-in-the-middle": "1.7.1"
+    "@sentry/vite-plugin": "^2.14.2"
   },
   "devDependencies": {
     "astro": "^3.5.0",

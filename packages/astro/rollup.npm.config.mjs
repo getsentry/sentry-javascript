@@ -14,4 +14,4 @@ const variants = makeNPMConfigVariants(
   }),
 );
 
-export default [...variants, makeOtelLoader('./build/register.mjs')];
+export default [...variants, makeOtelLoader('./build/register.mjs', 'sentry-node')];

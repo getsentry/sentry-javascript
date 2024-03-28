@@ -150,7 +150,11 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
  * This creates a loader file at the target location as part of the rollup build.
  * This loader script can then be used in combination with various Node.js flags (like --loader=...) to monkeypatch 3rd party modules.
  */
-export function makeOtelLoader(outputPath) {
+export function makeOtelLoader(outputPath, hookVariant) {
+  if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
+    throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
+  }
+
   const foundLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
     return packageDotJSON?.exports?.[key]?.import?.default === outputPath;
   });
@@ -160,12 +164,13 @@ export function makeOtelLoader(outputPath) {
     );
   }
 
+  const requiredDep = hookVariant === 'otel' ? '@opentelemetry/instrumentation' : '@sentry/node';
   const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
-    return key === 'import-in-the-middle' && packageDotJSON?.dependencies?.[key] === '1.7.1';
+    return key === requiredDep;
   });
   if (!foundImportInTheMiddleDep) {
     throw new Error(
-      `You used the makeOtelLoader() rollup utility but didn't specify the "import-in-the-middle": "1.7.1" dependency in ${path.resolve(
+      `You used the makeOtelLoader() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
         process.cwd(),
         'package.json',
       )}. Please add it to the dependencies.`,
@@ -173,8 +178,12 @@ export function makeOtelLoader(outputPath) {
   }
 
   return defineConfig({
-    input: path.join(__dirname, 'code', 'otelLoaderTemplate.js'),
-    external: ['import-in-the-middle/hook.mjs'],
+    input: path.join(
+      __dirname,
+      'code',
+      hookVariant === 'otel' ? 'otelEsmLoaderTemplate.js' : 'sentryNodeEsmLoaderTemplate.js',
+    ),
+    external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/register'],
     output: {
       format: 'esm',
       file: outputPath,

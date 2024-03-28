@@ -12,5 +12,5 @@ export default [
     }),
     { emitEsm: false },
   ),
-  makeOtelLoader('./build/register.mjs'),
+  makeOtelLoader('./build/register.mjs', 'sentry-node'),
 ];

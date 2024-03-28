@@ -5,7 +5,7 @@ import { createAnrWorkerCode } from './rollup.anr-worker.config.mjs';
 const { workerRollupConfig, getBase64Code } = createAnrWorkerCode();
 
 export default [
-  makeOtelLoader('./build/register.mjs'),
+  makeOtelLoader('./build/register.mjs', 'otel'),
   // The worker needs to be built first since it's output is used in the main bundle.
   workerRollupConfig,
   ...makeNPMConfigVariants(

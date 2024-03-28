@@ -47,8 +47,7 @@
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7",
     "@types/aws-lambda": "^8.10.62",
-    "@types/express": "^4.17.14",
-    "import-in-the-middle": "1.7.1"
+    "@types/express": "^4.17.14"
   },
   "devDependencies": {
     "@types/node": "^14.18.0",
