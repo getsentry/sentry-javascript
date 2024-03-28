@@ -12,22 +12,22 @@ test('Should record exceptions captured inside handlers', async ({ request }) =>
 });
 
 test('Should record a transaction for a parameterless route', async ({ request }) => {
-  const errorEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
     console.log('txn', transactionEvent.transaction);
     return transactionEvent?.transaction === 'GET /test-success';
   });
 
   await request.get('/test-success');
 
-  await expect(errorEventPromise).resolves.toBeDefined();
+  await expect(transactionEventPromise).resolves.toBeDefined();
 });
 
 test('Should record a transaction for route with aparameters', async ({ request }) => {
-  const errorEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
+  const transactionEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
     return transactionEvent?.transaction === 'GET /test-transaction/:param';
   });
 
   await request.get('/test-transaction/1');
 
-  await expect(errorEventPromise).resolves.toBeDefined();
+  await expect(transactionEventPromise).resolves.toBeDefined();
 });
