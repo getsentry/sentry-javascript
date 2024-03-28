@@ -22,6 +22,11 @@
       },
       "node": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
     }
   },
   "typesVersions": {

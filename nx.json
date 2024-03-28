@@ -10,7 +10,12 @@
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json", "{workspaceRoot}/yarn.lock"],
+    "sharedGlobals": [
+      "{workspaceRoot}/*.js",
+      "{workspaceRoot}/*.json",
+      "{workspaceRoot}/yarn.lock",
+      "{workspaceRoot}/dev-packages/rollup-utils/**"
+    ],
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
