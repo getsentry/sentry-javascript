@@ -1,10 +1,10 @@
 import { createRunner } from '../../../utils/runner';
-import { createHeaderTestServer } from '../../../utils/server';
+import { createTestServer } from '../../../utils/server';
 
 test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', done => {
   expect.assertions(9);
 
-  createHeaderTestServer(done)
+  createTestServer(done)
     .get('/api/v0', headers => {
       expect(typeof headers['baggage']).toBe('string');
       expect(typeof headers['sentry-trace']).toBe('string');

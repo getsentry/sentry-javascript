@@ -36,7 +36,7 @@ type HeaderAssertCallback = (headers: Record<string, string | string[] | undefin
 
 /** Creates a test server that can be used to check headers */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export function createHeaderTestServer(done: (error: unknown) => void) {
+export function createTestServer(done: (error: unknown) => void) {
   const gets: Array<[string, HeaderAssertCallback, number]> = [];
 
   return {

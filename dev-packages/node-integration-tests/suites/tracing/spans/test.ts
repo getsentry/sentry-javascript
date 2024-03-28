@@ -1,10 +1,10 @@
 import { createRunner } from '../../../utils/runner';
-import { createHeaderTestServer } from '../../../utils/server';
+import { createTestServer } from '../../../utils/server';
 
 test('should capture spans for outgoing http requests', done => {
   expect.assertions(3);
 
-  createHeaderTestServer(done)
+  createTestServer(done)
     .get('/api/v0', () => {
       // Just ensure we're called
       expect(true).toBe(true);
