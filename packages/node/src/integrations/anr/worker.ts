@@ -1,11 +1,12 @@
 import {
+  applyScopeDataToEvent,
   createEventEnvelope,
   createSessionEnvelope,
   getEnvelopeEndpointWithUrlEncodedAuth,
   makeSession,
   updateSession,
 } from '@sentry/core';
-import type { Event, Session, StackFrame, TraceContext } from '@sentry/types';
+import type { Event, ScopeData, Session, StackFrame } from '@sentry/types';
 import {
   callFrameToStackFrame,
   normalizeUrlToBase,
@@ -87,7 +88,23 @@ function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[]
   return strippedFrames;
 }
 
-async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext): Promise<void> {
+function applyScopeToEvent(event: Event, scope: ScopeData): void {
+  applyScopeDataToEvent(event, scope);
+
+  if (!event.contexts?.trace) {
+    const { traceId, spanId, parentSpanId } = scope.propagationContext;
+    event.contexts = {
+      trace: {
+        trace_id: traceId,
+        span_id: spanId,
+        parent_span_id: parentSpanId,
+      },
+      ...event.contexts,
+    };
+  }
+}
+
+async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
   if (hasSentAnrEvent) {
     return;
   }
@@ -100,7 +117,7 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
 
   const event: Event = {
     event_id: uuid4(),
-    contexts: { ...options.contexts, trace: traceContext },
+    contexts: options.contexts,
     release: options.release,
     environment: options.environment,
     dist: options.dist,
@@ -120,8 +137,12 @@ async function sendAnrEvent(frames?: StackFrame[], traceContext?: TraceContext):
     tags: options.staticTags,
   };
 
+  if (scope) {
+    applyScopeToEvent(event, scope);
+  }
+
   const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata);
-  // Log the envelope so to aid in testing
+  // Log the envelope to aid in testing
   log(JSON.stringify(envelope));
 
   await transport.send(envelope);
@@ -172,20 +193,23 @@ if (options.captureStackTrace) {
         'Runtime.evaluate',
         {
           // Grab the trace context from the current scope
-          expression:
-            'var __sentry_ctx = __SENTRY__.hub.getScope().getPropagationContext(); __sentry_ctx.traceId + "-" + __sentry_ctx.spanId + "-" + __sentry_ctx.parentSpanId',
+          expression: 'global.__SENTRY_GET_SCOPES__();',
           // Don't re-trigger the debugger if this causes an error
           silent: true,
+          // Serialize the result to json otherwise only primitives are supported
+          returnByValue: true,
         },
-        (_, param) => {
-          const traceId = param && param.result ? (param.result.value as string) : '--';
-          const [trace_id, span_id, parent_span_id] = traceId.split('-') as (string | undefined)[];
+        (err, param) => {
+          if (err) {
+            log(`Error executing script: '${err.message}'`);
+          }
+
+          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
 
           session.post('Debugger.resume');
           session.post('Debugger.disable');
 
-          const context = trace_id?.length && span_id?.length ? { trace_id, span_id, parent_span_id } : undefined;
-          sendAnrEvent(stackFrames, context).then(null, () => {
+          sendAnrEvent(stackFrames, scopes).then(null, () => {
             log('Sending ANR event failed.');
           });
         },
