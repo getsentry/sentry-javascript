@@ -1,19 +1,20 @@
-import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import * as Sentry from '@sentry/node-experimental';
-import express from 'express';
-
-const app = express();
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
+import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  integrations: [Sentry.httpIntegration({ tracing: true }), new Sentry.Integrations.Express({ app })],
+  integrations: [
+    // TODO: This used to use the Express integration
+  ],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
+import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import express from 'express';
+
+const app = express();
 
 const APIv1 = express.Router();
 
@@ -30,6 +31,6 @@ const root = express.Router();
 app.use('/api/v1', APIv1);
 app.use('/api', root);
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

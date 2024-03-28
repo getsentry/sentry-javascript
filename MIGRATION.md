@@ -43,6 +43,8 @@ For IE11 support please transpile your code to ES5 using babel or similar and ad
 
 **Next.js**: The Next.js SDK now supports Next.js 13.2.0+
 
+**Express**: Complex router setups are only properly parametrized in Node 16+.
+
 ## 2. Package removal
 
 We've removed the following packages:

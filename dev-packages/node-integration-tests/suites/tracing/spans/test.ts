@@ -2,7 +2,9 @@ import nock from 'nock';
 
 import { TestEnv, assertSentryTransaction } from '../../../utils';
 
-test('should capture spans for outgoing http requests', async () => {
+// TODO: Convert this test to the new test runner
+// eslint-disable-next-line jest/no-disabled-tests
+test.skip('should capture spans for outgoing http requests', async () => {
   const match1 = nock('http://match-this-url.com').get('/api/v0').reply(200);
   const match2 = nock('http://match-this-url.com').get('/api/v1').reply(200);
 

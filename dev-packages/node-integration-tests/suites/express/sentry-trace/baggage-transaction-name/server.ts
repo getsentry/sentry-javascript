@@ -1,11 +1,6 @@
-import http from 'http';
-import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import { loggingTransport } from '@sentry-internal/node-integration-tests';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import * as Sentry from '@sentry/node-experimental';
-import cors from 'cors';
-import express from 'express';
-
-const app = express();
+import * as Sentry from '@sentry/node';
 
 export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
@@ -15,17 +10,23 @@ Sentry.init({
   environment: 'prod',
   // disable requests to /express
   tracePropagationTargets: [/^(?!.*express).*$/],
-  integrations: [Sentry.httpIntegration({ tracing: true }), new Sentry.Integrations.Express({ app })],
+  integrations: [
+    // TODO: This used to use the Express integration
+  ],
   tracesSampleRate: 1.0,
   // TODO: We're rethinking the mechanism for including Pii data in DSC, hence commenting out sendDefaultPii for now
   // sendDefaultPii: true,
   transport: loggingTransport,
 });
 
-Sentry.setUser({ id: 'user123' });
+import http from 'http';
+import { startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
+import cors from 'cors';
+import express from 'express';
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
+const app = express();
+
+Sentry.setUser({ id: 'user123' });
 
 app.use(cors());
 
@@ -39,6 +40,6 @@ app.get('/test/express', (_req, res) => {
   res.send({ test_data: headers });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);

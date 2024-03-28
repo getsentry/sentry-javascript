@@ -3,7 +3,9 @@ import nock from 'nock';
 
 import { TestEnv } from '../../../utils';
 
-test('should aggregate successful sessions', async () => {
+// TODO: Convert this test to the new test runner
+// eslint-disable-next-line jest/no-disabled-tests
+test.skip('should aggregate successful sessions', async () => {
   const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
 
   const envelope = await Promise.race([

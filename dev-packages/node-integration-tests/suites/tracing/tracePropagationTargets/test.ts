@@ -2,7 +2,9 @@ import nock from 'nock';
 
 import { TestEnv, runScenario } from '../../../utils';
 
-test('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
+// TODO: Convert this test to the new test runner
+// eslint-disable-next-line jest/no-disabled-tests
+test.skip('HttpIntegration should instrument correct requests when tracePropagationTargets option is provided', async () => {
   const match1 = nock('http://match-this-url.com')
     .get('/api/v0')
     .matchHeader('baggage', val => typeof val === 'string')

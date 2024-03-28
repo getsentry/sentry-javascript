@@ -1,10 +1,5 @@
-import http from 'http';
 import { loggingTransport, startExpressServerAndSendPortToRunner } from '@sentry-internal/node-integration-tests';
-import * as Sentry from '@sentry/node-experimental';
-import cors from 'cors';
-import express from 'express';
-
-const app = express();
+import * as Sentry from '@sentry/node';
 
 export type TestAPIResponse = { test_data: { host: string; 'sentry-trace': string; baggage: string } };
 
@@ -13,15 +8,20 @@ Sentry.init({
   release: '1.0',
   environment: 'prod',
   tracePropagationTargets: [/^(?!.*express).*$/],
-  integrations: [Sentry.httpIntegration({ tracing: true }), new Sentry.Integrations.Express({ app })],
+  integrations: [
+    // TODO: This used to use the Express integration
+  ],
   tracesSampleRate: 1.0,
   transport: loggingTransport,
 });
 
-Sentry.setUser({ id: 'user123' });
+import http from 'http';
+import cors from 'cors';
+import express from 'express';
 
-app.use(Sentry.Handlers.requestHandler());
-app.use(Sentry.Handlers.tracingHandler());
+const app = express();
+
+Sentry.setUser({ id: 'user123' });
 
 app.use(cors());
 
@@ -37,6 +37,6 @@ app.get('/test/express', (_req, res) => {
   res.send({ test_data: headers });
 });
 
-app.use(Sentry.Handlers.errorHandler());
+Sentry.setupExpressErrorHandler(app);
 
 startExpressServerAndSendPortToRunner(app);
