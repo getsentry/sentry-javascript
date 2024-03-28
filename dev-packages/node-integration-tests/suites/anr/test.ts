@@ -65,9 +65,59 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
     cleanupChildProcesses();
   });
 
+  const EXPECTED_LEGACY_ANR_EVENT = {
+    // Ensure we have context
+    contexts: {
+      trace: {
+        span_id: expect.any(String),
+        trace_id: expect.any(String),
+      },
+      device: {
+        arch: expect.any(String),
+      },
+      app: {
+        app_start_time: expect.any(String),
+      },
+      os: {
+        name: expect.any(String),
+      },
+      culture: {
+        timezone: expect.any(String),
+      },
+    },
+    // and an exception that is our ANR
+    exception: {
+      values: [
+        {
+          type: 'ApplicationNotResponding',
+          value: 'Application Not Responding for at least 100 ms',
+          mechanism: { type: 'ANR' },
+          stacktrace: {
+            frames: expect.arrayContaining([
+              {
+                colno: expect.any(Number),
+                lineno: expect.any(Number),
+                filename: expect.any(String),
+                function: '?',
+                in_app: true,
+              },
+              {
+                colno: expect.any(Number),
+                lineno: expect.any(Number),
+                filename: expect.any(String),
+                function: 'longWork',
+                in_app: true,
+              },
+            ]),
+          },
+        },
+      ],
+    },
+  };
+
   // TODO (v8): Remove this old API and this test
   test('Legacy API', done => {
-    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'legacy.js').expect({ event: EXPECTED_LEGACY_ANR_EVENT }).start(done);
   });
 
   test('CJS', done => {
