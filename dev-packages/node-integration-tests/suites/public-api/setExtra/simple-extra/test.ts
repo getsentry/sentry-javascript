@@ -1,18 +1,23 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should set a simple extra', async () => {
-  const env = await TestEnv.init(__dirname);
-  const event = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(event[2], {
-    message: 'simple_extra',
-    extra: {
-      foo: {
-        foo: 'bar',
-        baz: {
-          qux: 'quux',
+test('should set a simple extra', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'simple_extra',
+        extra: {
+          foo: {
+            foo: 'bar',
+            baz: {
+              qux: 'quux',
+            },
+          },
         },
       },
-    },
-  });
+    })
+    .start(done);
 });

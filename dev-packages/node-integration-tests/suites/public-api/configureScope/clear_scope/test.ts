@@ -1,14 +1,15 @@
-import type { Event } from '@sentry/node';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-test('should clear previously set properties of a scope', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
-
-  assertSentryEvent(envelope[2], {
-    message: 'cleared_scope',
-  });
-
-  expect((envelope[2] as Event).user).not.toBeDefined();
+test('should clear previously set properties of a scope', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'cleared_scope',
+      },
+    })
+    .start(done);
 });

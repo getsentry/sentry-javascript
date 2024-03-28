@@ -45,7 +45,7 @@ class AppModule {}
 
 async function init(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  await app.listen(port);
+  await app.listen();
   sendPortToRunner(port);
 }
 

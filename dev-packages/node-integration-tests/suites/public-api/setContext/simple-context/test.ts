@@ -1,19 +1,20 @@
-import type { Event } from '@sentry/node';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-test('should set a simple context', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
-
-  assertSentryEvent(envelope[2], {
-    message: 'simple_context_object',
-    contexts: {
-      foo: {
-        bar: 'baz',
+test('should set a simple context', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'simple_context_object',
+        contexts: {
+          foo: {
+            bar: 'baz',
+          },
+        },
       },
-    },
-  });
-
-  expect((envelope[2] as Event).contexts?.context_3).not.toBeDefined();
+    })
+    .start(done);
 });
