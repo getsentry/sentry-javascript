@@ -106,13 +106,13 @@ async function runDockerCompose(options: DockerOptions): Promise<VoidFunction> {
 
 type Expected =
   | {
-      event: Partial<Event> | ((event: Event) => void);
+      event: Partial<Event> | ((event: Event, headers?: Record<string, string>) => void);
     }
   | {
-      transaction: Partial<Event> | ((event: Event) => void);
+      transaction: Partial<Event> | ((event: Event, headers?: Record<string, string>) => void);
     }
   | {
-      session: Partial<SerializedSession> | ((event: SerializedSession) => void);
+      session: Partial<SerializedSession> | ((event: SerializedSession, headers?: Record<string, string>) => void);
     };
 
 /** Creates a test runner */
@@ -182,7 +182,7 @@ export function createRunner(...paths: string[]) {
         }
       }
 
-      function newEnvelope(envelope: Envelope): void {
+      function newEnvelope(envelope: Envelope, headers?: Record<string, string>): void {
         for (const item of envelope[1]) {
           const envelopeItemType = item[0].type;
 
@@ -207,7 +207,7 @@ export function createRunner(...paths: string[]) {
             if ('event' in expected) {
               const event = item[1] as Event;
               if (typeof expected.event === 'function') {
-                expected.event(event);
+                expected.event(event, headers);
               } else {
                 assertSentryEvent(event, expected.event);
               }
@@ -218,7 +218,7 @@ export function createRunner(...paths: string[]) {
             if ('transaction' in expected) {
               const event = item[1] as Event;
               if (typeof expected.transaction === 'function') {
-                expected.transaction(event);
+                expected.transaction(event, headers);
               } else {
                 assertSentryTransaction(event, expected.transaction);
               }
@@ -229,7 +229,7 @@ export function createRunner(...paths: string[]) {
             if ('session' in expected) {
               const session = item[1] as SerializedSession;
               if (typeof expected.session === 'function') {
-                expected.session(session);
+                expected.session(session, headers);
               } else {
                 assertSentrySession(session, expected.session);
               }
