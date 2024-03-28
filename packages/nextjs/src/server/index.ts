@@ -12,6 +12,7 @@ import { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration
 
 export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
+import { promoteHttpSpansIntegration } from './promoteHttpSpansIntegration';
 
 export { captureUnderscoreErrorException } from '../common/_error';
 export { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
@@ -76,8 +77,10 @@ export function init(options: NodeOptions): void {
       integration =>
         integration.name !== 'OnUncaughtException' &&
         // Next.js comes with its own Node-Fetch instrumentation so we shouldn't add ours on-top
-        integration.name !== 'NodeFetch',
+        integration.name !== 'NodeFetch' &&
+        integration.name !== 'Http',
     ),
+    promoteHttpSpansIntegration(),
     onUncaughtExceptionIntegration(),
   ];
 
