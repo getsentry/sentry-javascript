@@ -1,4 +1,8 @@
-import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import {
+  feedbackIntegrationShim,
+  feedbackModalIntegrationShim,
+  feedbackScreenshotIntegrationShim,
+} from '@sentry-internal/integration-shims';
 import { replayIntegration } from '@sentry-internal/replay';
 import {
   browserTracingIntegration,
@@ -23,6 +27,8 @@ export {
 export {
   replayIntegration,
   feedbackIntegrationShim as feedbackIntegration,
+  feedbackModalIntegrationShim as feedbackModalIntegration,
+  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
   browserTracingIntegration,
   addTracingExtensions,
   startBrowserTracingNavigationSpan,

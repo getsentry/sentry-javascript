@@ -1,4 +1,6 @@
 import { feedbackIntegration, getFeedback } from '@sentry-internal/feedback';
+import { feedbackModalIntegration } from '@sentry-internal/feedback-modal';
+import { feedbackScreenshotIntegration } from '@sentry-internal/feedback-screenshot';
 import { replayIntegration } from '@sentry-internal/replay';
 import {
   browserTracingIntegration,
@@ -22,6 +24,8 @@ export {
 
 export {
   feedbackIntegration,
+  feedbackModalIntegration,
+  feedbackScreenshotIntegration,
   replayIntegration,
   browserTracingIntegration,
   addTracingExtensions,
