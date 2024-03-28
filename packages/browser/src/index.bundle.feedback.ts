@@ -1,5 +1,5 @@
 // This is exported so the loader does not fail when switching off Replay/Tracing
-import { feedbackIntegration } from '@sentry-internal/feedback';
+import { feedbackIntegration, getFeedback } from '@sentry-internal/feedback';
 import {
   addTracingExtensionsShim,
   browserTracingIntegrationShim,
@@ -12,5 +12,6 @@ export {
   addTracingExtensionsShim as addTracingExtensions,
   replayIntegrationShim as replayIntegration,
   feedbackIntegration,
+  getFeedback,
 };
 // Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle
