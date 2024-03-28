@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Client, Integration, MetricsAggregator, Scope } from '@sentry/types';
+import type { Client, MetricsAggregator, Scope } from '@sentry/types';
 
 import type { SdkSource } from './env';
 
@@ -20,9 +20,7 @@ import type { SdkSource } from './env';
 export interface InternalGlobal {
   navigator?: { userAgent?: string };
   console: Console;
-  Sentry?: {
-    Integrations?: Integration[];
-  };
+  Sentry?: any;
   onerror?: {
     (event: object | string, source?: string, lineno?: number, colno?: number, error?: Error): any;
     __SENTRY_INSTRUMENTED__?: true;
