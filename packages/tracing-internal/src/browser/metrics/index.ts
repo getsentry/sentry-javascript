@@ -32,7 +32,6 @@ import { _startChild, isMeasurementValue } from './utils';
 
 import { createSpanEnvelope } from '@sentry/core';
 import { getNavigationEntry } from '../web-vitals/lib/getNavigationEntry';
-import type { TTFBMetric } from '../web-vitals/types/ttfb';
 
 const MAX_INT_AS_BYTES = 2147483647;
 
@@ -674,7 +673,11 @@ function setResourceEntrySizeData(
  * ttfb information is added via vendored web vitals library.
  */
 function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
-  const navEntry = getNavigationEntry() as TTFBMetric['entries'][number];
+  const navEntry = getNavigationEntry();
+  if (!navEntry) {
+    return;
+  }
+
   const { responseStart, requestStart } = navEntry;
 
   if (requestStart <= responseStart) {

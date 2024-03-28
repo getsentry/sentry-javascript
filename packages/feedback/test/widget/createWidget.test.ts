@@ -5,6 +5,7 @@ import {
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
+  IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
@@ -47,6 +48,7 @@ const DEFAULT_OPTIONS = {
   messageLabel: MESSAGE_LABEL,
   namePlaceholder: NAME_PLACEHOLDER,
   nameLabel: NAME_LABEL,
+  isRequiredLabel: IS_REQUIRED_LABEL,
   successMessageText: SUCCESS_MESSAGE_TEXT,
 
   onFormClose: jest.fn(),
