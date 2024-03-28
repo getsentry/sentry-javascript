@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.109.0
+
+This release deprecates some exports from the `@sentry/replay` package. These exports have been moved to the browser SDK
+(or related framework SDKs like `@sentry/react`).
+
+- feat(feedback): Make "required" text for input elements configurable (#11287)
+- feat(node): Add scope to ANR events (#11267)
+- feat(replay): Bump `rrweb` to 2.12.0 (#11317)
+- fix(node): Local variables skipped after Promise (#11248)
+- fix(node): Skip capturing Hapi Boom error responses (#11324)
+- fix(web-vitals): Check for undefined navigation entry (#11312)
+- ref(replay): Deprecate `@sentry/replay` exports (#11242)
+
+Work in this release contributed by @soerface. Thank you for your contribution!
+
 ## 7.108.0
 
 This release fixes issues with Time to First Byte (TTFB) calculation in the SDK that was introduced with `7.95.0`. It
