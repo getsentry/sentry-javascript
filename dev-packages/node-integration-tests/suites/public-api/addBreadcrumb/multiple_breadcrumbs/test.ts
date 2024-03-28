@@ -1,20 +1,25 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should add multiple breadcrumbs', async () => {
-  const env = await TestEnv.init(__dirname);
-  const events = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(events[2], {
-    message: 'test_multi_breadcrumbs',
-    breadcrumbs: [
-      {
-        category: 'foo',
-        message: 'bar',
-        level: 'fatal',
+test('should add multiple breadcrumbs', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'test_multi_breadcrumbs',
+        breadcrumbs: [
+          {
+            category: 'foo',
+            message: 'bar',
+            level: 'fatal',
+          },
+          {
+            category: 'qux',
+          },
+        ],
       },
-      {
-        category: 'qux',
-      },
-    ],
-  });
+    })
+    .start(done);
 });

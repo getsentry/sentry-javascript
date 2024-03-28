@@ -1,36 +1,42 @@
-import { TestEnv, assertSentryTransaction } from '../../../../utils';
+import type { SpanJSON } from '@sentry/types';
+import { assertSentryTransaction, cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should report finished spans as children of the root transaction.', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  expect(envelope).toHaveLength(3);
+test('should report finished spans as children of the root transaction.', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      transaction: transaction => {
+        const rootSpanId = transaction.contexts?.trace?.span_id;
+        const span3Id = transaction.spans?.[1].span_id;
 
-  const rootSpanId = (envelope?.[2] as any)?.contexts?.trace?.span_id;
-  const span3Id = (envelope?.[2] as any)?.spans?.[1].span_id;
+        expect(rootSpanId).toEqual(expect.any(String));
+        expect(span3Id).toEqual(expect.any(String));
 
-  expect(rootSpanId).toEqual(expect.any(String));
-  expect(span3Id).toEqual(expect.any(String));
-
-  assertSentryTransaction(envelope[2], {
-    transaction: 'root_span',
-    spans: [
-      {
-        description: 'span_1',
-        data: {
-          foo: 'bar',
-          baz: [1, 2, 3],
-        },
-        parent_span_id: rootSpanId,
+        assertSentryTransaction(transaction, {
+          transaction: 'root_span',
+          spans: [
+            {
+              description: 'span_1',
+              data: {
+                foo: 'bar',
+                baz: [1, 2, 3],
+              },
+              parent_span_id: rootSpanId,
+            },
+            {
+              description: 'span_3',
+              parent_span_id: rootSpanId,
+            },
+            {
+              description: 'span_5',
+              parent_span_id: span3Id,
+            },
+          ] as SpanJSON[],
+        });
       },
-      {
-        description: 'span_3',
-        parent_span_id: rootSpanId,
-      },
-      {
-        description: 'span_5',
-        parent_span_id: span3Id,
-      },
-    ],
-  });
+    })
+    .start(done);
 });
