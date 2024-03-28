@@ -1,6 +1,6 @@
 import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
-import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
+import type { Envelope, EnvelopeItemType, Event, SerializedSession, SessionAggregates } from '@sentry/types';
 import axios from 'axios';
 import { createBasicSentryServer } from './server';
 
@@ -113,6 +113,9 @@ type Expected =
     }
   | {
       session: Partial<SerializedSession> | ((event: SerializedSession) => void);
+    }
+  | {
+      sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
     };
 
 /** Creates a test runner */
