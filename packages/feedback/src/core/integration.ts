@@ -1,4 +1,4 @@
-import { defineIntegration, getClient } from '@sentry/core';
+import { getClient } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
@@ -45,7 +45,10 @@ interface PublicFeedbackIntegration {
 }
 export type IFeedbackIntegration = Integration & PublicFeedbackIntegration;
 
-export const _feedbackIntegration = (({
+/**
+ * Allow users to capture user feedback and send it to Sentry.
+ */
+export const feedbackIntegration = (({
   // FeedbackGeneralConfiguration
   id = 'sentry-feedback',
   showBranding = true,
@@ -279,5 +282,3 @@ export const _feedbackIntegration = (({
     },
   };
 }) satisfies IntegrationFn;
-
-export const feedbackIntegration = defineIntegration(_feedbackIntegration);
