@@ -5,9 +5,11 @@
 import * as fs from 'fs';
 import { builtinModules } from 'module';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 import deepMerge from 'deepmerge';
 
+import { defineConfig } from 'rollup';
 import {
   makeCleanupPlugin,
   makeCodeCovPlugin,
@@ -20,6 +22,8 @@ import {
 } from './plugins/index.mjs';
 import { makePackageNodeEsm } from './plugins/make-esm-plugin.mjs';
 import { mergePlugins } from './utils.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const packageDotJSON = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), './package.json'), { encoding: 'utf8' }));
 
@@ -140,4 +144,40 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
   }
 
   return variantSpecificConfigs.map(variant => deepMerge(baseConfig, variant));
+}
+
+/**
+ * This creates a loader file at the target location as part of the rollup build.
+ * This loader script can then be used in combination with various Node.js flags (like --loader=...) to monkeypatch 3rd party modules.
+ */
+export function makeOtelLoader(outputPath) {
+  const foundLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === outputPath;
+  });
+  if (!foundLoaderExport) {
+    throw new Error(
+      `You used the makeOtelLoader() rollup utility without specifying the loader inside \`exports[something].import.default\`. Please add "${outputPath}" as a value there (maybe check for typos - it needs to be "${outputPath}" exactly).`,
+    );
+  }
+
+  const foundImportInTheMiddleDep = Object.keys(packageDotJSON.dependencies ?? {}).some(key => {
+    return key === 'import-in-the-middle' && packageDotJSON?.dependencies?.[key] === '1.7.1';
+  });
+  if (!foundImportInTheMiddleDep) {
+    throw new Error(
+      `You used the makeOtelLoader() rollup utility but didn't specify the "import-in-the-middle": "1.7.1" dependency in ${path.resolve(
+        process.cwd(),
+        'package.json',
+      )}. Please add it to the dependencies.`,
+    );
+  }
+
+  return defineConfig({
+    input: path.join(__dirname, 'code', 'otelLoaderTemplate.js'),
+    external: ['import-in-the-middle/hook.mjs'],
+    output: {
+      format: 'esm',
+      file: outputPath,
+    },
+  });
 }

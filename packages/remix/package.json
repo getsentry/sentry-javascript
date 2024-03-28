@@ -17,7 +17,8 @@
     "esm",
     "types",
     "types-ts3.8",
-    "scripts"
+    "scripts",
+    "register.mjs"
   ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
@@ -32,6 +33,11 @@
       },
       "node": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
     }
   },
   "typesVersions": {
@@ -53,6 +59,7 @@
     "@sentry/react": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7",
+    "import-in-the-middle": "1.7.1",
     "glob": "^10.3.4",
     "yargs": "^17.6.0"
   },

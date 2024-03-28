@@ -13,7 +13,8 @@
     "cjs",
     "esm",
     "types",
-    "types-ts3.8"
+    "types-ts3.8",
+    "register.mjs"
   ],
   "main": "build/cjs/index.js",
   "types": "build/types/index.d.ts",
@@ -23,6 +24,11 @@
       "require": {
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
+      }
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
       }
     }
   },
@@ -41,7 +47,8 @@
     "@sentry/node": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7",
-    "@types/express": "^4.17.14"
+    "@types/express": "^4.17.14",
+    "import-in-the-middle": "1.7.1"
   },
   "devDependencies": {
     "@google-cloud/bigquery": "^5.3.0",
