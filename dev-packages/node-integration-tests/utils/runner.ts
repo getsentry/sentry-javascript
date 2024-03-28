@@ -126,6 +126,7 @@ export function createRunner(...paths: string[]) {
   const expectedEnvelopes: Expected[] = [];
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
+  let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
@@ -142,6 +143,10 @@ export function createRunner(...paths: string[]) {
     },
     expectError: function () {
       expectError = true;
+      return this;
+    },
+    withEnv: function (env: Record<string, string>) {
+      withEnv = env;
       return this;
     },
     withFlags: function (...args: string[]) {
@@ -263,8 +268,8 @@ export function createRunner(...paths: string[]) {
           }
 
           const env = mockServerPort
-            ? { ...process.env, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
-            : process.env;
+            ? { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
+            : { ...process.env, ...withEnv };
 
           // eslint-disable-next-line no-console
           if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
