@@ -8,9 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-// Skipping because this test is flaky
-// https://github.com/getsentry/sentry-javascript/issues/11062
-sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -37,18 +35,21 @@ sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPa
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -65,7 +66,6 @@ sentryTest.skip('handles empty/missing request headers', async ({ getLocalTestPa
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -110,25 +110,28 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-        'X-Custom-Header': 'foo',
-        'X-Test-Header': 'test-value',
-      },
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Cache: 'no-cache',
+          'X-Custom-Header': 'foo',
+          'X-Test-Header': 'test-value',
+        },
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -145,7 +148,6 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -195,25 +197,28 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    const request = new Request('http://localhost:7654/foo', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-        'X-Custom-Header': 'foo',
-      },
-    });
-    /* eslint-disable */
-    fetch(request).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      const request = new Request('http://localhost:7654/foo', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Cache: 'no-cache',
+          'X-Custom-Header': 'foo',
+        },
+      });
+      /* eslint-disable */
+      fetch(request).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -230,7 +235,6 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -280,25 +284,28 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
 
   await page.goto(url);
 
-  await page.evaluate(() => {
-    const headers = new Headers();
-    headers.append('Accept', 'application/json');
-    headers.append('Content-Type', 'application/json');
-    headers.append('Cache', 'no-cache');
-    headers.append('X-Custom-Header', 'foo');
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      const headers = new Headers();
+      headers.append('Accept', 'application/json');
+      headers.append('Content-Type', 'application/json');
+      headers.append('Cache', 'no-cache');
+      headers.append('X-Custom-Header', 'foo');
 
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-      headers,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+        headers,
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -315,7 +322,6 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -364,25 +370,28 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/bar', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        Cache: 'no-cache',
-        'X-Custom-Header': 'foo',
-        'X-Test-Header': 'test-value',
-      },
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/bar', {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          Cache: 'no-cache',
+          'X-Custom-Header': 'foo',
+          'X-Test-Header': 'test-value',
+        },
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -399,7 +408,6 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
