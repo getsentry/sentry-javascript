@@ -73,6 +73,8 @@ export {
   getSpanStatusFromHttpCode,
   setHttpStatus,
   makeMultiplexedTransport,
+  makeSimpleMultiplexedTransport,
+  SIMPLE_MULTIPLEXED_TRANSPORT_EXTRA_ROUTING_KEY,
   moduleMetadataIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';
