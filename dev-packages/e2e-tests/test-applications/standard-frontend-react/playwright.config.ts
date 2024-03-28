@@ -1,6 +1,20 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
+// Fix urls not resolving to localhost on Node v17+
+// See: https://github.com/axios/axios/issues/3821#issuecomment-1413727575
+import { setDefaultResultOrder } from 'dns';
+setDefaultResultOrder('ipv4first');
+
+const testEnv = process.env['TEST_ENV'] || 'production';
+
+if (!testEnv) {
+  throw new Error('No test env defined');
+}
+
+const reactPort = 3030;
+const eventProxyPort = 3031;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -32,6 +46,7 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    baseURL: `http://localhost:${reactPort}`,
   },
 
   /* Configure projects for major browsers */
@@ -42,29 +57,22 @@ const config: PlaywrightTestConfig = {
         ...devices['Desktop Chrome'],
       },
     },
-    // For now we only test Chrome!
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //   },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: {
-    //     ...devices['Desktop Safari'],
-    //   },
-    // },
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm start',
-    port: 3030,
-    env: {
-      PORT: '3030',
+  webServer: [
+    {
+      command: 'pnpm ts-node-script start-event-proxy.ts',
+      port: eventProxyPort,
     },
-  },
+    {
+      command: `pnpm wait-port ${eventProxyPort} && pnpm start`,
+      port: reactPort,
+      env: {
+        PORT: reactPort.toString(),
+      },
+    },
+  ],
 };
 
 export default config;

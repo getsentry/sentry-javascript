@@ -47,9 +47,11 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "1.26.1",
+    "@playwright/test": "1.41.2",
     "axios": "1.6.0",
-    "serve": "14.0.1"
+    "serve": "14.0.1",
+    "ts-node": "10.9.1",
+    "wait-port": "1.0.4"
   },
   "volta": {
     "extends": "../../package.json"
