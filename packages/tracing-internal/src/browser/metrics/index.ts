@@ -674,7 +674,12 @@ function setResourceEntrySizeData(
  * ttfb information is added via vendored web vitals library.
  */
 function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
-  const navEntry = getNavigationEntry() as TTFBMetric['entries'][number];
+  const navEntry = getNavigationEntry();
+
+  if (!navEntry) {
+    return;
+  }
+
   const { responseStart, requestStart } = navEntry;
 
   if (requestStart <= responseStart) {
