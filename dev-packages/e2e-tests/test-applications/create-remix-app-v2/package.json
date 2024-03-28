@@ -32,7 +32,8 @@
     "typescript": "^5.0.4",
     "ts-node": "10.9.1"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "volta": {
+    "extends": "../../package.json"
   }
+
 }
