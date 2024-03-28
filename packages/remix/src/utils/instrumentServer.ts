@@ -89,9 +89,9 @@ async function extractResponseError(response: Response): Promise<unknown> {
  *
  * Should be used in `entry.server` like:
  *
- * export const handleError = Sentry.wrapRemixHandleError
+ * export const handleError = Sentry.sentryHandleError
  */
-export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
+export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): void {
   // We are skipping thrown responses here as they are handled by
   // `captureRemixServerException` at loader / action level
   // We don't want to capture them twice.
@@ -105,6 +105,28 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
   captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
     DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
   });
+}
+
+/**
+ * @deprecated Use `sentryHandleError` instead.
+ */
+export const wrapRemixHandleError = sentryHandleError;
+
+/**
+ * Sentry wrapper for Remix's `handleError` function.
+ * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
+ */
+export function wrapHandleErrorWithSentry(
+  origHandleError: (err: unknown, args: { request: unknown }) => void,
+): (err: unknown, args: { request: unknown }) => void {
+  return function (this: unknown, err: unknown, args: { request: unknown }): void {
+    // This is expected to be void but just in case it changes in the future.
+    const res = origHandleError.call(this, err, args);
+
+    sentryHandleError(err, args as DataFunctionArgs);
+
+    return res;
+  };
 }
 
 /**
