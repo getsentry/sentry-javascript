@@ -1,6 +1,6 @@
 import { getClient } from '@sentry/core';
+import { Anr } from '.';
 import type { NodeClient } from '../../client';
-import { anrIntegration } from './index';
 
 // TODO (v8): Remove this entire file and the `enableAnrDetection` export
 
@@ -26,7 +26,8 @@ interface LegacyOptions {
  */
 export function enableAnrDetection(options: Partial<LegacyOptions>): Promise<void> {
   const client = getClient() as NodeClient;
-  const integration = anrIntegration(options);
-  integration.setup?.(client);
+  // eslint-disable-next-line deprecation/deprecation
+  const integration = new Anr(options);
+  integration.setup(client);
   return Promise.resolve();
 }
