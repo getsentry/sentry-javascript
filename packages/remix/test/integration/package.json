@@ -25,7 +25,7 @@
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
-    "@sentry/node": "file:../../../node-experimental",
+    "@sentry/node": "file:../../../node",
     "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
     "@sentry-internal/replay": "file:../../../replay-internal",

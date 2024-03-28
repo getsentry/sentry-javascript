@@ -17,7 +17,6 @@ import { WINDOW } from '../types';
 import { getNavigationEntry } from '../web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
 import type { NavigatorDeviceMemory, NavigatorNetworkInformation } from '../web-vitals/types';
-import type { TTFBMetric } from '../web-vitals/types/ttfb';
 import { isMeasurementValue, startAndEndSpan } from './utils';
 
 const MAX_INT_AS_BYTES = 2147483647;
