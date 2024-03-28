@@ -17,6 +17,8 @@ This release deprecates some exports from the `@sentry/replay` package. These ex
 - fix(web-vitals): Check for undefined navigation entry (#11312)
 - ref(replay): Deprecate `@sentry/replay` exports (#11242)
 
+Work in this release contributed by @soerface. Thank you for your contribution!
+
 ## 7.108.0
 
 This release fixes issues with Time to First Byte (TTFB) calculation in the SDK that was introduced with `7.95.0`. It
