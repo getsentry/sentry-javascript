@@ -8,6 +8,7 @@ import {
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
+  IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
@@ -105,6 +106,7 @@ export class Feedback implements Integration {
     messageLabel = MESSAGE_LABEL,
     namePlaceholder = NAME_PLACEHOLDER,
     nameLabel = NAME_LABEL,
+    isRequiredLabel = IS_REQUIRED_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
 
     onFormClose,
@@ -152,6 +154,7 @@ export class Feedback implements Integration {
       messagePlaceholder,
       nameLabel,
       namePlaceholder,
+      isRequiredLabel,
       successMessageText,
 
       onFormClose,
