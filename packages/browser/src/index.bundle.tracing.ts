@@ -1,5 +1,10 @@
 // This is exported so the loader does not fail when switching off Replay
-import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
+import {
+  feedbackIntegrationShim,
+  feedbackModalIntegrationShim,
+  feedbackScreenshotIntegrationShim,
+  replayIntegrationShim,
+} from '@sentry-internal/integration-shims';
 import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
@@ -22,6 +27,8 @@ export {
 
 export {
   feedbackIntegrationShim as feedbackIntegration,
+  feedbackModalIntegrationShim as feedbackModalIntegration,
+  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
   replayIntegrationShim as replayIntegration,
   browserTracingIntegration,
   addTracingExtensions,
