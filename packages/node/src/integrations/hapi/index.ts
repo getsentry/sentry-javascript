@@ -20,10 +20,6 @@ function isResponseObject(response: ResponseObject | Boom): response is Response
   return response && (response as ResponseObject).statusCode !== undefined;
 }
 
-function isBoomObject(response: ResponseObject | Boom): response is Boom {
-  return response && (response as Boom).isBoom !== undefined;
-}
-
 function isErrorEvent(event: RequestEvent): event is RequestEvent {
   return event && (event as RequestEvent).error !== undefined;
 }
@@ -51,9 +47,7 @@ export const hapiErrorPlugin = {
       // eslint-disable-next-line deprecation/deprecation
       const transaction = getActiveTransaction();
 
-      if (request.response && isBoomObject(request.response)) {
-        sendErrorToSentry(request.response);
-      } else if (isErrorEvent(event)) {
+      if (isErrorEvent(event)) {
         sendErrorToSentry(event.error);
       }
 
