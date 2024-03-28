@@ -1,4 +1,8 @@
-import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import {
+  feedbackIntegrationShim,
+  feedbackModalIntegrationShim,
+  feedbackScreenshotIntegrationShim,
+} from '@sentry-internal/integration-shims';
 import { browserTracingIntegration } from '@sentry-internal/tracing';
 import { replayIntegration } from '@sentry/browser';
 
@@ -15,5 +19,7 @@ describe('index.bundle.tracing.replay', () => {
     expect(TracingReplayBundle.browserTracingIntegration).toBe(browserTracingIntegration);
 
     expect(TracingReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
+    expect(TracingReplayBundle.feedbackModalIntegration).toBe(feedbackModalIntegrationShim);
+    expect(TracingReplayBundle.feedbackScreenshotIntegration).toBe(feedbackScreenshotIntegrationShim);
   });
 });

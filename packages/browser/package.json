@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "@sentry-internal/feedback": "8.0.0-alpha.7",
+    "@sentry-internal/feedback-modal": "8.0.0-alpha.7",
+    "@sentry-internal/feedback-screenshot": "8.0.0-alpha.7",
     "@sentry-internal/replay": "8.0.0-alpha.7",
     "@sentry-internal/replay-canvas": "8.0.0-alpha.7",
     "@sentry-internal/tracing": "8.0.0-alpha.7",
