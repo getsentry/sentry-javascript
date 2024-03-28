@@ -19,7 +19,6 @@ import {
 import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 import type { Span, TransactionSource, WrappedFunction } from '@sentry/types';
 import {
-  addExceptionMechanism,
   dynamicSamplingContextToSentryBaggageHeader,
   fill,
   isNodeEnv,
@@ -117,40 +116,38 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
  * @returns A promise that resolves when the exception is captured.
  */
 export async function captureRemixServerException(err: unknown, name: string, request: Request): Promise<void> {
-  // Skip capturing if the thrown error is not a 5xx response
-  // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
-  if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
-    return;
-  }
+  return withIsolationScope(async isolationScope => {
+    // Skip capturing if the thrown error is not a 5xx response
+    // https://remix.run/docs/en/v1/api/conventions#throwing-responses-in-loaders
+    if (IS_REMIX_V2 && isRouteErrorResponse(err) && err.status < 500) {
+      return;
+    }
 
-  if (isResponse(err) && err.status < 500) {
-    return;
-  }
-  // Skip capturing if the request is aborted as Remix docs suggest
-  // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
-  if (request.signal.aborted) {
-    DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
-    return;
-  }
+    if (isResponse(err) && err.status < 500) {
+      return;
+    }
+    // Skip capturing if the request is aborted as Remix docs suggest
+    // Ref: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
+    if (request.signal.aborted) {
+      DEBUG_BUILD && logger.warn('Skipping capture of aborted request');
+      return;
+    }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let normalizedRequest: Record<string, unknown> = request as unknown as any;
-
-  try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    normalizedRequest = normalizeRemixRequest(request as unknown as any);
-  } catch (e) {
-    DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
-  }
+    let normalizedRequest: Record<string, unknown> = request as unknown as any;
 
-  const objectifiedErr = objectify(err);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      normalizedRequest = normalizeRemixRequest(request as unknown as any);
+    } catch (e) {
+      DEBUG_BUILD && logger.warn('Failed to normalize Remix request');
+    }
 
-  captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, scope => {
     const activeSpan = getActiveSpan();
     const rootSpan = activeSpan && getRootSpan(activeSpan);
     const activeRootSpanName = rootSpan ? spanToJSON(rootSpan).description : undefined;
 
-    scope.setSDKProcessingMetadata({
+    isolationScope.setSDKProcessingMetadata({
       request: {
         ...normalizedRequest,
         // When `route` is not defined, `RequestData` integration uses the full URL
@@ -162,19 +159,17 @@ export async function captureRemixServerException(err: unknown, name: string, re
       },
     });
 
-    scope.addEventProcessor(event => {
-      addExceptionMechanism(event, {
+    const objectifiedErr = objectify(err);
+
+    captureException(isResponse(objectifiedErr) ? await extractResponseError(objectifiedErr) : objectifiedErr, {
+      mechanism: {
         type: 'instrument',
         handled: false,
         data: {
           function: name,
         },
-      });
-
-      return event;
+      },
     });
-
-    return scope;
   });
 }
 
