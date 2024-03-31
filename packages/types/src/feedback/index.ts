@@ -43,7 +43,20 @@ export type SendFeedback = (
   options?: SendFeedbackOptions,
 ) => Promise<TransportMakeRequestResponse>;
 
-export type FeedbackCreateInputElement = (h: any, dialog: FeedbackDialog) => ScreenshotInput;
+export type FeedbackCreateInputElement = (
+  h: any,
+  dialog: FeedbackDialog,
+) => {
+  /**
+   * The preact component
+   */
+  input: ComponentType<{ onError: (error: Error) => void }>;
+
+  /**
+   * The image/screenshot bytes
+   */
+  value: () => Promise<Attachment | undefined>;
+};
 
 export interface FeedbackDialog {
   /**
@@ -82,18 +95,6 @@ interface CreateDialogProps {
 }
 
 export type FeedbackCreateDialog = (props: CreateDialogProps) => FeedbackDialog;
-
-export interface ScreenshotInput {
-  /**
-   * The preact component
-   */
-  input: ComponentType<{ onError: (error: Error) => void }>;
-
-  /**
-   * The image/screenshot bytes
-   */
-  value: () => Promise<Attachment | undefined>;
-}
 
 export interface FeedbackModalIntegration extends Integration {
   createDialog: FeedbackCreateDialog;

@@ -78,7 +78,6 @@ export type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
-  ScreenshotInput,
   SendFeedback,
   UserFeedback,
 } from './feedback';

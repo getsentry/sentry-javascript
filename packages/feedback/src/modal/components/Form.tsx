@@ -1,4 +1,9 @@
-import type { FeedbackFormData, FeedbackInternalOptions, ScreenshotInput, SendFeedback } from '@sentry/types';
+import type {
+  FeedbackCreateInputElement,
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  SendFeedback,
+} from '@sentry/types';
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -31,7 +36,7 @@ export interface Props
   onSubmit: SendFeedback;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
-  screenshotInput: ScreenshotInput | undefined;
+  screenshotInput: ReturnType<FeedbackCreateInputElement> | undefined;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
