@@ -1,10 +1,4 @@
-import type {
-  FeedbackFormData,
-  FeedbackInternalOptions,
-  ScreenshotInput,
-  SendFeedbackOptions,
-  SendFeedbackParams,
-} from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions, ScreenshotInput, SendFeedback } from '@sentry/types';
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -34,7 +28,7 @@ export interface Props
   defaultEmail: string;
   defaultName: string;
   onFormClose: () => void;
-  onSubmit: (data: SendFeedbackParams, options?: SendFeedbackOptions) => void;
+  onSubmit: SendFeedback;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
   screenshotInput: ScreenshotInput | undefined;

@@ -79,8 +79,7 @@ export type {
   OptionalFeedbackConfiguration,
   OverrideFeedbackConfiguration,
   ScreenshotInput,
-  SendFeedbackOptions,
-  SendFeedbackParams,
+  SendFeedback,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';

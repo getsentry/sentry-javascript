@@ -1,5 +1,6 @@
 import type { ComponentType } from 'preact';
 import type { Attachment } from '../attachment';
+import type { TransportMakeRequestResponse } from '../transport';
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -45,7 +46,7 @@ export interface OptionalFeedbackConfiguration
  */
 export type OverrideFeedbackConfiguration = Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'>;
 
-export interface SendFeedbackParams {
+interface SendFeedbackParams {
   message: string;
   name?: string;
   email?: string;
@@ -54,12 +55,17 @@ export interface SendFeedbackParams {
   source?: string;
 }
 
-export interface SendFeedbackOptions {
+interface SendFeedbackOptions {
   /**
    * Should include replay with the feedback?
    */
   includeReplay?: boolean;
 }
+
+export type SendFeedback = (
+  params: SendFeedbackParams,
+  options?: SendFeedbackOptions,
+) => Promise<TransportMakeRequestResponse>;
 
 export interface Dialog {
   /**
