@@ -1,6 +1,10 @@
 import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
-import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
-import type { SendFeedbackOptions, SendFeedbackParams } from '@sentry/types';
+import type {
+  FeedbackEvent,
+  SendFeedbackOptions,
+  SendFeedbackParams,
+  TransportMakeRequestResponse,
+} from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';

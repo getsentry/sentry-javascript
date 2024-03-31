@@ -1,8 +1,9 @@
 import { getClient } from '@sentry/core';
-import type { Integration, IntegrationFn } from '@sentry/types';
 import type {
   Dialog,
   FeedbackInternalOptions,
+  Integration,
+  IntegrationFn,
   OptionalFeedbackConfiguration,
   OverrideFeedbackConfiguration,
 } from '@sentry/types';

@@ -1,5 +1,4 @@
-import type { Attachment } from '@sentry/types';
-import type { Dialog, ScreenshotInput } from '@sentry/types';
+import type { Attachment, Dialog, ScreenshotInput } from '@sentry/types';
 import type { h as hType } from 'preact';
 import { DOCUMENT } from '../constants';
 import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
