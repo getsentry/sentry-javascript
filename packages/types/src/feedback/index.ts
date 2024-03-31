@@ -8,7 +8,6 @@ import type {
   FeedbackTextConfiguration,
   FeedbackThemeConfiguration,
 } from './config';
-import type { FeedbackTheme } from './theme';
 
 export type { FeedbackFormData } from './form';
 
@@ -22,17 +21,6 @@ export interface FeedbackInternalOptions
     FeedbackThemeConfiguration,
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
-
-/**
- * Partial configuration that overrides default configuration values
- *
- * This is the config that gets passed into the integration constructor
- */
-export interface OptionalFeedbackConfiguration
-  extends Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'> {
-  themeLight?: Partial<FeedbackTheme>;
-  themeDark?: Partial<FeedbackTheme>;
-}
 
 /**
  * Partial configuration that overrides default configuration values
