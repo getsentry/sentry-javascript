@@ -14,12 +14,6 @@ export type { FeedbackFormData } from './form';
 
 export type { FeedbackEvent, UserFeedback } from './sendFeedback';
 
-export { FeedbackTheme };
-export interface FeedbackThemes {
-  themeDark: FeedbackTheme;
-  themeLight: FeedbackTheme;
-}
-
 /**
  * The integration's internal `options` member where every value should be set
  */

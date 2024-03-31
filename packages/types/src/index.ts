@@ -78,8 +78,6 @@ export type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
-  FeedbackTheme,
-  FeedbackThemes,
   OptionalFeedbackConfiguration,
   OverrideFeedbackConfiguration,
   ScreenshotInput,
