@@ -99,6 +99,15 @@ export interface Dialog {
   close: () => void;
 }
 
+interface CreateDialogProps {
+  options: FeedbackInternalOptions;
+  screenshotIntegration: FeedbackScreenshotIntegration | undefined;
+  sendFeedback: SendFeedback;
+  shadow: ShadowRoot;
+}
+
+export type FeedbackCreateDialog = (props: CreateDialogProps) => Dialog;
+
 export interface ScreenshotInput {
   /**
    * The preact component

@@ -1,19 +1,11 @@
 import { getCurrentScope } from '@sentry/core';
-import type { Dialog, FeedbackFormData, FeedbackInternalOptions, FeedbackScreenshotIntegration } from '@sentry/types';
+import type { FeedbackCreateDialog, FeedbackFormData } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
-import type { sendFeedback as sendFeedbackFn } from '../core/sendFeedback';
 import { createDialogStyles } from './components/Dialog.css';
 import { DialogComponent } from './components/DialogContainer';
 
-interface Props {
-  options: FeedbackInternalOptions;
-  screenshotIntegration: FeedbackScreenshotIntegration | undefined;
-  sendFeedback: typeof sendFeedbackFn;
-  shadow: ShadowRoot;
-}
-
-export function createDialog({ options, screenshotIntegration, sendFeedback, shadow }: Props): Dialog {
+export const createDialog: FeedbackCreateDialog = ({ options, screenshotIntegration, sendFeedback, shadow }) => {
   const userKey = options.useSentryUser;
   const scope = getCurrentScope();
   const user = scope && scope.getUser();
@@ -91,4 +83,4 @@ export function createDialog({ options, screenshotIntegration, sendFeedback, sha
   };
 
   return dialog;
-}
+};
