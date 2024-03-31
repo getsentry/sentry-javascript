@@ -70,7 +70,7 @@ export type {
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
-  Dialog,
+  FeedbackDialog,
   FeedbackCreateDialog,
   FeedbackCreateInputElement,
   FeedbackEvent,

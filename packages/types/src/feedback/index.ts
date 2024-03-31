@@ -43,9 +43,9 @@ export type SendFeedback = (
   options?: SendFeedbackOptions,
 ) => Promise<TransportMakeRequestResponse>;
 
-export type FeedbackCreateInputElement = (h: any, dialog: Dialog) => ScreenshotInput;
+export type FeedbackCreateInputElement = (h: any, dialog: FeedbackDialog) => ScreenshotInput;
 
-export interface Dialog {
+export interface FeedbackDialog {
   /**
    * The HTMLElement that is containing all the form content
    */
@@ -81,7 +81,7 @@ interface CreateDialogProps {
   shadow: ShadowRoot;
 }
 
-export type FeedbackCreateDialog = (props: CreateDialogProps) => Dialog;
+export type FeedbackCreateDialog = (props: CreateDialogProps) => FeedbackDialog;
 
 export interface ScreenshotInput {
   /**

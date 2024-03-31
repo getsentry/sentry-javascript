@@ -1,6 +1,6 @@
 import { getClient } from '@sentry/core';
 import type {
-  Dialog,
+  FeedbackDialog,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
@@ -36,8 +36,10 @@ type Unsubscribe = () => void;
 
 interface PublicFeedbackIntegration {
   attachTo: (el: Element | string, optionOverrides: OverrideFeedbackConfiguration) => () => void;
-  createWidget: (optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean }) => Promise<Dialog>;
-  getWidget: () => Dialog | null;
+  createWidget: (
+    optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean },
+  ) => Promise<FeedbackDialog>;
+  getWidget: () => FeedbackDialog | null;
   remove: () => void;
   openDialog: () => void;
   closeDialog: () => void;
@@ -148,7 +150,7 @@ export const feedbackIntegration = (({
     return _shadow as ShadowRoot;
   };
 
-  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<Dialog> => {
+  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
     const client = getClient(); // TODO: getClient<BrowserClient>()
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
@@ -196,7 +198,7 @@ export const feedbackIntegration = (({
       throw new Error('Unable to attach to target element');
     }
 
-    let dialog: Dialog | null = null;
+    let dialog: FeedbackDialog | null = null;
     const handleClick = async (): Promise<void> => {
       if (!dialog) {
         dialog = await _loadAndRenderDialog({
@@ -264,7 +266,7 @@ export const feedbackIntegration = (({
     /**
      * Creates a new widget. Accepts partial options to override any options passed to constructor.
      */
-    async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<Dialog> {
+    async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
       return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
     },
 

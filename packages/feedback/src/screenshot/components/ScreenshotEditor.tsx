@@ -1,4 +1,4 @@
-import type { Dialog } from '@sentry/types';
+import type { FeedbackDialog } from '@sentry/types';
 /* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
@@ -16,7 +16,7 @@ const DPI = WINDOW.devicePixelRatio;
 interface FactoryParams {
   h: typeof hType;
   imageBuffer: HTMLCanvasElement;
-  dialog: Dialog;
+  dialog: FeedbackDialog;
 }
 
 interface Props {
