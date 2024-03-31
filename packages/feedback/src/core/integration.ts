@@ -4,7 +4,6 @@ import type {
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
-  Integration,
   IntegrationFn,
 } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
@@ -33,19 +32,6 @@ import { sendFeedback } from './sendFeedback';
 import type { OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from './types';
 
 type Unsubscribe = () => void;
-
-interface PublicFeedbackIntegration {
-  attachTo: (el: Element | string, optionOverrides: OverrideFeedbackConfiguration) => () => void;
-  createWidget: (
-    optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean },
-  ) => Promise<FeedbackDialog>;
-  getWidget: () => FeedbackDialog | null;
-  remove: () => void;
-  openDialog: () => void;
-  closeDialog: () => void;
-  removeWidget: () => void;
-}
-export type IFeedbackIntegration = Integration & PublicFeedbackIntegration;
 
 /**
  * Allow users to capture user feedback and send it to Sentry.
