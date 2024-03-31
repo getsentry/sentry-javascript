@@ -1,5 +1,5 @@
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './event';
+import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
 import type { CaptureContext } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
@@ -279,7 +279,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSendTransaction?: (event: TransactionEvent, hint: EventHint) => PromiseLike<TransactionEvent | null> | TransactionEvent | null;
+  beforeSendTransaction?: (
+    event: TransactionEvent,
+    hint: EventHint,
+  ) => PromiseLike<TransactionEvent | null> | TransactionEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify
