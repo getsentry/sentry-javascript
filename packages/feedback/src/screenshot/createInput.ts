@@ -1,12 +1,11 @@
-import type { Attachment, Dialog, ScreenshotInput } from '@sentry/types';
-import type { h as hType } from 'preact';
+import type { Attachment, FeedbackCreateInputElement } from '@sentry/types';
 import { DOCUMENT } from '../constants';
 import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
 
 /**
  *
  */
-export function createInput(h: typeof hType, dialog: Dialog): ScreenshotInput {
+export const createInput: FeedbackCreateInputElement = (h, dialog) => {
   const imageBuffer = DOCUMENT.createElement('canvas');
 
   return {
@@ -29,4 +28,4 @@ export function createInput(h: typeof hType, dialog: Dialog): ScreenshotInput {
       return;
     },
   };
-}
+};

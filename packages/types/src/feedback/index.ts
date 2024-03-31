@@ -67,6 +67,8 @@ export type SendFeedback = (
   options?: SendFeedbackOptions,
 ) => Promise<TransportMakeRequestResponse>;
 
+export type FeedbackCreateInputElement = (h: any, dialog: Dialog) => ScreenshotInput;
+
 export interface Dialog {
   /**
    * The HTMLElement that is containing all the form content

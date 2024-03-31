@@ -1,8 +1,8 @@
-import type { Integration, IntegrationFn } from '@sentry/types';
+import type { FeedbackCreateInputElement, Integration, IntegrationFn } from '@sentry/types';
 import { createInput } from './createInput';
 
 interface PublicFeedbackScreenshotIntegration {
-  createInput: typeof createInput;
+  createInput: FeedbackCreateInputElement;
 }
 
 export type FeedbackScreenshotIntegration = Integration & PublicFeedbackScreenshotIntegration;
