@@ -6,7 +6,6 @@ import type {
   FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
-  OverrideFeedbackConfiguration,
 } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
@@ -31,7 +30,7 @@ import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
-import type { OptionalFeedbackConfiguration } from './types';
+import type { OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from './types';
 
 type Unsubscribe = () => void;
 
