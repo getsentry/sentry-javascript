@@ -3,13 +3,13 @@ import type { Dialog, FeedbackFormData, FeedbackInternalOptions } from '@sentry/
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import type { sendFeedback as sendFeedbackFn } from '../core/sendFeedback';
-import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
+import type { FeedbackScreenshotIntegration } from '../screenshot/integration';
 import { createDialogStyles } from './components/Dialog.css';
 import { DialogComponent } from './components/DialogContainer';
 
 interface Props {
   options: FeedbackInternalOptions;
-  screenshotIntegration: IFeedbackScreenshotIntegration | undefined;
+  screenshotIntegration: FeedbackScreenshotIntegration | undefined;
   sendFeedback: typeof sendFeedbackFn;
   shadow: ShadowRoot;
 }
