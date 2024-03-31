@@ -75,6 +75,7 @@ export type {
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
+  FeedbackScreenshotIntegration,
   FeedbackTheme,
   FeedbackThemes,
   OptionalFeedbackConfiguration,

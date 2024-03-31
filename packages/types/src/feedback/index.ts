@@ -1,5 +1,6 @@
 import type { ComponentType } from 'preact';
 import type { Attachment } from '../attachment';
+import type { Integration } from '../integration';
 import type { TransportMakeRequestResponse } from '../transport';
 import type {
   FeedbackCallbacks,
@@ -108,4 +109,8 @@ export interface ScreenshotInput {
    * The image/screenshot bytes
    */
   value: () => Promise<Attachment | undefined>;
+}
+
+export interface FeedbackScreenshotIntegration extends Integration {
+  createInput: FeedbackCreateInputElement;
 }

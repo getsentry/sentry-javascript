@@ -2,6 +2,7 @@ import { getClient } from '@sentry/core';
 import type {
   Dialog,
   FeedbackInternalOptions,
+  FeedbackScreenshotIntegration,
   Integration,
   IntegrationFn,
   OptionalFeedbackConfiguration,
@@ -25,7 +26,6 @@ import {
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
 import type { FeedbackModalIntegration } from '../modal/integration';
-import type { FeedbackScreenshotIntegration } from '../screenshot/integration';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';

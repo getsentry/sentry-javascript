@@ -1,9 +1,8 @@
 import { getCurrentScope } from '@sentry/core';
-import type { Dialog, FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
+import type { Dialog, FeedbackFormData, FeedbackInternalOptions, FeedbackScreenshotIntegration } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import type { sendFeedback as sendFeedbackFn } from '../core/sendFeedback';
-import type { FeedbackScreenshotIntegration } from '../screenshot/integration';
 import { createDialogStyles } from './components/Dialog.css';
 import { DialogComponent } from './components/DialogContainer';
 
