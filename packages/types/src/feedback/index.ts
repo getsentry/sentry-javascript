@@ -52,17 +52,13 @@ export interface FeedbackDialog {
   close: () => void;
 }
 
-interface CreateDialogProps {
-  options: FeedbackInternalOptions;
-  screenshotIntegration: FeedbackScreenshotIntegration | undefined;
-  sendFeedback: SendFeedback;
-  shadow: ShadowRoot;
-}
-
-export type FeedbackCreateDialog = (props: CreateDialogProps) => FeedbackDialog;
-
 export interface FeedbackModalIntegration extends Integration {
-  createDialog: FeedbackCreateDialog;
+  createDialog: (props: {
+    options: FeedbackInternalOptions;
+    screenshotIntegration: FeedbackScreenshotIntegration | undefined;
+    sendFeedback: SendFeedback;
+    shadow: ShadowRoot;
+  }) => FeedbackDialog;
 }
 
 export interface FeedbackScreenshotIntegration extends Integration {
