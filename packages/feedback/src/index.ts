@@ -4,5 +4,5 @@ export { feedbackModalIntegration } from './modal/integration';
 export { getFeedback } from './core/getFeedback';
 export { feedbackScreenshotIntegration } from './screenshot/integration';
 
-export type { OptionalFeedbackConfiguration } from './types';
+export type { OptionalFeedbackConfiguration } from '@sentry/types';
 export type { IFeedbackIntegration } from './core/integration';

@@ -1,5 +1,11 @@
 import { getClient } from '@sentry/core';
 import type { Integration, IntegrationFn } from '@sentry/types';
+import type {
+  Dialog,
+  FeedbackInternalOptions,
+  OptionalFeedbackConfiguration,
+  OverrideFeedbackConfiguration,
+} from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -19,12 +25,6 @@ import {
 } from '../constants';
 import type { IFeedbackModalIntegration } from '../modal/integration';
 import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
-import type {
-  Dialog,
-  FeedbackInternalOptions,
-  OptionalFeedbackConfiguration,
-  OverrideFeedbackConfiguration,
-} from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';

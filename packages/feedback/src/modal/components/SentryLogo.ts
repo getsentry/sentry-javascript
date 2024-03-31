@@ -1,5 +1,5 @@
+import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../../constants';
-import type { FeedbackInternalOptions } from '../../types';
 import { setAttributesNS } from '../../util/setAttributesNS';
 
 const XMLNS = 'http://www.w3.org/2000/svg';

@@ -1,5 +1,5 @@
+import type { FeedbackTheme, FeedbackThemes } from '@sentry/types';
 import { DOCUMENT } from '../constants';
-import type { FeedbackTheme, FeedbackThemes } from '../types';
 
 function getThemedCssVariables(theme: FeedbackTheme): string {
   return `

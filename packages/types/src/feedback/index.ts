@@ -1,5 +1,5 @@
-import type { Attachment } from '@sentry/types';
 import type { ComponentType } from 'preact';
+import type { Attachment } from '../attachment';
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -9,6 +9,8 @@ import type {
 import type { FeedbackTheme } from './theme';
 
 export type { FeedbackFormData } from './form';
+
+export type { FeedbackEvent, UserFeedback } from './sendFeedback';
 
 export { FeedbackTheme };
 export interface FeedbackThemes {
