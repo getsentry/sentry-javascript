@@ -1,4 +1,6 @@
+import type { Attachment } from '../attachment';
 import type { Event } from '../event';
+import type { TransportMakeRequestResponse } from '../transport';
 import type { User } from '../user';
 
 /**
@@ -29,3 +31,24 @@ export interface FeedbackEvent extends Event {
     feedback: FeedbackContext;
   };
 }
+
+interface SendFeedbackParams {
+  message: string;
+  name?: string;
+  email?: string;
+  attachments?: Attachment[];
+  url?: string;
+  source?: string;
+}
+
+interface SendFeedbackOptions {
+  /**
+   * Should include replay with the feedback?
+   */
+  includeReplay?: boolean;
+}
+
+export type SendFeedback = (
+  params: SendFeedbackParams,
+  options?: SendFeedbackOptions,
+) => Promise<TransportMakeRequestResponse>;

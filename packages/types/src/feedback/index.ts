@@ -1,7 +1,7 @@
 import type { ComponentType } from 'preact';
 import type { Attachment } from '../attachment';
 import type { Integration } from '../integration';
-import type { TransportMakeRequestResponse } from '../transport';
+
 import type {
   FeedbackCallbacks,
   FeedbackGeneralConfiguration,
@@ -11,7 +11,8 @@ import type {
 
 export type { FeedbackFormData } from './form';
 
-export type { FeedbackEvent, UserFeedback } from './sendFeedback';
+import type { FeedbackEvent, SendFeedback, UserFeedback } from './sendFeedback';
+export type { FeedbackEvent, UserFeedback, SendFeedback };
 
 /**
  * The integration's internal `options` member where every value should be set
@@ -21,27 +22,6 @@ export interface FeedbackInternalOptions
     FeedbackThemeConfiguration,
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
-
-interface SendFeedbackParams {
-  message: string;
-  name?: string;
-  email?: string;
-  attachments?: Attachment[];
-  url?: string;
-  source?: string;
-}
-
-interface SendFeedbackOptions {
-  /**
-   * Should include replay with the feedback?
-   */
-  includeReplay?: boolean;
-}
-
-export type SendFeedback = (
-  params: SendFeedbackParams,
-  options?: SendFeedbackOptions,
-) => Promise<TransportMakeRequestResponse>;
 
 export type FeedbackCreateInputElement = (
   h: any,
