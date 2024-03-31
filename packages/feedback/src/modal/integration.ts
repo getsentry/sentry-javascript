@@ -1,11 +1,5 @@
-import type { FeedbackCreateDialog, Integration, IntegrationFn } from '@sentry/types';
+import type { FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
 import { createDialog } from './createDialog';
-
-interface PublicFeedbackModalIntegration {
-  createDialog: FeedbackCreateDialog;
-}
-
-export type FeedbackModalIntegration = Integration & PublicFeedbackModalIntegration;
 
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {

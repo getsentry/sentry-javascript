@@ -120,6 +120,10 @@ export interface ScreenshotInput {
   value: () => Promise<Attachment | undefined>;
 }
 
+export interface FeedbackModalIntegration extends Integration {
+  createDialog: FeedbackCreateDialog;
+}
+
 export interface FeedbackScreenshotIntegration extends Integration {
   createInput: FeedbackCreateInputElement;
 }
