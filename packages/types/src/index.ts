@@ -71,7 +71,6 @@ export type {
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
   FeedbackCreateDialog,
-  FeedbackCreateInputElement,
   FeedbackDialog,
   FeedbackEvent,
   FeedbackFormData,

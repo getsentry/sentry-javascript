@@ -1,7 +1,7 @@
 import type {
-  FeedbackCreateInputElement,
   FeedbackFormData,
   FeedbackInternalOptions,
+  FeedbackScreenshotIntegration,
   SendFeedback,
 } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -36,7 +36,7 @@ export interface Props
   onSubmit: SendFeedback;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
-  screenshotInput: ReturnType<FeedbackCreateInputElement> | undefined;
+  screenshotInput: ReturnType<FeedbackScreenshotIntegration['createInput']> | undefined;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {

@@ -23,21 +23,6 @@ export interface FeedbackInternalOptions
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
 
-export type FeedbackCreateInputElement = (
-  h: any,
-  dialog: FeedbackDialog,
-) => {
-  /**
-   * The preact component
-   */
-  input: ComponentType<{ onError: (error: Error) => void }>;
-
-  /**
-   * The image/screenshot bytes
-   */
-  value: () => Promise<Attachment | undefined>;
-};
-
 export interface FeedbackDialog {
   /**
    * The HTMLElement that is containing all the form content
@@ -81,5 +66,18 @@ export interface FeedbackModalIntegration extends Integration {
 }
 
 export interface FeedbackScreenshotIntegration extends Integration {
-  createInput: FeedbackCreateInputElement;
+  createInput: (
+    h: any,
+    dialog: FeedbackDialog,
+  ) => {
+    /**
+     * The preact component
+     */
+    input: ComponentType<{ onError: (error: Error) => void }>;
+
+    /**
+     * The image/screenshot bytes
+     */
+    value: () => Promise<Attachment | undefined>;
+  };
 }
