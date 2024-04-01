@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ env.HEAD_COMMIT }}
-      - uses: pnpm/action-setup@v2
+      - uses: pnpm/action-setup@v3
         with:
           version: 8.3.1
       - name: Set up Node
