@@ -26,9 +26,8 @@ Sentry.setUser({ id: 'user123' });
 app.use(cors());
 
 app.get('/test/express', (_req, res) => {
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = Sentry.getCurrentScope().getTransaction();
-  const traceId = transaction?.spanContext().traceId;
+  const span = Sentry.getActiveSpan();
+  const traceId = span?.spanContext().traceId;
   const headers = http.get('http://somewhere.not.sentry/').getHeaders();
   if (traceId) {
     headers['baggage'] = (headers['baggage'] as string).replace(traceId, '__SENTRY_TRACE_ID__');

@@ -307,7 +307,7 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
-    it('allows to force a transaction with forceTransaction=true', async () => {
+    it('allows to force a transaction with forceTransaction=true xxx', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
 
@@ -947,9 +947,13 @@ describe('trace', () => {
         expect(span).toBeDefined();
         expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
         expect(spanToJSON(span).parent_span_id).toEqual(propagationContext.spanId);
-        expect(getDynamicSamplingContextFromSpan(span)).toEqual(
-          getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
-        );
+
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        });
       });
     });
 

@@ -9,7 +9,6 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
-  getDynamicSamplingContextFromClient,
   getRootSpan,
   handleCallbackErrors,
   spanToJSON,
@@ -186,13 +185,12 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
     if (actualScope && client) {
       const propagationContext = actualScope.getPropagationContext();
-      const dynamicSamplingContext =
-        propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 
       // We store the DSC as OTEL trace state on the span context
       const traceState = makeTraceState({
         parentSpanId: propagationContext.parentSpanId,
-        dsc: dynamicSamplingContext,
+        // Not defined yet, we want to pick this up on-demand only
+        dsc: undefined,
         sampled: propagationContext.sampled,
       });
 
@@ -227,6 +225,8 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
   const { spanId, traceId } = parentSpan.spanContext();
   const sampled = getSamplingDecision(parentSpan.spanContext());
 
+  // In this case, when we are forcing a transaction, we want to treat this like continuing an incoming trace
+  // so we set the traceState according to the root span
   const rootSpan = getRootSpan(parentSpan);
   const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 
