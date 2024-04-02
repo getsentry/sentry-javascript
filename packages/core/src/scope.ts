@@ -19,13 +19,11 @@ import type {
   ScopeData,
   Session,
   SeverityLevel,
-  Transaction,
   User,
 } from '@sentry/types';
 import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
-import type { SentrySpan } from './tracing/sentrySpan';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
@@ -292,25 +290,6 @@ export class Scope implements ScopeInterface {
 
     this._notifyScopeListeners();
     return this;
-  }
-
-  /**
-   * Returns the `Transaction` attached to the scope (if there is one).
-   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
-   */
-  public getTransaction(): Transaction | undefined {
-    // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
-    // have a pointer to the currently-active transaction.
-    const span = _getSpanForScope(this);
-
-    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
-    // Also, this method will be removed anyway.
-    // eslint-disable-next-line deprecation/deprecation
-    if (span && (span as SentrySpan).transaction) {
-      // eslint-disable-next-line deprecation/deprecation
-      return (span as SentrySpan).transaction;
-    }
-    return undefined;
   }
 
   /**
