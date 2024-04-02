@@ -1049,6 +1049,7 @@ jobs:
             'node-fastify-app',
             # TODO(v8): Re-enable hapi tests
             # 'node-hapi-app',
+            'node-nestjs-app',
             'node-exports-test-app',
             'vue-3',
             'webpack-4',
