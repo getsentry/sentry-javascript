@@ -148,7 +148,7 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
 
 /**
  * This creates a loader file at the target location as part of the rollup build.
- * This loader script can then be used in combination with various Node.js flags (like --loader=...) to monkeypatch 3rd party modules.
+ * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
  */
 export function makeOtelLoader(outputPath, hookVariant) {
   if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
