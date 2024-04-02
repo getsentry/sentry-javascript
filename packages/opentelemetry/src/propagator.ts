@@ -15,6 +15,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
+  parseBaggageHeader,
   propagationContextFromHeaders,
   stringMatchesSomePattern,
 } from '@sentry/utils';
@@ -101,9 +102,12 @@ export class SentryPropagator extends W3CBaggagePropagator {
     const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
 
     if (existingBaggageHeader) {
-      const baggageEntries = parseBaggageHeaderString(existingBaggageHeader);
-      for (const [key, value] of baggageEntries) {
-        baggage = baggage.setEntry(key, { value });
+      const baggageEntries = parseBaggageHeader(existingBaggageHeader);
+
+      if (baggageEntries) {
+        Object.entries(baggageEntries).forEach(([key, value]) => {
+          baggage = baggage.setEntry(key, { value });
+        });
       }
     }
 
@@ -328,15 +332,4 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   } catch {
     return undefined;
   }
-}
-
-/**
- * Will parse a baggage header into an array of tuples,
- *  where the first item is the baggage name, the second the baggage value.
- */
-function parseBaggageHeaderString(baggageHeader: string): [string, string][] {
-  return baggageHeader.split(',').map(baggageEntry => {
-    const [key, value] = baggageEntry.split('=');
-    return [decodeURIComponent(key.trim()), decodeURIComponent(value.trim())];
-  });
 }
