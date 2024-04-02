@@ -207,11 +207,6 @@ export interface Scope {
   addAttachment(attachment: Attachment): this;
 
   /**
-   * Returns an array of attachments on the scope
-   */
-  getAttachments(): Attachment[];
-
-  /**
    * Clears attachments from the scope
    */
   clearAttachments(): this;

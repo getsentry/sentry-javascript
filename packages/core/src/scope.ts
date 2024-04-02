@@ -113,14 +113,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Inherit values from the parent scope.
-   * @deprecated Use `scope.clone()` and `new Scope()` instead.
-   */
-  public static clone(scope?: Scope): Scope {
-    return scope ? scope.clone() : new Scope();
-  }
-
-  /**
    * @inheritDoc
    */
   public clone(): Scope {
@@ -467,16 +459,6 @@ export class Scope implements ScopeInterface {
   public addAttachment(attachment: Attachment): this {
     this._attachments.push(attachment);
     return this;
-  }
-
-  /**
-   * @inheritDoc
-   * @deprecated Use `getScopeData()` instead.
-   */
-  public getAttachments(): Attachment[] {
-    const data = this.getScopeData();
-
-    return data.attachments;
   }
 
   /**
