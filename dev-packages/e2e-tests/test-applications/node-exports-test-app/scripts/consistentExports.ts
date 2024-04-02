@@ -99,7 +99,7 @@ for (const dependent of dependentsToCheck) {
 }
 
 if (Object.keys(missingExports).length > 0) {
-  console.error('\n❌ Found missing exports from @sentry/node in the following packages:\n');
+  console.log('\n❌ Found missing exports from @sentry/node in the following packages:\n');
   console.log(JSON.stringify(missingExports, null, 2));
   process.exit(1);
 }
