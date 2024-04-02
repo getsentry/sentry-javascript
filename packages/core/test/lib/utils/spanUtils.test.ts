@@ -234,7 +234,7 @@ describe('getRootSpan', () => {
     expect(getRootSpan(root)).toBe(root);
   });
 
-  it('returns the root span of a child span xxx', () => {
+  it('returns the root span of a child span', () => {
     startSpan({ name: 'outer' }, root => {
       startSpan({ name: 'inner' }, inner => {
         expect(getRootSpan(inner)).toBe(root);

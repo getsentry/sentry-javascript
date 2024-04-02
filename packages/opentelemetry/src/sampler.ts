@@ -9,7 +9,8 @@ import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
-import { getPropagationContextFromSpan, getSamplingDecision } from './propagator';
+import { getPropagationContextFromSpan } from './propagator';
+import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
 /**

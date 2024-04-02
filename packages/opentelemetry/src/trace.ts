@@ -14,11 +14,12 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
-import { continueTraceAsRemoteSpan, getSamplingDecision, makeTraceState } from './propagator';
+import { continueTraceAsRemoteSpan, makeTraceState } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+import { getSamplingDecision } from './utils/getSamplingDecision';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.

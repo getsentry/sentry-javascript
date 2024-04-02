@@ -18,12 +18,13 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
-import { getSamplingDecision, makeTraceState } from '../src/propagator';
+import { makeTraceState } from '../src/propagator';
 
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
+import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -307,7 +308,7 @@ describe('trace', () => {
       expect(getActiveSpan()).toBe(undefined);
     });
 
-    it('allows to force a transaction with forceTransaction=true xxx', async () => {
+    it('allows to force a transaction with forceTransaction=true', async () => {
       const client = getClient()!;
       const transactionEvents: Event[] = [];
 

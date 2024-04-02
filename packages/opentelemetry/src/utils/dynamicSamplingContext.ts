@@ -7,8 +7,8 @@ import {
 import type { DynamicSamplingContext } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_DSC } from '../constants';
-import { getSamplingDecision } from '../propagator';
 import type { AbstractSpan } from '../types';
+import { getSamplingDecision } from './getSamplingDecision';
 import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasAttributes, spanHasName } from './spanTypes';
 
