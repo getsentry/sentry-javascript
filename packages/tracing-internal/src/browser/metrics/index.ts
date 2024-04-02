@@ -299,8 +299,8 @@ function _trackINP(
     });
 
     /** Check to see if the span should be sampled */
-    const tracesSampleRate = getTracesSampleRate(parentContext, options);
-    const sampleRate = interactionsSampleRate * tracesSampleRate;
+    const sampleRate = getSampleRate(parentContext, options, interactionsSampleRate);
+
     if (!sampleRate) {
       return;
     }
@@ -697,9 +697,10 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
 }
 
 /** Taken from @sentry/core sampling.ts */
-function getTracesSampleRate(
+function getSampleRate(
   transactionContext: TransactionContext | undefined,
   options: ClientOptions,
+  interactionsSampleRate: number,
 ): number | boolean {
   if (!hasTracingEnabled(options)) {
     return false;
@@ -728,5 +729,10 @@ function getTracesSampleRate(
     DEBUG_BUILD && logger.warn('[Tracing] Discarding interaction span because of invalid sample rate.');
     return false;
   }
-  return sampleRate;
+  if (sampleRate === true) {
+    return interactionsSampleRate;
+  } else if (sampleRate === false) {
+    return 0;
+  }
+  return sampleRate * interactionsSampleRate;
 }
