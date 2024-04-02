@@ -1,4 +1,3 @@
-import type { ComponentType } from 'preact';
 import type { Attachment } from '../attachment';
 import type { Integration } from '../integration';
 
@@ -69,7 +68,7 @@ export interface FeedbackScreenshotIntegration extends Integration {
     /**
      * The preact component
      */
-    input: ComponentType<{ onError: (error: Error) => void }>;
+    input: (props: { onError: (error: Error) => void }) => unknown;
 
     /**
      * The image/screenshot bytes

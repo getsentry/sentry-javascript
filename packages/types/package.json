@@ -41,9 +41,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "devDependencies": {
-    "preact": "^10.19.4"
-  },
   "scripts": {
     "build": "run-p build:transpile build:types",
     "build:dev": "yarn build",
