@@ -188,8 +188,12 @@ export function getComponentName(elem: unknown): string | null {
       return null;
     }
 
-    if (currentElem instanceof HTMLElement && currentElem.dataset['sentryComponent']) {
-      return currentElem.dataset['sentryComponent'];
+    if (currentElem instanceof HTMLElement) {
+      if (currentElem.dataset['sentryComponent']) {
+        return currentElem.dataset['sentryComponent'];
+      } else if (currentElem.dataset['sentryElement']) {
+        return currentElem.dataset['sentryElement'];
+      }
     }
 
     currentElem = currentElem.parentNode;
