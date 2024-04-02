@@ -120,6 +120,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  spanLoggerIntegration,
 } from '@sentry/core';
 
 export type { BunOptions } from './types';

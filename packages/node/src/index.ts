@@ -93,6 +93,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  spanLoggerIntegration,
   metricsDefault as metrics,
   startSession,
   captureSession,

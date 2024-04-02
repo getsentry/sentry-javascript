@@ -12,6 +12,7 @@ import {
   dedupeIntegration,
   functionToStringIntegration,
   inboundFiltersIntegration,
+  spanLoggerIntegration,
 } from '@sentry/core';
 import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
@@ -30,7 +31,7 @@ export function getDefaultIntegrations(): Integration[] {
   // see:
   //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
   //  - https://github.com/getsentry/sentry-javascript/issues/2744
-  return [
+  const integrations: Integration[] = [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     breadcrumbsIntegration(),
@@ -39,6 +40,12 @@ export function getDefaultIntegrations(): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
+
+  if (IS_DEBUG_BUILD) {
+    integrations.push(spanLoggerIntegration());
+  }
+
+  return integrations;
 }
 
 /**

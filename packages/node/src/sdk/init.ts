@@ -9,6 +9,7 @@ import {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  spanLoggerIntegration,
   startSession,
 } from '@sentry/core';
 import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
@@ -51,6 +52,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
+    spanLoggerIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

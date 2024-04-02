@@ -1,4 +1,3 @@
-/* eslint-disable max-lines */
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
   Client,

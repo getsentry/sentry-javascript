@@ -99,6 +99,7 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
+export { spanLoggerIntegration } from './integrations/spanlogger';
 export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';

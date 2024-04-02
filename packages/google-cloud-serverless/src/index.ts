@@ -99,6 +99,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  spanLoggerIntegration,
 } from '@sentry/core';
 
 export { getDefaultIntegrations, init } from './sdk';

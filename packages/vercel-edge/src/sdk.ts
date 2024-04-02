@@ -5,6 +5,7 @@ import {
   initAndBind,
   linkedErrorsIntegration,
   requestDataIntegration,
+  spanLoggerIntegration,
 } from '@sentry/core';
 import type { Integration, Options } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, stackParserFromStackParserOptions } from '@sentry/utils';
@@ -27,6 +28,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
+    spanLoggerIntegration(),
     linkedErrorsIntegration(),
     winterCGFetchIntegration(),
     ...(options.sendDefaultPii ? [requestDataIntegration()] : []),
