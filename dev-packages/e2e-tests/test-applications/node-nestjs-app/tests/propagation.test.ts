@@ -7,27 +7,19 @@ import { waitForTransaction } from '../event-proxy-server';
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-inbound-headers/${id}`
-      );
-    },
-  );
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+    );
+  });
 
-  const outboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-http/${id}`
-      );
-    },
-  );
+  const outboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http/${id}`
+    );
+  });
 
   const { data } = await axios.get(`${baseURL}/test-outgoing-http/${id}`);
 
@@ -35,9 +27,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const outboundTransaction = await outboundTransactionPromise;
 
   const traceId = outboundTransaction?.contexts?.trace?.trace_id;
-  const outgoingHttpSpan = outboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  ) as SpanJSON | undefined;
+  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client') as SpanJSON | undefined;
 
   expect(outgoingHttpSpan).toBeDefined();
 
@@ -49,9 +39,7 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const inboundHeaderSentryTrace = data.headers?.['sentry-trace'];
   const inboundHeaderBaggage = data.headers?.['baggage'];
 
-  expect(inboundHeaderSentryTrace).toEqual(
-    `${traceId}-${outgoingHttpSpanId}-1`,
-  );
+  expect(inboundHeaderSentryTrace).toEqual(`${traceId}-${outgoingHttpSpanId}-1`);
   expect(inboundHeaderBaggage).toBeDefined();
 
   const baggage = (inboundHeaderBaggage || '').split(',');
@@ -133,27 +121,19 @@ test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
 test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
 
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-inbound-headers/${id}`
-      );
-    },
-  );
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-inbound-headers/${id}`
+    );
+  });
 
-  const outboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-fetch/${id}`
-      );
-    },
-  );
+  const outboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch/${id}`
+    );
+  });
 
   const { data } = await axios.get(`${baseURL}/test-outgoing-fetch/${id}`);
 
@@ -161,9 +141,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const outboundTransaction = await outboundTransactionPromise;
 
   const traceId = outboundTransaction?.contexts?.trace?.trace_id;
-  const outgoingHttpSpan = outboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  ) as SpanJSON | undefined;
+  const outgoingHttpSpan = outboundTransaction?.spans?.find(span => span.op === 'http.client') as SpanJSON | undefined;
 
   expect(outgoingHttpSpan).toBeDefined();
 
@@ -175,9 +153,7 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   const inboundHeaderSentryTrace = data.headers?.['sentry-trace'];
   const inboundHeaderBaggage = data.headers?.['baggage'];
 
-  expect(inboundHeaderSentryTrace).toEqual(
-    `${traceId}-${outgoingHttpSpanId}-1`,
-  );
+  expect(inboundHeaderSentryTrace).toEqual(`${traceId}-${outgoingHttpSpanId}-1`);
   expect(inboundHeaderBaggage).toBeDefined();
 
   const baggage = (inboundHeaderBaggage || '').split(',');
@@ -256,30 +232,20 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL }) => {
   });
 });
 
-test('Propagates trace for outgoing external http requests', async ({
-  baseURL,
-}) => {
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-http-external-allowed`
-      );
-    },
-  );
+test('Propagates trace for outgoing external http requests', async ({ baseURL }) => {
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-allowed`
+    );
+  });
 
-  const { data } = await axios.get(
-    `${baseURL}/test-outgoing-http-external-allowed`,
-  );
+  const { data } = await axios.get(`${baseURL}/test-outgoing-http-external-allowed`);
 
   const inboundTransaction = await inboundTransactionPromise;
 
   const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  )?.span_id;
+  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -302,30 +268,20 @@ test('Propagates trace for outgoing external http requests', async ({
   );
 });
 
-test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({
-  baseURL,
-}) => {
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-http-external-disallowed`
-      );
-    },
-  );
+test('Does not propagate outgoing http requests not covered by tracePropagationTargets', async ({ baseURL }) => {
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-http-external-disallowed`
+    );
+  });
 
-  const { data } = await axios.get(
-    `${baseURL}/test-outgoing-http-external-disallowed`,
-  );
+  const { data } = await axios.get(`${baseURL}/test-outgoing-http-external-disallowed`);
 
   const inboundTransaction = await inboundTransactionPromise;
 
   const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  )?.span_id;
+  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -335,30 +291,20 @@ test('Does not propagate outgoing http requests not covered by tracePropagationT
   expect(data.headers?.baggage).toBeUndefined();
 });
 
-test('Propagates trace for outgoing external fetch requests', async ({
-  baseURL,
-}) => {
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-fetch-external-allowed`
-      );
-    },
-  );
+test('Propagates trace for outgoing external fetch requests', async ({ baseURL }) => {
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-allowed`
+    );
+  });
 
-  const { data } = await axios.get(
-    `${baseURL}/test-outgoing-fetch-external-allowed`,
-  );
+  const { data } = await axios.get(`${baseURL}/test-outgoing-fetch-external-allowed`);
 
   const inboundTransaction = await inboundTransactionPromise;
 
   const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  )?.span_id;
+  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));
@@ -381,30 +327,20 @@ test('Propagates trace for outgoing external fetch requests', async ({
   );
 });
 
-test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({
-  baseURL,
-}) => {
-  const inboundTransactionPromise = waitForTransaction(
-    'node-nestjs-app',
-    (transactionEvent) => {
-      return (
-        transactionEvent?.contexts?.trace?.op === 'http.server' &&
-        transactionEvent.contexts?.trace?.data?.['http.target'] ===
-          `/test-outgoing-fetch-external-disallowed`
-      );
-    },
-  );
+test('Does not propagate outgoing fetch requests not covered by tracePropagationTargets', async ({ baseURL }) => {
+  const inboundTransactionPromise = waitForTransaction('node-nestjs-app', transactionEvent => {
+    return (
+      transactionEvent?.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.data?.['http.target'] === `/test-outgoing-fetch-external-disallowed`
+    );
+  });
 
-  const { data } = await axios.get(
-    `${baseURL}/test-outgoing-fetch-external-disallowed`,
-  );
+  const { data } = await axios.get(`${baseURL}/test-outgoing-fetch-external-disallowed`);
 
   const inboundTransaction = await inboundTransactionPromise;
 
   const traceId = inboundTransaction?.contexts?.trace?.trace_id;
-  const spanId = inboundTransaction?.spans?.find(
-    (span) => span.op === 'http.client',
-  )?.span_id;
+  const spanId = inboundTransaction?.spans?.find(span => span.op === 'http.client')?.span_id;
 
   expect(traceId).toEqual(expect.any(String));
   expect(spanId).toEqual(expect.any(String));

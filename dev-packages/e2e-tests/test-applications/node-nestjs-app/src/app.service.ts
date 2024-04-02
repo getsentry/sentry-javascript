@@ -22,17 +22,13 @@ export class AppService1 {
   }
 
   async testOutgoingHttp(id: string) {
-    const data = await makeHttpRequest(
-      `http://localhost:3030/test-inbound-headers/${id}`,
-    );
+    const data = await makeHttpRequest(`http://localhost:3030/test-inbound-headers/${id}`);
 
     return data;
   }
 
   async testOutgoingFetch(id: string) {
-    const response = await fetch(
-      `http://localhost:3030/test-inbound-headers/${id}`,
-    );
+    const response = await fetch(`http://localhost:3030/test-inbound-headers/${id}`);
     const data = await response.json();
 
     return data;
@@ -63,9 +59,7 @@ export class AppService1 {
   }
 
   async testOutgoingFetchExternalDisallowed() {
-    const fetchResponse = await fetch(
-      'http://localhost:3040/external-disallowed',
-    );
+    const fetchResponse = await fetch('http://localhost:3040/external-disallowed');
 
     return fetchResponse.json();
   }

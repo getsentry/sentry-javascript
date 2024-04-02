@@ -1,15 +1,15 @@
 import * as http from 'http';
 
 export function makeHttpRequest(url) {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     const data = [];
 
     http
-      .request(url, (httpRes) => {
-        httpRes.on('data', (chunk) => {
+      .request(url, httpRes => {
+        httpRes.on('data', chunk => {
           data.push(chunk);
         });
-        httpRes.on('error', (error) => {
+        httpRes.on('error', error => {
           resolve({ error: error.message, url });
         });
         httpRes.on('end', () => {

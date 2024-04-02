@@ -42,11 +42,8 @@ test('Sends captured error to Sentry', async ({ baseURL }) => {
 });
 
 test('Sends exception to Sentry', async ({ baseURL }) => {
-  const errorEventPromise = waitForError('node-nestjs-app', (event) => {
-    return (
-      !event.type &&
-      event.exception?.values?.[0]?.value === 'This is an exception'
-    );
+  const errorEventPromise = waitForError('node-nestjs-app', event => {
+    return !event.type && event.exception?.values?.[0]?.value === 'This is an exception';
   });
 
   try {
