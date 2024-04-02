@@ -33,24 +33,6 @@ export interface BaseVercelEdgeOptions {
    *  */
   clientClass?: typeof VercelEdgeClient;
 
-  // TODO (v8): Remove this in v8
-  /**
-   * @deprecated Moved to constructor options of the `Http` and `Undici` integration.
-   * @example
-   * ```js
-   * Sentry.init({
-   *   integrations: [
-   *     new Sentry.Integrations.Http({
-   *       tracing: {
-   *         shouldCreateSpanForRequest: (url: string) => false,
-   *       }
-   *     });
-   *   ],
-   * });
-   * ```
-   */
-  shouldCreateSpanForRequest?(this: void, url: string): boolean;
-
   /** Callback that is executed when a fatal global error occurs. */
   onFatalError?(this: void, error: Error): void;
 }

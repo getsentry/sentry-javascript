@@ -5,10 +5,6 @@ import * as FeedbackBundle from '../../src/index.bundle.feedback';
 
 describe('index.bundle.feedback', () => {
   it('has correct exports', () => {
-    Object.keys(FeedbackBundle.Integrations).forEach(key => {
-      expect((FeedbackBundle.Integrations[key] as any).id).toStrictEqual(expect.any(String));
-    });
-
     expect(FeedbackBundle.replayIntegration).toBe(replayIntegrationShim);
     expect(FeedbackBundle.feedbackIntegration).toBe(feedbackIntegration);
     expect(FeedbackBundle.feedbackModalIntegration).toBe(feedbackModalIntegration);

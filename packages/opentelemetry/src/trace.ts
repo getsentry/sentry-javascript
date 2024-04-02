@@ -9,17 +9,17 @@ import {
   continueTrace as baseContinueTrace,
   getClient,
   getCurrentScope,
-  getDynamicSamplingContextFromClient,
   getRootSpan,
   handleCallbackErrors,
   spanToJSON,
 } from '@sentry/core';
 import type { Client, Scope } from '@sentry/types';
-import { continueTraceAsRemoteSpan, getSamplingDecision, makeTraceState } from './propagator';
+import { continueTraceAsRemoteSpan, makeTraceState } from './propagator';
 
 import type { OpenTelemetryClient, OpenTelemetrySpanContext } from './types';
 import { getContextFromScope, getScopesFromContext } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+import { getSamplingDecision } from './utils/getSamplingDecision';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -186,13 +186,12 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
 
     if (actualScope && client) {
       const propagationContext = actualScope.getPropagationContext();
-      const dynamicSamplingContext =
-        propagationContext.dsc || getDynamicSamplingContextFromClient(propagationContext.traceId, client);
 
       // We store the DSC as OTEL trace state on the span context
       const traceState = makeTraceState({
         parentSpanId: propagationContext.parentSpanId,
-        dsc: dynamicSamplingContext,
+        // Not defined yet, we want to pick this up on-demand only
+        dsc: undefined,
         sampled: propagationContext.sampled,
       });
 
@@ -227,6 +226,8 @@ function getContext(scope: Scope | undefined, forceTransaction: boolean | undefi
   const { spanId, traceId } = parentSpan.spanContext();
   const sampled = getSamplingDecision(parentSpan.spanContext());
 
+  // In this case, when we are forcing a transaction, we want to treat this like continuing an incoming trace
+  // so we set the traceState according to the root span
   const rootSpan = getRootSpan(parentSpan);
   const dsc = getDynamicSamplingContextFromSpan(rootSpan);
 

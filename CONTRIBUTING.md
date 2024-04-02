@@ -8,7 +8,9 @@
 
 We welcome suggested improvements and bug fixes to the `@sentry/*` family of packages, in the form of pull requests on
 [`GitHub`](https://github.com/getsentry/sentry-javascript). The guide below will help you get started, but if you have
-further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr).
+further questions, please feel free to reach out on [Discord](https://discord.gg/Ww9hbqr). To learn about some general
+SDK development principles check out the [SDK Development Guide](https://develop.sentry.dev/sdk/) in the Sentry
+Developer Documentation.
 
 ## Setting up an Environment
 

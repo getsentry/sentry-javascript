@@ -1,4 +1,4 @@
-import type { Client, Event, EventHint, Integration, IntegrationClass, IntegrationFn, Options } from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
 
@@ -167,24 +167,6 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
   }
 
   return -1;
-}
-
-/**
- * Convert a new integration function to the legacy class syntax.
- * In v8, we can remove this and instead export the integration functions directly.
- *
- * @deprecated This will be removed in v8!
- */
-export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
-  name: string,
-  fn: Fn,
-): IntegrationClass<Integration> {
-  return Object.assign(
-    function ConvertedIntegration(...args: Parameters<Fn>): Integration {
-      return fn(...args);
-    },
-    { id: name },
-  ) as unknown as IntegrationClass<Integration>;
 }
 
 /**

@@ -1,8 +1,7 @@
 import { isString } from './is';
-import { getGlobalObject } from './worldwide';
+import { GLOBAL_OBJ } from './worldwide';
 
-// eslint-disable-next-line deprecation/deprecation
-const WINDOW = getGlobalObject<Window>();
+const WINDOW = GLOBAL_OBJ as unknown as Window;
 
 const DEFAULT_MAX_STRING_LENGTH = 80;
 

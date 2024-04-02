@@ -1,17 +1,3 @@
-export * from './exports';
-
-export {
-  Apollo,
-  Express,
-  GraphQL,
-  Mongo,
-  Mysql,
-  Postgres,
-  Prisma,
-  lazyLoadedNodePerformanceMonitoringIntegrations,
-} from './node';
-export type { LazyLoadedIntegration } from './node';
-
 export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
