@@ -111,22 +111,22 @@ module.exports = {
           {
             name: 'window',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'document',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'location',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
           {
             name: 'navigator',
             message:
-              'Some global variables are not available in environments like WebWorker or Node.js. Use getGlobalObject() instead.',
+              'Some global variables are not available in environments like WebWorker or Node.js. Use GLOBAL_OBJ instead.',
           },
         ],
 

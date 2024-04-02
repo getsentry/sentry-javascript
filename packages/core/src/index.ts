@@ -65,8 +65,6 @@ export {
   getIntegrationsToSetup,
   addIntegration,
   defineIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  convertIntegrationFnToClass,
 } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';

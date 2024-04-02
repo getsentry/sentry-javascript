@@ -2,13 +2,7 @@ import type { Integration, Options } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { getCurrentScope } from '../../src/currentScopes';
 
-import {
-  addIntegration,
-  convertIntegrationFnToClass,
-  getIntegrationsToSetup,
-  installedIntegrations,
-  setupIntegration,
-} from '../../src/integration';
+import { addIntegration, getIntegrationsToSetup, installedIntegrations, setupIntegration } from '../../src/integration';
 import { setCurrentClient } from '../../src/sdk';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
@@ -698,75 +692,4 @@ describe('addIntegration', () => {
 
     expect(logs).toHaveBeenCalledWith('Integration skipped because it was already installed: test');
   });
-});
-
-describe('convertIntegrationFnToClass', () => {
-  /* eslint-disable deprecation/deprecation */
-  it('works with a minimal integration', () => {
-    const integrationFn = () => ({
-      name: 'testName',
-      setupOnce: () => {},
-    });
-
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
-
-    expect(IntegrationClass.id).toBe('testName');
-
-    const integration = new IntegrationClass();
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce: expect.any(Function),
-    });
-  });
-
-  it('works with options', () => {
-    const integrationFn = (_options: { num: number }) => ({
-      name: 'testName',
-      setupOnce: () => {},
-    });
-
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
-
-    expect(IntegrationClass.id).toBe('testName');
-
-    // not type safe options by default :(
-    new IntegrationClass();
-
-    const integration = new IntegrationClass({ num: 3 });
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce: expect.any(Function),
-    });
-  });
-
-  it('works with integration hooks', () => {
-    const setup = jest.fn();
-    const setupOnce = jest.fn();
-    const processEvent = jest.fn();
-    const preprocessEvent = jest.fn();
-
-    const integrationFn = () => {
-      return {
-        name: 'testName',
-        setup,
-        setupOnce,
-        processEvent,
-        preprocessEvent,
-      };
-    };
-
-    const IntegrationClass = convertIntegrationFnToClass('testName', integrationFn);
-
-    expect(IntegrationClass.id).toBe('testName');
-
-    const integration = new IntegrationClass();
-    expect(integration).toEqual({
-      name: 'testName',
-      setupOnce,
-      setup,
-      processEvent,
-      preprocessEvent,
-    });
-  });
-  /* eslint-enable deprecation/deprecation */
 });

@@ -86,7 +86,8 @@ function setupSentry() {
 }
 ```
 
-A full setup example can be found in [node-experimental](./../node-experimental).
+A full setup example can be found in
+[node-experimental](https://github.com/getsentry/sentry-javascript/blob/develop/packages/node-experimental).
 
 ## Links
 

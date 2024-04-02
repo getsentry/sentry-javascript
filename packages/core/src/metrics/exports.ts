@@ -5,10 +5,9 @@ import type {
   Primitive,
 } from '@sentry/types';
 import { getGlobalSingleton, logger } from '@sentry/utils';
-import { getCurrentScope } from '../currentScopes';
 import { getClient } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
-import { spanToJSON } from '../utils/spanUtils';
+import { getActiveSpan, getRootSpan, spanToJSON } from '../utils/spanUtils';
 import { COUNTER_METRIC_TYPE, DISTRIBUTION_METRIC_TYPE, GAUGE_METRIC_TYPE, SET_METRIC_TYPE } from './constants';
 import type { MetricType } from './types';
 
@@ -63,11 +62,11 @@ function addToMetricsAggregator(
     return;
   }
 
-  const scope = getCurrentScope();
+  const span = getActiveSpan();
+  const rootSpan = span ? getRootSpan(span) : undefined;
+
   const { unit, tags, timestamp } = data;
   const { release, environment } = client.getOptions();
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = scope.getTransaction();
   const metricTags: Record<string, string> = {};
   if (release) {
     metricTags.release = release;
@@ -75,8 +74,8 @@ function addToMetricsAggregator(
   if (environment) {
     metricTags.environment = environment;
   }
-  if (transaction) {
-    metricTags.transaction = spanToJSON(transaction).description || '';
+  if (rootSpan) {
+    metricTags.transaction = spanToJSON(rootSpan).description || '';
   }
 
   DEBUG_BUILD && logger.log(`Adding value of ${value} to ${metricType} metric ${name}`);

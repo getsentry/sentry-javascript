@@ -12,10 +12,6 @@ import type { RemixOptions } from './utils/remixOptions';
 /** Initializes Sentry Remix SDK */
 export declare function init(options: RemixOptions): void;
 
-// We export a merged Integrations object so that users can (at least typing-wise) use all integrations everywhere.
-// eslint-disable-next-line deprecation/deprecation
-export declare const Integrations: typeof clientSdk.Integrations;
-
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
