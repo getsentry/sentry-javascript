@@ -11,8 +11,9 @@ import { suppressTracing } from '@opentelemetry/core';
 import { addTracingExtensions, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
-import { SentryPropagator, getSamplingDecision, makeTraceState } from '../src/propagator';
+import { SentryPropagator, makeTraceState } from '../src/propagator';
 import { getScopesFromContext } from '../src/utils/contextData';
+import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
 
 beforeAll(() => {
@@ -56,6 +57,7 @@ describe('SentryPropagator', () => {
             'sentry-environment=production',
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
+            'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-1',
@@ -91,6 +93,7 @@ describe('SentryPropagator', () => {
             'sentry-environment=production',
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
+            'sentry-sampled=false',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-6e0c63257de34c92-0',
@@ -285,7 +288,10 @@ describe('SentryPropagator', () => {
             'sentry-environment=production',
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
+            'sentry-sample_rate=1',
+            'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-transaction=test',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           true,
@@ -336,7 +342,10 @@ describe('SentryPropagator', () => {
             'sentry-environment=production',
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
+            'sentry-sample_rate=1',
+            'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-transaction=test',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
           undefined,
@@ -357,6 +366,7 @@ describe('SentryPropagator', () => {
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+            'sentry-sampled=false',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-0',
           false,
@@ -439,6 +449,7 @@ describe('SentryPropagator', () => {
             'sentry-environment=production',
             'sentry-release=1.0.0',
             'sentry-public_key=abc',
+            'sentry-sampled=true',
             'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
           ],
           'd4cda95b652f4a1592b449d5929fda1b-{{spanId}}-1',
@@ -482,7 +493,10 @@ describe('SentryPropagator', () => {
                     'sentry-environment=production',
                     'sentry-release=1.0.0',
                     'sentry-public_key=abc',
+                    'sentry-sample_rate=1',
+                    'sentry-sampled=true',
                     'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+                    'sentry-transaction=test',
                   ].sort(),
                 );
                 expect(carrier[SENTRY_TRACE_HEADER]).toBe(
@@ -493,6 +507,7 @@ describe('SentryPropagator', () => {
           },
         );
 
+        const carrier2: Record<string, string> = {};
         context.with(
           trace.setSpanContext(ROOT_CONTEXT, {
             traceId: 'd4cda95b652f4a1592b449d5929fda1b',
@@ -509,9 +524,9 @@ describe('SentryPropagator', () => {
                 sampled: true,
               });
 
-              propagator.inject(context.active(), carrier, defaultTextMapSetter);
+              propagator.inject(context.active(), carrier2, defaultTextMapSetter);
 
-              expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+              expect(baggageToArray(carrier2[SENTRY_BAGGAGE_HEADER])).toEqual(
                 [
                   'sentry-environment=production',
                   'sentry-release=1.0.0',
@@ -519,7 +534,7 @@ describe('SentryPropagator', () => {
                   'sentry-trace_id=TRACE_ID',
                 ].sort(),
               );
-              expect(carrier[SENTRY_TRACE_HEADER]).toBe('TRACE_ID-SPAN_ID-1');
+              expect(carrier2[SENTRY_TRACE_HEADER]).toBe('TRACE_ID-SPAN_ID-1');
             });
           },
         );
@@ -542,6 +557,89 @@ describe('SentryPropagator', () => {
           'sentry-public_key=abc',
           'sentry-environment=production',
           'sentry-release=1.0.0',
+          'sentry-sampled=true',
+        ].sort(),
+      );
+    });
+
+    it('should include existing baggage header', () => {
+      const spanContext = {
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.SAMPLED,
+      };
+
+      const carrier = {
+        other: 'header',
+        baggage: 'foo=bar,other=yes',
+      };
+      const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+      const baggage = propagation.createBaggage();
+      propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+      expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+        [
+          'foo=bar',
+          'other=yes',
+          'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          'sentry-public_key=abc',
+          'sentry-environment=production',
+          'sentry-release=1.0.0',
+          'sentry-sampled=true',
+        ].sort(),
+      );
+    });
+
+    it('should include existing baggage array header', () => {
+      const spanContext = {
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.SAMPLED,
+      };
+
+      const carrier = {
+        other: 'header',
+        baggage: ['foo=bar,other=yes', 'other2=no'],
+      };
+      const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+      const baggage = propagation.createBaggage();
+      propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+      expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+        [
+          'foo=bar',
+          'other=yes',
+          'other2=no',
+          'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          'sentry-public_key=abc',
+          'sentry-environment=production',
+          'sentry-release=1.0.0',
+          'sentry-sampled=true',
+        ].sort(),
+      );
+    });
+
+    it('should overwrite existing sentry baggage header', () => {
+      const spanContext = {
+        traceId: 'd4cda95b652f4a1592b449d5929fda1b',
+        spanId: '6e0c63257de34c92',
+        traceFlags: TraceFlags.SAMPLED,
+      };
+
+      const carrier = {
+        baggage: 'foo=bar,other=yes,sentry-release=9.9.9,sentry-other=yes',
+      };
+      const context = trace.setSpanContext(ROOT_CONTEXT, spanContext);
+      const baggage = propagation.createBaggage();
+      propagator.inject(propagation.setBaggage(context, baggage), carrier, defaultTextMapSetter);
+      expect(baggageToArray(carrier[SENTRY_BAGGAGE_HEADER])).toEqual(
+        [
+          'foo=bar',
+          'other=yes',
+          'sentry-trace_id=d4cda95b652f4a1592b449d5929fda1b',
+          'sentry-public_key=abc',
+          'sentry-environment=production',
+          'sentry-other=yes',
+          'sentry-release=1.0.0',
+          'sentry-sampled=true',
         ].sort(),
       );
     });

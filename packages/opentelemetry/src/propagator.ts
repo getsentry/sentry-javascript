@@ -1,9 +1,10 @@
-import type { Baggage, Context, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
+import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
 import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
@@ -14,6 +15,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   logger,
+  parseBaggageHeader,
   propagationContextFromHeaders,
   stringMatchesSomePattern,
 } from '@sentry/utils';
@@ -27,17 +29,26 @@ import {
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
+import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
+import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
 /** Get the Sentry propagation context from a span context. */
-export function getPropagationContextFromSpanContext(spanContext: SpanContext): PropagationContext {
+export function getPropagationContextFromSpan(span: Span): PropagationContext {
+  const spanContext = span.spanContext();
   const { traceId, spanId, traceState } = spanContext;
 
+  // When we have a dsc trace state, it means this came from the incoming trace
+  // Then this takes presedence over the root span
   const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-  const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+  const traceStateDsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
+
   const parentSpanId = traceState ? traceState.get(SENTRY_TRACE_STATE_PARENT_SPAN_ID) : undefined;
 
   const sampled = getSamplingDecision(spanContext);
+
+  // No trace state? --> Take DSC from root span
+  const dsc = traceStateDsc || getDynamicSamplingContextFromSpan(getRootSpan(span));
 
   return {
     traceId,
@@ -85,9 +96,20 @@ export class SentryPropagator extends W3CBaggagePropagator {
       return;
     }
 
+    const existingBaggageHeader = getExistingBaggage(carrier);
     let baggage = propagation.getBaggage(context) || propagation.createBaggage({});
 
     const { dynamicSamplingContext, traceId, spanId, sampled } = getInjectionData(context);
+
+    if (existingBaggageHeader) {
+      const baggageEntries = parseBaggageHeader(existingBaggageHeader);
+
+      if (baggageEntries) {
+        Object.entries(baggageEntries).forEach(([key, value]) => {
+          baggage = baggage.setEntry(key, { value });
+        });
+      }
+    }
 
     if (dynamicSamplingContext) {
       baggage = Object.entries(dynamicSamplingContext).reduce<Baggage>((b, [dscKey, dscValue]) => {
@@ -196,7 +218,8 @@ function getInjectionData(context: Context): {
   // If we have a local span, we can just pick everything from it
   if (span && !spanIsRemote) {
     const spanContext = span.spanContext();
-    const propagationContext = getPropagationContextFromSpanContext(spanContext);
+
+    const propagationContext = getPropagationContextFromSpan(span);
     const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, spanContext.traceId);
     return {
       dynamicSamplingContext,
@@ -220,9 +243,9 @@ function getInjectionData(context: Context): {
   }
 
   // Else, we look at the remote span context
-  const spanContext = trace.getSpanContext(context);
-  if (spanContext) {
-    const propagationContext = getPropagationContextFromSpanContext(spanContext);
+  if (span) {
+    const spanContext = span.spanContext();
+    const propagationContext = getPropagationContextFromSpan(span);
     const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, spanContext.traceId);
 
     return {
@@ -301,40 +324,12 @@ export function continueTraceAsRemoteSpan<T>(
   return context.with(ctxWithSpanContext, callback);
 }
 
-/**
- * OpenTelemetry only knows about SAMPLED or NONE decision,
- * but for us it is important to differentiate between unset and unsampled.
- *
- * Both of these are identified as `traceFlags === TracegFlags.NONE`,
- * but we additionally look at a special trace state to differentiate between them.
- */
-export function getSamplingDecision(spanContext: SpanContext): boolean | undefined {
-  const { traceFlags, traceState } = spanContext;
-
-  const sampledNotRecording = traceState ? traceState.get(SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING) === '1' : false;
-
-  // If trace flag is `SAMPLED`, we interpret this as sampled
-  // If it is `NONE`, it could mean either it was sampled to be not recorder, or that it was not sampled at all
-  // For us this is an important difference, sow e look at the SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING
-  // to identify which it is
-  if (traceFlags === TraceFlags.SAMPLED) {
-    return true;
+/** Try to get the existing baggage header so we can merge this in. */
+function getExistingBaggage(carrier: unknown): string | undefined {
+  try {
+    const baggage = (carrier as Record<string, string | string[]>)[SENTRY_BAGGAGE_HEADER];
+    return Array.isArray(baggage) ? baggage.join(',') : baggage;
+  } catch {
+    return undefined;
   }
-
-  if (sampledNotRecording) {
-    return false;
-  }
-
-  // Fall back to DSC as a last resort, that may also contain `sampled`...
-  const dscString = traceState ? traceState.get(SENTRY_TRACE_STATE_DSC) : undefined;
-  const dsc = dscString ? baggageHeaderToDynamicSamplingContext(dscString) : undefined;
-
-  if (dsc?.sampled === 'true') {
-    return true;
-  }
-  if (dsc?.sampled === 'false') {
-    return false;
-  }
-
-  return undefined;
 }
