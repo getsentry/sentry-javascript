@@ -29,10 +29,6 @@ export interface SentryXhrData {
 }
 
 export interface HandlerDataXhr {
-  /**
-   * @deprecated This property will be removed in v8.
-   */
-  args: [string, string];
   xhr: SentryWrappedXMLHttpRequest;
   startTimestamp?: number;
   endTimestamp?: number;
