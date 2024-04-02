@@ -1,5 +1,6 @@
-import { SDK_VERSION } from '@sentry/core';
+import { SDK_VERSION, getClient } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import type { BrowserClient } from '../client';
 import { WINDOW } from '../helpers';
 
 // This is a map of integration function method to bundle file name.
@@ -36,24 +37,19 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
 
   // Bail if the integration already exists
   const existing = WindowWithMaybeIntegration.Sentry[name];
-  console.log({ existing });
   if (typeof existing === 'function') {
     return existing;
   }
 
-  const url = `https://browser.sentry-cdn.com/${SDK_VERSION}/${bundle}.min.js`;
-
+  const url = getScriptURL(bundle);
   const script = WINDOW.document.createElement('script');
   script.src = url;
   script.crossOrigin = 'anonymous';
-
-  console.log(url);
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
     script.addEventListener(
       'load',
       () => {
-        console.log('LOADED!');
         resolve();
       },
       { once: true, passive: true },
@@ -61,7 +57,6 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
     script.addEventListener(
       'error',
       error => {
-        console.error(error);
         reject(error);
       },
       { once: true, passive: true },
@@ -69,10 +64,6 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   });
 
   WINDOW.document.body.appendChild(script);
-
-  console.log(WINDOW.document.body.innerHTML);
-
-  console.log('start waiting....');
 
   try {
     await waitForLoad;
@@ -87,4 +78,12 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   }
 
   return integrationFn;
+}
+
+function getScriptURL(bundle: string): string {
+  const client = getClient<BrowserClient>();
+  const options = client && client.getOptions();
+  const baseURL = (options && options.cdnBaseUrl) || 'https://browser.sentry-cdn.com';
+
+  return new URL(`/${SDK_VERSION}/${bundle}.min.js`, baseURL).toString();
 }
