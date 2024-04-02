@@ -98,11 +98,6 @@ export function startSpanManual<T>(
 }
 
 /**
- * @deprecated Use {@link startSpan} instead.
- */
-export const startActiveSpan = startSpan;
-
-/**
  * Creates a span. This span is not set as active, so will not get automatic instrumentation spans
  * as children or be able to be accessed via `Sentry.getActiveSpan()`.
  *
