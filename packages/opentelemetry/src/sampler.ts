@@ -1,4 +1,4 @@
-import type { Attributes, Context, SpanContext } from '@opentelemetry/api';
+import type { Attributes, Context, Span } from '@opentelemetry/api';
 import { isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
@@ -9,7 +9,8 @@ import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
 import { DEBUG_BUILD } from './debug-build';
-import { getPropagationContextFromSpanContext, getSamplingDecision } from './propagator';
+import { getPropagationContextFromSpan } from './propagator';
+import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
 /**
@@ -38,16 +39,17 @@ export class SentrySampler implements Sampler {
       return { decision: SamplingDecision.NOT_RECORD };
     }
 
-    const parentContext = trace.getSpanContext(context);
+    const parentSpan = trace.getSpan(context);
+    const parentContext = parentSpan?.spanContext();
     const traceState = parentContext?.traceState || new TraceState();
 
     let parentSampled: boolean | undefined = undefined;
 
     // Only inherit sample rate if `traceId` is the same
     // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
-    if (parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
+    if (parentSpan && parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
       if (parentContext.isRemote) {
-        parentSampled = getParentRemoteSampled(parentContext);
+        parentSampled = getParentRemoteSampled(parentSpan);
         DEBUG_BUILD &&
           logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
       } else {
@@ -90,9 +92,9 @@ export class SentrySampler implements Sampler {
   }
 }
 
-function getParentRemoteSampled(spanContext: SpanContext): boolean | undefined {
-  const traceId = spanContext.traceId;
-  const traceparentData = getPropagationContextFromSpanContext(spanContext);
+function getParentRemoteSampled(parentSpan: Span): boolean | undefined {
+  const traceId = parentSpan.spanContext().traceId;
+  const traceparentData = getPropagationContextFromSpan(parentSpan);
 
   // Only inherit sampled if `traceId` is the same
   return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;

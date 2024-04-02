@@ -28,31 +28,10 @@ export function baggageHeaderToDynamicSamplingContext(
   // Very liberal definition of what any incoming header might look like
   baggageHeader: string | string[] | number | null | undefined | boolean,
 ): Partial<DynamicSamplingContext> | undefined {
-  if (!isString(baggageHeader) && !Array.isArray(baggageHeader)) {
+  const baggageObject = parseBaggageHeader(baggageHeader);
+
+  if (!baggageObject) {
     return undefined;
-  }
-
-  // Intermediary object to store baggage key value pairs of incoming baggage headers on.
-  // It is later used to read Sentry-DSC-values from.
-  let baggageObject: Readonly<Record<string, string>> = {};
-
-  if (Array.isArray(baggageHeader)) {
-    // Combine all baggage headers into one object containing the baggage values so we can later read the Sentry-DSC-values from it
-    baggageObject = baggageHeader.reduce<Record<string, string>>((acc, curr) => {
-      const currBaggageObject = baggageHeaderToObject(curr);
-      for (const key of Object.keys(currBaggageObject)) {
-        acc[key] = currBaggageObject[key];
-      }
-      return acc;
-    }, {});
-  } else {
-    // Return undefined if baggage header is an empty string (technically an empty baggage header is not spec conform but
-    // this is how we choose to handle it)
-    if (!baggageHeader) {
-      return undefined;
-    }
-
-    baggageObject = baggageHeaderToObject(baggageHeader);
   }
 
   // Read all "sentry-" prefixed values out of the baggage object and put it onto a dynamic sampling context object.
@@ -102,6 +81,30 @@ export function dynamicSamplingContextToSentryBaggageHeader(
   );
 
   return objectToBaggageHeader(sentryPrefixedDSC);
+}
+
+/**
+ * Take a baggage header and parse it into an object.
+ */
+export function parseBaggageHeader(
+  baggageHeader: string | string[] | number | null | undefined | boolean,
+): Record<string, string> | undefined {
+  if (!baggageHeader || (!isString(baggageHeader) && !Array.isArray(baggageHeader))) {
+    return undefined;
+  }
+
+  if (Array.isArray(baggageHeader)) {
+    // Combine all baggage headers into one object containing the baggage values so we can later read the Sentry-DSC-values from it
+    return baggageHeader.reduce<Record<string, string>>((acc, curr) => {
+      const currBaggageObject = baggageHeaderToObject(curr);
+      for (const key of Object.keys(currBaggageObject)) {
+        acc[key] = currBaggageObject[key];
+      }
+      return acc;
+    }, {});
+  }
+
+  return baggageHeaderToObject(baggageHeader);
 }
 
 /**

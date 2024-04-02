@@ -78,7 +78,6 @@ export function instrumentXHR(): void {
           }
 
           const handlerData: HandlerDataXhr = {
-            args: [method, url],
             endTimestamp: Date.now(),
             startTimestamp,
             xhr: this,
@@ -132,7 +131,6 @@ export function instrumentXHR(): void {
       }
 
       const handlerData: HandlerDataXhr = {
-        args: [sentryXhrData.method, sentryXhrData.url],
         startTimestamp: Date.now(),
         xhr: this,
       };

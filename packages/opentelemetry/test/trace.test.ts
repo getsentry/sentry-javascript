@@ -18,12 +18,13 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
-import { getSamplingDecision, makeTraceState } from '../src/propagator';
+import { makeTraceState } from '../src/propagator';
 
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
+import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -947,9 +948,13 @@ describe('trace', () => {
         expect(span).toBeDefined();
         expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
         expect(spanToJSON(span).parent_span_id).toEqual(propagationContext.spanId);
-        expect(getDynamicSamplingContextFromSpan(span)).toEqual(
-          getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
-        );
+
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        });
       });
     });
 
