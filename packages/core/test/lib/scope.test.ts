@@ -1,4 +1,4 @@
-import type { Attachment, Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
