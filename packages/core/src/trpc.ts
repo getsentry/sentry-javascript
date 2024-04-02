@@ -26,7 +26,8 @@ const trpcCaptureContext = { mechanism: { handled: false, data: { function: 'trp
  * Sentry tRPC middleware that captures errors and creates spans for tRPC procedures.
  */
 export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return function <T>({ path, type, next, rawInput }: SentryTrpcMiddlewareArguments<T>): T {
+  return function <T>(opts: SentryTrpcMiddlewareArguments<T>): T {
+    const { path, type, next, rawInput } = opts;
     const client = getClient();
     const clientOptions = client && client.getOptions();
 
@@ -69,9 +70,8 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
           maybePromiseResult = next();
         } catch (e) {
           captureException(e, trpcCaptureContext);
-          throw e;
-        } finally {
           span.end();
+          throw e;
         }
 
         if (isThenable(maybePromiseResult)) {
