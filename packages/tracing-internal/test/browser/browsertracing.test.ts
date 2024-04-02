@@ -92,6 +92,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       enableInp: false,
+      interactionsSampleRate: 1,
       enableLongTask: true,
       _experiments: {},
       ...TRACING_DEFAULTS,
@@ -112,6 +113,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       enableInp: false,
+      interactionsSampleRate: 1,
       enableLongTask: false,
       ...TRACING_DEFAULTS,
       markBackgroundTransactions: true,
@@ -132,6 +134,7 @@ conditionalTest({ min: 10 })('BrowserTracing', () => {
 
     expect(browserTracing.options).toEqual({
       enableInp: false,
+      interactionsSampleRate: 1,
       enableLongTask: false,
       _experiments: {},
       ...TRACING_DEFAULTS,
