@@ -45,7 +45,7 @@
     "@sentry-internal/feedback": "8.0.0-alpha.7",
     "@sentry-internal/replay": "8.0.0-alpha.7",
     "@sentry-internal/replay-canvas": "8.0.0-alpha.7",
-    "@sentry-internal/tracing": "8.0.0-alpha.7",
+    "@sentry-internal/browser-utils": "8.0.0-alpha.7",
     "@sentry/core": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7"

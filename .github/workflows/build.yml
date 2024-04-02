@@ -96,13 +96,12 @@ jobs:
               - 'scripts/**'
               - 'packages/core/**'
               - 'packages/rollup-utils/**'
-              - 'packages/tracing/**'
-              - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
+              - 'packages/browser-utils/**'
               - 'packages/replay/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
