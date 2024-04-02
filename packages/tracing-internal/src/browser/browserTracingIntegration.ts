@@ -115,6 +115,15 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   enableInp: boolean;
 
   /**
+   * Sample rate to determine interaction span sampling.
+   * interactionsSampleRate is applied on top of the global tracesSampleRate.
+   * ie a tracesSampleRate of 0.1 and interactionsSampleRate of 0.5 will result in a 0.05 sample rate for interactions.
+   *
+   * Default: 1
+   */
+  interactionsSampleRate: number;
+
+  /**
    * _metricOptions allows the user to send options to change how metrics are collected.
    *
    * _metricOptions is currently experimental.
@@ -154,6 +163,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   markBackgroundSpan: true,
   enableLongTask: true,
   enableInp: false,
+  interactionsSampleRate: 1,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -196,7 +206,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   /** Stores a mapping of interactionIds from PerformanceEventTimings to the origin interaction path */
   const interactionIdToRouteNameMapping: InteractionRouteNameMapping = {};
   if (options.enableInp) {
-    startTrackingINP(interactionIdToRouteNameMapping);
+    startTrackingINP(interactionIdToRouteNameMapping, options.interactionsSampleRate);
   }
 
   if (options.enableLongTask) {
