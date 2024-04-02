@@ -105,6 +105,7 @@ export function tracingHandler(): (
       // Push `transaction.finish` to the next event loop so open spans have a chance to finish before the transaction
       // closes
       setImmediate(() => {
+        // eslint-disable-next-line deprecation/deprecation
         addRequestDataToTransaction(transaction, req);
         setHttpStatus(transaction, res.statusCode);
         transaction.end();
