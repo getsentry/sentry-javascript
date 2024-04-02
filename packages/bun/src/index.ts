@@ -111,6 +111,7 @@ export {
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
+  trpcMiddleware,
 } from '@sentry/node';
 
 export {
