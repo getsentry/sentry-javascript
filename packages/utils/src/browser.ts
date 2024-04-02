@@ -88,8 +88,12 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   // @ts-expect-error WINDOW has HTMLElement
   if (WINDOW.HTMLElement) {
     // If using the component name annotation plugin, this value may be available on the DOM node
-    if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
-      return elem.dataset['sentryComponent'];
+    if (elem instanceof HTMLElement && elem.dataset) {
+      if (elem.dataset['sentryComponent']) {
+        return elem.dataset['sentryComponent'];
+      } else if (elem.dataset['sentryElement']) {
+        return elem.dataset['sentryElement'];
+      }
     }
   }
 
