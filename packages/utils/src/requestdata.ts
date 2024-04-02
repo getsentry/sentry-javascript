@@ -64,7 +64,9 @@ export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
 
 /**
  * Sets parameterized route as transaction name e.g.: `GET /users/:id`
- * Also adds more context data on the transaction from the request
+ * Also adds more context data on the transaction from the request.
+ *
+ * @deprecated This utility will be removed in v8.
  */
 export function addRequestDataToTransaction(
   transaction: Transaction | undefined,
