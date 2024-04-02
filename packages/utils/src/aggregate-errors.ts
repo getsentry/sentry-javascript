@@ -1,6 +1,6 @@
 import type { Event, EventHint, Exception, ExtendedError, StackParser } from '@sentry/types';
 
-import { isInstanceOf } from './is';
+import { isError, isInstanceOf } from './is';
 import { truncate } from './string';
 
 /**
@@ -13,9 +13,9 @@ export function applyAggregateErrorsToEvent(
   key: string,
   limit: number,
   event: Event,
-  hint?: EventHint,
+  hintOriginalException?: EventHint['originalException'],
 ): void {
-  if (!event.exception || !event.exception.values || !hint || !isInstanceOf(hint.originalException, Error)) {
+  if (!event.exception || !event.exception.values || !isError(hintOriginalException)) {
     return;
   }
 
@@ -30,7 +30,7 @@ export function applyAggregateErrorsToEvent(
         exceptionFromErrorImplementation,
         parser,
         limit,
-        hint.originalException as ExtendedError,
+        hintOriginalException as ExtendedError,
         key,
         event.exception.values,
         originalException,

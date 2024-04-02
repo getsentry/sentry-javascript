@@ -19,12 +19,12 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
   return {
     name: INTEGRATION_NAME,
     preprocessEvent(event, hint, client) {
-      const options = client.getOptions();
+      const {stackParser, maxValueLength} = client.getOptions();
 
       applyAggregateErrorsToEvent(
         exceptionFromError,
-        options.stackParser,
-        options.maxValueLength,
+        stackParser,
+        maxValueLength,
         key,
         limit,
         event,

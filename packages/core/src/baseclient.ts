@@ -201,13 +201,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+    const { originalException, event_id } = hint || {};
     // ensure we haven't captured this very object before
-    if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
+    if (originalException && checkOrSetAlreadyCaught(originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
       return;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    let eventId: string | undefined = event_id;
 
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;

@@ -19,7 +19,7 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
 
   return {
     name: INTEGRATION_NAME,
-    preprocessEvent(event, hint, client) {
+    preprocessEvent(event, hint = {}, client) {
       const options = client.getOptions();
 
       applyAggregateErrorsToEvent(
@@ -30,7 +30,7 @@ const _linkedErrorsIntegration = ((options: LinkedErrorsOptions = {}) => {
         key,
         limit,
         event,
-        hint,
+        hint.originalException,
       );
     },
   };
