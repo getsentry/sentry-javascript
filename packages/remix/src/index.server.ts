@@ -88,6 +88,7 @@ export {
   mysqlIntegration,
   mysql2Integration,
   nestIntegration,
+  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,

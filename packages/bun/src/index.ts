@@ -104,6 +104,7 @@ export {
   mysqlIntegration,
   mysql2Integration,
   nestIntegration,
+  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
@@ -125,9 +126,6 @@ export {
 export type { BunOptions } from './types';
 
 export { BunClient } from './client';
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
 export { makeFetchTransport } from './transports';
