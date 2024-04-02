@@ -35,7 +35,7 @@ Sentry.init({
 
 Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
-[More information on how to set up Sentry for Node in v8.](./../../docs/v8-node.md)
+[More information on how to set up Sentry for Node in v8.](https://github.com/getsentry/sentry-javascript/blob/develop/docs/v8-node.md)
 
 ### ESM Support
 
