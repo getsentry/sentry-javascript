@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../types';
 import { bindReporter } from './lib/bindReporter';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
@@ -22,13 +21,7 @@ import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
 import { runOnce } from './lib/runOnce';
 import { whenActivated } from './lib/whenActivated';
-import type {
-  FIDMetric,
-  FIDReportCallback,
-  FirstInputPolyfillCallback,
-  MetricRatingThresholds,
-  ReportOpts,
-} from './types';
+import type { FIDMetric, FIDReportCallback, MetricRatingThresholds, ReportOpts } from './types';
 
 /** Thresholds for FID. See https://web.dev/articles/fid#what_is_a_good_fid_score */
 export const FIDThresholds: MetricRatingThresholds = [100, 300];
@@ -72,16 +65,6 @@ export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}): void 
           po.disconnect();
         }),
       );
-    }
-
-    if (WINDOW.__WEB_VITALS_POLYFILL__) {
-      // eslint-disable-next-line no-console
-      console.warn('The web-vitals "base+polyfill" build is deprecated. See: https://bit.ly/3aqzsGm');
-
-      // Prefer the native implementation if available,
-      if (!po) {
-        WINDOW.webVitals.firstInputPolyfill(handleEntry as FirstInputPolyfillCallback);
-      }
     }
   });
 };

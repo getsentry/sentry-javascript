@@ -39,9 +39,6 @@ export interface WebVitalsGlobal {
 declare global {
   interface Window {
     webVitals: WebVitalsGlobal;
-
-    // Build flags:
-    __WEB_VITALS_POLYFILL__: boolean;
   }
 }
 

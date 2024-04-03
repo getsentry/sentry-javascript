@@ -65,15 +65,8 @@ export const getVisibilityWatcher = () => {
     // since navigation start. This isn't a perfect heuristic, but it's the
     // best we can do until an API is available to support querying past
     // visibilityState.
-    if (WINDOW.__WEB_VITALS_POLYFILL__) {
-      firstHiddenTime = WINDOW.webVitals.firstHiddenTime;
-      if (firstHiddenTime === Infinity) {
-        addChangeListeners();
-      }
-    } else {
-      firstHiddenTime = initHiddenTime();
-      addChangeListeners();
-    }
+    firstHiddenTime = initHiddenTime();
+    addChangeListeners();
   }
   return {
     get firstHiddenTime() {

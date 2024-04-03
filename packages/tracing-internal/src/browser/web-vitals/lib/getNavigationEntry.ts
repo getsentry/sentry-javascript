@@ -17,35 +17,6 @@
 import { WINDOW } from '../../types';
 import type { NavigationTimingPolyfillEntry } from '../types';
 
-const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntry => {
-  // eslint-disable-next-line deprecation/deprecation
-  const timing = performance.timing;
-  // eslint-disable-next-line deprecation/deprecation
-  const type = performance.navigation.type;
-
-  const navigationEntry: { [key: string]: number | string } = {
-    entryType: 'navigation',
-    startTime: 0,
-    type: type == 2 ? 'back_forward' : type === 1 ? 'reload' : 'navigate',
-  };
-
-  for (const key in timing) {
-    if (key !== 'navigationStart' && key !== 'toJSON') {
-      // eslint-disable-next-line deprecation/deprecation
-      navigationEntry[key] = Math.max((timing[key as keyof PerformanceTiming] as number) - timing.navigationStart, 0);
-    }
-  }
-  return navigationEntry as unknown as NavigationTimingPolyfillEntry;
-};
-
 export const getNavigationEntry = (): PerformanceNavigationTiming | NavigationTimingPolyfillEntry | undefined => {
-  if (WINDOW.__WEB_VITALS_POLYFILL__) {
-    return (
-      WINDOW.performance &&
-      ((performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) ||
-        getNavigationEntryFromPerformanceTiming())
-    );
-  } else {
-    return WINDOW.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
-  }
+  return WINDOW.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
 };
