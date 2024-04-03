@@ -1,7 +1,5 @@
-import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
-import type { PolymorphicRequest } from './polymorphics';
 import type { SentrySpanArguments, Span } from './span';
 
 /**
