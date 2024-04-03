@@ -99,27 +99,6 @@ export interface SamplingContext extends CustomSamplingContext {
   request?: ExtractedNodeRequestData;
 }
 
-export interface TransactionMetadata {
-  /**
-   * The sample rate used when sampling this transaction.
-   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE` attribute instead.
-   */
-  sampleRate?: number;
-
-  /**
-   * The Dynamic Sampling Context of a transaction. If provided during transaction creation, its Dynamic Sampling
-   * Context Will be frozen
-   */
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-
-  /** For transactions tracing server-side request handling, the request being tracked. */
-  request?: PolymorphicRequest;
-
-  /** For transactions tracing server-side request handling, the path of the request being tracked. */
-  /** TODO: If we rm -rf `instrumentServer`, this can go, too */
-  requestPath?: string;
-}
-
 /**
  * Contains information about how the name of the transaction was determined. This will be used by the server to decide
  * whether or not to scrub identifiers from the transaction name, or replace the entire name with a placeholder.

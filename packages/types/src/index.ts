@@ -111,7 +111,6 @@ export type {
   TraceparentData,
   Transaction,
   TransactionArguments,
-  TransactionMetadata,
   TransactionSource,
 } from './transaction';
 export type {
