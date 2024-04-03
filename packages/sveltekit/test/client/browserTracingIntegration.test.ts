@@ -206,7 +206,6 @@ describe('browserTracingIntegration', () => {
       },
     });
 
-    // eslint-disable-next-line deprecation/deprecation
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
       name: 'SvelteKit Route Change',
@@ -269,7 +268,6 @@ describe('browserTracingIntegration', () => {
         },
       });
 
-      // eslint-disable-next-line deprecation/deprecation
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',
         name: 'SvelteKit Route Change',
