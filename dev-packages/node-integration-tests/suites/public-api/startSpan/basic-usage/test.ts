@@ -1,10 +1,11 @@
-import { TestEnv, assertSentryTransaction } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should send a manually started root span', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest({ envelopeType: 'transaction' });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryTransaction(envelope[2], {
-    transaction: 'test_span',
-  });
+test('should send a manually started root span', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({ transaction: { transaction: 'test_span' } })
+    .start(done);
 });

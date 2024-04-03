@@ -89,22 +89,6 @@ export class SentrySpan implements Span {
   /* eslint-disable @typescript-eslint/member-ordering */
 
   /**
-   * Attributes for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  public get attributes(): SpanAttributes {
-    return this._attributes;
-  }
-
-  /**
-   * Attributes for the span.
-   * @deprecated Use `setAttributes()` instead.
-   */
-  public set attributes(attributes: SpanAttributes) {
-    this._attributes = attributes;
-  }
-
-  /**
    * Timestamp in seconds (epoch time) indicating when the span started.
    * @deprecated Use `spanToJSON()` instead.
    */

@@ -3,7 +3,7 @@ import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import type { PolymorphicRequest } from './polymorphics';
-import type { SentrySpanArguments, Span, SpanAttributes } from './span';
+import type { SentrySpanArguments, Span } from './span';
 
 /**
  * Interface holding Transaction-specific properties
@@ -62,12 +62,6 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
    * @inheritDoc
    */
   startTimestamp: number;
-
-  /**
-   * Attributes for the transaction.
-   * @deprecated Use `getSpanAttributes(transaction)` instead.
-   */
-  attributes: SpanAttributes;
 
   /**
    * Metadata about the transaction.

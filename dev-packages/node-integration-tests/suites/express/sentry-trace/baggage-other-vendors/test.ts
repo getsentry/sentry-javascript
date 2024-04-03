@@ -5,9 +5,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-// TODO(v8): Fix this test
-// eslint-disable-next-line jest/no-disabled-tests
-test.skip('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async () => {
+test('should merge `baggage` header of a third party vendor with the Sentry DSC baggage items', async () => {
   const runner = createRunner(__dirname, 'server.ts').start();
 
   const response = await runner.makeRequest<TestAPIResponse>('get', '/test/express', {
@@ -19,7 +17,7 @@ test.skip('should merge `baggage` header of a third party vendor with the Sentry
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: ['other=vendor,foo=bar,third=party', 'sentry-release=2.0.0,sentry-environment=myEnv'],
+      baggage: 'other=vendor,foo=bar,third=party,sentry-release=2.0.0,sentry-environment=myEnv',
     },
   });
 });

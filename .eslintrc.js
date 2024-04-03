@@ -51,7 +51,7 @@ module.exports = {
       },
     },
     {
-      files: ['scenarios/**', 'dev-packages/rollup-utils/**'],
+      files: ['scenarios/**', 'dev-packages/rollup-utils/**', 'dev-packages/bundle-analyzer-scenarios/**'],
       parserOptions: {
         sourceType: 'module',
       },

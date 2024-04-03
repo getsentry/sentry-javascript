@@ -1,5 +1,3 @@
-export * from '../exports';
-
 export type { RequestInstrumentationOptions } from './request';
 
 export {

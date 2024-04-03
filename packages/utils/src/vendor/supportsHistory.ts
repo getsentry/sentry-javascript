@@ -21,10 +21,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import { getGlobalObject } from '../worldwide';
+import { GLOBAL_OBJ } from '../worldwide';
 
-// eslint-disable-next-line deprecation/deprecation
-const WINDOW = getGlobalObject<Window>();
+const WINDOW = GLOBAL_OBJ as unknown as Window;
 
 /**
  * Tells whether current environment supports History API

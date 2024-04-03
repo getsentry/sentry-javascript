@@ -1,31 +1,38 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should apply scopes correctly', async () => {
-  const env = await TestEnv.init(__dirname);
-  const events = await env.getMultipleEnvelopeRequest({ count: 3 });
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(events[0][2], {
-    message: 'outer_before',
-    extra: {
-      aa: 'aa',
-      bb: 'bb',
-    },
-  });
-
-  assertSentryEvent(events[1][2], {
-    message: 'inner',
-    extra: {
-      aa: 'aa',
-      bb: 'bb',
-      cc: 'cc',
-    },
-  });
-
-  assertSentryEvent(events[2][2], {
-    message: 'outer_after',
-    extra: {
-      aa: 'aa',
-      bb: 'bb',
-    },
-  });
+test('should apply scopes correctly', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'outer_before',
+        extra: {
+          aa: 'aa',
+          bb: 'bb',
+        },
+      },
+    })
+    .expect({
+      event: {
+        message: 'inner',
+        extra: {
+          aa: 'aa',
+          bb: 'bb',
+          cc: 'cc',
+        },
+      },
+    })
+    .expect({
+      event: {
+        message: 'outer_after',
+        extra: {
+          aa: 'aa',
+          bb: 'bb',
+        },
+      },
+    })
+    .start(done);
 });

@@ -1,4 +1,4 @@
-import { feedbackIntegration } from '@sentry-internal/feedback';
+import { feedbackIntegration, getFeedback } from '@sentry-internal/feedback';
 import { replayIntegration } from '@sentry-internal/replay';
 import {
   browserTracingIntegration,
@@ -27,6 +27,7 @@ export {
   addTracingExtensions,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
+  getFeedback,
 };
 
 export * from './index.bundle.base';

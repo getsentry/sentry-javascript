@@ -110,7 +110,7 @@ export function startTrackingInteractions(): void {
         const startTime = msToSec((browserPerformanceTimeOrigin as number) + entry.startTime);
         const duration = msToSec(entry.duration);
 
-        const spanOptions: StartSpanOptions = {
+        const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
           name: htmlTreeAsString(entry.target),
           op: `ui.interaction.${entry.name}`,
           startTime: startTime,
@@ -121,7 +121,7 @@ export function startTrackingInteractions(): void {
 
         const componentName = getComponentName(entry.target);
         if (componentName) {
-          spanOptions.attributes = { 'ui.component_name': componentName };
+          spanOptions.attributes['ui.component_name'] = componentName;
         }
 
         const span = startInactiveSpan(spanOptions);
