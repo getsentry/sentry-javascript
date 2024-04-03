@@ -56,6 +56,21 @@ describe('span', () => {
       expect(span.name).toEqual('new name');
       expect(span.description).toEqual('new name');
     });
+
+    it('allows exclusiveTime to be set', () => {
+      const span = new Span({ name: 'span name', exclusiveTime: 100 });
+      expect(spanToJSON(span).exclusive_time).toEqual(100);
+    });
+
+    it('allows exclusiveTime to be zero', () => {
+      const span = new Span({ name: 'span name', exclusiveTime: 0 });
+      expect(spanToJSON(span).exclusive_time).toEqual(0);
+    });
+
+    it('drops undefined exclusiveTime', () => {
+      const span = new Span({ name: 'span name', exclusiveTime: undefined });
+      expect(Object.keys(spanToJSON(span)).includes('exclusive_time')).toBe(false);
+    });
   });
   /* eslint-enable deprecation/deprecation */
 
