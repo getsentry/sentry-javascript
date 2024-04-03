@@ -167,6 +167,8 @@ export type { AnrIntegrationOptions } from './integrations/anr/common';
 
 export { Handlers };
 
+export { trpcMiddleware } from './trpc';
+
 export { hapiErrorPlugin } from './integrations/hapi';
 
 import { instrumentCron } from './cron/cron';

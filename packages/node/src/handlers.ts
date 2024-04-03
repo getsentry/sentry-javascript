@@ -22,9 +22,7 @@ import {
   extractPathForTransaction,
   extractRequestData,
   isString,
-  isThenable,
   logger,
-  normalize,
 } from '@sentry/utils';
 
 import type { NodeClient } from './client';
@@ -32,6 +30,7 @@ import { DEBUG_BUILD } from './debug-build';
 // TODO (v8 / XXX) Remove this import
 import type { ParseRequestOptions } from './requestDataDeprecated';
 import { isAutoSessionTrackingEnabled } from './sdk';
+import { trpcMiddleware as newTrpcMiddleware } from './trpc';
 
 /**
  * Express-compatible tracing handler.
@@ -316,80 +315,25 @@ export function errorHandler(options?: {
   };
 }
 
-interface SentryTrpcMiddlewareOptions {
-  /** Whether to include procedure inputs in reported events. Defaults to `false`. */
-  attachRpcInput?: boolean;
-}
-
-interface TrpcMiddlewareArguments<T> {
-  path: string;
-  type: string;
-  next: () => T;
-  rawInput: unknown;
-}
-
 /**
  * Sentry tRPC middleware that names the handling transaction after the called procedure.
  *
  * Use the Sentry tRPC middleware in combination with the Sentry server integration,
  * e.g. Express Request Handlers or Next.js SDK.
+ *
+ * @deprecated Please use the top level export instead:
+ * ```
+ * // OLD
+ * import * as Sentry from '@sentry/node';
+ * Sentry.Handlers.trpcMiddleware();
+ *
+ * // NEW
+ * import * as Sentry from '@sentry/node';
+ * Sentry.trpcMiddleware();
+ * ```
  */
-export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
-  return function <T>({ path, type, next, rawInput }: TrpcMiddlewareArguments<T>): T {
-    const clientOptions = getClient()?.getOptions();
-    // eslint-disable-next-line deprecation/deprecation
-    const sentryTransaction = getCurrentScope().getTransaction();
-
-    if (sentryTransaction) {
-      sentryTransaction.updateName(`trpc/${path}`);
-      sentryTransaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-      sentryTransaction.op = 'rpc.server';
-
-      const trpcContext: Record<string, unknown> = {
-        procedure_type: type,
-      };
-
-      if (options.attachRpcInput !== undefined ? options.attachRpcInput : clientOptions?.sendDefaultPii) {
-        trpcContext.input = normalize(rawInput);
-      }
-
-      // TODO: Can we rewrite this to an attribute? Or set this on the scope?
-      // eslint-disable-next-line deprecation/deprecation
-      sentryTransaction.setContext('trpc', trpcContext);
-    }
-
-    function captureIfError(nextResult: { ok: false; error?: Error } | { ok: true }): void {
-      if (!nextResult.ok) {
-        captureException(nextResult.error, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
-      }
-    }
-
-    let maybePromiseResult;
-    try {
-      maybePromiseResult = next();
-    } catch (e) {
-      captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
-      throw e;
-    }
-
-    if (isThenable(maybePromiseResult)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      Promise.resolve(maybePromiseResult).then(
-        nextResult => {
-          captureIfError(nextResult as any);
-        },
-        e => {
-          captureException(e, { mechanism: { handled: false, data: { function: 'trpcMiddleware' } } });
-        },
-      );
-    } else {
-      captureIfError(maybePromiseResult as any);
-    }
-
-    // We return the original promise just to be safe.
-    return maybePromiseResult;
-  };
-}
+// eslint-disable-next-line deprecation/deprecation
+export const trpcMiddleware = newTrpcMiddleware;
 
 // TODO (v8 / #5257): Remove this
 // eslint-disable-next-line deprecation/deprecation

@@ -73,6 +73,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   deepReadDirSync,
   Handlers,
+  trpcMiddleware,
   // eslint-disable-next-line deprecation/deprecation
   Integrations,
   setMeasurement,
