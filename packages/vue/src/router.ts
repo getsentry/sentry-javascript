@@ -6,7 +6,7 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import type { Span, SpanAttributes, TransactionArguments, TransactionSource } from '@sentry/types';
+import type { Span, SpanAttributes, StartSpanOptions, TransactionSource } from '@sentry/types';
 
 // The following type is an intersection of the Route type from VueRouter v2, v3, and v4.
 // This is not great, but kinda necessary to make it work with all versions at the same time.
@@ -47,7 +47,7 @@ export function instrumentVueRouter(
     instrumentPageLoad: boolean;
     instrumentNavigation: boolean;
   },
-  startNavigationSpanFn: (context: TransactionArguments) => void,
+  startNavigationSpanFn: (context: StartSpanOptions) => void,
 ): void {
   router.onError(error => captureException(error, { mechanism: { handled: false } }));
 

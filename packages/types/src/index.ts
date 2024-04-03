@@ -110,8 +110,6 @@ export type {
   CustomSamplingContext,
   SamplingContext,
   TraceparentData,
-  Transaction,
-  TransactionArguments,
   TransactionSource,
 } from './transaction';
 export type {

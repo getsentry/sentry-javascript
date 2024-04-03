@@ -122,7 +122,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
   Span,
 } from '@sentry/types';
