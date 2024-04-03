@@ -83,6 +83,7 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   Handlers,
+  trpcMiddleware,
   setMeasurement,
   getActiveSpan,
   startSpan,
