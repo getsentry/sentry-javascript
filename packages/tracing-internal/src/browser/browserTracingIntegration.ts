@@ -380,7 +380,6 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  // TODO: should these have the same values? Does it matter? Should we just set one of the two?
   getCurrentScope().setPropagationContext({
     traceId: uuid4(),
     spanId: uuid4().substring(16),
