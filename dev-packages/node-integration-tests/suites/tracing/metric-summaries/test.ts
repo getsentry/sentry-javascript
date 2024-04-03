@@ -11,6 +11,7 @@ const EXPECTED_TRANSACTION = {
         sum: 1,
         tags: {
           release: '1.0',
+          transaction: 'Test Transaction',
           email: 'jon.doe@example.com',
         },
       },
@@ -21,6 +22,7 @@ const EXPECTED_TRANSACTION = {
         sum: 1,
         tags: {
           release: '1.0',
+          transaction: 'Test Transaction',
           email: 'jane.doe@example.com',
         },
       },
@@ -39,6 +41,7 @@ const EXPECTED_TRANSACTION = {
             sum: 4,
             tags: {
               release: '1.0',
+              transaction: 'Test Transaction',
             },
           },
         ],
@@ -50,6 +53,7 @@ const EXPECTED_TRANSACTION = {
             sum: 2,
             tags: {
               release: '1.0',
+              transaction: 'Test Transaction',
             },
           },
         ],
@@ -61,6 +65,7 @@ const EXPECTED_TRANSACTION = {
             sum: 62,
             tags: {
               release: '1.0',
+              transaction: 'Test Transaction',
             },
           },
         ],
@@ -72,6 +77,7 @@ const EXPECTED_TRANSACTION = {
             sum: 62,
             tags: {
               release: '1.0',
+              transaction: 'Test Transaction',
             },
           },
         ],

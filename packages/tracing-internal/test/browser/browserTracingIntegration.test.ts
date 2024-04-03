@@ -603,7 +603,7 @@ describe('browserTracingIntegration', () => {
       expect(spanToJSON(pageloadSpan!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]).toBe('custom');
     });
 
-    it('sets the pageload span name on `scope.transactionName`', () => {
+    it('sets the navigation span name on `scope.transactionName`', () => {
       const client = new TestClient(
         getDefaultClientOptions({
           integrations: [browserTracingIntegration()],
@@ -612,9 +612,47 @@ describe('browserTracingIntegration', () => {
       setCurrentClient(client);
       client.init();
 
-      startBrowserTracingPageLoadSpan(client, { name: 'test navigation span' });
+      startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
 
       expect(getCurrentScope().getScopeData().transactionName).toBe('test navigation span');
+    });
+
+    it("resets the scopes' propagationContexts", () => {
+      const client = new TestClient(
+        getDefaultClientOptions({
+          integrations: [browserTracingIntegration()],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const oldIsolationScopePropCtx = getIsolationScope().getPropagationContext();
+      const oldCurrentScopePropCtx = getCurrentScope().getPropagationContext();
+
+      startBrowserTracingNavigationSpan(client, { name: 'test navigation span' });
+
+      const newIsolationScopePropCtx = getIsolationScope().getPropagationContext();
+      const newCurrentScopePropCtx = getCurrentScope().getPropagationContext();
+
+      expect(oldCurrentScopePropCtx).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+      });
+      expect(oldIsolationScopePropCtx).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+      });
+      expect(newCurrentScopePropCtx).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+      });
+      expect(newIsolationScopePropCtx).toEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+      });
+
+      expect(newIsolationScopePropCtx?.traceId).not.toEqual(oldIsolationScopePropCtx?.traceId);
+      expect(newCurrentScopePropCtx?.traceId).not.toEqual(oldCurrentScopePropCtx?.traceId);
     });
   });
 

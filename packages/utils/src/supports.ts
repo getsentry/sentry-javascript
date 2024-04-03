@@ -1,9 +1,8 @@
 import { DEBUG_BUILD } from './debug-build';
 import { logger } from './logger';
-import { getGlobalObject } from './worldwide';
+import { GLOBAL_OBJ } from './worldwide';
 
-// eslint-disable-next-line deprecation/deprecation
-const WINDOW = getGlobalObject<Window>();
+const WINDOW = GLOBAL_OBJ as unknown as Window;
 
 declare const EdgeRuntime: string | undefined;
 

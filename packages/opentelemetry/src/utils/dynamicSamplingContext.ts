@@ -7,8 +7,9 @@ import {
 import type { DynamicSamplingContext } from '@sentry/types';
 import { baggageHeaderToDynamicSamplingContext } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_DSC } from '../constants';
-import { getSamplingDecision } from '../propagator';
 import type { AbstractSpan } from '../types';
+import { getSamplingDecision } from './getSamplingDecision';
+import { parseSpanDescription } from './parseSpanDescription';
 import { spanHasAttributes, spanHasName } from './spanTypes';
 
 /**
@@ -45,10 +46,12 @@ export function getDynamicSamplingContextFromSpan(span: AbstractSpan): Readonly<
 
   // We don't want to have a transaction name in the DSC if the source is "url" because URLs might contain PII
   const source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
-  const name = spanHasName(span) ? span.name : '';
 
-  if (source !== 'url' && name) {
-    dsc.transaction = name;
+  // If the span has no name, we assume it is non-recording and want to opt out of using any description
+  const { description } = spanHasName(span) ? parseSpanDescription(span) : { description: '' };
+
+  if (source !== 'url' && description) {
+    dsc.transaction = description;
   }
 
   const sampled = getSamplingDecision(span.spanContext());

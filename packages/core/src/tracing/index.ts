@@ -18,3 +18,4 @@ export {
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 export { setMeasurement } from './measurement';
 export { sampleSpan } from './sampling';
+export { logSpanEnd, logSpanStart } from './logSpans';
