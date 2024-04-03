@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-/**
- * Performantly generate a unique, 30-char string by combining a version
- * number, the current timestamp with a 13-digit number integer.
- * @return {string}
- */
-export const generateUniqueID = () => {
-  return `v3-${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
+import { WINDOW } from '../../types';
+
+export const whenActivated = (callback: () => void) => {
+  if (WINDOW.document.prerendering) {
+    addEventListener('prerenderingchange', () => callback(), true);
+  } else {
+    callback();
+  }
 };

@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
+import type { CLSMetric } from './cls';
+import type { FCPMetric } from './fcp';
+import type { FIDMetric } from './fid';
+import type { INPMetric } from './inp';
+import type { LCPMetric } from './lcp';
 import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry } from './polyfills';
+import type { TTFBMetric } from './ttfb';
 
 export interface Metric {
   /**
@@ -58,14 +64,21 @@ export interface Metric {
   entries: (PerformanceEntry | LayoutShift | FirstInputPolyfillEntry | NavigationTimingPolyfillEntry)[];
 
   /**
-   * The type of navigation
+   * The type of navigation.
    *
-   * Navigation Timing API (or `undefined` if the browser doesn't
-   * support that API). For pages that are restored from the bfcache, this
-   * value will be 'back-forward-cache'.
+   * This will be the value returned by the Navigation Timing API (or
+   * `undefined` if the browser doesn't support that API), with the following
+   * exceptions:
+   * - 'back-forward-cache': for pages that are restored from the bfcache.
+   * - 'prerender': for pages that were prerendered.
+   * - 'restore': for pages that were discarded by the browser and then
+   * restored by the user.
    */
-  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender';
+  navigationType: 'navigate' | 'reload' | 'back-forward' | 'back-forward-cache' | 'prerender' | 'restore';
 }
+
+/** The union of supported metric types. */
+export type MetricType = CLSMetric | FCPMetric | FIDMetric | INPMetric | LCPMetric | TTFBMetric;
 
 /**
  * A version of the `Metric` that is used with the attribution build.
@@ -79,8 +92,23 @@ export interface MetricWithAttribution extends Metric {
   attribution: { [key: string]: unknown };
 }
 
+/**
+ * The thresholds of metric's "good", "needs improvement", and "poor" ratings.
+ *
+ * - Metric values up to and including [0] are rated "good"
+ * - Metric values up to and including [1] are rated "needs improvement"
+ * - Metric values above [1] are "poor"
+ *
+ * | Metric value    | Rating              |
+ * | --------------- | ------------------- |
+ * | ≦ [0]           | "good"              |
+ * | > [0] and ≦ [1] | "needs improvement" |
+ * | > [1]           | "poor"              |
+ */
+export type MetricRatingThresholds = [number, number];
+
 export interface ReportCallback {
-  (metric: Metric): void;
+  (metric: MetricType): void;
 }
 
 export interface ReportOpts {
@@ -104,5 +132,3 @@ export interface ReportOpts {
  *   loading. This is equivalent to the corresponding `readyState` value.
  */
 export type LoadState = 'loading' | 'dom-interactive' | 'dom-content-loaded' | 'complete';
-
-export type StopListening = undefined | void | (() => void);

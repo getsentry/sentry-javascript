@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { Metric, ReportCallback } from './base';
+import type { Metric } from './base';
 import type { NavigationTimingPolyfillEntry } from './polyfills';
 
 /**
@@ -52,8 +52,9 @@ export interface TTFBAttribution {
    */
   requestTime: number;
   /**
-   * The `PerformanceNavigationTiming` entry used to determine TTFB (or the
-   * polyfill entry in browsers that don't support Navigation Timing).
+   * The `navigation` entry of the current page, which is useful for diagnosing
+   * general page load issues. This can be used to access `serverTiming` for example:
+   * navigationEntry?.serverTiming
    */
   navigationEntry?: PerformanceNavigationTiming | NavigationTimingPolyfillEntry;
 }
@@ -68,13 +69,13 @@ export interface TTFBMetricWithAttribution extends TTFBMetric {
 /**
  * A TTFB-specific version of the ReportCallback function.
  */
-export interface TTFBReportCallback extends ReportCallback {
+export interface TTFBReportCallback {
   (metric: TTFBMetric): void;
 }
 
 /**
  * A TTFB-specific version of the ReportCallback function with attribution.
  */
-export interface TTFBReportCallbackWithAttribution extends TTFBReportCallback {
+export interface TTFBReportCallbackWithAttribution {
   (metric: TTFBMetricWithAttribution): void;
 }

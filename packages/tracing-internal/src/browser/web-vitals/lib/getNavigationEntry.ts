@@ -19,9 +19,9 @@ import type { NavigationTimingPolyfillEntry } from '../types';
 
 const getNavigationEntryFromPerformanceTiming = (): NavigationTimingPolyfillEntry => {
   // eslint-disable-next-line deprecation/deprecation
-  const timing = WINDOW.performance.timing;
+  const timing = performance.timing;
   // eslint-disable-next-line deprecation/deprecation
-  const type = WINDOW.performance.navigation.type;
+  const type = performance.navigation.type;
 
   const navigationEntry: { [key: string]: number | string } = {
     entryType: 'navigation',

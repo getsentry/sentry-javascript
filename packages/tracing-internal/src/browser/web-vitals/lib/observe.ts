@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry, PerformancePaintTiming } from '../types';
-
-export interface PerformanceEntryHandler {
-  (entry: PerformanceEntry): void;
-}
+import type { FirstInputPolyfillEntry, NavigationTimingPolyfillEntry } from '../types';
 
 interface PerformanceEntryMap {
   event: PerformanceEventTiming[];
@@ -47,7 +43,13 @@ export const observe = <K extends keyof PerformanceEntryMap>(
   try {
     if (PerformanceObserver.supportedEntryTypes.includes(type)) {
       const po = new PerformanceObserver(list => {
-        callback(list.getEntries() as PerformanceEntryMap[K]);
+        // Delay by a microtask to workaround a bug in Safari where the
+        // callback is invoked immediately, rather than in a separate task.
+        // See: https://github.com/GoogleChrome/web-vitals/issues/277
+        // eslint-disable-next-line @typescript-eslint/no-floating-promises
+        Promise.resolve().then(() => {
+          callback(list.getEntries() as PerformanceEntryMap[K]);
+        });
       });
       po.observe(
         Object.assign(

@@ -15,29 +15,34 @@
  */
 
 import { WINDOW } from '../../types';
-import type { Metric } from '../types';
+import type { MetricType } from '../types';
 import { generateUniqueID } from './generateUniqueID';
 import { getActivationStart } from './getActivationStart';
 import { getNavigationEntry } from './getNavigationEntry';
 
-export const initMetric = (name: Metric['name'], value?: number): Metric => {
+export const initMetric = <MetricName extends MetricType['name']>(name: MetricName, value?: number) => {
   const navEntry = getNavigationEntry();
-  let navigationType: Metric['navigationType'] = 'navigate';
+  let navigationType: MetricType['navigationType'] = 'navigate';
 
   if (navEntry) {
     if (WINDOW.document.prerendering || getActivationStart() > 0) {
       navigationType = 'prerender';
-    } else {
-      navigationType = navEntry.type.replace(/_/g, '-') as Metric['navigationType'];
+    } else if (WINDOW.document.wasDiscarded) {
+      navigationType = 'restore';
+    } else if (navEntry.type) {
+      navigationType = navEntry.type.replace(/_/g, '-') as MetricType['navigationType'];
     }
   }
+
+  // Use `entries` type specific for the metric.
+  const entries: Extract<MetricType, { name: MetricName }>['entries'] = [];
 
   return {
     name,
     value: typeof value === 'undefined' ? -1 : value,
-    rating: 'good', // Will be updated if the value changes.
+    rating: 'good' as const, // If needed, will be updated when reported. `const` to keep the type from widening to `string`.
     delta: 0,
-    entries: [],
+    entries,
     id: generateUniqueID(),
     navigationType,
   };

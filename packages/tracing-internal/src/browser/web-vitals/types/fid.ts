@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import type { LoadState, Metric, ReportCallback } from './base';
+import type { LoadState, Metric } from './base';
 import type { FirstInputPolyfillEntry } from './polyfills';
 
 /**
@@ -69,13 +69,13 @@ export interface FIDMetricWithAttribution extends FIDMetric {
 /**
  * An FID-specific version of the ReportCallback function.
  */
-export interface FIDReportCallback extends ReportCallback {
+export interface FIDReportCallback {
   (metric: FIDMetric): void;
 }
 
 /**
  * An FID-specific version of the ReportCallback function with attribution.
  */
-export interface FIDReportCallbackWithAttribution extends FIDReportCallback {
+export interface FIDReportCallbackWithAttribution {
   (metric: FIDMetricWithAttribution): void;
 }
