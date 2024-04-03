@@ -1,4 +1,3 @@
-import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
 import type { SentrySpanArguments, Span } from './span';
 
@@ -48,19 +47,7 @@ export interface TraceparentData {
 /**
  * Transaction "Class", inherits Span only has `setName`
  */
-export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
-  /**
-
-   * Set observed measurement for this transaction.
-   *
-   * @param name Name of the measurement
-   * @param value Value of the measurement
-   * @param unit Unit of the measurement. (Defaults to an empty string)
-   *
-   * @deprecated Use top-level `setMeasurement()` instead.
-   */
-  setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
-}
+export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {}
 
 /**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
