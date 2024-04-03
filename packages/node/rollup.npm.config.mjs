@@ -1,11 +1,11 @@
 import replace from '@rollup/plugin-replace';
-import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoader } from '@sentry-internal/rollup-utils';
+import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
 import { createAnrWorkerCode } from './rollup.anr-worker.config.mjs';
 
 const { workerRollupConfig, getBase64Code } = createAnrWorkerCode();
 
 export default [
-  makeOtelLoader('./build/register.mjs', 'otel'),
+  ...makeOtelLoaders('./build', 'otel'),
   // The worker needs to be built first since it's output is used in the main bundle.
   workerRollupConfig,
   ...makeNPMConfigVariants(

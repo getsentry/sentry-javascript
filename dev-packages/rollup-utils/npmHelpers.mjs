@@ -150,17 +150,28 @@ export function makeNPMConfigVariants(baseConfig, options = {}) {
  * This creates a loader file at the target location as part of the rollup build.
  * This loader script can then be used in combination with various Node.js flags (like --import=...) to monkeypatch 3rd party modules.
  */
-export function makeOtelLoader(outputPath, hookVariant) {
+export function makeOtelLoaders(outputFolder, hookVariant) {
   if (hookVariant !== 'otel' && hookVariant !== 'sentry-node') {
     throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
   }
 
-  const foundLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
-    return packageDotJSON?.exports?.[key]?.import?.default === outputPath;
+  const expectedRegisterLoaderLocation = `${outputFolder}/register.mjs`;
+  const foundRegisterLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === expectedRegisterLoaderLocation;
   });
-  if (!foundLoaderExport) {
+  if (!foundRegisterLoaderExport) {
     throw new Error(
-      `You used the makeOtelLoader() rollup utility without specifying the loader inside \`exports[something].import.default\`. Please add "${outputPath}" as a value there (maybe check for typos - it needs to be "${outputPath}" exactly).`,
+      `You used the makeOtelLoaders() rollup utility without specifying the register loader inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
+    );
+  }
+
+  const expectedHooksLoaderLocation = `${outputFolder}/hook.mjs`;
+  const foundHookLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
+    return packageDotJSON?.exports?.[key]?.import?.default === expectedHooksLoaderLocation;
+  });
+  if (!foundHookLoaderExport) {
+    throw new Error(
+      `You used the makeOtelLoaders() rollup utility without specifying the hook loader inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
     );
   }
 
@@ -170,23 +181,39 @@ export function makeOtelLoader(outputPath, hookVariant) {
   });
   if (!foundImportInTheMiddleDep) {
     throw new Error(
-      `You used the makeOtelLoader() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
+      `You used the makeOtelLoaders() rollup utility but didn't specify the "${requiredDep}" dependency in ${path.resolve(
         process.cwd(),
         'package.json',
       )}. Please add it to the dependencies.`,
     );
   }
 
-  return defineConfig({
-    input: path.join(
-      __dirname,
-      'code',
-      hookVariant === 'otel' ? 'otelEsmLoaderTemplate.js' : 'sentryNodeEsmLoaderTemplate.js',
-    ),
-    external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/register'],
-    output: {
-      format: 'esm',
-      file: outputPath,
+  return defineConfig([
+    // register() hook
+    {
+      input: path.join(
+        __dirname,
+        'code',
+        hookVariant === 'otel' ? 'otelEsmRegisterLoaderTemplate.js' : 'sentryNodeEsmRegisterLoaderTemplate.js',
+      ),
+      external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/register'],
+      output: {
+        format: 'esm',
+        file: path.join(outputFolder, 'register.mjs'),
+      },
     },
-  });
+    // --loader hook
+    {
+      input: path.join(
+        __dirname,
+        'code',
+        hookVariant === 'otel' ? 'otelEsmHooksLoaderTemplate.js' : 'sentryNodeEsmHooksLoaderTemplate.js',
+      ),
+      external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/hook'],
+      output: {
+        format: 'esm',
+        file: path.join(outputFolder, 'hook.mjs'),
+      },
+    },
+  ]);
 }

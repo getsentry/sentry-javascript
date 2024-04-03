@@ -46,7 +46,12 @@
       "import": {
         "default": "./build/register.mjs"
       }
-    }
+    },
+"./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
+}
   },
   "publishConfig": {
     "access": "public"
