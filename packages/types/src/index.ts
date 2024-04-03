@@ -155,3 +155,4 @@ export type {
   MetricInstance,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
+export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
