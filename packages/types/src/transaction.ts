@@ -25,12 +25,6 @@ export interface TransactionArguments extends SentrySpanArguments {
    * If this transaction has a parent, the parent's sampling decision
    */
   parentSampled?: boolean | undefined;
-
-  /**
-   * Metadata associated with the transaction, for internal SDK use.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata?: Partial<TransactionMetadata>;
 }
 
 /**
@@ -58,12 +52,7 @@ export interface TraceparentData {
  */
 export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
-   * Metadata about the transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata: TransactionMetadata;
 
-  /**
    * Set observed measurement for this transaction.
    *
    * @param name Name of the measurement

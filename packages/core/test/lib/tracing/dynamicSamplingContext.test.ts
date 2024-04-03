@@ -10,6 +10,7 @@ import {
   getDynamicSamplingContextFromSpan,
   startInactiveSpan,
 } from '../../../src/tracing';
+import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
@@ -25,12 +26,14 @@ describe('getDynamicSamplingContextFromSpan', () => {
     jest.resetAllMocks();
   });
 
-  test('returns the DSC provided during transaction creation', () => {
+  test('uses frozen DSC from span', () => {
     // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
     const transaction = new Transaction({
       name: 'tx',
-      metadata: { dynamicSamplingContext: { environment: 'myEnv' } },
+      sampled: true,
     });
+
+    freezeDscOnSpan(transaction, { environment: 'myEnv' });
 
     const dynamicSamplingContext = getDynamicSamplingContextFromSpan(transaction);
 
@@ -77,10 +80,8 @@ describe('getDynamicSamplingContextFromSpan', () => {
     // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
     const transaction = new Transaction({
       name: 'tx',
-      metadata: {
-        sampleRate: 0.56,
-      },
       attributes: {
+        [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
       },
       sampled: true,
@@ -103,11 +104,9 @@ describe('getDynamicSamplingContextFromSpan', () => {
       // eslint-disable-next-line deprecation/deprecation -- using old API on purpose
       const transaction = new Transaction({
         name: 'tx',
-        metadata: {
-          sampleRate: 0.56,
-        },
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.56,
         },
       });
 

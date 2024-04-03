@@ -1,6 +1,5 @@
 import type {
   Contexts,
-  DynamicSamplingContext,
   Hub,
   MeasurementUnit,
   Measurements,
@@ -9,7 +8,6 @@ import type {
   Transaction as TransactionInterface,
   TransactionArguments,
   TransactionEvent,
-  TransactionMetadata,
   TransactionSource,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
@@ -17,7 +15,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { getSpanDescendants, spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan } from './sentrySpan';
@@ -38,11 +36,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
   private _trimEnd?: boolean | undefined;
 
-  // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
-  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
-
-  private _metadata: Partial<TransactionMetadata>;
-
   /**
    * This constructor should never be called manually.
    * @internal
@@ -61,55 +54,13 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this._metadata = {
-      // eslint-disable-next-line deprecation/deprecation
-      ...transactionContext.metadata,
-    };
-
     this._trimEnd = transactionContext.trimEnd;
 
     this._attributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       ...this._attributes,
     };
-
-    // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
-    // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
-    if (incomingDynamicSamplingContext) {
-      // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
-      this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
-    }
   }
-
-  // This sadly conflicts with the getter/setter ordering :(
-
-  /**
-   * Get the metadata for this transaction.
-   * @deprecated Use `spanGetMetadata(transaction)` instead.
-   */
-  public get metadata(): TransactionMetadata {
-    // We merge attributes in for backwards compatibility
-    return {
-      // Legacy metadata
-      ...this._metadata,
-
-      // From attributes
-      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
-        sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
-      }),
-    };
-  }
-
-  /**
-   * Update the metadata for this transaction.
-   * @deprecated Use `spanGetMetadata(transaction)` instead.
-   */
-  public set metadata(metadata: TransactionMetadata) {
-    this._metadata = metadata;
-  }
-
-  /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
   public updateName(name: string): this {
@@ -128,14 +79,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * Store metadata on this transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
-    this._metadata = { ...this._metadata, ...newMetadata };
-  }
-
-  /**
    * @inheritDoc
    */
   public end(endTimestamp?: SpanTimeInput): string | undefined {
@@ -146,6 +89,30 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     }
     // eslint-disable-next-line deprecation/deprecation
     return this._hub.captureEvent(transaction);
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public toContext(): TransactionArguments {
+    // eslint-disable-next-line deprecation/deprecation
+    const spanContext = super.toContext();
+
+    return dropUndefinedKeys({
+      ...spanContext,
+      name: this._name,
+      trimEnd: this._trimEnd,
+    });
+  }
+
+  /**
+   * Override the current hub with a new one.
+   * Used if you want another hub to finish the transaction.
+   *
+   * @internal
+   */
+  public setHub(hub: Hub): void {
+    this._hub = hub;
   }
 
   /**
@@ -198,9 +165,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
-    // eslint-disable-next-line deprecation/deprecation
-    const { metadata } = this;
-
     const source = this._attributes['sentry.source'] as TransactionSource | undefined;
 
     const transaction: TransactionEvent = {
@@ -215,7 +179,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       transaction: this._name,
       type: 'transaction',
       sdkProcessingMetadata: {
-        ...metadata,
         capturedSpanScope,
         capturedSpanIsolationScope,
         ...dropUndefinedKeys({
