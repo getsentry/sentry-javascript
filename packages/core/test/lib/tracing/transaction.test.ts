@@ -57,7 +57,7 @@ describe('transaction', () => {
         request: {},
       });
 
-      expect(transaction.attributes).toEqual({
+      expect(spanToJSON(transaction).data).toEqual({
         [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
         [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
         [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: 0.5,
