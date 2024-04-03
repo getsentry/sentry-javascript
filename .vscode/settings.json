@@ -38,5 +38,8 @@
   "editor.codeActionsOnSave": {
     "source.organizeImports.biome": "explicit",
   },
-  "editor.defaultFormatter": "biomejs.biome"
+  "editor.defaultFormatter": "biomejs.biome",
+  "[typescript]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }

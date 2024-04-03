@@ -40,9 +40,6 @@ describe('browserTracingIntegration', () => {
         ...txnCtx,
         updateName: vi.fn(),
         setAttribute: vi.fn(),
-        startChild: vi.fn().mockImplementation(ctx => {
-          return { ...mockedRoutingSpan, ...ctx };
-        }),
         setTag: vi.fn(),
       };
       return createdRootSpan;

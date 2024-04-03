@@ -7,7 +7,6 @@ import {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
-  Transaction,
   addTracingExtensions,
   setCurrentClient,
   spanToTraceHeader,
@@ -246,16 +245,5 @@ describe('getRootSpan', () => {
         });
       });
     });
-  });
-
-  it('returns the root span of a legacy transaction & its children', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const root = new Transaction({ name: 'test' });
-
-    expect(getRootSpan(root)).toBe(root);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const childSpan = root.startChild({ name: 'child' });
-    expect(getRootSpan(childSpan)).toBe(root);
   });
 });

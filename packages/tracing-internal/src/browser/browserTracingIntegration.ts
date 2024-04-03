@@ -8,6 +8,7 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getIsolationScope,
   getRootSpan,
   spanToJSON,
   startIdleSpan,
@@ -15,7 +16,13 @@ import {
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import { addHistoryInstrumentationHandler, browserPerformanceTimeOrigin, getDomElement, logger } from '@sentry/utils';
+import {
+  addHistoryInstrumentationHandler,
+  browserPerformanceTimeOrigin,
+  getDomElement,
+  logger,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { registerBackgroundTabDetection } from './backgroundtab';
@@ -191,8 +198,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     latestRouteName = finalStartSpanOptions.name;
     latestRouteSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalStartSpanOptions.op} idle span on scope`);
-
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
@@ -237,7 +242,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
@@ -253,7 +258,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
@@ -373,6 +378,15 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
+  getCurrentScope().setPropagationContext({
+    traceId: uuid4(),
+    spanId: uuid4().substring(16),
+  });
+  getIsolationScope().setPropagationContext({
+    traceId: uuid4(),
+    spanId: uuid4().substring(16),
+  });
+
   client.emit('startNavigationSpan', spanOptions);
 
   getCurrentScope().setTransactionName(spanOptions.name);

@@ -79,16 +79,6 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
    * @deprecated Use attributes or store data on the scope instead.
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
-
-  /**
-   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
-   * Also the `sampled` decision will be inherited.
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  startChild(
-    spanContext?: Pick<SentrySpanArguments, Exclude<keyof SentrySpanArguments, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span;
 }
 
 /**
