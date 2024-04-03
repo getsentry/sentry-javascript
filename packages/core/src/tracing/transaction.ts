@@ -1,5 +1,4 @@
 import type {
-  Context,
   Contexts,
   DynamicSamplingContext,
   Hub,
@@ -74,11 +73,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       ...this._attributes,
     };
 
-    // this is because transactions are also spans, and spans have a transaction pointer
-    // TODO (v8): Replace this with another way to set the root span
-    // eslint-disable-next-line deprecation/deprecation
-    this.transaction = this;
-
     // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
     // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
     const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
@@ -125,19 +119,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * Set the context of a transaction event.
-   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
-   */
-  public setContext(key: string, context: Context | null): void {
-    if (context === null) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this._contexts[key];
-    } else {
-      this._contexts[key] = context;
-    }
-  }
-
-  /**
    * @inheritDoc
    *
    * @deprecated Use top-level `setMeasurement()` instead.
@@ -165,41 +146,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     }
     // eslint-disable-next-line deprecation/deprecation
     return this._hub.captureEvent(transaction);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public toContext(): TransactionArguments {
-    // eslint-disable-next-line deprecation/deprecation
-    const spanContext = super.toContext();
-
-    return dropUndefinedKeys({
-      ...spanContext,
-      name: this._name,
-      trimEnd: this._trimEnd,
-    });
-  }
-
-  /**
-   * @inheritdoc
-   *
-   * @experimental
-   *
-   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
-   */
-  public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> {
-    return getDynamicSamplingContextFromSpan(this);
-  }
-
-  /**
-   * Override the current hub with a new one.
-   * Used if you want another hub to finish the transaction.
-   *
-   * @internal
-   */
-  public setHub(hub: Hub): void {
-    this._hub = hub;
   }
 
   /**
