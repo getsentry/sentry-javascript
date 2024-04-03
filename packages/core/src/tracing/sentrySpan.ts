@@ -175,9 +175,7 @@ export class SentrySpan implements Span {
     attributesOrStartTime?: SpanAttributes | SpanTimeInput,
     startTime?: SpanTimeInput,
   ): this {
-    if (this._endTime) {
-      return this;
-    }
+    DEBUG_BUILD && logger.log('[Tracing] Adding an event to span:', name);
 
     const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
     const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
