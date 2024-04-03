@@ -143,18 +143,6 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * Checks if this hub's version is older than the given version.
-   *
-   * @param version A version number to compare to.
-   * @return True if the given version is newer; otherwise false.
-   *
-   * @deprecated This will be removed in v8.
-   */
-  public isOlderThan(version: number): boolean {
-    return this._version < version;
-  }
-
-  /**
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
    *
@@ -173,48 +161,16 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    *
-   * @deprecated Use `withScope` instead.
-   */
-  public pushScope(): ScopeInterface {
-    // We want to clone the content of prev scope
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = this.getScope().clone();
-    // eslint-disable-next-line deprecation/deprecation
-    this.getStack().push({
-      // eslint-disable-next-line deprecation/deprecation
-      client: this.getClient(),
-      scope,
-    });
-    return scope;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `withScope` instead.
-   */
-  public popScope(): boolean {
-    // eslint-disable-next-line deprecation/deprecation
-    if (this.getStack().length <= 1) return false;
-    // eslint-disable-next-line deprecation/deprecation
-    return !!this.getStack().pop();
-  }
-
-  /**
-   * @inheritDoc
-   *
    * @deprecated Use `Sentry.withScope()` instead.
    */
   public withScope<T>(callback: (scope: ScopeInterface) => T): T {
-    // eslint-disable-next-line deprecation/deprecation
-    const scope = this.pushScope();
+    const scope = this._pushScope();
 
     let maybePromiseResult: T;
     try {
       maybePromiseResult = callback(scope);
     } catch (e) {
-      // eslint-disable-next-line deprecation/deprecation
-      this.popScope();
+      this._popScope();
       throw e;
     }
 
@@ -222,20 +178,17 @@ export class Hub implements HubInterface {
       // @ts-expect-error - isThenable returns the wrong type
       return maybePromiseResult.then(
         res => {
-          // eslint-disable-next-line deprecation/deprecation
-          this.popScope();
+          this._popScope();
           return res;
         },
         e => {
-          // eslint-disable-next-line deprecation/deprecation
-          this.popScope();
+          this._popScope();
           throw e;
         },
       );
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    this.popScope();
+    this._popScope();
     return maybePromiseResult;
   }
 
@@ -502,20 +455,6 @@ export class Hub implements HubInterface {
   }
 
   /**
-   * Returns if default PII should be sent to Sentry and propagated in ourgoing requests
-   * when Tracing is used.
-   *
-   * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function
-   * only unnecessarily increased API surface but only wrapped accessing the option.
-   */
-  public shouldSendDefaultPii(): boolean {
-    // eslint-disable-next-line deprecation/deprecation
-    const client = this.getClient();
-    const options = client && client.getOptions();
-    return Boolean(options && options.sendDefaultPii);
-  }
-
-  /**
    * Sends the current Session on the scope
    */
   private _sendSessionUpdate(): void {
@@ -526,6 +465,32 @@ export class Hub implements HubInterface {
     if (session && client && client.captureSession) {
       client.captureSession(session);
     }
+  }
+
+  /**
+   * Push a scope to the stack.
+   */
+  private _pushScope(): ScopeInterface {
+    // We want to clone the content of prev scope
+    // eslint-disable-next-line deprecation/deprecation
+    const scope = this.getScope().clone();
+    // eslint-disable-next-line deprecation/deprecation
+    this.getStack().push({
+      // eslint-disable-next-line deprecation/deprecation
+      client: this.getClient(),
+      scope,
+    });
+    return scope;
+  }
+
+  /**
+   * Pop a scope from the stack.
+   */
+  private _popScope(): boolean {
+    // eslint-disable-next-line deprecation/deprecation
+    if (this.getStack().length <= 1) return false;
+    // eslint-disable-next-line deprecation/deprecation
+    return !!this.getStack().pop();
   }
 }
 
