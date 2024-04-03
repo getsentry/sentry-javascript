@@ -10,7 +10,10 @@ export default [
     output: {
       file: 'build-test/index.js',
       sourcemap: true,
-      preserveModules: false,
+      preserveModules:
+        process.env.SENTRY_BUILD_PRESERVE_MODULES === undefined
+          ? false
+          : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       strict: false,
       freeze: false,
       interop: 'auto',

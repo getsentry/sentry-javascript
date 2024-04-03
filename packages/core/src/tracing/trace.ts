@@ -301,11 +301,12 @@ function _startTransaction(transactionContext: TransactionArguments): Transactio
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  const { name, parentSampled, attributes } = transactionContext;
   const [sampled, sampleRate] = sampleSpan(options, {
-    name: transactionContext.name,
-    parentSampled: transactionContext.parentSampled,
+    name,
+    parentSampled,
+    attributes,
     transactionContext,
-    attributes: transactionContext.attributes,
   });
 
   // eslint-disable-next-line deprecation/deprecation

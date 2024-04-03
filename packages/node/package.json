@@ -13,7 +13,8 @@
     "cjs",
     "esm",
     "types",
-    "types-ts3.8"
+    "types-ts3.8",
+    "register.mjs"
   ],
   "main": "build/cjs/index.js",
   "module": "build/esm/index.js",
@@ -29,7 +30,17 @@
         "types": "./build/types/index.d.ts",
         "default": "./build/cjs/index.js"
       }
-    }
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
+    },
+"./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
+}
   },
   "typesVersions": {
     "<4.9": {
