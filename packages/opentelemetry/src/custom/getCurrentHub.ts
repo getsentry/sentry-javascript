@@ -1,4 +1,4 @@
-import type { Client, EventHint, Hub, Integration, IntegrationClass, Scope, SeverityLevel } from '@sentry/types';
+import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from '@sentry/types';
 
 import {
   addBreadcrumb,
