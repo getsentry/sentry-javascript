@@ -4,6 +4,105 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.1
+
+This is the first beta release of Sentry JavaScript SDK v8, which includes a variety of breaking changes. The main goal
+of version 8 is to improve our performance monitoring APIs, simplify SDK initialization, and add proper ESM support to
+all of our packages. Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes
+in your code.
+
+Before updating to `8.x` beta, we recommend upgrading to the latest version of `7.x` and then following
+[these steps](./MIGRATION.md#deprecations-in-7x) to remove deprecated methods in `7.x` before upgrading to `8.x`.
+
+### Version Support
+
+The Sentry JavaScript SDK v8 now supports Node.js 14.8.0 or higher. This applies to `@sentry/node` and all of our
+node-based server-side sdks (`@sentry/nextjs`, `@sentry/remix`, etc.).
+
+The browser SDKs now require
+[ES2018+](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
+compatible browsers. New minimum browser versions:
+
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
+
+For more details, please see the [migration guide](./MIGRATION.md#1-version-support-changes).
+
+### Package removal
+
+The following packages will no longer be published
+
+- [@sentry/hub](./MIGRATION.md#sentryhub)
+- [@sentry/tracing](./MIGRATION.md#sentrytracing)
+- [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
+- [@sentry/replay](./MIGRATION.md#sentryreplay)
+
+### Initializing Server-side SDKs (Node, Bun, Next.js):
+
+Initializing the SDKs on the server-side has been simplified. See more details in our migration docs about
+[initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk).
+
+### Performance Monitoring Changes
+
+The API around performance monitoring and tracing has been vastly improved, and we've added support for more
+integrations out of the box.
+
+- [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
+- [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Removal/Refactoring of deprecated functionality
+
+A variety of deprecated methods across the Sentry JavaScript SDKs have been removed:
+
+- [General](./MIGRATION.md#general)
+- [Browser SDK](./MIGRATION.md#browser-sdk-browser-react-vue-angular-ember-etc)
+- [Server-side SDKs (Node, Deno, Bun)](./MIGRATION.md#server-side-sdks-node-deno-bun-etc)
+- [Next.js SDK](./MIGRATION.md#nextjs-sdk)
+- [SvelteKit SDK](./MIGRATION.md#sveltekit-sdk)
+- [Astro SDK](./MIGRATION.md#astro-sdk)
+- [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
+- [Ember SDK](./MIGRATION.md#ember-sdk)
+- [Svelte SDK](./MIGRATION.md#svelte-sdk)
+
+- feat(opentelemetry): Remove top level startActiveSpan (#11380)
+- feat(v8): Remove all class based integrations (#11345)
+- feat(v8/core): Remove span.attributes top level field (#11378)
+- ref: Remove convertIntegrationFnToClass (#11343)
+- ref(gcp-serverless): Remove setting `.__sentry_transaction` (#11346)
+- ref(node): Remove the old `node` package (#11322)
+- ref(tracing): Remove `span.startChild()` (#11376)
+- ref(v8): Remove `addRequestDataToTransaction` util (#11369)
+- ref(v8): Remove `args` on `HandlerDataXhr` (#11373)
+- ref(v8): Remove `getGlobalObject` utility method (#11372)
+- ref(v8): Remove `metadata` on transaction (#11397)
+- ref(v8): Remove `pushScope`, `popScope`, `isOlderThan`, `shouldSendDefaultPii` from hub (#11404)
+- ref(v8): Remove `shouldCreateSpanForRequest` from vercel edge options (#11371)
+- ref(v8): Remove deprecated `_reportAllChanges` option (#11393)
+- ref(v8): Remove deprecated `scope.getTransaction()` (#11365)
+- ref(v8): Remove deprecated methods on scope (#11366)
+- ref(v8): Remove deprecated span & transaction properties (#11400)
+
+### Other Changes
+
+- feat: Add loader file to node-based SDKs to support ESM monkeypatching (#11338)
+- feat(core): Remove hub check in isSentryRequestUrl (#11407)
+- feat(deps): bump @sentry/cli from 2.30.2 to 2.31.0 (#11360)
+- feat(feedback): Add `getFeedback` utility to get typed feedback instance (#11331)
+- feat(replay): Bump `rrweb` to 2.12.0 (#11314)
+- feat(tracing-internal): Reset propagation context on navigation (#11401)
+- feat(types): Add View Hierarchy types (#11409)
+- feat(types): `beforeSend` and `beforeSendTransaction` breaking changes (#11354)
+- feat(utils): Use `globalThis` (#11351)
+- fix(node): Fix baggage propagation (#11363)
+- fix(web-vitals): Check for undefined navigation entry (#11311)
+- ref: Ignore node/node-experimental move PRs from git blame (#11323)
+- ref(core): Remove duplicate logic in scope.update (#11384)
+
 ## 8.0.0-alpha.7
 
 This is the seventh alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.

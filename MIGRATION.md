@@ -21,8 +21,8 @@ stable release of `8.x` comes out).
 ## 1. Version Support changes:
 
 **Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
-to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
-longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/remix`, etc.). We no longer
+test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -39,7 +39,7 @@ New minimum supported browsers:
 
 For IE11 support please transpile your code to ES5 using babel or similar and add required polyfills.
 
-**React**: The Next.js SDK now supports React 16+
+**React**: The React SDK now supports React 16+
 
 **Next.js**: The Next.js SDK now supports Next.js 13.2.0+
 
