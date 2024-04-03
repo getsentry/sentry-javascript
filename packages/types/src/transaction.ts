@@ -1,7 +1,5 @@
-import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
-import type { PolymorphicRequest } from './polymorphics';
 import type { SentrySpanArguments, Span } from './span';
 
 /**
@@ -25,12 +23,6 @@ export interface TransactionArguments extends SentrySpanArguments {
    * If this transaction has a parent, the parent's sampling decision
    */
   parentSampled?: boolean | undefined;
-
-  /**
-   * Metadata associated with the transaction, for internal SDK use.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata?: Partial<TransactionMetadata>;
 }
 
 /**
@@ -58,12 +50,7 @@ export interface TraceparentData {
  */
 export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
-   * Metadata about the transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata: TransactionMetadata;
 
-  /**
    * Set observed measurement for this transaction.
    *
    * @param name Name of the measurement
@@ -73,12 +60,6 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
    * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
-
-  /**
-   * Set metadata for this transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 }
 
 /**
@@ -114,27 +95,6 @@ export interface SamplingContext extends CustomSamplingContext {
    * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
    */
   request?: ExtractedNodeRequestData;
-}
-
-export interface TransactionMetadata {
-  /**
-   * The sample rate used when sampling this transaction.
-   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE` attribute instead.
-   */
-  sampleRate?: number;
-
-  /**
-   * The Dynamic Sampling Context of a transaction. If provided during transaction creation, its Dynamic Sampling
-   * Context Will be frozen
-   */
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-
-  /** For transactions tracing server-side request handling, the request being tracked. */
-  request?: PolymorphicRequest;
-
-  /** For transactions tracing server-side request handling, the path of the request being tracked. */
-  /** TODO: If we rm -rf `instrumentServer`, this can go, too */
-  requestPath?: string;
 }
 
 /**

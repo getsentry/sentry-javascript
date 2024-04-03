@@ -25,7 +25,7 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
@@ -245,12 +245,9 @@ function createChildSpanOrTransaction({
       parentSpanId,
       parentSampled: sampled,
       ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
-      },
     });
+
+    freezeDscOnSpan(span, dsc);
   } else {
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
@@ -262,22 +259,14 @@ function createChildSpanOrTransaction({
       parentSpanId,
       parentSampled: sampled,
       ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
-      },
     });
+
+    if (dsc) {
+      freezeDscOnSpan(span, dsc);
+    }
   }
 
   logSpanStart(span);
-
-  // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
-  // This happens if tracing extensions have not been added
-  // In this case, we just want to return a non-recording span
-  if (!span) {
-    return new SentryNonRecordingSpan();
-  }
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
