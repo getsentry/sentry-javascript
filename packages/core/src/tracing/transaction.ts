@@ -92,30 +92,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * @inheritDoc
-   */
-  public toContext(): TransactionArguments {
-    // eslint-disable-next-line deprecation/deprecation
-    const spanContext = super.toContext();
-
-    return dropUndefinedKeys({
-      ...spanContext,
-      name: this._name,
-      trimEnd: this._trimEnd,
-    });
-  }
-
-  /**
-   * Override the current hub with a new one.
-   * Used if you want another hub to finish the transaction.
-   *
-   * @internal
-   */
-  public setHub(hub: Hub): void {
-    this._hub = hub;
-  }
-
-  /**
    * Finish the transaction & prepare the event to send to Sentry.
    */
   protected _finishTransaction(endTimestamp?: number): TransactionEvent | undefined {

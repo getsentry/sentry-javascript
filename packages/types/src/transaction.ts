@@ -62,12 +62,6 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
    * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
-
-  /**
-   * Set metadata for this transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  setMetadata(newMetadata: Partial<TransactionMetadata>): void;
 }
 
 /**
