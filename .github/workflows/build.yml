@@ -1051,6 +1051,7 @@ jobs:
             # 'node-hapi-app',
             'node-nestjs-app',
             'node-exports-test-app',
+            'node-koa-app',
             'vue-3',
             'webpack-4',
             'webpack-5'
