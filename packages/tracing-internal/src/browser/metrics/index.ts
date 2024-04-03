@@ -148,10 +148,13 @@ export function startTrackingInteractions(): void {
 /**
  * Start tracking INP webvital events.
  */
-export function startTrackingINP(interactionIdtoRouteNameMapping: InteractionRouteNameMapping): () => void {
+export function startTrackingINP(
+  interactionIdtoRouteNameMapping: InteractionRouteNameMapping,
+  interactionsSampleRate: number,
+): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
-    const inpCallback = _trackINP(interactionIdtoRouteNameMapping);
+    const inpCallback = _trackINP(interactionIdtoRouteNameMapping, interactionsSampleRate);
 
     return (): void => {
       inpCallback();
@@ -247,7 +250,10 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 };
 
 /** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(interactionIdToRouteNameMapping: InteractionRouteNameMapping): () => void {
+function _trackINP(
+  interactionIdToRouteNameMapping: InteractionRouteNameMapping,
+  interactionsSampleRate: number,
+): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
     if (metric.value === undefined) {
       return;
@@ -293,7 +299,8 @@ function _trackINP(interactionIdToRouteNameMapping: InteractionRouteNameMapping)
     });
 
     /** Check to see if the span should be sampled */
-    const sampleRate = getSampleRate(parentContext, options);
+    const sampleRate = getSampleRate(parentContext, options, interactionsSampleRate);
+
     if (!sampleRate) {
       return;
     }
@@ -690,7 +697,11 @@ function _addTtfbRequestTimeToMeasurements(_measurements: Measurements): void {
 }
 
 /** Taken from @sentry/core sampling.ts */
-function getSampleRate(transactionContext: TransactionContext | undefined, options: ClientOptions): number | boolean {
+function getSampleRate(
+  transactionContext: TransactionContext | undefined,
+  options: ClientOptions,
+  interactionsSampleRate: number,
+): number | boolean {
   if (!hasTracingEnabled(options)) {
     return false;
   }
@@ -715,8 +726,13 @@ function getSampleRate(transactionContext: TransactionContext | undefined, optio
     sampleRate = 1;
   }
   if (!isValidSampleRate(sampleRate)) {
-    DEBUG_BUILD && logger.warn('[Tracing] Discarding transaction because of invalid sample rate.');
+    DEBUG_BUILD && logger.warn('[Tracing] Discarding interaction span because of invalid sample rate.');
     return false;
   }
-  return sampleRate;
+  if (sampleRate === true) {
+    return interactionsSampleRate;
+  } else if (sampleRate === false) {
+    return 0;
+  }
+  return sampleRate * interactionsSampleRate;
 }
