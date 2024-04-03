@@ -241,7 +241,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${spanToJSON(this).op} transaction: ${this._name}.`);
     return transaction;
   }
 }

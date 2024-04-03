@@ -191,8 +191,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     latestRouteName = finalStartSpanOptions.name;
     latestRouteSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
-    DEBUG_BUILD && logger.log(`[Tracing] Starting ${finalStartSpanOptions.op} idle span on scope`);
-
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
       finalTimeout,
@@ -237,7 +235,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
@@ -253,7 +251,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         if (activeSpan) {
-          DEBUG_BUILD && logger.log(`[Tracing] Finishing current transaction with op: ${spanToJSON(activeSpan).op}`);
+          DEBUG_BUILD && logger.log(`[Tracing] Finishing current root span with op: ${spanToJSON(activeSpan).op}`);
           // If there's an open transaction on the scope, we need to finish it before creating an new one.
           activeSpan.end();
         }
