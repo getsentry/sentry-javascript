@@ -3,6 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 import {
   WINDOW,
   browserTracingIntegration as originalBrowserTracingIntegration,
+  getCurrentScope,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
@@ -65,6 +66,7 @@ function _instrumentPageload(client: Client): void {
     if (routeId) {
       pageloadSpan.updateName(routeId);
       pageloadSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      getCurrentScope().setTransactionName(routeId);
     }
   });
 }

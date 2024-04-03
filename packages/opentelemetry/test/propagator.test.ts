@@ -203,7 +203,7 @@ describe('SentryPropagator', () => {
             spanId: '6e0c63257de34c92',
             sampled: true,
             dsc: {
-              transaction: 'sampled-transaction',
+              transaction: 'users/123',
               sampled: 'false',
               trace_id: 'dsc_trace_id',
               public_key: 'dsc_public_key',
