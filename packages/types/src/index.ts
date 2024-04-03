@@ -111,7 +111,6 @@ export type {
   TraceparentData,
   Transaction,
   TransactionArguments,
-  TransactionMetadata,
   TransactionSource,
 } from './transaction';
 export type {
@@ -155,3 +154,4 @@ export type {
   MetricInstance,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
+export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

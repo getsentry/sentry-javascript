@@ -1,4 +1,4 @@
-import type { Client, Hub } from '@sentry/types';
+import type { Client } from '@sentry/types';
 
 import { isSentryRequestUrl } from '../../../src';
 
@@ -16,15 +16,6 @@ describe('isSentryRequestUrl', () => {
       getOptions: () => ({ tunnel }),
       getDsn: () => ({ host: dsn }),
     } as unknown as Client;
-
-    const hub = {
-      getClient: () => {
-        return client;
-      },
-    } as unknown as Hub;
-
-    // Works with hub passed
-    expect(isSentryRequestUrl(url, hub)).toBe(expected);
 
     // Works with client passed
     expect(isSentryRequestUrl(url, client)).toBe(expected);

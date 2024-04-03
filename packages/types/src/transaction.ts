@@ -1,9 +1,6 @@
-import type { Context } from './context';
-import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
-import type { PolymorphicRequest } from './polymorphics';
-import type { SentrySpanArguments, Span, SpanAttributes } from './span';
+import type { SentrySpanArguments, Span } from './span';
 
 /**
  * Interface holding Transaction-specific properties
@@ -26,12 +23,6 @@ export interface TransactionArguments extends SentrySpanArguments {
    * If this transaction has a parent, the parent's sampling decision
    */
   parentSampled?: boolean | undefined;
-
-  /**
-   * Metadata associated with the transaction, for internal SDK use.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata?: Partial<TransactionMetadata>;
 }
 
 /**
@@ -59,29 +50,7 @@ export interface TraceparentData {
  */
 export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
-   * @inheritDoc
-   */
-  startTimestamp: number;
 
-  /**
-   * Attributes for the transaction.
-   * @deprecated Use `getSpanAttributes(transaction)` instead.
-   */
-  attributes: SpanAttributes;
-
-  /**
-   * Metadata about the transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  metadata: TransactionMetadata;
-
-  /**
-   * Set the context of a transaction event.
-   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
-   */
-  setContext(key: string, context: Context): void;
-
-  /**
    * Set observed measurement for this transaction.
    *
    * @param name Name of the measurement
@@ -91,35 +60,6 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
    * @deprecated Use top-level `setMeasurement()` instead.
    */
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
-
-  /**
-   * Returns the current transaction properties as a `TransactionArguments`.
-   * @deprecated Use `toJSON()` or access the fields directly instead.
-   */
-  toContext(): TransactionArguments;
-
-  /**
-   * Set metadata for this transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  setMetadata(newMetadata: Partial<TransactionMetadata>): void;
-
-  /**
-   * Return the current Dynamic Sampling Context of this transaction
-   *
-   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
-   */
-  getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
-
-  /**
-   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
-   * Also the `sampled` decision will be inherited.
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  startChild(
-    spanContext?: Pick<SentrySpanArguments, Exclude<keyof SentrySpanArguments, 'sampled' | 'traceId' | 'parentSpanId'>>,
-  ): Span;
 }
 
 /**
@@ -155,27 +95,6 @@ export interface SamplingContext extends CustomSamplingContext {
    * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
    */
   request?: ExtractedNodeRequestData;
-}
-
-export interface TransactionMetadata {
-  /**
-   * The sample rate used when sampling this transaction.
-   * @deprecated Use `SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE` attribute instead.
-   */
-  sampleRate?: number;
-
-  /**
-   * The Dynamic Sampling Context of a transaction. If provided during transaction creation, its Dynamic Sampling
-   * Context Will be frozen
-   */
-  dynamicSamplingContext?: Partial<DynamicSamplingContext>;
-
-  /** For transactions tracing server-side request handling, the request being tracked. */
-  request?: PolymorphicRequest;
-
-  /** For transactions tracing server-side request handling, the path of the request being tracked. */
-  /** TODO: If we rm -rf `instrumentServer`, this can go, too */
-  requestPath?: string;
 }
 
 /**

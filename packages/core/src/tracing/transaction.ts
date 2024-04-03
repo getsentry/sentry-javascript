@@ -1,7 +1,5 @@
 import type {
-  Context,
   Contexts,
-  DynamicSamplingContext,
   Hub,
   MeasurementUnit,
   Measurements,
@@ -10,7 +8,6 @@ import type {
   Transaction as TransactionInterface,
   TransactionArguments,
   TransactionEvent,
-  TransactionMetadata,
   TransactionSource,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger } from '@sentry/utils';
@@ -18,7 +15,7 @@ import { dropUndefinedKeys, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { getCurrentHub } from '../hub';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { getSpanDescendants, spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { SentrySpan } from './sentrySpan';
@@ -39,11 +36,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
   private _trimEnd?: boolean | undefined;
 
-  // DO NOT yet remove this property, it is used in a hack for v7 backwards compatibility.
-  private _frozenDynamicSamplingContext: Readonly<Partial<DynamicSamplingContext>> | undefined;
-
-  private _metadata: Partial<TransactionMetadata>;
-
   /**
    * This constructor should never be called manually.
    * @internal
@@ -62,60 +54,13 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     this._name = transactionContext.name || '';
 
-    this._metadata = {
-      // eslint-disable-next-line deprecation/deprecation
-      ...transactionContext.metadata,
-    };
-
     this._trimEnd = transactionContext.trimEnd;
 
     this._attributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
       ...this._attributes,
     };
-
-    // this is because transactions are also spans, and spans have a transaction pointer
-    // TODO (v8): Replace this with another way to set the root span
-    // eslint-disable-next-line deprecation/deprecation
-    this.transaction = this;
-
-    // If Dynamic Sampling Context is provided during the creation of the transaction, we freeze it as it usually means
-    // there is incoming Dynamic Sampling Context. (Either through an incoming request, a baggage meta-tag, or other means)
-    const incomingDynamicSamplingContext = this._metadata.dynamicSamplingContext;
-    if (incomingDynamicSamplingContext) {
-      // We shallow copy this in case anything writes to the original reference of the passed in `dynamicSamplingContext`
-      this._frozenDynamicSamplingContext = { ...incomingDynamicSamplingContext };
-    }
   }
-
-  // This sadly conflicts with the getter/setter ordering :(
-
-  /**
-   * Get the metadata for this transaction.
-   * @deprecated Use `spanGetMetadata(transaction)` instead.
-   */
-  public get metadata(): TransactionMetadata {
-    // We merge attributes in for backwards compatibility
-    return {
-      // Legacy metadata
-      ...this._metadata,
-
-      // From attributes
-      ...(this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] && {
-        sampleRate: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as TransactionMetadata['sampleRate'],
-      }),
-    };
-  }
-
-  /**
-   * Update the metadata for this transaction.
-   * @deprecated Use `spanGetMetadata(transaction)` instead.
-   */
-  public set metadata(metadata: TransactionMetadata) {
-    this._metadata = metadata;
-  }
-
-  /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
   public updateName(name: string): this {
@@ -125,33 +70,12 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   }
 
   /**
-   * Set the context of a transaction event.
-   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
-   */
-  public setContext(key: string, context: Context | null): void {
-    if (context === null) {
-      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-      delete this._contexts[key];
-    } else {
-      this._contexts[key] = context;
-    }
-  }
-
-  /**
    * @inheritDoc
    *
    * @deprecated Use top-level `setMeasurement()` instead.
    */
   public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
     this._measurements[name] = { value, unit };
-  }
-
-  /**
-   * Store metadata on this transaction.
-   * @deprecated Use attributes or store data on the scope instead.
-   */
-  public setMetadata(newMetadata: Partial<TransactionMetadata>): void {
-    this._metadata = { ...this._metadata, ...newMetadata };
   }
 
   /**
@@ -165,41 +89,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     }
     // eslint-disable-next-line deprecation/deprecation
     return this._hub.captureEvent(transaction);
-  }
-
-  /**
-   * @inheritDoc
-   */
-  public toContext(): TransactionArguments {
-    // eslint-disable-next-line deprecation/deprecation
-    const spanContext = super.toContext();
-
-    return dropUndefinedKeys({
-      ...spanContext,
-      name: this._name,
-      trimEnd: this._trimEnd,
-    });
-  }
-
-  /**
-   * @inheritdoc
-   *
-   * @experimental
-   *
-   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
-   */
-  public getDynamicSamplingContext(): Readonly<Partial<DynamicSamplingContext>> {
-    return getDynamicSamplingContextFromSpan(this);
-  }
-
-  /**
-   * Override the current hub with a new one.
-   * Used if you want another hub to finish the transaction.
-   *
-   * @internal
-   */
-  public setHub(hub: Hub): void {
-    this._hub = hub;
   }
 
   /**
@@ -252,9 +141,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
 
     const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
 
-    // eslint-disable-next-line deprecation/deprecation
-    const { metadata } = this;
-
     const source = this._attributes['sentry.source'] as TransactionSource | undefined;
 
     const transaction: TransactionEvent = {
@@ -269,7 +155,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       transaction: this._name,
       type: 'transaction',
       sdkProcessingMetadata: {
-        ...metadata,
         capturedSpanScope,
         capturedSpanIsolationScope,
         ...dropUndefinedKeys({
@@ -295,7 +180,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       transaction.measurements = this._measurements;
     }
 
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing ${spanToJSON(this).op} transaction: ${this._name}.`);
     return transaction;
   }
 }

@@ -1,4 +1,12 @@
-import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionArguments } from '@sentry/types';
+import type {
+  ClientOptions,
+  Scope,
+  SentrySpanArguments,
+  Span,
+  SpanTimeInput,
+  StartSpanOptions,
+  TransactionArguments,
+} from '@sentry/types';
 
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
@@ -17,10 +25,11 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
-import type { SentrySpan } from './sentrySpan';
+import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { Transaction } from './transaction';
 import { setCapturedScopesOnSpan } from './utils';
@@ -223,8 +232,7 @@ function createChildSpanOrTransaction({
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    // eslint-disable-next-line deprecation/deprecation
-    span = parentSpan.startChild(spanContext);
+    span = _startChild(parentSpan, spanContext);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
@@ -237,12 +245,9 @@ function createChildSpanOrTransaction({
       parentSpanId,
       parentSampled: sampled,
       ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
-      },
     });
+
+    freezeDscOnSpan(span, dsc);
   } else {
     const { traceId, dsc, parentSpanId, sampled } = {
       ...isolationScope.getPropagationContext(),
@@ -254,20 +259,14 @@ function createChildSpanOrTransaction({
       parentSpanId,
       parentSampled: sampled,
       ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
-      },
     });
+
+    if (dsc) {
+      freezeDscOnSpan(span, dsc);
+    }
   }
 
-  // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
-  // This happens if tracing extensions have not been added
-  // In this case, we just want to return a non-recording span
-  if (!span) {
-    return new SentryNonRecordingSpan();
-  }
+  logSpanStart(span);
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
@@ -301,11 +300,12 @@ function _startTransaction(transactionContext: TransactionArguments): Transactio
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  const { name, parentSampled, attributes } = transactionContext;
   const [sampled, sampleRate] = sampleSpan(options, {
-    name: transactionContext.name,
-    parentSampled: transactionContext.parentSampled,
+    name,
+    parentSampled,
+    attributes,
     transactionContext,
-    attributes: transactionContext.attributes,
   });
 
   // eslint-disable-next-line deprecation/deprecation
@@ -319,4 +319,33 @@ function _startTransaction(transactionContext: TransactionArguments): Transactio
   }
 
   return transaction;
+}
+
+/**
+ * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+ * This inherits the sampling decision from the parent span.
+ */
+function _startChild(parentSpan: Span, spanContext: SentrySpanArguments): SentrySpan {
+  const { spanId, traceId } = parentSpan.spanContext();
+  const sampled = spanIsSampled(parentSpan);
+
+  const childSpan = new SentrySpan({
+    ...spanContext,
+    parentSpanId: spanId,
+    traceId,
+    sampled,
+  });
+
+  addChildSpanToSpan(parentSpan, childSpan);
+
+  const client = getClient();
+  if (client) {
+    client.emit('spanStart', childSpan);
+    // If it has an endTimestamp, it's already ended
+    if (spanContext.endTimestamp) {
+      client.emit('spanEnd', childSpan);
+    }
+  }
+
+  return childSpan;
 }
