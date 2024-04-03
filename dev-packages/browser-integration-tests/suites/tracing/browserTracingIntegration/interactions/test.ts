@@ -100,7 +100,6 @@ sentryTest(
     await getFirstSentryEnvelopeRequest<Event>(page);
 
     await page.locator('[data-test-id=annotated-button]').click();
-    await page.locator('[data-test-id=styled-button]').click();
 
     const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
     expect(envelopes).toHaveLength(1);
