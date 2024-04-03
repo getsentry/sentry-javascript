@@ -1,7 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  Transaction,
   handleCallbackErrors,
   setHttpStatus,
 } from '@sentry/core';
