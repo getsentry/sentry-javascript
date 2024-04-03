@@ -17,7 +17,8 @@
     "esm",
     "types",
     "types-ts3.8",
-    "scripts"
+    "scripts",
+    "register.mjs"
   ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
@@ -32,7 +33,17 @@
       },
       "node": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
-    }
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
+    },
+"./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
+}
   },
   "typesVersions": {
     "<4.9": {

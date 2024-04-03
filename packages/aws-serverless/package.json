@@ -12,7 +12,8 @@
   "files": [
     "cjs",
     "types",
-    "types-ts3.8"
+    "types-ts3.8",
+    "register.mjs"
   ],
   "main": "build/npm/cjs/index.js",
   "types": "build/npm/types/index.d.ts",
@@ -23,7 +24,17 @@
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
       }
-    }
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
+    },
+"./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
+}
   },
   "typesVersions": {
     "<4.9": {
