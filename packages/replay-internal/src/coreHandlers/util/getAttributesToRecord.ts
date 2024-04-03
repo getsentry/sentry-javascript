@@ -13,6 +13,7 @@ const ATTRIBUTES_TO_RECORD = new Set([
   'disabled',
   'aria-disabled',
   'data-sentry-component',
+  'data-sentry-element',
 ]);
 
 /**

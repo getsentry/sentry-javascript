@@ -37,6 +37,12 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
   await page.keyboard.press('Control+A');
   await page.keyboard.type('Hello', { delay: 10 });
 
+  await page.locator('#button2').click();
+
+  await page.locator('#input2').focus();
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('Hello', { delay: 10 });
+
   await forceFlushReplay();
   const { breadcrumbs } = getCustomRecordingEvents(await reqPromise1);
   const { breadcrumbs: breadcrumbs2 } = getCustomRecordingEvents(await reqPromise2);
@@ -73,6 +79,36 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
         nodeId: expect.any(Number),
         node: {
           attributes: { id: 'input', 'data-sentry-component': 'MyCoolInput' },
+          id: expect.any(Number),
+          tagName: 'input',
+          textContent: '',
+        },
+      },
+    },
+    {
+      timestamp: expect.any(Number),
+      type: 'default',
+      category: 'ui.click',
+      message: 'body > StyledCoolButton',
+      data: {
+        nodeId: expect.any(Number),
+        node: {
+          attributes: { id: 'button', 'data-sentry-element': 'StyledCoolButton' },
+          id: expect.any(Number),
+          tagName: 'button',
+          textContent: '**',
+        },
+      },
+    },
+    {
+      timestamp: expect.any(Number),
+      type: 'default',
+      category: 'ui.input',
+      message: 'body > StyledCoolInput',
+      data: {
+        nodeId: expect.any(Number),
+        node: {
+          attributes: { id: 'input', 'data-sentry-element': 'StyledCoolInput' },
           id: expect.any(Number),
           tagName: 'input',
           textContent: '',

@@ -100,15 +100,20 @@ sentryTest(
     await getFirstSentryEnvelopeRequest<Event>(page);
 
     await page.locator('[data-test-id=annotated-button]').click();
+    await page.locator('[data-test-id=styled-button]').click();
 
     const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
 
-    expect(eventData.spans).toHaveLength(1);
+    expect(eventData.spans).toHaveLength(2);
 
     const interactionSpan = eventData.spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > AnnotatedButton');
+
+    const interactionSpan2 = eventData.spans![1];
+    expect(interactionSpan2.op).toBe('ui.interaction.click');
+    expect(interactionSpan2.description).toBe('body > StyledButton');
   },
 );
