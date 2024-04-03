@@ -12,7 +12,8 @@ function log(msg: string, error?: Error): void {
 }
 
 export interface OfflineStore {
-  insert(env: Envelope): Promise<void>;
+  push(env: Envelope): Promise<void>;
+  unshift(env: Envelope): Promise<void>;
   pop(): Promise<Envelope | undefined>;
 }
 
@@ -55,17 +56,19 @@ export function makeOfflineTransport<TO>(
 ): (options: TO & OfflineTransportOptions) => Transport {
   return options => {
     const transport = createTransport(options);
-    const store = options.createStore ? options.createStore(options) : undefined;
+
+    if (!options.createStore) {
+      throw new Error('No `createStore` function was provided');
+    }
+
+    const store = options.createStore(options);
 
     let retryDelay = START_DELAY;
     let flushTimer: Timer | undefined;
 
     function shouldQueue(env: Envelope, error: Error, retryDelay: number): boolean | Promise<boolean> {
-      // We don't queue Session Replay envelopes because they are:
-      // - Ordered and Replay relies on the response status to know when they're successfully sent.
-      // - Likely to fill the queue quickly and block other events from being sent.
-      // We also want to drop client reports because they can be generated when we retry sending events while offline.
-      if (envelopeContainsItemType(env, ['replay_event', 'replay_recording', 'client_report'])) {
+      // We want to drop client reports because they can be generated when we retry sending events while offline.
+      if (envelopeContainsItemType(env, ['client_report'])) {
         return false;
       }
 
@@ -77,10 +80,6 @@ export function makeOfflineTransport<TO>(
     }
 
     function flushIn(delay: number): void {
-      if (!store) {
-        return;
-      }
-
       if (flushTimer) {
         clearTimeout(flushTimer as ReturnType<typeof setTimeout>);
       }
@@ -91,7 +90,7 @@ export function makeOfflineTransport<TO>(
         const found = await store.pop();
         if (found) {
           log('Attempting to send previously queued event');
-          void send(found).catch(e => {
+          void send(found, true).catch(e => {
             log('Failed to retry sending', e);
           });
         }
@@ -113,7 +112,15 @@ export function makeOfflineTransport<TO>(
       retryDelay = Math.min(retryDelay * 2, MAX_DELAY);
     }
 
-    async function send(envelope: Envelope): Promise<TransportMakeRequestResponse> {
+    async function send(envelope: Envelope, isRetry: boolean = false): Promise<TransportMakeRequestResponse> {
+      // We queue all replay envelopes to avoid multiple replay envelopes being sent at the same time. If one fails, we
+      // need to retry them in order.
+      if (!isRetry && envelopeContainsItemType(envelope, ['replay_event', 'replay_recording'])) {
+        await store.push(envelope);
+        flushIn(MIN_DELAY);
+        return {};
+      }
+
       try {
         const result = await transport.send(envelope);
 
@@ -133,8 +140,13 @@ export function makeOfflineTransport<TO>(
         retryDelay = START_DELAY;
         return result;
       } catch (e) {
-        if (store && (await shouldQueue(envelope, e as Error, retryDelay))) {
-          await store.insert(envelope);
+        if (await shouldQueue(envelope, e as Error, retryDelay)) {
+          // If this envelope was a retry, we want to add it to the front of the queue so it's retried again first.
+          if (isRetry) {
+            await store.unshift(envelope);
+          } else {
+            await store.push(envelope);
+          }
           flushWithBackOff();
           log('Error sending. Event queued', e as Error);
           return {};

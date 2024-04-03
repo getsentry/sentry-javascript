@@ -6,7 +6,6 @@ import type {
   InternalBaseTransportOptions,
   ReplayEnvelope,
   ReplayEvent,
-  Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
 import {
@@ -15,6 +14,7 @@ import {
   createEventEnvelopeHeaders,
   dsnFromString,
   getSdkMetadataForEnvelopeHeader,
+  parseEnvelope,
 } from '@sentry/utils';
 
 import { createTransport } from '../../../src';
@@ -25,34 +25,40 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-const REPLAY_EVENT: ReplayEvent = {
-  type: 'replay_event',
-  timestamp: 1670837008.634,
-  error_ids: ['errorId'],
-  trace_ids: ['traceId'],
-  urls: ['https://example.com'],
-  replay_id: 'MY_REPLAY_ID',
-  segment_id: 3,
-  replay_type: 'buffer',
-};
+function REPLAY_EVENT(message: string): ReplayEvent {
+  return {
+    type: 'replay_event',
+    timestamp: 1670837008.634,
+    error_ids: ['errorId'],
+    trace_ids: ['traceId'],
+    urls: ['https://example.com'],
+    replay_id: 'MY_REPLAY_ID',
+    segment_id: 3,
+    replay_type: 'buffer',
+    message,
+  };
+}
 
 const DSN = dsnFromString('https://public@dsn.ingest.sentry.io/1337')!;
 
 const DATA = 'nothing';
 
-const RELAY_ENVELOPE = createEnvelope<ReplayEnvelope>(
-  createEventEnvelopeHeaders(REPLAY_EVENT, getSdkMetadataForEnvelopeHeader(REPLAY_EVENT), undefined, DSN),
-  [
-    [{ type: 'replay_event' }, REPLAY_EVENT],
+function REPLAY_ENVELOPE(message: string) {
+  const event = REPLAY_EVENT(message);
+  return createEnvelope<ReplayEnvelope>(
+    createEventEnvelopeHeaders(event, getSdkMetadataForEnvelopeHeader(event), undefined, DSN),
     [
-      {
-        type: 'replay_recording',
-        length: DATA.length,
-      },
-      DATA,
+      [{ type: 'replay_event' }, event],
+      [
+        {
+          type: 'replay_recording',
+          length: DATA.length,
+        },
+        DATA,
+      ],
     ],
-  ],
-);
+  );
+}
 
 const DEFAULT_DISCARDED_EVENTS: ClientReport['discarded_events'] = [
   {
@@ -79,22 +85,21 @@ const transportOptions = {
 
 type MockResult<T> = T | Error;
 
-const createTestTransport = (
-  ...sendResults: MockResult<TransportMakeRequestResponse>[]
-): { getSendCount: () => number; baseTransport: (options: InternalBaseTransportOptions) => Transport } => {
-  let sendCount = 0;
+const createTestTransport = (...sendResults: MockResult<TransportMakeRequestResponse>[]) => {
+  const sentEnvelopes: (string | Uint8Array)[] = [];
 
   return {
-    getSendCount: () => sendCount,
+    getSentEnvelopes: () => sentEnvelopes,
+    getSendCount: () => sentEnvelopes.length,
     baseTransport: (options: InternalBaseTransportOptions) =>
-      createTransport(options, () => {
+      createTransport(options, ({ body }) => {
         return new Promise((resolve, reject) => {
           const next = sendResults.shift();
 
           if (next instanceof Error) {
             reject(next);
           } else {
-            sendCount += 1;
+            sentEnvelopes.push(body);
             resolve(next as TransportMakeRequestResponse);
           }
         });
@@ -102,7 +107,7 @@ const createTestTransport = (
   };
 };
 
-type StoreEvents = ('add' | 'pop')[];
+type StoreEvents = ('push' | 'unshift' | 'pop')[];
 
 function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
   getCalls: () => StoreEvents;
@@ -113,10 +118,16 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
   return {
     getCalls: () => calls,
     store: (_: OfflineTransportOptions) => ({
-      insert: async env => {
+      push: async env => {
         if (popResults.length < 30) {
           popResults.push(env);
-          calls.push('add');
+          calls.push('push');
+        }
+      },
+      unshift: async env => {
+        if (popResults.length < 30) {
+          popResults.unshift(env);
+          calls.push('unshift');
         }
       },
       pop: async () => {
@@ -129,6 +140,7 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
 
         return next;
       },
+      count: async () => popResults.length,
     }),
   };
 }
@@ -173,7 +185,7 @@ describe('makeOfflineTransport', () => {
     expect(getCalls()).toEqual(['pop']);
   });
 
-  it('After successfully sending, sends further envelopes found in the store', async () => {
+  it('Envelopes are added after existing envelopes in the queue', async () => {
     const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
     const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
     const transport = makeOfflineTransport(baseTransport)({ ...transportOptions, createStore: store });
@@ -208,7 +220,7 @@ describe('makeOfflineTransport', () => {
 
     expect(getSendCount()).toEqual(0);
     expect(queuedCount).toEqual(1);
-    expect(getCalls()).toEqual(['add']);
+    expect(getCalls()).toEqual(['push']);
   });
 
   it('Does not queue envelopes if status code >= 400', async () => {
@@ -242,18 +254,18 @@ describe('makeOfflineTransport', () => {
       const transport = makeOfflineTransport(baseTransport)({ ...transportOptions, createStore: store });
       const result = await transport.send(ERROR_ENVELOPE);
       expect(result).toEqual({});
-      expect(getCalls()).toEqual(['add']);
+      expect(getCalls()).toEqual(['push']);
 
       await waitUntil(() => getCalls().length === 3 && getSendCount() === 1, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(1);
-      expect(getCalls()).toEqual(['add', 'pop', 'pop']);
+      expect(getCalls()).toEqual(['push', 'pop', 'pop']);
     },
     START_DELAY + 2_000,
   );
 
   it(
-    'When enabled, sends envelopes found in store shortly after startup',
+    'When flushAtStartup is enabled, sends envelopes found in store shortly after startup',
     async () => {
       const { getCalls, store } = createTestStore(ERROR_ENVELOPE, ERROR_ENVELOPE);
       const { getSendCount, baseTransport } = createTestTransport({ statusCode: 200 }, { statusCode: 200 });
@@ -272,6 +284,26 @@ describe('makeOfflineTransport', () => {
     START_DELAY + 2_000,
   );
 
+  it(
+    'Unshifts envelopes on retry failure',
+    async () => {
+      const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
+      const { getSendCount, baseTransport } = createTestTransport(new Error(), { statusCode: 200 });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _transport = makeOfflineTransport(baseTransport)({
+        ...transportOptions,
+        createStore: store,
+        flushAtStartup: true,
+      });
+
+      await waitUntil(() => getCalls().length === 2, START_DELAY * 2);
+
+      expect(getSendCount()).toEqual(0);
+      expect(getCalls()).toEqual(['pop', 'unshift']);
+    },
+    START_DELAY + 2_000,
+  );
+
   it('shouldStore can stop envelopes from being stored on send failure', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
@@ -282,23 +314,6 @@ describe('makeOfflineTransport', () => {
       shouldStore: () => false,
     });
     const result = transport.send(ERROR_ENVELOPE);
-
-    await expect(result).rejects.toBeInstanceOf(Error);
-    expect(queuedCount).toEqual(0);
-    expect(getSendCount()).toEqual(0);
-    expect(getCalls()).toEqual([]);
-  });
-
-  it('should not store Relay envelopes on send failure', async () => {
-    const { getCalls, store } = createTestStore();
-    const { getSendCount, baseTransport } = createTestTransport(new Error());
-    const queuedCount = 0;
-    const transport = makeOfflineTransport(baseTransport)({
-      ...transportOptions,
-      createStore: store,
-      shouldStore: () => true,
-    });
-    const result = transport.send(RELAY_ENVELOPE);
 
     await expect(result).rejects.toBeInstanceOf(Error);
     expect(queuedCount).toEqual(0);
@@ -322,6 +337,47 @@ describe('makeOfflineTransport', () => {
     expect(getSendCount()).toEqual(0);
     expect(getCalls()).toEqual([]);
   });
+
+  it(
+    'Sends replay envelopes in order',
+    async () => {
+      const { getCalls, store } = createTestStore(REPLAY_ENVELOPE('1'), REPLAY_ENVELOPE('2'));
+      const { getSendCount, getSentEnvelopes, baseTransport } = createTestTransport(
+        new Error(),
+        { statusCode: 200 },
+        { statusCode: 200 },
+        { statusCode: 200 },
+      );
+      const transport = makeOfflineTransport(baseTransport)({ ...transportOptions, createStore: store });
+      const result = await transport.send(REPLAY_ENVELOPE('3'));
+
+      expect(result).toEqual({});
+      expect(getCalls()).toEqual(['push']);
+
+      await waitUntil(() => getCalls().length === 6 && getSendCount() === 3, START_DELAY * 5);
+
+      expect(getSendCount()).toEqual(3);
+      expect(getCalls()).toEqual([
+        // We're sending a replay envelope and they always get queued
+        'push',
+        // The first envelope popped out fails to send so it gets added to the front of the queue
+        'pop',
+        'unshift',
+        // The rest of the attempts succeed
+        'pop',
+        'pop',
+        'pop',
+      ]);
+
+      const envelopes = getSentEnvelopes().map(parseEnvelope);
+
+      // Ensure they're still in the correct order
+      expect((envelopes[0][1][0][1] as ErrorEvent).message).toEqual('1');
+      expect((envelopes[1][1][0][1] as ErrorEvent).message).toEqual('2');
+      expect((envelopes[2][1][0][1] as ErrorEvent).message).toEqual('3');
+    },
+    START_DELAY + 2_000,
+  );
 
   // eslint-disable-next-line jest/no-disabled-tests
   it.skip(
