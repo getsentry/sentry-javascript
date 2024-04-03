@@ -1,7 +1,14 @@
 import type { Context } from '@opentelemetry/api';
 import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
-import { addChildSpanToSpan, getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
+import {
+  addChildSpanToSpan,
+  getClient,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
+  logSpanEnd,
+  logSpanStart,
+} from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
 import { getScopesFromContext } from './utils/contextData';
@@ -38,13 +45,17 @@ function onSpanStart(span: Span, parentContext: Context): void {
     setSpanScopes(span, scopes);
   }
 
+  logSpanStart(span);
+
   const client = getClient();
   client?.emit('spanStart', span);
 }
 
-function onSpanEnd(span: ReadableSpan): void {
+function onSpanEnd(span: Span): void {
+  logSpanEnd(span);
+
   const client = getClient();
-  client?.emit('spanEnd', span as Span);
+  client?.emit('spanEnd', span);
 }
 
 /**
@@ -81,7 +92,7 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
   }
 
   /** @inheritDoc */
-  public onEnd(span: ReadableSpan): void {
+  public onEnd(span: Span & ReadableSpan): void {
     onSpanEnd(span);
 
     this._exporter.export(span);

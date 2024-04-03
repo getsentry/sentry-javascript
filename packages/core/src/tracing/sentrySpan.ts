@@ -14,13 +14,8 @@ import { getClient } from '../currentScopes';
 
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
-  getStatusMessage,
-  spanTimeInputToSeconds,
-  spanToJSON,
-} from '../utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, getStatusMessage, spanTimeInputToSeconds } from '../utils/spanUtils';
+import { logSpanEnd } from './logSpans';
 
 /**
  * Span contains all data about a span
@@ -133,6 +128,7 @@ export class SentrySpan implements Span {
     }
 
     this._endTime = spanTimeInputToSeconds(endTimestamp);
+    logSpanEnd(this);
 
     this._onSpanEnded();
   }

@@ -3,7 +3,6 @@ import {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
-  spanLoggerIntegration,
 } from '@sentry/core';
 import {
   consoleIntegration,
@@ -30,7 +29,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     requestDataIntegration(),
-    spanLoggerIntegration(),
     // Native Wrappers
     consoleIntegration(),
     httpIntegration(),

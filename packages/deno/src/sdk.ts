@@ -1,5 +1,4 @@
 import type { ServerRuntimeClientOptions } from '@sentry/core';
-import { spanLoggerIntegration } from '@sentry/core';
 import {
   dedupeIntegration,
   functionToStringIntegration,
@@ -28,7 +27,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     functionToStringIntegration(),
     linkedErrorsIntegration(),
     dedupeIntegration(),
-    spanLoggerIntegration(),
     // Deno Specific
     breadcrumbsIntegration(),
     denoContextIntegration(),

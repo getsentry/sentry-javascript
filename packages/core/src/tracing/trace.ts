@@ -26,6 +26,7 @@ import {
   spanToJSON,
 } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
@@ -268,6 +269,8 @@ function createChildSpanOrTransaction({
       },
     });
   }
+
+  logSpanStart(span);
 
   // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
   // This happens if tracing extensions have not been added

@@ -1,4 +1,4 @@
-import { getCurrentScope, spanLoggerIntegration } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
   captureSession,
@@ -36,7 +36,7 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
    * Note: Please make sure this stays in sync with Angular SDK, which re-exports
    * `getDefaultIntegrations` but with an adjusted set of integrations.
    */
-  const integrations: Integration[] = [
+  return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
     browserApiErrorsIntegration(),
@@ -46,12 +46,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     dedupeIntegration(),
     httpContextIntegration(),
   ];
-
-  if (DEBUG_BUILD) {
-    integrations.push(spanLoggerIntegration());
-  }
-
-  return integrations;
 }
 
 function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
