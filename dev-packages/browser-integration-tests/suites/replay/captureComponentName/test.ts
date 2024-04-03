@@ -57,7 +57,11 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
       data: {
         nodeId: expect.any(Number),
         node: {
-          attributes: { id: 'button', 'data-sentry-component': 'MyCoolButton', 'data-sentry-element': 'StyledCoolInput' },
+          attributes: {
+            id: 'button',
+            'data-sentry-component': 'MyCoolButton',
+            'data-sentry-element': 'StyledCoolButton',
+          },
           id: expect.any(Number),
           tagName: 'button',
           textContent: '**',
@@ -72,7 +76,11 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
       data: {
         nodeId: expect.any(Number),
         node: {
-          attributes: { id: 'input', 'data-sentry-component': 'MyCoolInput', 'data-sentry-element': 'StyledCoolInput' },
+          attributes: {
+            id: 'input',
+            'data-sentry-component': 'MyCoolInput',
+            'data-sentry-element': 'StyledCoolInput',
+          },
           id: expect.any(Number),
           tagName: 'input',
           textContent: '',
