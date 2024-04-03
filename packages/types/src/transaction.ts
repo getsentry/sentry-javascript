@@ -1,4 +1,3 @@
-import type { Context } from './context';
 import type { DynamicSamplingContext } from './envelope';
 import type { MeasurementUnit } from './measurement';
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
@@ -59,21 +58,10 @@ export interface TraceparentData {
  */
 export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {
   /**
-   * @inheritDoc
-   */
-  startTimestamp: number;
-
-  /**
    * Metadata about the transaction.
    * @deprecated Use attributes or store data on the scope instead.
    */
   metadata: TransactionMetadata;
-
-  /**
-   * Set the context of a transaction event.
-   * @deprecated Use either `.setAttribute()`, or set the context on the scope before creating the transaction.
-   */
-  setContext(key: string, context: Context): void;
 
   /**
    * Set observed measurement for this transaction.
@@ -87,23 +75,10 @@ export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 
   setMeasurement(name: string, value: number, unit: MeasurementUnit): void;
 
   /**
-   * Returns the current transaction properties as a `TransactionArguments`.
-   * @deprecated Use `toJSON()` or access the fields directly instead.
-   */
-  toContext(): TransactionArguments;
-
-  /**
    * Set metadata for this transaction.
    * @deprecated Use attributes or store data on the scope instead.
    */
   setMetadata(newMetadata: Partial<TransactionMetadata>): void;
-
-  /**
-   * Return the current Dynamic Sampling Context of this transaction
-   *
-   * @deprecated Use top-level `getDynamicSamplingContextFromSpan` instead.
-   */
-  getDynamicSamplingContext(): Partial<DynamicSamplingContext>;
 
   /**
    * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.

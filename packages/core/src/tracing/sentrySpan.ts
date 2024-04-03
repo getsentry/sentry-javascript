@@ -8,8 +8,6 @@ import type {
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
-  TraceContext,
-  Transaction,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import { getClient } from '../currentScopes';
@@ -25,18 +23,12 @@ import {
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
-  spanToTraceContext,
 } from '../utils/spanUtils';
 
 /**
  * Span contains all data about a span
  */
 export class SentrySpan implements Span {
-  /**
-   * @inheritDoc
-   * @deprecated Use top level `Sentry.getRootSpan()` instead
-   */
-  public transaction?: Transaction;
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string | undefined;
@@ -85,43 +77,6 @@ export class SentrySpan implements Span {
     }
   }
 
-  // This rule conflicts with another eslint rule :(
-  /* eslint-disable @typescript-eslint/member-ordering */
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  public get startTimestamp(): number {
-    return this._startTime;
-  }
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   * @deprecated In v8, you will not be able to update the span start time after creation.
-   */
-  public set startTimestamp(startTime: number) {
-    this._startTime = startTime;
-  }
-
-  /**
-   * Timestamp in seconds when the span ended.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  public get endTimestamp(): number | undefined {
-    return this._endTime;
-  }
-
-  /**
-   * Timestamp in seconds when the span ended.
-   * @deprecated Set the end time via `span.end()` instead.
-   */
-  public set endTimestamp(endTime: number | undefined) {
-    this._endTime = endTime;
-  }
-
-  /* eslint-enable @typescript-eslint/member-ordering */
-
   /** @inheritdoc */
   public spanContext(): SpanContextData {
     const { _spanId: spanId, _traceId: traceId, _sampled: sampled } = this;
@@ -157,10 +112,6 @@ export class SentrySpan implements Span {
     addChildSpanToSpan(this, childSpan);
 
     const rootSpan = getRootSpan(this);
-    // TODO: still set span.transaction here until we have a more permanent solution
-    // Probably similarly to the weakmap we hold in node
-    // eslint-disable-next-line deprecation/deprecation
-    childSpan.transaction = rootSpan as Transaction;
 
     if (DEBUG_BUILD && rootSpan) {
       const opStr = (spanContext && spanContext.op) || '< unknown op >';
@@ -252,35 +203,6 @@ export class SentrySpan implements Span {
   }
 
   /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToJSON()` or access the fields directly instead.
-   */
-  public toContext(): SentrySpanArguments {
-    return dropUndefinedKeys({
-      data: this._attributes,
-      name: this._name,
-      endTimestamp: this._endTime,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      parentSpanId: this._parentSpanId,
-      sampled: this._sampled,
-      spanId: this._spanId,
-      startTimestamp: this._startTime,
-      status: this._status,
-      traceId: this._traceId,
-    });
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToTraceContext()` util function instead.
-   */
-  public getTraceContext(): TraceContext {
-    return spanToTraceContext(this);
-  }
-
-  /**
    * Get JSON representation of this span.
    *
    * @hidden
@@ -307,14 +229,6 @@ export class SentrySpan implements Span {
   /** @inheritdoc */
   public isRecording(): boolean {
     return !this._endTime && !!this._sampled;
-  }
-
-  /**
-   * Convert the object to JSON.
-   * @deprecated Use `spanToJSON(span)` instead.
-   */
-  public toJSON(): SpanJSON {
-    return this.getSpanJSON();
   }
 
   /** Emit `spanEnd` when the span is ended. */
