@@ -167,7 +167,7 @@ export class Span implements SpanInterface {
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
-    if (spanContext.exclusiveTime) {
+    if (spanContext.exclusiveTime !== undefined) {
       this._exclusiveTime = spanContext.exclusiveTime;
     }
     this._measurements = spanContext.measurements ? { ...spanContext.measurements } : {};
