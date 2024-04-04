@@ -2,6 +2,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
 } from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
@@ -158,14 +159,18 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      const activeRootSpan = getActiveSpan();
+      if (matches && matches.length) {
+        const routeName = matches[matches.length - 1].id;
+        getCurrentScope().setTransactionName(routeName);
 
-      if (activeRootSpan && matches && matches.length) {
-        const transaction = getRootSpan(activeRootSpan);
+        const activeRootSpan = getActiveSpan();
+        if (activeRootSpan) {
+          const transaction = getRootSpan(activeRootSpan);
 
-        if (transaction) {
-          transaction.updateName(matches[matches.length - 1].id);
-          transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          if (transaction) {
+            transaction.updateName(routeName);
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          }
         }
       }
 
