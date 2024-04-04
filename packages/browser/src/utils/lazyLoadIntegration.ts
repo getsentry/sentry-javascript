@@ -20,7 +20,7 @@ const LazyLoadableIntegrations = {
   sessionTimingIntegration: 'sessiontiming',
 } as const;
 
-const WindowWithMaybeIntegration = WINDOW as typeof WINDOW & {
+const WindowWithMaybeIntegration = WINDOW as {
   Sentry?: Partial<Record<keyof typeof LazyLoadableIntegrations, IntegrationFn>>;
 };
 
