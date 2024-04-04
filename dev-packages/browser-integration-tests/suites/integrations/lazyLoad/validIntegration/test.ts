@@ -5,8 +5,6 @@ import { sentryTest } from '../../../../utils/fixtures';
 sentryTest('it allows to lazy load an integration', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  page.on('console', msg => console.log(msg.text()));
-
   await page.goto(url);
 
   const hasIntegration = await page.evaluate('!!window.Sentry.getClient()?.getIntegrationByName("HttpClient")');
