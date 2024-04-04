@@ -94,6 +94,7 @@ export {
   setupHapiErrorHandler,
   spotlightIntegration,
   setupFastifyErrorHandler,
+  trpcMiddleware,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
