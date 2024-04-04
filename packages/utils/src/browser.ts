@@ -91,7 +91,8 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
     if (elem instanceof HTMLElement && elem.dataset) {
       if (elem.dataset['sentryComponent']) {
         return elem.dataset['sentryComponent'];
-      } else if (elem.dataset['sentryElement']) {
+      }
+      if (elem.dataset['sentryElement']) {
         return elem.dataset['sentryElement'];
       }
     }
@@ -191,7 +192,8 @@ export function getComponentName(elem: unknown): string | null {
     if (currentElem instanceof HTMLElement) {
       if (currentElem.dataset['sentryComponent']) {
         return currentElem.dataset['sentryComponent'];
-      } else if (currentElem.dataset['sentryElement']) {
+      }
+      if (currentElem.dataset['sentryElement']) {
         return currentElem.dataset['sentryElement'];
       }
     }
