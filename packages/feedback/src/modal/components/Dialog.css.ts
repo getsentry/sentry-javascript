@@ -135,7 +135,7 @@ export function createDialogStyles(): HTMLStyleElement {
 
 .form__input::placeholder {
   color: var(--input-foreground);
-  opacity: 0.6;
+  opacity: 0.65;
 }
 
 .form__input:focus-visible {
