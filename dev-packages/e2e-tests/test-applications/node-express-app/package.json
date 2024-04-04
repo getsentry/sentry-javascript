@@ -23,7 +23,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "file:../../../event-proxy-server",
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@playwright/test": "^1.27.1",
     "ts-node": "10.9.1"
   },

@@ -26,7 +26,7 @@
     "wait-port": "1.0.4"
   },
   "devDependencies": {
-    "@sentry-internal/event-proxy-server": "file:../../../event-proxy-server",
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@sentry-internal/feedback": "latest || *",
     "@sentry-internal/replay-canvas": "latest || *",
     "@sentry-internal/tracing": "latest || *",

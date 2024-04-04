@@ -2,7 +2,6 @@
   "private": true,
   "version": "8.0.0-alpha.7",
   "name": "@sentry-internal/event-proxy-server",
-
   "author": "Sentry",
   "license": "MIT",
   "main": "build/cjs/index.js",
