@@ -5,7 +5,6 @@ const SUBMIT_COLOR = 'rgba(108, 95, 199, 1)';
 export const LIGHT_THEME = {
   fontFamily: "system-ui, 'Helvetica Neue', Arial, sans-serif",
   fontSize: '14px',
-  fontSizeLabel: '14px',
 
   background: LIGHT_BACKGROUND,
   backgroundHover: '#f6f6f7',

@@ -50,7 +50,6 @@ export function createMainStyles(colorScheme: 'system' | 'dark' | 'light', theme
   --z-index: 100000;
   --font-family: ${themes.themeLight.fontFamily};
   --font-size: ${themes.themeLight.fontSize};
-  --font-size-label: ${themes.themeLight.fontSizeLabel};
 
   font-family: var(--font-family);
   font-size: var(--font-size);
