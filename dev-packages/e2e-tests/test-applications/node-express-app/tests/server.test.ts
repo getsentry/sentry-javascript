@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import axios, { AxiosError, AxiosResponse } from 'axios';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
 import type { AppRouter } from '../src/app';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;

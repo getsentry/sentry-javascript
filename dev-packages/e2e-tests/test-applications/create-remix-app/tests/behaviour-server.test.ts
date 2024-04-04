@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { uuid4 } from '@sentry/utils';
 
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
   // We use this to identify the transactions

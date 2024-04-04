@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 /**
  * Helper function that waits for the initial pageload to complete.

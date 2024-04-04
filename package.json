@@ -81,6 +81,7 @@
     "dev-packages/e2e-tests",
     "dev-packages/node-integration-tests",
     "dev-packages/overhead-metrics",
+    "dev-packages/event-proxy-server",
     "dev-packages/size-limit-gh-action",
     "dev-packages/rollup-utils"
   ],

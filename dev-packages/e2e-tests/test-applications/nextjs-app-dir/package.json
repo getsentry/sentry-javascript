@@ -29,6 +29,7 @@
     "@playwright/test": "^1.27.1"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@sentry-internal/feedback": "latest || *",
     "@sentry-internal/replay-canvas": "latest || *",
     "@sentry-internal/tracing": "latest || *",

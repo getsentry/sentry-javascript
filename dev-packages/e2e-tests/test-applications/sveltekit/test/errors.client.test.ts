@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '../event-proxy-server';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 import { waitForInitialPageload } from '../utils';
 
 test.describe('client-side errors', () => {

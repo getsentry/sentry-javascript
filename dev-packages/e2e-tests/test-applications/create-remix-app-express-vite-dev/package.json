@@ -25,6 +25,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@playwright/test": "^1.36.2",
     "@remix-run/dev": "^2.7.2",
     "@sentry/types": "latest || *",
