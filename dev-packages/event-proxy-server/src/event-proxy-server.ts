@@ -50,13 +50,13 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
           ? zlib.gunzipSync(Buffer.concat(proxyRequestChunks)).toString()
           : Buffer.concat(proxyRequestChunks).toString();
 
-      let envelopeHeader = JSON.parse(proxyRequestBody.split('\n')[0]);
+      const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0]);
 
       if (!envelopeHeader.dsn) {
         throw new Error('[event-proxy-server] No dsn on envelope header. Please set tunnel option.');
       }
 
-      const { origin, pathname, host } = new URL(envelopeHeader.dsn);
+      const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
 
       const projectId = pathname.substring(1);
       const sentryIngestUrl = `${origin}/api/${projectId}/envelope/`;
@@ -131,6 +131,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   const eventCallbackServerStartupPromise = new Promise<void>(resolve => {
     eventCallbackServer.listen(0, () => {
       const port = String((eventCallbackServer.address() as AddressInfo).port);
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
       void registerCallbackServerPort(options.proxyServerName, port).then(resolve);
     });
   });
@@ -140,6 +141,7 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
   return;
 }
 
+/** Wait for a request to be sent. */
 export async function waitForRequest(
   proxyServerName: string,
   callback: (eventData: SentryRequestCallbackData) => Promise<boolean> | boolean,
@@ -147,7 +149,7 @@ export async function waitForRequest(
   const eventCallbackServerPort = await retrieveCallbackServerPort(proxyServerName);
 
   return new Promise<SentryRequestCallbackData>((resolve, reject) => {
-    const request = http.request(`http://127.0.0.1:${eventCallbackServerPort}/`, {}, response => {
+    const request = http.request(`http://localhost:${eventCallbackServerPort}/`, {}, response => {
       let eventContents = '';
 
       response.on('error', err => {
@@ -190,6 +192,7 @@ export async function waitForRequest(
   });
 }
 
+/** Wait for a specific envelope item to be sent. */
 export function waitForEnvelopeItem(
   proxyServerName: string,
   callback: (envelopeItem: EnvelopeItem) => Promise<boolean> | boolean,
@@ -208,6 +211,7 @@ export function waitForEnvelopeItem(
   });
 }
 
+/** Wait for an error to be sent. */
 export function waitForError(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,
@@ -224,6 +228,7 @@ export function waitForError(
   });
 }
 
+/** Wait for a transaction to be sent. */
 export function waitForTransaction(
   proxyServerName: string,
   callback: (transactionEvent: Event) => Promise<boolean> | boolean,

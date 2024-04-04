@@ -36,11 +36,11 @@
         "default": "./build/register.mjs"
       }
     },
-"./hook": {
-      "import": {
-        "default": "./build/hook.mjs"
-      }
-}
+    "./hook": {
+          "import": {
+            "default": "./build/hook.mjs"
+          }
+    }
   },
   "typesVersions": {
     "<4.9": {

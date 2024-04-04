@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '../event-proxy-server';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('vue-3', async errorEvent => {
