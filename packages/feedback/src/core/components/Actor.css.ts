@@ -25,6 +25,7 @@ export function createActorStyles(): HTMLStyleElement {
   cursor: pointer;
   font-weight: 600;
   font-family: inherit;
+  font-size: var(--font-size);
   padding: 12px 16px;
   text-decoration: none;
   z-index: 9000;

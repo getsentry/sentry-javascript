@@ -156,6 +156,7 @@ export function createDialogStyles(): HTMLStyleElement {
   font-weight: 600;
   padding: 6px 16px;
   font-family: inherit;
+  font-size: var(--font-size);
 }
 .btn[disabled] {
   opacity: 0.6;
