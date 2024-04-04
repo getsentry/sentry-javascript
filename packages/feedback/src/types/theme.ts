@@ -8,6 +8,10 @@ export interface FeedbackTheme {
    */
   fontSize: string;
   /**
+   * Font size for widget labels
+   */
+  fontSizeLabel: string;
+  /**
    * Background color for actor and dialog
    */
   background: string;
