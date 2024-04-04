@@ -10,8 +10,9 @@ import type {
   SpanTimeInput,
   TimedEvent,
 } from '@sentry/types';
-import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import { getClient } from '../currentScopes';
+import { DEBUG_BUILD } from '../debug-build';
 
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
