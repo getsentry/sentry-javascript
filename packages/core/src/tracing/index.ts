@@ -16,6 +16,6 @@ export {
   withActiveSpan,
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-export { setMeasurement } from './measurement';
+export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
 export { logSpanEnd, logSpanStart } from './logSpans';

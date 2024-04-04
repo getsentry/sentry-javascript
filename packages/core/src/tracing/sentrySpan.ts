@@ -8,9 +8,11 @@ import type {
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
+  TimedEvent,
 } from '@sentry/types';
-import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import { getClient } from '../currentScopes';
+import { DEBUG_BUILD } from '../debug-build';
 
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
@@ -33,6 +35,8 @@ export class SentrySpan implements Span {
   protected _endTime?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
+  /** The timed events added to this span. */
+  protected _events: TimedEvent[];
 
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
@@ -65,6 +69,8 @@ export class SentrySpan implements Span {
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
+
+    this._events = [];
   }
 
   /** @inheritdoc */
@@ -162,6 +168,30 @@ export class SentrySpan implements Span {
     return !this._endTime && !!this._sampled;
   }
 
+  /**
+   * @inheritdoc
+   */
+  public addEvent(
+    name: string,
+    attributesOrStartTime?: SpanAttributes | SpanTimeInput,
+    startTime?: SpanTimeInput,
+  ): this {
+    DEBUG_BUILD && logger.log('[Tracing] Adding an event to span:', name);
+
+    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
+    const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
+
+    const event: TimedEvent = {
+      name,
+      time: spanTimeInputToSeconds(time),
+      attributes,
+    };
+
+    this._events.push(event);
+
+    return this;
+  }
+
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
@@ -169,4 +199,8 @@ export class SentrySpan implements Span {
       client.emit('spanEnd', this);
     }
   }
+}
+
+function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {
+  return (value && typeof value === 'number') || value instanceof Date || Array.isArray(value);
 }

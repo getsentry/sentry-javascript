@@ -1,8 +1,6 @@
 import type {
   Contexts,
   Hub,
-  MeasurementUnit,
-  Measurements,
   SpanJSON,
   SpanTimeInput,
   Transaction as TransactionInterface,
@@ -18,6 +16,7 @@ import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { getSpanDescendants, spanTimeInputToSeconds, spanToJSON, spanToTraceContext } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { timedEventsToMeasurements } from './measurement';
 import { SentrySpan } from './sentrySpan';
 import { getCapturedScopesOnSpan } from './utils';
 
@@ -29,8 +28,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
   public _hub: Hub;
 
   protected _name: string;
-
-  private _measurements: Measurements;
 
   private _contexts: Contexts;
 
@@ -46,7 +43,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
    */
   public constructor(transactionContext: TransactionArguments, hub?: Hub) {
     super(transactionContext);
-    this._measurements = {};
     this._contexts = {};
 
     // eslint-disable-next-line deprecation/deprecation
@@ -67,15 +63,6 @@ export class Transaction extends SentrySpan implements TransactionInterface {
     this._name = name;
     this.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'custom');
     return this;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use top-level `setMeasurement()` instead.
-   */
-  public setMeasurement(name: string, value: number, unit: MeasurementUnit = ''): void {
-    this._measurements[name] = { value, unit };
   }
 
   /**
@@ -169,15 +156,13 @@ export class Transaction extends SentrySpan implements TransactionInterface {
       }),
     };
 
-    const hasMeasurements = Object.keys(this._measurements).length > 0;
+    const measurements = timedEventsToMeasurements(this._events);
+    const hasMeasurements = Object.keys(measurements).length;
 
     if (hasMeasurements) {
       DEBUG_BUILD &&
-        logger.log(
-          '[Measurements] Adding measurements to transaction',
-          JSON.stringify(this._measurements, undefined, 2),
-        );
-      transaction.measurements = this._measurements;
+        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+      transaction.measurements = measurements;
     }
 
     return transaction;
