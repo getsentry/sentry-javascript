@@ -17,7 +17,7 @@ export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
-export { nestIntegration } from './integrations/tracing/nest';
+export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
@@ -34,11 +34,7 @@ export { cron } from './cron';
 
 export type { NodeOptions } from './types';
 
-export {
-  addRequestDataToEvent,
-  DEFAULT_USER_INCLUDES,
-  extractRequestData,
-} from '@sentry/utils';
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
 // These are custom variants that need to be used instead of the core one
 // As they have slightly different implementations
