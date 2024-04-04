@@ -217,7 +217,6 @@ export class SentrySpan implements Span {
 
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
-    console.log('SPAN END!', this === getRootSpan(this));
     const client = getClient();
     if (client) {
       client.emit('spanEnd', this);
