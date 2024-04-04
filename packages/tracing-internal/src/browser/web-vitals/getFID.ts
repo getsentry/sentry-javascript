@@ -19,10 +19,15 @@ import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import type { FIDMetric, PerformanceEventTiming, ReportCallback } from './types';
+import { runOnce } from './lib/runOnce';
+import { whenActivated } from './lib/whenActivated';
+import type { FIDMetric, FIDReportCallback, MetricRatingThresholds, ReportOpts } from './types';
+
+/** Thresholds for FID. See https://web.dev/articles/fid#what_is_a_good_fid_score */
+export const FIDThresholds: MetricRatingThresholds = [100, 300];
 
 /**
- * Calculates the [FID](https://web.dev/fid/) value for the current page and
+ * Calculates the [FID](https://web.dev/articles/fid) value for the current page and
  * calls the `callback` function once the value is ready, along with the
  * relevant `first-input` performance entry used to determine the value. The
  * reported value is a `DOMHighResTimeStamp`.
@@ -30,32 +35,36 @@ import type { FIDMetric, PerformanceEventTiming, ReportCallback } from './types'
  * _**Important:** since FID is only reported after the user interacts with the
  * page, it's possible that it will not be reported for some page loads._
  */
-export const onFID = (onReport: ReportCallback): void => {
-  const visibilityWatcher = getVisibilityWatcher();
-  const metric = initMetric('FID');
-  // eslint-disable-next-line prefer-const
-  let report: ReturnType<typeof bindReporter>;
+export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}): void => {
+  whenActivated(() => {
+    const visibilityWatcher = getVisibilityWatcher();
+    const metric = initMetric('FID');
+    // eslint-disable-next-line prefer-const
+    let report: ReturnType<typeof bindReporter>;
 
-  const handleEntry = (entry: PerformanceEventTiming): void => {
-    // Only report if the page wasn't hidden prior to the first input.
-    if (entry.startTime < visibilityWatcher.firstHiddenTime) {
-      metric.value = entry.processingStart - entry.startTime;
-      metric.entries.push(entry);
-      report(true);
+    const handleEntry = (entry: PerformanceEventTiming) => {
+      // Only report if the page wasn't hidden prior to the first input.
+      if (entry.startTime < visibilityWatcher.firstHiddenTime) {
+        metric.value = entry.processingStart - entry.startTime;
+        metric.entries.push(entry);
+        report(true);
+      }
+    };
+
+    const handleEntries = (entries: FIDMetric['entries']) => {
+      (entries as PerformanceEventTiming[]).forEach(handleEntry);
+    };
+
+    const po = observe('first-input', handleEntries);
+    report = bindReporter(onReport, metric, FIDThresholds, opts.reportAllChanges);
+
+    if (po) {
+      onHidden(
+        runOnce(() => {
+          handleEntries(po.takeRecords() as FIDMetric['entries']);
+          po.disconnect();
+        }),
+      );
     }
-  };
-
-  const handleEntries = (entries: FIDMetric['entries']): void => {
-    (entries as PerformanceEventTiming[]).forEach(handleEntry);
-  };
-
-  const po = observe('first-input', handleEntries);
-  report = bindReporter(onReport, metric);
-
-  if (po) {
-    onHidden(() => {
-      handleEntries(po.takeRecords() as FIDMetric['entries']);
-      po.disconnect();
-    }, true);
-  }
+  });
 };

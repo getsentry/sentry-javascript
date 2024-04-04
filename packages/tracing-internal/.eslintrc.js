@@ -7,5 +7,11 @@ module.exports = {
         '@sentry-internal/sdk/no-optional-chaining': 'off',
       },
     },
+    {
+      files: ['src/browser/web-vitals/**'],
+      rules: {
+        '@typescript-eslint/explicit-function-return-type': 'off',
+      },
+    },
   ],
 };

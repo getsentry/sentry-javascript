@@ -18,14 +18,19 @@ import { bindReporter } from './lib/bindReporter';
 import { initMetric } from './lib/initMetric';
 import { observe } from './lib/observe';
 import { onHidden } from './lib/onHidden';
-import type { CLSMetric, ReportCallback, StopListening } from './types';
+import { runOnce } from './lib/runOnce';
+import { onFCP } from './onFCP';
+import type { CLSMetric, CLSReportCallback, MetricRatingThresholds, ReportOpts } from './types';
+
+/** Thresholds for CLS. See https://web.dev/articles/cls#what_is_a_good_cls_score */
+export const CLSThresholds: MetricRatingThresholds = [0.1, 0.25];
 
 /**
- * Calculates the [CLS](https://web.dev/cls/) value for the current page and
+ * Calculates the [CLS](https://web.dev/articles/cls) value for the current page and
  * calls the `callback` function once the value is ready to be reported, along
  * with all `layout-shift` performance entries that were used in the metric
  * value calculation. The reported value is a `double` (corresponding to a
- * [layout shift score](https://web.dev/cls/#layout-shift-score)).
+ * [layout shift score](https://web.dev/articles/cls#layout_shift_score)).
  *
  * If the `reportAllChanges` configuration option is set to `true`, the
  * `callback` function will be called as soon as the value is initially
@@ -41,63 +46,65 @@ import type { CLSMetric, ReportCallback, StopListening } from './types';
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
  */
-export const onCLS = (onReport: ReportCallback): StopListening | undefined => {
-  const metric = initMetric('CLS', 0);
-  let report: ReturnType<typeof bindReporter>;
+export const onCLS = (onReport: CLSReportCallback, opts: ReportOpts = {}): void => {
+  // Start monitoring FCP so we can only report CLS if FCP is also reported.
+  // Note: this is done to match the current behavior of CrUX.
+  onFCP(
+    runOnce(() => {
+      const metric = initMetric('CLS', 0);
+      let report: ReturnType<typeof bindReporter>;
 
-  let sessionValue = 0;
-  let sessionEntries: PerformanceEntry[] = [];
+      let sessionValue = 0;
+      let sessionEntries: LayoutShift[] = [];
 
-  // const handleEntries = (entries: Metric['entries']) => {
-  const handleEntries = (entries: LayoutShift[]): void => {
-    entries.forEach(entry => {
-      // Only count layout shifts without recent user input.
-      if (!entry.hadRecentInput) {
-        const firstSessionEntry = sessionEntries[0];
-        const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
+      const handleEntries = (entries: LayoutShift[]): void => {
+        entries.forEach(entry => {
+          // Only count layout shifts without recent user input.
+          if (!entry.hadRecentInput) {
+            const firstSessionEntry = sessionEntries[0];
+            const lastSessionEntry = sessionEntries[sessionEntries.length - 1];
 
-        // If the entry occurred less than 1 second after the previous entry and
-        // less than 5 seconds after the first entry in the session, include the
-        // entry in the current session. Otherwise, start a new session.
-        if (
-          sessionValue &&
-          sessionEntries.length !== 0 &&
-          entry.startTime - lastSessionEntry.startTime < 1000 &&
-          entry.startTime - firstSessionEntry.startTime < 5000
-        ) {
-          sessionValue += entry.value;
-          sessionEntries.push(entry);
-        } else {
-          sessionValue = entry.value;
-          sessionEntries = [entry];
-        }
+            // If the entry occurred less than 1 second after the previous entry
+            // and less than 5 seconds after the first entry in the session,
+            // include the entry in the current session. Otherwise, start a new
+            // session.
+            if (
+              sessionValue &&
+              entry.startTime - lastSessionEntry.startTime < 1000 &&
+              entry.startTime - firstSessionEntry.startTime < 5000
+            ) {
+              sessionValue += entry.value;
+              sessionEntries.push(entry);
+            } else {
+              sessionValue = entry.value;
+              sessionEntries = [entry];
+            }
+          }
+        });
 
         // If the current session value is larger than the current CLS value,
         // update CLS and the entries contributing to it.
         if (sessionValue > metric.value) {
           metric.value = sessionValue;
           metric.entries = sessionEntries;
-          if (report) {
-            report();
-          }
+          report();
         }
+      };
+
+      const po = observe('layout-shift', handleEntries);
+      if (po) {
+        report = bindReporter(onReport, metric, CLSThresholds, opts.reportAllChanges);
+
+        onHidden(() => {
+          handleEntries(po.takeRecords() as CLSMetric['entries']);
+          report(true);
+        });
+
+        // Queue a task to report (if nothing else triggers a report first).
+        // This allows CLS to be reported as soon as FCP fires when
+        // `reportAllChanges` is true.
+        setTimeout(report, 0);
       }
-    });
-  };
-
-  const po = observe('layout-shift', handleEntries);
-  if (po) {
-    report = bindReporter(onReport, metric);
-
-    const stopListening = (): void => {
-      handleEntries(po.takeRecords() as CLSMetric['entries']);
-      report(true);
-    };
-
-    onHidden(stopListening);
-
-    return stopListening;
-  }
-
-  return;
+    }),
+  );
 };

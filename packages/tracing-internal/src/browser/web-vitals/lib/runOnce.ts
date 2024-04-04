@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
-import type { NavigationTimingPolyfillEntry } from '../types';
+export interface RunOnceCallback {
+  (arg: unknown): void;
+}
 
-export const getNavigationEntry = (): PerformanceNavigationTiming | NavigationTimingPolyfillEntry | undefined => {
-  return WINDOW.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+export const runOnce = (cb: RunOnceCallback) => {
+  let called = false;
+  return (arg: unknown) => {
+    if (!called) {
+      cb(arg);
+      called = true;
+    }
+  };
 };

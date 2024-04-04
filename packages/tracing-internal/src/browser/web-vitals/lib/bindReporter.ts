@@ -14,13 +14,24 @@
  * limitations under the License.
  */
 
-import type { Metric, ReportCallback } from '../types';
+import type { MetricRatingThresholds, MetricType } from '../types';
 
-export const bindReporter = (
-  callback: ReportCallback,
-  metric: Metric,
+const getRating = (value: number, thresholds: MetricRatingThresholds): MetricType['rating'] => {
+  if (value > thresholds[1]) {
+    return 'poor';
+  }
+  if (value > thresholds[0]) {
+    return 'needs-improvement';
+  }
+  return 'good';
+};
+
+export const bindReporter = <MetricName extends MetricType['name']>(
+  callback: (metric: Extract<MetricType, { name: MetricName }>) => void,
+  metric: Extract<MetricType, { name: MetricName }>,
+  thresholds: MetricRatingThresholds,
   reportAllChanges?: boolean,
-): ((forceReport?: boolean) => void) => {
+) => {
   let prevValue: number;
   let delta: number;
   return (forceReport?: boolean) => {
@@ -35,6 +46,7 @@ export const bindReporter = (
         if (delta || prevValue === undefined) {
           prevValue = metric.value;
           metric.delta = delta;
+          metric.rating = getRating(metric.value, thresholds);
           callback(metric);
         }
       }

@@ -19,6 +19,6 @@
  * number, the current timestamp with a 13-digit number integer.
  * @return {string}
  */
-export const generateUniqueID = (): string => {
+export const generateUniqueID = () => {
   return `v3-${Date.now()}-${Math.floor(Math.random() * (9e12 - 1)) + 1e12}`;
 };

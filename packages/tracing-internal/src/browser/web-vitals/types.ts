@@ -20,8 +20,11 @@ export * from './types/base';
 export * from './types/polyfills';
 
 export * from './types/cls';
+export * from './types/fcp';
 export * from './types/fid';
+export * from './types/inp';
 export * from './types/lcp';
+export * from './types/ttfb';
 
 // --------------------------------------------------------------------------
 // Web Vitals package globals
@@ -36,19 +39,7 @@ export interface WebVitalsGlobal {
 declare global {
   interface Window {
     webVitals: WebVitalsGlobal;
-
-    // Build flags:
-    __WEB_VITALS_POLYFILL__: boolean;
   }
-}
-
-export type PerformancePaintTiming = PerformanceEntry;
-export interface PerformanceEventTiming extends PerformanceEntry {
-  processingStart: DOMHighResTimeStamp;
-  processingEnd: DOMHighResTimeStamp;
-  duration: DOMHighResTimeStamp;
-  cancelable?: boolean;
-  target?: Element;
 }
 
 // --------------------------------------------------------------------------
@@ -61,60 +52,13 @@ interface PerformanceEntryMap {
   paint: PerformancePaintTiming;
 }
 
-export interface NavigatorNetworkInformation {
-  readonly connection?: NetworkInformation;
-}
-
-// http://wicg.github.io/netinfo/#connection-types
-type ConnectionType = 'bluetooth' | 'cellular' | 'ethernet' | 'mixed' | 'none' | 'other' | 'unknown' | 'wifi' | 'wimax';
-
-// http://wicg.github.io/netinfo/#effectiveconnectiontype-enum
-type EffectiveConnectionType = '2g' | '3g' | '4g' | 'slow-2g';
-
-// http://wicg.github.io/netinfo/#dom-megabit
-type Megabit = number;
-// http://wicg.github.io/netinfo/#dom-millisecond
-type Millisecond = number;
-
-// http://wicg.github.io/netinfo/#networkinformation-interface
-interface NetworkInformation extends EventTarget {
-  // http://wicg.github.io/netinfo/#type-attribute
-  readonly type?: ConnectionType;
-  // http://wicg.github.io/netinfo/#effectivetype-attribute
-  readonly effectiveType?: EffectiveConnectionType;
-  // http://wicg.github.io/netinfo/#downlinkmax-attribute
-  readonly downlinkMax?: Megabit;
-  // http://wicg.github.io/netinfo/#downlink-attribute
-  readonly downlink?: Megabit;
-  // http://wicg.github.io/netinfo/#rtt-attribute
-  readonly rtt?: Millisecond;
-  // http://wicg.github.io/netinfo/#savedata-attribute
-  readonly saveData?: boolean;
-  // http://wicg.github.io/netinfo/#handling-changes-to-the-underlying-connection
-  onchange?: EventListener;
-}
-
-// https://w3c.github.io/device-memory/#sec-device-memory-js-api
-export interface NavigatorDeviceMemory {
-  readonly deviceMemory?: number;
-}
-
-export type NavigationTimingPolyfillEntry = Omit<
-  PerformanceNavigationTiming,
-  | 'initiatorType'
-  | 'nextHopProtocol'
-  | 'redirectCount'
-  | 'transferSize'
-  | 'encodedBodySize'
-  | 'decodedBodySize'
-  | 'toJSON'
->;
-
 // Update built-in types to be more accurate.
 declare global {
-  // https://wicg.github.io/nav-speculation/prerendering.html#document-prerendering
   interface Document {
+    // https://wicg.github.io/nav-speculation/prerendering.html#document-prerendering
     prerendering?: boolean;
+    // https://wicg.github.io/page-lifecycle/#sec-api
+    wasDiscarded?: boolean;
   }
 
   interface Performance {
@@ -135,7 +79,6 @@ declare global {
   interface PerformanceEventTiming extends PerformanceEntry {
     duration: DOMHighResTimeStamp;
     interactionId?: number;
-    readonly target: Node | null;
   }
 
   // https://wicg.github.io/layout-instability/#sec-layout-shift-attribution

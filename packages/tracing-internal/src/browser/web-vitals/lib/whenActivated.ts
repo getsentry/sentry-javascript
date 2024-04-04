@@ -15,8 +15,11 @@
  */
 
 import { WINDOW } from '../../types';
-import type { NavigationTimingPolyfillEntry } from '../types';
 
-export const getNavigationEntry = (): PerformanceNavigationTiming | NavigationTimingPolyfillEntry | undefined => {
-  return WINDOW.performance && performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+export const whenActivated = (callback: () => void) => {
+  if (WINDOW.document.prerendering) {
+    addEventListener('prerenderingchange', () => callback(), true);
+  } else {
+    callback();
+  }
 };
