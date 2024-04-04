@@ -30,8 +30,8 @@ export class SessionFlusher implements SessionFlusherLike {
     this._pendingAggregates = {};
     this._isEnabled = true;
 
-    // Call to setInterval, so that flush is called every 60 seconds
-    this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000);
+    // Call to setInterval, so that flush is called every 60 seconds.
+    this._intervalId = setInterval(() => this.flush(), this.flushTimeout * 1000).unref();
     this._sessionAttrs = attrs;
   }
 
