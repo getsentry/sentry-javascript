@@ -37,7 +37,10 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
-    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL).unref();
+    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
+    if (this._interval.unref) {
+      this._interval.unref();
+    }
     this._flushShift = Math.floor((Math.random() * DEFAULT_FLUSH_INTERVAL) / 1000);
     this._forceFlush = false;
   }
