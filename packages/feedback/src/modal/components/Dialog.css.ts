@@ -153,10 +153,10 @@ export function createDialogStyles(): HTMLStyleElement {
   border: var(--cancel-border);
   border-radius: var(--form-content-border-radius);
   cursor: pointer;
-  font-weight: 600;
-  padding: 6px 16px;
   font-family: inherit;
   font-size: var(--font-size);
+  font-weight: 600;
+  padding: 6px 16px;
 }
 .btn[disabled] {
   opacity: 0.6;
