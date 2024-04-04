@@ -88,7 +88,7 @@ sentryTest('captures component name attribute when available', async ({ forceFlu
   ]);
 });
 
-sentryTest('sets element name to component name attribute when no component name', async ({ forceFlushReplay, getLocalTestPath, page }) => {
+sentryTest('sets element name to component name attribute', async ({ forceFlushReplay, getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
