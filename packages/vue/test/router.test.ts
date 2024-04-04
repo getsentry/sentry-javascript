@@ -276,6 +276,35 @@ describe('instrumentVueRouter()', () => {
     expect(mockRootSpan.name).toEqual('customTxnName');
   });
 
+  it("updates the scope's `transactionName` when a route is resolved", () => {
+    const mockStartSpan = jest.fn().mockImplementation(_ => {
+      return {};
+    });
+
+    const scopeSetTransactionNameSpy = jest.fn();
+
+    // @ts-expect-error - only creating a partial scope but that's fine
+    jest.spyOn(SentryCore, 'getCurrentScope').mockImplementation(() => ({
+      setTransactionName: scopeSetTransactionNameSpy,
+    }));
+
+    instrumentVueRouter(
+      mockVueRouter,
+      { routeLabel: 'name', instrumentPageLoad: true, instrumentNavigation: true },
+      mockStartSpan,
+    );
+
+    const beforeEachCallback = mockVueRouter.beforeEach.mock.calls[0][0];
+
+    const from = testRoutes['initialPageloadRoute'];
+    const to = testRoutes['normalRoute1'];
+
+    beforeEachCallback(to, from, mockNext);
+
+    expect(scopeSetTransactionNameSpy).toHaveBeenCalledTimes(1);
+    expect(scopeSetTransactionNameSpy).toHaveBeenCalledWith('/books/:bookId/chapter/:chapterId');
+  });
+
   test.each([
     [false, 0],
     [true, 1],

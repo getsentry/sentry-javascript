@@ -3,6 +3,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
@@ -77,22 +78,24 @@ export function instrumentVueRouter(
     }
 
     // Determine a name for the routing transaction and where that name came from
-    let transactionName: string = to.path;
+    let spanName: string = to.path;
     let transactionSource: TransactionSource = 'url';
     if (to.name && options.routeLabel !== 'path') {
-      transactionName = to.name.toString();
+      spanName = to.name.toString();
       transactionSource = 'custom';
     } else if (to.matched[0] && to.matched[0].path) {
-      transactionName = to.matched[0].path;
+      spanName = to.matched[0].path;
       transactionSource = 'route';
     }
+
+    getCurrentScope().setTransactionName(spanName);
 
     if (options.instrumentPageLoad && isPageLoadNavigation) {
       const activeRootSpan = getActiveRootSpan();
       if (activeRootSpan) {
         const existingAttributes = spanToJSON(activeRootSpan).data || {};
         if (existingAttributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] !== 'custom') {
-          activeRootSpan.updateName(transactionName);
+          activeRootSpan.updateName(spanName);
           activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, transactionSource);
         }
         // Set router attributes on the existing pageload transaction
@@ -108,7 +111,7 @@ export function instrumentVueRouter(
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] = transactionSource;
       attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] = 'auto.navigation.vue';
       startNavigationSpanFn({
-        name: transactionName,
+        name: spanName,
         op: 'navigation',
         attributes,
       });
