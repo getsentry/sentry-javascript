@@ -9,15 +9,33 @@ import type {
   SpanStatus,
   SpanTimeInput,
   TimedEvent,
+  TransactionEvent,
+  TransactionSource,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
-import { getClient } from '../currentScopes';
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
-import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, getStatusMessage, spanTimeInputToSeconds } from '../utils/spanUtils';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
+import {
+  TRACE_FLAG_NONE,
+  TRACE_FLAG_SAMPLED,
+  getRootSpan,
+  getSpanDescendants,
+  getStatusMessage,
+  spanTimeInputToSeconds,
+  spanToJSON,
+  spanToTraceContext,
+} from '../utils/spanUtils';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
+import { timedEventsToMeasurements } from './measurement';
+import { getCapturedScopesOnSpan } from './utils';
 
 /**
  * Span contains all data about a span
@@ -71,6 +89,11 @@ export class SentrySpan implements Span {
     }
 
     this._events = [];
+
+    // If the span is already ended, ensure we finalize the span immediately
+    if (this._endTime) {
+      this._onSpanEnded();
+    }
   }
 
   /** @inheritdoc */
@@ -198,9 +221,95 @@ export class SentrySpan implements Span {
     if (client) {
       client.emit('spanEnd', this);
     }
+
+    // If this is a root span, send it when it is endedf
+    if (this === getRootSpan(this)) {
+      const transactionEvent = this._convertSpanToTransaction();
+      if (transactionEvent) {
+        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+        scope.captureEvent(transactionEvent);
+      }
+    }
+  }
+
+  /**
+   * Finish the transaction & prepare the event to send to Sentry.
+   */
+  private _convertSpanToTransaction(): TransactionEvent | undefined {
+    // We can only convert finished spans
+    if (!isFullFinishedSpan(spanToJSON(this))) {
+      return undefined;
+    }
+
+    if (!this._name) {
+      DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      this._name = '<unlabeled transaction>';
+    }
+
+    const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
+    const scope = capturedSpanScope || getCurrentScope();
+    const client = scope.getClient() || getClient();
+
+    if (this._sampled !== true) {
+      // At this point if `sampled !== true` we want to discard the transaction.
+      DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+
+      if (client) {
+        client.recordDroppedEvent('sample_rate', 'transaction');
+      }
+
+      return undefined;
+    }
+
+    // The transaction span itself should be filtered out
+    const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
+
+    const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
+
+    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+
+    const transaction: TransactionEvent = {
+      contexts: {
+        trace: spanToTraceContext(this),
+      },
+      spans,
+      start_timestamp: this._startTime,
+      timestamp: this._endTime,
+      transaction: this._name,
+      type: 'transaction',
+      sdkProcessingMetadata: {
+        capturedSpanScope,
+        capturedSpanIsolationScope,
+        ...dropUndefinedKeys({
+          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        }),
+      },
+      _metrics_summary: getMetricSummaryJsonForSpan(this),
+      ...(source && {
+        transaction_info: {
+          source,
+        },
+      }),
+    };
+
+    const measurements = timedEventsToMeasurements(this._events);
+    const hasMeasurements = Object.keys(measurements).length;
+
+    if (hasMeasurements) {
+      DEBUG_BUILD &&
+        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+      transaction.measurements = measurements;
+    }
+
+    return transaction;
   }
 }
 
 function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {
   return (value && typeof value === 'number') || value instanceof Date || Array.isArray(value);
+}
+
+// We want to filter out any incomplete SpanJSON objects
+function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
+  return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
 }

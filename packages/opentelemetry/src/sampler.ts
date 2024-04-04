@@ -4,7 +4,7 @@ import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
 import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled, sampleSpan } from '@sentry/core';
-import type { Client } from '@sentry/types';
+import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
@@ -30,7 +30,7 @@ export class SentrySampler implements Sampler {
     traceId: string,
     spanName: string,
     _spanKind: unknown,
-    spanAttributes: unknown,
+    spanAttributes: SpanAttributes,
     _links: unknown,
   ): SamplingResult {
     const options = this._client.getOptions();
