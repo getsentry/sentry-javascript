@@ -1,4 +1,5 @@
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
@@ -19,42 +20,38 @@ import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
 import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function addSpanAttributes<F extends (...args: any[]) => any>(
-  originalFunction: F,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  thisArg: any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args: any[],
-  rootSpan?: Span,
+/** As our own HTTP integration is disabled (src/server/index.ts) the rootSpan comes from Next.js.
+ * In case there is not root span, we start a new span. */
+function startOrUpdateSpan(
+  spanName: string,
+  handleResponseErrors: (rootSpan: Span) => Promise<Response>,
 ): Promise<Response> {
-  const response: Response = await handleCallbackErrors(
-    () => originalFunction.apply(thisArg, args),
-    error => {
-      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-      if (isRedirectNavigationError(error)) {
-        // Don't do anything
-      } else if (isNotFoundNavigationError(error) && rootSpan) {
-        rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-      } else {
-        captureException(error, {
-          mechanism: {
-            handled: false,
-          },
-        });
-      }
-    },
-  );
+  const activeSpan = getActiveSpan();
+  const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-  try {
-    if (rootSpan && response.status) {
-      setHttpStatus(rootSpan, response.status);
-    }
-  } catch {
-    // best effort - response may be undefined?
+  if (rootSpan) {
+    rootSpan.updateName(spanName);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.function.nextjs');
+
+    return handleResponseErrors(rootSpan);
+  } else {
+    return startSpan(
+      {
+        op: 'http.server',
+        name: spanName,
+        forceTransaction: true,
+        attributes: {
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+        },
+      },
+      (span: Span) => {
+        return handleResponseErrors(span);
+      },
+    );
   }
-
-  return response;
 }
 
 /**
@@ -79,27 +76,35 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         });
 
         try {
-          const activeSpan = getActiveSpan();
-          const rootSpan = activeSpan && getRootSpan(activeSpan);
-
-          if (rootSpan) {
-            return await addSpanAttributes<F>(originalFunction, thisArg, args, rootSpan);
-          } else {
-            /** As our own HTTP integration is disabled (src/server/index.ts) the rootSpan comes from Next.js.
-             * In case there is not root span, we start a new one. */
-            return await startSpan(
-              {
-                op: 'http.server',
-                name: `${method} ${parameterizedRoute}`,
-                forceTransaction: true,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                },
+          return await startOrUpdateSpan(`${method} ${parameterizedRoute}`, async (rootSpan: Span) => {
+            const response: Response = await handleCallbackErrors(
+              () => originalFunction.apply(thisArg, args),
+              error => {
+                // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                if (isRedirectNavigationError(error)) {
+                  // Don't do anything
+                } else if (isNotFoundNavigationError(error) && rootSpan) {
+                  rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                } else {
+                  captureException(error, {
+                    mechanism: {
+                      handled: false,
+                    },
+                  });
+                }
               },
-              async span => addSpanAttributes(originalFunction, thisArg, args, span),
             );
-          }
+
+            try {
+              if (rootSpan && response.status) {
+                setHttpStatus(rootSpan, response.status);
+              }
+            } catch {
+              // best effort - response may be undefined?
+            }
+
+            return response;
+          });
         } finally {
           if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
             // 1. Edge transport requires manual flushing

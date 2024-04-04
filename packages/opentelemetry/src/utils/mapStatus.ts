@@ -26,6 +26,10 @@ const canonicalGrpcErrorCodesMap: Record<string, SpanStatus['message']> = {
   '16': 'unauthenticated',
 } as const;
 
+const isStatusErrorMessageValid = (message: string): boolean => {
+  return Object.values(canonicalGrpcErrorCodesMap).includes(message as SpanStatus['message']);
+};
+
 /**
  * Get a Sentry span status from an otel span.
  */
@@ -39,7 +43,11 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
       return { code: SPAN_STATUS_OK };
       // If the span is already marked as erroneous we return that exact status
     } else if (status.code === SpanStatusCode.ERROR) {
-      return { code: SPAN_STATUS_ERROR, message: status.message };
+      if (typeof status.message === 'undefined' || isStatusErrorMessageValid(status.message)) {
+        return { code: SPAN_STATUS_ERROR, message: status.message };
+      } else {
+        return { code: SPAN_STATUS_ERROR, message: 'unknown_error' };
+      }
     }
   }
 
