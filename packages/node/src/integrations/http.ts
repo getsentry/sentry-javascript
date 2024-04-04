@@ -113,7 +113,6 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             isolationScope.setTransactionName(bestEffortTransactionName);
           },
           responseHook: (span, res) => {
-            // console.log('xxx http responseHook', { span, res });
             if (_breadcrumbs) {
               _addRequestBreadcrumb(span, res);
             }
