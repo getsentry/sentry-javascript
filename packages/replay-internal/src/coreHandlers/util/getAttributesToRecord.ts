@@ -13,7 +13,6 @@ const ATTRIBUTES_TO_RECORD = new Set([
   'disabled',
   'aria-disabled',
   'data-sentry-component',
-  'data-sentry-element',
 ]);
 
 /**
@@ -21,6 +20,9 @@ const ATTRIBUTES_TO_RECORD = new Set([
  */
 export function getAttributesToRecord(attributes: Record<string, unknown>): Record<string, unknown> {
   const obj: Record<string, unknown> = {};
+  if (!attributes['data-sentry-component'] && attributes['data-sentry-element']) {
+    attributes['data-sentry-component'] = attributes['data-sentry-element'];
+  }
   for (const key in attributes) {
     if (ATTRIBUTES_TO_RECORD.has(key)) {
       let normalizedKey = key;
