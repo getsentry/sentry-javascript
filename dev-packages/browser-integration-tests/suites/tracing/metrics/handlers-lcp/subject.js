@@ -1,4 +1,4 @@
-import { addLcpInstrumentationHandler } from '@sentry-internal/tracing';
+import { addLcpInstrumentationHandler } from '@sentry-internal/browser-utils';
 
 addLcpInstrumentationHandler(({ metric }) => {
   const entry = metric.entries[metric.entries.length - 1];
