@@ -65,10 +65,7 @@ const config: PlaywrightTestConfig = {
       port: eventProxyPort,
     },
     {
-      command:
-        testEnv === 'development'
-          ? `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${vuePort}`
-          : `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${vuePort}`,
+      command: `pnpm wait-port ${eventProxyPort} && pnpm preview --port ${vuePort}`,
       port: vuePort,
     },
   ],

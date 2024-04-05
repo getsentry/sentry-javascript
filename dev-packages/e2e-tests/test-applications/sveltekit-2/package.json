@@ -18,6 +18,7 @@
     "@sentry/sveltekit": "latest || *"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@playwright/test": "^1.36.2",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",

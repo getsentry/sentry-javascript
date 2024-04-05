@@ -59,4 +59,13 @@ export class SentryNonRecordingSpan implements Span {
   public isRecording(): boolean {
     return false;
   }
+
+  /** @inheritdoc */
+  public addEvent(
+    _name: string,
+    _attributesOrStartTime?: SpanAttributes | SpanTimeInput,
+    _startTime?: SpanTimeInput,
+  ): this {
+    return this;
+  }
 }

@@ -227,4 +227,9 @@ export interface Span {
    * This will return false if tracing is disabled, this span was not sampled or if the span is already finished.
    */
   isRecording(): boolean;
+
+  /**
+   * Adds an event to the Span.
+   */
+  addEvent(name: string, attributesOrStartTime?: SpanAttributes | SpanTimeInput, startTime?: SpanTimeInput): this;
 }

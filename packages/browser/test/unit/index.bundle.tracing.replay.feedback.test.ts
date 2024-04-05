@@ -1,4 +1,4 @@
-import { browserTracingIntegration } from '@sentry-internal/tracing';
+import { browserTracingIntegration } from '@sentry-internal/browser-utils';
 import { feedbackIntegration, replayIntegration } from '@sentry/browser';
 
 import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.replay.feedback';

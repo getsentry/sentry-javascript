@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Should create a transaction for middleware', async ({ request }) => {
   const middlewareTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {

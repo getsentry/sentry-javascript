@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '../event-proxy-server';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 import { waitForInitialPageload } from './utils';
 
 test.describe('client-side errors', () => {
@@ -27,6 +27,8 @@ test.describe('client-side errors', () => {
     );
 
     expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
+
+    expect(errorEvent.transaction).toEqual('/client-error');
   });
 
   test('captures universal load error', async ({ page }) => {
@@ -52,5 +54,6 @@ test.describe('client-side errors', () => {
     );
 
     expect(errorEvent.tags).toMatchObject({ runtime: 'browser' });
+    expect(errorEvent.transaction).toEqual('/universal-load-error');
   });
 });

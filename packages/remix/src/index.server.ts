@@ -88,12 +88,14 @@ export {
   mysqlIntegration,
   mysql2Integration,
   nestIntegration,
+  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
   setupFastifyErrorHandler,
+  trpcMiddleware,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
