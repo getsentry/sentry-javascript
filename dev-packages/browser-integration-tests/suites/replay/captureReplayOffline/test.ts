@@ -21,22 +21,9 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
   // This would be the obvious way to test offline support but it doesn't appear to work!
   // await context.setOffline(true);
 
-  let resolveAbort = () => {};
-  const hasAbortedPromise = new Promise<void>(resolve => {
-    resolveAbort = resolve;
-  });
-
   // Abort the first envelope request so the event gets queued
-  await page.route(/ingest\.sentry\.io/, route => {
-    resolveAbort();
-    return route.abort();
-  });
+  await page.route(/ingest\.sentry\.io/, route => route.abort(), { times: 1 });
   await page.goto(url);
-
-  await hasAbortedPromise;
-
-  await page.unroute(/ingest\.sentry\.io/);
-
   // Now send a second event which should be queued after the the first one and force flushing the queue
   await page.locator('button').click();
 
