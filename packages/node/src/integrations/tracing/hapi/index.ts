@@ -6,6 +6,7 @@ import {
   captureException,
   defineIntegration,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
@@ -58,6 +59,11 @@ export const hapiErrorPlugin = {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
+      const route = request.route;
+      if (route && route.path) {
+        getCurrentScope().setTransactionName(`${route.method?.toUpperCase() || 'GET'} ${route.path}`);
+      }
+
       const activeSpan = getActiveSpan();
       const rootSpan = activeSpan ? getRootSpan(activeSpan) : undefined;
 

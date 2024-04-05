@@ -37,6 +37,14 @@ const init = async () => {
 
   server.route({
     method: 'GET',
+    path: '/error/{id}',
+    handler: (_request, _h) => {
+      return new Error('Sentry Test Error');
+    },
+  });
+
+  server.route({
+    method: 'GET',
     path: '/boom-error',
     handler: (_request, _h) => {
       return new Boom.Boom('Sentry Test Error');
