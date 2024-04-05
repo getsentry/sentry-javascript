@@ -24,11 +24,11 @@ import type {
 } from './types';
 import { getWebpackPluginOptions } from './webpackPluginOptions';
 
-const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
-  client: './client',
-  server: './server',
-  edge: './edge',
-} as const;
+// const RUNTIME_TO_SDK_ENTRYPOINT_MAP = {
+//   client: './client',
+//   server: './server',
+//   edge: './edge',
+// } as const;
 
 // Next.js runs webpack 3 times, once for the client, the server, and for edge. Because we don't want to print certain
 // warnings 3 times, we keep track of them here.
@@ -79,17 +79,17 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
-    newConfig.module.rules.push({
-      test: /node_modules[/\\]@sentry[/\\]nextjs/,
-      use: [
-        {
-          loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
-          options: {
-            importTarget: RUNTIME_TO_SDK_ENTRYPOINT_MAP[runtime],
-          },
-        },
-      ],
-    });
+    // newConfig.module.rules.push({
+    //   test: /node_modules[/\\]@sentry[/\\]nextjs/,
+    //   use: [
+    //     {
+    //       loader: path.resolve(__dirname, 'loaders', 'sdkMultiplexerLoader.js'),
+    //       options: {
+    //         importTarget: RUNTIME_TO_SDK_ENTRYPOINT_MAP[runtime],
+    //       },
+    //     },
+    //   ],
+    // });
 
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
