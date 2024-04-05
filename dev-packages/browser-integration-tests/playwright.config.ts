@@ -11,7 +11,7 @@ const config: PlaywrightTestConfig = {
   testMatch: /test.ts/,
 
   use: {
-    trace: process.env.GITHUB_ACTIONS ? 'retry-with-trace' : 'off',
+    trace: process.env.GITHUB_ACTIONS ? 'retain-on-failure' : 'off',
   },
 
   projects: [
