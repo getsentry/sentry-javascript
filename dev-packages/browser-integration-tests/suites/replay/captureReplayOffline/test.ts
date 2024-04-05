@@ -33,12 +33,12 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
     return route.abort();
   });
   await page.goto(url);
-  await delay(1_000);
+  await delay(3_000);
   await page.unroute(/ingest\.sentry\.io/);
 
   expect(abortedCount).toBe(1);
 
-  await delay(100);
+  await delay(1_000);
   // Now send a second event which should be queued after the the first one and force flushing the queue
   await page.locator('button').click();
 
