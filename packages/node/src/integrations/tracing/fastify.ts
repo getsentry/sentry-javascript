@@ -1,8 +1,10 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import type { FastifyRequestInfo } from '@opentelemetry/instrumentation-fastify';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
-import { captureException, defineIntegration } from '@sentry/core';
+import { captureException, defineIntegration, getIsolationScope, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
+import type { Span } from '@opentelemetry/api';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 const _fastifyIntegration = (() => {
@@ -12,8 +14,9 @@ const _fastifyIntegration = (() => {
       registerInstrumentations({
         instrumentations: [
           new FastifyInstrumentation({
-            requestHook(span) {
+            requestHook(span, info) {
               addOriginToSpan(span, 'auto.http.otel.fastify');
+              updateScopeTransactionName(span, info);
             },
           }),
         ],
@@ -21,6 +24,22 @@ const _fastifyIntegration = (() => {
     },
   };
 }) satisfies IntegrationFn;
+
+function updateScopeTransactionName(span: Span, info: FastifyRequestInfo): void {
+  if (!span.isRecording()) {
+    return;
+  }
+
+  const attributes = spanToJSON(span).data;
+  if (!attributes || !attributes['http.route']) {
+    return;
+  }
+
+  const req = info.request as { method?: string };
+  const method = req.method?.toUpperCase() || 'GET';
+  const route = String(attributes['http.route']);
+  getIsolationScope().setTransactionName(`${method} ${route}`);
+}
 
 /**
  * Express integration
