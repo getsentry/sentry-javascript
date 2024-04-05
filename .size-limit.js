@@ -205,7 +205,7 @@ module.exports = [
       'stream',
       'zlib',
       'net',
-      'tls'
+      'tls',
     ],
     gzip: true,
     limit: '150 KB',
