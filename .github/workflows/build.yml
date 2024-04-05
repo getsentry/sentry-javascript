@@ -22,6 +22,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  CI: true
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
   # WARNING: this disables cross os caching as ~ and
