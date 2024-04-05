@@ -8,6 +8,20 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
     sentryTest.skip();
   }
 
+  const url = await getLocalTestPath({ testDir: __dirname });
+
+  // This would be the obvious way to test offline support but it doesn't appear to work!
+  // await context.setOffline(true);
+
+  // Abort the first envelope request so the event gets queued
+  await page.route(/ingest\.sentry\.io/, route => route.abort(), { times: 1 });
+
+  await new Promise(resolve => setTimeout(resolve, 2_000));
+
+  await page.goto(url);
+
+  await new Promise(resolve => setTimeout(resolve, 2_000));
+
   await page.route('https://dsn.ingest.sentry.io/**/*', route => {
     return route.fulfill({
       status: 200,
@@ -16,14 +30,8 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  await new Promise(resolve => setTimeout(resolve, 2_000));
 
-  // This would be the obvious way to test offline support but it doesn't appear to work!
-  // await context.setOffline(true);
-
-  // Abort the first envelope request so the event gets queued
-  await page.route(/ingest\.sentry\.io/, route => route.abort(), { times: 1 });
-  await page.goto(url);
   // Now send a second event which should be queued after the the first one and force flushing the queue
   await page.locator('button').click();
 
