@@ -76,6 +76,8 @@ export {
   expressIntegration,
   expressErrorHandler,
   setupExpressErrorHandler,
+  koaIntegration,
+  setupKoaErrorHandler,
   fastifyIntegration,
   graphqlIntegration,
   mongoIntegration,
