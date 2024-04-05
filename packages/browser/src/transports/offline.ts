@@ -71,7 +71,7 @@ export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: 
         return;
       }
 
-      // We insert with an incremented key so that the entries are popped in order
+      // We insert with an decremented key so that the entries are popped in order
       store.put(value, Math.min(...keys, 0) - 1);
       return promisifyRequest(store.transaction);
     });
