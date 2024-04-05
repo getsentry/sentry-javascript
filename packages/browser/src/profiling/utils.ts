@@ -196,7 +196,7 @@ export function isProfiledTransactionEvent(event: Event): event is ProfiledEvent
 }
 
 /*
-  See packages/tracing-internal/src/browser/router.ts
+  See packages/browser-utils/src/browser/router.ts
 */
 /**
  *
