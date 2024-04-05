@@ -1,15 +1,6 @@
-// TODO(v8): Move everything in this file into the browser package. Nothing here is generic and we run risk of leaking browser types into non-browser packages.
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataHistory } from '@sentry/types';
-
-import { fill } from '../object';
-import { supportsHistory } from '../supports';
-import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
-
-const WINDOW = GLOBAL_OBJ as unknown as Window;
+import { addHandler, fill, maybeInstrument, supportsHistory, triggerHandlers } from '@sentry/utils';
+import { WINDOW } from '../browser/types';
 
 let lastHref: string | undefined;
 
@@ -33,7 +24,7 @@ function instrumentHistory(): void {
   }
 
   const oldOnPopState = WINDOW.onpopstate;
-  WINDOW.onpopstate = function (this: WindowEventHandlers, ...args: any[]): any {
+  WINDOW.onpopstate = function (this: WindowEventHandlers, ...args: unknown[]) {
     const to = WINDOW.location.href;
     // keep track of the current URL state, as we always receive only the updated state
     const from = lastHref;
@@ -53,7 +44,7 @@ function instrumentHistory(): void {
   };
 
   function historyReplacementFunction(originalHistoryFunction: () => void): () => void {
-    return function (this: History, ...args: any[]): void {
+    return function (this: History, ...args: unknown[]): void {
       const url = args.length > 2 ? args[2] : undefined;
       if (url) {
         // coerce to string (this is what pushState does)

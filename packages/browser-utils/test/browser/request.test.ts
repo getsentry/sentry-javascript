@@ -1,5 +1,6 @@
-/* eslint-disable deprecation/deprecation */
 import * as utils from '@sentry/utils';
+
+import * as xhrInstrumentation from '../../src/instrument/xhr';
 
 import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/browser/request';
 import { WINDOW } from '../../src/browser/types';
@@ -17,7 +18,7 @@ describe('instrumentOutgoingRequests', () => {
 
   it('instruments fetch and xhr requests', () => {
     const addFetchSpy = jest.spyOn(utils, 'addFetchInstrumentationHandler');
-    const addXhrSpy = jest.spyOn(utils, 'addXhrInstrumentationHandler');
+    const addXhrSpy = jest.spyOn(xhrInstrumentation, 'addXhrInstrumentationHandler');
 
     instrumentOutgoingRequests();
 
@@ -34,7 +35,7 @@ describe('instrumentOutgoingRequests', () => {
   });
 
   it('does not instrument xhr requests if traceXHR is false', () => {
-    const addXhrSpy = jest.spyOn(utils, 'addXhrInstrumentationHandler');
+    const addXhrSpy = jest.spyOn(xhrInstrumentation, 'addXhrInstrumentationHandler');
 
     instrumentOutgoingRequests({ traceXHR: false });
 

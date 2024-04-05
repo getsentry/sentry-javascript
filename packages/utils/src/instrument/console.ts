@@ -5,7 +5,7 @@ import type { ConsoleLevel, HandlerDataConsole } from '@sentry/types';
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
 import { fill } from '../object';
 import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
+import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 /**
  * Add an instrumentation handler for when a console.xxx method is called.

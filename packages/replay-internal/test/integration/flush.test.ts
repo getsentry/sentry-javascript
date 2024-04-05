@@ -1,4 +1,4 @@
-import * as SentryUtils from '@sentry/utils';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -44,7 +44,7 @@ describe('Integration | flush', () => {
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
-    jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+    jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });
 

@@ -16,15 +16,10 @@ import {
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  browserPerformanceTimeOrigin,
-  getDomElement,
-  logger,
-  uuid4,
-} from '@sentry/utils';
+import { browserPerformanceTimeOrigin, getDomElement, logger, uuid4 } from '@sentry/utils';
 
-import { DEBUG_BUILD } from '../common/debug-build';
+import { DEBUG_BUILD } from '../debug-build';
+import { addHistoryInstrumentationHandler } from '../instrument/history';
 import { registerBackgroundTabDetection } from './backgroundtab';
 import {
   addPerformanceEntries,
