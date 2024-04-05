@@ -1,3 +1,4 @@
+import { SENTRY_XHR_DATA_KEY } from '@sentry-internal/browser-utils';
 import type {
   Breadcrumb,
   BreadcrumbHint,
@@ -5,7 +6,6 @@ import type {
   SentryWrappedXMLHttpRequest,
   XhrBreadcrumbHint,
 } from '@sentry/types';
-import { SENTRY_XHR_DATA_KEY } from '@sentry/utils';
 
 import { BASE_TIMESTAMP } from '../..';
 import { NETWORK_BODY_MAX_SIZE } from '../../../src/constants';

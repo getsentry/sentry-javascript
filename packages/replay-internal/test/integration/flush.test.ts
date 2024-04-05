@@ -1,4 +1,5 @@
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
