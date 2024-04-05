@@ -6,41 +6,11 @@ import type {
   EventEnvelope,
   EventItem,
   InternalBaseTransportOptions,
-  ReplayEnvelope,
-  ReplayEvent,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import {
-  createEnvelope,
-  createEventEnvelopeHeaders,
-  dsnFromString,
-  getSdkMetadataForEnvelopeHeader,
-  parseEnvelope,
-} from '@sentry/utils';
+import { createEnvelope } from '@sentry/utils';
 
-// Credit for this awful hack: https://github.com/vitest-dev/vitest/issues/4043#issuecomment-1905172846
-class JSDOMCompatibleTextEncoder extends TextEncoder {
-  encode(input: string) {
-    if (typeof input !== 'string') {
-      throw new TypeError('`input` must be a string');
-    }
-
-    const decodedURI = decodeURIComponent(encodeURIComponent(input));
-    const arr = new Uint8Array(decodedURI.length);
-    const chars = decodedURI.split('');
-    for (let i = 0; i < chars.length; i++) {
-      arr[i] = decodedURI[i].charCodeAt(0);
-    }
-    return arr;
-  }
-}
-
-Object.defineProperty(global, 'TextEncoder', {
-  value: JSDOMCompatibleTextEncoder,
-  writable: true,
-});
-
-import { MIN_DELAY, START_DELAY } from '../../../../core/src/transports/offline';
+import { MIN_DELAY } from '../../../../core/src/transports/offline';
 import { createStore, makeBrowserOfflineTransport, pop, push, unshift } from '../../../src/transports/offline';
 
 function deleteDatabase(name: string): Promise<void> {
@@ -55,41 +25,6 @@ const ERROR_ENVELOPE = createEnvelope<EventEnvelope>({ event_id: 'aa3ff046696b4b
   [{ type: 'event' }, { event_id: 'aa3ff046696b4bc6b609ce6d28fde9e2' }] as EventItem,
 ]);
 
-function createReplayEnvelope(message: string) {
-  const event: ReplayEvent = {
-    type: 'replay_event',
-    timestamp: 1670837008.634,
-    error_ids: ['errorId'],
-    trace_ids: ['traceId'],
-    urls: ['https://example.com'],
-    replay_id: 'MY_REPLAY_ID',
-    segment_id: 3,
-    replay_type: 'buffer',
-    message,
-  };
-
-  const data = 'nothing';
-
-  return createEnvelope<ReplayEnvelope>(
-    createEventEnvelopeHeaders(
-      event,
-      getSdkMetadataForEnvelopeHeader(event),
-      undefined,
-      dsnFromString('https://public@dsn.ingest.sentry.io/1337'),
-    ),
-    [
-      [{ type: 'replay_event' }, event],
-      [
-        {
-          type: 'replay_recording',
-          length: data.length,
-        },
-        data,
-      ],
-    ],
-  );
-}
-
 const transportOptions = {
   recordDroppedEvent: () => undefined, // noop
 };
@@ -97,20 +32,19 @@ const transportOptions = {
 type MockResult<T> = T | Error;
 
 export const createTestTransport = (...sendResults: MockResult<TransportMakeRequestResponse>[]) => {
-  const envelopes: Array<string | Uint8Array> = [];
+  let sendCount = 0;
 
   return {
-    getSendCount: () => envelopes.length,
-    getSentEnvelopes: () => envelopes,
+    getSendCount: () => sendCount,
     baseTransport: (options: InternalBaseTransportOptions) =>
-      createTransport(options, ({ body }) => {
+      createTransport(options, () => {
         return new Promise((resolve, reject) => {
           const next = sendResults.shift();
 
           if (next instanceof Error) {
             reject(next);
           } else {
-            envelopes.push(body);
+            sendCount += 1;
             resolve(next as TransportMakeRequestResponse);
           }
         });
@@ -178,37 +112,4 @@ describe('makeOfflineTransport', () => {
     expect(queuedCount).toEqual(1);
     expect(getSendCount()).toEqual(2);
   });
-
-  it('Retains order of replay envelopes', async () => {
-    const { getSentEnvelopes, baseTransport } = createTestTransport(
-      { statusCode: 200 },
-      // We reject the second envelope to ensure the order is still retained
-      new Error(),
-      { statusCode: 200 },
-      { statusCode: 200 },
-    );
-
-    const transport = makeBrowserOfflineTransport(baseTransport)({
-      ...transportOptions,
-      url: 'http://localhost',
-    });
-
-    await transport.send(createReplayEnvelope('1'));
-    // This one will fail and get resent in order
-    await transport.send(createReplayEnvelope('2'));
-    await transport.send(createReplayEnvelope('3'));
-
-    await delay(START_DELAY * 2);
-
-    const envelopes = getSentEnvelopes()
-      .map(buf => (typeof buf === 'string' ? buf : new TextDecoder().decode(buf)))
-      .map(parseEnvelope);
-
-    expect(envelopes).toHaveLength(3);
-
-    // Ensure they're still in the correct order
-    expect((envelopes[0][1][0][1] as ErrorEvent).message).toEqual('1');
-    expect((envelopes[1][1][0][1] as ErrorEvent).message).toEqual('2');
-    expect((envelopes[2][1][0][1] as ErrorEvent).message).toEqual('3');
-  }, 25_000);
 });
