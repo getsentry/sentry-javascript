@@ -1,6 +1,6 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
-import { captureException, defineIntegration, getCurrentScope, getIsolationScope } from '@sentry/core';
+import { captureException, defineIntegration, getIsolationScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
