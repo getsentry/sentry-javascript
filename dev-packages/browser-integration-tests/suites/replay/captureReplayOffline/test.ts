@@ -3,10 +3,6 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
@@ -25,20 +21,22 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
   // This would be the obvious way to test offline support but it doesn't appear to work!
   // await context.setOffline(true);
 
-  let abortedCount = 0;
+  let resolveAbort = () => {};
+  const hasAbortedPromise = new Promise<void>(resolve => {
+    resolveAbort = resolve;
+  });
 
   // Abort the first envelope request so the event gets queued
   await page.route(/ingest\.sentry\.io/, route => {
-    abortedCount += 1;
+    resolveAbort();
     return route.abort();
   });
   await page.goto(url);
-  await delay(3_000);
+
+  await hasAbortedPromise;
+
   await page.unroute(/ingest\.sentry\.io/);
 
-  expect(abortedCount).toBe(1);
-
-  await delay(1_000);
   // Now send a second event which should be queued after the the first one and force flushing the queue
   await page.locator('button').click();
 
@@ -46,5 +44,7 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
   const replayEvent1 = getReplayEvent(await waitForReplayRequest(page, 1));
 
   // Check that we received the envelopes in the correct order
+  expect(replayEvent0.timestamp).toBeGreaterThan(0);
+  expect(replayEvent1.timestamp).toBeGreaterThan(0);
   expect(replayEvent0.timestamp).toBeLessThan(replayEvent1.timestamp || 0);
 });
