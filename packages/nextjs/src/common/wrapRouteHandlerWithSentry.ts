@@ -22,10 +22,7 @@ import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScop
 
 /** As our own HTTP integration is disabled (src/server/index.ts) the rootSpan comes from Next.js.
  * In case there is not root span, we start a new span. */
-function startOrUpdateSpan(
-  spanName: string,
-  handleResponseErrors: (rootSpan: Span) => Promise<Response>,
-): Promise<Response> {
+function startOrUpdateSpan(spanName: string, cb: (rootSpan: Span) => Promise<Response>): Promise<Response> {
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan && getRootSpan(activeSpan);
 
@@ -35,7 +32,7 @@ function startOrUpdateSpan(
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
     rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.function.nextjs');
 
-    return handleResponseErrors(rootSpan);
+    return cb(rootSpan);
   } else {
     return startSpan(
       {
@@ -48,7 +45,7 @@ function startOrUpdateSpan(
         },
       },
       (span: Span) => {
-        return handleResponseErrors(span);
+        return cb(span);
       },
     );
   }
