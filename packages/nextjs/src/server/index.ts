@@ -12,7 +12,6 @@ import { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration
 
 export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
-import { requestIsolationScopeIntegration } from './requestIsolationScopeIntegration';
 
 export { captureUnderscoreErrorException } from '../common/_error';
 export { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
@@ -82,7 +81,7 @@ export function init(options: NodeOptions): void {
         integration.name !== 'Http',
     ),
     onUncaughtExceptionIntegration(),
-    requestIsolationScopeIntegration(),
+    // requestIsolationScopeIntegration(),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
