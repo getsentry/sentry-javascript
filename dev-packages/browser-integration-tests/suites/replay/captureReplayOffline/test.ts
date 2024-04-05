@@ -29,6 +29,8 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
 
   await page.goto(url);
 
+  await new Promise(resolve => setTimeout(resolve, 2_000));
+
   // Now send a second event which should be queued after the the first one and force flushing the queue
   await page.locator('button').click();
 
