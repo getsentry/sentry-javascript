@@ -25,7 +25,7 @@ sentryTest('should capture replays offline', async ({ getLocalTestPath, page }) 
   // await context.setOffline(true);
 
   // Abort the first envelope request so the event gets queued
-  // await page.route(/ingest\.sentry\.io/, route => route.abort(), { times: 1 });
+  await page.route(/ingest\.sentry\.io/, route => route.abort('internetdisconnected'), { times: 1 });
 
   await page.goto(url);
 

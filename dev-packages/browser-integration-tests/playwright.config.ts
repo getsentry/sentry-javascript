@@ -7,11 +7,11 @@ const config: PlaywrightTestConfig = {
   fullyParallel: true,
   // Use 3 workers on CI, else use defaults (based on available CPU cores)
   // Note that 3 is a random number selected to work well with our CI setup
-  workers: process.env.CI ? 3 : undefined,
+  workers: process.env.GITHUB_ACTIONS ? 3 : undefined,
   testMatch: /test.ts/,
 
   use: {
-    trace: process.env.CI ? 'retry-with-trace' : 'off',
+    trace: process.env.GITHUB_ACTIONS ? 'retry-with-trace' : 'off',
   },
 
   projects: [
