@@ -7,6 +7,7 @@
     "start": "remix-serve build"
   },
   "dependencies": {
+    "@mcansh/remix-fastify": "^3.2.2",
     "@remix-run/express": "1.17.0",
     "@remix-run/node": "1.17.0",
     "@remix-run/react": "1.17.0",
