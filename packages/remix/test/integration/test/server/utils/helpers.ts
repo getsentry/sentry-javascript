@@ -31,11 +31,11 @@ const runExpressApp = (adapter: Adapter.Builtin | Adapter.Express): Promise<http
   }
 )
 
-const runFastifyApp = (): Promise<http.Server> => new Promise(res => {
+const runFastifyApp = (): Promise<http.Server> => new Promise(async res => {
   const app = fastify();
-  app.register(formBody);
-  // @ts-ignore
-  app.all('*', adapters[Adapter.Fastify]({ build: require('../../../build') }));
+  await app.register(formBody);
+  const handler = adapters[Adapter.Fastify]({ build: require('../../../build') });
+  app.all('*', handler);
   app.listen({port: 0}, (_err, _addr) => {
     res(app.server)
   });

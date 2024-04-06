@@ -15,6 +15,8 @@ import type { PolymorphicRequest } from '@sentry/types';
 import type * as Express from 'express';
 import type { ComponentType } from 'react';
 
+import type * as Fastify from 'fastify'
+
 type Dev = {
   command?: string;
   scheme?: string;
@@ -238,8 +240,9 @@ export interface AssetsManifest {
 }
 
 export type GenericRequestHandler = (req: any, res: any, next: any) => Promise<void>;
-
 export type CreateGenericRequestHandler = (this: unknown, options: any) => GenericRequestHandler;
+export type ExpressCreateHandlerWrapper = (createHandler: CreateGenericRequestHandler) => (opts: CreateRequestHandlerOptions) => Express.RequestHandler
+export type FastifyCreateHandlerWrapper = (createHandler: CreateGenericRequestHandler) => (opts: CreateRequestHandlerOptions) => Fastify.RouteHandlerMethod;
 
 export interface CreateRequestHandlerOptions {
   build: ServerBuild | (() => ServerBuild) | (() => Promise<ServerBuild>);
