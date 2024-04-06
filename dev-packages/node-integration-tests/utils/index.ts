@@ -118,8 +118,12 @@ async function makeRequest(
       await axios.post(url, axiosConfig);
     }
   } catch (e) {
-    // We sometimes expect the request to fail, but not the test.
-    // So, we do nothing.
+    // We sometimes expect the request to fail, but not the test, so we are just logging the error.
+    // Beware though! There are also framework specific errors, e.g. fastify can give a 415 with
+    // FST_ERR_CTP_INVALID_MEDIA_TYPE if handling of application/x-www-form-urlencoded is not configure
+    // properly when building a test application / server. Errors of these kind can lead to requests
+    // not actually hitting the handler, and so no tracing will be happenning. This in its turn will
+    // most like make the test time out.
     logger.warn(e);
   }
 }

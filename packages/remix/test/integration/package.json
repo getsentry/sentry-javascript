@@ -7,6 +7,7 @@
     "start": "remix-serve build"
   },
   "dependencies": {
+    "@fastify/formbody": "^7.4.0",
     "@mcansh/remix-fastify": "^3.2.2",
     "@remix-run/express": "1.17.0",
     "@remix-run/node": "1.17.0",

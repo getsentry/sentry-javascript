@@ -5,6 +5,7 @@ import { createRequestHandler as createExpressRequestHandler } from '@remix-run/
 import { wrapExpressCreateRequestHandler, wrapFastifyCreateRequestHandler } from '@sentry/remix';
 import express from 'express';
 import fastify from 'fastify';
+import formBody from '@fastify/formbody'
 
 import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
 
@@ -32,6 +33,7 @@ const runExpressApp = (adapter: Adapter.Builtin | Adapter.Express): Promise<http
 
 const runFastifyApp = (): Promise<http.Server> => new Promise(res => {
   const app = fastify();
+  app.register(formBody);
   // @ts-ignore
   app.all('*', adapters[Adapter.Fastify]({ build: require('../../../build') }));
   app.listen({port: 0}, (_err, _addr) => {
