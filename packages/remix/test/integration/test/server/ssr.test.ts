@@ -1,10 +1,10 @@
-import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
+import { Adapter, RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
 describe('Server Side Rendering', () => {
   it('correctly reports a server side rendering error', async () => {
-    const env = await RemixTestEnv.init('builtin');
+    const env = await RemixTestEnv.init(Adapter.Builtin);
     const url = `${env.url}/ssr-error`;
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['transaction', 'event'] });
     const [transaction] = envelopes.filter(envelope => envelope[1].type === 'transaction');
