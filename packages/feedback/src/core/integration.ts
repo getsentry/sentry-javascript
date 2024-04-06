@@ -17,6 +17,7 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
+import { feedbackModalIntegration } from '../modal/integration';
 import type { IFeedbackModalIntegration } from '../modal/integration';
 import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
 import type {
@@ -55,7 +56,7 @@ export const feedbackIntegration = (({
   autoInject = true,
   showEmail = true,
   showName = true,
-  showScreenshot = true,
+  showScreenshot = false,
   useSentryUser = {
     email: 'email',
     name: 'username',
@@ -153,8 +154,9 @@ export const feedbackIntegration = (({
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
     }
-    const modalIntegration = client.getIntegrationByName<IFeedbackModalIntegration>('FeedbackModal');
-    const screenshotIntegration = client.getIntegrationByName<IFeedbackScreenshotIntegration>('FeedbackScreenshot');
+    const modalIntegration: IFeedbackModalIntegration = feedbackModalIntegration();
+    client.addIntegration(modalIntegration);
+    const screenshotIntegration: IFeedbackScreenshotIntegration = client.getIntegrationByName('FeedbackScreenshot');
     const screenshotIsSupported = isScreenshotSupported();
 
     // START TEMP: Error messages
