@@ -107,7 +107,7 @@ const createTestTransport = (...sendResults: MockResult<TransportMakeRequestResp
   };
 };
 
-type StoreEvents = ('push' | 'unshift' | 'pop')[];
+type StoreEvents = ('push' | 'unshift' | 'shift')[];
 
 function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
   getCalls: () => StoreEvents;
@@ -130,8 +130,8 @@ function createTestStore(...popResults: MockResult<Envelope | undefined>[]): {
           calls.push('unshift');
         }
       },
-      pop: async () => {
-        calls.push('pop');
+      shift: async () => {
+        calls.push('shift');
         const next = popResults.shift();
 
         if (next instanceof Error) {
@@ -182,7 +182,7 @@ describe('makeOfflineTransport', () => {
     await waitUntil(() => getCalls().length == 1, 1_000);
 
     // After a successful send, the store should be checked
-    expect(getCalls()).toEqual(['pop']);
+    expect(getCalls()).toEqual(['shift']);
   });
 
   it('Envelopes are added after existing envelopes in the queue', async () => {
@@ -197,7 +197,7 @@ describe('makeOfflineTransport', () => {
 
     expect(getSendCount()).toEqual(2);
     // After a successful send from the store, the store should be checked again to ensure it's empty
-    expect(getCalls()).toEqual(['pop', 'pop']);
+    expect(getCalls()).toEqual(['shift', 'shift']);
   });
 
   it('Queues envelope if wrapped transport throws error', async () => {
@@ -259,7 +259,7 @@ describe('makeOfflineTransport', () => {
       await waitUntil(() => getCalls().length === 3 && getSendCount() === 1, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(1);
-      expect(getCalls()).toEqual(['push', 'pop', 'pop']);
+      expect(getCalls()).toEqual(['push', 'shift', 'shift']);
     },
     START_DELAY + 2_000,
   );
@@ -279,7 +279,7 @@ describe('makeOfflineTransport', () => {
       await waitUntil(() => getCalls().length === 3 && getSendCount() === 2, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(2);
-      expect(getCalls()).toEqual(['pop', 'pop', 'pop']);
+      expect(getCalls()).toEqual(['shift', 'shift', 'shift']);
     },
     START_DELAY + 2_000,
   );
@@ -299,7 +299,7 @@ describe('makeOfflineTransport', () => {
       await waitUntil(() => getCalls().length === 2, START_DELAY * 2);
 
       expect(getSendCount()).toEqual(0);
-      expect(getCalls()).toEqual(['pop', 'unshift']);
+      expect(getCalls()).toEqual(['shift', 'unshift']);
     },
     START_DELAY + 2_000,
   );
@@ -361,12 +361,12 @@ describe('makeOfflineTransport', () => {
         // We're sending a replay envelope and they always get queued
         'push',
         // The first envelope popped out fails to send so it gets added to the front of the queue
-        'pop',
+        'shift',
         'unshift',
         // The rest of the attempts succeed
-        'pop',
-        'pop',
-        'pop',
+        'shift',
+        'shift',
+        'shift',
       ]);
 
       const envelopes = getSentEnvelopes().map(parseEnvelope);
@@ -416,7 +416,7 @@ describe('makeOfflineTransport', () => {
 
       expect(getSendCount()).toEqual(2);
       expect(queuedCount).toEqual(0);
-      expect(getCalls()).toEqual(['pop', 'pop']);
+      expect(getCalls()).toEqual(['shift', 'shift']);
     },
     START_DELAY * 3,
   );

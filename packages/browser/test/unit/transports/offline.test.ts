@@ -11,7 +11,7 @@ import type {
 import { createEnvelope } from '@sentry/utils';
 
 import { MIN_DELAY } from '../../../../core/src/transports/offline';
-import { createStore, makeBrowserOfflineTransport, pop, push, unshift } from '../../../src/transports/offline';
+import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../../src/transports/offline';
 
 function deleteDatabase(name: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -65,21 +65,21 @@ describe('makeOfflineTransport', () => {
 
   it('indexedDb wrappers push, unshift and pop', async () => {
     const store = createStore('test', 'test');
-    const found = await pop(store);
+    const found = await shift(store);
     expect(found).toBeUndefined();
 
     await push(store, 'test1', 30);
     await push(store, new Uint8Array([1, 2, 3, 4, 5]), 30);
     await unshift(store, 'test2', 30);
 
-    const found2 = await pop(store);
+    const found2 = await shift(store);
     expect(found2).toEqual('test2');
-    const found3 = await pop(store);
+    const found3 = await shift(store);
     expect(found3).toEqual('test1');
-    const found4 = await pop(store);
+    const found4 = await shift(store);
     expect(found4).toEqual(new Uint8Array([1, 2, 3, 4, 5]));
 
-    const found5 = await pop(store);
+    const found5 = await shift(store);
     expect(found5).toBeUndefined();
   });
 

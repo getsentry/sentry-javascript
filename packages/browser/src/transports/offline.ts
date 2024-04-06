@@ -79,7 +79,7 @@ export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: 
 }
 
 /** Pop the oldest value from the store */
-export function pop(store: Store): Promise<Uint8Array | string | undefined> {
+export function shift(store: Store): Promise<Uint8Array | string | undefined> {
   return store(store => {
     return keys(store).then(keys => {
       if (keys.length === 0) {
@@ -141,9 +141,9 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
         //
       }
     },
-    pop: async () => {
+    shift: async () => {
       try {
-        const deserialized = await pop(getStore());
+        const deserialized = await shift(getStore());
         if (deserialized) {
           return parseEnvelope(deserialized);
         }

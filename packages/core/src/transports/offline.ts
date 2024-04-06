@@ -14,7 +14,7 @@ function log(msg: string, error?: Error): void {
 export interface OfflineStore {
   push(env: Envelope): Promise<void>;
   unshift(env: Envelope): Promise<void>;
-  pop(): Promise<Envelope | undefined>;
+  shift(): Promise<Envelope | undefined>;
 }
 
 export type CreateOfflineStore = (options: OfflineTransportOptions) => OfflineStore;
@@ -87,7 +87,7 @@ export function makeOfflineTransport<TO>(
       flushTimer = setTimeout(async () => {
         flushTimer = undefined;
 
-        const found = await store.pop();
+        const found = await store.shift();
         if (found) {
           log('Attempting to send previously queued event');
           void send(found, true).catch(e => {
