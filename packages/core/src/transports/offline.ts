@@ -7,10 +7,6 @@ export const MIN_DELAY = 100; // 100 ms
 export const START_DELAY = 5_000; // 5 seconds
 const MAX_DELAY = 3.6e6; // 1 hour
 
-function log(msg: string, error?: Error): void {
-  DEBUG_BUILD && logger.info(`[Offline]: ${msg}`, error);
-}
-
 export interface OfflineStore {
   push(env: Envelope): Promise<void>;
   unshift(env: Envelope): Promise<void>;
@@ -54,6 +50,10 @@ type Timer = number | { unref?: () => void };
 export function makeOfflineTransport<TO>(
   createTransport: (options: TO) => Transport,
 ): (options: TO & OfflineTransportOptions) => Transport {
+  function log(...args: unknown[]): void {
+    DEBUG_BUILD && logger.info('[Offline]:', ...args);
+  }
+
   return options => {
     const transport = createTransport(options);
 
@@ -130,6 +130,8 @@ export function makeOfflineTransport<TO>(
           // If there's a retry-after header, use that as the next delay.
           if (result.headers && result.headers['retry-after']) {
             delay = parseRetryAfterHeader(result.headers['retry-after']);
+          } else if (result.headers && result.headers['x-sentry-rate-limits']) {
+            delay = 60_000; // 60 seconds
           } // If we have a server error, return now so we don't flush the queue.
           else if ((result.statusCode || 0) >= 400) {
             return result;
@@ -148,7 +150,7 @@ export function makeOfflineTransport<TO>(
             await store.push(envelope);
           }
           flushWithBackOff();
-          log('Error sending. Event queued', e as Error);
+          log('Error sending. Event queued.', e as Error);
           return {};
         } else {
           throw e;
