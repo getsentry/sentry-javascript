@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '@sentry-internal/event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 import axios, { AxiosError } from 'axios';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
@@ -80,4 +80,26 @@ test('Should set a "not_found" status on a server component transaction when not
   await page.goto('/server-component/not-found');
 
   expect((await serverComponentTransactionPromise).contexts?.trace?.status).toBe('not_found');
+});
+
+test('Should capture an error and transaction with correct status for a faulty server component', async ({ page }) => {
+  const transactionEventPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
+    return transactionEvent?.transaction === 'Page Server Component (/server-component/faulty)';
+  });
+
+  const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'I am a faulty server component';
+  });
+
+  await page.goto('/server-component/faulty');
+
+  const transactionEvent = await transactionEventPromise;
+  const errorEvent = await errorEventPromise;
+
+  expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
+
+  expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+  expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
+  expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
