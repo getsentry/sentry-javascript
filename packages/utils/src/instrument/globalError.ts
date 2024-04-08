@@ -1,7 +1,7 @@
 import type { HandlerDataError } from '@sentry/types';
 
 import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
+import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 let _oldOnErrorHandler: (typeof GLOBAL_OBJ)['onerror'] | null = null;
 

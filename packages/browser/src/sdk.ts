@@ -9,14 +9,9 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  consoleSandbox,
-  logger,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
+import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';

@@ -23,8 +23,8 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   // Clear all handlers that have been registered
   resetInstrumentationHandlers();
 
-  const SentryUtils = await import('@sentry/utils');
-  jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+  const SentryBrowserUtils = await import('@sentry-internal/browser-utils');
+  jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
     domHandler = handler;
   });
   const { mockRrweb } = await import('./mockRrweb');

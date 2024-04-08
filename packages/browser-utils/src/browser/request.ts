@@ -16,14 +16,13 @@ import {
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
-  SENTRY_XHR_DATA_KEY,
   addFetchInstrumentationHandler,
-  addXhrInstrumentationHandler,
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   stringMatchesSomePattern,
 } from '@sentry/utils';
+import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '../instrument/xhr';
 
 import { addPerformanceInstrumentationHandler } from './instrument';
 import { WINDOW } from './types';

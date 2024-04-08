@@ -5,7 +5,7 @@ import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sent
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../../common/debug-build';
+import { DEBUG_BUILD } from '../../debug-build';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,

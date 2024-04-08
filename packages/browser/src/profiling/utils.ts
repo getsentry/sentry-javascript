@@ -1,8 +1,17 @@
 /* eslint-disable max-lines */
 
 import { DEFAULT_ENVIRONMENT, getClient, spanToJSON } from '@sentry/core';
-import type { DebugImage, Envelope, Event, EventEnvelope, Span, StackFrame, StackParser } from '@sentry/types';
-import type { Profile, ThreadCpuProfile } from '@sentry/types/src/profiling';
+import type {
+  DebugImage,
+  Envelope,
+  Event,
+  EventEnvelope,
+  Profile,
+  Span,
+  StackFrame,
+  StackParser,
+  ThreadCpuProfile,
+} from '@sentry/types';
 import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
