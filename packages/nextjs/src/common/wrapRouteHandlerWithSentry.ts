@@ -40,6 +40,7 @@ function startOrUpdateSpan(spanName: string, cb: (rootSpan: Span) => Promise<Res
         forceTransaction: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
         },
       },
