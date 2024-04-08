@@ -1,6 +1,13 @@
 import { SpanKind } from '@opentelemetry/api';
-import { defineIntegration, spanToJSON } from '@sentry/core';
-import { getSpanKind, getSpanScopes } from '@sentry/opentelemetry';
+import {
+  defineIntegration,
+  getCapturedScopesOnSpan,
+  getCurrentScope,
+  getIsolationScope,
+  setCapturedScopesOnSpan,
+  spanToJSON,
+} from '@sentry/core';
+import { getSpanKind } from '@sentry/opentelemetry';
 
 /**
  * This integration is responsible for creating isolation scopes for incoming Http requests.
@@ -15,13 +22,17 @@ export const requestIsolationScopeIntegration = defineIntegration(() => {
     setup(client) {
       client.on('spanStart', span => {
         const spanJson = spanToJSON(span);
+        const data = spanJson.data || {};
 
         // The following check is a heuristic to determine whether the started span is a span that tracks an incoming HTTP request
-        if (getSpanKind(span) === SpanKind.SERVER && spanJson.data && 'http.method' in spanJson.data) {
-          const scopes = getSpanScopes(span);
-          if (scopes) {
-            scopes.isolationScope = scopes.isolationScope.clone();
-          }
+        if ((getSpanKind(span) === SpanKind.SERVER && data['http.method']) || data['next.route']) {
+          const scopes = getCapturedScopesOnSpan(span);
+
+          // Update the isolation scope, isolate this request
+          const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+          const scope = scopes.scope || getCurrentScope();
+
+          setCapturedScopesOnSpan(span, scope, isolationScope);
         }
       });
     },
