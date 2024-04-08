@@ -74,15 +74,44 @@ export function withScope<T>(
  *
  * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
  * applications directly because it comes with pitfalls. Use at your own risk!
- *
- * @param callback The callback in which the passed isolation scope is active. (Note: In environments without async
- * context strategy, the currently active isolation scope may change within execution of the callback.)
- * @returns The same value that `callback` returns.
  */
-export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
+export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T;
+/**
+ * Set the provided isolation scope as active in the given callback. If no
+ * async context strategy is set, the isolation scope and the current scope will not be forked (this is currently the
+ * case, for example, in the browser).
+ *
+ * Usage of this function in environments without async context strategy is discouraged and may lead to unexpected behaviour.
+ *
+ * This function is intended for Sentry SDK and SDK integration development. It is not recommended to be used in "normal"
+ * applications directly because it comes with pitfalls. Use at your own risk!
+ *
+ * If you pass in `undefined` as a scope, it will fork a new isolation scope, the same as if no scope is passed.
+ */
+export function withIsolationScope<T>(isolationScope: Scope | undefined, callback: (isolationScope: Scope) => T): T;
+/**
+ * Either creates a new active isolation scope, or sets the given isolation scope as active scope in the given callback.
+ */
+export function withIsolationScope<T>(
+  ...rest:
+    | [callback: (isolationScope: Scope) => T]
+    | [isolationScope: Scope | undefined, callback: (isolationScope: Scope) => T]
+): T {
   const carrier = getMainCarrier();
   const acs = getAsyncContextStrategy(carrier);
-  return acs.withIsolationScope(callback);
+
+  // If a scope is defined, we want to make this the active scope instead of the default one
+  if (rest.length === 2) {
+    const [isolationScope, callback] = rest;
+
+    if (!isolationScope) {
+      return acs.withIsolationScope(callback);
+    }
+
+    return acs.withSetIsolationScope(isolationScope, callback);
+  }
+
+  return acs.withIsolationScope(rest[0]);
 }
 
 /**
