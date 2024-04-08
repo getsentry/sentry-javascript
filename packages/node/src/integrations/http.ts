@@ -4,7 +4,16 @@ import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 
-import { addBreadcrumb, defineIntegration, getIsolationScope, isSentryRequestUrl, spanToJSON } from '@sentry/core';
+import {
+  addBreadcrumb,
+  defineIntegration,
+  getCapturedScopesOnSpan,
+  getCurrentScope,
+  getIsolationScope,
+  isSentryRequestUrl,
+  setCapturedScopesOnSpan,
+  spanToJSON,
+} from '@sentry/core';
 import { _INTERNAL, getClient, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
@@ -88,8 +97,12 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
               return;
             }
 
+            const scopes = getCapturedScopesOnSpan(span);
+
             // Update the isolation scope, isolate this request
-            const isolationScope = getIsolationScope().clone();
+            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+            const scope = scopes.scope || getCurrentScope();
+
             isolationScope.setSDKProcessingMetadata({ request: req });
 
             const client = getClient<NodeClient>();
@@ -97,6 +110,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
               isolationScope.setRequestSession({ status: 'ok' });
             }
             setIsolationScope(isolationScope);
+            setCapturedScopesOnSpan(span, scope, isolationScope);
 
             // attempt to update the scope's `transactionName` based on the request URL
             // Ideally, framework instrumentations coming after the HttpInstrumentation
