@@ -16,15 +16,23 @@
     "./package.json": "./package.json",
     ".": {
       "edge": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
         "default": "./build/esm/edge/index.js"
       },
       "edge-light": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
         "default": "./build/esm/edge/index.js"
       },
       "worker": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
         "default": "./build/esm/edge/index.js"
       },
       "workerd": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
         "default": "./build/esm/edge/index.js"
       },
       "browser": {
