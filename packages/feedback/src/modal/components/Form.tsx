@@ -7,7 +7,7 @@ import type {
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { ComponentType, JSX, VNode } from 'preact';
+import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';
@@ -74,7 +74,7 @@ export function Form({
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const ScreenshotInput: any = screenshotInput && screenshotInput.input;
+  const ScreenshotInputComponent: any = screenshotInput && screenshotInput.input;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
   const onScreenshotError = useCallback((error: Error) => {
@@ -111,7 +111,7 @@ export function Form({
           return;
         }
         const formData = new FormData(e.target);
-        const attachment = await (ScreenshotInput && showScreenshotInput ? screenshotInput.value() : undefined);
+        const attachment = await (screenshotInput && showScreenshotInput ? screenshotInput.value() : undefined);
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
@@ -133,12 +133,14 @@ export function Form({
         // pass
       }
     },
-    [ScreenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
+    [screenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
   );
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {ScreenshotInput && showScreenshotInput ? <ScreenshotInput onError={onScreenshotError} /> : null}
+      {ScreenshotInputComponent && showScreenshotInput ? (
+        <ScreenshotInputComponent onError={onScreenshotError} />
+      ) : null}
 
       <div class="form__right">
         <div class="form__top">
@@ -191,7 +193,7 @@ export function Form({
             />
           </label>
 
-          {ScreenshotInput ? (
+          {ScreenshotInputComponent ? (
             <label for="screenshot" class="form__label">
               <span class="form__label__text">Screenshot</span>
 
