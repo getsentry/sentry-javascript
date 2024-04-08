@@ -1,5 +1,6 @@
-import { addTracingExtensions, captureException, getCurrentScope, withIsolationScope } from '@sentry/core';
+import { addTracingExtensions, captureException, getCurrentScope } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 interface FunctionComponent {
   (...args: unknown[]): unknown;
@@ -25,7 +26,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {
-        return withIsolationScope(() => {
+        return withIsolationScopeOrReuseFromRootSpan(() => {
           const scope = getCurrentScope();
           // We extract the sentry trace data that is put in the component props by datafetcher wrappers
           const sentryTraceData =
@@ -60,7 +61,7 @@ export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | C
   } else if (typeof pageComponent === 'function') {
     return new Proxy(pageComponent, {
       apply(target, thisArg, argArray: [{ _sentryTraceData?: string } | undefined]) {
-        return withIsolationScope(() => {
+        return withIsolationScopeOrReuseFromRootSpan(() => {
           const scope = getCurrentScope();
           // We extract the sentry trace data that is put in the component props by datafetcher wrappers
           const sentryTraceData = argArray?.[0]?._sentryTraceData;
