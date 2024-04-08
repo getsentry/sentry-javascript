@@ -219,7 +219,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
 
     useTakeScreenshot({
       onBeforeScreenshot: useCallback(() => {
-        dialog.el.style.display = 'none';
+        (dialog.el as HTMLElement).style.display = 'none';
       }, []),
       onScreenshot: useCallback(
         (imageSource: HTMLVideoElement) => {
@@ -234,13 +234,13 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         [imageBuffer],
       ),
       onAfterScreenshot: useCallback(() => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         const container = canvasContainerRef.current;
         container && container.appendChild(imageBuffer);
         resizeCropper();
       }, []),
       onError: useCallback(error => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         onError(error);
       }, []),
     });
