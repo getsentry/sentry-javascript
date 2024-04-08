@@ -169,17 +169,6 @@ export function isSyntheticEvent(wat: unknown): boolean {
 }
 
 /**
- * Checks whether given value is NaN
- * {@link isNaN}.
- *
- * @param wat A value to be checked.
- * @returns A boolean representing the result.
- */
-export function isNaN(wat: unknown): boolean {
-  return typeof wat === 'number' && wat !== wat;
-}
-
-/**
  * Checks whether given value's type is an instance of provided constructor.
  * {@link isInstanceOf}.
  *

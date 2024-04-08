@@ -7,7 +7,6 @@ import {
 } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
-import type { Event } from '../../src';
 import { setCurrentClient } from '../../src';
 import {
   BrowserClient,
@@ -213,7 +212,7 @@ describe('SentryBrowser', () => {
 
     it('should capture a message', done => {
       const options = getDefaultBrowserClientOptions({
-        beforeSend: (event: Event): Event | null => {
+        beforeSend: event => {
           expect(event.message).toBe('test');
           expect(event.exception).toBeUndefined();
           done();
@@ -227,7 +226,7 @@ describe('SentryBrowser', () => {
 
     it('should capture an event', done => {
       const options = getDefaultBrowserClientOptions({
-        beforeSend: (event: Event): Event | null => {
+        beforeSend: event => {
           expect(event.message).toBe('event');
           expect(event.exception).toBeUndefined();
           done();
@@ -241,7 +240,7 @@ describe('SentryBrowser', () => {
 
     it('should set `platform` on events', done => {
       const options = getDefaultBrowserClientOptions({
-        beforeSend: (event: Event): Event | null => {
+        beforeSend: event => {
           expect(event.platform).toBe('javascript');
           done();
           return event;

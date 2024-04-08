@@ -2,7 +2,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { captureEvent, getMetricSummaryJsonForSpan } from '@sentry/core';
+import { captureEvent, getMetricSummaryJsonForSpan, timedEventsToMeasurements } from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -138,7 +138,10 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     transactionEvent.spans = spans;
 
-    // TODO Measurements are not yet implemented in OTEL
+    const measurements = timedEventsToMeasurements(span.events);
+    if (Object.keys(measurements).length) {
+      transactionEvent.measurements = measurements;
+    }
 
     captureEvent(transactionEvent);
   });

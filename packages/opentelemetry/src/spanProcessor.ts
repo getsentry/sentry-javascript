@@ -1,10 +1,14 @@
 import type { Context } from '@opentelemetry/api';
-import { ROOT_CONTEXT, TraceFlags, trace } from '@opentelemetry/api';
+import { ROOT_CONTEXT, trace } from '@opentelemetry/api';
 import type { ReadableSpan, Span, SpanProcessor as SpanProcessorInterface } from '@opentelemetry/sdk-trace-base';
-import { addChildSpanToSpan, getClient, getDefaultCurrentScope, getDefaultIsolationScope } from '@sentry/core';
-import { logger } from '@sentry/utils';
-
-import { DEBUG_BUILD } from './debug-build';
+import {
+  addChildSpanToSpan,
+  getClient,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
+  logSpanEnd,
+  logSpanStart,
+} from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
 import { getScopesFromContext } from './utils/contextData';
@@ -41,13 +45,17 @@ function onSpanStart(span: Span, parentContext: Context): void {
     setSpanScopes(span, scopes);
   }
 
+  logSpanStart(span);
+
   const client = getClient();
   client?.emit('spanStart', span);
 }
 
-function onSpanEnd(span: ReadableSpan): void {
+function onSpanEnd(span: Span): void {
+  logSpanEnd(span);
+
   const client = getClient();
-  client?.emit('spanEnd', span as Span);
+  client?.emit('spanEnd', span);
 }
 
 /**
@@ -81,22 +89,10 @@ export class SentrySpanProcessor implements SpanProcessorInterface {
    */
   public onStart(span: Span, parentContext: Context): void {
     onSpanStart(span, parentContext);
-
-    // TODO (v8): Trigger client `spanStart` & `spanEnd` in here,
-    // once we decoupled opentelemetry from SentrySpan
-
-    DEBUG_BUILD && logger.log(`[Tracing] Starting span "${span.name}" (${span.spanContext().spanId})`);
   }
 
   /** @inheritDoc */
-  public onEnd(span: ReadableSpan): void {
-    if (span.spanContext().traceFlags !== TraceFlags.SAMPLED) {
-      DEBUG_BUILD && logger.log(`[Tracing] Finishing unsampled span "${span.name}" (${span.spanContext().spanId})`);
-      return;
-    }
-
-    DEBUG_BUILD && logger.log(`[Tracing] Finishing span "${span.name}" (${span.spanContext().spanId})`);
-
+  public onEnd(span: Span & ReadableSpan): void {
     onSpanEnd(span);
 
     this._exporter.export(span);

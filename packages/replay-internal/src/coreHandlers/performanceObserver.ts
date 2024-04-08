@@ -1,4 +1,4 @@
-import { addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/tracing';
+import { addLcpInstrumentationHandler, addPerformanceInstrumentationHandler } from '@sentry-internal/browser-utils';
 
 import type { ReplayContainer } from '../types';
 import { getLargestContentfulPaint } from '../util/createPerformanceEntries';

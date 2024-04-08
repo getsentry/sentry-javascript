@@ -1,5 +1,5 @@
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './event';
+import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
 import type { CaptureContext } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
@@ -255,7 +255,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    */
   tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
-  // TODO (v8): Narrow the response type to `ErrorEvent` - this is technically a breaking change.
   /**
    * An event-processing callback for error and message events, guaranteed to be invoked after all other event
    * processors, which allows an event to be modified or dropped.
@@ -267,9 +266,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<Event | null> | Event | null;
+  beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<ErrorEvent | null> | ErrorEvent | null;
 
-  // TODO (v8): Narrow the response type to `TransactionEvent` - this is technically a breaking change.
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
    * processors. This allows an event to be modified or dropped before it's sent.
@@ -281,7 +279,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSendTransaction?: (event: TransactionEvent, hint: EventHint) => PromiseLike<Event | null> | Event | null;
+  beforeSendTransaction?: (
+    event: TransactionEvent,
+    hint: EventHint,
+  ) => PromiseLike<TransactionEvent | null> | TransactionEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify

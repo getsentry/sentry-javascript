@@ -8,8 +8,7 @@ test('should report a manually captured message.', async ({ page }) => {
   const [messageEnvelope, pageloadEnvelope] = envelopes;
 
   expect(messageEnvelope.level).toBe('info');
-  // TODO: Comment back in once we update the scope transaction name on the client side
-  // expect(messageEnvelope.transaction).toBe('/capture-message');
+  expect(messageEnvelope.transaction).toBe('/capture-message');
   expect(messageEnvelope.message).toBe('Sentry Manually Captured Message');
 
   expect(pageloadEnvelope.contexts?.trace?.op).toBe('pageload');

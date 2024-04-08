@@ -1,4 +1,4 @@
-import type { Attachment, Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
@@ -541,29 +541,6 @@ describe('Scope', () => {
         },
       });
     });
-  });
-
-  describe('getAttachments', () => {
-    /* eslint-disable deprecation/deprecation */
-    it('works without any data', async () => {
-      const scope = new Scope();
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([]);
-    });
-
-    it('works with attachments', async () => {
-      const attachment1 = { filename: '1' } as Attachment;
-      const attachment2 = { filename: '2' } as Attachment;
-
-      const scope = new Scope();
-      scope.addAttachment(attachment1);
-      scope.addAttachment(attachment2);
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment1, attachment2]);
-    });
-    /* eslint-enable deprecation/deprecation */
   });
 
   describe('setClient() and getClient()', () => {

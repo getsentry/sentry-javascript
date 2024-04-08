@@ -1,3 +1,110 @@
+export { httpIntegration } from './integrations/http';
+export { nativeNodeFetchIntegration } from './integrations/node-fetch';
+
+export { consoleIntegration } from './integrations/console';
+export { nodeContextIntegration } from './integrations/context';
+export { contextLinesIntegration } from './integrations/contextlines';
+export { localVariablesIntegration } from './integrations/local-variables';
+export { modulesIntegration } from './integrations/modules';
+export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
+export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
+export { anrIntegration } from './integrations/anr';
+
+export { expressIntegration, expressErrorHandler, setupExpressErrorHandler } from './integrations/tracing/express';
+export { fastifyIntegration, setupFastifyErrorHandler } from './integrations/tracing/fastify';
+export { graphqlIntegration } from './integrations/tracing/graphql';
+export { mongoIntegration } from './integrations/tracing/mongo';
+export { mongooseIntegration } from './integrations/tracing/mongoose';
+export { mysqlIntegration } from './integrations/tracing/mysql';
+export { mysql2Integration } from './integrations/tracing/mysql2';
+export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
+export { postgresIntegration } from './integrations/tracing/postgres';
+export { prismaIntegration } from './integrations/tracing/prisma';
+export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
+export { spotlightIntegration } from './integrations/spotlight';
+
+export { init, getDefaultIntegrations } from './sdk/init';
+export { initOpenTelemetry } from './sdk/initOtel';
+export { getAutoPerformanceIntegrations } from './integrations/tracing';
+export { getSentryRelease, defaultStackParser } from './sdk/api';
+export { createGetModuleFromFilename } from './utils/module';
+export { makeNodeTransport } from './transports';
+export { NodeClient } from './sdk/client';
+export { cron } from './cron';
+
+export type { NodeOptions } from './types';
+
+export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
+
+// These are custom variants that need to be used instead of the core one
+// As they have slightly different implementations
+export { continueTrace } from '@sentry/opentelemetry';
+
+export {
+  addBreadcrumb,
+  isInitialized,
+  getGlobalScope,
+  close,
+  createTransport,
+  flush,
+  Hub,
+  SDK_VERSION,
+  getSpanStatusFromHttpCode,
+  setHttpStatus,
+  captureCheckIn,
+  withMonitor,
+  requestDataIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+  linkedErrorsIntegration,
+  addEventProcessor,
+  setContext,
+  setExtra,
+  setExtras,
+  setTag,
+  setTags,
+  setUser,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  setCurrentClient,
+  Scope,
+  setMeasurement,
+  getSpanDescendants,
+  parameterize,
+  getClient,
+  // eslint-disable-next-line deprecation/deprecation
+  getCurrentHub,
+  getCurrentScope,
+  getIsolationScope,
+  withScope,
+  withIsolationScope,
+  captureException,
+  captureEvent,
+  captureMessage,
+  captureConsoleIntegration,
+  debugIntegration,
+  dedupeIntegration,
+  extraErrorDataIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  metricsDefault as metrics,
+  startSession,
+  captureSession,
+  endSession,
+  addIntegration,
+  startSpan,
+  startSpanManual,
+  startInactiveSpan,
+  getActiveSpan,
+  withActiveSpan,
+  getRootSpan,
+  spanToJSON,
+  trpcMiddleware,
+} from '@sentry/core';
+
 export type {
   Breadcrumb,
   BreadcrumbHint,
@@ -9,142 +116,9 @@ export type {
   Exception,
   Session,
   SeverityLevel,
-  Span,
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
+  Span,
 } from '@sentry/types';
-export type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
-
-export type { NodeOptions } from './types';
-
-export {
-  addEventProcessor,
-  addBreadcrumb,
-  addIntegration,
-  captureException,
-  captureEvent,
-  captureMessage,
-  close,
-  createTransport,
-  flush,
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
-  getClient,
-  isInitialized,
-  getCurrentScope,
-  getGlobalScope,
-  getIsolationScope,
-  Hub,
-  setCurrentClient,
-  Scope,
-  SDK_VERSION,
-  setContext,
-  setExtra,
-  setExtras,
-  setTag,
-  setTags,
-  setUser,
-  getSpanStatusFromHttpCode,
-  setHttpStatus,
-  withScope,
-  withIsolationScope,
-  captureCheckIn,
-  withMonitor,
-  setMeasurement,
-  getActiveSpan,
-  getRootSpan,
-  startSpan,
-  startInactiveSpan,
-  startSpanManual,
-  withActiveSpan,
-  getSpanDescendants,
-  continueTrace,
-  parameterize,
-  functionToStringIntegration,
-  inboundFiltersIntegration,
-  linkedErrorsIntegration,
-  requestDataIntegration,
-  metricsDefault as metrics,
-  startSession,
-  captureSession,
-  endSession,
-} from '@sentry/core';
-
-export {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
-} from '@sentry/core';
-
-export { autoDiscoverNodePerformanceMonitoringIntegrations } from './tracing';
-
-export { NodeClient } from './client';
-export { makeNodeTransport } from './transports';
-export {
-  getDefaultIntegrations,
-  init,
-  defaultStackParser,
-  getSentryRelease,
-} from './sdk';
-export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
-
-export { createGetModuleFromFilename } from './module';
-
-import * as Handlers from './handlers';
-import * as NodeIntegrations from './integrations';
-import * as TracingIntegrations from './tracing/integrations';
-
-// TODO: Deprecate this once we migrated tracing integrations
-export const Integrations = {
-  ...NodeIntegrations,
-  ...TracingIntegrations,
-};
-
-export {
-  captureConsoleIntegration,
-  debugIntegration,
-  dedupeIntegration,
-  extraErrorDataIntegration,
-  rewriteFramesIntegration,
-  sessionTimingIntegration,
-} from '@sentry/core';
-
-export { consoleIntegration } from './integrations/console';
-export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
-export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';
-export { modulesIntegration } from './integrations/modules';
-export { contextLinesIntegration } from './integrations/contextlines';
-export { nodeContextIntegration } from './integrations/context';
-export { localVariablesIntegration } from './integrations/local-variables';
-export { spotlightIntegration } from './integrations/spotlight';
-export { anrIntegration } from './integrations/anr';
-export { hapiIntegration } from './integrations/hapi';
-// eslint-disable-next-line deprecation/deprecation
-export { Undici, nativeNodeFetchintegration } from './integrations/undici';
-// eslint-disable-next-line deprecation/deprecation
-export { Http, httpIntegration } from './integrations/http';
-
-// TODO(v8): Remove all of these exports. They were part of a hotfix #10339 where we produced wrong .d.ts files because we were packing packages inside the /build folder.
-export type { LocalVariablesIntegrationOptions } from './integrations/local-variables/common';
-export type { DebugSession } from './integrations/local-variables/local-variables-sync';
-export type { AnrIntegrationOptions } from './integrations/anr/common';
-// ---
-
-export { Handlers };
-
-export { hapiErrorPlugin } from './integrations/hapi';
-
-import { instrumentCron } from './cron/cron';
-import { instrumentNodeCron } from './cron/node-cron';
-import { instrumentNodeSchedule } from './cron/node-schedule';
-
-/** Methods to instrument cron libraries for Sentry check-ins */
-export const cron = {
-  instrumentCron,
-  instrumentNodeCron,
-  instrumentNodeSchedule,
-};

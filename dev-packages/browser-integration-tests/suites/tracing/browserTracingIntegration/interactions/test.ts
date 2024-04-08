@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Event, SpanContext, SpanJSON } from '@sentry/types';
+import type { Contexts, Event, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -11,7 +11,7 @@ import {
 
 type TransactionJSON = SpanJSON & {
   spans: SpanJSON[];
-  contexts: SpanContext;
+  contexts: Contexts;
   platform: string;
   type: string;
 };
@@ -110,5 +110,37 @@ sentryTest(
     const interactionSpan = eventData.spans![0];
     expect(interactionSpan.op).toBe('ui.interaction.click');
     expect(interactionSpan.description).toBe('body > AnnotatedButton');
+  },
+);
+
+sentryTest(
+  'should use the element name for a clicked element when no component name',
+  async ({ browserName, getLocalTestPath, page }) => {
+    const supportedBrowsers = ['chromium', 'firefox'];
+
+    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+      sentryTest.skip();
+    }
+
+    await page.route('**/path/to/script.js', (route: Route) =>
+      route.fulfill({ path: `${__dirname}/assets/script.js` }),
+    );
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    await page.goto(url);
+    await getFirstSentryEnvelopeRequest<Event>(page);
+
+    await page.locator('[data-test-id=styled-button]').click();
+
+    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    expect(envelopes).toHaveLength(1);
+    const eventData = envelopes[0];
+
+    expect(eventData.spans).toHaveLength(1);
+
+    const interactionSpan = eventData.spans![0];
+    expect(interactionSpan.op).toBe('ui.interaction.click');
+    expect(interactionSpan.description).toBe('body > StyledButton');
   },
 );

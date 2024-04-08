@@ -30,3 +30,21 @@ it('records only included attributes', function () {
     }),
   ).toEqual({});
 });
+
+it('records data-sentry-element as data-sentry-component when appropriate', function () {
+  expect(
+    getAttributesToRecord({
+      ['data-sentry-component']: 'component',
+      ['data-sentry-element']: 'element',
+    }),
+  ).toEqual({
+    ['data-sentry-component']: 'component',
+  });
+  expect(
+    getAttributesToRecord({
+      ['data-sentry-element']: 'element',
+    }),
+  ).toEqual({
+    ['data-sentry-component']: 'element',
+  });
+});

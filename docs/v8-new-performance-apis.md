@@ -47,10 +47,10 @@ There are three key APIs available to start spans:
 - `startSpanManual()`
 - `startInactiveSpan()`
 
-All three span APIs take a `SpanContext` as a first argument, which has the following shape:
+All three span APIs take `StartSpanOptions` as a first argument, which has the following shape:
 
 ```ts
-interface SpanContext {
+interface StartSpanOptions {
   // The only required field - the name of the span
   name: string;
   attributes?: SpanAttributes;

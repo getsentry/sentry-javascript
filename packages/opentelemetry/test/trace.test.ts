@@ -18,12 +18,14 @@ import {
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
-import { getSamplingDecision, makeTraceState } from '../src/propagator';
+import { makeTraceState } from '../src/propagator';
 
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
 import { getActiveSpan } from '../src/utils/getActiveSpan';
+import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { getSpanKind } from '../src/utils/getSpanKind';
 import { spanHasAttributes, spanHasName } from '../src/utils/spanTypes';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
@@ -947,9 +949,13 @@ describe('trace', () => {
         expect(span).toBeDefined();
         expect(spanToJSON(span).trace_id).toEqual(propagationContext.traceId);
         expect(spanToJSON(span).parent_span_id).toEqual(propagationContext.spanId);
-        expect(getDynamicSamplingContextFromSpan(span)).toEqual(
-          getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
-        );
+
+        expect(getDynamicSamplingContextFromSpan(span)).toEqual({
+          ...getDynamicSamplingContextFromClient(propagationContext.traceId, getClient()!),
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        });
       });
     });
 
@@ -1350,6 +1356,76 @@ describe('trace (sampling)', () => {
         parentSampled: true,
       },
     });
+  });
+});
+
+describe('HTTP methods (sampling)', () => {
+  beforeEach(() => {
+    mockSdkInit({ enableTracing: true });
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+  });
+
+  it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
+    const spanGET = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'GET' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanGET)).toBe(true);
+    expect(getSamplingDecision(spanGET.spanContext())).toBe(true);
+
+    const spanPOST = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'POST' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanPOST)).toBe(true);
+    expect(getSamplingDecision(spanPOST.spanContext())).toBe(true);
+
+    const spanPUT = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'PUT' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanPUT)).toBe(true);
+    expect(getSamplingDecision(spanPUT.spanContext())).toBe(true);
+
+    const spanDELETE = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'DELETE' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanDELETE)).toBe(true);
+    expect(getSamplingDecision(spanDELETE.spanContext())).toBe(true);
+  });
+
+  it('does not sample when HTTP method is OPTIONS', () => {
+    const span = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'OPTIONS' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(span)).toBe(false);
+    expect(getSamplingDecision(span.spanContext())).toBe(false);
+  });
+
+  it('does not sample when HTTP method is HEAD', () => {
+    const span = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'HEAD' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(span)).toBe(false);
+    expect(getSamplingDecision(span.spanContext())).toBe(false);
   });
 });
 

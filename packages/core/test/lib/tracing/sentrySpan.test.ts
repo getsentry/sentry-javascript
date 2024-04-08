@@ -1,13 +1,7 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
-  spanIsSampled,
-  spanToJSON,
-  spanToTraceContext,
-} from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
 describe('SentrySpan', () => {
   describe('name', () => {
@@ -23,17 +17,6 @@ describe('SentrySpan', () => {
       span.updateName('new name');
 
       expect(spanToJSON(span).description).toEqual('new name');
-    });
-  });
-
-  describe('new SentrySpan', () => {
-    test('simple', () => {
-      const span = new SentrySpan({ sampled: true });
-      // eslint-disable-next-line deprecation/deprecation
-      const span2 = span.startChild();
-      expect(spanToJSON(span2).parent_span_id).toBe(span.spanContext().spanId);
-      expect(span.spanContext().traceId).toBe(span.spanContext().traceId);
-      expect(spanIsSampled(span2)).toBe(spanIsSampled(span));
     });
   });
 
@@ -349,70 +332,6 @@ describe('SentrySpan', () => {
         traceId: span['_traceId'],
         traceFlags: TRACE_FLAG_NONE,
       });
-    });
-  });
-
-  // Ensure that attributes & data are merged together
-  describe('_getData', () => {
-    it('works without data & attributes', () => {
-      const span = new SentrySpan();
-
-      expect(span['_getData']()).toEqual({
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-    });
-
-    it('works with data only', () => {
-      const span = new SentrySpan();
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('foo', 'bar');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'bar',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      expect(span['_getData']()).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        ...span.data,
-        'sentry.origin': 'manual',
-      });
-    });
-
-    it('works with attributes only', () => {
-      const span = new SentrySpan();
-      span.setAttribute('foo', 'bar');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'bar',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).toBe(span.attributes);
-    });
-
-    it('merges data & attributes', () => {
-      const span = new SentrySpan();
-      span.setAttribute('foo', 'foo');
-      span.setAttribute('bar', 'bar');
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('foo', 'foo2');
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('baz', 'baz');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'foo',
-        bar: 'bar',
-        baz: 'baz',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).not.toBe(span.attributes);
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).not.toBe(span.data);
     });
   });
 });

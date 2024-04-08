@@ -1,5 +1,5 @@
 import { Page } from '@playwright/test';
-import { waitForTransaction } from './event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 /**
  * Helper function that waits for the initial pageload to complete.
@@ -18,7 +18,7 @@ import { waitForTransaction } from './event-proxy-server';
  */
 export async function waitForInitialPageload(
   page: Page,
-  opts?: { route?: string; parameterizedRoute?: string; debug: boolean },
+  opts?: { route?: string; parameterizedRoute?: string; debug?: boolean },
 ) {
   const route = opts?.route ?? '/';
   const txnName = opts?.parameterizedRoute ?? route;

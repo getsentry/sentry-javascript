@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Will capture error for SSR rendering error with a connected trace (Class Component)', async ({ page }) => {
   const errorEventPromise = waitForError('nextjs-13-app-dir', errorEvent => {

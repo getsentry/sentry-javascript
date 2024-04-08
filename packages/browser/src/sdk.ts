@@ -32,6 +32,10 @@ import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
+  /**
+   * Note: Please make sure this stays in sync with Angular SDK, which re-exports
+   * `getDefaultIntegrations` but with an adjusted set of integrations.
+   */
   return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),

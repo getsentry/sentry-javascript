@@ -1,12 +1,15 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should add an empty breadcrumb, when an empty object is given', async () => {
-  const env = await TestEnv.init(__dirname);
-  const envelope = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  expect(envelope).toHaveLength(3);
-
-  assertSentryEvent(envelope[2], {
-    message: 'test-empty-obj',
-  });
+test('should add an empty breadcrumb, when an empty object is given', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'test-empty-obj',
+      },
+    })
+    .start(done);
 });

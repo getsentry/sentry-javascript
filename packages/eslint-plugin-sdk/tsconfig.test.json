@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "include": ["test/**/*", "vite.config.ts"],
+
+  "compilerOptions": {
+    "allowJs": true,
+    // should include all types from `./tsconfig.json` plus types for all test frameworks used
+    "types": []
+
+    // other package-specific, test-specific options
+  }
+}

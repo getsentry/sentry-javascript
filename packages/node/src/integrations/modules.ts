@@ -1,11 +1,30 @@
 import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
-import { convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
-import type { Event, Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
+import { defineIntegration } from '@sentry/core';
+import type { IntegrationFn } from '@sentry/types';
 
 let moduleCache: { [key: string]: string };
 
 const INTEGRATION_NAME = 'Modules';
+
+const _modulesIntegration = (() => {
+  return {
+    name: INTEGRATION_NAME,
+    processEvent(event) {
+      event.modules = {
+        ...event.modules,
+        ..._getModules(),
+      };
+
+      return event;
+    },
+  };
+}) satisfies IntegrationFn;
+
+/**
+ * Add node modules / packages to the event.
+ */
+export const modulesIntegration = defineIntegration(_modulesIntegration);
 
 /** Extract information about paths */
 function getPaths(): string[] {
@@ -75,31 +94,3 @@ function _getModules(): { [key: string]: string } {
   }
   return moduleCache;
 }
-
-const _modulesIntegration = (() => {
-  return {
-    name: INTEGRATION_NAME,
-    processEvent(event) {
-      event.modules = {
-        ...event.modules,
-        ..._getModules(),
-      };
-
-      return event;
-    },
-  };
-}) satisfies IntegrationFn;
-
-export const modulesIntegration = defineIntegration(_modulesIntegration);
-
-/**
- * Add node modules / packages to the event.
- * @deprecated Use `modulesIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const Modules = convertIntegrationFnToClass(INTEGRATION_NAME, modulesIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event) => Event }
->;
-
-// eslint-disable-next-line deprecation/deprecation
-export type Modules = typeof Modules;

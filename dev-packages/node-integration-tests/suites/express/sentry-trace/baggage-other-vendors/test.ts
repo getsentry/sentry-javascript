@@ -17,7 +17,7 @@ test('should merge `baggage` header of a third party vendor with the Sentry DSC 
   expect(response).toMatchObject({
     test_data: {
       host: 'somewhere.not.sentry',
-      baggage: ['other=vendor,foo=bar,third=party', 'sentry-release=2.0.0,sentry-environment=myEnv'],
+      baggage: 'other=vendor,foo=bar,third=party,sentry-release=2.0.0,sentry-environment=myEnv',
     },
   });
 });

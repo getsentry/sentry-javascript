@@ -1,6 +1,6 @@
 import type { Primitive } from '@sentry/types';
 
-import { isNaN, isSyntheticEvent, isVueViewModel } from './is';
+import { isSyntheticEvent, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';
 import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
@@ -81,7 +81,7 @@ function visit(
   // Get the simple cases out of the way first
   if (
     value == null || // this matches null and undefined -> eqeq not eqeqeq
-    (['number', 'boolean', 'string'].includes(typeof value) && !isNaN(value))
+    (['number', 'boolean', 'string'].includes(typeof value) && !Number.isNaN(value))
   ) {
     return value as Primitive;
   }

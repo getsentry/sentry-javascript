@@ -4,36 +4,28 @@
   </a>
 </p>
 
-# Legacy Sentry SDK for NodeJS
+# Official Sentry SDK for Node
 
-[![npm version](https://img.shields.io/npm/v/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
-[![npm dm](https://img.shields.io/npm/dm/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
-[![npm dt](https://img.shields.io/npm/dt/@sentry/node-experimental.svg)](https://www.npmjs.com/package/@sentry/node-experimental)
+[![npm version](https://img.shields.io/npm/v/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm dm](https://img.shields.io/npm/dm/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
+[![npm dt](https://img.shields.io/npm/dt/@sentry/node.svg)](https://www.npmjs.com/package/@sentry/node)
 
-## Links
+## Installation
 
-- [Official SDK Docs](https://docs.sentry.io/quickstart/)
-- [TypeDoc](http://getsentry.github.io/sentry-javascript/)
+```bash
+npm install @sentry/node
 
-## Status
-
-Since v8, this is the _legacy_ SDK, and it will most likely be completely removed before v8 is fully stable. It only
-exists so that Meta-SDKs like `@sentry/nextjs` or `@sentry/sveltekit` can be migrated to the new `@sentry/node`
-step-by-step.
-
-You should instead use [@sentry/node](./../node-experimental/).
+# Or yarn
+yarn add @sentry/node
+```
 
 ## Usage
 
-To use this SDK, call `init(options)` as early as possible in the main entry module. This will initialize the SDK and
-hook into the environment. Note that you can turn off almost all side effects using the respective options. Minimum
-supported Node version is Node 14.
-
-```javascript
-// CJS syntax
-const Sentry = require('@sentry/node-experimental');
-// ESM syntax
-import * as Sentry from '@sentry/node-experimental';
+```js
+// CJS Syntax
+const Sentry = require('@sentry/node');
+// ESM Syntax
+import * as Sentry from '@sentry/node';
 
 Sentry.init({
   dsn: '__DSN__',
@@ -41,28 +33,27 @@ Sentry.init({
 });
 ```
 
-To set context information or send manual events, use the exported functions of `@sentry/node-experimental`. Note that
-these functions will not perform any action before you have called `init()`:
+Note that it is necessary to initialize Sentry **before you import any package that may be instrumented by us**.
 
-```javascript
-// Set user information, as well as tags and further extras
-Sentry.setExtra('battery', 0.7);
-Sentry.setTag('user_mode', 'admin');
-Sentry.setUser({ id: '4711' });
+[More information on how to set up Sentry for Node in v8.](https://github.com/getsentry/sentry-javascript/blob/develop/docs/v8-node.md)
 
-// Add a breadcrumb for future events
-Sentry.addBreadcrumb({
-  message: 'My Breadcrumb',
-  // ...
-});
+### ESM Support
 
-// Capture exceptions, messages or manual events
-Sentry.captureMessage('Hello, world!');
-Sentry.captureException(new Error('Good bye'));
-Sentry.captureEvent({
-  message: 'Manual',
-  stacktrace: [
-    // ...
-  ],
-});
+Due to the way OpenTelemetry handles instrumentation, this only works out of the box for CommonJS (`require`)
+applications.
+
+There is experimental support for running OpenTelemetry with ESM (`"type": "module"`):
+
+```bash
+node --experimental-loader=@opentelemetry/instrumentation/hook.mjs ./app.js
 ```
+
+You'll need to install `@opentelemetry/instrumentation` in your app to ensure this works.
+
+See
+[OpenTelemetry Instrumentation Docs](https://github.com/open-telemetry/opentelemetry-js/tree/main/experimental/packages/opentelemetry-instrumentation#instrumentation-for-es-modules-in-nodejs-experimental)
+for details on this - but note that this is a) experimental, and b) does not work with all integrations.
+
+## Links
+
+- [Official SDK Docs](https://docs.sentry.io/quickstart/)

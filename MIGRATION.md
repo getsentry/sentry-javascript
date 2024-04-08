@@ -43,6 +43,8 @@ For IE11 support please transpile your code to ES5 using babel or similar and ad
 
 **Next.js**: The Next.js SDK now supports Next.js 13.2.0+
 
+**Express**: Complex router setups are only properly parametrized in Node 16+.
+
 ## 2. Package removal
 
 We've removed the following packages:
@@ -569,7 +571,7 @@ Sentry.getGlobalScope().addEventProcessor(event => {
 
 The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
 
-#### Remove `void` from transport return types
+#### Removal of `void` from transport return types
 
 The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in
 the promise. This means that the `void` return type is no longer allowed.
@@ -588,7 +590,7 @@ interface Transport {
 }
 ```
 
-#### Remove `addGlobalEventProcessor` in favor of `addEventProcessor`
+#### Removal of `addGlobalEventProcessor` in favor of `addEventProcessor`
 
 In v8, we are removing the `addGlobalEventProcessor` function in favor of `addEventProcessor`.
 
@@ -606,6 +608,23 @@ addEventProcessor(event => {
   delete event.extra;
   return event;
 });
+```
+
+#### Removal of `Sentry.Handlers.trpcMiddleware()` in favor of `Sentry.trpcMiddleware()`
+
+The Sentry tRPC middleware got moved from `Sentry.Handlers.trpcMiddleware()` to `Sentry.trpcMiddleware()`. Functionally
+they are the same:
+
+```js
+// v7
+import * as Sentry from '@sentry/node';
+Sentry.Handlers.trpcMiddleware();
+```
+
+```js
+// v8
+import * as Sentry from '@sentry/node';
+Sentry.trpcMiddleware();
 ```
 
 ### Browser SDK (Browser, React, Vue, Angular, Ember, etc.)

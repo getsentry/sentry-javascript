@@ -29,6 +29,7 @@
     "zone.js": "~0.14.3"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@angular-devkit/build-angular": "^17.1.1",
     "@angular/cli": "^17.1.1",
     "@angular/compiler-cli": "^17.1.0",

@@ -11,17 +11,47 @@
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
-  "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "edge": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "edge-light": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "worker": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "workerd": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
+      "import": "./build/esm/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
+    },
+    "./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
     }
   },
   "typesVersions": {

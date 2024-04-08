@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server.js';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 import { waitForInitialPageload } from '../utils.js';
 
 test('sends a pageload transaction', async ({ page }) => {
@@ -26,8 +26,6 @@ test('sends a pageload transaction', async ({ page }) => {
 });
 
 test('captures a distributed pageload trace', async ({ page }) => {
-  await page.goto('/users/123xyz');
-
   const clientTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
     return txnEvent?.transaction === '/users/[id]';
   });
@@ -35,6 +33,8 @@ test('captures a distributed pageload trace', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
     return txnEvent?.transaction === 'GET /users/[id]';
   });
+
+  await page.goto('/users/123xyz');
 
   const [clientTxnEvent, serverTxnEvent] = await Promise.all([clientTxnEventPromise, serverTxnEventPromise]);
 
@@ -71,8 +71,6 @@ test('captures a distributed pageload trace', async ({ page }) => {
 });
 
 test('captures a distributed navigation trace', async ({ page }) => {
-  await waitForInitialPageload(page);
-
   const clientNavigationTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
     return txnEvent?.transaction === '/users/[id]';
   });
@@ -80,6 +78,8 @@ test('captures a distributed navigation trace', async ({ page }) => {
   const serverTxnEventPromise = waitForTransaction('sveltekit', txnEvent => {
     return txnEvent?.transaction === 'GET /users/[id]';
   });
+
+  await waitForInitialPageload(page);
 
   // navigation to page
   const clickPromise = page.getByText('Route with Params').click();

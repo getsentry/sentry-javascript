@@ -1,39 +1,33 @@
-import path from 'path';
-import nock from 'nock';
+import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-import { TestEnv } from '../../../utils';
+afterEach(() => {
+  cleanupChildProcesses();
+});
 
 test('should aggregate successful sessions', async () => {
-  const env = await TestEnv.init(__dirname, `${path.resolve(__dirname, '..')}/server.ts`);
-
-  const envelope = await Promise.race([
-    env.getEnvelopeRequest({ url: `${env.url}/success`, endServer: false, envelopeType: 'sessions' }),
-    env.getEnvelopeRequest({ url: `${env.url}/success_next`, endServer: false, envelopeType: 'sessions' }),
-    env.getEnvelopeRequest({ url: `${env.url}/success_slow`, endServer: false, envelopeType: 'sessions' }),
-  ]);
-
-  nock.cleanAll();
-  env.server.close();
-
-  expect(envelope).toHaveLength(3);
-  expect(envelope[0]).toMatchObject({
-    sent_at: expect.any(String),
-    sdk: {
-      name: 'sentry.javascript.node',
-      version: expect.any(String),
-    },
+  let _done: undefined | (() => void);
+  const promise = new Promise<void>(resolve => {
+    _done = resolve;
   });
 
-  expect(envelope[1]).toMatchObject({
-    type: 'sessions',
-  });
-
-  expect(envelope[2]).toMatchObject({
-    aggregates: [
-      {
-        started: expect.any(String),
-        exited: 3,
+  const runner = createRunner(__dirname, 'server.ts')
+    .ignore('transaction', 'event', 'session')
+    .expectError()
+    .expect({
+      sessions: {
+        aggregates: [
+          {
+            started: expect.any(String),
+            exited: 3,
+          },
+        ],
       },
-    ],
-  });
+    })
+    .start(_done);
+
+  runner.makeRequest('get', '/success');
+  runner.makeRequest('get', '/success_next');
+  runner.makeRequest('get', '/success_slow');
+
+  await promise;
 });

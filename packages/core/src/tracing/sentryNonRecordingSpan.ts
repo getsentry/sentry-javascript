@@ -1,8 +1,8 @@
 import type {
+  SentrySpanArguments,
   Span,
   SpanAttributeValue,
   SpanAttributes,
-  SpanContext,
   SpanContextData,
   SpanStatus,
   SpanTimeInput,
@@ -17,7 +17,7 @@ export class SentryNonRecordingSpan implements Span {
   private _traceId: string;
   private _spanId: string;
 
-  public constructor(spanContext: SpanContext = {}) {
+  public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
   }
@@ -58,5 +58,14 @@ export class SentryNonRecordingSpan implements Span {
   /** @inheritdoc */
   public isRecording(): boolean {
     return false;
+  }
+
+  /** @inheritdoc */
+  public addEvent(
+    _name: string,
+    _attributesOrStartTime?: SpanAttributes | SpanTimeInput,
+    _startTime?: SpanTimeInput,
+  ): this {
+    return this;
   }
 }

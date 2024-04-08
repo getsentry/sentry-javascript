@@ -1,8 +1,7 @@
 import { isString } from './is';
-import { getGlobalObject } from './worldwide';
+import { GLOBAL_OBJ } from './worldwide';
 
-// eslint-disable-next-line deprecation/deprecation
-const WINDOW = getGlobalObject<Window>();
+const WINDOW = GLOBAL_OBJ as unknown as Window;
 
 const DEFAULT_MAX_STRING_LENGTH = 80;
 
@@ -89,8 +88,13 @@ function _htmlElementAsString(el: unknown, keyAttrs?: string[]): string {
   // @ts-expect-error WINDOW has HTMLElement
   if (WINDOW.HTMLElement) {
     // If using the component name annotation plugin, this value may be available on the DOM node
-    if (elem instanceof HTMLElement && elem.dataset && elem.dataset['sentryComponent']) {
-      return elem.dataset['sentryComponent'];
+    if (elem instanceof HTMLElement && elem.dataset) {
+      if (elem.dataset['sentryComponent']) {
+        return elem.dataset['sentryComponent'];
+      }
+      if (elem.dataset['sentryElement']) {
+        return elem.dataset['sentryElement'];
+      }
     }
   }
 
@@ -167,8 +171,8 @@ export function getDomElement<E = any>(selector: string): E | null {
 
 /**
  * Given a DOM element, traverses up the tree until it finds the first ancestor node
- * that has the `data-sentry-component` attribute. This attribute is added at build-time
- * by projects that have the component name annotation plugin installed.
+ * that has the `data-sentry-component` or `data-sentry-element` attribute with `data-sentry-component` taking
+ * precendence. This attribute is added at build-time by projects that have the component name annotation plugin installed.
  *
  * @returns a string representation of the component for the provided DOM element, or `null` if not found
  */
@@ -185,8 +189,13 @@ export function getComponentName(elem: unknown): string | null {
       return null;
     }
 
-    if (currentElem instanceof HTMLElement && currentElem.dataset['sentryComponent']) {
-      return currentElem.dataset['sentryComponent'];
+    if (currentElem instanceof HTMLElement) {
+      if (currentElem.dataset['sentryComponent']) {
+        return currentElem.dataset['sentryComponent'];
+      }
+      if (currentElem.dataset['sentryElement']) {
+        return currentElem.dataset['sentryElement'];
+      }
     }
 
     currentElem = currentElem.parentNode;

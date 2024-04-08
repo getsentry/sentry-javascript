@@ -26,9 +26,10 @@
     "wait-port": "1.0.4"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@sentry-internal/feedback": "latest || *",
     "@sentry-internal/replay-canvas": "latest || *",
-    "@sentry-internal/tracing": "latest || *",
+    "@sentry-internal/browser-utils": "latest || *",
     "@sentry/browser": "latest || *",
     "@sentry/core": "latest || *",
     "@sentry/nextjs": "latest || *",

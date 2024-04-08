@@ -116,7 +116,7 @@ export interface SpanContextData {
   spanId: string;
 
   /**
-   * Only true if the SpanContext was propagated from a remote parent.
+   * Only true if the SentrySpanArguments was propagated from a remote parent.
    */
   isRemote?: boolean | undefined;
 
@@ -138,7 +138,7 @@ export interface SpanContextData {
  * Interface holding all properties that can be set on a Span on creation.
  * This is only used for the legacy span/transaction creation and will go away in v8.
  */
-export interface SpanContext {
+export interface SentrySpanArguments {
   /**
    * Human-readable identifier for the span.
    */
@@ -168,12 +168,6 @@ export interface SpanContext {
    * Trace ID
    */
   traceId?: string | undefined;
-
-  /**
-   * Data of the Span.
-   * @deprecated Pass `attributes` instead.
-   */
-  data?: { [key: string]: any };
 
   /**
    * Attributes of the Span.
@@ -233,4 +227,9 @@ export interface Span {
    * This will return false if tracing is disabled, this span was not sampled or if the span is already finished.
    */
   isRecording(): boolean;
+
+  /**
+   * Adds an event to the Span.
+   */
+  addEvent(name: string, attributesOrStartTime?: SpanAttributes | SpanTimeInput, startTime?: SpanTimeInput): this;
 }
