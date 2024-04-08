@@ -14,7 +14,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, StartSpanOptions, TransactionArguments } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -53,7 +53,6 @@ let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
 
-let _customStartTransaction: ((context: TransactionArguments) => Span | undefined) | undefined;
 let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
@@ -84,18 +83,13 @@ export function startPageloadSpan(): void {
     },
   };
 
-  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
-  if (!_customStartTransaction) {
-    const client = getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
-    if (!client) {
-      return;
-    }
-
-    startBrowserTracingPageLoadSpan(client, spanContext);
-  } else {
-    _customStartTransaction(spanContext);
+  if (!client) {
+    return;
   }
+
+  startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[]): void {
@@ -108,18 +102,13 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     },
   };
 
-  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
-  if (!_customStartTransaction) {
-    const client = getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
-    if (!client) {
-      return;
-    }
-
-    startBrowserTracingNavigationSpan(client, spanContext);
-  } else {
-    _customStartTransaction(spanContext);
+  if (!client) {
+    return;
   }
+
+  startBrowserTracingNavigationSpan(client, spanContext);
 }
 
 /**
@@ -219,17 +208,14 @@ export function setGlobals({
   useLocation,
   useMatches,
   instrumentNavigation,
-  customStartTransaction,
 }: {
   useEffect?: UseEffect;
   useLocation?: UseLocation;
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
-  customStartTransaction?: (context: TransactionArguments) => Span | undefined;
 }): void {
   _useEffect = useEffect;
   _useLocation = useLocation;
   _useMatches = useMatches;
   _instrumentNavigation = instrumentNavigation;
-  _customStartTransaction = customStartTransaction;
 }

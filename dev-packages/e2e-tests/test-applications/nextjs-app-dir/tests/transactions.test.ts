@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 import axios, { AxiosError } from 'axios';
-import { waitForTransaction } from '../event-proxy-server';
 
 const packageJson = require('../package.json');
 

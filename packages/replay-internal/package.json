@@ -76,7 +76,7 @@
     "jsdom-worker": "^0.2.1"
   },
   "dependencies": {
-    "@sentry-internal/tracing": "8.0.0-alpha.7",
+    "@sentry-internal/browser-utils": "8.0.0-alpha.7",
     "@sentry/core": "8.0.0-alpha.7",
     "@sentry/types": "8.0.0-alpha.7",
     "@sentry/utils": "8.0.0-alpha.7"

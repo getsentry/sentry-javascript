@@ -1,28 +1,5 @@
 import type { ExtractedNodeRequestData, WorkerLocation } from './misc';
-import type { SentrySpanArguments, Span } from './span';
-
-/**
- * Interface holding Transaction-specific properties
- */
-export interface TransactionArguments extends SentrySpanArguments {
-  /**
-   * Human-readable identifier for the transaction
-   */
-  name: string;
-
-  /**
-   * If true, sets the end timestamp of the transaction to the highest timestamp of child spans, trimming
-   * the duration of the transaction. This is useful to discard extra time in the transaction that is not
-   * accounted for in child spans, like what happens in the idle transaction Tracing integration, where we finish the
-   * transaction after a given "idle time" and we don't want this "idle time" to be part of the transaction.
-   */
-  trimEnd?: boolean | undefined;
-
-  /**
-   * If this transaction has a parent, the parent's sampling decision
-   */
-  parentSampled?: boolean | undefined;
-}
+import type { SpanAttributes } from './span';
 
 /**
  * Data pulled from a `sentry-trace` header
@@ -45,11 +22,6 @@ export interface TraceparentData {
 }
 
 /**
- * Transaction "Class", inherits Span only has `setName`
- */
-export interface Transaction extends Omit<TransactionArguments, 'name' | 'op' | 'spanId' | 'traceId'>, Span {}
-
-/**
  * Context data passed by the user when starting a transaction, to be used by the tracesSampler method.
  */
 export interface CustomSamplingContext {
@@ -63,9 +35,13 @@ export interface CustomSamplingContext {
  */
 export interface SamplingContext extends CustomSamplingContext {
   /**
-   * Context data with which transaction being sampled was created
+   * Context data with which transaction being sampled was created.
+   * @deprecated This is duplicate data and will be removed eventually.
    */
-  transactionContext: TransactionArguments;
+  transactionContext: {
+    name: string;
+    parentSampled?: boolean | undefined;
+  };
 
   /**
    * Sampling decision from the parent transaction, if any.
@@ -82,6 +58,12 @@ export interface SamplingContext extends CustomSamplingContext {
    * Object representing the incoming request to a node server. Passed by default when using the TracingHandler.
    */
   request?: ExtractedNodeRequestData;
+
+  /** The name of the span being sampled. */
+  name: string;
+
+  /** Initial attributes that have been passed to the span being sampled. */
+  attributes?: SpanAttributes;
 }
 
 /**

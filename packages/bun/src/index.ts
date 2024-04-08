@@ -13,7 +13,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
@@ -98,6 +97,8 @@ export {
   setupExpressErrorHandler,
   fastifyIntegration,
   setupFastifyErrorHandler,
+  koaIntegration,
+  setupKoaErrorHandler,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,

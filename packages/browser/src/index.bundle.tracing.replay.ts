@@ -1,10 +1,10 @@
-import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
-import { replayIntegration } from '@sentry-internal/replay';
 import {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/tracing';
+} from '@sentry-internal/browser-utils';
+import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
+import { replayIntegration } from '@sentry-internal/replay';
 import { addTracingExtensions } from '@sentry/core';
 
 // We are patching the global object with our hub extension methods

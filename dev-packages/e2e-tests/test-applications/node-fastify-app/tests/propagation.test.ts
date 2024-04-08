@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 import { SpanJSON } from '@sentry/types';
 import axios from 'axios';
-import { waitForTransaction } from '../event-proxy-server';
 
 test('Propagates trace for outgoing http requests', async ({ baseURL }) => {
   const id = crypto.randomUUID();
