@@ -4,7 +4,7 @@ import { waitForInitialPageload } from './utils';
 
 test.describe('client-side errors', () => {
   test('captures error thrown on click', async ({ page }) => {
-    await page.goto('/client-error');
+    await waitForInitialPageload(page, { route: '/client-error' });
 
     const errorEventPromise = waitForError('sveltekit-2', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Click Error';

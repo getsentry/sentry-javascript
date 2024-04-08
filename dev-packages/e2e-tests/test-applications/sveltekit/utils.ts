@@ -18,7 +18,7 @@ import { waitForTransaction } from '@sentry-internal/event-proxy-server';
  */
 export async function waitForInitialPageload(
   page: Page,
-  opts?: { route?: string; parameterizedRoute?: string; debug: boolean },
+  opts?: { route?: string; parameterizedRoute?: string; debug?: boolean },
 ) {
   const route = opts?.route ?? '/';
   const txnName = opts?.parameterizedRoute ?? route;
