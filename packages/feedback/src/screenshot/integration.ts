@@ -9,11 +9,11 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
     name: 'FeedbackScreenshot',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createInput: (h: typeof hType, dialog: FeedbackDialog) => {
+    createInput: (h: unknown, dialog: FeedbackDialog) => {
       const imageBuffer = DOCUMENT.createElement('canvas');
 
       return {
-        input: makeScreenshotEditorComponent({ h, imageBuffer, dialog }),
+        input: makeScreenshotEditorComponent({ h: h as typeof hType, imageBuffer, dialog }),
 
         value: async () => {
           const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {
