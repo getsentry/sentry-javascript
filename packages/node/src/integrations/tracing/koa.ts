@@ -1,6 +1,7 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
-import { captureException, defineIntegration } from '@sentry/core';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { captureException, defineIntegration, getCurrentScope, spanToJSON } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
 const _koaIntegration = (() => {
@@ -8,7 +9,20 @@ const _koaIntegration = (() => {
     name: 'Koa',
     setupOnce() {
       registerInstrumentations({
-        instrumentations: [new KoaInstrumentation()],
+        instrumentations: [
+          new KoaInstrumentation({
+            requestHook(span, info) {
+              if (span.isRecording() && info.layerType === 'router') {
+                const attributes = spanToJSON(span).data;
+                const route = attributes && attributes[SemanticAttributes.HTTP_ROUTE];
+                const method = info.context.request.method.toUpperCase() || 'GET';
+                if (route && method) {
+                  getCurrentScope().setTransactionName(`${method} ${route}`);
+                }
+              }
+            },
+          }),
+        ],
       });
     },
   };
