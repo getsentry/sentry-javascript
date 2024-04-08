@@ -22,6 +22,7 @@ export interface FeedbackInternalOptions
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
 
+type HTMLElement = unknown;
 export interface FeedbackDialog {
   /**
    * The HTMLElement that is containing all the form content
