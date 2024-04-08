@@ -1,8 +1,7 @@
 import { instrumentXHR } from '../../src/instrument/xhr';
 
-jest.mock('../../src/worldwide', () => {
-  const original = jest.requireActual('../../src/worldwide');
-
+jest.mock('@sentry/utils', () => {
+  const original = jest.requireActual('@sentry/utils');
   return {
     ...original,
     GLOBAL_OBJ: {

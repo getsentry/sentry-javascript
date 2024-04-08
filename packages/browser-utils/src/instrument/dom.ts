@@ -1,13 +1,7 @@
-// TODO(v8): Move everything in this file into the browser package. Nothing here is generic and we run risk of leaking browser types into non-browser packages.
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataDom } from '@sentry/types';
 
-import { uuid4 } from '../misc';
-import { addNonEnumerableProperty, fill } from '../object';
-import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
+import { addHandler, addNonEnumerableProperty, fill, maybeInstrument, triggerHandlers, uuid4 } from '@sentry/utils';
+import { WINDOW } from '../browser/types';
 
 type SentryWrappedTarget = HTMLElement & { _sentryId?: string };
 
@@ -25,14 +19,13 @@ type RemoveEventListener = (
 type InstrumentedElement = Element & {
   __sentry_instrumentation_handlers__?: {
     [key in 'click' | 'keypress']?: {
-      handler?: Function;
+      handler?: unknown;
       /** The number of custom listeners attached to this element */
       refCount: number;
     };
   };
 };
 
-const WINDOW = GLOBAL_OBJ as unknown as Window;
 const DEBOUNCE_DURATION = 1000;
 
 let debounceTimerID: number | undefined;
@@ -71,7 +64,7 @@ export function instrumentDOM(): void {
   // could potentially prevent the event from bubbling up to our global listeners. This way, our handler are still
   // guaranteed to fire at least once.)
   ['EventTarget', 'Node'].forEach((target: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const proto = (WINDOW as any)[target] && (WINDOW as any)[target].prototype;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, no-prototype-builtins
     if (!proto || !proto.hasOwnProperty || !proto.hasOwnProperty('addEventListener')) {

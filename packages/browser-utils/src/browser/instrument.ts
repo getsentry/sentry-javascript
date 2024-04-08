@@ -1,6 +1,6 @@
 import { getFunctionName, logger } from '@sentry/utils';
 
-import { DEBUG_BUILD } from '../common/debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 import { onCLS } from './web-vitals/getCLS';
 import { onFID } from './web-vitals/getFID';
 import { onLCP } from './web-vitals/getLCP';

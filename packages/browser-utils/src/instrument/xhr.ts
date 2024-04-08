@@ -1,17 +1,11 @@
-// TODO(v8): Move everything in this file into the browser package. Nothing here is generic and we run risk of leaking browser types into non-browser packages.
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
 
-import { isString } from '../is';
-import { fill } from '../object';
-import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
-
-const WINDOW = GLOBAL_OBJ as unknown as Window;
+import { addHandler, fill, isString, maybeInstrument, triggerHandlers } from '@sentry/utils';
+import { WINDOW } from '../browser/types';
 
 export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v3__';
+
+type WindowWithXhr = Window & { XMLHttpRequest?: typeof XMLHttpRequest };
 
 /**
  * Add an instrumentation handler for when an XHR request happens.
@@ -29,15 +23,14 @@ export function addXhrInstrumentationHandler(handler: (data: HandlerDataXhr) => 
 
 /** Exported only for tests. */
 export function instrumentXHR(): void {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  if (!(WINDOW as any).XMLHttpRequest) {
+  if (!(WINDOW as WindowWithXhr).XMLHttpRequest) {
     return;
   }
 
   const xhrproto = XMLHttpRequest.prototype;
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
+    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
       const startTimestamp = Date.now();
 
       // open() should always be called with two or more arguments
@@ -87,8 +80,8 @@ export function instrumentXHR(): void {
       };
 
       if ('onreadystatechange' in this && typeof this.onreadystatechange === 'function') {
-        fill(this, 'onreadystatechange', function (original: WrappedFunction): Function {
-          return function (this: SentryWrappedXMLHttpRequest, ...readyStateArgs: any[]): void {
+        fill(this, 'onreadystatechange', function (original: WrappedFunction) {
+          return function (this: SentryWrappedXMLHttpRequest, ...readyStateArgs: unknown[]): void {
             onreadystatechangeHandler();
             return original.apply(this, readyStateArgs);
           };
@@ -100,7 +93,7 @@ export function instrumentXHR(): void {
       // Intercepting `setRequestHeader` to access the request headers of XHR instance.
       // This will only work for user/library defined headers, not for the default/browser-assigned headers.
       // Request cookies are also unavailable for XHR, as `Cookie` header can't be defined by `setRequestHeader`.
-      fill(this, 'setRequestHeader', function (original: WrappedFunction): Function {
+      fill(this, 'setRequestHeader', function (original: WrappedFunction) {
         return function (this: SentryWrappedXMLHttpRequest, ...setRequestHeaderArgs: unknown[]): void {
           const [header, value] = setRequestHeaderArgs;
 
@@ -119,7 +112,7 @@ export function instrumentXHR(): void {
   });
 
   fill(xhrproto, 'send', function (originalSend: () => void): () => void {
-    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: any[]): void {
+    return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
       const sentryXhrData = this[SENTRY_XHR_DATA_KEY];
 
       if (!sentryXhrData) {

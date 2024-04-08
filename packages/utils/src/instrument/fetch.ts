@@ -4,7 +4,7 @@ import type { HandlerDataFetch } from '@sentry/types';
 import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
+import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 type FetchResource = string | { toString(): string } | { url: string };
 

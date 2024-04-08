@@ -34,7 +34,10 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
  */
 export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
   BrowserClientReplayOptions &
-  BrowserClientProfilingOptions;
+  BrowserClientProfilingOptions & {
+    /** If configured, this URL will be used as base URL for lazy loading integration. */
+    cdnBaseUrl?: string;
+  };
 
 /**
  * The Sentry Browser SDK Client.
