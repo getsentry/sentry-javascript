@@ -97,6 +97,8 @@ export {
   setupExpressErrorHandler,
   fastifyIntegration,
   setupFastifyErrorHandler,
+  koaIntegration,
+  setupKoaErrorHandler,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
@@ -111,6 +113,7 @@ export {
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
+  spanToTraceHeader,
   trpcMiddleware,
 } from '@sentry/node';
 

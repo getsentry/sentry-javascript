@@ -83,6 +83,7 @@ sentryTest(
     await page.goto(url);
 
     await page.locator('#annotated-input').pressSequentially('John', { delay: 1 });
+    await page.locator('#annotated-input-2').pressSequentially('John', { delay: 1 });
 
     await page.evaluate('Sentry.captureException("test exception")');
     const eventData = await promise;
@@ -94,6 +95,12 @@ sentryTest(
         category: 'ui.input',
         message: 'body > AnnotatedInput',
         data: { 'ui.component_name': 'AnnotatedInput' },
+      },
+      {
+        timestamp: expect.any(Number),
+        category: 'ui.input',
+        message: 'body > StyledInput',
+        data: { 'ui.component_name': 'StyledInput' },
       },
     ]);
   },

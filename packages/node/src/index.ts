@@ -21,6 +21,7 @@ export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/n
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
+export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
 export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
@@ -101,6 +102,7 @@ export {
   withActiveSpan,
   getRootSpan,
   spanToJSON,
+  spanToTraceHeader,
   trpcMiddleware,
 } from '@sentry/core';
 

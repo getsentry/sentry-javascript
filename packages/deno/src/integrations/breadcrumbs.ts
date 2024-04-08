@@ -1,6 +1,13 @@
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
-import type { Client, Event as SentryEvent, HandlerDataConsole, HandlerDataFetch, IntegrationFn } from '@sentry/types';
-import type { FetchBreadcrumbData, FetchBreadcrumbHint } from '@sentry/types/build/types/breadcrumb';
+import type {
+  Client,
+  Event as SentryEvent,
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
+  HandlerDataConsole,
+  HandlerDataFetch,
+  IntegrationFn,
+} from '@sentry/types';
 import {
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,

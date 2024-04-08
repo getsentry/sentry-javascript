@@ -8,7 +8,6 @@ import {
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
-  withIsolationScope,
 } from '@sentry/core';
 import { winterCGHeadersToDict } from '@sentry/utils';
 
@@ -16,6 +15,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavi
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 /**
  * Wraps a Next.js route handler with performance and error instrumentation.
@@ -29,7 +29,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   const { method, parameterizedRoute, headers } = context;
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return withIsolationScope(async isolationScope => {
+      return withIsolationScopeOrReuseFromRootSpan(async isolationScope => {
         isolationScope.setSDKProcessingMetadata({
           request: {
             headers: headers ? winterCGHeadersToDict(headers) : undefined,

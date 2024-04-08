@@ -1,4 +1,4 @@
-import * as SentryUtils from '@sentry/utils';
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 
 import { WINDOW } from '../../src/constants';
 import type { Replay } from '../../src/integration';
@@ -27,7 +27,7 @@ describe('Integration | stop', () => {
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    mockAddDomInstrumentationHandler = jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler');
+    mockAddDomInstrumentationHandler = jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler');
 
     ({ replay, integration } = await mockSdk());
 

@@ -1,5 +1,11 @@
 import { getClient } from '@sentry/core';
-import type { Integration, IntegrationFn } from '@sentry/types';
+import type {
+  FeedbackDialog,
+  FeedbackInternalOptions,
+  FeedbackModalIntegration,
+  FeedbackScreenshotIntegration,
+  IntegrationFn,
+} from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -18,33 +24,15 @@ import {
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
 import { feedbackModalIntegration } from '../modal/integration';
-import type { IFeedbackModalIntegration } from '../modal/integration';
-import type { IFeedbackScreenshotIntegration } from '../screenshot/integration';
-import type {
-  Dialog,
-  FeedbackInternalOptions,
-  OptionalFeedbackConfiguration,
-  OverrideFeedbackConfiguration,
-} from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
+import type { OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from './types';
 
 type Unsubscribe = () => void;
-
-interface PublicFeedbackIntegration {
-  attachTo: (el: Element | string, optionOverrides: OverrideFeedbackConfiguration) => () => void;
-  createWidget: (optionOverrides: OverrideFeedbackConfiguration & { shouldCreateActor?: boolean }) => Promise<Dialog>;
-  getWidget: () => Dialog | null;
-  remove: () => void;
-  openDialog: () => void;
-  closeDialog: () => void;
-  removeWidget: () => void;
-}
-export type IFeedbackIntegration = Integration & PublicFeedbackIntegration;
 
 /**
  * Allow users to capture user feedback and send it to Sentry.
@@ -149,14 +137,14 @@ export const feedbackIntegration = (({
     return _shadow as ShadowRoot;
   };
 
-  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<Dialog> => {
+  const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
     const client = getClient(); // TODO: getClient<BrowserClient>()
     if (!client) {
       throw new Error('Sentry Client is not initialized correctly');
     }
-    const modalIntegration: IFeedbackModalIntegration = feedbackModalIntegration();
+    const modalIntegration: FeedbackModalIntegration = feedbackModalIntegration();
     client.addIntegration(modalIntegration);
-    const screenshotIntegration: IFeedbackScreenshotIntegration = client.getIntegrationByName('FeedbackScreenshot');
+    const screenshotIntegration = client.getIntegrationByName<FeedbackScreenshotIntegration>('FeedbackScreenshot');
     const screenshotIsSupported = isScreenshotSupported();
 
     // START TEMP: Error messages
@@ -198,7 +186,7 @@ export const feedbackIntegration = (({
       throw new Error('Unable to attach to target element');
     }
 
-    let dialog: Dialog | null = null;
+    let dialog: FeedbackDialog | null = null;
     const handleClick = async (): Promise<void> => {
       if (!dialog) {
         dialog = await _loadAndRenderDialog({
@@ -266,7 +254,7 @@ export const feedbackIntegration = (({
     /**
      * Creates a new widget. Accepts partial options to override any options passed to constructor.
      */
-    async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<Dialog> {
+    async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
       return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
     },
 
