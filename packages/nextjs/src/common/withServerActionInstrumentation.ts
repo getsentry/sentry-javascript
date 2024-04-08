@@ -6,7 +6,6 @@ import {
   getClient,
   handleCallbackErrors,
   startSpan,
-  withIsolationScope,
 } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
@@ -14,6 +13,7 @@ import { DEBUG_BUILD } from './debug-build';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 interface Options {
   formData?: FormData;
@@ -58,7 +58,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
   callback: A,
 ): Promise<ReturnType<A>> {
   addTracingExtensions();
-  return withIsolationScope(isolationScope => {
+  return withIsolationScopeOrReuseFromRootSpan(isolationScope => {
     const sendDefaultPii = getClient()?.getOptions().sendDefaultPii;
 
     let sentryTraceHeader;

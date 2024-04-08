@@ -1,12 +1,12 @@
-import type { ClientOptions, Scope, Span, SpanTimeInput, StartSpanOptions, TransactionArguments } from '@sentry/types';
+import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../asyncContext';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
-import { getAsyncContextStrategy, getCurrentHub } from '../hub';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE } from '../semanticAttributes';
+import { getAsyncContextStrategy } from '../hub';
+import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
@@ -17,12 +17,12 @@ import {
   spanTimeInputToSeconds,
   spanToJSON,
 } from '../utils/spanUtils';
-import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
-import type { SentrySpan } from './sentrySpan';
+import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
-import { Transaction } from './transaction';
 import { setCapturedScopesOnSpan } from './utils';
 
 /**
@@ -211,7 +211,7 @@ function createChildSpanOrTransaction({
   scope,
 }: {
   parentSpan: SentrySpan | undefined;
-  spanContext: TransactionArguments;
+  spanContext: SentrySpanArguments;
   forceTransaction?: boolean;
   scope: Scope;
 }): Span {
@@ -223,51 +223,50 @@ function createChildSpanOrTransaction({
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    // eslint-disable-next-line deprecation/deprecation
-    span = parentSpan.startChild(spanContext);
+    span = _startChildSpan(parentSpan, spanContext);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
     const dsc = getDynamicSamplingContextFromSpan(parentSpan);
     const { traceId, spanId: parentSpanId } = parentSpan.spanContext();
-    const sampled = spanIsSampled(parentSpan);
+    const parentSampled = spanIsSampled(parentSpan);
 
-    span = _startTransaction({
-      traceId,
-      parentSpanId,
-      parentSampled: sampled,
-      ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
+    span = _startRootSpan(
+      {
+        traceId,
+        parentSpanId,
+        ...spanContext,
       },
-    });
+      parentSampled,
+    );
+
+    freezeDscOnSpan(span, dsc);
   } else {
-    const { traceId, dsc, parentSpanId, sampled } = {
+    const {
+      traceId,
+      dsc,
+      parentSpanId,
+      sampled: parentSampled,
+    } = {
       ...isolationScope.getPropagationContext(),
       ...scope.getPropagationContext(),
     };
 
-    span = _startTransaction({
-      traceId,
-      parentSpanId,
-      parentSampled: sampled,
-      ...spanContext,
-      metadata: {
-        dynamicSamplingContext: dsc,
-        // eslint-disable-next-line deprecation/deprecation
-        ...spanContext.metadata,
+    span = _startRootSpan(
+      {
+        traceId,
+        parentSpanId,
+        ...spanContext,
       },
-    });
+      parentSampled,
+    );
+
+    if (dsc) {
+      freezeDscOnSpan(span, dsc);
+    }
   }
 
-  // TODO v8: Technically `startTransaction` can return undefined, which is not reflected by the types
-  // This happens if tracing extensions have not been added
-  // In this case, we just want to return a non-recording span
-  if (!span) {
-    return new SentryNonRecordingSpan();
-  }
+  logSpanStart(span);
 
   setCapturedScopesOnSpan(span, scope, isolationScope);
 
@@ -275,15 +274,15 @@ function createChildSpanOrTransaction({
 }
 
 /**
- * This converts StartSpanOptions to TransactionArguments.
+ * This converts StartSpanOptions to SentrySpanArguments.
  * For the most part (for now) we accept the same options,
  * but some of them need to be transformed.
  *
  * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
  */
-function normalizeContext(context: StartSpanOptions): TransactionArguments {
+function normalizeContext(context: StartSpanOptions): SentrySpanArguments {
   if (context.startTime) {
-    const ctx: TransactionArguments & { startTime?: SpanTimeInput } = { ...context };
+    const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...context };
     ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
     delete ctx.startTime;
     return ctx;
@@ -297,19 +296,29 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startTransaction(transactionContext: TransactionArguments): Transaction {
+function _startRootSpan(spanArguments: SentrySpanArguments, parentSampled?: boolean): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
+  const { name = '', attributes } = spanArguments;
   const [sampled, sampleRate] = sampleSpan(options, {
-    name: transactionContext.name,
-    parentSampled: transactionContext.parentSampled,
-    transactionContext,
-    attributes: transactionContext.attributes,
+    name,
+    parentSampled,
+    attributes,
+    transactionContext: {
+      name,
+      parentSampled,
+    },
   });
 
-  // eslint-disable-next-line deprecation/deprecation
-  const transaction = new Transaction({ ...transactionContext, sampled }, getCurrentHub());
+  const transaction = new SentrySpan({
+    ...spanArguments,
+    attributes: {
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
+      ...spanArguments.attributes,
+    },
+    sampled,
+  });
   if (sampleRate !== undefined) {
     transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
@@ -319,4 +328,33 @@ function _startTransaction(transactionContext: TransactionArguments): Transactio
   }
 
   return transaction;
+}
+
+/**
+ * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
+ * This inherits the sampling decision from the parent span.
+ */
+function _startChildSpan(parentSpan: Span, spanArguments: SentrySpanArguments): SentrySpan {
+  const { spanId, traceId } = parentSpan.spanContext();
+  const sampled = spanIsSampled(parentSpan);
+
+  const childSpan = new SentrySpan({
+    ...spanArguments,
+    parentSpanId: spanId,
+    traceId,
+    sampled,
+  });
+
+  addChildSpanToSpan(parentSpan, childSpan);
+
+  const client = getClient();
+  if (client) {
+    client.emit('spanStart', childSpan);
+    // If it has an endTimestamp, it's already ended
+    if (spanArguments.endTimestamp) {
+      client.emit('spanEnd', childSpan);
+    }
+  }
+
+  return childSpan;
 }

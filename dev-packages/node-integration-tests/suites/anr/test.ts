@@ -66,15 +66,19 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('CJS', done => {
-    createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.js').withMockSentryServer().expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('ESM', done => {
-    createRunner(__dirname, 'basic.mjs').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs').withMockSentryServer().expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('With --inspect', done => {
-    createRunner(__dirname, 'basic.mjs').withFlags('--inspect').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs')
+      .withMockSentryServer()
+      .withFlags('--inspect')
+      .expect({ event: EXPECTED_ANR_EVENT })
+      .start(done);
   });
 
   test('should exit', done => {
@@ -97,6 +101,7 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
 
   test('With session', done => {
     createRunner(__dirname, 'basic-session.js')
+      .withMockSentryServer()
       .expect({
         session: {
           status: 'abnormal',
@@ -142,6 +147,9 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   };
 
   test('fetches correct isolated scope', done => {
-    createRunner(__dirname, 'isolated.mjs').expect({ event: EXPECTED_ISOLATED_EVENT }).start(done);
+    createRunner(__dirname, 'isolated.mjs')
+      .withMockSentryServer()
+      .expect({ event: EXPECTED_ISOLATED_EVENT })
+      .start(done);
   });
 });

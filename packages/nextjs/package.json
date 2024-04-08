@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "8.0.0-alpha.7",
+  "version": "8.0.0-alpha.9",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -11,17 +11,47 @@
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
-  "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "edge": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "edge-light": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "worker": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "workerd": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
+      "import": "./build/esm/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./register": {
+      "import": {
+        "default": "./build/register.mjs"
+      }
+    },
+    "./hook": {
+      "import": {
+        "default": "./build/hook.mjs"
+      }
     }
   },
   "typesVersions": {
@@ -36,12 +66,12 @@
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "8.0.0-alpha.7",
-    "@sentry/node": "8.0.0-alpha.7",
-    "@sentry/react": "8.0.0-alpha.7",
-    "@sentry/types": "8.0.0-alpha.7",
-    "@sentry/utils": "8.0.0-alpha.7",
-    "@sentry/vercel-edge": "8.0.0-alpha.7",
+    "@sentry/core": "8.0.0-alpha.9",
+    "@sentry/node": "8.0.0-alpha.9",
+    "@sentry/react": "8.0.0-alpha.9",
+    "@sentry/types": "8.0.0-alpha.9",
+    "@sentry/utils": "8.0.0-alpha.9",
+    "@sentry/vercel-edge": "8.0.0-alpha.9",
     "@sentry/webpack-plugin": "2.16.0",
     "chalk": "3.0.0",
     "resolve": "1.22.8",

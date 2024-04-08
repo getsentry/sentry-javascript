@@ -7,7 +7,6 @@ import {
   getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
-  withIsolationScope,
 } from '@sentry/core';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
@@ -16,6 +15,7 @@ import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/
 import type { ServerComponentContext } from '../common/types';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
 import { flushQueue } from './utils/responseEnd';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -34,7 +34,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
       // TODO: If we ever allow withIsolationScope to take a scope, we should pass a scope here that is shared between all of the server components, similar to what `commonObjectToPropagationContext` does.
-      return withIsolationScope(isolationScope => {
+      return withIsolationScopeOrReuseFromRootSpan(isolationScope => {
         const completeHeadersDict: Record<string, string> = context.headers
           ? winterCGHeadersToDict(context.headers)
           : {};

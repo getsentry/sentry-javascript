@@ -44,8 +44,8 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/tracing';
-export type { RequestInstrumentationOptions } from '@sentry-internal/tracing';
+} from '@sentry-internal/browser-utils';
+export type { RequestInstrumentationOptions } from '@sentry-internal/browser-utils';
 export {
   addTracingExtensions,
   getActiveSpan,

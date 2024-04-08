@@ -1,13 +1,7 @@
 import { timestampInSeconds } from '@sentry/utils';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
-import {
-  TRACE_FLAG_NONE,
-  TRACE_FLAG_SAMPLED,
-  spanIsSampled,
-  spanToJSON,
-  spanToTraceContext,
-} from '../../../src/utils/spanUtils';
+import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON, spanToTraceContext } from '../../../src/utils/spanUtils';
 
 describe('SentrySpan', () => {
   describe('name', () => {
@@ -23,17 +17,6 @@ describe('SentrySpan', () => {
       span.updateName('new name');
 
       expect(spanToJSON(span).description).toEqual('new name');
-    });
-  });
-
-  describe('new SentrySpan', () => {
-    test('simple', () => {
-      const span = new SentrySpan({ sampled: true });
-      // eslint-disable-next-line deprecation/deprecation
-      const span2 = span.startChild();
-      expect(spanToJSON(span2).parent_span_id).toBe(span.spanContext().spanId);
-      expect(span.spanContext().traceId).toBe(span.spanContext().traceId);
-      expect(spanIsSampled(span2)).toBe(spanIsSampled(span));
     });
   });
 

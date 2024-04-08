@@ -10,7 +10,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
   Session,
 } from '@sentry/types';
@@ -57,6 +56,7 @@ export {
   captureSession,
   endSession,
   spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export {
@@ -96,3 +96,5 @@ export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
+
+export { lazyLoadIntegration } from './utils/lazyLoadIntegration';

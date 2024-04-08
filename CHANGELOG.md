@@ -4,6 +4,95 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.9
+
+This is the eighth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code.
+
+### Important Changes
+
+- **feat: Add @sentry-internal/browser-utils (#11381)**
+
+A big part of the browser-runtime specific exports of the internal `@sentry/utils` package were moved into a new package
+`@sentry-internal/browser-utils`. If you imported any API from `@sentry/utils` (which is generally not recommended but
+necessary for some workarounds), please check that your import statements still point to existing exports after
+upgrading.
+
+- **feat: Add loader file to node-based SDKs to support ESM monkeypatching (#11338)**
+
+When using ESM, it is necessary to use a "loader" to be able to instrument certain third-party packages and Node.js API.
+The server-side SDKs now ship with a set of ESM loader hooks, that should be used when using ESM. Use them as follows:
+
+```sh
+# For Node.js <= 18.18.2
+node --experimental-loader=@sentry/node/hook your-app.js
+
+# For Node.js >= 18.19.0
+node --import=@sentry/node/register your-app.js
+```
+
+Please note that due to an upstream bug, these loader hooks will currently crash or simply not work. We are planning to
+fix this in upcoming versions of the SDK - definitely before a stable version 8 release.
+
+- **feat(node): Add Koa error handler (#11403)**
+- **feat(node): Add NestJS error handler (#11375)**
+
+The Sentry SDK now exports integrations and error middlewares for Koa (`koaIntegration()`, `setupKoaErrorHandler()`) and
+NestJS (`setupNestErrorHandler()`) that can be used to instrument your Koa and NestJS applications with error
+monitoring.
+
+### Removal/Refactoring of deprecated functionality
+
+- feat(core): Remove hub check in isSentryRequestUrl (#11407)
+- feat(opentelemetry): Remove top level startActiveSpan (#11380)
+- feat(types): `beforeSend` and `beforeSendTransaction` breaking changes (#11354)
+- feat(v8): Remove all class based integrations (#11345)
+- feat(v8/core): Remove span.attributes top level field (#11378)
+- ref: Remove convertIntegrationFnToClass (#11343)
+- ref(node): Remove the old `node` package (#11322)
+- ref(tracing): Remove `span.startChild()` (#11376)
+- ref(v8): Remove `addRequestDataToTransaction` util (#11369)
+- ref(v8): Remove `args` on `HandlerDataXhr` (#11373)
+- ref(v8): Remove `getGlobalObject` utility method (#11372)
+- ref(v8): Remove `metadata` on transaction (#11397)
+- ref(v8): Remove `pushScope`, `popScope`, `isOlderThan`, `shouldSendDefaultPii` from hub (#11404)
+- ref(v8): Remove `shouldCreateSpanForRequest` from vercel edge options (#11371)
+- ref(v8): Remove deprecated `_reportAllChanges` option (#11393)
+- ref(v8): Remove deprecated `scope.getTransaction()` (#11365)
+- ref(v8): Remove deprecated methods on scope (#11366)
+- ref(v8): Remove deprecated span & transaction properties (#11400)
+- ref(v8): Remove Transaction concept (#11422)
+
+### Other Changes
+
+- feat: Add `trpcMiddleware` back to serverside SDKs (#11374)
+- feat: Implement timed events & remove `transaction.measurements` (#11398)
+- feat(browser): Bump web-vitals to 3.5.2 (#11391)
+- feat(feedback): Add `getFeedback` utility to get typed feedback instance (#11331)
+- feat(otel): Do not sample `options` and `head` requests (#11467)
+- feat(remix): Update scope `transactionName` when resolving route (#11420)
+- feat(replay): Bump `rrweb` to 2.12.0 (#11314)
+- feat(replay): Use data sentry element as fallback for the component name (#11383)
+- feat(sveltekit): Update scope `transactionName` when pageload route name is updated (#11406)
+- feat(tracing-internal): Reset propagation context on navigation (#11401)
+- feat(types): Add View Hierarchy types (#11409)
+- feat(utils): Use `globalThis` (#11351)
+- feat(vue): Update scope's `transactionName` when resolving a route (#11423)
+- fix(core): unref timer to not block node exit (#11430)
+- fix(node): Fix baggage propagation (#11363)
+- fix(web-vitals): Check for undefined navigation entry (#11311)
+- ref: Set preserveModules to true for browser packages (#11452)
+- ref(core): Remove duplicate logic in scope.update (#11384)
+- ref(feedback): Add font family style to actor (#11432)
+- ref(feedback): Add font family to buttons (#11414)
+- ref(gcp-serverless): Remove setting `.__sentry_transaction` (#11346)
+- ref(nextjs): Replace multiplexer with conditional exports (#11442)
+
+## 8.0.0-alpha.8
+
+This is a partially broken release and was superseded by version `8.0.0-alpha.9`.
+
 ## 8.0.0-alpha.7
 
 This is the seventh alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.

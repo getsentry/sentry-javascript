@@ -13,7 +13,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
@@ -69,6 +68,9 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
+  trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

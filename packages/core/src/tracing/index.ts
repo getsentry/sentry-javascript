@@ -1,8 +1,8 @@
+export { setCapturedScopesOnSpan, getCapturedScopesOnSpan } from './utils';
 export { addTracingExtensions } from './hubextensions';
 export { startIdleSpan, TRACING_DEFAULTS } from './idleSpan';
 export { SentrySpan } from './sentrySpan';
 export { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
-export { Transaction } from './transaction';
 export {
   setHttpStatus,
   getSpanStatusFromHttpCode,
@@ -16,5 +16,6 @@ export {
   withActiveSpan,
 } from './trace';
 export { getDynamicSamplingContextFromClient, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
-export { setMeasurement } from './measurement';
+export { setMeasurement, timedEventsToMeasurements } from './measurement';
 export { sampleSpan } from './sampling';
+export { logSpanEnd, logSpanStart } from './logSpans';

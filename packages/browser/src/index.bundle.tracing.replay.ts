@@ -1,14 +1,14 @@
 import {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '@sentry-internal/browser-utils';
+import {
   feedbackIntegrationShim,
   feedbackModalIntegrationShim,
   feedbackScreenshotIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { replayIntegration } from '@sentry-internal/replay';
-import {
-  browserTracingIntegration,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/tracing';
 import { addTracingExtensions } from '@sentry/core';
 
 // We are patching the global object with our hub extension methods
@@ -22,6 +22,7 @@ export {
   startSpanManual,
   withActiveSpan,
   getSpanDescendants,
+  setMeasurement,
 } from '@sentry/core';
 
 export {
