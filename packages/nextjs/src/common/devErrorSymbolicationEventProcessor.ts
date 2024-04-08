@@ -1,3 +1,4 @@
+import { suppressTracing } from '@sentry/opentelemetry';
 import type { Event, EventHint } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { StackFrame } from 'stacktrace-parser';
@@ -40,17 +41,19 @@ async function resolveStackFrame(
 
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(
-      `${
-        // eslint-disable-next-line no-restricted-globals
-        typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
-      }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
-      {
-        signal: controller.signal,
-      },
-    ).finally(() => {
-      clearTimeout(timer);
-    });
+    const res = await suppressTracing(() =>
+      fetch(
+        `${
+          // eslint-disable-next-line no-restricted-globals
+          typeof window === 'undefined' ? 'http://localhost:3000' : '' // TODO: handle the case where users define a different port
+        }${basePath}/__nextjs_original-stack-frame?${params.toString()}`,
+        {
+          signal: controller.signal,
+        },
+      ).finally(() => {
+        clearTimeout(timer);
+      }),
+    );
 
     if (!res.ok || res.status === 204) {
       return null;
