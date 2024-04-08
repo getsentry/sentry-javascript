@@ -96,6 +96,8 @@ export {
   spotlightIntegration,
   setupFastifyErrorHandler,
   trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

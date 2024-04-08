@@ -102,6 +102,7 @@ export {
   withActiveSpan,
   getRootSpan,
   spanToJSON,
+  spanToTraceHeader,
   trpcMiddleware,
 } from '@sentry/core';
 
