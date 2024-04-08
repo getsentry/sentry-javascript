@@ -1,4 +1,4 @@
-import { getActiveSpan } from '@sentry/nextjs';
+import { getActiveSpan } from '@sentry/core';
 
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
 import { withIsolationScopeOrReuseFromRootSpan } from '../common/utils/withIsolationScopeOrReuseFromRootSpan';
