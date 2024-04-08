@@ -3,7 +3,7 @@ import { spanToJSON } from '@sentry/core';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from './types';
+import { WINDOW } from '../helpers';
 
 /**
  * Add a listener that cancels and finishes a transaction when the global

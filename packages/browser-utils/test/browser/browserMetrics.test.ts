@@ -9,10 +9,10 @@ import {
   spanToJSON,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
-import type { ResourceEntry } from '../../../src/browser/metrics';
-import { _addMeasureSpans, _addResourceSpans } from '../../../src/browser/metrics';
-import { WINDOW } from '../../../src/browser/types';
-import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
+import type { ResourceEntry } from '../../src/metrics/browserMetrics';
+import { _addMeasureSpans, _addResourceSpans } from '../../src/metrics/browserMetrics';
+import { WINDOW } from '../../src/metrics/types';
+import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 const mockWindowLocation = {
   ancestorOrigins: {},

@@ -35,14 +35,14 @@ export const FIDThresholds: MetricRatingThresholds = [100, 300];
  * _**Important:** since FID is only reported after the user interacts with the
  * page, it's possible that it will not be reported for some page loads._
  */
-export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}): void => {
+export const onFID = (onReport: FIDReportCallback, opts: ReportOpts = {}) => {
   whenActivated(() => {
     const visibilityWatcher = getVisibilityWatcher();
     const metric = initMetric('FID');
     // eslint-disable-next-line prefer-const
     let report: ReturnType<typeof bindReporter>;
 
-    const handleEntry = (entry: PerformanceEventTiming) => {
+    const handleEntry = (entry: PerformanceEventTiming): void => {
       // Only report if the page wasn't hidden prior to the first input.
       if (entry.startTime < visibilityWatcher.firstHiddenTime) {
         metric.value = entry.processingStart - entry.startTime;

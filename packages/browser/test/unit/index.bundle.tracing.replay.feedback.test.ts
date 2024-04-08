@@ -1,11 +1,10 @@
-import { browserTracingIntegration } from '@sentry-internal/browser-utils';
 import {
+  browserTracingIntegration,
   feedbackIntegration,
   feedbackModalIntegration,
   feedbackScreenshotIntegration,
   replayIntegration,
-} from '@sentry/browser';
-
+} from '../../src';
 import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.replay.feedback';
 
 describe('index.bundle.tracing.replay.feedback', () => {

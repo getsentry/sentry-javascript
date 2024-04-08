@@ -6,8 +6,8 @@ import {
   setCurrentClient,
   spanToJSON,
 } from '@sentry/core';
-import { startAndEndSpan } from '../../../src/browser/metrics/utils';
-import { TestClient, getDefaultClientOptions } from '../../utils/TestClient';
+import { startAndEndSpan } from '../../src/metrics/utils';
+import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 describe('startAndEndSpan()', () => {
   beforeEach(() => {

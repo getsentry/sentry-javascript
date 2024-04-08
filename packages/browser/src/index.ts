@@ -41,11 +41,13 @@ export {
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
+} from './tracing/request';
+export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/browser-utils';
-export type { RequestInstrumentationOptions } from '@sentry-internal/browser-utils';
+} from './tracing/browserTracingIntegration';
+export type { RequestInstrumentationOptions } from './tracing/request';
 export {
   addTracingExtensions,
   getActiveSpan,
