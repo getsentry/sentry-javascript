@@ -125,11 +125,6 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  ## 8. Experimental packages
-  - name: npm
-    id: '@sentry/node-experimental'
-    includeNames: /^sentry-node-experimental-\d.*\.tgz$/
-
   # AWS Lambda Layer target
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/

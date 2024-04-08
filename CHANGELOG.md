@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-alpha.9
+
+This is a re-release of version `8.0.0-alpha.8` needed to be done for technical purposes.
+
 ## 8.0.0-alpha.8
 
 This is the eighth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
