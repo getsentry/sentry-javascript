@@ -1,4 +1,4 @@
-import { getActiveSpan } from '@sentry/core';
+import { getActiveSpan } from '@sentry/vercel-edge';
 
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
 import { withIsolationScopeOrReuseFromRootSpan } from '../common/utils/withIsolationScopeOrReuseFromRootSpan';
