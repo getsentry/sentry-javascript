@@ -1,17 +1,9 @@
 import type { Scope } from '@sentry/types';
+import { addNonEnumerableProperty } from '@sentry/utils';
 
 import type { AbstractSpan } from '../types';
 
-// We store the parent span, scopes & metadata in separate weakmaps, so we can access them for a given span
-// This way we can enhance the data that an OTEL Span natively gives us
-// and since we are using weakmaps, we do not need to clean up after ourselves
-const SpanScopes = new WeakMap<
-  AbstractSpan,
-  {
-    scope: Scope;
-    isolationScope: Scope;
-  }
->();
+const SPAN_SCOPES_FIELD = '_spanScopes';
 
 /**
  * Set the Sentry scope to be used for finishing a given OTEL span.
@@ -25,7 +17,7 @@ export function setSpanScopes(
     isolationScope: Scope;
   },
 ): void {
-  SpanScopes.set(span, scopes);
+  addNonEnumerableProperty(span, SPAN_SCOPES_FIELD, scopes);
 }
 
 /** Get the Sentry scopes to use for finishing an OTEL span. */
@@ -35,5 +27,5 @@ export function getSpanScopes(span: AbstractSpan):
       isolationScope: Scope;
     }
   | undefined {
-  return SpanScopes.get(span);
+  return (span as { [SPAN_SCOPES_FIELD]?: { scope: Scope; isolationScope: Scope } })[SPAN_SCOPES_FIELD];
 }
