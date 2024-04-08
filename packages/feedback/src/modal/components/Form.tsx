@@ -7,7 +7,7 @@ import type {
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { JSX, VNode } from 'preact';
+import type { ComponentType, JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';
@@ -73,9 +73,8 @@ export function Form({
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput: (props: { onError: (error: Error) => void }) => VNode | undefined =
+  const ScreenshotInput: undefined | ComponentType<{ onError: (error: Error) => void }> =
     screenshotInput && screenshotInput.input;
-  const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
   const onScreenshotError = useCallback((error: Error) => {
@@ -112,7 +111,7 @@ export function Form({
           return;
         }
         const formData = new FormData(e.target);
-        const attachment = await (includeScreenshotValue ? screenshotInput.value() : undefined);
+        const attachment = await (ScreenshotInput && showScreenshotInput ? screenshotInput.value() : undefined);
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
@@ -134,12 +133,12 @@ export function Form({
         // pass
       }
     },
-    [includeScreenshotValue, onSubmitSuccess, onSubmitError],
+    [ScreenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
   );
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {includeScreenshotValue ? <ScreenshotInput onError={onScreenshotError} /> : null}
+      {ScreenshotInput && showScreenshotInput ? <ScreenshotInput onError={onScreenshotError} /> : null}
 
       <div class="form__right">
         <div class="form__top">
