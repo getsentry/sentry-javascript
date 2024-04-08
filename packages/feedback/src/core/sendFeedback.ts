@@ -1,17 +1,16 @@
 import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
-import type { FeedbackEvent, TransportMakeRequestResponse } from '@sentry/types';
+import type { FeedbackEvent, SendFeedback, SendFeedbackParams } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
-import type { SendFeedbackOptions, SendFeedbackParams } from '../types';
 import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
 
 /**
  * Public API to send a Feedback item to Sentry
  */
-export async function sendFeedback(
+export const sendFeedback: SendFeedback = (
   { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
-  { includeReplay = true }: SendFeedbackOptions = {},
-): Promise<TransportMakeRequestResponse> {
+  { includeReplay = true } = {},
+) => {
   if (!message) {
     throw new Error('Unable to submit feedback with empty message');
   }
@@ -97,7 +96,7 @@ export async function sendFeedback(
       throw error;
     }
   });
-}
+};
 
 /*
  * For reference, the fully built event looks something like this:
