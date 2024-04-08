@@ -11,7 +11,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
-      const shadowRoot: ShadowRoot = shadow;
+      const shadowRoot = shadow as unknown as ShadowRoot;
       const userKey = options.useSentryUser;
       const scope = getCurrentScope();
       const user = scope && scope.getUser();

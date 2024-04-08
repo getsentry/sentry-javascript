@@ -69,7 +69,10 @@ export interface FeedbackScreenshotIntegration extends Integration {
     /**
      * The preact component
      */
-    input: (props: { onError: (error: Error) => void }) => unknown;
+    input: (props: { onError: (error: Error) => void }) => {
+      input: unknown;
+      value: Promise<Attachment | undefined>;
+    };
 
     /**
      * The image/screenshot bytes

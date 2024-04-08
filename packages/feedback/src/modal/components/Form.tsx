@@ -73,7 +73,7 @@ export function Form({
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput = screenshotInput && (screenshotInput.input as VNode);
+  const ScreenshotInput = screenshotInput && (screenshotInput.input as unknown as VNode);
   const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
