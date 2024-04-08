@@ -1,5 +1,6 @@
-import type { FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/types';
+import type { FeedbackDialog, FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/types';
 import type { Attachment } from '@sentry/types';
+import type { h as hType } from 'preact';
 import { DOCUMENT } from '../constants';
 import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
 
@@ -8,7 +9,7 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
     name: 'FeedbackScreenshot',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createInput: (h, dialog) => {
+    createInput: (h: typeof hType, dialog: FeedbackDialog) => {
       const imageBuffer = DOCUMENT.createElement('canvas');
 
       return {

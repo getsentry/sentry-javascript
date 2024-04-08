@@ -1,5 +1,5 @@
 import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
-import type { FeedbackEvent, SendFeedback } from '@sentry/types';
+import type { FeedbackEvent, SendFeedback, SendFeedbackParams } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
 import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
@@ -8,7 +8,7 @@ import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
  * Public API to send a Feedback item to Sentry
  */
 export const sendFeedback: SendFeedback = (
-  { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() },
+  { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true } = {},
 ) => {
   if (!message) {

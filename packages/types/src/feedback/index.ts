@@ -10,8 +10,8 @@ import type {
 
 export type { FeedbackFormData } from './form';
 
-import type { FeedbackEvent, SendFeedback, UserFeedback } from './sendFeedback';
-export type { FeedbackEvent, UserFeedback, SendFeedback };
+import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
+export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
 
 /**
  * The integration's internal `options` member where every value should be set
@@ -51,13 +51,14 @@ export interface FeedbackDialog {
   close: () => void;
 }
 
+export interface CreateDialogProps {
+  options: FeedbackInternalOptions;
+  screenshotIntegration: FeedbackScreenshotIntegration | undefined;
+  sendFeedback: SendFeedback;
+  shadow: unknown; // ShadowRoot
+}
 export interface FeedbackModalIntegration extends Integration {
-  createDialog: (props: {
-    options: FeedbackInternalOptions;
-    screenshotIntegration: FeedbackScreenshotIntegration | undefined;
-    sendFeedback: SendFeedback;
-    shadow: unknown; // ShadowRoot
-  }) => FeedbackDialog;
+  createDialog: (props: CreateDialogProps) => FeedbackDialog;
 }
 
 export interface FeedbackScreenshotIntegration extends Integration {

@@ -1,6 +1,5 @@
 import { getCurrentScope } from '@sentry/core';
-import type { FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
-import type { FeedbackFormData } from '@sentry/types';
+import type { CreateDialogProps, FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import { createDialogStyles } from './components/Dialog.css';
@@ -11,7 +10,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     name: 'FeedbackModal',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }) => {
+    createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
+      const shadowRoot: ShadowRoot = shadow;
       const userKey = options.useSentryUser;
       const scope = getCurrentScope();
       const user = scope && scope.getUser();
@@ -24,14 +24,14 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
           return el;
         },
         appendToDom(): void {
-          if (!shadow.contains(style) && !shadow.contains(el)) {
-            shadow.appendChild(style);
-            shadow.appendChild(el);
+          if (!shadowRoot.contains(style) && !shadowRoot.contains(el)) {
+            shadowRoot.appendChild(style);
+            shadowRoot.appendChild(el);
           }
         },
         removeFromDom(): void {
-          shadow.removeChild(el);
-          shadow.removeChild(style);
+          shadowRoot.removeChild(el);
+          shadowRoot.removeChild(style);
         },
         open() {
           renderContent(true);

@@ -32,7 +32,7 @@ export interface FeedbackEvent extends Event {
   };
 }
 
-interface SendFeedbackParams {
+export interface SendFeedbackParams {
   message: string;
   name?: string;
   email?: string;

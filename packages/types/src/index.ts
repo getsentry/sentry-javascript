@@ -77,6 +77,8 @@ export type {
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
   SendFeedback,
+  SendFeedbackParams,
+  CreateDialogProps,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
