@@ -110,6 +110,7 @@ export type {
   MetricSummary,
 } from './span';
 export type { SpanStatus } from './spanStatus';
+export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { PropagationContext, TracePropagationTargets } from './tracing';
@@ -118,9 +119,6 @@ export type {
   CustomSamplingContext,
   SamplingContext,
   TraceparentData,
-  Transaction,
-  TransactionArguments,
-  TransactionMetadata,
   TransactionSource,
 } from './transaction';
 export type {
@@ -164,3 +162,4 @@ export type {
   MetricInstance,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
+export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

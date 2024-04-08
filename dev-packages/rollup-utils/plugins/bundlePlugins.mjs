@@ -121,9 +121,7 @@ export function makeTerserPlugin() {
           // These are used by instrument.ts in utils for identifying HTML elements & events
           '_sentryCaptured',
           '_sentryId',
-          // For v7 backwards-compatibility we need to access txn._frozenDynamicSamplingContext
-          // TODO (v8): Remove this reserved word
-          '_frozenDynamicSamplingContext',
+          '_frozenDsc',
           // These are used to keep span & scope relationships
           '_sentryRootSpan',
           '_sentryChildSpans',

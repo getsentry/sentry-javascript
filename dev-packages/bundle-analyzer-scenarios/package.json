@@ -1,0 +1,23 @@
+{
+  "name": "@sentry-internal/bundle-analyzer-scenarios",
+  "version": "8.0.0-alpha.9",
+  "description": "Scenarios to test bundle analysis with",
+  "repository": "git://github.com/getsentry/sentry-javascript.git",
+  "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/dev-packages/bundle-analyzer-scenarios",
+  "author": "Sentry",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "html-webpack-plugin": "^5.5.0",
+    "inquirer": "^8.2.0",
+    "webpack": "^5.76.0",
+    "webpack-bundle-analyzer": "^4.5.0"
+  },
+  "scripts": {
+    "analyze": "node webpack.cjs"
+  },
+  "volta": {
+    "extends": "../../package.json"
+  },
+  "type": "module"
+}

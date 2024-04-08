@@ -9,7 +9,10 @@ export default makeNPMConfigVariants(
         exports: 'named',
         // set preserveModules to false because for feedback we actually want
         // to bundle everything into one file.
-        preserveModules: false,
+        preserveModules:
+          process.env.SENTRY_BUILD_PRESERVE_MODULES === undefined
+            ? false
+            : Boolean(process.env.SENTRY_BUILD_PRESERVE_MODULES),
       },
     },
     sucrase: {

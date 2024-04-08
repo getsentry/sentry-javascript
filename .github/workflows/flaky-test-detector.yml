@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - 'dev-packages/browser-integration-tests/suites/**'
+      - 'dev-packages/browser-integration-tests/suites/**/test.ts'
     branches-ignore:
       - master
 

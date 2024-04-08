@@ -96,13 +96,12 @@ jobs:
               - 'scripts/**'
               - 'packages/core/**'
               - 'packages/rollup-utils/**'
-              - 'packages/tracing/**'
-              - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
+              - 'packages/browser-utils/**'
               - 'packages/replay/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
@@ -1037,6 +1036,7 @@ jobs:
             'create-remix-app-v2',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
+            # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
             'nextjs-app-dir',
             'nextjs-14',
             'react-create-hash-router',
@@ -1048,7 +1048,9 @@ jobs:
             'node-fastify-app',
             # TODO(v8): Re-enable hapi tests
             # 'node-hapi-app',
+            'node-nestjs-app',
             'node-exports-test-app',
+            'node-koa-app',
             'vue-3',
             'webpack-4',
             'webpack-5'

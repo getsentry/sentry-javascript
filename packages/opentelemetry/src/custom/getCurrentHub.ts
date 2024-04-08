@@ -1,4 +1,4 @@
-import type { Client, EventHint, Hub, Integration, IntegrationClass, Scope, SeverityLevel } from '@sentry/types';
+import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from '@sentry/types';
 
 import {
   addBreadcrumb,
@@ -23,23 +23,9 @@ import {
  */
 export function getCurrentHub(): Hub {
   return {
-    isOlderThan(_version: number): boolean {
-      return false;
-    },
-
     bindClient(client: Client): void {
       const scope = getCurrentScope();
       scope.setClient(client);
-    },
-
-    pushScope(): Scope {
-      // TODO: This does not work and is actually deprecated
-      return getCurrentScope();
-    },
-
-    popScope(): boolean {
-      // TODO: This does not work and is actually deprecated
-      return false;
     },
 
     withScope,
@@ -78,11 +64,6 @@ export function getCurrentHub(): Hub {
 
       // only send the update
       _sendSessionUpdate();
-    },
-
-    shouldSendDefaultPii(): boolean {
-      const client = getClient();
-      return Boolean(client ? client.getOptions().sendDefaultPii : false);
     },
   };
 }

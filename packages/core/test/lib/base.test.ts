@@ -1,4 +1,4 @@
-import type { Client, Envelope, Event } from '@sentry/types';
+import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
 import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
@@ -1065,7 +1065,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn(
         async event =>
-          new Promise<Event>(resolve => {
+          new Promise<ErrorEvent>(resolve => {
             setTimeout(() => {
               resolve(event);
             }, 1);
@@ -1095,7 +1095,7 @@ describe('BaseClient', () => {
 
       const beforeSendTransaction = jest.fn(
         async event =>
-          new Promise<Event>(resolve => {
+          new Promise<TransactionEvent>(resolve => {
             setTimeout(() => {
               resolve(event);
             }, 1);
@@ -1125,7 +1125,7 @@ describe('BaseClient', () => {
 
       const beforeSend = jest.fn(async event => {
         event.message = 'changed2';
-        return new Promise<Event>(resolve => {
+        return new Promise<ErrorEvent>(resolve => {
           setTimeout(() => {
             resolve(event);
           }, 1);
@@ -1155,7 +1155,7 @@ describe('BaseClient', () => {
 
       const beforeSendTransaction = jest.fn(async event => {
         event.transaction = '/adopt/dont/shop';
-        return new Promise<Event>(resolve => {
+        return new Promise<TransactionEvent>(resolve => {
           setTimeout(() => {
             resolve(event);
           }, 1);

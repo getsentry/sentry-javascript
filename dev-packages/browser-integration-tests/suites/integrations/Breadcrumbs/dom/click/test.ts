@@ -78,6 +78,7 @@ sentryTest(
 
     await page.goto(url);
     await page.locator('#annotated-button').click();
+    await page.locator('#annotated-button-2').click();
 
     const [eventData] = await Promise.all([promise, page.evaluate('Sentry.captureException("test exception")')]);
 
@@ -87,6 +88,12 @@ sentryTest(
         category: 'ui.click',
         message: 'body > AnnotatedButton',
         data: { 'ui.component_name': 'AnnotatedButton' },
+      },
+      {
+        timestamp: expect.any(Number),
+        category: 'ui.click',
+        message: 'body > StyledButton',
+        data: { 'ui.component_name': 'StyledButton' },
       },
     ]);
   },

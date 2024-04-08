@@ -1,10 +1,11 @@
 import type { Context } from '@opentelemetry/api';
 import type { Scope } from '@sentry/types';
+import { addNonEnumerableProperty } from '@sentry/utils';
 
 import { SENTRY_SCOPES_CONTEXT_KEY } from '../constants';
 import type { CurrentScopes } from '../types';
 
-const SCOPE_CONTEXT_MAP = new WeakMap<Scope, Context>();
+const SCOPE_CONTEXT_FIELD = '_scopeContext';
 
 /**
  * Try to get the current scopes from the given OTEL context.
@@ -27,7 +28,7 @@ export function setScopesOnContext(context: Context, scopes: CurrentScopes): Con
  * We need this to get the context from the scope in the `trace` functions.
  */
 export function setContextOnScope(scope: Scope, context: Context): void {
-  SCOPE_CONTEXT_MAP.set(scope, context);
+  addNonEnumerableProperty(scope, SCOPE_CONTEXT_FIELD, context);
 }
 
 /**
@@ -35,5 +36,5 @@ export function setContextOnScope(scope: Scope, context: Context): void {
  * TODO v8: Use this for the `trace` functions.
  * */
 export function getContextFromScope(scope: Scope): Context | undefined {
-  return SCOPE_CONTEXT_MAP.get(scope);
+  return (scope as { [SCOPE_CONTEXT_FIELD]?: Context })[SCOPE_CONTEXT_FIELD];
 }

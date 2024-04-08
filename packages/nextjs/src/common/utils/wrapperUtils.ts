@@ -10,13 +10,13 @@ import {
   startSpan,
   startSpanManual,
   withActiveSpan,
-  withIsolationScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { isString } from '@sentry/utils';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
 import { autoEndSpanOnResponseEnd, flushQueue } from './responseEnd';
+import { withIsolationScopeOrReuseFromRootSpan } from './withIsolationScopeOrReuseFromRootSpan';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -89,7 +89,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   },
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
-    return withIsolationScope(async isolationScope => {
+    return withIsolationScopeOrReuseFromRootSpan(async isolationScope => {
       isolationScope.setSDKProcessingMetadata({
         request: req,
       });

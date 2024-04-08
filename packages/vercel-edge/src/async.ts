@@ -11,15 +11,15 @@ interface AsyncLocalStorage<T> {
   run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
-
 let asyncStorage: AsyncLocalStorage<Hub>;
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage which should be available in the edge runtime.
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
+
   if (!MaybeGlobalAsyncLocalStorage) {
     DEBUG_BUILD &&
       logger.warn(

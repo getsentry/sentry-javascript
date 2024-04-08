@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 import axios, { AxiosError } from 'axios';
-import { waitForError } from '../event-proxy-server';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -18,6 +18,8 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
 
   const errorEvent = await errorEventPromise;
   const exceptionEventId = errorEvent.event_id;
+
+  expect(errorEvent.transaction).toBe('/');
 
   await expect
     .poll(

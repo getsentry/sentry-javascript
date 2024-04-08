@@ -1,7 +1,6 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  Transaction,
   handleCallbackErrors,
   setHttpStatus,
 } from '@sentry/core';
@@ -58,14 +57,6 @@ function _wrapHttpFunction(fn: HttpFunction, options: Partial<WrapperOptions>): 
           getCurrentScope().setSDKProcessingMetadata({
             request: req,
           });
-
-          if (span instanceof Transaction) {
-            // We also set __sentry_transaction on the response so people can grab the transaction there to add
-            // spans to it later.
-            // TODO(v8): Remove this
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-            (res as any).__sentry_transaction = span;
-          }
 
           // eslint-disable-next-line @typescript-eslint/unbound-method
           const _end = res.end;

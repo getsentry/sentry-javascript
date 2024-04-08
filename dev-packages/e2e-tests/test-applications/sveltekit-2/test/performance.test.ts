@@ -1,11 +1,9 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 import { waitForInitialPageload } from './utils';
 
 test.describe('performance events', () => {
   test('capture a distributed pageload trace', async ({ page }) => {
-    await page.goto('/users/123xyz');
-
     const clientTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/users/[id]';
     });
@@ -14,7 +12,8 @@ test.describe('performance events', () => {
       return txnEvent?.transaction === 'GET /users/[id]';
     });
 
-    const [clientTxnEvent, serverTxnEvent, _] = await Promise.all([
+    const [_, clientTxnEvent, serverTxnEvent] = await Promise.all([
+      page.goto('/users/123xyz'),
       clientTxnEventPromise,
       serverTxnEventPromise,
       expect(page.getByText('User id: 123xyz')).toBeVisible(),
@@ -56,8 +55,6 @@ test.describe('performance events', () => {
   });
 
   test('capture a distributed navigation trace', async ({ page }) => {
-    await waitForInitialPageload(page);
-
     const clientNavigationTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === '/users' && txnEvent.contexts?.trace?.op === 'navigation';
     });
@@ -65,6 +62,8 @@ test.describe('performance events', () => {
     const serverTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
       return txnEvent?.transaction === 'GET /users';
     });
+
+    await waitForInitialPageload(page);
 
     // navigation to page
     const clickPromise = page.getByText('Route with Server Load').click();

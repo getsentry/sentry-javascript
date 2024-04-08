@@ -20,6 +20,7 @@
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server/",
     "@playwright/test": "^1.41.1",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
