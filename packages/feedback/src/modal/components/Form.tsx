@@ -7,7 +7,7 @@ import type {
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
-import type { JSX, VNode } from 'preact';
+import type { Component, JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';
@@ -73,7 +73,8 @@ export function Form({
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput = screenshotInput && (screenshotInput.input as unknown as VNode);
+  const ScreenshotInput =
+    screenshotInput && (screenshotInput.input as unknown as Component<{ onError: (error: Error) => void }>);
   const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);

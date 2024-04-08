@@ -51,28 +51,28 @@ export interface FeedbackDialog {
   close: () => void;
 }
 
+type ShadowRoot = unknown;
 export interface CreateDialogProps {
   options: FeedbackInternalOptions;
   screenshotIntegration: FeedbackScreenshotIntegration | undefined;
   sendFeedback: SendFeedback;
-  shadow: unknown; // ShadowRoot
+  shadow: ShadowRoot;
 }
 export interface FeedbackModalIntegration extends Integration {
   createDialog: (props: CreateDialogProps) => FeedbackDialog;
 }
 
+type HType = unknown;
+type VNode = unknown;
 export interface FeedbackScreenshotIntegration extends Integration {
   createInput: (
-    h: any,
+    h: HType,
     dialog: FeedbackDialog,
   ) => {
     /**
      * The preact component
      */
-    input: (props: { onError: (error: Error) => void }) => {
-      input: unknown;
-      value: Promise<Attachment | undefined>;
-    };
+    input: (props: { onError: (error: Error) => void }) => VNode;
 
     /**
      * The image/screenshot bytes
