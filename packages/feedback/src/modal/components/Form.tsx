@@ -73,8 +73,8 @@ export function Form({
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput =
-    screenshotInput && (screenshotInput.input as unknown as Component<{ onError: (error: Error) => void }>);
+  const ScreenshotInput: (props: { onError: (error: Error) => void }) => VNode | undefined =
+    screenshotInput && screenshotInput.input;
   const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
