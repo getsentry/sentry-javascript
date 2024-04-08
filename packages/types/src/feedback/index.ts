@@ -56,7 +56,7 @@ export interface FeedbackModalIntegration extends Integration {
     options: FeedbackInternalOptions;
     screenshotIntegration: FeedbackScreenshotIntegration | undefined;
     sendFeedback: SendFeedback;
-    shadow: ShadowRoot;
+    shadow: unknown; // ShadowRoot
   }) => FeedbackDialog;
 }
 
