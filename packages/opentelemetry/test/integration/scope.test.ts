@@ -1,5 +1,6 @@
 import {
   captureException,
+  getCapturedScopesOnSpan,
   getClient,
   getCurrentScope,
   getIsolationScope,
@@ -9,7 +10,6 @@ import {
 } from '@sentry/core';
 
 import { startSpan } from '../../src/trace';
-import { getSpanScopes } from '../../src/utils/spanData';
 import type { TestClientInterface } from '../helpers/TestClient';
 import { cleanupOtel, mockSdkInit } from '../helpers/mockSdkInit';
 
@@ -49,7 +49,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           startSpan({ name: 'outer' }, span => {
-            expect(getSpanScopes(span)?.scope).toBe(enableTracing ? scope2 : undefined);
+            expect(getCapturedScopesOnSpan(span)?.scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

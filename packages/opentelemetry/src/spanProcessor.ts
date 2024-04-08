@@ -8,12 +8,12 @@ import {
   getDefaultIsolationScope,
   logSpanEnd,
   logSpanStart,
+  setCapturedScopesOnSpan,
 } from '@sentry/core';
 import { SEMANTIC_ATTRIBUTE_SENTRY_PARENT_IS_REMOTE } from './semanticAttributes';
 import { SentrySpanExporter } from './spanExporter';
 import { getScopesFromContext } from './utils/contextData';
 import { setIsSetup } from './utils/setupCheck';
-import { setSpanScopes } from './utils/spanData';
 
 function onSpanStart(span: Span, parentContext: Context): void {
   // This is a reliable way to get the parent span - because this is exactly how the parent is identified in the OTEL SDK
@@ -42,7 +42,7 @@ function onSpanStart(span: Span, parentContext: Context): void {
 
   // We need the scope at time of span creation in order to apply it to the event when the span is finished
   if (scopes) {
-    setSpanScopes(span, scopes);
+    setCapturedScopesOnSpan(span, scopes.scope, scopes.isolationScope);
   }
 
   logSpanStart(span);
