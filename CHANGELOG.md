@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 8.0.0-alpha.8
+## 8.0.0-alpha.9
 
 This is the eighth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
 
@@ -88,6 +88,10 @@ monitoring.
 - ref(feedback): Add font family to buttons (#11414)
 - ref(gcp-serverless): Remove setting `.__sentry_transaction` (#11346)
 - ref(nextjs): Replace multiplexer with conditional exports (#11442)
+
+## 8.0.0-alpha.8
+
+This is a partially broken release and was superseded by version `8.0.0-alpha.9`.
 
 ## 8.0.0-alpha.7
 
