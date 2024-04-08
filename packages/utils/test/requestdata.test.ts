@@ -149,52 +149,63 @@ describe('addRequestDataToEvent', () => {
   });
 
   describe('transaction property', () => {
-    test('extracts method and full route path by default`', () => {
+    describe('for transaction events', () => {
+      beforeEach(() => {
+        mockEvent.type = 'transaction';
+      });
+
+      test('extracts method and full route path by default`', () => {
+        const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
+
+        expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/:parameterName');
+      });
+
+      test('extracts method and full path by default when mountpoint is `/`', () => {
+        mockReq.originalUrl = mockReq.originalUrl.replace('/routerMountpath', '');
+        mockReq.baseUrl = '';
+
+        const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
+
+        // `subpath/` is the full path here, because there's no router mount path
+        expect(parsedRequest.transaction).toEqual('POST /subpath/:parameterName');
+      });
+
+      test('fallback to method and `originalUrl` if route is missing', () => {
+        delete mockReq.route;
+
+        const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
+
+        expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/specificValue');
+      });
+
+      test('can extract path only instead if configured', () => {
+        const optionsWithPathTransaction = {
+          include: {
+            transaction: 'path',
+          },
+        } as const;
+
+        const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq, optionsWithPathTransaction);
+
+        expect(parsedRequest.transaction).toEqual('/routerMountPath/subpath/:parameterName');
+      });
+
+      test('can extract handler name instead if configured', () => {
+        const optionsWithHandlerTransaction = {
+          include: {
+            transaction: 'handler',
+          },
+        } as const;
+
+        const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq, optionsWithHandlerTransaction);
+
+        expect(parsedRequest.transaction).toEqual('parameterNameRouteHandler');
+      });
+    });
+    it('transaction is not applied to non-transaction events', () => {
       const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
 
-      expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/:parameterName');
-    });
-
-    test('extracts method and full path by default when mountpoint is `/`', () => {
-      mockReq.originalUrl = mockReq.originalUrl.replace('/routerMountpath', '');
-      mockReq.baseUrl = '';
-
-      const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
-
-      // `subpath/` is the full path here, because there's no router mount path
-      expect(parsedRequest.transaction).toEqual('POST /subpath/:parameterName');
-    });
-
-    test('fallback to method and `originalUrl` if route is missing', () => {
-      delete mockReq.route;
-
-      const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq);
-
-      expect(parsedRequest.transaction).toEqual('POST /routerMountPath/subpath/specificValue');
-    });
-
-    test('can extract path only instead if configured', () => {
-      const optionsWithPathTransaction = {
-        include: {
-          transaction: 'path',
-        },
-      } as const;
-
-      const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq, optionsWithPathTransaction);
-
-      expect(parsedRequest.transaction).toEqual('/routerMountPath/subpath/:parameterName');
-    });
-
-    test('can extract handler name instead if configured', () => {
-      const optionsWithHandlerTransaction = {
-        include: {
-          transaction: 'handler',
-        },
-      } as const;
-
-      const parsedRequest: Event = addRequestDataToEvent(mockEvent, mockReq, optionsWithHandlerTransaction);
-
-      expect(parsedRequest.transaction).toEqual('parameterNameRouteHandler');
+      expect(parsedRequest.transaction).toBeUndefined();
     });
   });
 });

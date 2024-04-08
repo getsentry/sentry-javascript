@@ -18,6 +18,15 @@ const _expressIntegration = (() => {
             requestHook(span) {
               addOriginToSpan(span, 'auto.http.otel.express');
             },
+            spanNameHook(info, defaultName) {
+              if (info.layerType === 'request_handler') {
+                // type cast b/c Otel unfortunately types info.request as any :(
+                const req = info.request as { method?: string };
+                const method = req.method ? req.method.toUpperCase() : 'GET';
+                getIsolationScope().setTransactionName(`${method} ${info.route}`);
+              }
+              return defaultName;
+            },
           }),
         ],
       });
