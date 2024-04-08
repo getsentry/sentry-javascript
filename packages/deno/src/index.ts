@@ -74,6 +74,8 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

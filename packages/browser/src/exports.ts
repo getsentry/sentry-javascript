@@ -56,6 +56,7 @@ export {
   captureSession,
   endSession,
   spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export {
