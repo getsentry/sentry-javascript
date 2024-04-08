@@ -90,6 +90,10 @@ export function makeOfflineTransport<TO>(
         const found = await store.shift();
         if (found) {
           log('Attempting to send previously queued event');
+
+          // We should to update the sent_at timestamp to the current time.
+          found[0].sent_at = new Date().toISOString();
+
           void send(found, true).catch(e => {
             log('Failed to retry sending', e);
           });

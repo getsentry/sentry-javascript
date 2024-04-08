@@ -304,6 +304,37 @@ describe('makeOfflineTransport', () => {
     START_DELAY + 2_000,
   );
 
+  it(
+    'Updates sent_at envelope header on retry',
+    async () => {
+      const testStartTime = new Date();
+
+      // Create an envelope with a sent_at header very far in the past
+      const env: EventEnvelope = [...ERROR_ENVELOPE];
+      env[0].sent_at = new Date(2020, 1, 1).toISOString();
+
+      const { getCalls, store } = createTestStore(ERROR_ENVELOPE);
+      const { getSentEnvelopes, baseTransport } = createTestTransport({ statusCode: 200 });
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _transport = makeOfflineTransport(baseTransport)({
+        ...transportOptions,
+        createStore: store,
+        flushAtStartup: true,
+      });
+
+      await waitUntil(() => getCalls().length >= 1, START_DELAY * 2);
+      expect(getCalls()).toEqual(['shift']);
+
+      // When it gets shifted out of the store, the sent_at header should be updated
+      const envelopes = getSentEnvelopes().map(parseEnvelope) as EventEnvelope[];
+      expect(envelopes[0][0]).toBeDefined();
+      const sent_at = new Date(envelopes[0][0].sent_at);
+
+      expect(sent_at.getTime()).toBeGreaterThan(testStartTime.getTime());
+    },
+    START_DELAY + 2_000,
+  );
+
   it('shouldStore can stop envelopes from being stored on send failure', async () => {
     const { getCalls, store } = createTestStore();
     const { getSendCount, baseTransport } = createTestTransport(new Error());
