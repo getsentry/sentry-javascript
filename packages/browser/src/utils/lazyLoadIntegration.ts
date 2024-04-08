@@ -47,20 +47,8 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
   script.crossOrigin = 'anonymous';
 
   const waitForLoad = new Promise<void>((resolve, reject) => {
-    script.addEventListener(
-      'load',
-      () => {
-        resolve();
-      },
-      { once: true, passive: true },
-    );
-    script.addEventListener(
-      'error',
-      error => {
-        reject(error);
-      },
-      { once: true, passive: true },
-    );
+    script.addEventListener('load', () => resolve());
+    script.addEventListener('error', reject);
   });
 
   WINDOW.document.body.appendChild(script);
