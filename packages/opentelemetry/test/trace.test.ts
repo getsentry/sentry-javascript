@@ -20,6 +20,7 @@ import {
 import type { Event, Scope } from '@sentry/types';
 import { makeTraceState } from '../src/propagator';
 
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
@@ -1355,6 +1356,76 @@ describe('trace (sampling)', () => {
         parentSampled: true,
       },
     });
+  });
+});
+
+describe('HTTP methods (sampling)', () => {
+  beforeEach(() => {
+    mockSdkInit({ enableTracing: true });
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+  });
+
+  it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
+    const spanGET = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'GET' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanGET)).toBe(true);
+    expect(getSamplingDecision(spanGET.spanContext())).toBe(true);
+
+    const spanPOST = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'POST' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanPOST)).toBe(true);
+    expect(getSamplingDecision(spanPOST.spanContext())).toBe(true);
+
+    const spanPUT = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'PUT' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanPUT)).toBe(true);
+    expect(getSamplingDecision(spanPUT.spanContext())).toBe(true);
+
+    const spanDELETE = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'DELETE' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(spanDELETE)).toBe(true);
+    expect(getSamplingDecision(spanDELETE.spanContext())).toBe(true);
+  });
+
+  it('does not sample when HTTP method is OPTIONS', () => {
+    const span = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'OPTIONS' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(span)).toBe(false);
+    expect(getSamplingDecision(span.spanContext())).toBe(false);
+  });
+
+  it('does not sample when HTTP method is HEAD', () => {
+    const span = startSpanManual(
+      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'HEAD' } },
+      span => {
+        return span;
+      },
+    );
+    expect(spanIsSampled(span)).toBe(false);
+    expect(getSamplingDecision(span.spanContext())).toBe(false);
   });
 });
 
