@@ -10,7 +10,6 @@ import {
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
-  withIsolationScope,
 } from '@sentry/core';
 import type { Span } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
@@ -65,7 +64,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
   return new Proxy(routeHandler, {
     apply: (originalFunction, thisArg, args) => {
-      return withIsolationScope(async isolationScope => {
+      return withIsolationScopeOrReuseFromRootSpan(async isolationScope => {
         isolationScope.setSDKProcessingMetadata({
           request: {
             headers: headers ? winterCGHeadersToDict(headers) : undefined,
