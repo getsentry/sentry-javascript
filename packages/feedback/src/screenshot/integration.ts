@@ -13,7 +13,8 @@ export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration 
       const imageBuffer = DOCUMENT.createElement('canvas');
 
       return {
-        input: makeScreenshotEditorComponent({ h: h as typeof hType, imageBuffer, dialog }),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: makeScreenshotEditorComponent({ h: h as typeof hType, imageBuffer, dialog }) as any,
 
         value: async () => {
           const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {

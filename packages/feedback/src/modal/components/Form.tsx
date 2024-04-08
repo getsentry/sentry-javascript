@@ -73,8 +73,8 @@ export function Form({
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput: undefined | ComponentType<{ onError: (error: Error) => void }> =
-    screenshotInput && screenshotInput.input;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ScreenshotInput: any = screenshotInput && screenshotInput.input;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
   const onScreenshotError = useCallback((error: Error) => {
