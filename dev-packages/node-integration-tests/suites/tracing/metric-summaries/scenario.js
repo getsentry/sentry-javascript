@@ -11,9 +11,6 @@ Sentry.init({
   },
 });
 
-// Stop the process from exiting before the transaction is sent
-setInterval(() => {}, 1000);
-
 Sentry.startSpan(
   {
     name: 'Test Transaction',
