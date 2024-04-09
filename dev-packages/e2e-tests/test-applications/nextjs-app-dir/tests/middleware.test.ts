@@ -14,6 +14,10 @@ test('Should create a transaction for middleware', async ({ request }) => {
   expect(middlewareTransaction.contexts?.trace?.status).toBe('ok');
   expect(middlewareTransaction.contexts?.trace?.op).toBe('middleware.nextjs');
   expect(middlewareTransaction.contexts?.runtime?.name).toBe('vercel-edge');
+
+  // Assert that isolation scope works properly
+  expect(middlewareTransaction.tags?.['my-isolated-tag']).toBe(true);
+  expect(middlewareTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Should create a transaction with error status for faulty middleware', async ({ request }) => {
@@ -43,7 +47,11 @@ test('Records exceptions happening in middleware', async ({ request }) => {
     // Noop
   });
 
-  expect(await errorEventPromise).toBeDefined();
+  const errorEvent = await errorEventPromise;
+
+  // Assert that isolation scope works properly
+  expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+  expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {

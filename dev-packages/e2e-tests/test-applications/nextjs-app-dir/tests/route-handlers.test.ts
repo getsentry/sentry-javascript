@@ -48,6 +48,12 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   const routehandlerTransaction = await routehandlerTransactionPromise;
   const routehandlerError = await errorEventPromise;
 
+  // Assert that isolation scope works properly
+  expect(routehandlerTransaction.tags?.['my-isolated-tag']).toBe(true);
+  expect(routehandlerTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
+  expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
 
@@ -86,6 +92,12 @@ test.describe('Edge runtime', () => {
 
     const routehandlerTransaction = await routehandlerTransactionPromise;
     const routehandlerError = await errorEventPromise;
+
+    // Assert that isolation scope works properly
+    expect(routehandlerTransaction.tags?.['my-isolated-tag']).toBe(true);
+    expect(routehandlerTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
+    expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
     expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');

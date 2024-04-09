@@ -69,6 +69,8 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

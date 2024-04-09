@@ -1,10 +1,10 @@
+import type { FeedbackDialog } from '@sentry/types';
 /* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CROP_COLOR, DOCUMENT, WINDOW } from '../../constants';
-import type { Dialog } from '../../types';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
 
@@ -16,7 +16,7 @@ const DPI = WINDOW.devicePixelRatio;
 interface FactoryParams {
   h: typeof hType;
   imageBuffer: HTMLCanvasElement;
-  dialog: Dialog;
+  dialog: FeedbackDialog;
 }
 
 interface Props {
@@ -219,7 +219,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
 
     useTakeScreenshot({
       onBeforeScreenshot: useCallback(() => {
-        dialog.el.style.display = 'none';
+        (dialog.el as HTMLElement).style.display = 'none';
       }, []),
       onScreenshot: useCallback(
         (imageSource: HTMLVideoElement) => {
@@ -234,13 +234,13 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         [imageBuffer],
       ),
       onAfterScreenshot: useCallback(() => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         const container = canvasContainerRef.current;
         container && container.appendChild(imageBuffer);
         resizeCropper();
       }, []),
       onError: useCallback(error => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         onError(error);
       }, []),
     });
