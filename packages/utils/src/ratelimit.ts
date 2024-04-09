@@ -67,7 +67,7 @@ export function updateRateLimits(
      * rate limit headers are of the form
      *     <header>,<header>,..
      * where each <header> is of the form
-     *     <retry_after>: <categories>: <scope>: <reason_code>
+     *     <retry_after>: <categories>: <scope>: <reason_code>: <namespaces>
      * where
      *     <retry_after> is a delay in seconds
      *     <categories> is the event type(s) (error, transaction, etc) being rate limited and is of the form
@@ -85,7 +85,16 @@ export function updateRateLimits(
         updatedRateLimits.all = now + delay;
       } else {
         for (const category of categories.split(';')) {
-          updatedRateLimits[category] = now + delay;
+          if (category === 'metric_bucket') {
+            const namespaces = limit.split(':', 5)[4] ? limit.split(':', 5)[4].split(';') : [];
+
+            if (!namespaces || namespaces.includes('custom')) {
+              // back off transmitting metrics from the SDK
+              updatedRateLimits[category] = now + delay;
+            }
+          } else {
+            updatedRateLimits[category] = now + delay;
+          }
         }
       }
     }
