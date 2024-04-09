@@ -135,7 +135,7 @@ export function init(browserOptions: BrowserOptions = {}): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     });
     return;
