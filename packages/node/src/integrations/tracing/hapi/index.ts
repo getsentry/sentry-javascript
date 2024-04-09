@@ -7,9 +7,13 @@ import {
   defineIntegration,
   getActiveSpan,
   getCurrentScope,
+  getDefaultIsolationScope,
+  getIsolationScope,
   getRootSpan,
 } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../../debug-build';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
 const _hapiIntegration = (() => {
@@ -59,9 +63,14 @@ export const hapiErrorPlugin = {
     const server = serverArg as unknown as Server;
 
     server.events.on('request', (request, event) => {
-      const route = request.route;
-      if (route && route.path) {
-        getCurrentScope().setTransactionName(`${route.method?.toUpperCase() || 'GET'} ${route.path}`);
+      if (getIsolationScope() !== getDefaultIsolationScope()) {
+        const route = request.route;
+        if (route && route.path) {
+          getIsolationScope().setTransactionName(`${route.method?.toUpperCase() || 'GET'} ${route.path}`);
+        }
+      } else {
+        DEBUG_BUILD &&
+          logger.warn('Isolation scope is still the default isolation scope - skipping setting transactionName');
       }
 
       const activeSpan = getActiveSpan();
