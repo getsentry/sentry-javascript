@@ -20,7 +20,7 @@ import { flushQueue } from './utils/responseEnd';
 import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 /** As our own HTTP integration is disabled (src/server/index.ts) the rootSpan comes from Next.js.
- * In case there is not root span, we start a new span. */
+ * In case there is no root span, we start a new span. */
 function startOrUpdateSpan(spanName: string, cb: (rootSpan: Span) => Promise<Response>): Promise<Response> {
   const activeSpan = getActiveSpan();
   const rootSpan = activeSpan && getRootSpan(activeSpan);
