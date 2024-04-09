@@ -8,7 +8,7 @@ import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
 
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -73,7 +73,7 @@ export class SentrySampler implements Sampler {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
 
-    const method = `${spanAttributes[SemanticAttributes.HTTP_METHOD]}`.toUpperCase();
+    const method = `${spanAttributes[SEMATTRS_HTTP_METHOD]}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
       return {

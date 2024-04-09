@@ -2,7 +2,7 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
@@ -84,7 +84,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     const activeSpan = trace.getSpan(context);
-    const url = activeSpan && spanToJSON(activeSpan).data?.[SemanticAttributes.HTTP_URL];
+    const url = activeSpan && spanToJSON(activeSpan).data?.[SEMATTRS_HTTP_URL];
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
       typeof url === 'string' &&
