@@ -48,8 +48,8 @@ export class AppService1 {
     return { exceptionId };
   }
 
-  testException() {
-    throw new Error('This is an exception');
+  testException(id: string) {
+    throw new Error(`This is an exception with id ${id}`);
   }
 
   async testOutgoingFetchExternalAllowed() {
