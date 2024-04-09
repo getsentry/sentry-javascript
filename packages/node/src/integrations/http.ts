@@ -93,7 +93,8 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
 
-            if (getSpanKind(span) !== SpanKind.SERVER) {
+            if (span.isRecording() && getSpanKind(span) !== SpanKind.SERVER) {
+              // TODO: small comment why we check for the span kind at all here
               return;
             }
 

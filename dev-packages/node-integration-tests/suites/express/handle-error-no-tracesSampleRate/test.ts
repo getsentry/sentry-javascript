@@ -17,7 +17,7 @@ test('should capture and send Express controller error.', done => {
                 handled: false,
               },
               type: 'Error',
-              value: 'test_error',
+              value: 'test_error with id 123',
               stacktrace: {
                 frames: expect.arrayContaining([
                   expect.objectContaining({
@@ -30,9 +30,10 @@ test('should capture and send Express controller error.', done => {
             },
           ],
         },
+        transaction: 'GET /test/express/:id',
       },
     })
     .start(done);
 
-  expect(() => runner.makeRequest('get', '/test/express')).rejects.toThrow();
+  expect(() => runner.makeRequest('get', '/test/express/123')).rejects.toThrow();
 });
