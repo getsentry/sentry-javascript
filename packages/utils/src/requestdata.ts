@@ -298,7 +298,7 @@ export function addRequestDataToEvent(
     }
   }
 
-  if (include.transaction && !event.transaction) {
+  if (include.transaction && !event.transaction && event.type === 'transaction') {
     // TODO do we even need this anymore?
     // TODO make this work for nextjs
     event.transaction = extractTransaction(req, include.transaction);

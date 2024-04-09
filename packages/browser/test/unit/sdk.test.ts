@@ -154,7 +154,7 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
 
       consoleErrorSpy.mockRestore();
@@ -169,7 +169,7 @@ describe('init', () => {
 
       expect(consoleErrorSpy).toBeCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
 
       consoleErrorSpy.mockRestore();

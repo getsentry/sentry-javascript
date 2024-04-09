@@ -1,10 +1,12 @@
 import type * as http from 'http';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { defineIntegration } from '@sentry/core';
+import { defineIntegration, getDefaultIsolationScope } from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
@@ -17,6 +19,20 @@ const _expressIntegration = (() => {
           new ExpressInstrumentation({
             requestHook(span) {
               addOriginToSpan(span, 'auto.http.otel.express');
+            },
+            spanNameHook(info, defaultName) {
+              if (getIsolationScope() === getDefaultIsolationScope()) {
+                DEBUG_BUILD &&
+                  logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+                return defaultName;
+              }
+              if (info.layerType === 'request_handler') {
+                // type cast b/c Otel unfortunately types info.request as any :(
+                const req = info.request as { method?: string };
+                const method = req.method ? req.method.toUpperCase() : 'GET';
+                getIsolationScope().setTransactionName(`${method} ${info.route}`);
+              }
+              return defaultName;
             },
           }),
         ],

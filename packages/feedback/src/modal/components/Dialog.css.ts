@@ -128,7 +128,7 @@ export function createDialogStyles(): HTMLStyleElement {
   border: var(--input-border);
   border-radius: var(--form-content-border-radius);
   color: var(--input-foreground);
-  font-size: 14px;
+  font-size: var(--font-size);
   font-weight: 500;
   padding: 6px 12px;
 }
@@ -158,10 +158,10 @@ export function createDialogStyles(): HTMLStyleElement {
   border: var(--cancel-border);
   border-radius: var(--form-content-border-radius);
   cursor: pointer;
-  font-size: 14px;
+  font-family: inherit;
+  font-size: var(--font-size);
   font-weight: 600;
   padding: 6px 16px;
-  font-family: inherit;
 }
 .btn[disabled] {
   opacity: 0.6;

@@ -48,7 +48,6 @@ export function withSentryConfig<T>(exportedUserNextConfig: T): T {
 }
 
 export * from '@sentry/vercel-edge';
-export { Transaction } from '@sentry/core';
 
 export * from '../common';
 

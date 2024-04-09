@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Should send a transaction event for a generateMetadata() function invokation', async ({ page }) => {
   const testTitle = 'foobarasdf';
@@ -37,8 +37,14 @@ test('Should send a transaction and an error event for a faulty generateMetadata
 
   await page.goto(`/generation-functions?metadataTitle=${testTitle}&shouldThrowInGenerateMetadata=1`);
 
-  expect(await transactionPromise).toBeDefined();
-  expect(await errorEventPromise).toBeDefined();
+  const errorEvent = await errorEventPromise;
+  const transactionEvent = await transactionPromise;
+
+  // Assert that isolation scope works properly
+  expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
+  expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);
+  expect(transactionEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 });
 
 test('Should send a transaction event for a generateViewport() function invokation', async ({ page }) => {

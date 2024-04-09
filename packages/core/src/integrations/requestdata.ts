@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn, Transaction } from '@sentry/types';
+import type { Client, IntegrationFn, Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
 import { defineIntegration } from '../integration';
@@ -92,7 +92,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
       // value with a high-quality one
-      const reqWithTransaction = req as { _sentryTransaction?: Transaction };
+      const reqWithTransaction = req as { _sentryTransaction?: Span };
       const transaction = reqWithTransaction._sentryTransaction;
       if (transaction) {
         const name = spanToJSON(transaction).description || '';

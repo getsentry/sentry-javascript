@@ -1,5 +1,5 @@
+import { browserTracingIntegration } from '@sentry-internal/browser-utils';
 import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
-import { browserTracingIntegration } from '@sentry-internal/tracing';
 import { replayIntegration } from '@sentry/browser';
 
 import * as TracingReplayBundle from '../../src/index.bundle.tracing.replay';

@@ -12,6 +12,7 @@ import { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration
 
 export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
+import { requestIsolationScopeIntegration } from './requestIsolationScopeIntegration';
 
 export { captureUnderscoreErrorException } from '../common/_error';
 export { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
@@ -75,10 +76,13 @@ export function init(options: NodeOptions): void {
     ...getDefaultIntegrations(options).filter(
       integration =>
         integration.name !== 'OnUncaughtException' &&
-        // Next.js comes with its own Node-Fetch instrumentation so we shouldn't add ours on-top
-        integration.name !== 'NodeFetch',
+        // Next.js comes with its own Node-Fetch instrumentation, so we shouldn't add ours on-top
+        integration.name !== 'NodeFetch' &&
+        // Next.js comes with its own Http instrumentation for OTel which lead to double spans for route handler requests
+        integration.name !== 'Http',
     ),
     onUncaughtExceptionIntegration(),
+    requestIsolationScopeIntegration(),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default

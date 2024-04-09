@@ -69,7 +69,18 @@ export type {
   Profile,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
-export type { FeedbackEvent, UserFeedback } from './feedback';
+export type {
+  FeedbackDialog,
+  FeedbackEvent,
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  FeedbackModalIntegration,
+  FeedbackScreenshotIntegration,
+  SendFeedback,
+  SendFeedbackParams,
+  CreateDialogProps,
+  UserFeedback,
+} from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';
@@ -101,6 +112,7 @@ export type {
   MetricSummary,
 } from './span';
 export type { SpanStatus } from './spanStatus';
+export type { TimedEvent } from './timedEvent';
 export type { StackFrame } from './stackframe';
 export type { Stacktrace, StackParser, StackLineParser, StackLineParserFn } from './stacktrace';
 export type { PropagationContext, TracePropagationTargets } from './tracing';
@@ -109,8 +121,6 @@ export type {
   CustomSamplingContext,
   SamplingContext,
   TraceparentData,
-  Transaction,
-  TransactionArguments,
   TransactionSource,
 } from './transaction';
 export type {

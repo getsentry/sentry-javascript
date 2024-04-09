@@ -1,11 +1,9 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  Transaction,
   captureException,
   continueTrace,
   defineIntegration,
-  getCurrentScope,
   setHttpStatus,
   startSpan,
   withIsolationScope,
@@ -100,13 +98,10 @@ function instrumentBunServeOptions(serveOptions: Parameters<typeof Bun.serve>[0]
                   >);
                   if (response && response.status) {
                     setHttpStatus(span, response.status);
-                    if (span instanceof Transaction) {
-                      const scope = getCurrentScope();
-                      scope.setContext('response', {
-                        headers: response.headers.toJSON(),
-                        status_code: response.status,
-                      });
-                    }
+                    isolationScope.setContext('response', {
+                      headers: response.headers.toJSON(),
+                      status_code: response.status,
+                    });
                   }
                   return response;
                 } catch (e) {

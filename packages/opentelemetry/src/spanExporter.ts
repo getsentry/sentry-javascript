@@ -2,7 +2,12 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import type { ReadableSpan } from '@opentelemetry/sdk-trace-base';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { captureEvent, getMetricSummaryJsonForSpan } from '@sentry/core';
+import {
+  captureEvent,
+  getCapturedScopesOnSpan,
+  getMetricSummaryJsonForSpan,
+  timedEventsToMeasurements,
+} from '@sentry/core';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -23,7 +28,6 @@ import { getLocalParentId } from './utils/groupSpansWithParents';
 import { groupSpansWithParents } from './utils/groupSpansWithParents';
 import { mapStatus } from './utils/mapStatus';
 import { parseSpanDescription } from './utils/parseSpanDescription';
-import { getSpanScopes } from './utils/spanData';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
@@ -138,7 +142,10 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
 
     transactionEvent.spans = spans;
 
-    // TODO Measurements are not yet implemented in OTEL
+    const measurements = timedEventsToMeasurements(span.events);
+    if (Object.keys(measurements).length) {
+      transactionEvent.measurements = measurements;
+    }
 
     captureEvent(transactionEvent);
   });
@@ -173,7 +180,7 @@ function parseSpan(span: ReadableSpan): { op?: string; origin?: SpanOrigin; sour
 
 function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
   const { op, description, data, origin = 'manual', source } = getSpanData(span);
-  const capturedSpanScopes = getSpanScopes(span);
+  const capturedSpanScopes = getCapturedScopesOnSpan(span as unknown as Span);
 
   const sampleRate = span.attributes[SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE] as number | undefined;
 
@@ -217,8 +224,8 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     type: 'transaction',
     sdkProcessingMetadata: {
       ...dropUndefinedKeys({
-        capturedSpanScope: capturedSpanScopes?.scope,
-        capturedSpanIsolationScope: capturedSpanScopes?.isolationScope,
+        capturedSpanScope: capturedSpanScopes.scope,
+        capturedSpanIsolationScope: capturedSpanScopes.isolationScope,
         sampleRate,
         dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
       }),

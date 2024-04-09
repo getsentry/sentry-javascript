@@ -1,6 +1,6 @@
+import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
-import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, WINDOW } from '../../src/constants';
 import type { ReplayContainer } from '../../src/replay';
@@ -30,7 +30,7 @@ describe('Integration | sendReplayEvent', () => {
 
   beforeAll(async () => {
     jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.spyOn(SentryUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+    jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });
 

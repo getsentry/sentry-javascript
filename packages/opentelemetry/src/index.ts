@@ -1,10 +1,9 @@
-import { getRequestSpanData } from './utils/getRequestSpanData';
+export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
 export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
-export { getSpanScopes } from './utils/spanData';
 
 export { getScopesFromContext } from './utils/contextData';
 
@@ -40,13 +39,3 @@ export { openTelemetrySetupCheck } from './utils/setupCheck';
 
 // Legacy
 export { getClient } from '@sentry/core';
-
-/**
- * The following internal utils are not considered public API and are subject to change.
- * @hidden
- */
-const _INTERNAL = {
-  getRequestSpanData,
-} as const;
-
-export { _INTERNAL };

@@ -1,5 +1,5 @@
-import { getCurrentScope } from '@sentry/core';
-import { getClient, getSpanScopes } from '@sentry/opentelemetry';
+import { getCapturedScopesOnSpan, getCurrentScope } from '@sentry/core';
+import { getClient } from '@sentry/opentelemetry';
 import { clearGlobalScope } from '../../../core/test/lib/clear-global-scope';
 
 import * as Sentry from '../../src/';
@@ -42,7 +42,7 @@ describe('Integration | Scope', () => {
           scope2.setTag('tag3', 'val3');
 
           Sentry.startSpan({ name: 'outer' }, span => {
-            expect(getSpanScopes(span)?.scope).toBe(enableTracing ? scope2 : undefined);
+            expect(getCapturedScopesOnSpan(span)?.scope).toBe(enableTracing ? scope2 : undefined);
 
             spanId = span.spanContext().spanId;
             traceId = span.spanContext().traceId;

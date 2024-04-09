@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('sends an error', async ({ page }) => {
   const errorPromise = waitForError('angular-17', async errorEvent => {

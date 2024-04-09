@@ -994,7 +994,7 @@ describe('startInactiveSpan', () => {
     });
   });
 
-  it('includes the scope at the time the span was started when finished', async () => {
+  it('includes the scope at the time the span was started when finished xxx', async () => {
     const beforeSendTransaction = jest.fn(event => event);
 
     const client = new TestClient(

@@ -1,4 +1,5 @@
-import type { Transaction, WebFetchHeaders, WrappedFunction } from '@sentry/types';
+import type { SentrySpan } from '@sentry/core';
+import type { WebFetchHeaders, WrappedFunction } from '@sentry/types';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import type { RequestAsyncStorage } from '../config/templates/requestAsyncStorageShim';
 
@@ -65,7 +66,7 @@ export type AugmentedNextApiRequest = NextApiRequest & {
 };
 
 export type AugmentedNextApiResponse = NextApiResponse & {
-  __sentryTransaction?: Transaction;
+  __sentryTransaction?: SentrySpan;
 };
 
 export type ResponseEndMethod = AugmentedNextApiResponse['end'];

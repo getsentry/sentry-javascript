@@ -13,7 +13,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
@@ -75,6 +74,8 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

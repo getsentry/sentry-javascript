@@ -1,7 +1,7 @@
+import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../constants';
-import type { FeedbackTheme, FeedbackThemes } from '../types';
 
-function getThemedCssVariables(theme: FeedbackTheme): string {
+function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
   return `
   --background: ${theme.background};
   --background-hover: ${theme.backgroundHover};
@@ -39,7 +39,10 @@ function getThemedCssVariables(theme: FeedbackTheme): string {
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createMainStyles(colorScheme: 'system' | 'dark' | 'light', themes: FeedbackThemes): HTMLStyleElement {
+export function createMainStyles(
+  colorScheme: 'system' | 'dark' | 'light',
+  themes: Pick<FeedbackInternalOptions, 'themeLight' | 'themeDark'>,
+): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
