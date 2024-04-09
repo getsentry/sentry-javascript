@@ -6,7 +6,6 @@ import {
   captureException,
   defineIntegration,
   getActiveSpan,
-  getCurrentScope,
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
