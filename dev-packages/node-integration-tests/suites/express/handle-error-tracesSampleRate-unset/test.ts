@@ -6,7 +6,7 @@ afterAll(() => {
 
 test('should capture and send Express controller error if tracesSampleRate is not set.', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
+    .ignore('session', 'sessions', 'transaction')
     .expect({
       event: {
         exception: {
