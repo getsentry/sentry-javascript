@@ -1,4 +1,4 @@
-import type { Client, IntegrationFn } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
