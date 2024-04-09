@@ -4,7 +4,7 @@ import {
   GAUGE_METRIC_TYPE,
   SET_METRIC_TYPE,
 } from '../../../src/metrics/constants';
-import { getBucketKey } from '../../../src/metrics/utils';
+import { getBucketKey, sanitizeTags } from '../../../src/metrics/utils';
 
 describe('getBucketKey', () => {
   it.each([
@@ -18,4 +18,26 @@ describe('getBucketKey', () => {
   ])('should return', (metricType, name, unit, tags, expected) => {
     expect(getBucketKey(metricType, name, unit, tags)).toEqual(expected);
   });
+
+  it('should sanitize tags', () => {
+    const inputTags = {
+      'f-oo|bar': '%$foo/',
+      'foo$.$.$bar': 'blah{}',
+      'foö-bar': 'snöwmän',
+      'route': 'GET /foo',
+      '__bar__': 'this | or , that',
+      'foo/': 'hello!\n\r\t\\',
+    };
+
+    const outputTags = {
+      'f-oobar': '%$foo/',
+      'foo..bar': 'blah{}',
+      'fo-bar': 'snöwmän',
+      'route': 'GET /foo',
+      '__bar__': 'this \\u{7c} or \\u{2c} that',
+      'foo/': 'hello!\\n\\r\\t\\\\',
+    };
+
+    expect(sanitizeTags(inputTags)).toEqual(outputTags);
+  })
 });
