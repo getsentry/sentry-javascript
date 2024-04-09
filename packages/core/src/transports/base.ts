@@ -49,10 +49,10 @@ export function createTransport(
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
-      const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
-      if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
+      const dataCategory = envelopeItemTypeToDataCategory(type);
+      if (isRateLimited(rateLimits, dataCategory)) {
         const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
       } else {
         filteredEnvelopeItems.push(item);
       }
