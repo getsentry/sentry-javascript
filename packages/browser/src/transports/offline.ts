@@ -48,8 +48,8 @@ function keys(store: IDBObjectStore): Promise<number[]> {
   return promisifyRequest(store.getAllKeys() as IDBRequest<number[]>);
 }
 
-/** Insert into the store */
-export function insert(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
+/** Insert into the end of the store */
+export function push(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
   return store(store => {
     return keys(store).then(keys => {
       if (keys.length >= maxQueueSize) {
@@ -63,8 +63,23 @@ export function insert(store: Store, value: Uint8Array | string, maxQueueSize: n
   });
 }
 
+/** Insert into the front of the store */
+export function unshift(store: Store, value: Uint8Array | string, maxQueueSize: number): Promise<void> {
+  return store(store => {
+    return keys(store).then(keys => {
+      if (keys.length >= maxQueueSize) {
+        return;
+      }
+
+      // We insert with an decremented key so that the entries are popped in order
+      store.put(value, Math.min(...keys, 0) - 1);
+      return promisifyRequest(store.transaction);
+    });
+  });
+}
+
 /** Pop the oldest value from the store */
-export function pop(store: Store): Promise<Uint8Array | string | undefined> {
+export function shift(store: Store): Promise<Uint8Array | string | undefined> {
   return store(store => {
     return keys(store).then(keys => {
       if (keys.length === 0) {
@@ -79,7 +94,7 @@ export function pop(store: Store): Promise<Uint8Array | string | undefined> {
   });
 }
 
-export interface BrowserOfflineTransportOptions extends OfflineTransportOptions {
+export interface BrowserOfflineTransportOptions extends Omit<OfflineTransportOptions, 'createStore'> {
   /**
    * Name of indexedDb database to store envelopes in
    * Default: 'sentry-offline'
@@ -110,17 +125,25 @@ function createIndexedDbStore(options: BrowserOfflineTransportOptions): OfflineS
   }
 
   return {
-    insert: async (env: Envelope) => {
+    push: async (env: Envelope) => {
       try {
         const serialized = await serializeEnvelope(env);
-        await insert(getStore(), serialized, options.maxQueueSize || 30);
+        await push(getStore(), serialized, options.maxQueueSize || 30);
       } catch (_) {
         //
       }
     },
-    pop: async () => {
+    unshift: async (env: Envelope) => {
       try {
-        const deserialized = await pop(getStore());
+        const serialized = await serializeEnvelope(env);
+        await unshift(getStore(), serialized, options.maxQueueSize || 30);
+      } catch (_) {
+        //
+      }
+    },
+    shift: async () => {
+      try {
+        const deserialized = await shift(getStore());
         if (deserialized) {
           return parseEnvelope(deserialized);
         }

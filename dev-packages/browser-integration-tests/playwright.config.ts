@@ -11,7 +11,7 @@ const config: PlaywrightTestConfig = {
   testMatch: /test.ts/,
 
   use: {
-    trace: process.env.CI ? 'retry-with-trace' : 'off',
+    trace: process.env.CI ? 'retain-on-failure' : 'off',
   },
 
   projects: [

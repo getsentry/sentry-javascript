@@ -39,7 +39,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"
   },
-  "dependencies": {
+  "devDependencies": {
     "@sentry/types": "8.0.0-alpha.9",
     "@sentry/utils": "8.0.0-alpha.9"
   },

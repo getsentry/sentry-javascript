@@ -59,6 +59,23 @@ test('Sends an API route transaction', async ({ baseURL }) => {
         {
           data: {
             'plugin.name': 'fastify -> sentry-fastify-error-handler',
+            'fastify.type': 'middleware',
+            'hook.name': 'onRequest',
+            'otel.kind': 'INTERNAL',
+            'sentry.origin': 'manual',
+          },
+          description: 'middleware - fastify -> sentry-fastify-error-handler',
+          parent_span_id: expect.any(String),
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: expect.any(String),
+          origin: 'manual',
+        },
+        {
+          data: {
+            'plugin.name': 'fastify -> sentry-fastify-error-handler',
             'fastify.type': 'request_handler',
             'http.route': '/test-transaction',
             'otel.kind': 'INTERNAL',
