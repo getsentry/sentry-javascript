@@ -3,6 +3,7 @@ import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, St
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../asyncContext';
+import { SUPPRESS_TRACING_KEY } from '../constants';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../hub';
@@ -204,6 +205,20 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
   });
 }
 
+/** Suppress tracing in the given callback, ensuring no spans are generated inside of it. */
+export function suppressTracing<T>(callback: () => T): T {
+  const acs = getAcs();
+
+  if (acs.suppressTracing) {
+    return acs.suppressTracing(callback);
+  }
+
+  return withScope(scope => {
+    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
+    return callback();
+  });
+}
+
 function createChildSpanOrTransaction({
   parentSpan,
   spanContext,
@@ -237,6 +252,7 @@ function createChildSpanOrTransaction({
         parentSpanId,
         ...spanContext,
       },
+      scope,
       parentSampled,
     );
 
@@ -258,6 +274,7 @@ function createChildSpanOrTransaction({
         parentSpanId,
         ...spanContext,
       },
+      scope,
       parentSampled,
     );
 
@@ -296,20 +313,22 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   const { name = '', attributes } = spanArguments;
-  const [sampled, sampleRate] = sampleSpan(options, {
-    name,
-    parentSampled,
-    attributes,
-    transactionContext: {
-      name,
-      parentSampled,
-    },
-  });
+  const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
+    ? [false]
+    : sampleSpan(options, {
+        name,
+        parentSampled,
+        attributes,
+        transactionContext: {
+          name,
+          parentSampled,
+        },
+      });
 
   const transaction = new SentrySpan({
     ...spanArguments,
