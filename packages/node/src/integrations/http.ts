@@ -1,4 +1,4 @@
-import type { ServerResponse } from 'http';
+import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
@@ -93,7 +93,9 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
 
-            if (getSpanKind(span) !== SpanKind.SERVER) {
+            // both, incoming requests and "client" requests made within the app trigger the requestHook
+            // we only want to isolate and further annotate incoming requests (IncomingMessage)
+            if (_isClientRequest(req)) {
               return;
             }
 
@@ -178,4 +180,13 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
       response,
     },
   );
+}
+
+/**
+ * Determines if @param req is a ClientRequest, meaning the request was created within the express app
+ * and it's an outgoing request.
+ * Checking for properties instead of using `instanceOf` to avoid importing the request classes.
+ */
+function _isClientRequest(req: ClientRequest | IncomingMessage): req is ClientRequest {
+  return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
 }
