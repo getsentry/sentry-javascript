@@ -6,6 +6,7 @@ import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 
 import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
@@ -21,7 +22,8 @@ const _expressIntegration = (() => {
             },
             spanNameHook(info, defaultName) {
               if (getIsolationScope() === getDefaultIsolationScope()) {
-                logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
+                DEBUG_BUILD &&
+                  logger.warn('Isolation scope is still default isolation scope - skipping setting transactionName');
                 return defaultName;
               }
               if (info.layerType === 'request_handler') {
