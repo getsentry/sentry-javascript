@@ -26,7 +26,7 @@ export type DataCategory =
   | 'monitor'
   // Feedback type event (v2)
   | 'feedback'
-  // Metrics sent via the statsd or metrics envelope items. `namespace` defines which namespace(s) will be affected
+  // Metrics sent via the statsd or metrics envelope items
   | 'metric_bucket'
   // Span
   | 'span'

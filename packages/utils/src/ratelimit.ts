@@ -74,7 +74,8 @@ export function updateRateLimits(
      *         <category>;<category>;...
      *     <scope> is what's being limited (org, project, or key) - ignored by SDK
      *     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
-     *     <namespaces> Semicolon-separated list of metric namespace identifiers. Only present if rate limit applies to the metric_bucket data category
+     *     <namespaces> Semicolon-separated list of metric namespace identifiers. Defines which namespace(s) will be affected.
+     *         Only present if rate limit applies to the metric_bucket data category.
      */
     for (const limit of rateLimitHeader.trim().split(',')) {
       const [retryAfter, categories] = limit.split(':', 2);
