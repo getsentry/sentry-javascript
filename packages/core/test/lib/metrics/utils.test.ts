@@ -24,8 +24,8 @@ describe('getBucketKey', () => {
       'f-oo|bar': '%$foo/',
       'foo$.$.$bar': 'blah{}',
       'foö-bar': 'snöwmän',
-      'route': 'GET /foo',
-      '__bar__': 'this | or , that',
+      route: 'GET /foo',
+      __bar__: 'this | or , that',
       'foo/': 'hello!\n\r\t\\',
     };
 
@@ -33,11 +33,11 @@ describe('getBucketKey', () => {
       'f-oobar': '%$foo/',
       'foo..bar': 'blah{}',
       'fo-bar': 'snöwmän',
-      'route': 'GET /foo',
-      '__bar__': 'this \\u{7c} or \\u{2c} that',
+      route: 'GET /foo',
+      __bar__: 'this \\u{7c} or \\u{2c} that',
       'foo/': 'hello!\\n\\r\\t\\\\',
     };
 
     expect(sanitizeTags(inputTags)).toEqual(outputTags);
-  })
+  });
 });
