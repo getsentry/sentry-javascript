@@ -86,7 +86,7 @@ export function updateRateLimits(
       } else {
         for (const category of categories.split(';')) {
           if (category === 'metric_bucket') {
-            const namespaces = limit.split(':', 5)[4] ? limit.split(':', 5)[4].split(';') : [];
+            const namespaces = limit.split(':', 5)[4] ? limit.split(':', 5)[4].split(';') : null;
 
             if (!namespaces || namespaces.includes('custom')) {
               // back off transmitting metrics from the SDK
