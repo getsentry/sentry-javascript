@@ -1,4 +1,4 @@
-import { suppressTracing } from '@sentry/opentelemetry';
+import { suppressTracing } from '@sentry/core';
 import type { Event, EventHint } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { StackFrame } from 'stacktrace-parser';

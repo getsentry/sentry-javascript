@@ -1,5 +1,4 @@
-import { createTransport } from '@sentry/core';
-import { suppressTracing } from '@sentry/opentelemetry';
+import { createTransport, suppressTracing } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { rejectedSyncPromise } from '@sentry/utils';
 

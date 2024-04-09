@@ -2,8 +2,7 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'stream';
 import { createGzip } from 'zlib';
-import { createTransport } from '@sentry/core';
-import { suppressTracing } from '@sentry/opentelemetry';
+import { createTransport, suppressTracing } from '@sentry/core';
 import type {
   BaseTransportOptions,
   Transport,
