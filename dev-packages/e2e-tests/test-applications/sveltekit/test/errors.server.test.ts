@@ -63,7 +63,6 @@ test.describe('server-side errors', () => {
       }),
     );
 
-    // TODO: Uncomment once we update the scope transaction name on the server side
-    // expect(errorEvent.transaction).toEqual('GET /server-route-error');
+    expect(errorEvent.transaction).toEqual('GET /server-route-error');
   });
 });

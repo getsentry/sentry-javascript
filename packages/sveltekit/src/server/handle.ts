@@ -2,6 +2,8 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getDefaultIsolationScope,
+  getIsolationScope,
   getRootSpan,
   setHttpStatus,
   spanToTraceHeader,
@@ -10,11 +12,12 @@ import {
 import { startSpan } from '@sentry/core';
 import { captureException, continueTrace } from '@sentry/node';
 import type { Span } from '@sentry/types';
-import { dynamicSamplingContextToSentryBaggageHeader, objectify } from '@sentry/utils';
+import { dynamicSamplingContextToSentryBaggageHeader, logger, objectify } from '@sentry/utils';
 import type { Handle, ResolveOptions } from '@sveltejs/kit';
 
 import { getDynamicSamplingContextFromSpan } from '@sentry/opentelemetry';
 
+import { DEBUG_BUILD } from '../common/debug-build';
 import { isHttpError, isRedirect } from '../common/utils';
 import { flushIfServerless, getTracePropagationData } from './utils';
 
@@ -183,6 +186,14 @@ async function instrumentHandle(
     return resolve(event);
   }
 
+  const routeName = `${event.request.method} ${event.route?.id || event.url.pathname}`;
+
+  if (getIsolationScope() !== getDefaultIsolationScope()) {
+    getIsolationScope().setTransactionName(routeName);
+  } else {
+    DEBUG_BUILD && logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+  }
+
   try {
     const resolveResult = await startSpan(
       {
@@ -192,7 +203,7 @@ async function instrumentHandle(
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: event.route?.id ? 'route' : 'url',
           'http.method': event.request.method,
         },
-        name: `${event.request.method} ${event.route?.id || event.url.pathname}`,
+        name: routeName,
       },
       async (span?: Span) => {
         const res = await resolve(event, {
