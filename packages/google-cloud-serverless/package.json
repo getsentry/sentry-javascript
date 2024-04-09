@@ -26,14 +26,14 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./register": {
+    "./import-hook": {
       "import": {
-        "default": "./build/register.mjs"
+        "default": "./build/import-hook.mjs"
       }
     },
-    "./hook": {
+    "./loader-hook": {
       "import": {
-        "default": "./build/hook.mjs"
+        "default": "./build/loader-hook.mjs"
       }
     }
   },

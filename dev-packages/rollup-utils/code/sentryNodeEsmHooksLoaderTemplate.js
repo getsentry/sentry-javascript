@@ -1,1 +1,0 @@
-import '@sentry/node/hook';

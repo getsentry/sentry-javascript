@@ -34,14 +34,14 @@
       "node": "./build/cjs/index.server.js",
       "types": "./build/types/index.types.d.ts"
     },
-    "./register": {
+    "./import-hook": {
       "import": {
-        "default": "./build/register.mjs"
+        "default": "./build/import-hook.mjs"
       }
     },
-    "./hook": {
+    "./loader-hook": {
       "import": {
-        "default": "./build/hook.mjs"
+        "default": "./build/loader-hook.mjs"
       }
     }
   },
