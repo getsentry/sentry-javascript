@@ -5,7 +5,9 @@ export function initialize(): void {
     if (options && options.until && options.until !== '3.0.0') {
       return;
     } else {
-      // @ts-expect-error this is fine
+      // We do not use @ts-expect-error here because this only fails in certain versions...
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore this is fine
       next(message, options);
     }
   });
