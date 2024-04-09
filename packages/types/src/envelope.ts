@@ -24,6 +24,8 @@ export type DynamicSamplingContext = {
   sampled?: string;
 };
 
+// https://github.com/getsentry/relay/blob/311b237cd4471042352fa45e7a0824b8995f216f/relay-server/src/envelope.rs#L154
+// https://develop.sentry.dev/sdk/envelopes/#data-model
 export type EnvelopeItemType =
   | 'client_report'
   | 'user_report'

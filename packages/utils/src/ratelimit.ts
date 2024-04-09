@@ -1,4 +1,4 @@
-import type { TransportMakeRequestResponse } from '@sentry/types';
+import type { DataCategory, TransportMakeRequestResponse } from '@sentry/types';
 
 // Intentionally keeping the key broad, as we don't know for sure what rate limit headers get returned from backend
 export type RateLimits = Record<string, number>;
@@ -32,15 +32,15 @@ export function parseRetryAfterHeader(header: string, now: number = Date.now()):
  *
  * @return the time in ms that the category is disabled until or 0 if there's no active rate limit.
  */
-export function disabledUntil(limits: RateLimits, category: string): number {
-  return limits[category] || limits.all || 0;
+export function disabledUntil(limits: RateLimits, dataCategory: DataCategory): number {
+  return limits[dataCategory] || limits.all || 0;
 }
 
 /**
  * Checks if a category is rate limited
  */
-export function isRateLimited(limits: RateLimits, category: string, now: number = Date.now()): boolean {
-  return disabledUntil(limits, category) > now;
+export function isRateLimited(limits: RateLimits, dataCategory: DataCategory, now: number = Date.now()): boolean {
+  return disabledUntil(limits, dataCategory) > now;
 }
 
 /**
@@ -74,6 +74,8 @@ export function updateRateLimits(
      *         <category>;<category>;...
      *     <scope> is what's being limited (org, project, or key) - ignored by SDK
      *     <reason_code> is an arbitrary string like "org_quota" - ignored by SDK
+     *     <namespaces> Semicolon-separated list of metric namespace identifiers. Defines which namespace(s) will be affected.
+     *         Only present if rate limit applies to the metric_bucket data category.
      */
     for (const limit of rateLimitHeader.trim().split(',')) {
       const [retryAfter, categories] = limit.split(':', 2);
