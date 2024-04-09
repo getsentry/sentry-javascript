@@ -54,7 +54,7 @@
   },
   "dependencies": {
     "@opentelemetry/api": "1.7.0",
-    "@opentelemetry/context-async-hooks": "1.21.0",
+    "@opentelemetry/context-async-hooks": "1.23.0",
     "@opentelemetry/core": "1.21.0",
     "@opentelemetry/instrumentation": "0.48.0",
     "@opentelemetry/instrumentation-express": "0.35.0",
