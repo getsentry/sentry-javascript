@@ -14,7 +14,7 @@ import {
   setCapturedScopesOnSpan,
   spanToJSON,
 } from '@sentry/core';
-import { _INTERNAL, getClient, getSpanKind } from '@sentry/opentelemetry';
+import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 import { stripUrlQueryAndFragment } from '@sentry/utils';
@@ -160,7 +160,7 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
     return;
   }
 
-  const data = _INTERNAL.getRequestSpanData(span);
+  const data = getRequestSpanData(span);
   addBreadcrumb(
     {
       category: 'http',
