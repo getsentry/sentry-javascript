@@ -1,5 +1,6 @@
 import type { EdgeRouteHandler } from '../edge/types';
 import { withEdgeWrapping } from './utils/edgeWrapperUtils';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 /**
  * Wraps Next.js middleware with Sentry error and performance instrumentation.
@@ -12,11 +13,13 @@ export function wrapMiddlewareWithSentry<H extends EdgeRouteHandler>(
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return new Proxy(middleware, {
     apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
-      return withEdgeWrapping(wrappingTarget, {
-        spanDescription: 'middleware',
-        spanOp: 'middleware.nextjs',
-        mechanismFunctionName: 'withSentryMiddleware',
-      }).apply(thisArg, args);
+      return withIsolationScopeOrReuseFromRootSpan(() => {
+        return withEdgeWrapping(wrappingTarget, {
+          spanDescription: 'middleware',
+          spanOp: 'middleware.nextjs',
+          mechanismFunctionName: 'withSentryMiddleware',
+        }).apply(thisArg, args);
+      });
     },
   });
 }
