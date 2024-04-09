@@ -56,6 +56,8 @@
     "packages/eslint-config-sdk",
     "packages/eslint-plugin-sdk",
     "packages/feedback",
+    "packages/feedback-modal",
+    "packages/feedback-screenshot",
     "packages/gatsby",
     "packages/google-cloud-serverless",
     "packages/integration-shims",
