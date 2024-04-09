@@ -210,7 +210,7 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   check_in: 'monitor',
   feedback: 'feedback',
   span: 'span',
-  statsd: 'statsd',
+  statsd: 'metric_bucket',
 };
 
 /**
@@ -220,7 +220,7 @@ export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCate
   return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
 }
 
-/** Extracts the minimal SDK info from from the metadata or an events */
+/** Extracts the minimal SDK info from the metadata or an events */
 export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
   if (!metadataOrEvent || !metadataOrEvent.sdk) {
     return;
