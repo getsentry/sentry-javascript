@@ -27,9 +27,11 @@ function startOrUpdateSpan(spanName: string, cb: (rootSpan: Span) => Promise<Res
 
   if (rootSpan) {
     rootSpan.updateName(spanName);
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, 'http.server');
-    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.function.nextjs');
+    rootSpan.setAttributes({
+      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+    });
 
     return cb(rootSpan);
   } else {

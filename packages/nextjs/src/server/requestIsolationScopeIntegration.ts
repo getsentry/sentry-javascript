@@ -26,7 +26,10 @@ export const requestIsolationScopeIntegration = defineIntegration(() => {
         const data = spanJson.data || {};
 
         // The following check is a heuristic to determine whether the started span is a span that tracks an incoming HTTP request
-        if ((getSpanKind(span) === SpanKind.SERVER && data['http.method']) || (span === getRootSpan(span) && data['next.route'])) {
+        if (
+          (getSpanKind(span) === SpanKind.SERVER && data['http.method']) ||
+          (span === getRootSpan(span) && data['next.route'])
+        ) {
           const scopes = getCapturedScopesOnSpan(span);
 
           // Update the isolation scope, isolate this request
