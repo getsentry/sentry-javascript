@@ -8,7 +8,7 @@ import * as Sentry from '@sentry/node';
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   release: '1.0',
-  tracesSampleRate: 1,
+  tracesSampleRate: 0,
   transport: loggingTransport,
   integrations: integrations => integrations.filter(i => i.name !== 'Express'),
   debug: true,
@@ -17,7 +17,7 @@ Sentry.init({
 import { Controller, Get, Injectable, Module, Param } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 
-const port = 3470;
+const port = 3480;
 
 // Stop the process from exiting before the transaction is sent
 // eslint-disable-next-line @typescript-eslint/no-empty-function
