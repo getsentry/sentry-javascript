@@ -39,5 +39,3 @@ export { openTelemetrySetupCheck } from './utils/setupCheck';
 
 // Legacy
 export { getClient } from '@sentry/core';
-
-export { _INTERNAL };
