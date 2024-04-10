@@ -69,6 +69,7 @@ describe('eventFromUnknownInput', () => {
             return { normalizeDepth: 6 };
           },
         }),
+        // eslint-disable-next-line deprecation/deprecation
       } as unknown as Hub;
     });
 
