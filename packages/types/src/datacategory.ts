@@ -28,7 +28,7 @@ export type DataCategory =
   | 'feedback'
   // Statsd type event for metrics
   | 'statsd'
-  // Unknown data category
-  | 'unknown'
   // Span
-  | 'span';
+  | 'span'
+  // Unknown data category
+  | 'unknown';
