@@ -1,4 +1,4 @@
-import type { Event, IntegrationFn, StackFrame, Stacktrace } from '@sentry/types';
+import type { Event, StackFrame, Stacktrace } from '@sentry/types';
 import { basename, relative } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
@@ -12,34 +12,14 @@ interface RewriteFramesOptions {
   iteratee?: StackFrameIteratee;
 }
 
-const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
+/**
+ * Rewrite event frames paths.
+ */
+export const rewriteFramesIntegration = defineIntegration((options: RewriteFramesOptions = {}) => {
   const root = options.root;
   const prefix = options.prefix || 'app:///';
 
-  const iteratee: StackFrameIteratee =
-    options.iteratee ||
-    ((frame: StackFrame) => {
-      if (!frame.filename) {
-        return frame;
-      }
-      // Determine if this is a Windows frame by checking for a Windows-style prefix such as `C:\`
-      const isWindowsFrame =
-        /^[a-zA-Z]:\\/.test(frame.filename) ||
-        // or the presence of a backslash without a forward slash (which are not allowed on Windows)
-        (frame.filename.includes('\\') && !frame.filename.includes('/'));
-      // Check if the frame filename begins with `/`
-      const startsWithSlash = /^\//.test(frame.filename);
-      if (isWindowsFrame || startsWithSlash) {
-        const filename = isWindowsFrame
-          ? frame.filename
-              .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
-              .replace(/\\/g, '/') // replace all `\\` instances with `/`
-          : frame.filename;
-        const base = root ? relative(root, filename) : basename(filename);
-        frame.filename = `${prefix}${base}`;
-      }
-      return frame;
-    });
+  const iteratee: StackFrameIteratee = options.iteratee || generateIteratee({ root, prefix });
 
   /** Process an exception event. */
   function _processExceptionsEvent(event: Event): Event {
@@ -81,9 +61,41 @@ const _rewriteFramesIntegration = ((options: RewriteFramesOptions = {}) => {
       return processedEvent;
     },
   };
-}) satisfies IntegrationFn;
+});
 
 /**
- * Rewrite event frames paths.
+ * Exported only for tests.
  */
-export const rewriteFramesIntegration = defineIntegration(_rewriteFramesIntegration);
+export function generateIteratee({
+  root,
+  prefix,
+}: {
+  root?: string;
+  prefix?: string;
+}): StackFrameIteratee {
+  return (frame: StackFrame) => {
+    if (!frame.filename) {
+      return frame;
+    }
+
+    // Determine if this is a Windows frame by checking for a Windows-style prefix such as `C:\`
+    const isWindowsFrame =
+      /^[a-zA-Z]:\\/.test(frame.filename) ||
+      // or the presence of a backslash without a forward slash (which are not allowed on Windows)
+      (frame.filename.includes('\\') && !frame.filename.includes('/'));
+
+    // Check if the frame filename begins with `/`
+    const startsWithSlash = /^\//.test(frame.filename);
+    if (isWindowsFrame || startsWithSlash) {
+      const filename = isWindowsFrame
+        ? frame.filename
+            .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
+            .replace(/\\/g, '/') // replace all `\\` instances with `/`
+        : frame.filename;
+      const base = root ? relative(root, filename) : basename(filename);
+      frame.filename = `${prefix}${base}`;
+    }
+
+    return frame;
+  };
+}
