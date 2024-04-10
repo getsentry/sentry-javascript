@@ -1,6 +1,5 @@
 import { captureException, defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -13,17 +12,13 @@ type TaggedListener = NodeJS.UncaughtExceptionListener & {
   tag?: string;
 };
 
-// CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
 interface OnUncaughtExceptionOptions {
-  // TODO(v8): Evaluate whether we should switch the default behaviour here.
-  // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
-  // falling back to current behaviour when that's not available.
   /**
    * Controls if the SDK should register a handler to exit the process on uncaught errors:
    * - `true`: The SDK will exit the process on all uncaught errors.
    * - `false`: The SDK will only exit the process when there are no other `uncaughtException` handlers attached.
    *
-   * Default: `true`
+   * Default: `false`
    */
   exitEvenIfOtherHandlersAreRegistered: boolean;
 
@@ -40,24 +35,22 @@ interface OnUncaughtExceptionOptions {
 
 const INTEGRATION_NAME = 'OnUncaughtException';
 
-const _onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
-  const _options = {
-    exitEvenIfOtherHandlersAreRegistered: true,
+/**
+ * Add a global exception handler.
+ */
+export const onUncaughtExceptionIntegration = defineIntegration((options: Partial<OnUncaughtExceptionOptions> = {}) => {
+  const optionsWithDefaults = {
+    exitEvenIfOtherHandlersAreRegistered: false,
     ...options,
   };
 
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
-      global.process.on('uncaughtException', makeErrorHandler(client, _options));
+      global.process.on('uncaughtException', makeErrorHandler(client, optionsWithDefaults));
     },
   };
-}) satisfies IntegrationFn;
-
-/**
- * Add a global exception handler.
- */
-export const onUncaughtExceptionIntegration = defineIntegration(_onUncaughtExceptionIntegration);
+});
 
 type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 
