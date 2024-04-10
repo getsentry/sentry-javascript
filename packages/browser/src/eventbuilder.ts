@@ -48,10 +48,7 @@ export function exceptionFromError(stackParser: StackParser, ex: Error): Excepti
   return exception;
 }
 
-/**
- * @hidden
- */
-export function eventFromPlainObject(
+function eventFromPlainObject(
   stackParser: StackParser,
   exception: Record<string, unknown>,
   syntheticException?: Error,
@@ -60,35 +57,46 @@ export function eventFromPlainObject(
   const client = getClient();
   const normalizeDepth = client && client.getOptions().normalizeDepth;
 
-  const event: Event = {
+  // If we can, we extract an exception from the object properties
+  const errorFromProp = getErrorPropertyFromObject(exception);
+
+  const extra = {
+    __serialized__: normalizeToSize(exception, normalizeDepth),
+  };
+
+  if (errorFromProp) {
+    return {
+      exception: {
+        values: [exceptionFromError(stackParser, errorFromProp)],
+      },
+      extra,
+    };
+  }
+
+  const event = {
     exception: {
       values: [
         {
           type: isEvent(exception) ? exception.constructor.name : isUnhandledRejection ? 'UnhandledRejection' : 'Error',
           value: getNonErrorObjectExceptionValue(exception, { isUnhandledRejection }),
-        },
+        } as Exception,
       ],
     },
-    extra: {
-      __serialized__: normalizeToSize(exception, normalizeDepth),
-    },
-  };
+    extra,
+  } satisfies Event;
 
   if (syntheticException) {
     const frames = parseStackFrames(stackParser, syntheticException);
     if (frames.length) {
       // event.exception.values[0] has been set above
-      (event.exception as { values: Exception[] }).values[0].stacktrace = { frames };
+      event.exception.values[0].stacktrace = { frames };
     }
   }
 
   return event;
 }
 
-/**
- * @hidden
- */
-export function eventFromError(stackParser: StackParser, ex: Error): Event {
+function eventFromError(stackParser: StackParser, ex: Error): Event {
   return {
     exception: {
       values: [exceptionFromError(stackParser, ex)],
@@ -97,7 +105,7 @@ export function eventFromError(stackParser: StackParser, ex: Error): Event {
 }
 
 /** Parses stack frames from an error */
-export function parseStackFrames(
+function parseStackFrames(
   stackParser: StackParser,
   ex: Error & { framesToPop?: number; stacktrace?: string },
 ): StackFrame[] {
@@ -283,10 +291,7 @@ export function eventFromUnknownInput(
   return event;
 }
 
-/**
- * @hidden
- */
-export function eventFromString(
+function eventFromString(
   stackParser: StackParser,
   message: ParameterizedString,
   syntheticException?: Error,
@@ -345,4 +350,18 @@ function getObjectClassName(obj: unknown): string | undefined | void {
   } catch (e) {
     // ignore errors here
   }
+}
+
+/** If a plain object has a property that is an `Error`, return this error. */
+function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undefined {
+  for (const prop in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+      const value = obj[prop];
+      if (value instanceof Error) {
+        return value;
+      }
+    }
+  }
+
+  return undefined;
 }
