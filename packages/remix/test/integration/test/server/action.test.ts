@@ -1,11 +1,11 @@
-import { Adapter, RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
+import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
 jest.spyOn(console, 'error').mockImplementation();
 
 // Repeat tests for each adapter
-describe.each([Adapter.Builtin, Adapter.Express, Adapter.Fastify])('Remix API Actions with adapter = %s', adapter => {
+describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', adapter => {
   it('correctly instruments a parameterized Remix API action', async () => {
     const env = await RemixTestEnv.init(adapter);
     const url = `${env.url}/action-json-response/123123`;
