@@ -417,6 +417,48 @@ describe('startSpan', () => {
     });
   });
 
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpan({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpan({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+          });
+        });
+      });
+    });
+  });
+
   it('samples with a tracesSampler', () => {
     const tracesSampler = jest.fn(() => {
       return true;
@@ -751,6 +793,54 @@ describe('startSpanManual', () => {
     });
   });
 
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpanManual({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpanManual({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpanManual({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+            grandChildSpan.end();
+          });
+          childSpan.end();
+        });
+        span.end();
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpanManual({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpanManual({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpanManual({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+            grandChildSpan.end();
+          });
+          childSpan.end();
+        });
+        span.end();
+      });
+    });
+  });
+
   it('sets a child span reference on the parent span', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
@@ -992,6 +1082,64 @@ describe('startInactiveSpan', () => {
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
+    });
+  });
+
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+
+      startSpan({ name: 'parent span' }, span => {
+        const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+        startSpan({ name: 'child span' }, () => {
+          const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+          startSpan({ name: 'grand child span' }, () => {
+            const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+
+      startSpan({ name: 'parent span' }, span => {
+        const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+        startSpan({ name: 'child span' }, childSpan => {
+          const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
+          });
+        });
+      });
     });
   });
 

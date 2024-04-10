@@ -1,5 +1,4 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../asyncContext';
@@ -11,13 +10,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import {
-  addChildSpanToSpan,
-  getActiveSpan,
-  spanIsSampled,
-  spanTimeInputToSeconds,
-  spanToJSON,
-} from '../utils/spanUtils';
+import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -47,7 +40,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
-    const parentSpan = _getSpanForScope(scope) as SentrySpan | undefined;
+    const parentSpan = getParentSpan(scope);
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -94,7 +87,7 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
-    const parentSpan = _getSpanForScope(scope) as SentrySpan | undefined;
+    const parentSpan = getParentSpan(scope);
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -141,17 +134,15 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
   }
 
   const spanContext = normalizeContext(context);
-  const parentSpan = context.scope
-    ? (_getSpanForScope(context.scope) as SentrySpan | undefined)
-    : (getActiveSpan() as SentrySpan | undefined);
+
+  const scope = context.scope || getCurrentScope();
+  const parentSpan = getParentSpan(scope);
 
   const shouldSkipSpan = context.onlyIfParent && !parentSpan;
 
   if (shouldSkipSpan) {
     return new SentryNonRecordingSpan();
   }
-
-  const scope = context.scope || getCurrentScope();
 
   return createChildSpanOrTransaction({
     parentSpan,
@@ -380,4 +371,20 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
   }
 
   return childSpan;
+}
+
+function getParentSpan(scope: Scope): SentrySpan | undefined {
+  const span = _getSpanForScope(scope) as SentrySpan | undefined;
+
+  if (!span) {
+    return undefined;
+  }
+
+  const client = getClient();
+  const options: Partial<ClientOptions> = client ? client.getOptions() : {};
+  if (options.parentSpanIsAlwaysRootSpan) {
+    return getRootSpan(span) as SentrySpan;
+  }
+
+  return span;
 }
