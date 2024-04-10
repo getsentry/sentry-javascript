@@ -169,8 +169,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
     startTrackingInteractions();
   }
 
-  let latestRouteName: string | undefined;
-  let latestRouteSource: TransactionSource | undefined;
+  const latestRoute: { name: string | undefined; source: TransactionSource | undefined } = {
+    name: undefined,
+    source: undefined,
+  };
 
   /** Create routing idle transaction. */
   function _createRouteSpan(client: Client, startSpanOptions: StartSpanOptions): Span {
@@ -190,8 +192,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       finalStartSpanOptions.attributes = attributes;
     }
 
-    latestRouteName = finalStartSpanOptions.name;
-    latestRouteSource = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
+    latestRoute.name = finalStartSpanOptions.name;
+    latestRoute.source = attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE];
 
     const idleSpan = startIdleSpan(finalStartSpanOptions, {
       idleTimeout,
@@ -333,7 +335,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
       }
 
       if (_experiments.enableInteractions) {
-        registerInteractionListener(options, latestRouteName, latestRouteSource);
+        registerInteractionListener(options, latestRoute);
       }
 
       instrumentOutgoingRequests({
@@ -404,8 +406,7 @@ export function getMetaContent(metaName: string): string | undefined {
 /** Start listener for interaction transactions */
 function registerInteractionListener(
   options: BrowserTracingOptions,
-  latestRouteName: string | undefined,
-  latestRouteSource: TransactionSource | undefined,
+  latestRoute: { name: string | undefined; source: TransactionSource | undefined },
 ): void {
   let inflightInteractionSpan: Span | undefined;
   const registerInteractionTransaction = (): void => {
@@ -429,17 +430,17 @@ function registerInteractionListener(
       inflightInteractionSpan = undefined;
     }
 
-    if (!latestRouteName) {
+    if (!latestRoute.name) {
       DEBUG_BUILD && logger.warn(`[Tracing] Did not create ${op} transaction because _latestRouteName is missing.`);
       return undefined;
     }
 
     inflightInteractionSpan = startIdleSpan(
       {
-        name: latestRouteName,
+        name: latestRoute.name,
         op,
         attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRouteSource || 'url',
+          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: latestRoute.source || 'url',
         },
       },
       {
