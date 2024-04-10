@@ -9,6 +9,7 @@ import { OpenTelemetryScope } from './scope';
  * A custom hub that ensures we always creat an OTEL scope.
  * Exported only for testing
  */
+// eslint-disable-next-line deprecation/deprecation
 export class OpenTelemetryHub extends Hub {
   public constructor(client?: Client, scope: Scope = new OpenTelemetryScope()) {
     super(client, scope);
@@ -49,6 +50,7 @@ const API_VERSION = 4;
  * contains a more recent version, it replaces the registered version.
  * Otherwise, the currently registered hub will be returned.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
@@ -85,7 +87,9 @@ export function setupGlobalHub(): void {
  * @param carrier object
  * @hidden
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getHubFromCarrier(carrier: Carrier): Hub {
+  // eslint-disable-next-line deprecation/deprecation
   return getGlobalSingleton<Hub>('hub', () => new OpenTelemetryHub(), carrier);
 }
 
@@ -94,6 +98,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  *
  * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (
@@ -107,6 +112,7 @@ export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub(
   }
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
   if (
@@ -150,6 +156,7 @@ function getMainCarrier(): Carrier {
  * @param hub Hub
  * @returns A boolean indicating success or failure
  */
+// eslint-disable-next-line deprecation/deprecation
 function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
   const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});

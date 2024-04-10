@@ -53,6 +53,7 @@ describe('asyncContextStrategy', () => {
   });
 
   test('async hub scope inheritance', async () => {
+    // eslint-disable-next-line deprecation/deprecation
     async function addRandomExtra(hub: Hub, key: string): Promise<void> {
       return new Promise(resolve => {
         setTimeout(() => {

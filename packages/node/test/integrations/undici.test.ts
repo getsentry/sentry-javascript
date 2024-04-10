@@ -12,6 +12,7 @@ import { conditionalTest } from '../utils';
 
 const SENTRY_DSN = 'https://0@0.ingest.sentry.io/0';
 
+// eslint-disable-next-line deprecation/deprecation
 let hub: Hub;
 let fetch: typeof FetchType;
 

@@ -45,6 +45,7 @@ export class Mysql implements LazyLoadedIntegration<MysqlConnection> {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       DEBUG_BUILD && logger.log('Mysql Integration is skipped because of instrumenter configuration.');

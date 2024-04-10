@@ -17,11 +17,14 @@ import { NodeClient } from '../src/client';
 import { errorHandler, requestHandler, tracingHandler } from '../src/handlers';
 import { getDefaultNodeClientOptions } from './helper/node-client-options';
 
+// eslint-disable-next-line deprecation/deprecation
 function mockAsyncContextStrategy(getHub: () => Hub): void {
+  // eslint-disable-next-line deprecation/deprecation
   function getCurrentHub(): Hub | undefined {
     return getHub();
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function runWithAsyncContext<T>(fn: (hub: Hub) => T): T {
     return fn(getHub());
   }
@@ -195,6 +198,7 @@ describe('tracingHandler', () => {
 
   const sentryTracingMiddleware = tracingHandler();
 
+  // eslint-disable-next-line deprecation/deprecation
   let hub: Hub, req: http.IncomingMessage, res: http.ServerResponse, next: () => undefined;
 
   function createNoOpSpy() {

@@ -102,6 +102,7 @@ export class IdleTransaction extends Transaction {
    */
   public constructor(
     transactionContext: TransactionContext,
+    // eslint-disable-next-line deprecation/deprecation
     private readonly _idleHub: Hub,
     /**
      * The time to wait in ms until the idle transaction will be finished. This timer is started each time

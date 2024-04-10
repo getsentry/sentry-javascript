@@ -75,6 +75,7 @@ export {
   // eslint-disable-next-line deprecation/deprecation
   extractTraceparentData,
   flush,
+  // eslint-disable-next-line deprecation/deprecation
   Hub,
   runWithAsyncContext,
   SDK_VERSION,

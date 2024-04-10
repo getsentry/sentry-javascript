@@ -171,6 +171,7 @@ export class Http implements Integration {
    */
   public setupOnce(
     _addGlobalEventProcessor: (callback: EventProcessor) => void,
+    // eslint-disable-next-line deprecation/deprecation
     setupOnceGetCurrentHub: () => Hub,
   ): void {
     // eslint-disable-next-line deprecation/deprecation

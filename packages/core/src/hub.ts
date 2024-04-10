@@ -66,6 +66,7 @@ export interface AsyncContextStrategy {
   /**
    * Gets the current async context. Returns undefined if there is no current async context.
    */
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub: () => Hub | undefined;
   /**
    * Runs the supplied callback in its own async context.
@@ -88,6 +89,7 @@ export interface Layer {
  */
 export interface Carrier {
   __SENTRY__?: {
+    // eslint-disable-next-line deprecation/deprecation
     hub?: Hub;
     acs?: AsyncContextStrategy;
     /**
@@ -103,7 +105,15 @@ export interface Carrier {
 }
 
 /**
- * @inheritDoc
+ * @deprecated The `Hub` class will be removed in version 8 of the SDK in favour of `Scope` and `Client` objects.
+ *
+ * If you previously used the `Hub` class directly, replace it with `Scope` and `Client` objects. More information:
+ * - [Multiple Sentry Instances](https://docs.sentry.io/platforms/javascript/best-practices/multiple-sentry-instances/)
+ * - [Browser Extensions](https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/)
+ *
+ * Some of our APIs are typed with the Hub class instead of the interface (e.g. `getCurrentHub`). Most of them are deprecated
+ * themselves and will also be removed in version 8. More information:
+ * - [Migration Guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub)
  */
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
@@ -531,6 +541,7 @@ export class Hub implements HubInterface {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public run(callback: (hub: Hub) => void): void {
     // eslint-disable-next-line deprecation/deprecation
     const oldHub = makeMain(this);
@@ -739,6 +750,7 @@ export function getMainCarrier(): Carrier {
  *
  * @deprecated Use `setCurrentClient()` instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function makeMain(hub: Hub): Hub {
   const registry = getMainCarrier();
   const oldHub = getHubFromCarrier(registry);
@@ -755,6 +767,7 @@ export function makeMain(hub: Hub): Hub {
  *
  * @deprecated Use the respective replacement method directly instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getCurrentHub(): Hub {
   // Get main carrier (global for every environment)
   const registry = getMainCarrier();
@@ -781,6 +794,7 @@ export function getIsolationScope(): Scope {
   return getCurrentHub().getIsolationScope();
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
   // If there's no hub, or its an old API, assign a new one
 
@@ -802,6 +816,7 @@ function getGlobalHub(registry: Carrier = getMainCarrier()): Hub {
  *
  * If the carrier does not contain a hub, a new hub is created with the global hub client and scope.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function ensureHubOnCarrier(carrier: Carrier, parent: Hub = getGlobalHub()): void {
   // If there's no hub on current domain, or it's an old API, assign a new one
   if (
@@ -864,6 +879,7 @@ function hasHubOnCarrier(carrier: Carrier): boolean {
  * @param carrier object
  * @hidden
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getHubFromCarrier(carrier: Carrier): Hub {
   // eslint-disable-next-line deprecation/deprecation
   return getGlobalSingleton<Hub>('hub', () => new Hub(), carrier);
@@ -875,6 +891,7 @@ export function getHubFromCarrier(carrier: Carrier): Hub {
  * @param hub Hub
  * @returns A boolean indicating success or failure
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setHubOnCarrier(carrier: Carrier, hub: Hub): boolean {
   if (!carrier) return false;
   const __SENTRY__ = (carrier.__SENTRY__ = carrier.__SENTRY__ || {});

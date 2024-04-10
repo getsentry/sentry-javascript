@@ -139,6 +139,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       DEBUG_BUILD && logger.log('Mongo Integration is skipped because of instrumenter configuration.');
@@ -159,6 +160,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * Patches original collection methods
    */
+  // eslint-disable-next-line deprecation/deprecation
   private _instrumentOperations(collection: MongoCollection, operations: Operation[], getCurrentHub: () => Hub): void {
     operations.forEach((operation: Operation) => this._patchOperation(collection, operation, getCurrentHub));
   }
@@ -166,6 +168,7 @@ export class Mongo implements LazyLoadedIntegration<MongoModule> {
   /**
    * Patches original collection to utilize our tracing functionality
    */
+  // eslint-disable-next-line deprecation/deprecation
   private _patchOperation(collection: MongoCollection, operation: Operation, getCurrentHub: () => Hub): void {
     if (!(operation in collection.prototype)) return;
 

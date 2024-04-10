@@ -5,6 +5,7 @@ import { addTracingExtensions } from '../../../src/tracing';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('getDynamicSamplingContextFromSpan', () => {
+  // eslint-disable-next-line deprecation/deprecation
   let hub: Hub;
   beforeEach(() => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1.0, release: '1.0.1' });

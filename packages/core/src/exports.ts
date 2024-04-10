@@ -87,6 +87,7 @@ export function captureEvent(event: Event, hint?: EventHint): string {
  *
  * @deprecated Use getCurrentScope() directly.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub['configureScope']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().configureScope(callback);
@@ -100,6 +101,7 @@ export function configureScope(callback: (scope: Scope) => void): ReturnType<Hub
  *
  * @param breadcrumb The breadcrumb to record.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): ReturnType<Hub['addBreadcrumb']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().addBreadcrumb(breadcrumb, hint);
@@ -110,7 +112,7 @@ export function addBreadcrumb(breadcrumb: Breadcrumb, hint?: BreadcrumbHint): Re
  * @param name of the context
  * @param context Any kind of data. This data will be normalized.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any, deprecation/deprecation
 export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setContext(name, context);
@@ -120,6 +122,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setExtras(extras);
@@ -130,6 +133,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setExtra(key, extra);
@@ -139,6 +143,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * Set an object that will be merged sent as tags data with the event.
  * @param tags Tags context object to merge into current context.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setTags(tags);
@@ -152,6 +157,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param key String key of tag
  * @param value Value of tag
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setTag(key, value);
@@ -162,6 +168,7 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setUser(user: User | null): ReturnType<Hub['setUser']> {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub().setUser(user);
@@ -272,6 +279,7 @@ export function withActiveSpan<T>(span: Span, callback: (scope: Scope) => T): T 
 export function startTransaction(
   context: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
+  // eslint-disable-next-line deprecation/deprecation
 ): ReturnType<Hub['startTransaction']> {
   // eslint-disable-next-line deprecation/deprecation
   return getCurrentHub().startTransaction({ ...context }, customSamplingContext);

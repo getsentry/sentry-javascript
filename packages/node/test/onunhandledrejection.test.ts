@@ -36,6 +36,7 @@ describe('unhandled promises', () => {
       },
     };
 
+    // eslint-disable-next-line deprecation/deprecation
     const captureException = jest.spyOn(Hub.prototype, 'captureException');
 
     const handler = makeUnhandledPromiseHandler(client, {

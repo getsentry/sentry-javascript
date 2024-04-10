@@ -13,6 +13,7 @@ interface AsyncLocalStorage<T> {
 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
 const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
 
+// eslint-disable-next-line deprecation/deprecation
 let asyncStorage: AsyncLocalStorage<Hub>;
 
 /**
@@ -31,10 +32,12 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     asyncStorage = new MaybeGlobalAsyncLocalStorage();
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function getCurrentHub(): Hub | undefined {
     return asyncStorage.getStore();
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function createNewHub(parent: Hub | undefined): Hub {
     const carrier: Carrier = {};
     ensureHubOnCarrier(carrier, parent);

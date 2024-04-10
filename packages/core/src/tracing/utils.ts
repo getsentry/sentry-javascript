@@ -9,6 +9,7 @@ import { getCurrentHub } from '../hub';
  *
  * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getActiveTransaction<T extends Transaction>(maybeHub?: Hub): T | undefined {
   // eslint-disable-next-line deprecation/deprecation
   const hub = maybeHub || getCurrentHub();
