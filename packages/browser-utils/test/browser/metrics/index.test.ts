@@ -32,7 +32,7 @@ const originalLocation = WINDOW.location;
 const resourceEntryName = 'https://example.com/assets/to/css';
 
 describe('_addMeasureSpans', () => {
-  const span = new SentrySpan({ op: 'pageload', name: '/' });
+  const span = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
   beforeEach(() => {
     getCurrentScope().clear();
@@ -86,7 +86,7 @@ describe('_addMeasureSpans', () => {
 });
 
 describe('_addResourceSpans', () => {
-  const span = new SentrySpan({ op: 'pageload', name: '/' });
+  const span = new SentrySpan({ op: 'pageload', name: '/', sampled: true });
 
   beforeAll(() => {
     setGlobalLocation(mockWindowLocation);

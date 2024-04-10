@@ -44,6 +44,7 @@
   "dependencies": {
     "@sentry/core": "8.0.0-alpha.9",
     "@sentry/node": "8.0.0-alpha.9",
+    "@sentry/opentelemetry": "8.0.0-alpha.9",
     "@sentry/types": "8.0.0-alpha.9",
     "@sentry/utils": "8.0.0-alpha.9"
   },

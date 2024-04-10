@@ -23,6 +23,8 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
 
+export { suppressTracing } from './utils/suppressTracing';
+
 // eslint-disable-next-line deprecation/deprecation
 export { setupGlobalHub } from './custom/hub';
 // eslint-disable-next-line deprecation/deprecation

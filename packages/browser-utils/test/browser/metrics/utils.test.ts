@@ -26,7 +26,7 @@ describe('startAndEndSpan()', () => {
   });
 
   it('creates a span with given properties', () => {
-    const parentSpan = new SentrySpan({ name: 'test' });
+    const parentSpan = new SentrySpan({ name: 'test', sampled: true });
     const span = startAndEndSpan(parentSpan, 100, 200, {
       name: 'evaluation',
       op: 'script',
@@ -40,7 +40,7 @@ describe('startAndEndSpan()', () => {
   });
 
   it('adjusts the start timestamp if child span starts before transaction', () => {
-    const parentSpan = new SentrySpan({ name: 'test', startTimestamp: 123 });
+    const parentSpan = new SentrySpan({ name: 'test', startTimestamp: 123, sampled: true });
     const span = startAndEndSpan(parentSpan, 100, 200, {
       name: 'script.js',
       op: 'resource',
@@ -52,7 +52,7 @@ describe('startAndEndSpan()', () => {
   });
 
   it('does not adjust start timestamp if child span starts after transaction', () => {
-    const parentSpan = new SentrySpan({ name: 'test', startTimestamp: 123 });
+    const parentSpan = new SentrySpan({ name: 'test', startTimestamp: 123, sampled: true });
     const span = startAndEndSpan(parentSpan, 150, 200, {
       name: 'script.js',
       op: 'resource',
