@@ -71,6 +71,7 @@ describe('ProfilingIntegration', () => {
       // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -86,6 +87,7 @@ describe('ProfilingIntegration', () => {
               getTransport: () => transport,
             };
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -106,7 +108,9 @@ describe('ProfilingIntegration', () => {
       // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
+        // eslint-disable-next-line deprecation/deprecation
         return { getClient: () => undefined } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -122,6 +126,7 @@ describe('ProfilingIntegration', () => {
       // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -129,6 +134,7 @@ describe('ProfilingIntegration', () => {
               getDsn: () => undefined,
             };
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -144,6 +150,7 @@ describe('ProfilingIntegration', () => {
       // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -154,6 +161,7 @@ describe('ProfilingIntegration', () => {
               getTransport: () => undefined,
             };
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -174,6 +182,7 @@ describe('ProfilingIntegration', () => {
       // eslint-disable-next-line deprecation/deprecation
       const integration = new ProfilingIntegration();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -189,6 +198,7 @@ describe('ProfilingIntegration', () => {
               getTransport: () => transport,
             };
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
       const addGlobalEventProcessor = () => void 0;
@@ -209,6 +219,7 @@ describe('ProfilingIntegration', () => {
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -226,6 +237,7 @@ describe('ProfilingIntegration', () => {
               getTransport: () => transport,
             } as any;
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
 
@@ -245,6 +257,7 @@ describe('ProfilingIntegration', () => {
       const integration = new ProfilingIntegration();
       const emitter = new EventEmitter();
 
+      // eslint-disable-next-line deprecation/deprecation
       const getCurrentHub = jest.fn((): Hub => {
         return {
           getClient: () => {
@@ -262,6 +275,7 @@ describe('ProfilingIntegration', () => {
               getTransport: () => transport,
             } as any;
           },
+          // eslint-disable-next-line deprecation/deprecation
         } as Hub;
       });
 

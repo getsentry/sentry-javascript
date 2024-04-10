@@ -21,6 +21,7 @@ describe('isSentryRequestUrl', () => {
       getClient: () => {
         return client;
       },
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     // Works with hub passed

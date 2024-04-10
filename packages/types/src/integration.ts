@@ -77,6 +77,7 @@ export interface Integration {
    *
    * NOTE: In v8, this will become optional, and not receive any arguments anymore.
    */
+  // eslint-disable-next-line deprecation/deprecation
   setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void;
 
   /**

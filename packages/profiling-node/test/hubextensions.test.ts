@@ -47,6 +47,7 @@ function makeHubMock({
 }: {
   profilesSampleRate: number | undefined;
   client?: Partial<NodeClient>;
+  // eslint-disable-next-line deprecation/deprecation
 }): Hub {
   return {
     getClient: jest.fn().mockImplementation(() => {
@@ -59,6 +60,7 @@ function makeHubMock({
         ...(client ?? {}),
       };
     }),
+    // eslint-disable-next-line deprecation/deprecation
   } as unknown as Hub;
 }
 

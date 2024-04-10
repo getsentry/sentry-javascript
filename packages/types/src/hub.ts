@@ -13,6 +13,12 @@ import type { User } from './user';
 /**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
+ *
+ * @deprecated The `Hub` interface will be removed in a future major version of the SDK in favour of
+ * `Scope` and `Client` objects and APIs.
+ *
+ * Most APIs referencing `Hub` are themselves and will be removed in version 8 of the SDK. More information:
+ * - [Migration Guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub)
  */
 export interface Hub {
   /**
@@ -226,6 +232,7 @@ export interface Hub {
    *
    * TODO v8: This will be merged with `withScope()`
    */
+  // eslint-disable-next-line deprecation/deprecation
   run(callback: (hub: Hub) => void): void;
 
   /**
