@@ -10,6 +10,7 @@ import { isValidSampleRate } from './utils';
 export const MAX_PROFILE_DURATION_MS = 30 * 1000;
 
 type StartTransaction = (
+  // eslint-disable-next-line deprecation/deprecation
   this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
@@ -142,6 +143,7 @@ export function stopTransactionProfile(
  */
 export function __PRIVATE__wrapStartTransactionWithProfiling(startTransaction: StartTransaction): StartTransaction {
   return function wrappedStartTransaction(
+    // eslint-disable-next-line deprecation/deprecation
     this: Hub,
     transactionContext: TransactionContext,
     customSamplingContext?: CustomSamplingContext,

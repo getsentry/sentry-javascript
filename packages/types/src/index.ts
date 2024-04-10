@@ -53,6 +53,7 @@ export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent, Seriali
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
+// eslint-disable-next-line deprecation/deprecation
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass, IntegrationFn, IntegrationFnResult } from './integration';
 export type { Mechanism } from './mechanism';
@@ -153,9 +154,5 @@ export type {
 
 export type { BrowserClientReplayOptions, BrowserClientProfilingOptions } from './browseroptions';
 export type { CheckIn, MonitorConfig, FinishedCheckIn, InProgressCheckIn, SerializedCheckIn } from './checkin';
-export type {
-  MetricsAggregator,
-  MetricBucketItem,
-  MetricInstance,
-} from './metrics';
+export type { MetricsAggregator, MetricBucketItem, MetricInstance } from './metrics';
 export type { ParameterizedString } from './parameterize';

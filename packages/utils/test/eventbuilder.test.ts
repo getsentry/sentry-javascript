@@ -2,6 +2,7 @@ import type { Hub, Scope } from '@sentry/types';
 
 import { createStackParser, eventFromUnknownInput, nodeStackLineParser } from '../src';
 
+// eslint-disable-next-line deprecation/deprecation
 function getCurrentHub(): Hub {
   // Some fake hub to get us through
   return {
@@ -11,6 +12,7 @@ function getCurrentHub(): Hub {
         setExtra: () => {},
       } as unknown as Scope;
     },
+    // eslint-disable-next-line deprecation/deprecation
   } as unknown as Hub;
 }
 

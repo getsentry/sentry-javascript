@@ -6,6 +6,7 @@ import type { Client, DsnComponents, Hub } from '@sentry/types';
  *
  * TODO(v8): Remove Hub fallback type
  */
+// eslint-disable-next-line deprecation/deprecation
 export function isSentryRequestUrl(url: string, hubOrClient: Hub | Client | undefined): boolean {
   const client =
     hubOrClient && isHub(hubOrClient)
@@ -34,6 +35,7 @@ function removeTrailingSlash(str: string): string {
   return str[str.length - 1] === '/' ? str.slice(0, -1) : str;
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function isHub(hubOrClient: Hub | Client | undefined): hubOrClient is Hub {
   // eslint-disable-next-line deprecation/deprecation
   return (hubOrClient as Hub).getClient !== undefined;

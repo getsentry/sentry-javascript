@@ -173,6 +173,7 @@ export class Http implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_addGlobalEventProcessor: (callback: EventProcessor) => void, _getCurrentHub: () => Hub): void {
     // No need to instrument if we don't want to track anything
     if (!this._breadcrumbs && this._spans === false) {

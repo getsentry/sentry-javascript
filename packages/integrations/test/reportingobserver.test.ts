@@ -14,6 +14,7 @@ const withScope = jest.fn(callback => {
 
 const captureMessage = jest.fn();
 
+// eslint-disable-next-line deprecation/deprecation
 const mockHub = {} as unknown as Hub;
 
 const mockReportingObserverConstructor = jest.fn();

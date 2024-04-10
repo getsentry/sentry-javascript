@@ -27,7 +27,7 @@ export function getGlobalCarrier(): SentryCarrier {
  * Calls global extension method and binding current instance to the function call
  */
 // @ts-expect-error Function lacks ending return statement and return type does not include 'undefined'. ts(2366)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any,deprecation/deprecation
 export function callExtensionMethod<T>(hub: Hub, method: string, ...args: any[]): T {
   const carrier = getGlobalCarrier();
 
