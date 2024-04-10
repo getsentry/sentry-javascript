@@ -3,6 +3,7 @@ const Sentry = require('@sentry/node');
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   integrations: [
+    // TODO: Maybe update this test
     Sentry.onUncaughtExceptionIntegration({
       exitEvenIfOtherHandlersAreRegistered: false,
     }),
