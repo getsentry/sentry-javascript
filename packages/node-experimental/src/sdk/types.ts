@@ -54,6 +54,7 @@ export interface AsyncContextStrategy {
   getScopes: () => CurrentScopes | undefined;
 
   /** This is here for legacy reasons. */
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub: () => Hub;
 
   /**
@@ -67,6 +68,7 @@ export interface SentryCarrier {
   acs?: AsyncContextStrategy;
 
   // hub is here for legacy reasons
+  // eslint-disable-next-line deprecation/deprecation
   hub?: Hub;
 
   extensions?: {

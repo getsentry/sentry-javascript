@@ -8,6 +8,7 @@ import type { AbstractSpan } from '../types';
 // and since we are using weakmaps, we do not need to clean up after ourselves
 const SpanScope = new WeakMap<AbstractSpan, Scope>();
 const SpanFinishScope = new WeakMap<AbstractSpan, Scope>();
+// eslint-disable-next-line deprecation/deprecation
 const SpanHub = new WeakMap<AbstractSpan, Hub>();
 const SpanParent = new WeakMap<AbstractSpan, Span>();
 const SpanMetadata = new WeakMap<AbstractSpan, Partial<TransactionMetadata>>();
@@ -23,11 +24,13 @@ export function getSpanScope(span: AbstractSpan): Scope | undefined {
 }
 
 /** Set the Sentry hub on an OTEL span. */
+// eslint-disable-next-line deprecation/deprecation
 export function setSpanHub(span: AbstractSpan, hub: Hub): void {
   SpanHub.set(span, hub);
 }
 
 /** Get the Sentry hub of an OTEL span. */
+// eslint-disable-next-line deprecation/deprecation
 export function getSpanHub(span: AbstractSpan): Hub | undefined {
   return SpanHub.get(span);
 }

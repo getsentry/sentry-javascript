@@ -23,7 +23,9 @@ export function setPropagationContextOnContext(context: Context, propagationCont
  * Try to get the Hub from the given OTEL context.
  * This requires a Context Manager that was wrapped with getWrappedContextManager.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getHubFromContext(context: Context): Hub | undefined {
+  // eslint-disable-next-line deprecation/deprecation
   return context.getValue(SENTRY_HUB_CONTEXT_KEY) as Hub | undefined;
 }
 
@@ -31,6 +33,7 @@ export function getHubFromContext(context: Context): Hub | undefined {
  * Set a Hub on an OTEL context..
  * This will return a forked context with the Propagation Context set.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function setHubOnContext(context: Context, hub: Hub): Context {
   return context.setValue(SENTRY_HUB_CONTEXT_KEY, hub);
 }

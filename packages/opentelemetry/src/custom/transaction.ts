@@ -7,6 +7,7 @@ import { uuid4 } from '@sentry/utils';
  * This is a fork of core's tracing/hubextensions.ts _startTransaction,
  * with some OTEL specifics.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function startTransaction(hub: HubInterface, transactionContext: TransactionContext): Transaction {
   // eslint-disable-next-line deprecation/deprecation
   const client = hub.getClient();
