@@ -51,11 +51,9 @@ session.on('Debugger.paused', event => {
       'Runtime.evaluate',
       {
         // Send the stack frames to the main thread to be sent by the SDK
-        expression: `await global.__SENTRY_SEND_ANR__(${JSON.stringify(stackFrames)});`,
+        expression: `global.__SENTRY_SEND_ANR__(${JSON.stringify(stackFrames)});`,
         // Don't re-trigger the debugger if this causes an error
         silent: true,
-        // Serialize the result to json otherwise only primitives are supported
-        returnByValue: true,
       },
       err => {
         if (err) {

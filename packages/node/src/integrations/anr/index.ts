@@ -17,7 +17,7 @@ function log(message: string, ...args: unknown[]): void {
 }
 
 function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & {
-  __SENTRY_SEND_ANR__?: (frames: StackFrame[]) => Promise<void>;
+  __SENTRY_SEND_ANR__?: (frames: StackFrame[]) => void;
 } {
   return GLOBAL_OBJ;
 }
@@ -64,7 +64,7 @@ const _anrIntegration = ((integrationOptions: Partial<AnrIntegrationOptions> = {
     return strippedFrames;
   }
 
-  async function sendAnrEvent(frames?: StackFrame[]): Promise<void> {
+  function sendAnrEvent(frames?: StackFrame[]): void {
     const session = getIsolationScope().getSession();
     if (session) {
       log('Sending abnormal session');
