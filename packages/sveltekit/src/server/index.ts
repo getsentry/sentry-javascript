@@ -29,6 +29,7 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
+  // eslint-disable-next-line deprecation/deprecation
   Hub,
   NodeClient,
   // eslint-disable-next-line deprecation/deprecation

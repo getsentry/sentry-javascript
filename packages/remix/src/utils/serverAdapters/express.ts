@@ -95,6 +95,7 @@ function startRequestHandlerTransactionWithRoutes(
   req: ExpressRequest,
   res: ExpressResponse,
   next: ExpressNextFunction,
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub,
   url: URL,
 ): Transaction | undefined {

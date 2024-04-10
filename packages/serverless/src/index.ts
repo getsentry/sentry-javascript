@@ -11,6 +11,7 @@ export { AWSServices, awsServicesIntegration } from './awsservices';
 // work with Node native esm while we also have namespace exports in a package.
 // What we should do is get rid of the namespace exports.
 export {
+  // eslint-disable-next-line deprecation/deprecation
   Hub,
   SDK_VERSION,
   Scope,

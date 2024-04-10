@@ -385,6 +385,7 @@ export function createRoutes(manifest: ServerRouteManifest, parentId?: string): 
  * Starts a new transaction for the given request to be used by different `RequestHandler` wrappers.
  */
 export function startRequestHandlerTransaction(
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub,
   name: string,
   source: TransactionSource,
