@@ -1,31 +1,13 @@
-import {
-  applyScopeDataToEvent,
-  createEventEnvelope,
-  createSessionEnvelope,
-  getEnvelopeEndpointWithUrlEncodedAuth,
-  makeSession,
-  updateSession,
-} from '@sentry/core';
-import type { Event, ScopeData, Session, StackFrame } from '@sentry/types';
-import {
-  callFrameToStackFrame,
-  normalizeUrlToBase,
-  stripSentryFramesAndReverse,
-  uuid4,
-  watchdogTimer,
-} from '@sentry/utils';
+import { callFrameToStackFrame, watchdogTimer } from '@sentry/utils';
 import { Session as InspectorSession } from 'inspector';
 import { parentPort, workerData } from 'worker_threads';
 
-import { makeNodeTransport } from '../../transports';
 import { createGetModuleFromFilename } from '../../utils/module';
 import type { WorkerStartData } from './common';
 
 type VoidFunction = () => void;
 
 const options: WorkerStartData = workerData;
-let session: Session | undefined;
-let hasSentAnrEvent = false;
 
 function log(msg: string): void {
   if (options.debug) {
@@ -34,202 +16,72 @@ function log(msg: string): void {
   }
 }
 
-const url = getEnvelopeEndpointWithUrlEncodedAuth(options.dsn, options.tunnel, options.sdkMetadata.sdk);
-const transport = makeNodeTransport({
-  url,
-  recordDroppedEvent: () => {
-    //
-  },
+log('Started. Connecting to debugger');
+
+const session = new InspectorSession();
+session.connectToMainThread();
+
+log('Connected to debugger');
+
+// Collect scriptId -> url map so we can look up the filenames later
+const scripts = new Map<string, string>();
+
+session.on('Debugger.scriptParsed', event => {
+  scripts.set(event.params.scriptId, event.params.url);
 });
 
-async function sendAbnormalSession(): Promise<void> {
-  // of we have an existing session passed from the main thread, send it as abnormal
-  if (session) {
-    log('Sending abnormal session');
-    updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
-
-    const envelope = createSessionEnvelope(session, options.dsn, options.sdkMetadata, options.tunnel);
-    // Log the envelope so to aid in testing
-    log(JSON.stringify(envelope));
-
-    await transport.send(envelope);
-
-    try {
-      // Notify the main process that the session has ended so the session can be cleared from the scope
-      parentPort?.postMessage('session-ended');
-    } catch (_) {
-      // ignore
-    }
-  }
-}
-
-log('Started');
-
-function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[] | undefined {
-  if (!stackFrames) {
-    return undefined;
-  }
-
-  // Strip Sentry frames and reverse the stack frames so they are in the correct order
-  const strippedFrames = stripSentryFramesAndReverse(stackFrames);
-
-  // If we have an app root path, rewrite the filenames to be relative to the app root
-  if (options.appRootPath) {
-    for (const frame of strippedFrames) {
-      if (!frame.filename) {
-        continue;
-      }
-
-      frame.filename = normalizeUrlToBase(frame.filename, options.appRootPath);
-    }
-  }
-
-  return strippedFrames;
-}
-
-function applyScopeToEvent(event: Event, scope: ScopeData): void {
-  applyScopeDataToEvent(event, scope);
-
-  if (!event.contexts?.trace) {
-    const { traceId, spanId, parentSpanId } = scope.propagationContext;
-    event.contexts = {
-      trace: {
-        trace_id: traceId,
-        span_id: spanId,
-        parent_span_id: parentSpanId,
-      },
-      ...event.contexts,
-    };
-  }
-}
-
-async function sendAnrEvent(frames?: StackFrame[], scope?: ScopeData): Promise<void> {
-  if (hasSentAnrEvent) {
+session.on('Debugger.paused', event => {
+  if (event.params.reason !== 'other') {
     return;
   }
 
-  hasSentAnrEvent = true;
+  try {
+    log('Debugger paused');
 
-  await sendAbnormalSession();
+    // copy the frames
+    const callFrames = [...event.params.callFrames];
 
-  log('Sending event');
+    const getModuleName = options.appRootPath ? createGetModuleFromFilename(options.appRootPath) : () => undefined;
+    const stackFrames = callFrames.map(frame =>
+      callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleName),
+    );
 
-  const event: Event = {
-    event_id: uuid4(),
-    contexts: options.contexts,
-    release: options.release,
-    environment: options.environment,
-    dist: options.dist,
-    platform: 'node',
-    level: 'error',
-    exception: {
-      values: [
-        {
-          type: 'ApplicationNotResponding',
-          value: `Application Not Responding for at least ${options.anrThreshold} ms`,
-          stacktrace: { frames: prepareStackFrames(frames) },
-          // This ensures the UI doesn't say 'Crashed in' for the stack trace
-          mechanism: { type: 'ANR' },
-        },
-      ],
-    },
-    tags: options.staticTags,
-  };
+    // Evaluate a script in the currently paused context
+    session.post(
+      'Runtime.evaluate',
+      {
+        // Send the stack frames to the main thread to be sent by the SDK
+        expression: `await global.__SENTRY_SEND_ANR__(${JSON.stringify(stackFrames)});`,
+        // Don't re-trigger the debugger if this causes an error
+        silent: true,
+        // Serialize the result to json otherwise only primitives are supported
+        returnByValue: true,
+      },
+      err => {
+        if (err) {
+          log(`Error executing script: '${err.message}'`);
+        }
 
-  if (scope) {
-    applyScopeToEvent(event, scope);
+        session.post('Debugger.resume');
+        session.post('Debugger.disable');
+      },
+    );
+  } catch (e) {
+    session.post('Debugger.resume');
+    session.post('Debugger.disable');
+    throw e;
   }
+});
 
-  const envelope = createEventEnvelope(event, options.dsn, options.sdkMetadata, options.tunnel);
-  // Log the envelope to aid in testing
-  log(JSON.stringify(envelope));
-
-  await transport.send(envelope);
-  await transport.flush(2000);
-
-  // Delay for 5 seconds so that stdio can flush if the main event loop ever restarts.
-  // This is mainly for the benefit of logging or debugging.
-  setTimeout(() => {
-    process.exit(0);
-  }, 5_000);
-}
-
-let debuggerPause: VoidFunction | undefined;
-
-if (options.captureStackTrace) {
-  log('Connecting to debugger');
-
-  const session = new InspectorSession();
-  session.connectToMainThread();
-
-  log('Connected to debugger');
-
-  // Collect scriptId -> url map so we can look up the filenames later
-  const scripts = new Map<string, string>();
-
-  session.on('Debugger.scriptParsed', event => {
-    scripts.set(event.params.scriptId, event.params.url);
-  });
-
-  session.on('Debugger.paused', event => {
-    if (event.params.reason !== 'other') {
-      return;
-    }
-
-    try {
-      log('Debugger paused');
-
-      // copy the frames
-      const callFrames = [...event.params.callFrames];
-
-      const getModuleName = options.appRootPath ? createGetModuleFromFilename(options.appRootPath) : () => undefined;
-      const stackFrames = callFrames.map(frame =>
-        callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleName),
-      );
-
-      // Evaluate a script in the currently paused context
-      session.post(
-        'Runtime.evaluate',
-        {
-          // Grab the trace context from the current scope
-          expression: 'global.__SENTRY_GET_SCOPES__();',
-          // Don't re-trigger the debugger if this causes an error
-          silent: true,
-          // Serialize the result to json otherwise only primitives are supported
-          returnByValue: true,
-        },
-        (err, param) => {
-          if (err) {
-            log(`Error executing script: '${err.message}'`);
-          }
-
-          const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
-
-          session.post('Debugger.resume');
-          session.post('Debugger.disable');
-
-          sendAnrEvent(stackFrames, scopes).then(null, () => {
-            log('Sending ANR event failed.');
-          });
-        },
-      );
-    } catch (e) {
-      session.post('Debugger.resume');
-      session.post('Debugger.disable');
-      throw e;
-    }
-  });
-
-  debuggerPause = () => {
-    try {
-      session.post('Debugger.enable', () => {
-        session.post('Debugger.pause');
-      });
-    } catch (_) {
-      //
-    }
-  };
-}
+const debuggerPause = (): void => {
+  try {
+    session.post('Debugger.enable', () => {
+      session.post('Debugger.pause');
+    });
+  } catch (_) {
+    //
+  }
+};
 
 function createHrTimer(): { getTimeMs: () => number; reset: VoidFunction } {
   // TODO (v8): We can use process.hrtime.bigint() after we drop node v8
@@ -249,23 +101,12 @@ function createHrTimer(): { getTimeMs: () => number; reset: VoidFunction } {
 function watchdogTimeout(): void {
   log('Watchdog timeout');
 
-  if (debuggerPause) {
-    log('Pausing debugger to capture stack trace');
-    debuggerPause();
-  } else {
-    log('Capturing event without a stack trace');
-    sendAnrEvent().then(null, () => {
-      log('Sending ANR event failed on watchdog timeout.');
-    });
-  }
+  log('Pausing debugger to capture stack trace');
+  debuggerPause();
 }
 
 const { poll } = watchdogTimer(createHrTimer, options.pollInterval, options.anrThreshold, watchdogTimeout);
 
-parentPort?.on('message', (msg: { session: Session | undefined }) => {
-  if (msg.session) {
-    session = makeSession(msg.session);
-  }
-
+parentPort?.on('message', () => {
   poll();
 });

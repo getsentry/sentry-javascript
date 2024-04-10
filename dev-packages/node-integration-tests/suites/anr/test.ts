@@ -39,20 +39,20 @@ const EXPECTED_ANR_EVENT = {
         mechanism: { type: 'ANR' },
         stacktrace: {
           frames: expect.arrayContaining([
-            {
+            expect.objectContaining({
               colno: expect.any(Number),
               lineno: expect.any(Number),
               filename: expect.any(String),
               function: '?',
               in_app: true,
-            },
-            {
+            }),
+            expect.objectContaining({
               colno: expect.any(Number),
               lineno: expect.any(Number),
               filename: expect.any(String),
               function: 'longWork',
               in_app: true,
-            },
+            }),
           ]),
         },
       },
@@ -82,7 +82,7 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('should exit', done => {
-    const runner = createRunner(__dirname, 'should-exit.js').start();
+    const runner = createRunner(__dirname, 'should-exit.js').withMockSentryServer().start();
 
     setTimeout(() => {
       expect(runner.childHasExited()).toBe(true);
@@ -91,7 +91,7 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('should exit forced', done => {
-    const runner = createRunner(__dirname, 'should-exit-forced.js').start();
+    const runner = createRunner(__dirname, 'should-exit-forced.js').withMockSentryServer().start();
 
     setTimeout(() => {
       expect(runner.childHasExited()).toBe(true);
@@ -113,11 +113,14 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   });
 
   test('from forked process', done => {
-    createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'forker.js').withMockSentryServer().expect({ event: EXPECTED_ANR_EVENT }).start(done);
   });
 
   test('worker can be stopped and restarted', done => {
-    createRunner(__dirname, 'stop-and-start.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'stop-and-start.js')
+      .withMockSentryServer()
+      .expect({ event: EXPECTED_ANR_EVENT })
+      .start(done);
   });
 
   const EXPECTED_ISOLATED_EVENT = {
@@ -132,13 +135,13 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
           mechanism: { type: 'ANR' },
           stacktrace: {
             frames: expect.arrayContaining([
-              {
+              expect.objectContaining({
                 colno: expect.any(Number),
                 lineno: expect.any(Number),
                 filename: expect.stringMatching(/isolated.mjs$/),
                 function: 'longWork',
                 in_app: true,
-              },
+              }),
             ]),
           },
         },

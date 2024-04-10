@@ -1,4 +1,4 @@
-import type { Contexts, DsnComponents, Primitive, SdkMetadata } from '@sentry/types';
+import type { Primitive } from '@sentry/types';
 
 export interface AnrIntegrationOptions {
   /**
@@ -14,14 +14,6 @@ export interface AnrIntegrationOptions {
    */
   anrThreshold: number;
   /**
-   * Whether to capture a stack trace when the ANR event is triggered.
-   *
-   * Defaults to `false`.
-   *
-   * This uses the node debugger which enables the inspector API and opens the required ports.
-   */
-  captureStackTrace: boolean;
-  /**
    * Tags to include with ANR events.
    */
   staticTags: { [key: string]: Primitive };
@@ -35,11 +27,4 @@ export interface AnrIntegrationOptions {
 
 export interface WorkerStartData extends AnrIntegrationOptions {
   debug: boolean;
-  sdkMetadata: SdkMetadata;
-  dsn: DsnComponents;
-  tunnel: string | undefined;
-  release: string | undefined;
-  environment: string;
-  dist: string | undefined;
-  contexts: Contexts;
 }

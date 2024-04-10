@@ -1,9 +1,9 @@
-import { defineIntegration, mergeScopeData } from '@sentry/core';
-import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { captureEvent, captureSession, defineIntegration, getIsolationScope, updateSession } from '@sentry/core';
+import type { Event, Integration, IntegrationFn, StackFrame } from '@sentry/types';
+import { GLOBAL_OBJ, logger, normalizeUrlToBase, stripSentryFramesAndReverse } from '@sentry/utils';
 import * as inspector from 'inspector';
 import { Worker } from 'worker_threads';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '../..';
+import { getCurrentScope } from '../..';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
@@ -16,55 +16,87 @@ function log(message: string, ...args: unknown[]): void {
   logger.log(`[ANR] ${message}`, ...args);
 }
 
-function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & { __SENTRY_GET_SCOPES__?: () => ScopeData } {
+function globalWithScopeFetchFn(): typeof GLOBAL_OBJ & {
+  __SENTRY_SEND_ANR__?: (frames: StackFrame[]) => Promise<void>;
+} {
   return GLOBAL_OBJ;
-}
-
-/** Fetches merged scope data */
-function getScopeData(): ScopeData {
-  const scope = getGlobalScope().getScopeData();
-  mergeScopeData(scope, getIsolationScope().getScopeData());
-  mergeScopeData(scope, getCurrentScope().getScopeData());
-
-  // We remove attachments because they likely won't serialize well as json
-  scope.attachments = [];
-  // We can't serialize event processor functions
-  scope.eventProcessors = [];
-
-  return scope;
-}
-
-/**
- * Gets contexts by calling all event processors. This shouldn't be called until all integrations are setup
- */
-async function getContexts(client: NodeClient): Promise<Contexts> {
-  let event: Event | null = { message: 'ANR' };
-  const eventHint: EventHint = {};
-
-  for (const processor of client.getEventProcessors()) {
-    if (event === null) break;
-    event = await processor(event, eventHint);
-  }
-
-  return event?.contexts || {};
 }
 
 const INTEGRATION_NAME = 'Anr';
 
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
-const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
+const _anrIntegration = ((integrationOptions: Partial<AnrIntegrationOptions> = {}) => {
   if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
     throw new Error('ANR detection requires Node 16.17.0 or later');
   }
 
+  const options: WorkerStartData = {
+    debug: logger.isEnabled(),
+    appRootPath: integrationOptions.appRootPath,
+    pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
+    anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
+    staticTags: integrationOptions.staticTags || {},
+  };
+
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
+
+  function prepareStackFrames(stackFrames: StackFrame[] | undefined): StackFrame[] | undefined {
+    if (!stackFrames) {
+      return undefined;
+    }
+
+    // Strip Sentry frames and reverse the stack frames so they are in the correct order
+    const strippedFrames = stripSentryFramesAndReverse(stackFrames);
+
+    // If we have an app root path, rewrite the filenames to be relative to the app root
+    if (options.appRootPath) {
+      for (const frame of strippedFrames) {
+        if (!frame.filename) {
+          continue;
+        }
+
+        frame.filename = normalizeUrlToBase(frame.filename, options.appRootPath);
+      }
+    }
+
+    return strippedFrames;
+  }
+
+  async function sendAnrEvent(frames?: StackFrame[]): Promise<void> {
+    const session = getIsolationScope().getSession();
+    if (session) {
+      log('Sending abnormal session');
+      updateSession(session, { status: 'abnormal', abnormal_mechanism: 'anr_foreground' });
+      captureSession();
+    }
+
+    log('Sending event');
+
+    const event: Event = {
+      level: 'error',
+      exception: {
+        values: [
+          {
+            type: 'ApplicationNotResponding',
+            value: `Application Not Responding for at least ${options.anrThreshold} ms`,
+            stacktrace: { frames: prepareStackFrames(frames) },
+            // This ensures the UI doesn't say 'Crashed in' for the stack trace
+            mechanism: { type: 'ANR' },
+          },
+        ],
+      },
+      tags: options.staticTags,
+    };
+
+    captureEvent(event);
+  }
 
   // Hookup the scope fetch function to the global object so that it can be called from the worker thread via the
   // debugger when it pauses
   const gbl = globalWithScopeFetchFn();
-  gbl.__SENTRY_GET_SCOPES__ = getScopeData;
+  gbl.__SENTRY_SEND_ANR__ = sendAnrEvent;
 
   return {
     name: INTEGRATION_NAME,
@@ -74,7 +106,7 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       }
 
       if (client) {
-        worker = _startWorker(client, options);
+        worker = _startWorker(options);
       }
     },
     stopWorker: () => {
@@ -105,51 +137,9 @@ export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
  *
  * @returns A function to stop the worker
  */
-async function _startWorker(
-  client: NodeClient,
-  integrationOptions: Partial<AnrIntegrationOptions>,
-): Promise<() => void> {
-  const dsn = client.getDsn();
-
-  if (!dsn) {
-    return () => {
-      //
-    };
-  }
-
-  const contexts = await getContexts(client);
-
-  // These will not be accurate if sent later from the worker thread
-  delete contexts.app?.app_memory;
-  delete contexts.device?.free_memory;
-
-  const initOptions = client.getOptions();
-
-  const sdkMetadata = client.getSdkMetadata() || {};
-  if (sdkMetadata.sdk) {
-    sdkMetadata.sdk.integrations = initOptions.integrations.map(i => i.name);
-  }
-
-  const options: WorkerStartData = {
-    debug: logger.isEnabled(),
-    dsn,
-    tunnel: initOptions.tunnel,
-    environment: initOptions.environment || 'production',
-    release: initOptions.release,
-    dist: initOptions.dist,
-    sdkMetadata,
-    appRootPath: integrationOptions.appRootPath,
-    pollInterval: integrationOptions.pollInterval || DEFAULT_INTERVAL,
-    anrThreshold: integrationOptions.anrThreshold || DEFAULT_HANG_THRESHOLD,
-    captureStackTrace: !!integrationOptions.captureStackTrace,
-    staticTags: integrationOptions.staticTags || {},
-    contexts,
-  };
-
-  if (options.captureStackTrace) {
-    if (!inspector.url()) {
-      inspector.open(0);
-    }
+async function _startWorker(options: WorkerStartData): Promise<() => void> {
+  if (!inspector.url()) {
+    inspector.open(0);
   }
 
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
@@ -163,12 +153,7 @@ async function _startWorker(
 
   const timer = setInterval(() => {
     try {
-      const currentSession = getCurrentScope().getSession();
-      // We need to copy the session object and remove the toJSON method so it can be sent to the worker
-      // serialized without making it a SerializedSession
-      const session = currentSession ? { ...currentSession, toJSON: undefined } : undefined;
-      // message the worker to tell it the main event loop is still running
-      worker.postMessage({ session });
+      worker.postMessage({});
     } catch (_) {
       //
     }
