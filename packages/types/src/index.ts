@@ -45,6 +45,8 @@ export type {
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
+  SpanEnvelope,
+  SpanItem,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
