@@ -85,8 +85,12 @@ export function updateRateLimits(
         updatedRateLimits.all = now + delay;
       } else {
         for (const category of categories.split(';')) {
-          // namespaces will be present when category === 'metric_bucket'
-          if (category !== 'metric_bucket' || !namespaces || namespaces.split(';').includes('custom')) {
+          if (category === 'metric_bucket') {
+            // namespaces will be present when category === 'metric_bucket'
+            if (!namespaces || namespaces.split(';').includes('custom')) {
+              updatedRateLimits[category] = now + delay;
+            }
+          } else {
             updatedRateLimits[category] = now + delay;
           }
         }
