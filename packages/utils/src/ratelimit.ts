@@ -78,21 +78,15 @@ export function updateRateLimits(
      *         Only present if rate limit applies to the metric_bucket data category.
      */
     for (const limit of rateLimitHeader.trim().split(',')) {
-      const [retryAfter, categories] = limit.split(':', 2);
+      const [retryAfter, categories, , , namespaces] = limit.split(':', 5);
       const headerDelay = parseInt(retryAfter, 10);
       const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
       if (!categories) {
         updatedRateLimits.all = now + delay;
       } else {
         for (const category of categories.split(';')) {
-          if (category === 'metric_bucket') {
-            const namespaces = limit.split(':', 5)[4] ? limit.split(':', 5)[4].split(';') : null;
-
-            if (!namespaces || namespaces.includes('custom')) {
-              // back off transmitting metrics from the SDK
-              updatedRateLimits[category] = now + delay;
-            }
-          } else {
+          // namespaces will be present when category === 'metric_bucket'
+          if (category !== 'metric_bucket' || !namespaces || namespaces.split(';').includes('custom')) {
             updatedRateLimits[category] = now + delay;
           }
         }
