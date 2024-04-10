@@ -53,20 +53,40 @@ export function serializeMetricBuckets(metricBucketItems: MetricBucketItem[]): s
   return out;
 }
 
-/** Sanitizes units */
+/**
+ * Sanitizes units
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
 export function sanitizeUnit(unit: string): string {
   return unit.replace(/[^\w]+/gi, '_');
 }
 
-/** Sanitizes metric keys */
+/**
+ * Sanitizes metric keys
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
 export function sanitizeMetricKey(key: string): string {
   return key.replace(/[^\w\-.]+/gi, '_');
 }
 
+/**
+ * Sanitizes metric keys
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
 function sanitizeTagKey(key: string): string {
   return key.replace(/[^\w\-./]+/gi, '');
 }
 
+/**
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
 const tagValueReplacements: [string, string][] = [
   ['\n', '\\n'],
   ['\r', '\\r'],
