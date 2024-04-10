@@ -69,6 +69,7 @@ function getMessageForObject(exception: object): string {
  * @hidden
  */
 export function eventFromUnknownInput(
+  // eslint-disable-next-line deprecation/deprecation
   getHubOrClient: (() => Hub) | Client | undefined,
   stackParser: StackParser,
   exception: unknown,

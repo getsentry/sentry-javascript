@@ -115,6 +115,7 @@ export interface Carrier {
  * themselves and will also be removed in version 8. More information:
  * - [Migration Guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub)
  */
+// eslint-disable-next-line deprecation/deprecation
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];

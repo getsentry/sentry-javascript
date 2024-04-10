@@ -14,6 +14,7 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
     const captureException = jest.fn();
     const hub = {
       captureException,
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     maybeCaptureExceptionForTimedEvent(hub, event);
@@ -30,6 +31,7 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
     const captureException = jest.fn();
     const hub = {
       captureException,
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     maybeCaptureExceptionForTimedEvent(hub, event);
@@ -49,6 +51,7 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
     const captureException = jest.fn();
     const hub = {
       captureException,
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     maybeCaptureExceptionForTimedEvent(hub, event);
@@ -76,6 +79,7 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
     const captureException = jest.fn();
     const hub = {
       captureException,
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     maybeCaptureExceptionForTimedEvent(hub, event);
@@ -119,6 +123,7 @@ describe('maybeCaptureExceptionForTimedEvent', () => {
     const captureException = jest.fn();
     const hub = {
       captureException,
+      // eslint-disable-next-line deprecation/deprecation
     } as unknown as Hub;
 
     maybeCaptureExceptionForTimedEvent(hub, event, span);

@@ -40,6 +40,7 @@ export function setupGlobalHub(): void {
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getCurrentHub(): Hub {
   return {
     isOlderThan(_version: number): boolean {
@@ -88,6 +89,7 @@ export function getCurrentHub(): Hub {
     // eslint-disable-next-line deprecation/deprecation
     configureScope: configureScope,
 
+    // eslint-disable-next-line deprecation/deprecation
     run(callback: (hub: Hub) => void): void {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return withScope(() => callback(this as any));
@@ -142,6 +144,7 @@ export function getCurrentHub(): Hub {
  *
  * @returns The old replaced hub
  */
+// eslint-disable-next-line deprecation/deprecation
 export function makeMain(hub: Hub): Hub {
   // eslint-disable-next-line no-console
   console.warn('makeMain is a noop in @sentry/node-experimental. Use `setCurrentClient` instead.');

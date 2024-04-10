@@ -6,6 +6,7 @@ import type { Hub } from '@sentry/types';
  * @param getCurrentHub A method to fetch the current hub
  * @returns boolean
  */
+// eslint-disable-next-line deprecation/deprecation
 export function shouldDisableAutoInstrumentation(getCurrentHub: () => Hub): boolean {
   // eslint-disable-next-line deprecation/deprecation
   const clientOptions = getCurrentHub().getClient()?.getOptions();

@@ -7,6 +7,7 @@ import { isString } from '@sentry/utils';
  * Maybe capture a Sentry exception for an OTEL timed event.
  * This will check if the event is exception-like and in that case capture it as an exception.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function maybeCaptureExceptionForTimedEvent(hub: Hub, event: TimedEvent, otelSpan?: OtelSpan): void {
   if (event.name !== 'exception') {
     return;

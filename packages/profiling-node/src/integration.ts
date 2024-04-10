@@ -55,6 +55,7 @@ export class ProfilingIntegration implements Integration {
    * @inheritDoc
    */
   public readonly name: string;
+  // eslint-disable-next-line deprecation/deprecation
   public getCurrentHub?: () => Hub;
 
   public constructor() {
@@ -64,6 +65,7 @@ export class ProfilingIntegration implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(addGlobalEventProcessor: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this.getCurrentHub = getCurrentHub;
     // eslint-disable-next-line deprecation/deprecation

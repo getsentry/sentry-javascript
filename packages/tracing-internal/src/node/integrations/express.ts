@@ -119,6 +119,7 @@ export class Express implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: unknown, getCurrentHub: () => Hub): void {
     if (!this._router) {
       DEBUG_BUILD && logger.error('ExpressIntegration is missing an Express instance');
