@@ -7,8 +7,31 @@ type StackFrameIteratee = (frame: StackFrame) => StackFrame;
 const INTEGRATION_NAME = 'RewriteFrames';
 
 interface RewriteFramesOptions {
+  /**
+   * Root path (the beginning of the path) that will be stripped from the frames' filename.
+   *
+   * This option has slightly different behaviour in the browser and on servers:
+   * - In the browser, the value you provide in `root` will be stripped from the beginning stack frames' paths (if the path started with the value).
+   * - On the server, the root value will only replace the beginning of stack frame filepaths, when the path is absolute. If no `root` value is provided and the path is absolute, the frame will be reduced to only the filename and the provided `prefix` option.
+   *
+   * TODO: Examples
+   */
   root?: string;
+
+  /**
+   * A custom prefix that stack frames will be prepended with.
+   *
+   * Default: `'app://'`
+   *
+   * This option has slightly different behaviour in the browser and on servers:
+   * - In the browser, the value you provide in `prefix` will prefix the resulting filename when the value you provided in `root` was applied. Effectively replacing whatever `root` matched in the beginning of the frame with `prefix`.
+   * - On the server, the prefix is applied to all stackframes with absolute paths. On Windows, the drive identifier (e.g. "C://") is replaced with the prefix.
+   */
   prefix?: string;
+
+  /**
+   * Defines an iterator that is used to iterate through all of the stack frames for modification before being sent to Sentry. Setting this option will effectively disable both the `root` and the `prefix` options.
+   */
   iteratee?: StackFrameIteratee;
 }
 
@@ -71,7 +94,7 @@ export function generateIteratee({
   prefix,
 }: {
   root?: string;
-  prefix?: string;
+  prefix: string;
 }): StackFrameIteratee {
   return (frame: StackFrame) => {
     if (!frame.filename) {
@@ -86,6 +109,10 @@ export function generateIteratee({
 
     // Check if the frame filename begins with `/`
     const startsWithSlash = /^\//.test(frame.filename);
+
+    // eslint-disable-next-line no-restricted-globals
+    const isBrowser = typeof window !== undefined;
+
     if (isWindowsFrame || startsWithSlash) {
       const filename = isWindowsFrame
         ? frame.filename
@@ -94,6 +121,11 @@ export function generateIteratee({
         : frame.filename;
       const base = root ? relative(root, filename) : basename(filename);
       frame.filename = `${prefix}${base}`;
+    } else if (isBrowser && root) {
+      const oldFilename = frame.filename;
+      if (oldFilename.indexOf(root) === 0) {
+        frame.filename = oldFilename.replace(root, prefix);
+      }
     }
 
     return frame;
