@@ -2,9 +2,7 @@ import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'stream';
 import { createGzip } from 'zlib';
-import { context } from '@opentelemetry/api';
-import { suppressTracing } from '@opentelemetry/core';
-import { createTransport } from '@sentry/core';
+import { createTransport, suppressTracing } from '@sentry/core';
 import type {
   BaseTransportOptions,
   Transport,
@@ -82,7 +80,7 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
     : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
   // This ensures we do not generate any spans in OpenTelemetry for the transport
-  return context.with(suppressTracing(context.active()), () => {
+  return suppressTracing(() => {
     const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
     return createTransport(options, requestExecutor);
   });

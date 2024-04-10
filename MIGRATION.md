@@ -1118,6 +1118,7 @@ Sentry.init({
 - [Updated behaviour of `extraErrorDataIntegration`](./MIGRATION.md#extraerrordataintegration-changes)
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
+- [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](./MIGRATION.md#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
 - [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
@@ -1167,6 +1168,16 @@ some attributes may only be set later during the span lifecycle (and thus not be
 `getClient()` now always returns a client if `Sentry.init()` was called. For cases where this may be used to check if
 Sentry was actually initialized, using `getClient()` will thus not work anymore. Instead, you should use the new
 `Sentry.isInitialized()` utility to check this.
+
+#### Behaviour in combination with `onUncaughtException` handlers in Node.js
+
+Previously the SDK exited the process by default, even though additional `onUncaughtException` may have been registered,
+that would have prevented the process from exiting. You could opt out of this behaviour by setting the
+`exitEvenIfOtherHandlersAreRegistered: false` in the `onUncaughtExceptionIntegration` options. Up until now the value
+for this option defaulted to `true`.
+
+Going forward, the default value for `exitEvenIfOtherHandlersAreRegistered` will be `false`, meaning that the SDK will
+not exit your process when you have registered other `onUncaughtException` handlers.
 
 #### Removal of Client-Side health check transaction filters
 

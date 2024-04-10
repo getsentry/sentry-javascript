@@ -1,5 +1,10 @@
 import * as api from '@opentelemetry/api';
-import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
+import {
+  getCurrentHubShim,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
+  setAsyncContextStrategy,
+} from '@sentry/core';
 import type { withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
 import type { Hub, Scope } from '@sentry/types';
 
@@ -8,11 +13,11 @@ import {
   SENTRY_FORK_SET_ISOLATION_SCOPE_CONTEXT_KEY,
   SENTRY_FORK_SET_SCOPE_CONTEXT_KEY,
 } from './constants';
-import { getCurrentHub as _getCurrentHub } from './custom/getCurrentHub';
 import { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './trace';
 import type { CurrentScopes } from './types';
 import { getScopesFromContext } from './utils/contextData';
 import { getActiveSpan } from './utils/getActiveSpan';
+import { suppressTracing } from './utils/suppressTracing';
 
 /**
  * Sets the async context strategy to use follow the OTEL context under the hood.
@@ -37,7 +42,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
 
   function getCurrentHub(): Hub {
     // eslint-disable-next-line deprecation/deprecation
-    const hub = _getCurrentHub();
+    const hub = getCurrentHubShim();
     return {
       ...hub,
       getScope: () => {
@@ -122,5 +127,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     // The types here don't fully align, because our own `Span` type is narrower
     // than the OTEL one - but this is OK for here, as we now we'll only have OTEL spans passed around
     withActiveSpan: withActiveSpan as typeof defaultWithActiveSpan,
+    suppressTracing: suppressTracing,
   });
 }

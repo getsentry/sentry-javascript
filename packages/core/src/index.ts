@@ -106,3 +106,6 @@ export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHubShim } from './getCurrentHubShim';

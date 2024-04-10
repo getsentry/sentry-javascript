@@ -1,12 +1,9 @@
 import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from '@sentry/types';
-
+import { addBreadcrumb } from './breadcrumbs';
+import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
-  addBreadcrumb,
   captureEvent,
   endSession,
-  getClient,
-  getCurrentScope,
-  getIsolationScope,
   setContext,
   setExtra,
   setExtras,
@@ -14,14 +11,14 @@ import {
   setTags,
   setUser,
   startSession,
-  withScope,
-} from '@sentry/core';
+} from './exports';
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
+ *
  * @deprecated Use the methods directly.
  */
-export function getCurrentHub(): Hub {
+export function getCurrentHubShim(): Hub {
   return {
     bindClient(client: Client): void {
       const scope = getCurrentScope();
@@ -48,7 +45,8 @@ export function getCurrentHub(): Hub {
     setContext,
 
     getIntegration<T extends Integration>(integration: IntegrationClass<T>): T | null {
-      return getClient()?.getIntegrationByName<T>(integration.id) || null;
+      const client = getClient();
+      return (client && client.getIntegrationByName<T>(integration.id)) || null;
     },
 
     startSession,
