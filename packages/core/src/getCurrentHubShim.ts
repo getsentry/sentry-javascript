@@ -15,9 +15,10 @@ import {
 
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
+ *
  * @deprecated Use the methods directly.
  */
-export function getCurrentHub(): Hub {
+export function getCurrentHubShim(): Hub {
   return {
     bindClient(client: Client): void {
       const scope = getCurrentScope();
