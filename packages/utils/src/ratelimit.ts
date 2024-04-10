@@ -67,7 +67,7 @@ export function updateRateLimits(
      * rate limit headers are of the form
      *     <header>,<header>,..
      * where each <header> is of the form
-     *     <retry_after>: <categories>: <scope>: <reason_code>
+     *     <retry_after>: <categories>: <scope>: <reason_code>: <namespaces>
      * where
      *     <retry_after> is a delay in seconds
      *     <categories> is the event type(s) (error, transaction, etc) being rate limited and is of the form
@@ -78,14 +78,21 @@ export function updateRateLimits(
      *         Only present if rate limit applies to the metric_bucket data category.
      */
     for (const limit of rateLimitHeader.trim().split(',')) {
-      const [retryAfter, categories] = limit.split(':', 2);
+      const [retryAfter, categories, , , namespaces] = limit.split(':', 5);
       const headerDelay = parseInt(retryAfter, 10);
       const delay = (!isNaN(headerDelay) ? headerDelay : 60) * 1000; // 60sec default
       if (!categories) {
         updatedRateLimits.all = now + delay;
       } else {
         for (const category of categories.split(';')) {
-          updatedRateLimits[category] = now + delay;
+          if (category === 'metric_bucket') {
+            // namespaces will be present when category === 'metric_bucket'
+            if (!namespaces || namespaces.split(';').includes('custom')) {
+              updatedRateLimits[category] = now + delay;
+            }
+          } else {
+            updatedRateLimits[category] = now + delay;
+          }
         }
       }
     }
