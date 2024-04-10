@@ -19,7 +19,6 @@ import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sent
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
-import type { Hub } from './hub';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
 import { parseEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -71,7 +70,7 @@ export function captureEvent(event: Event, hint?: EventHint): string {
  * @param context Any kind of data. This data will be normalized.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function setContext(name: string, context: { [key: string]: any } | null): ReturnType<Hub['setContext']> {
+export function setContext(name: string, context: { [key: string]: any } | null): void {
   getIsolationScope().setContext(name, context);
 }
 
@@ -79,7 +78,7 @@ export function setContext(name: string, context: { [key: string]: any } | null)
  * Set an object that will be merged sent as extra data with the event.
  * @param extras Extras object to merge into current context.
  */
-export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
+export function setExtras(extras: Extras): void {
   getIsolationScope().setExtras(extras);
 }
 
@@ -88,7 +87,7 @@ export function setExtras(extras: Extras): ReturnType<Hub['setExtras']> {
  * @param key String of extra
  * @param extra Any kind of data. This data will be normalized.
  */
-export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']> {
+export function setExtra(key: string, extra: Extra): void {
   getIsolationScope().setExtra(key, extra);
 }
 
@@ -96,7 +95,7 @@ export function setExtra(key: string, extra: Extra): ReturnType<Hub['setExtra']>
  * Set an object that will be merged sent as tags data with the event.
  * @param tags Tags context object to merge into current context.
  */
-export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['setTags']> {
+export function setTags(tags: { [key: string]: Primitive }): void {
   getIsolationScope().setTags(tags);
 }
 
@@ -108,7 +107,7 @@ export function setTags(tags: { [key: string]: Primitive }): ReturnType<Hub['set
  * @param key String key of tag
  * @param value Value of tag
  */
-export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']> {
+export function setTag(key: string, value: Primitive): void {
   getIsolationScope().setTag(key, value);
 }
 
@@ -117,7 +116,7 @@ export function setTag(key: string, value: Primitive): ReturnType<Hub['setTag']>
  *
  * @param user User context object to be set in the current context. Pass `null` to unset the user.
  */
-export function setUser(user: User | null): ReturnType<Hub['setUser']> {
+export function setUser(user: User | null): void {
   getIsolationScope().setUser(user);
 }
 

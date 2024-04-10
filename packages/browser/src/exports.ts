@@ -35,7 +35,6 @@ export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
-  Hub,
   setCurrentClient,
   Scope,
   continueTrace,

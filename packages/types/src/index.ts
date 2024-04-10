@@ -53,6 +53,7 @@ export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from '
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
+// eslint-disable-next-line deprecation/deprecation
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass, IntegrationFn } from './integration';
 export type { Mechanism } from './mechanism';
