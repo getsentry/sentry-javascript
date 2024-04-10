@@ -5,7 +5,6 @@
 
   "compilerOptions": {
     "jsx": "react",
-    "module": "es2020",
-    "ignoreDeprecations": "5.0"
+    "module": "es2020"
   }
 }
