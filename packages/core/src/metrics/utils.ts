@@ -1,6 +1,5 @@
 import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { NAME_AND_TAG_KEY_NORMALIZATION_REGEX, TAG_VALUE_NORMALIZATION_REGEX } from './constants';
 import type { MetricType } from './types';
 
 /**
@@ -54,6 +53,43 @@ export function serializeMetricBuckets(metricBucketItems: MetricBucketItem[]): s
   return out;
 }
 
+/** Sanitizes units */
+export function sanitizeUnit(unit: string): string {
+  return unit.replace(/[^\w]+/gi, '_');
+}
+
+/** Sanitizes metric keys */
+export function sanitizeMetricKey(key: string): string {
+  return key.replace(/[^\w\-.]+/gi, '_');
+}
+
+function sanitizeTagKey(key: string): string {
+  return key.replace(/[^\w\-./]+/gi, '');
+}
+
+const tagValueReplacements: [string, string][] = [
+  ['\n', '\\n'],
+  ['\r', '\\r'],
+  ['\t', '\\t'],
+  ['\\', '\\\\'],
+  ['|', '\\u{7c}'],
+  [',', '\\u{2c}'],
+];
+
+function getCharOrReplacement(input: string): string {
+  for (const [search, replacement] of tagValueReplacements) {
+    if (input === search) {
+      return replacement;
+    }
+  }
+
+  return input;
+}
+
+function sanitizeTagValue(value: string): string {
+  return [...value].reduce((acc, char) => acc + getCharOrReplacement(char), '');
+}
+
 /**
  * Sanitizes tags.
  */
@@ -61,8 +97,8 @@ export function sanitizeTags(unsanitizedTags: Record<string, Primitive>): Record
   const tags: Record<string, string> = {};
   for (const key in unsanitizedTags) {
     if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
-      const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
-      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '');
+      const sanitizedKey = sanitizeTagKey(key);
+      tags[sanitizedKey] = sanitizeTagValue(String(unsanitizedTags[key]));
     }
   }
   return tags;

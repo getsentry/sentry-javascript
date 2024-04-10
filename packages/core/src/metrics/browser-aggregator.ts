@@ -1,10 +1,10 @@
 import type { Client, ClientOptions, MeasurementUnit, MetricsAggregator, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
-import { DEFAULT_BROWSER_FLUSH_INTERVAL, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
+import { DEFAULT_BROWSER_FLUSH_INTERVAL, SET_METRIC_TYPE } from './constants';
 import { METRIC_MAP } from './instance';
 import { updateMetricSummaryOnActiveSpan } from './metric-summary';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { getBucketKey, sanitizeMetricKey, sanitizeTags, sanitizeUnit } from './utils';
 
 /**
  * A simple metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -31,13 +31,14 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     metricType: MetricType,
     unsanitizedName: string,
     value: number | string,
-    unit: MeasurementUnit | undefined = 'none',
+    unsanitizedUnit: MeasurementUnit | undefined = 'none',
     unsanitizedTags: Record<string, Primitive> | undefined = {},
     maybeFloatTimestamp: number | undefined = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
-    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+    const name = sanitizeMetricKey(unsanitizedName);
     const tags = sanitizeTags(unsanitizedTags);
+    const unit = sanitizeUnit(unsanitizedUnit as string);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
 
@@ -77,11 +78,13 @@ export class BrowserMetricsAggregator implements MetricsAggregator {
     if (this._buckets.size === 0) {
       return;
     }
+
     if (this._client.captureAggregateMetrics) {
       // TODO(@anonrig): Use Object.values() when we support ES6+
       const metricBuckets = Array.from(this._buckets).map(([, bucketItem]) => bucketItem);
       this._client.captureAggregateMetrics(metricBuckets);
     }
+
     this._buckets.clear();
   }
 
