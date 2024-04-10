@@ -75,6 +75,7 @@ export class Postgres implements LazyLoadedIntegration<PGModule> {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       DEBUG_BUILD && logger.log('Postgres Integration is skipped because of instrumenter configuration.');

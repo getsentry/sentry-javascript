@@ -10,6 +10,7 @@ import { makeTestTransport } from './transport.ts';
 function getTestClient(
   callback: (event?: sentryTypes.Event) => void,
   integrations: sentryTypes.Integration[] = [],
+  // eslint-disable-next-line deprecation/deprecation
 ): [Hub, DenoClient] {
   const client = new DenoClient({
     dsn: 'https://233a45e5efe34c47a3536797ce15dafa@nothing.here/5650507',

@@ -76,6 +76,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       DEBUG_BUILD && logger.log('Apollo Integration is skipped because of instrumenter configuration.');
@@ -161,6 +162,7 @@ export class Apollo implements LazyLoadedIntegration<GraphQLModule & ApolloModul
   }
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function instrumentResolvers(resolvers: ApolloModelResolvers[], getCurrentHub: () => Hub): ApolloModelResolvers[] {
   return resolvers.map(model => {
     Object.keys(model).forEach(resolverGroupName => {
@@ -184,6 +186,7 @@ function wrapResolver(
   model: ApolloModelResolvers,
   resolverGroupName: string,
   resolverName: string,
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub: () => Hub,
 ): void {
   fill(model[resolverGroupName], resolverName, function (orig: () => unknown | Promise<unknown>) {

@@ -5,6 +5,7 @@ import { ensureHubOnCarrier } from '@sentry/core';
 import { getCurrentHub, getHubFromCarrier } from './custom/hub';
 import { setHubOnContext } from './utils/contextData';
 
+// eslint-disable-next-line deprecation/deprecation
 function createNewHub(parent: Hub | undefined): Hub {
   const carrier: Carrier = {};
   ensureHubOnCarrier(carrier, parent);

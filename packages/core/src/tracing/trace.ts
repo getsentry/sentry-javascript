@@ -330,6 +330,7 @@ export const continueTrace: ContinueTrace = <V>(
 };
 
 function createChildSpanOrTransaction(
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub,
   {
     parentSpan,

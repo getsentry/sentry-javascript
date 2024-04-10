@@ -8,6 +8,7 @@ import { TestClient } from '../utils/TestClient';
 
 conditionalTest({ min: 10 })('registerBackgroundTabDetection', () => {
   let events: Record<string, any> = {};
+  // eslint-disable-next-line deprecation/deprecation
   let hub: Hub;
   beforeEach(() => {
     const dom = new JSDOM();

@@ -11,6 +11,7 @@ import { sampleTransaction } from './sampling';
 import { Transaction } from './transaction';
 
 /** Returns all trace headers that are currently on the top scope. */
+// eslint-disable-next-line deprecation/deprecation
 function traceHeaders(this: Hub): { [key: string]: string } {
   // eslint-disable-next-line deprecation/deprecation
   const scope = this.getScope();
@@ -40,6 +41,7 @@ function traceHeaders(this: Hub): { [key: string]: string } {
  * @see {@link Hub.startTransaction}
  */
 function _startTransaction(
+  // eslint-disable-next-line deprecation/deprecation
   this: Hub,
   transactionContext: TransactionContext,
   customSamplingContext?: CustomSamplingContext,
@@ -88,6 +90,7 @@ The transaction will not be sampled. Please use the ${configInstrumenter} instru
  * Create new idle transaction.
  */
 export function startIdleTransaction(
+  // eslint-disable-next-line deprecation/deprecation
   hub: Hub,
   transactionContext: TransactionContext,
   idleTimeout: number,

@@ -24,6 +24,7 @@ describe('Unit | session | createSession', () => {
     jest.spyOn(Sentry, 'getCurrentHub').mockImplementation(() => {
       return {
         captureEvent: captureEventMock,
+        // eslint-disable-next-line deprecation/deprecation
       } as unknown as Hub;
     });
   });

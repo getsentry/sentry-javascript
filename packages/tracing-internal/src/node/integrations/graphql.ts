@@ -36,6 +36,7 @@ export class GraphQL implements LazyLoadedIntegration<GraphQLModule> {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     if (shouldDisableAutoInstrumentation(getCurrentHub)) {
       DEBUG_BUILD && logger.log('GraphQL Integration is skipped because of instrumenter configuration.');

@@ -132,6 +132,7 @@ export interface BrowserTracingOptions extends RequestInstrumentationOptions {
   _experiments: Partial<{
     enableLongTask: boolean;
     enableInteractions: boolean;
+    // eslint-disable-next-line deprecation/deprecation
     onStartRouteTransaction: (t: Transaction | undefined, ctx: TransactionContext, getCurrentHub: () => Hub) => void;
   }>;
 
@@ -198,6 +199,7 @@ export class BrowserTracing implements Integration {
    */
   public name: string;
 
+  // eslint-disable-next-line deprecation/deprecation
   private _getCurrentHub?: () => Hub;
 
   private _collectWebVitals: () => void;
@@ -266,6 +268,7 @@ export class BrowserTracing implements Integration {
   /**
    * @inheritDoc
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setupOnce(_: (callback: EventProcessor) => void, getCurrentHub: () => Hub): void {
     this._getCurrentHub = getCurrentHub;
     const hub = getCurrentHub();

@@ -9,11 +9,13 @@ import { getHubFromContext } from './utils/contextData';
  * We handle forking a hub inside of our custom OTEL Context Manager (./otelContextManager.ts)
  */
 export function setOpenTelemetryContextAsyncContextStrategy(): void {
+  // eslint-disable-next-line deprecation/deprecation
   function getCurrentHub(): Hub | undefined {
     const ctx = api.context.active();
 
     // Returning undefined means the global hub will be used
     // Need to cast from @sentry/type's `Hub` to @sentry/core's `Hub`
+    // eslint-disable-next-line deprecation/deprecation
     return getHubFromContext(ctx) as Hub | undefined;
   }
 

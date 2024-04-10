@@ -29,6 +29,7 @@ const enum Type {
   Async = 'async',
 }
 
+// eslint-disable-next-line deprecation/deprecation
 let hub: Hub;
 let client: TestClient;
 

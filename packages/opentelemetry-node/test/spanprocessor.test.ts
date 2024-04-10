@@ -36,6 +36,7 @@ beforeAll(() => {
 });
 
 describe('SentrySpanProcessor', () => {
+  // eslint-disable-next-line deprecation/deprecation
   let hub: Hub;
   let client: NodeClient;
   let provider: NodeTracerProvider;

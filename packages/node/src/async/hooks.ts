@@ -12,6 +12,7 @@ type AsyncLocalStorageConstructor = { new <T>(): AsyncLocalStorage<T> };
 // AsyncLocalStorage only exists in async_hook after Node v12.17.0 or v13.10.0
 type NewerAsyncHooks = typeof async_hooks & { AsyncLocalStorage: AsyncLocalStorageConstructor };
 
+// eslint-disable-next-line deprecation/deprecation
 let asyncStorage: AsyncLocalStorage<Hub>;
 
 /**
@@ -19,13 +20,16 @@ let asyncStorage: AsyncLocalStorage<Hub>;
  */
 export function setHooksAsyncContextStrategy(): void {
   if (!asyncStorage) {
+    // eslint-disable-next-line deprecation/deprecation
     asyncStorage = new (async_hooks as NewerAsyncHooks).AsyncLocalStorage<Hub>();
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function getCurrentHub(): Hub | undefined {
     return asyncStorage.getStore();
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function createNewHub(parent: Hub | undefined): Hub {
     const carrier: Carrier = {};
     ensureHubOnCarrier(carrier, parent);

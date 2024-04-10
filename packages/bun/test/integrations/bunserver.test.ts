@@ -9,6 +9,7 @@ import { getDefaultBunClientOptions } from '../helpers';
 const DEFAULT_PORT = 22114;
 
 describe('Bun Serve Integration', () => {
+  // eslint-disable-next-line deprecation/deprecation
   let hub: Hub;
   let client: BunClient;
 

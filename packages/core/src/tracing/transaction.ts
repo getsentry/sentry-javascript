@@ -26,6 +26,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
   /**
    * The reference to the current hub.
    */
+  // eslint-disable-next-line deprecation/deprecation
   public _hub: Hub;
 
   protected _name: string;
@@ -48,6 +49,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    *
    * @deprecated Transactions will be removed in v8. Use spans instead.
    */
+  // eslint-disable-next-line deprecation/deprecation
   public constructor(transactionContext: TransactionContext, hub?: Hub) {
     super(transactionContext);
     this._contexts = {};
@@ -250,6 +252,7 @@ export class Transaction extends SpanClass implements TransactionInterface {
    *
    * @internal
    */
+  // eslint-disable-next-line deprecation/deprecation
   public setHub(hub: Hub): void {
     this._hub = hub;
   }

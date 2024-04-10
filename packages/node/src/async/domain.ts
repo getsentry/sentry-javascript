@@ -7,6 +7,7 @@ function getActiveDomain<T>(): T | undefined {
   return (domain as any).active as T | undefined;
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function getCurrentHub(): Hub | undefined {
   const activeDomain = getActiveDomain<Carrier>();
 
@@ -20,6 +21,7 @@ function getCurrentHub(): Hub | undefined {
   return getHubFromCarrier(activeDomain);
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function createNewHub(parent: Hub | undefined): Hub {
   const carrier: Carrier = {};
   ensureHubOnCarrier(carrier, parent);

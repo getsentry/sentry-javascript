@@ -156,6 +156,13 @@ function normalizeEvent(event: sentryTypes.Event): sentryTypes.Event {
     event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.filter(
       frame => !frame.filename?.includes('deno:'),
     );
+
+    // @ts-expect-error - we're setting a string as lineno/colno for normalization
+    event.exception.values[0].stacktrace.frames = event.exception.values[0].stacktrace.frames.map(frame => ({
+      ...frame,
+      lineno: '{{lineno}}',
+      colno: '{{colno}}',
+    }));
   }
 
   event.timestamp = 0;

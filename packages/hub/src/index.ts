@@ -31,6 +31,7 @@ import {
 /**
  * @deprecated This export has moved to @sentry/core. The @sentry/hub package will be removed in v8
  */
+// eslint-disable-next-line deprecation/deprecation
 export class Hub extends HubCore {}
 
 /**
