@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
+import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../logger';
 import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { GLOBAL_OBJ } from '../worldwide';
@@ -47,9 +49,15 @@ function instrumentFetch(): void {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
-          const clonedResponse = response.clone();
+          let clonedResponse;
+          try {
+            clonedResponse = response.clone();
+          } catch (e) {
+            // noop
+            DEBUG_BUILD && logger.warn('Failed to clone response.');
+          }
 
-          if (clonedResponse.body) {
+          if (clonedResponse && clonedResponse.body) {
             const responseReader = clonedResponse.body.getReader();
 
             // eslint-disable-next-line no-inner-declarations
