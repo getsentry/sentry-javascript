@@ -32,6 +32,8 @@ export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 export {
   feedbackIntegration,
+  feedbackModalIntegration,
+  feedbackScreenshotIntegration,
   getFeedback,
   sendFeedback,
 } from '@sentry-internal/feedback';
