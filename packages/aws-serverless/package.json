@@ -20,6 +20,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
       "require": {
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
@@ -47,6 +51,8 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/instrumentation-aws-lambda": "0.40.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.40.0",
     "@sentry/core": "8.0.0-beta.3",
     "@sentry/node": "8.0.0-beta.3",
     "@sentry/types": "8.0.0-beta.3",

@@ -21,9 +21,10 @@ import type { Context, Handler } from 'aws-lambda';
 import { performance } from 'perf_hooks';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
-import { awsServicesIntegration } from './awsservices';
 
 import { DEBUG_BUILD } from './debug-build';
+import { awsIntegration } from './integration/aws';
+import { awsLambdaIntegration } from './integration/awslambda';
 import { markEventUnhandled } from './utils';
 
 const { isPromise } = types;
@@ -61,7 +62,7 @@ export interface WrapperOptions {
 
 /** Get the default integrations for the AWSLambda SDK. */
 export function getDefaultIntegrations(options: Options): Integration[] {
-  return [...getNodeDefaultIntegrations(options), awsServicesIntegration({ optional: true })];
+  return [...getNodeDefaultIntegrations(options), awsIntegration(), awsLambdaIntegration()];
 }
 
 /**
