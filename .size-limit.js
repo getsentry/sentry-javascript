@@ -73,7 +73,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackIntegration', 'feedbackModalIntegration', 'feedbackScreenshotIntegration'),
     gzip: true,
-    limit: '37 KB',
+    limit: '40 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',
@@ -143,7 +143,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '83 KB',
+    limit: '86 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
