@@ -41,7 +41,7 @@ describe('browserTracingIntegration', () => {
         updateName: vi.fn(),
         setAttribute: vi.fn(),
       };
-      return createdRootSpan;
+      return createdRootSpan as Span;
     });
 
   const startBrowserTracingNavigationSpanSpy = vi
@@ -52,7 +52,7 @@ describe('browserTracingIntegration', () => {
         updateName: vi.fn(),
         setAttribute: vi.fn(),
       };
-      return createdRootSpan;
+      return createdRootSpan as Span;
     });
 
   const fakeClient = { getOptions: () => ({}), on: () => {} };
@@ -75,7 +75,6 @@ describe('browserTracingIntegration', () => {
   it('implements required hooks', () => {
     const integration = browserTracingIntegration();
     expect(integration.name).toEqual('BrowserTracing');
-    expect(integration.setupOnce).toBeDefined();
     expect(integration.afterAllSetup).toBeDefined();
   });
 

@@ -28,6 +28,6 @@ export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/browser-utils';
+} from './tracing/browserTracingIntegration';
 
 export { replayIntegration } from '@sentry-internal/replay';

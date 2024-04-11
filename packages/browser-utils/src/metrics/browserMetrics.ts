@@ -5,18 +5,18 @@ import type { Measurements, Span, SpanAttributes, StartSpanOptions } from '@sent
 import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logger, parseUrl } from '@sentry/utils';
 
 import { spanToJSON } from '@sentry/core';
-import { DEBUG_BUILD } from '../../debug-build';
+import { DEBUG_BUILD } from '../debug-build';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addLcpInstrumentationHandler,
   addPerformanceInstrumentationHandler,
   addTtfbInstrumentationHandler,
-} from '../instrument';
-import { WINDOW } from '../types';
-import { getNavigationEntry } from '../web-vitals/lib/getNavigationEntry';
-import { getVisibilityWatcher } from '../web-vitals/lib/getVisibilityWatcher';
+} from './instrument';
+import { WINDOW } from './types';
 import { isMeasurementValue, startAndEndSpan } from './utils';
+import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
+import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
 interface NavigatorNetworkInformation {
   readonly connection?: NetworkInformation;

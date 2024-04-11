@@ -1,9 +1,8 @@
+import * as browserUtils from '@sentry-internal/browser-utils';
 import * as utils from '@sentry/utils';
+import { WINDOW } from '../../../src/helpers';
 
-import * as xhrInstrumentation from '../../src/instrument/xhr';
-
-import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../src/browser/request';
-import { WINDOW } from '../../src/browser/types';
+import { extractNetworkProtocol, instrumentOutgoingRequests, shouldAttachHeaders } from '../../../src/tracing/request';
 
 beforeAll(() => {
   // @ts-expect-error need to override global Request because it's not in the jest environment (even with an
@@ -18,7 +17,7 @@ describe('instrumentOutgoingRequests', () => {
 
   it('instruments fetch and xhr requests', () => {
     const addFetchSpy = jest.spyOn(utils, 'addFetchInstrumentationHandler');
-    const addXhrSpy = jest.spyOn(xhrInstrumentation, 'addXhrInstrumentationHandler');
+    const addXhrSpy = jest.spyOn(browserUtils, 'addXhrInstrumentationHandler');
 
     instrumentOutgoingRequests();
 
@@ -35,7 +34,7 @@ describe('instrumentOutgoingRequests', () => {
   });
 
   it('does not instrument xhr requests if traceXHR is false', () => {
-    const addXhrSpy = jest.spyOn(xhrInstrumentation, 'addXhrInstrumentationHandler');
+    const addXhrSpy = jest.spyOn(browserUtils, 'addXhrInstrumentationHandler');
 
     instrumentOutgoingRequests({ traceXHR: false });
 
@@ -114,6 +113,8 @@ describe('shouldAttachHeaders', () => {
 
     beforeAll(() => {
       originalWindowLocation = WINDOW.location;
+      // @ts-expect-error Override delete
+      delete WINDOW.location;
       // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
       WINDOW.location = new URL('https://my-origin.com');
     });
@@ -154,6 +155,8 @@ describe('shouldAttachHeaders', () => {
 
     beforeAll(() => {
       originalWindowLocation = WINDOW.location;
+      // @ts-expect-error Override delete
+      delete WINDOW.location;
       // @ts-expect-error We are missing some fields of the Origin interface but it doesn't matter for these tests.
       WINDOW.location = new URL('https://my-origin.com/api/my-route');
     });
@@ -277,6 +280,8 @@ describe('shouldAttachHeaders', () => {
 
     beforeAll(() => {
       originalWindowLocation = WINDOW.location;
+      // @ts-expect-error Override delete
+      delete WINDOW.location;
       // @ts-expect-error We need to simulate an edge-case
       WINDOW.location = undefined;
     });

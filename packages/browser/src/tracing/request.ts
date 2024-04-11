@@ -1,4 +1,9 @@
 import {
+  SENTRY_XHR_DATA_KEY,
+  addPerformanceInstrumentationHandler,
+  addXhrInstrumentationHandler,
+} from '@sentry-internal/browser-utils';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getClient,
@@ -22,10 +27,7 @@ import {
   generateSentryTraceHeader,
   stringMatchesSomePattern,
 } from '@sentry/utils';
-import { SENTRY_XHR_DATA_KEY, addXhrInstrumentationHandler } from '../instrument/xhr';
-
-import { addPerformanceInstrumentationHandler } from './instrument';
-import { WINDOW } from './types';
+import { WINDOW } from '../helpers';
 
 /** Options for Request Instrumentation */
 export interface RequestInstrumentationOptions {

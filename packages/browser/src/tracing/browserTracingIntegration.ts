@@ -1,4 +1,11 @@
 import {
+  addHistoryInstrumentationHandler,
+  addPerformanceEntries,
+  startTrackingInteractions,
+  startTrackingLongTasks,
+  startTrackingWebVitals,
+} from '@sentry-internal/browser-utils';
+import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -19,16 +26,9 @@ import type { Span } from '@sentry/types';
 import { browserPerformanceTimeOrigin, getDomElement, logger, uuid4 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
-import { addHistoryInstrumentationHandler } from '../instrument/history';
+import { WINDOW } from '../helpers';
 import { registerBackgroundTabDetection } from './backgroundtab';
-import {
-  addPerformanceEntries,
-  startTrackingInteractions,
-  startTrackingLongTasks,
-  startTrackingWebVitals,
-} from './metrics';
 import { defaultRequestInstrumentationOptions, instrumentOutgoingRequests } from './request';
-import { WINDOW } from './types';
 
 export const BROWSER_TRACING_INTEGRATION_ID = 'BrowserTracing';
 
@@ -224,8 +224,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   return {
     name: BROWSER_TRACING_INTEGRATION_ID,
-    // eslint-disable-next-line @typescript-eslint/no-empty-function
-    setupOnce: () => {},
     afterAllSetup(client) {
       const { markBackgroundSpan, traceFetch, traceXHR, shouldCreateSpanForRequest, enableHTTPTimings, _experiments } =
         options;
@@ -249,7 +247,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
-      client.on('startPageLoadSpan', (startSpanOptions, traceOptions) => {
+      client.on('startPageLoadSpan', (startSpanOptions, traceOptions = {}) => {
         if (getClient() !== client) {
           return;
         }
@@ -260,8 +258,8 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
           activeSpan.end();
         }
 
-        const sentryTrace = traceOptions?.sentryTrace || getMetaContent('sentry-trace');
-        const baggage = traceOptions?.baggage || getMetaContent('baggage');
+        const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
+        const baggage = traceOptions.baggage || getMetaContent('baggage');
 
         // Continue trace updates the scope in the callback only, but we want to break out of it again...
         // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context

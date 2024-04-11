@@ -1,3 +1,14 @@
+import { TextDecoder, TextEncoder } from 'util';
+const oldTextEncoder = global.window.TextEncoder;
+const oldTextDecoder = global.window.TextDecoder;
+// @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+delete global.window.TextEncoder;
+// @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+delete global.window.TextDecoder;
+global.window.TextEncoder = TextEncoder;
+// @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+global.window.TextDecoder = TextDecoder;
+
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
@@ -16,9 +27,14 @@ import {
 import type { Span, StartSpanOptions } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
-import { browserTracingIntegration, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '../..';
-import { WINDOW } from '../../src/browser/types';
-import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
+import { BrowserClient } from '../../../src/client';
+import { WINDOW } from '../../../src/helpers';
+import {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from '../../../src/tracing/browserTracingIntegration';
+import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
@@ -51,9 +67,14 @@ describe('browserTracingIntegration', () => {
     getActiveSpan()?.end();
   });
 
+  afterAll(() => {
+    global.window.TextEncoder = oldTextEncoder;
+    global.window.TextDecoder = oldTextDecoder;
+  });
+
   it('works with tracing enabled', () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
         integrations: [browserTracingIntegration()],
       }),
@@ -81,8 +102,8 @@ describe('browserTracingIntegration', () => {
   });
 
   it('works with tracing disabled', () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         integrations: [browserTracingIntegration()],
       }),
     );
@@ -94,8 +115,8 @@ describe('browserTracingIntegration', () => {
   });
 
   it("doesn't create a pageload span when instrumentPageLoad is false", () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
       }),
     );
@@ -107,8 +128,8 @@ describe('browserTracingIntegration', () => {
   });
 
   it('works with tracing enabled but unsampled', () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 0,
         integrations: [browserTracingIntegration()],
       }),
@@ -122,8 +143,8 @@ describe('browserTracingIntegration', () => {
   });
 
   it('starts navigation when URL changes', () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
         integrations: [browserTracingIntegration()],
       }),
@@ -206,8 +227,8 @@ describe('browserTracingIntegration', () => {
   });
 
   it("trims pageload transactions to the max duration of the transaction's children", async () => {
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
         integrations: [browserTracingIntegration({ idleTimeout: 10 })],
       }),
@@ -230,8 +251,8 @@ describe('browserTracingIntegration', () => {
 
   describe('startBrowserTracingPageLoadSpan', () => {
     it('works without integration setup', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           integrations: [],
         }),
       );
@@ -244,8 +265,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('works with unsampled span', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
@@ -260,8 +281,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('works with integration setup', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
@@ -290,8 +311,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('allows to overwrite properties', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
@@ -328,8 +349,8 @@ describe('browserTracingIntegration', () => {
     it('calls before beforeStartSpan', () => {
       const mockBeforeStartSpan = jest.fn((options: StartSpanOptions) => options);
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [
             browserTracingIntegration({ instrumentPageLoad: false, beforeStartSpan: mockBeforeStartSpan }),
@@ -355,8 +376,8 @@ describe('browserTracingIntegration', () => {
         op: 'test op',
       }));
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [
             browserTracingIntegration({
@@ -378,8 +399,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('sets the pageload span name on `scope.transactionName`', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           integrations: [browserTracingIntegration()],
         }),
       );
@@ -398,8 +419,8 @@ describe('browserTracingIntegration', () => {
       name: 'changed',
     }));
 
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 0,
         integrations: [
           browserTracingIntegration({
@@ -423,8 +444,8 @@ describe('browserTracingIntegration', () => {
 
   describe('startBrowserTracingNavigationSpan', () => {
     it('works without integration setup', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           integrations: [],
         }),
       );
@@ -437,8 +458,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('works with unsampled span', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [browserTracingIntegration({ instrumentNavigation: false })],
         }),
@@ -453,8 +474,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('works with integration setup', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentNavigation: false })],
         }),
@@ -483,8 +504,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('allows to overwrite properties', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentNavigation: false })],
         }),
@@ -521,8 +542,8 @@ describe('browserTracingIntegration', () => {
     it('calls before beforeStartSpan', () => {
       const mockBeforeStartSpan = jest.fn((options: StartSpanOptions) => options);
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [
             browserTracingIntegration({
@@ -552,8 +573,8 @@ describe('browserTracingIntegration', () => {
         op: 'test op',
       }));
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [
             browserTracingIntegration({
@@ -580,8 +601,8 @@ describe('browserTracingIntegration', () => {
         name: 'changed',
       }));
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 0,
           integrations: [
             browserTracingIntegration({
@@ -604,8 +625,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it('sets the navigation span name on `scope.transactionName`', () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           integrations: [browserTracingIntegration()],
         }),
       );
@@ -618,8 +639,8 @@ describe('browserTracingIntegration', () => {
     });
 
     it("resets the scopes' propagationContexts", () => {
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           integrations: [browserTracingIntegration()],
         }),
       );
@@ -663,8 +684,8 @@ describe('browserTracingIntegration', () => {
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
         '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration()],
         }),
@@ -700,8 +721,8 @@ describe('browserTracingIntegration', () => {
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
         '<meta name="baggage" content="foo=bar">';
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration()],
         }),
@@ -736,8 +757,8 @@ describe('browserTracingIntegration', () => {
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-0">' +
         '<meta name="baggage" content="sentry-release=2.1.14">';
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
@@ -768,7 +789,7 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({
         environment: 'production',
-        public_key: 'username',
+        public_key: 'examplePublicKey',
         sample_rate: '1',
         sampled: 'true',
         trace_id: expect.not.stringContaining('12312012123120121231201212312012'),
@@ -785,8 +806,8 @@ describe('browserTracingIntegration', () => {
         '<meta name="sentry-trace" content="12312012123120121231201212312012-1121201211212012-1">' +
         '<meta name="baggage" content="sentry-release=2.1.14,foo=bar">';
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
         }),
@@ -831,8 +852,8 @@ describe('browserTracingIntegration', () => {
   describe('idleTimeout', () => {
     it('is created by default', () => {
       jest.useFakeTimers();
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration()],
         }),
@@ -866,8 +887,8 @@ describe('browserTracingIntegration', () => {
     it('can be a custom value', () => {
       jest.useFakeTimers();
 
-      const client = new TestClient(
-        getDefaultClientOptions({
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
           integrations: [browserTracingIntegration({ idleTimeout: 2000 })],
         }),
@@ -906,8 +927,8 @@ describe('browserTracingIntegration', () => {
 
     const interval = 200;
 
-    const client = new TestClient(
-      getDefaultClientOptions({
+    const client = new BrowserClient(
+      getDefaultBrowserClientOptions({
         tracesSampleRate: 1,
         integrations: [browserTracingIntegration({ heartbeatInterval: interval })],
       }),
