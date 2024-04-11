@@ -222,7 +222,8 @@ class SentryScenarioGenerationPlugin {
           const integrationBundleKey = bundleKey
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
-            .replace('_tracing', '');
+            .replace('_tracing', '')
+            .replace('_feedback', '');
 
           this.requiredIntegrations.forEach(integration => {
             const fileName = `${integration}.bundle.js`;
