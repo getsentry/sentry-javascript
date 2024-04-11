@@ -197,3 +197,43 @@ describe('updateRateLimits()', () => {
     expect(updatedRateLimits.all).toEqual(60_000);
   });
 });
+
+describe('data category "metric_bucket"', () => {
+  test('should add limit for `metric_bucket` category when namespaces contain "custom"', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '42:metric_bucket:::custom',
+    };
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
+    expect(updatedRateLimits.metric_bucket).toEqual(42 * 1000);
+  });
+
+  test('should not add limit for `metric_bucket` category when namespaces do not contain "custom"', () => {
+    const rateLimits: RateLimits = {};
+    const headers = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '42:metric_bucket:::namespace1;namespace2',
+    };
+    const updatedRateLimits = updateRateLimits(rateLimits, { headers }, 0);
+    expect(updatedRateLimits.metric_bucket).toBeUndefined();
+  });
+
+  test('should add limit for `metric_bucket` category when namespaces are empty', () => {
+    const rateLimits: RateLimits = {};
+
+    const headers1 = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '42:metric_bucket', // without semicolon at the end
+    };
+    const updatedRateLimits1 = updateRateLimits(rateLimits, { headers: headers1 }, 0);
+    expect(updatedRateLimits1.metric_bucket).toEqual(42 * 1000);
+
+    const headers2 = {
+      'retry-after': null,
+      'x-sentry-rate-limits': '42:metric_bucket:organization:quota_exceeded:', // with semicolon at the end
+    };
+    const updatedRateLimits2 = updateRateLimits(rateLimits, { headers: headers2 }, 0);
+    expect(updatedRateLimits2.metric_bucket).toEqual(42 * 1000);
+  });
+});
