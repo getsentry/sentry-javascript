@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
+import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
 
-sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
-  if (process.env.PW_BUNDLE) {
+sentryTest('should capture feedback', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipFeedbackTest()) {
     sentryTest.skip();
   }
 

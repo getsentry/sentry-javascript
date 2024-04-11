@@ -190,6 +190,18 @@ export function shouldSkipTracingTest(): boolean {
 }
 
 /**
+ * We can only test replay tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain the Replay integration
+ *
+ * @returns `true` if we should skip the feedback test
+ */
+export function shouldSkipFeedbackTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
  * Waits until a number of requests matching urlRgx at the given URL arrive.
  * If the timout option is configured, this function will abort waiting, even if it hasn't reveived the configured
  * amount of requests, and returns all the events recieved up to that point in time.
