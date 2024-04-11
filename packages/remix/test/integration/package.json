@@ -32,8 +32,6 @@
     "@sentry-internal/replay": "file:../../../replay-internal",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
     "@sentry-internal/feedback": "file:../../../feedback",
-    "@sentry-internal/feedback-modal": "file:../../../feedback-modal",
-    "@sentry-internal/feedback-screenshot": "file:../../../feedback-screenshot",
     "@sentry/types": "file:../../../types",
     "@sentry/utils": "file:../../../utils",
     "@vanilla-extract/css": "1.13.0",

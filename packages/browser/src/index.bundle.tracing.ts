@@ -4,12 +4,7 @@ import {
   startBrowserTracingPageLoadSpan,
 } from '@sentry-internal/browser-utils';
 // This is exported so the loader does not fail when switching off Replay
-import {
-  feedbackIntegrationShim,
-  feedbackModalIntegrationShim,
-  feedbackScreenshotIntegrationShim,
-  replayIntegrationShim,
-} from '@sentry-internal/integration-shims';
+import { feedbackIntegrationShim, replayIntegrationShim } from '@sentry-internal/integration-shims';
 import { addTracingExtensions } from '@sentry/core';
 
 // We are patching the global object with our hub extension methods
@@ -28,8 +23,6 @@ export {
 
 export {
   feedbackIntegrationShim as feedbackIntegration,
-  feedbackModalIntegrationShim as feedbackModalIntegration,
-  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
   replayIntegrationShim as replayIntegration,
   browserTracingIntegration,
   addTracingExtensions,

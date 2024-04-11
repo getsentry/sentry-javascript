@@ -2,6 +2,4 @@ packages/replay                                   @getsentry/replay-sdk-web
 packages/replay-worker                            @getsentry/replay-sdk-web
 packages/replay-canvas                            @getsentry/replay-sdk-web
 packages/feedback                                 @getsentry/replay-sdk-web
-packages/feedback-modal                           @getsentry/replay-sdk-web
-packages/feedback-screenshot                      @getsentry/replay-sdk-web
 dev-packages/browser-integration-tests/suites/replay  @getsentry/replay-sdk-web

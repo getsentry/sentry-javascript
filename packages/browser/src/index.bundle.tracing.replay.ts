@@ -3,11 +3,7 @@ import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '@sentry-internal/browser-utils';
-import {
-  feedbackIntegrationShim,
-  feedbackModalIntegrationShim,
-  feedbackScreenshotIntegrationShim,
-} from '@sentry-internal/integration-shims';
+import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 import { replayIntegration } from '@sentry-internal/replay';
 import { addTracingExtensions } from '@sentry/core';
 
@@ -28,8 +24,6 @@ export {
 export {
   replayIntegration,
   feedbackIntegrationShim as feedbackIntegration,
-  feedbackModalIntegrationShim as feedbackModalIntegration,
-  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
   browserTracingIntegration,
   addTracingExtensions,
   startBrowserTracingNavigationSpan,

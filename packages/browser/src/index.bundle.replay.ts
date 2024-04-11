@@ -3,8 +3,6 @@ import {
   addTracingExtensionsShim,
   browserTracingIntegrationShim,
   feedbackIntegrationShim,
-  feedbackModalIntegrationShim,
-  feedbackScreenshotIntegrationShim,
 } from '@sentry-internal/integration-shims';
 import { replayIntegration } from '@sentry-internal/replay';
 
@@ -14,7 +12,5 @@ export {
   addTracingExtensionsShim as addTracingExtensions,
   replayIntegration,
   feedbackIntegrationShim as feedbackIntegration,
-  feedbackModalIntegrationShim as feedbackModalIntegration,
-  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
 };
 // Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle

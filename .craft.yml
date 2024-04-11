@@ -32,15 +32,7 @@ targets:
   - name: npm
     id: '@sentry-internal/feedback'
     includeNames: /^sentry-internal-feedback-\d.*\.tgz$/
-  ## 1.8 Feedback Modal package (browser only)
-  - name: npm
-    id: '@sentry-internal/feedback-modal'
-    includeNames: /^sentry-internal-feedback-modal-\d.*\.tgz$/
-  ## 1.9 Feedback Screenshot package (browser only)
-  - name: npm
-    id: '@sentry-internal/feedback-screenshot'
-    includeNames: /^sentry-internal-feedback-screenshot-\d.*\.tgz$/
-  ## 1.10 ReplayCanvas package (browser only)
+  ## 1.8 ReplayCanvas package (browser only)
   - name: npm
     id: '@sentry-internal/replay-canvas'
     includeNames: /^sentry-internal-replay-canvas-\d.*\.tgz$/
