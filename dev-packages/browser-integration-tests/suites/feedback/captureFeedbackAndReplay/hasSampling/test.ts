@@ -53,7 +53,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestPat
   await Promise.all([forceFlushReplay(), reqPromise1]);
 
   const [, feedbackResp, replayReq2] = await Promise.all([
-    page.getByLabel('Send Bug Report').click(),
+    page.locator('[data-sentry-feedback] .btn--primary').click(),
     feedbackRequestPromise,
     reqPromise2,
   ]);

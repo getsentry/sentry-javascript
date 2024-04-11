@@ -39,7 +39,7 @@ sentryTest('should capture feedback', async ({ getLocalTestPath, page }) => {
   await page.locator('[name="name"]').fill('Jane Doe');
   await page.locator('[name="email"]').fill('janedoe@example.org');
   await page.locator('[name="message"]').fill('my example feedback');
-  await page.getByLabel('Send Bug Report').click();
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
 
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({

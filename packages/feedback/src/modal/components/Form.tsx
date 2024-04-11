@@ -142,7 +142,7 @@ export function Form({
         <ScreenshotInputComponent onError={onScreenshotError} />
       ) : null}
 
-      <div class="form__right">
+      <div class="form__right" data-sentry-feedback={true}>
         <div class="form__top">
           {error ? <div class="form__error-container">{error}</div> : null}
 
