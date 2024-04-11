@@ -55,7 +55,9 @@ export interface Layer {
 
 /**
  * @inheritDoc
+ * @deprecated This class will be removed in v8 (tmp-deprecating so we're aware of where this is a problem)
  */
+// eslint-disable-next-line deprecation/deprecation
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
@@ -503,6 +505,7 @@ export class Hub implements HubInterface {
  *
  * @deprecated Use the respective replacement method directly instead.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getCurrentHub(): HubInterface {
   // Get main carrier (global for every environment)
   const carrier = getMainCarrier();
@@ -525,8 +528,10 @@ export function getDefaultIsolationScope(): Scope {
  * Get the global hub.
  * This will be removed during the v8 cycle and is only here to make migration easier.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getGlobalHub(): HubInterface {
   const registry = getMainCarrier();
+  // eslint-disable-next-line deprecation/deprecation
   const sentry = getSentryCarrier(registry) as { hub?: HubInterface };
 
   // If there's no hub, or its an old API, assign a new one
@@ -560,6 +565,7 @@ function withScope<T>(callback: (scope: ScopeInterface) => T): T {
 }
 
 function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getGlobalHub() as Hub;
   // eslint-disable-next-line deprecation/deprecation
   return hub.withScope(() => {

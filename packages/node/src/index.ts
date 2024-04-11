@@ -48,7 +48,6 @@ export {
   close,
   createTransport,
   flush,
-  Hub,
   SDK_VERSION,
   getSpanStatusFromHttpCode,
   setHttpStatus,

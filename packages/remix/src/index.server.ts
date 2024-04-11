@@ -25,7 +25,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   NodeClient,
   Scope,

@@ -40,6 +40,7 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     };
   }
 
+  // eslint-disable-next-line deprecation/deprecation
   function getCurrentHub(): Hub {
     // eslint-disable-next-line deprecation/deprecation
     const hub = getCurrentHubShim();

@@ -55,6 +55,7 @@ export function setCurrentClient(client: Client): void {
   }
 }
 
+// eslint-disable-next-line deprecation/deprecation
 function isHubClass(hub: HubInterface): hub is Hub {
   // eslint-disable-next-line deprecation/deprecation
   return !!(hub as Hub).getStackTop;

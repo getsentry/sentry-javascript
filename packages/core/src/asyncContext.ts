@@ -13,6 +13,7 @@ export interface AsyncContextStrategy {
   /**
    * Gets the currently active hub.
    */
+  // eslint-disable-next-line deprecation/deprecation
   getCurrentHub: () => Hub;
 
   /**

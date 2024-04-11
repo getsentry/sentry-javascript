@@ -16,8 +16,12 @@ import {
 /**
  * This is for legacy reasons, and returns a proxy object instead of a hub to be used.
  *
- * @deprecated Use the methods directly.
+ * @deprecated Use the methods directly from the top level Sentry API (e.g. `Sentry.withScope`)
+ * For more information see our migration guide for
+ * [replacing `getCurrentHub` and `Hub`](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub)
+ * usage
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getCurrentHubShim(): Hub {
   return {
     bindClient(client: Client): void {
