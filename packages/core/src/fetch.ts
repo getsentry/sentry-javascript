@@ -41,11 +41,11 @@ export function instrumentFetchRequest(
   spans: Record<string, Span>,
   spanOrigin: SpanOrigin = 'auto.http.browser',
 ): Span | undefined {
-  if (!hasTracingEnabled() || !handlerData.fetchData) {
+  if (!handlerData.fetchData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = shouldCreateSpan(handlerData.fetchData.url);
+  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(handlerData.fetchData.url);
 
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
     const spanId = handlerData.fetchData.__span;
@@ -107,7 +107,13 @@ export function instrumentFetchRequest(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options, span);
+    options.headers = addTracingHeadersToFetchRequest(
+      request,
+      client,
+      scope,
+      options,
+      hasTracingEnabled() ? span : undefined,
+    );
   }
 
   return span;

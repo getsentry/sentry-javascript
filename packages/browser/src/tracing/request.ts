@@ -18,7 +18,7 @@ import {
   spanToTraceHeader,
   startInactiveSpan,
 } from '@sentry/core';
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
   addFetchInstrumentationHandler,
@@ -285,11 +285,11 @@ export function xhrCallback(
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
-  if (!hasTracingEnabled() || !xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
+  if (!xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = shouldCreateSpan(sentryXhrData.url);
+  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(sentryXhrData.url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -306,9 +306,6 @@ export function xhrCallback(
     }
     return undefined;
   }
-
-  const scope = getCurrentScope();
-  const isolationScope = getIsolationScope();
 
   const span = shouldCreateSpanResult
     ? startInactiveSpan({
@@ -330,21 +327,28 @@ export function xhrCallback(
   const client = getClient();
 
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
-    const { traceId, spanId, sampled, dsc } = {
-      ...isolationScope.getPropagationContext(),
-      ...scope.getPropagationContext(),
-    };
-
-    const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-    const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-      dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
-    );
-
-    setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
+    addTracingHeadersToXhrRequest(xhr, client, hasTracingEnabled() ? span : undefined);
   }
 
   return span;
+}
+
+function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
+  const scope = getCurrentScope();
+  const isolationScope = getIsolationScope();
+  const { traceId, spanId, sampled, dsc } = {
+    ...isolationScope.getPropagationContext(),
+    ...scope.getPropagationContext(),
+  };
+
+  const sentryTraceHeader =
+    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+
+  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+  );
+
+  setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
 }
 
 function setHeaderOnXhr(
