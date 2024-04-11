@@ -105,8 +105,6 @@ jobs:
               - 'packages/replay/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
-              - 'packages/feedback-modal/**'
-              - 'packages/feedback-screenshot/**'
               - 'packages/wasm/**'
             browser_integration:
               - *shared
@@ -413,6 +411,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
+            ${{ github.workspace }}/packages/feedback/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
 
@@ -623,21 +622,20 @@ jobs:
           - bundle
           - bundle_min
           - bundle_replay
-          - bundle_replay_min
           - bundle_tracing
-          - bundle_tracing_min
           - bundle_tracing_replay
-          - bundle_tracing_replay_min
+          - bundle_tracing_replay_feedback
+          - bundle_tracing_replay_feedback_min
         project:
           - chromium
         include:
           # Only check all projects for esm & full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: ''
             shard: 1
             shards: 2
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: ''
             shard: 2
             shards: 2
@@ -654,7 +652,7 @@ jobs:
             shards: 3
         exclude:
           # Do not run the default chromium-only tests
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: 'chromium'
           - bundle: esm
             project: 'chromium'

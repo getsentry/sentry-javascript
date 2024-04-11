@@ -32,11 +32,11 @@ export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 export {
   feedbackIntegration,
+  feedbackModalIntegration,
+  feedbackScreenshotIntegration,
   getFeedback,
   sendFeedback,
 } from '@sentry-internal/feedback';
-export { feedbackModalIntegration } from '@sentry-internal/feedback-modal';
-export { feedbackScreenshotIntegration } from '@sentry-internal/feedback-screenshot';
 
 export {
   defaultRequestInstrumentationOptions,

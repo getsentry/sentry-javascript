@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../utils/fixtures';
-import { envelopeRequestParser, getEnvelopeType } from '../../../utils/helpers';
+import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../utils/helpers';
 
-sentryTest('should capture feedback (@sentry-internal/feedback import)', async ({ getLocalTestPath, page }) => {
-  if (process.env.PW_BUNDLE) {
+sentryTest('should capture feedback', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipFeedbackTest()) {
     sentryTest.skip();
   }
 
@@ -39,7 +39,7 @@ sentryTest('should capture feedback (@sentry-internal/feedback import)', async (
   await page.locator('[name="name"]').fill('Jane Doe');
   await page.locator('[name="email"]').fill('janedoe@example.org');
   await page.locator('[name="message"]').fill('my example feedback');
-  await page.getByLabel('Send Bug Report').click();
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
 
   const feedbackEvent = envelopeRequestParser((await feedbackRequestPromise).request());
   expect(feedbackEvent).toEqual({

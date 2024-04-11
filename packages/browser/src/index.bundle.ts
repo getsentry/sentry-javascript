@@ -9,6 +9,7 @@ import {
 } from '@sentry-internal/integration-shims';
 
 export * from './index.bundle.base';
+
 export {
   addTracingExtensionsShim as addTracingExtensions,
   browserTracingIntegrationShim as browserTracingIntegration,
@@ -17,4 +18,3 @@ export {
   feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
   replayIntegrationShim as replayIntegration,
 };
-// Note: We do not export a shim for `Span` here, as that is quite complex and would blow up the bundle
