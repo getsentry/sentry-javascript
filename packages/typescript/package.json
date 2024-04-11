@@ -6,7 +6,6 @@
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/typescript",
   "author": "Sentry",
   "license": "MIT",
-  "private": false,
   "publishConfig": {
     "access": "public"
   },

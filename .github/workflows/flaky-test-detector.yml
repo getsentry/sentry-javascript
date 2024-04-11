@@ -37,7 +37,7 @@ jobs:
           node-version-file: 'package.json'
           cache: 'yarn'
       - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile
+        run: yarn install --ignore-engines --immutable
 
       - name: NX cache
         uses: actions/cache/restore@v4

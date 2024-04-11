@@ -41,7 +41,7 @@
   },
   "volta": {
     "node": "18.18.0",
-    "yarn": "1.22.19"
+    "yarn": "4.1.1"
   },
   "workspaces": [
     "packages/angular",
@@ -140,8 +140,7 @@
   },
   "resolutions": {
     "wrap-ansi": "7.0.0",
-    "string-width": "4.1.0",
-    "**/terser/source-map": "0.7.4"
+    "string-width": "4.1.0"
   },
   "version": "0.0.0",
   "name": "sentry-javascript",
@@ -151,5 +150,6 @@
     "proseWrap": "always",
     "singleQuote": true,
     "trailingComma": "all"
-  }
+  },
+  "packageManager": "yarn@4.1.1"
 }
