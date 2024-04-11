@@ -5,8 +5,5 @@ window.Sentry = Sentry;
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',
   // disable pageload transaction
-  integrations: [
-    new Sentry.BrowserTracing({ tracingOrigins: ['http://example.com'], startTransactionOnPageLoad: false }),
-  ],
-  tracesSampleRate: 1,
+  integrations: [new Sentry.BrowserTracing({ tracePropagationTargets: ['http://example.com'] })],
 });
