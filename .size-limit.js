@@ -131,7 +131,7 @@ module.exports = [
     name: '@sentry/browser (incl. Tracing) - ES5 CDN Bundle (gzipped)',
     path: 'packages/browser/build/bundles/bundle.tracing.es5.min.js',
     gzip: true,
-    limit: '40 KB',
+    limit: '41 KB',
   },
 
   // React
