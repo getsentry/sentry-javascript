@@ -165,7 +165,12 @@ describe('WinterCGFetch instrumentation', () => {
     expect(addBreadcrumbSpy).toBeCalledWith(
       {
         category: 'fetch',
-        data: { method: 'POST', status_code: 201, url: 'http://my-website.com/' },
+        data: {
+          method: 'POST',
+          status_code: 201,
+          url: 'http://my-website.com/',
+          __span: expect.any(String),
+        },
         type: 'http',
       },
       {
