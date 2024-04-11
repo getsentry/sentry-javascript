@@ -25,12 +25,12 @@
         "default": "./build/npm/cjs/index.js"
       }
     },
-    "./import-hook": {
+    "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader-hook": {
+    "./loader": {
       "import": {
         "default": "./build/loader-hook.mjs"
       }

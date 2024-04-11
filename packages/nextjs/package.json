@@ -43,12 +43,12 @@
       "import": "./build/esm/index.server.js",
       "types": "./build/types/index.types.d.ts"
     },
-    "./import-hook": {
+    "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader-hook": {
+    "./loader": {
       "import": {
         "default": "./build/loader-hook.mjs"
       }

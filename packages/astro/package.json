@@ -42,12 +42,12 @@
       "require": "./build/cjs/integration/middleware/index.js",
       "types": "./build/types/integration/middleware/index.types.d.ts"
     },
-    "./import-hook": {
+    "./import": {
       "import": {
         "default": "./build/import-hook.mjs"
       }
     },
-    "./loader-hook": {
+    "./loader": {
       "import": {
         "default": "./build/loader-hook.mjs"
       }
