@@ -17,7 +17,7 @@ import {
 import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
-import { stripUrlQueryAndFragment } from '@sentry/utils';
+import { addNonEnumerableProperty, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -65,6 +65,15 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
               return true;
             }
 
+            // SUPER HACK:
+            // We store the URL on the headers object, because this is passed to the propagator
+            // Where we can pick the URL off to deterime if we should attach trace headers.
+            const headers = request.headers || {};
+            // Can't use a non-enumerable property because http instrumentation clones this
+            // We remove this in the propagator
+            headers['__requestUrl'] = url;
+            request.headers = headers;
+
             if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
               return true;
             }
@@ -93,18 +102,18 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
 
+            const scopes = getCapturedScopesOnSpan(span);
+
+            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+            const scope = scopes.scope || getCurrentScope();
+
             // both, incoming requests and "client" requests made within the app trigger the requestHook
             // we only want to isolate and further annotate incoming requests (IncomingMessage)
             if (_isClientRequest(req)) {
               return;
             }
 
-            const scopes = getCapturedScopesOnSpan(span);
-
             // Update the isolation scope, isolate this request
-            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-            const scope = scopes.scope || getCurrentScope();
-
             isolationScope.setSDKProcessingMetadata({ request: req });
 
             const client = getClient<NodeClient>();

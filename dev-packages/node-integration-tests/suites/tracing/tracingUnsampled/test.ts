@@ -6,12 +6,12 @@ test('HttpIntegration should instrument correct requests even when not sampled',
 
   createTestServer(done)
     .get('/api/v0', headers => {
-      expect(headers['baggage']).toBeUndefined();
+      expect(headers['baggage']).toEqual(expect.any(String));
       expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/));
       expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-0');
     })
     .get('/api/v1', headers => {
-      expect(headers['baggage']).toBeUndefined();
+      expect(headers['baggage']).toEqual(expect.any(String));
       expect(headers['sentry-trace']).toEqual(expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-0$/));
       expect(headers['sentry-trace']).not.toEqual('00000000000000000000000000000000-0000000000000000-0');
     })

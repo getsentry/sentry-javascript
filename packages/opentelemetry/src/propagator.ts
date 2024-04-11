@@ -1,18 +1,19 @@
-import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import { Baggage, Context, ROOT_CONTEXT, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { continueTrace, hasTracingEnabled } from '@sentry/core';
+import { continueTrace, getDefaultCurrentScope, getDefaultIsolationScope, hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
-import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
+import type { DynamicSamplingContext, Options, PolymorphicRequest, PropagationContext } from '@sentry/types';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
+  extractRequestData,
   generateSentryTraceHeader,
   logger,
   parseBaggageHeader,
@@ -84,7 +85,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     const activeSpan = trace.getSpan(context);
-    const url = activeSpan && spanToJSON(activeSpan).data?.[SemanticAttributes.HTTP_URL];
+    const url = getCurrentURL(carrier as { __requestUrl?: string }, activeSpan);
+
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
       typeof url === 'string' &&
@@ -120,7 +122,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
       }, baggage);
     }
 
-    setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+    // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
+    if (traceId && traceId !== '00000000000000000000000000000000') {
+      setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+    }
 
     super.inject(propagation.setBaggage(context, baggage), carrier, setter);
   }
@@ -230,40 +235,15 @@ function getInjectionData(context: Context): {
   }
 
   // Else we try to use the propagation context from the scope
-  const scope = getScopesFromContext(context)?.scope;
+  const scope = getScopesFromContext(context)?.scope || getCurrentScope();
 
-  if (scope) {
-    const propagationContext = scope.getPropagationContext();
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
-    return {
-      dynamicSamplingContext,
-      traceId: propagationContext.traceId,
-      spanId: propagationContext.spanId,
-      sampled: propagationContext.sampled,
-    };
-  }
-
-  // Else, we look at the remote span context
-  if (span) {
-    const spanContext = span.spanContext();
-    const propagationContext = getPropagationContextFromSpan(span);
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, spanContext.traceId);
-
-    return {
-      dynamicSamplingContext,
-      traceId: spanContext.traceId,
-      spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext),
-    };
-  }
-
-  // If we have neither, there is nothing much we can do, but that should not happen usually
-  // Unless there is a detached OTEL context being passed around
+  const propagationContext = scope.getPropagationContext();
+  const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
   return {
-    dynamicSamplingContext: undefined,
-    traceId: undefined,
-    spanId: undefined,
-    sampled: undefined,
+    dynamicSamplingContext,
+    traceId: propagationContext.traceId,
+    spanId: propagationContext.spanId,
+    sampled: propagationContext.sampled,
   };
 }
 
@@ -333,4 +313,26 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function getCurrentURL(carrier: { __requestUrl?: string }, span: Span | undefined): string | undefined {
+  try {
+    if (carrier.__requestUrl) {
+      const url = carrier.__requestUrl;
+      delete carrier.__requestUrl;
+      return url;
+    }
+  } catch {
+    // ignore errors here
+  }
+
+  if (span) {
+    const url = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
+
+    if (url) {
+      return url;
+    }
+  }
+
+  return undefined;
 }
