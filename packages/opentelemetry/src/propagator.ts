@@ -3,7 +3,7 @@ import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import type { continueTrace } from '@sentry/core';
+import { continueTrace, hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
@@ -212,7 +212,7 @@ function getInjectionData(context: Context): {
   spanId: string | undefined;
   sampled: boolean | undefined;
 } {
-  const span = trace.getSpan(context);
+  const span = hasTracingEnabled() ? trace.getSpan(context) : undefined;
   const spanIsRemote = span?.spanContext().isRemote;
 
   // If we have a local span, we can just pick everything from it
@@ -231,6 +231,7 @@ function getInjectionData(context: Context): {
 
   // Else we try to use the propagation context from the scope
   const scope = getScopesFromContext(context)?.scope;
+
   if (scope) {
     const propagationContext = scope.getPropagationContext();
     const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
