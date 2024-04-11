@@ -3,8 +3,8 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeRequestParser, getEnvelopeType, shouldSkipFeedbackTest } from '../../../../utils/helpers';
 import {
-  getCustomRecordingEvents,
-  getReplayEvent,
+  collectReplayRequests,
+  getReplayBreadcrumbs,
   shouldSkipReplayTest,
   waitForReplayRequest,
 } from '../../../../utils/replayHelpers';
@@ -15,8 +15,7 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestPat
   }
 
   const reqPromise0 = waitForReplayRequest(page, 0);
-  const reqPromise1 = waitForReplayRequest(page, 1);
-  const reqPromise2 = waitForReplayRequest(page, 2);
+
   const feedbackRequestPromise = page.waitForResponse(res => {
     const req = res.request();
 
@@ -42,7 +41,11 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestPat
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const [, , replayReq0] = await Promise.all([page.goto(url), page.getByText('Report a Bug').click(), reqPromise0]);
+  await Promise.all([page.goto(url), page.getByText('Report a Bug').click(), reqPromise0]);
+
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayBreadcrumbs(recordingEvents).some(breadcrumb => breadcrumb.category === 'sentry.feedback');
+  });
 
   // Inputs are slow, these need to be serial
   await page.locator('[name="name"]').fill('Jane Doe');
@@ -50,19 +53,18 @@ sentryTest('should capture feedback', async ({ forceFlushReplay, getLocalTestPat
   await page.locator('[name="message"]').fill('my example feedback');
 
   // Force flush here, as inputs are slow and can cause click event to be in unpredictable segments
-  await Promise.all([forceFlushReplay(), reqPromise1]);
+  await Promise.all([forceFlushReplay()]);
 
-  const [, feedbackResp, replayReq2] = await Promise.all([
+  const [, feedbackResp] = await Promise.all([
     page.locator('[data-sentry-feedback] .btn--primary').click(),
     feedbackRequestPromise,
-    reqPromise2,
   ]);
 
+  const { replayEvents, replayRecordingSnapshots } = await replayRequestPromise;
+  const breadcrumbs = getReplayBreadcrumbs(replayRecordingSnapshots);
+
+  const replayEvent = replayEvents[0];
   const feedbackEvent = envelopeRequestParser(feedbackResp.request());
-  const replayEvent = getReplayEvent(replayReq0);
-  // Feedback breadcrumb is on second segment because we flush when "Report a Bug" is clicked
-  // And then the breadcrumb is sent when feedback form is submitted
-  const { breadcrumbs } = getCustomRecordingEvents(replayReq2);
 
   expect(breadcrumbs).toEqual(
     expect.arrayContaining([
