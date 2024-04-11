@@ -48,13 +48,41 @@ function instrumentFetch(): void {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
-          const finishedHandlerData: HandlerDataFetch = {
-            ...handlerData,
-            endTimestamp: Date.now(),
-            response,
-          };
+          const clonedResponse = response.clone();
 
-          triggerHandlers('fetch', finishedHandlerData);
+          if (clonedResponse.body) {
+            const responseReader = clonedResponse.body.getReader();
+
+            // eslint-disable-next-line no-inner-declarations
+            function consumeChunks({ done }: { done: boolean }): Promise<void> {
+              if (!done) {
+                return responseReader.read().then(consumeChunks);
+              } else {
+                return Promise.resolve();
+              }
+            }
+
+            responseReader
+              .read()
+              .then(consumeChunks)
+              .then(() => {
+                triggerHandlers('fetch', {
+                  ...handlerData,
+                  endTimestamp: Date.now(),
+                  response,
+                });
+              })
+              .catch(() => {
+                // noop
+              });
+          } else {
+            triggerHandlers('fetch', {
+              ...handlerData,
+              endTimestamp: Date.now(),
+              response,
+            });
+          }
+
           return response;
         },
         (error: Error) => {
