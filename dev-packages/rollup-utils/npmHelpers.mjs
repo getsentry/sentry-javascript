@@ -151,23 +151,23 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
     throw new Error('hookVariant is neither "otel" nor "sentry-node". Pick one.');
   }
 
-  const expectedRegisterLoaderLocation = `${outputFolder}/register.mjs`;
+  const expectedRegisterLoaderLocation = `${outputFolder}/import-hook.mjs`;
   const foundRegisterLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
     return packageDotJSON?.exports?.[key]?.import?.default === expectedRegisterLoaderLocation;
   });
   if (!foundRegisterLoaderExport) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the register loader inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
+      `You used the makeOtelLoaders() rollup utility without specifying the import hook inside \`exports[something].import.default\`. Please add "${expectedRegisterLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedRegisterLoaderLocation}" exactly).`,
     );
   }
 
-  const expectedHooksLoaderLocation = `${outputFolder}/hook.mjs`;
+  const expectedHooksLoaderLocation = `${outputFolder}/loader-hook.mjs`;
   const foundHookLoaderExport = Object.keys(packageDotJSON.exports ?? {}).some(key => {
     return packageDotJSON?.exports?.[key]?.import?.default === expectedHooksLoaderLocation;
   });
   if (!foundHookLoaderExport) {
     throw new Error(
-      `You used the makeOtelLoaders() rollup utility without specifying the hook loader inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
+      `You used the makeOtelLoaders() rollup utility without specifying the loader hook inside \`exports[something].import.default\`. Please add "${expectedHooksLoaderLocation}" as a value there (maybe check for typos - it needs to be "${expectedHooksLoaderLocation}" exactly).`,
     );
   }
 
@@ -190,12 +190,12 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
       input: path.join(
         __dirname,
         'code',
-        hookVariant === 'otel' ? 'otelEsmRegisterLoaderTemplate.js' : 'sentryNodeEsmRegisterLoaderTemplate.js',
+        hookVariant === 'otel' ? 'otelEsmImportHookTemplate.js' : 'sentryNodeEsmImportHookTemplate.js',
       ),
-      external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/register'],
+      external: /.*/,
       output: {
         format: 'esm',
-        file: path.join(outputFolder, 'register.mjs'),
+        file: path.join(outputFolder, 'import-hook.mjs'),
       },
     },
     // --loader hook
@@ -203,12 +203,12 @@ export function makeOtelLoaders(outputFolder, hookVariant) {
       input: path.join(
         __dirname,
         'code',
-        hookVariant === 'otel' ? 'otelEsmHooksLoaderTemplate.js' : 'sentryNodeEsmHooksLoaderTemplate.js',
+        hookVariant === 'otel' ? 'otelEsmLoaderHookTemplate.js' : 'sentryNodeEsmLoaderHookTemplate.js',
       ),
-      external: ['@opentelemetry/instrumentation/hook.mjs', '@sentry/node/hook'],
+      external: /.*/,
       output: {
         format: 'esm',
-        file: path.join(outputFolder, 'hook.mjs'),
+        file: path.join(outputFolder, 'loader-hook.mjs'),
       },
     },
   ]);
