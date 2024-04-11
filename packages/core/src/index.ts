@@ -34,7 +34,6 @@ export {
   getCurrentHub,
   // eslint-disable-next-line deprecation/deprecation
   Hub,
-  getGlobalHub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
 } from './hub';
