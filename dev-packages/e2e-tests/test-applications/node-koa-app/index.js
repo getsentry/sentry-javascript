@@ -75,6 +75,10 @@ router1.get('/test-exception', async ctx => {
   throw new Error('This is an exception');
 });
 
+router1.get('/test-exception/:id', async ctx => {
+  throw new Error(`This is an exception with id ${ctx.params.id}`);
+});
+
 router1.get('/test-outgoing-fetch-external-allowed', async ctx => {
   const fetchResponse = await fetch(`http://localhost:${port2}/external-allowed`);
   const data = await fetchResponse.json();

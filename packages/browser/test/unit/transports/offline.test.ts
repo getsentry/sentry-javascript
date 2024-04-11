@@ -11,7 +11,7 @@ import type {
 import { createEnvelope } from '@sentry/utils';
 
 import { MIN_DELAY } from '../../../../core/src/transports/offline';
-import { createStore, insert, makeBrowserOfflineTransport, pop } from '../../../src/transports/offline';
+import { createStore, makeBrowserOfflineTransport, push, shift, unshift } from '../../../src/transports/offline';
 
 function deleteDatabase(name: string): Promise<void> {
   return new Promise<void>((resolve, reject) => {
@@ -63,21 +63,24 @@ describe('makeOfflineTransport', () => {
     (global as any).TextDecoder = TextDecoder;
   });
 
-  it('indexedDb wrappers insert and pop', async () => {
+  it('indexedDb wrappers push, unshift and pop', async () => {
     const store = createStore('test', 'test');
-    const found = await pop(store);
+    const found = await shift(store);
     expect(found).toBeUndefined();
 
-    await insert(store, 'test1', 30);
-    await insert(store, new Uint8Array([1, 2, 3, 4, 5]), 30);
+    await push(store, 'test1', 30);
+    await push(store, new Uint8Array([1, 2, 3, 4, 5]), 30);
+    await unshift(store, 'test2', 30);
 
-    const found2 = await pop(store);
-    expect(found2).toEqual('test1');
-    const found3 = await pop(store);
-    expect(found3).toEqual(new Uint8Array([1, 2, 3, 4, 5]));
+    const found2 = await shift(store);
+    expect(found2).toEqual('test2');
+    const found3 = await shift(store);
+    expect(found3).toEqual('test1');
+    const found4 = await shift(store);
+    expect(found4).toEqual(new Uint8Array([1, 2, 3, 4, 5]));
 
-    const found4 = await pop(store);
-    expect(found4).toBeUndefined();
+    const found5 = await shift(store);
+    expect(found5).toBeUndefined();
   });
 
   it('Queues and retries envelope if wrapped transport throws error', async () => {
@@ -104,7 +107,7 @@ describe('makeOfflineTransport', () => {
     const result2 = await transport.send(ERROR_ENVELOPE);
     expect(result2).toEqual({ statusCode: 200 });
 
-    await delay(MIN_DELAY * 2);
+    await delay(MIN_DELAY * 5);
 
     expect(queuedCount).toEqual(1);
     expect(getSendCount()).toEqual(2);

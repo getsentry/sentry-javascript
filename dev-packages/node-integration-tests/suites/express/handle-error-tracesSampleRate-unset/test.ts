@@ -4,9 +4,9 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('should capture and send Express controller error.', done => {
+test('should capture and send Express controller error if tracesSampleRate is not set.', done => {
   const runner = createRunner(__dirname, 'server.ts')
-    .ignore('session', 'sessions')
+    .ignore('session', 'sessions', 'transaction')
     .expect({
       event: {
         exception: {
@@ -17,7 +17,7 @@ test('should capture and send Express controller error.', done => {
                 handled: false,
               },
               type: 'Error',
-              value: 'test_error',
+              value: 'test_error with id 123',
               stacktrace: {
                 frames: expect.arrayContaining([
                   expect.objectContaining({
@@ -34,5 +34,5 @@ test('should capture and send Express controller error.', done => {
     })
     .start(done);
 
-  expect(() => runner.makeRequest('get', '/test/express')).rejects.toThrow();
+  expect(() => runner.makeRequest('get', '/test/express/123')).rejects.toThrow();
 });

@@ -1,14 +1,39 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
-import { captureException, defineIntegration } from '@sentry/core';
+import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import {
+  captureException,
+  defineIntegration,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
+import { logger } from '@sentry/utils';
+import { DEBUG_BUILD } from '../../debug-build';
 
 const _koaIntegration = (() => {
   return {
     name: 'Koa',
     setupOnce() {
       registerInstrumentations({
-        instrumentations: [new KoaInstrumentation()],
+        instrumentations: [
+          new KoaInstrumentation({
+            requestHook(span, info) {
+              if (getIsolationScope() === getDefaultIsolationScope()) {
+                DEBUG_BUILD &&
+                  logger.warn('Isolation scope is default isolation scope - skipping setting transactionName');
+                return;
+              }
+              const attributes = spanToJSON(span).data;
+              const route = attributes && attributes[SemanticAttributes.HTTP_ROUTE];
+              const method = info.context.request.method.toUpperCase() || 'GET';
+              if (route) {
+                getIsolationScope().setTransactionName(`${method} ${route}`);
+              }
+            },
+          }),
+        ],
       });
     },
   };

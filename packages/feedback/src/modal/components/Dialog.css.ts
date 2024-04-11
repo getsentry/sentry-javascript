@@ -133,6 +133,11 @@ export function createDialogStyles(): HTMLStyleElement {
   padding: 6px 12px;
 }
 
+.form__input::placeholder {
+  color: var(--input-foreground);
+  opacity: 0.65;
+}
+
 .form__input:focus-visible {
   outline: 1px auto var(--input-outline-focus);
 }

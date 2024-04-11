@@ -40,9 +40,9 @@ export class AppController1 {
     return this.appService.testError();
   }
 
-  @Get('test-exception')
-  async testException() {
-    return this.appService.testException();
+  @Get('test-exception/:id')
+  async testException(@Param('id') id: string) {
+    return this.appService.testException(id);
   }
 
   @Get('test-outgoing-fetch-external-allowed')

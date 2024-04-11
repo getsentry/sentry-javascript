@@ -12,8 +12,8 @@ import express from 'express';
 
 const app = express();
 
-app.get('/test/express', () => {
-  throw new Error('test_error');
+app.get('/test/express/:id', req => {
+  throw new Error(`test_error with id ${req.params.id}`);
 });
 
 Sentry.setupExpressErrorHandler(app);

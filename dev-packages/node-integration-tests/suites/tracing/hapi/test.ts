@@ -56,6 +56,20 @@ describe('hapi auto-instrumentation', () => {
       .makeRequest('get', '/error');
   });
 
+  test('CJS - should assign parameterized transactionName to error.', done => {
+    createRunner(__dirname, 'scenario.js')
+      .expect({
+        event: {
+          ...EXPECTED_ERROR_EVENT,
+          transaction: 'GET /error/{id}',
+        },
+      })
+      .ignore('transaction')
+      .expectError()
+      .start(done)
+      .makeRequest('get', '/error/123');
+  });
+
   test('CJS - should handle returned Boom errors in routes.', done => {
     createRunner(__dirname, 'scenario.js')
       .expect({

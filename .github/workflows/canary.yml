@@ -12,6 +12,13 @@ on:
 env:
   HEAD_COMMIT: ${{ github.event.inputs.commit || github.sha }}
 
+  CACHED_BUILD_PATHS: |
+    ${{ github.workspace }}/packages/*/*.tgz
+    ${{ github.workspace }}/dev-packages/event-proxy-server/build
+    ${{ github.workspace }}/node_modules
+    ${{ github.workspace }}/packages/*/node_modules
+    ${{ github.workspace }}/dev-packages/*/node_modules
+
 permissions:
   contents: read
   issues: write
@@ -33,10 +40,7 @@ jobs:
       - name: Check canary cache
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ github.workspace }}/packages/*/*.tgz
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/*/node_modules
+          path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
       - name: Install dependencies
         run: yarn install
@@ -94,24 +98,22 @@ jobs:
       - uses: pnpm/action-setup@v2
         with:
           version: 8.3.1
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version-file: 'package.json'
+          node-version-file: 'dev-packages/e2e-tests/package.json'
 
       - name: Restore canary cache
         uses: actions/cache/restore@v4
         with:
-          path: |
-            ${{ github.workspace }}/packages/*/*.tgz
-            ${{ github.workspace }}/node_modules
-            ${{ github.workspace }}/packages/*/node_modules
+          path: ${{ env.CACHED_BUILD_PATHS }}
           key: canary-${{ env.HEAD_COMMIT }}
 
       - name: Get node version
         id: versions
         run: |
-          echo "echo node=$(jq -r '.volta.node' package.json)" >> $GITHUB_OUTPUT
+          echo "echo node=$(jq -r '.volta.node' dev-packages/e2e-tests/package.json)" >> $GITHUB_OUTPUT
 
       - name: Validate Verdaccio
         run: yarn test:validate

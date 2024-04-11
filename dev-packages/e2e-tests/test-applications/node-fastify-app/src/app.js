@@ -55,8 +55,8 @@ app.get('/test-error', async function (req, res) {
   res.send({ exceptionId });
 });
 
-app.get('/test-exception', async function (req, res) {
-  throw new Error('This is an exception');
+app.get('/test-exception/:id', async function (req, res) {
+  throw new Error(`This is an exception with id ${req.params.id}`);
 });
 
 app.get('/test-outgoing-fetch-external-allowed', async function (req, res) {

@@ -46,6 +46,15 @@ const init = async () => {
 
   server.route({
     method: 'GET',
+    path: '/test-error/{id}',
+    handler: function (request) {
+      console.log('This is an error with id', request.params.id);
+      throw new Error(`This is an error with id ${request.params.id}`);
+    },
+  });
+
+  server.route({
+    method: 'GET',
     path: '/test-failure',
     handler: async function (request, h) {
       throw new Error('This is an error');

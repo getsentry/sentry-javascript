@@ -56,6 +56,7 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
 
   expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
+  expect(routehandlerTransaction.contexts?.trace?.origin).toBe('auto.function.nextjs');
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
   // TODO: Uncomment once we update the scope transaction name on the server side
