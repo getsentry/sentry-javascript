@@ -32,8 +32,6 @@ export {
 export {
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
-  // eslint-disable-next-line deprecation/deprecation
-  Hub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
 } from './hub';

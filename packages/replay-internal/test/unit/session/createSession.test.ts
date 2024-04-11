@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/core';
-import type { Hub } from '@sentry/core';
 
+import type { Hub } from '@sentry/types';
 import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';
