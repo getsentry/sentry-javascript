@@ -8,6 +8,8 @@ const LazyLoadableIntegrations = {
   replayIntegration: 'replay',
   replayCanvasIntegration: 'replay-canvas',
   feedbackIntegration: 'feedback',
+  feedbackModalIntegration: 'feedback-modal',
+  feedbackScreenshotIntegration: 'feedback-screenshot',
   captureConsoleIntegration: 'captureconsole',
   contextLinesIntegration: 'contextlines',
   linkedErrorsIntegration: 'linkederrors',
