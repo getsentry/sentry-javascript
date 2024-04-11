@@ -61,11 +61,7 @@
     "@types/express": "^4.17.14"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0",
-    "aws-sdk": "^2.765.0",
-    "find-up": "^5.0.0",
-    "nock": "^13.0.4",
-    "npm-packlist": "^2.1.4"
+    "@types/node": "^14.18.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
