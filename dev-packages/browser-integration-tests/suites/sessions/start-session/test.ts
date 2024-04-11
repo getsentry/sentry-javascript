@@ -24,6 +24,14 @@ sentryTest('should start a new session with navigation.', async ({ getLocalTestP
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.route('**/foo', (route: Route) => route.fulfill({ path: `${__dirname}/dist/index.html` }));
 
+  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
+    });
+  });
+
   const initSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
 
   await page.locator('#navigate').click();
