@@ -1,5 +1,5 @@
 import type { Event, StackFrame, Stacktrace } from '@sentry/types';
-import { basename, relative } from '@sentry/utils';
+import { GLOBAL_OBJ, basename, relative } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 type StackFrameIteratee = (frame: StackFrame) => StackFrame;
@@ -14,7 +14,17 @@ interface RewriteFramesOptions {
    * - In the browser, the value you provide in `root` will be stripped from the beginning stack frames' paths (if the path started with the value).
    * - On the server, the root value will only replace the beginning of stack frame filepaths, when the path is absolute. If no `root` value is provided and the path is absolute, the frame will be reduced to only the filename and the provided `prefix` option.
    *
-   * TODO: Examples
+   * Browser example:
+   * - Original frame: `'http://example.com/my/path/static/asset.js'`
+   * - `root: 'http://example.com/my/path'`
+   * - `assetPrefix: 'app://'`
+   * - Resulting frame: `'app:///static/asset.js'`
+   *
+   * Server example:
+   * - Original frame: `'/User/local/my/path/static/asset.js'`
+   * - `root: '/User/local/my/path'`
+   * - `assetPrefix: 'app://'`
+   * - Resulting frame: `'app:///static/asset.js'`
    */
   root?: string;
 
@@ -30,7 +40,8 @@ interface RewriteFramesOptions {
   prefix?: string;
 
   /**
-   * Defines an iterator that is used to iterate through all of the stack frames for modification before being sent to Sentry. Setting this option will effectively disable both the `root` and the `prefix` options.
+   * Defines an iterator that is used to iterate through all of the stack frames for modification before being sent to Sentry.
+   * Setting this option will effectively disable both the `root` and the `prefix` options.
    */
   iteratee?: StackFrameIteratee;
 }
@@ -42,7 +53,9 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
   const root = options.root;
   const prefix = options.prefix || 'app:///';
 
-  const iteratee: StackFrameIteratee = options.iteratee || generateIteratee({ root, prefix });
+  const isBrowser = 'window' in GLOBAL_OBJ && GLOBAL_OBJ.window !== undefined;
+
+  const iteratee: StackFrameIteratee = options.iteratee || generateIteratee({ isBrowser, root, prefix });
 
   /** Process an exception event. */
   function _processExceptionsEvent(event: Event): Event {
@@ -90,9 +103,11 @@ export const rewriteFramesIntegration = defineIntegration((options: RewriteFrame
  * Exported only for tests.
  */
 export function generateIteratee({
+  isBrowser,
   root,
   prefix,
 }: {
+  isBrowser: boolean;
   root?: string;
   prefix: string;
 }): StackFrameIteratee {
@@ -110,21 +125,22 @@ export function generateIteratee({
     // Check if the frame filename begins with `/`
     const startsWithSlash = /^\//.test(frame.filename);
 
-    // eslint-disable-next-line no-restricted-globals
-    const isBrowser = typeof window !== undefined;
-
-    if (isWindowsFrame || startsWithSlash) {
-      const filename = isWindowsFrame
-        ? frame.filename
-            .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
-            .replace(/\\/g, '/') // replace all `\\` instances with `/`
-        : frame.filename;
-      const base = root ? relative(root, filename) : basename(filename);
-      frame.filename = `${prefix}${base}`;
-    } else if (isBrowser && root) {
-      const oldFilename = frame.filename;
-      if (oldFilename.indexOf(root) === 0) {
-        frame.filename = oldFilename.replace(root, prefix);
+    if (isBrowser) {
+      if (root) {
+        const oldFilename = frame.filename;
+        if (oldFilename.indexOf(root) === 0) {
+          frame.filename = oldFilename.replace(root, prefix);
+        }
+      }
+    } else {
+      if (isWindowsFrame || startsWithSlash) {
+        const filename = isWindowsFrame
+          ? frame.filename
+              .replace(/^[a-zA-Z]:/, '') // remove Windows-style prefix
+              .replace(/\\/g, '/') // replace all `\\` instances with `/`
+          : frame.filename;
+        const base = root ? relative(root, filename) : basename(filename);
+        frame.filename = `${prefix}${base}`;
       }
     }
 
