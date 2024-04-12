@@ -97,7 +97,11 @@ function instrumentFetch(): void {
             });
           }
 
-          return response;
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(response);
+            }, 0);
+          });
         },
         (error: Error) => {
           const erroredHandlerData: HandlerDataFetch = {
