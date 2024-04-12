@@ -331,6 +331,10 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  * 3. Finally, we look at a special header on the carrier, which we set in the http integration.
  */
 function getCurrentURL(carrier: Record<string, unknown>, span: Span | undefined): string | undefined {
+  // This may be set in the http integration
+  // We call this first to ensure the carrier is always cleaned, but we only use it if we don't have any url on the span
+  const urlFromCarrier = getAndCleanRequestUrlFromPropagationCarrier(carrier);
+
   if (span) {
     const urlAttribute = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
     if (urlAttribute) {
@@ -344,11 +348,5 @@ function getCurrentURL(carrier: Record<string, unknown>, span: Span | undefined)
     }
   }
 
-  // This may be set in the http integration
-  const url = getAndCleanRequestUrlFromPropagationCarrier(carrier);
-  if (url) {
-    return url;
-  }
-
-  return undefined;
+  return urlFromCarrier;
 }
