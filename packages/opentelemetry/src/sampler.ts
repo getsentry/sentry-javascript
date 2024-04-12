@@ -1,4 +1,5 @@
-import { Attributes, Context, Span, SpanKind } from '@opentelemetry/api';
+import type { Attributes, Context, Span} from '@opentelemetry/api';
+import { SpanKind } from '@opentelemetry/api';
 import { isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
 import type { Sampler, SamplingResult } from '@opentelemetry/sdk-trace-base';
@@ -53,7 +54,11 @@ export class SentrySampler implements Sampler {
 
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
-    if (spanKind === SpanKind.CLIENT && (!parentSpan || parentContext?.isRemote)) {
+    if (
+      spanKind === SpanKind.CLIENT &&
+      spanAttributes[SemanticAttributes.HTTP_METHOD] &&
+      (!parentSpan || parentContext?.isRemote)
+    ) {
       return { decision: SamplingDecision.NOT_RECORD, traceState };
     }
 
