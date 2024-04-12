@@ -42,10 +42,12 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: '{"foo":"bar"}',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

@@ -6,6 +6,8 @@ fetch('http://localhost:7654/foo', {
     'Content-Type': 'application/json',
     Cache: 'no-cache',
   },
-}).then(() => {
-  Sentry.captureException('test error');
-});
+})
+  .then(res => res.text())
+  .then(() => {
+    Sentry.captureException('test error');
+  });

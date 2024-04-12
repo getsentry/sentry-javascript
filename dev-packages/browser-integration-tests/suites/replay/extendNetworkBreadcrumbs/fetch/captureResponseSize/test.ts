@@ -45,10 +45,12 @@ sentryTest('captures response size from Content-Length header if available', asy
 
   await page.evaluate(() => {
     /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    fetch('http://localhost:7654/foo')
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -135,10 +137,12 @@ sentryTest('captures response size without Content-Length header', async ({ getL
 
   await page.evaluate(() => {
     /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    fetch('http://localhost:7654/foo')
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -224,10 +228,12 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
     /* eslint-disable */
     fetch('http://localhost:7654/foo', {
       method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
