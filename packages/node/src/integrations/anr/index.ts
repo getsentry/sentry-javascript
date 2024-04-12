@@ -82,7 +82,9 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
       }
 
       if (client) {
+        // We only await the Promise later if we want to stop the worker
         worker = _startWorker(client, options);
+        worker.catch(e => log('Error starting ANR worker', e));
       }
     },
     stopWorker: () => {
@@ -162,14 +164,8 @@ async function _startWorker(
     contexts,
   };
 
-  if (options.captureStackTrace) {
-    if (!inspector.url()) {
-      try {
-        inspector.open(0);
-      } catch (_) {
-        //
-      }
-    }
+  if (options.captureStackTrace && !inspector.url()) {
+    inspector.open(0);
   }
 
   const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
