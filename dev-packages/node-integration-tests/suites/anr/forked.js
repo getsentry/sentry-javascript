@@ -12,7 +12,7 @@ Sentry.init({
   release: '1.0',
   autoSessionTracking: false,
   debug: true,
-  integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
+  integrations: [Sentry.anrIntegration({ anrThreshold: 100 })],
 });
 
 Sentry.setUser({ email: 'person@home.com' });

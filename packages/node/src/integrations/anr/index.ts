@@ -58,6 +58,10 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
     throw new Error('ANR detection requires Node 16.17.0 or later');
   }
 
+  if (options.captureStackTrace === undefined) {
+    options.captureStackTrace = true;
+  }
+
   let worker: Promise<() => void> | undefined;
   let client: NodeClient | undefined;
 

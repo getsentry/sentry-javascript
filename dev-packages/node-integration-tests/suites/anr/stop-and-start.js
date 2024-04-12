@@ -7,7 +7,7 @@ setTimeout(() => {
   process.exit();
 }, 10000);
 
-const anr = Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 });
+const anr = Sentry.anrIntegration({ anrThreshold: 100 });
 
 Sentry.init({
   dsn: 'https://public@dsn.ingest.sentry.io/1337',

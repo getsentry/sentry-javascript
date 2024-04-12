@@ -16,7 +16,7 @@ export interface AnrIntegrationOptions {
   /**
    * Whether to capture a stack trace when the ANR event is triggered.
    *
-   * Defaults to `false`.
+   * Defaults to `true`.
    *
    * This uses the node debugger which enables the inspector API and opens the required ports.
    */
