@@ -16,7 +16,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { spanToTraceHeader } from './utils/spanUtils';
+import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -81,19 +81,21 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        name: `${method} ${url}`,
-        onlyIfParent: true,
-        attributes: {
-          url,
-          type: 'fetch',
-          'http.method': method,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-        },
-        op: 'http.client',
-      })
-    : new SentryNonRecordingSpan();
+  const hasParent = !!getActiveSpan();
+
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${method} ${url}`,
+          attributes: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+          },
+          op: 'http.client',
+        })
+      : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
@@ -112,7 +114,11 @@ export function instrumentFetchRequest(
       client,
       scope,
       options,
-      hasTracingEnabled() ? span : undefined,
+      // In the following cases, we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope:
+      // - If tracing is disabled (TWP)
+      // - If the span has no parent span - which means we ran into `onlyIfParent` check
+      hasTracingEnabled() && hasParent ? span : undefined,
     );
   }
 

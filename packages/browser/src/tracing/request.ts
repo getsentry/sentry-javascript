@@ -6,6 +6,7 @@ import {
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -307,19 +308,21 @@ export function xhrCallback(
     return undefined;
   }
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
-        onlyIfParent: true,
-        attributes: {
-          type: 'xhr',
-          'http.method': sentryXhrData.method,
-          url: sentryXhrData.url,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-        },
-        op: 'http.client',
-      })
-    : new SentryNonRecordingSpan();
+  const hasParent = !!getActiveSpan();
+
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+          attributes: {
+            type: 'xhr',
+            'http.method': sentryXhrData.method,
+            url: sentryXhrData.url,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+          },
+          op: 'http.client',
+        })
+      : new SentryNonRecordingSpan();
 
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
@@ -327,7 +330,15 @@ export function xhrCallback(
   const client = getClient();
 
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
-    addTracingHeadersToXhrRequest(xhr, client, hasTracingEnabled() ? span : undefined);
+    addTracingHeadersToXhrRequest(
+      xhr,
+      client,
+      // In the following cases, we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope:
+      // - If tracing is disabled (TWP)
+      // - If the span has no parent span - which means we ran into `onlyIfParent` check
+      hasTracingEnabled() && hasParent ? span : undefined,
+    );
   }
 
   return span;
