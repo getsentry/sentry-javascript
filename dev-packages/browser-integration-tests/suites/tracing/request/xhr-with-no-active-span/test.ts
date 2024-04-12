@@ -22,14 +22,13 @@ sentryTest(
         sentryTraceHeaders.push(sentryTraceHeader);
       }
 
+      // We _should_ not have any sentry API requests
+      if (envelopeUrlRegex.test(url)) {
+        throw new Error(`${url} is an envelope URL`);
+      }
+
       // We only want to count API requests
-      if (
-        envelopeUrlRegex.test(url) ||
-        url.endsWith('.html') ||
-        url.endsWith('.js') ||
-        url.endsWith('.css') ||
-        url.endsWith('.map')
-      ) {
+      if (url.endsWith('.html') || url.endsWith('.js') || url.endsWith('.css') || url.endsWith('.map')) {
         return;
       }
       requestCount++;
