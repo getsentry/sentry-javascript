@@ -17,7 +17,6 @@ export {
 } from './utils/spanTypes';
 
 export { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
-export { storeRequestUrlOnPropagationCarrier } from './utils/storeRequestUrlForPropagation';
 
 export { isSentryRequestSpan } from './utils/isSentryRequest';
 

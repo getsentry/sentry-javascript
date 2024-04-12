@@ -3,7 +3,6 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { storeRequestUrlOnPropagationCarrier } from '@sentry/opentelemetry';
 
 import {
   addBreadcrumb,
@@ -65,12 +64,6 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             if (isSentryRequestUrl(url, getClient())) {
               return true;
             }
-
-            // We keep the URL on the headers (which are the carrier for the propagator)
-            // so we can access it in the propagator to check against tracePropagationTargets
-            const headers = request.headers || {};
-            storeRequestUrlOnPropagationCarrier(headers, url);
-            request.headers = headers;
 
             if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
               return true;

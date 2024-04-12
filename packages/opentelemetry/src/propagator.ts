@@ -34,7 +34,6 @@ import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
-import { getAndCleanRequestUrlFromPropagationCarrier } from './utils/storeRequestUrlForPropagation';
 
 /** Get the Sentry propagation context from a span context. */
 export function getPropagationContextFromSpan(span: Span): PropagationContext {
@@ -87,7 +86,7 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     const activeSpan = trace.getSpan(context);
-    const url = getCurrentURL(carrier as { __requestUrl?: string }, activeSpan);
+    const url = activeSpan && getCurrentURL(activeSpan);
 
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
@@ -328,25 +327,18 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  * So we use the following logic:
  * 1. If we have an active span, we check if it has a URL attribute.
  * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
- * 3. Finally, we look at a special header on the carrier, which we set in the http integration.
  */
-function getCurrentURL(carrier: Record<string, unknown>, span: Span | undefined): string | undefined {
-  // This may be set in the http integration
-  // We call this first to ensure the carrier is always cleaned, but we only use it if we don't have any url on the span
-  const urlFromCarrier = getAndCleanRequestUrlFromPropagationCarrier(carrier);
-
-  if (span) {
-    const urlAttribute = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
-    if (urlAttribute) {
-      return urlAttribute;
-    }
-
-    // Also look at the traceState, which we may set in the sampler even for unsampled spans
-    const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
-    if (urlTraceState) {
-      return urlTraceState;
-    }
+function getCurrentURL(span: Span): string | undefined {
+  const urlAttribute = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
+  if (urlAttribute) {
+    return urlAttribute;
   }
 
-  return urlFromCarrier;
+  // Also look at the traceState, which we may set in the sampler even for unsampled spans
+  const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
+  if (urlTraceState) {
+    return urlTraceState;
+  }
+
+  return undefined;
 }
