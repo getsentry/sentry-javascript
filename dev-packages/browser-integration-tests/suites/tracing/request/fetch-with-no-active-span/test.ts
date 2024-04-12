@@ -4,7 +4,7 @@ import { sentryTest } from '../../../../utils/fixtures';
 import { envelopeUrlRegex, shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
-  'there should be no span created for fetch requests with no active span',
+  'should not create span for fetch requests with no active span but should attach sentry-trace header',
   async ({ getLocalTestPath, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -13,23 +13,32 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     let requestCount = 0;
+    const sentryTraceHeaders: string[] = [];
     page.on('request', request => {
-      expect(envelopeUrlRegex.test(request.url())).toBe(false);
+      const url = request.url();
+
+      const sentryTraceHeader = request.headers()['sentry-trace'];
+      if (sentryTraceHeader) {
+        sentryTraceHeaders.push(sentryTraceHeader);
+      }
+      expect(envelopeUrlRegex.test(url)).toBe(false);
+
+      // We only want to count API requests
+      if (url.endsWith('.html') || url.endsWith('.js') || url.endsWith('.css') || url.endsWith('.map')) {
+        return;
+      }
       requestCount++;
     });
 
     await page.goto(url);
 
-    // Here are the requests that should exist:
-    // 1. HTML page
-    // 2. Init JS bundle
-    // 3. Subject JS bundle
-    // 4 [OPTIONAl] CDN JS bundle
-    // and then 3 fetch requests
-    if (process.env.PW_BUNDLE && process.env.PW_BUNDLE.startsWith('bundle_')) {
-      expect(requestCount).toBe(7);
-    } else {
-      expect(requestCount).toBe(6);
-    }
+    expect(requestCount).toBe(3);
+
+    expect(sentryTraceHeaders).toHaveLength(3);
+    expect(sentryTraceHeaders).toEqual([
+      expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/),
+      expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/),
+      expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})$/),
+    ]);
   },
 );
