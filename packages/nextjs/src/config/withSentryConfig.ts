@@ -137,25 +137,28 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
         {
           type: 'query',
           key: 'r', // short for region - we keep it short so matching is harder for ad-blockers
-          value: '(?<region>\\[a-z\\]{2})',
+          value: '(?<region>[a-z]{2})',
         },
       ],
       destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
+    // Order of these is important, they get applied first to last.
+    const newRewrites = [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
+
     if (typeof originalRewrites !== 'function') {
-      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
+      return newRewrites;
     }
 
     // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
-      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...originalRewritesResult];
+      return [...newRewrites, ...originalRewritesResult];
     } else {
       return {
         ...originalRewritesResult,
-        beforeFiles: [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...(originalRewritesResult.beforeFiles || [])],
+        beforeFiles: [...newRewrites, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
   };
