@@ -42,10 +42,12 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
     /* eslint-disable */
     fetch('http://localhost:7654/foo', {
       method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -124,10 +126,12 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
     /* eslint-disable */
     fetch('http://localhost:7654/foo', {
       method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -206,10 +210,12 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
     /* eslint-disable */
     fetch('http://localhost:7654/foo', {
       method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

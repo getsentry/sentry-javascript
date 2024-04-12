@@ -39,10 +39,12 @@ sentryTest('handles empty headers', async ({ getLocalTestPath, page, browserName
 
   await page.evaluate(() => {
     /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    fetch('http://localhost:7654/foo')
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -115,10 +117,12 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page }) => {
 
   await page.evaluate(() => {
     /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    fetch('http://localhost:7654/foo')
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

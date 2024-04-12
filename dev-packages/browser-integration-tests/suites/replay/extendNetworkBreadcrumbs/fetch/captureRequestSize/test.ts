@@ -40,10 +40,12 @@ sentryTest('captures request body size when body is sent', async ({ getLocalTest
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: '{"foo":"bar"}',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -127,10 +129,12 @@ sentryTest('captures request size from non-text request body', async ({ getLocal
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: blob,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

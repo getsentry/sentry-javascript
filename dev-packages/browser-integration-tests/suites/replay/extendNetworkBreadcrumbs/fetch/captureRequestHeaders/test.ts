@@ -39,10 +39,12 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
     /* eslint-disable */
     fetch('http://localhost:7654/foo', {
       method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -119,10 +121,12 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
         'X-Custom-Header': 'foo',
         'X-Test-Header': 'test-value',
       },
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -289,10 +293,12 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       headers,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (request.headers.has('x-should-make-request')) {
-    await fetch('http://localhost:3030/');
+    await fetch('http://localhost:3030/').then(res => res.text());
   }
 
   return NextResponse.next();
