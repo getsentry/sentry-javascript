@@ -64,7 +64,7 @@ describe('lazyLoadIntegration', () => {
     expect(global.document.querySelectorAll('script')).toHaveLength(0);
   });
 
-  test('it injects a script tag if integration is not yet loaded xxx', async () => {
+  test('it injects a script tag if integration is not yet loaded', async () => {
     // @ts-expect-error For testing sake
     global.Sentry = {
       ...Sentry,
