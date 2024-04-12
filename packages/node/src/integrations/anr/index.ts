@@ -164,7 +164,11 @@ async function _startWorker(
 
   if (options.captureStackTrace) {
     if (!inspector.url()) {
-      inspector.open(0);
+      try {
+        inspector.open(0);
+      } catch (_) {
+        //
+      }
     }
   }
 
