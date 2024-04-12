@@ -3,6 +3,7 @@ import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { storeRequestUrlOnPropagationCarrier } from '@sentry/opentelemetry';
 
 import {
   addBreadcrumb,
@@ -17,7 +18,7 @@ import {
 import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
-import { addNonEnumerableProperty, stripUrlQueryAndFragment } from '@sentry/utils';
+import { stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -65,13 +66,10 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
               return true;
             }
 
-            // SUPER HACK:
-            // We store the URL on the headers object, because this is passed to the propagator
-            // Where we can pick the URL off to deterime if we should attach trace headers.
+            // We keep the URL on the headers (which are the carrier for the propagator)
+            // so we can access it in the propagator to check against tracePropagationTargets
             const headers = request.headers || {};
-            // Can't use a non-enumerable property because http instrumentation clones this
-            // We remove this in the propagator
-            headers['__requestUrl'] = url;
+            storeRequestUrlOnPropagationCarrier(headers, url);
             request.headers = headers;
 
             if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {

@@ -1,19 +1,19 @@
-import { Baggage, Context, ROOT_CONTEXT, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
+import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter } from '@opentelemetry/api';
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
-import { continueTrace, getDefaultCurrentScope, getDefaultIsolationScope, hasTracingEnabled } from '@sentry/core';
+import type { continueTrace } from '@sentry/core';
+import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
-import type { DynamicSamplingContext, Options, PolymorphicRequest, PropagationContext } from '@sentry/types';
+import type { DynamicSamplingContext, Options, PropagationContext } from '@sentry/types';
 import {
   LRUMap,
   SENTRY_BAGGAGE_KEY_PREFIX,
   baggageHeaderToDynamicSamplingContext,
   dynamicSamplingContextToSentryBaggageHeader,
-  extractRequestData,
   generateSentryTraceHeader,
   logger,
   parseBaggageHeader,
@@ -27,12 +27,14 @@ import {
   SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
+  SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
+import { getAndCleanRequestUrlFromPropagationCarrier } from './utils/storeRequestUrlForPropagation';
 
 /** Get the Sentry propagation context from a span context. */
 export function getPropagationContextFromSpan(span: Span): PropagationContext {
@@ -94,7 +96,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
       !this._shouldInjectTraceData(tracePropagationTargets, url)
     ) {
       DEBUG_BUILD &&
-        logger.log('[Tracing] Not injecting trace data for url because it does not matchTracePropagationTargets:', url);
+        logger.log(
+          '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
+          url,
+        );
       return;
     }
 
@@ -315,23 +320,34 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   }
 }
 
-function getCurrentURL(carrier: { __requestUrl?: string }, span: Span | undefined): string | undefined {
-  try {
-    if (carrier.__requestUrl) {
-      const url = carrier.__requestUrl;
-      delete carrier.__requestUrl;
-      return url;
+/**
+ * It is pretty tricky to get access to the outgoing request URL of a request in the propagator.
+ * As we only have access to the context of the span to be sent and the carrier (=headers),
+ * but the span may be unsampled and thus have no attributes.
+ *
+ * So we use the following logic:
+ * 1. If we have an active span, we check if it has a URL attribute.
+ * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
+ * 3. Finally, we look at a special header on the carrier, which we set in the http integration.
+ */
+function getCurrentURL(carrier: Record<string, unknown>, span: Span | undefined): string | undefined {
+  if (span) {
+    const urlAttribute = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
+    if (urlAttribute) {
+      return urlAttribute;
     }
-  } catch {
-    // ignore errors here
+
+    // Also look at the traceState, which we may set in the sampler even for unsampled spans
+    const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
+    if (urlTraceState) {
+      return urlTraceState;
+    }
   }
 
-  if (span) {
-    const url = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
-
-    if (url) {
-      return url;
-    }
+  // This may be set in the http integration
+  const url = getAndCleanRequestUrlFromPropagationCarrier(carrier);
+  if (url) {
+    return url;
   }
 
   return undefined;

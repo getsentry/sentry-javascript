@@ -1,7 +1,7 @@
-import { createRunner } from '../../../utils/runner';
-import { createTestServer } from '../../../utils/server';
+import { createRunner } from '../../../../utils/runner';
+import { createTestServer } from '../../../../utils/server';
 
-test('HttpIntegration should instrument correct requests even when not sampled', done => {
+test('outgoing http requests are correctly instrumented when not sampled', done => {
   expect.assertions(11);
 
   createTestServer(done)

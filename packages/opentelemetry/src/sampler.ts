@@ -6,7 +6,7 @@ import { SamplingDecision } from '@opentelemetry/sdk-trace-base';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, hasTracingEnabled, sampleSpan } from '@sentry/core';
 import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
-import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING } from './constants';
+import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
@@ -36,13 +36,20 @@ export class SentrySampler implements Sampler {
   ): SamplingResult {
     const options = this._client.getOptions();
 
-    if (!hasTracingEnabled(options)) {
-      return { decision: SamplingDecision.NOT_RECORD };
-    }
-
     const parentSpan = trace.getSpan(context);
     const parentContext = parentSpan?.spanContext();
-    const traceState = parentContext?.traceState || new TraceState();
+
+    let traceState = parentContext?.traceState || new TraceState();
+
+    // We always keep the URL on the trace state, so we can access it in the propagator
+    const url = spanAttributes[SemanticAttributes.HTTP_URL];
+    if (url && typeof url === 'string') {
+      traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
+    }
+
+    if (!hasTracingEnabled(options)) {
+      return { decision: SamplingDecision.NOT_RECORD, traceState };
+    }
 
     let parentSampled: boolean | undefined = undefined;
 
@@ -94,6 +101,7 @@ export class SentrySampler implements Sampler {
     return {
       decision: SamplingDecision.RECORD_AND_SAMPLED,
       attributes,
+      traceState,
     };
   }
 
