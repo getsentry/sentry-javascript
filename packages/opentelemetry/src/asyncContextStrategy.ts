@@ -1,12 +1,7 @@
 import * as api from '@opentelemetry/api';
-import {
-  getCurrentHubShim,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-  setAsyncContextStrategy,
-} from '@sentry/core';
+import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
 import type { withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
-import type { Hub, Scope } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
