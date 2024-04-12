@@ -1,4 +1,4 @@
-import type { Hub, Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { startInactiveSpan, startSpan, startSpanManual, suppressTracing, withActiveSpan } from './tracing/trace';
@@ -10,12 +10,6 @@ import type { getActiveSpan } from './utils/spanUtils';
  * Strategy used to track async context.
  */
 export interface AsyncContextStrategy {
-  /**
-   * Gets the currently active hub.
-   */
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub: () => Hub;
-
   /**
    * Fork the isolation scope inside of the provided callback.
    */

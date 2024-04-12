@@ -24,6 +24,7 @@ import type { AsyncContextStrategy, Carrier } from './asyncContext';
 import { getMainCarrier, getSentryCarrier } from './asyncContext';
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
+import { getCurrentHubShim } from './getCurrentHubShim';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import { SDK_VERSION } from './version';
@@ -506,13 +507,7 @@ export class Hub implements HubInterface {
  * @deprecated Use the respective replacement method directly instead.
  */
 // eslint-disable-next-line deprecation/deprecation
-export function getCurrentHub(): HubInterface {
-  // Get main carrier (global for every environment)
-  const carrier = getMainCarrier();
-
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.getCurrentHub() || getGlobalHub();
-}
+export const getCurrentHub = getCurrentHubShim;
 
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {
@@ -586,7 +581,6 @@ function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T):
 /* eslint-disable deprecation/deprecation */
 function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
-    getCurrentHub: getGlobalHub,
     withIsolationScope,
     withScope,
     withSetScope,

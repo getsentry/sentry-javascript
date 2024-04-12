@@ -40,23 +40,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     };
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  function getCurrentHub(): Hub {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHubShim();
-    return {
-      ...hub,
-      getScope: () => {
-        const scopes = getScopes();
-        return scopes.scope;
-      },
-      getIsolationScope: () => {
-        const scopes = getScopes();
-        return scopes.isolationScope;
-      },
-    };
-  }
-
   function withScope<T>(callback: (scope: Scope) => T): T {
     const ctx = api.context.active();
 
@@ -114,7 +97,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   }
 
   setAsyncContextStrategy({
-    getCurrentHub,
     withScope,
     withSetScope,
     withSetIsolationScope,

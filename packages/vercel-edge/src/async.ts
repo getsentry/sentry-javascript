@@ -1,10 +1,5 @@
-import {
-  getCurrentHubShim,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-  setAsyncContextStrategy,
-} from '@sentry/core';
-import type { Hub, Scope } from '@sentry/types';
+import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
+import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -51,23 +46,6 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     };
   }
 
-  // eslint-disable-next-line deprecation/deprecation
-  function getCurrentHub(): Hub {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHubShim();
-    return {
-      ...hub,
-      getScope: () => {
-        const scopes = getScopes();
-        return scopes.scope;
-      },
-      getIsolationScope: () => {
-        const scopes = getScopes();
-        return scopes.isolationScope;
-      },
-    };
-  }
-
   function withScope<T>(callback: (scope: Scope) => T): T {
     const scope = getScopes().scope.clone();
     const isolationScope = getScopes().isolationScope;
@@ -99,7 +77,6 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
   }
 
   setAsyncContextStrategy({
-    getCurrentHub,
     withScope,
     withSetScope,
     withIsolationScope,
