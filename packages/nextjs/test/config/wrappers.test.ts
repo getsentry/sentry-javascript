@@ -1,15 +1,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 
 import type { Client } from '@sentry/types';
 import { wrapGetInitialPropsWithSentry, wrapGetServerSidePropsWithSentry } from '../../src/common';
 
 const startSpanManualSpy = jest.spyOn(SentryCore, 'startSpanManual');
-
-// The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
-// constructor but the client isn't used in these tests.
-addTracingExtensions();
 
 describe('data-fetching function wrappers should create spans', () => {
   const route = '/tricks/[trickName]';

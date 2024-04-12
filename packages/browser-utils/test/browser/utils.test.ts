@@ -1,18 +1,9 @@
-import {
-  SentrySpan,
-  addTracingExtensions,
-  getCurrentScope,
-  getIsolationScope,
-  setCurrentClient,
-  spanToJSON,
-} from '@sentry/core';
+import { SentrySpan, getCurrentScope, getIsolationScope, setCurrentClient, spanToJSON } from '@sentry/core';
 import { startAndEndSpan } from '../../src/metrics/utils';
 import { TestClient, getDefaultClientOptions } from '../utils/TestClient';
 
 describe('startAndEndSpan()', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
 

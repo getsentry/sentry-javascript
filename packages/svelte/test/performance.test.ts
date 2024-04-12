@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/svelte';
-import { addTracingExtensions, getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
+import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
 
 import type { TransactionEvent } from '@sentry/types';
 import { vi } from 'vitest';
@@ -18,8 +18,6 @@ describe('Sentry.trackComponent()', () => {
 
     getCurrentScope().clear();
     getIsolationScope().clear();
-
-    addTracingExtensions();
 
     const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);

@@ -10,13 +10,13 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
-  addTracingExtensions,
   continueTrace,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getIsolationScope,
   getRootSpan,
+  registerSpanErrorInstrumentation,
   spanToJSON,
   startIdleSpan,
   withScope,
@@ -153,7 +153,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
  * We explicitly export the proper type here, as this has to be extended in some cases.
  */
 export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptions> = {}) => {
-  addTracingExtensions();
+  registerSpanErrorInstrumentation();
 
   const options = {
     ...DEFAULT_BROWSER_TRACING_OPTIONS,

@@ -1,4 +1,4 @@
-import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -64,8 +64,6 @@ export function showReportDialog(): void {
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
-  addTracingExtensions();
-
   if (isBuild()) {
     return;
   }

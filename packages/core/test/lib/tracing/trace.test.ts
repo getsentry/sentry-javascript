@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   Scope,
-  addTracingExtensions,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -17,6 +16,7 @@ import { getAsyncContextStrategy } from '../../../src/hub';
 import {
   SentrySpan,
   continueTrace,
+  registerSpanErrorInstrumentation,
   startInactiveSpan,
   startSpan,
   startSpanManual,
@@ -28,10 +28,6 @@ import { _setSpanForScope } from '../../../src/utils/spanOnScope';
 import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
-beforeAll(() => {
-  addTracingExtensions();
-});
-
 const enum Type {
   Sync = 'sync',
   Async = 'async',
@@ -41,7 +37,7 @@ let client: TestClient;
 
 describe('startSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -559,7 +555,7 @@ describe('startSpan', () => {
 
 describe('startSpanManual', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -878,7 +874,7 @@ describe('startSpanManual', () => {
 
 describe('startInactiveSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -1218,8 +1214,6 @@ describe('startInactiveSpan', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1335,8 +1329,6 @@ describe('continueTrace', () => {
 
 describe('getActiveSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1384,10 +1376,6 @@ describe('getActiveSpan', () => {
 });
 
 describe('withActiveSpan()', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -1460,8 +1448,6 @@ describe('withActiveSpan()', () => {
 
 describe('span hooks', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1511,8 +1497,6 @@ describe('span hooks', () => {
 
 describe('suppressTracing', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();

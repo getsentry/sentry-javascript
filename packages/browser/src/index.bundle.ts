@@ -1,6 +1,4 @@
-// This is exported so the loader does not fail when switching off Replay/Tracing
 import {
-  addTracingExtensionsShim,
   browserTracingIntegrationShim,
   feedbackIntegrationShim,
   feedbackModalIntegrationShim,
@@ -11,7 +9,6 @@ import {
 export * from './index.bundle.base';
 
 export {
-  addTracingExtensionsShim as addTracingExtensions,
   browserTracingIntegrationShim as browserTracingIntegration,
   feedbackIntegrationShim as feedbackIntegration,
   feedbackModalIntegrationShim as feedbackModalIntegration,

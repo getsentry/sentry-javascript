@@ -2,7 +2,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  addTracingExtensions,
   captureException,
   getCurrentScope,
   handleCallbackErrors,
@@ -25,7 +24,6 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   appDirComponent: F,
   context: ServerComponentContext,
 ): F {
-  addTracingExtensions();
   const { componentRoute, componentType } = context;
 
   // Even though users may define server components as async functions, for the client bundles

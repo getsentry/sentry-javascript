@@ -1,6 +1,5 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addTracingExtensions,
   getRootSpan,
   getSpanDescendants,
   spanIsSampled,
@@ -89,10 +88,6 @@ function resolve(
 }
 
 let client: NodeClient;
-
-beforeAll(() => {
-  addTracingExtensions();
-});
 
 beforeEach(() => {
   const options = getDefaultNodeClientOptions({ tracesSampleRate: 1.0 });

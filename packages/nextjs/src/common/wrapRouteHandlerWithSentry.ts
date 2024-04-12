@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
-  addTracingExtensions,
   captureException,
   getActiveSpan,
   getRootSpan,
@@ -61,8 +60,6 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
   routeHandler: F,
   context: RouteHandlerContext,
 ): (...args: Parameters<F>) => ReturnType<F> extends Promise<unknown> ? ReturnType<F> : Promise<ReturnType<F>> {
-  addTracingExtensions();
-
   const { method, parameterizedRoute, headers } = context;
 
   return new Proxy(routeHandler, {

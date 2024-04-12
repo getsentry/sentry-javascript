@@ -3,10 +3,9 @@ import {
   feedbackModalIntegrationShim,
   feedbackScreenshotIntegrationShim,
 } from '@sentry-internal/integration-shims';
-import { addTracingExtensions } from '@sentry/core';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 
-// We are patching the global object with our hub extension methods
-addTracingExtensions();
+registerSpanErrorInstrumentation();
 
 export * from './index.bundle.base';
 
@@ -19,7 +18,6 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
-  addTracingExtensions,
 } from '@sentry/core';
 
 export {

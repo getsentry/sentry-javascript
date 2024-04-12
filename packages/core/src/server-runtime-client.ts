@@ -20,9 +20,9 @@ import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import {
-  addTracingExtensions,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  registerSpanErrorInstrumentation,
 } from './tracing';
 import { _getSpanForScope } from './utils/spanOnScope';
 import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
@@ -47,7 +47,7 @@ export class ServerRuntimeClient<
    */
   public constructor(options: O) {
     // Server clients always support tracing
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     super(options);
   }

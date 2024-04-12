@@ -1,7 +1,7 @@
 import type { HandlerDataError, HandlerDataUnhandledRejection } from '@sentry/types';
-import { addTracingExtensions, setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
+import { setCurrentClient, spanToJSON, startInactiveSpan, startSpan } from '../../../src';
 
-import { _resetErrorsInstrumented, registerErrorInstrumentation } from '../../../src/tracing/errors';
+import { _resetErrorsInstrumented, registerSpanErrorInstrumentation } from '../../../src/tracing/errors';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const mockAddGlobalErrorInstrumentationHandler = jest.fn();
@@ -25,10 +25,6 @@ jest.mock('@sentry/utils', () => {
   };
 });
 
-beforeAll(() => {
-  addTracingExtensions();
-});
-
 describe('registerErrorHandlers()', () => {
   beforeEach(() => {
     mockAddGlobalErrorInstrumentationHandler.mockClear();
@@ -41,7 +37,7 @@ describe('registerErrorHandlers()', () => {
   });
 
   it('registers error instrumentation', () => {
-    registerErrorInstrumentation();
+    registerSpanErrorInstrumentation();
     expect(mockAddGlobalErrorInstrumentationHandler).toHaveBeenCalledTimes(1);
     expect(mockAddGlobalUnhandledRejectionInstrumentationHandler).toHaveBeenCalledTimes(1);
     expect(mockAddGlobalErrorInstrumentationHandler).toHaveBeenCalledWith(expect.any(Function));
@@ -49,7 +45,7 @@ describe('registerErrorHandlers()', () => {
   });
 
   it('does not set status if transaction is not on scope', () => {
-    registerErrorInstrumentation();
+    registerSpanErrorInstrumentation();
 
     const transaction = startInactiveSpan({ name: 'test' })!;
     expect(spanToJSON(transaction).status).toBe(undefined);
@@ -64,7 +60,7 @@ describe('registerErrorHandlers()', () => {
   });
 
   it('sets status for transaction on scope on error', () => {
-    registerErrorInstrumentation();
+    registerSpanErrorInstrumentation();
 
     startSpan({ name: 'test' }, span => {
       mockErrorCallback({} as HandlerDataError);
@@ -73,7 +69,7 @@ describe('registerErrorHandlers()', () => {
   });
 
   it('sets status for transaction on scope on unhandledrejection', () => {
-    registerErrorInstrumentation();
+    registerSpanErrorInstrumentation();
 
     startSpan({ name: 'test' }, span => {
       mockUnhandledRejectionCallback({});

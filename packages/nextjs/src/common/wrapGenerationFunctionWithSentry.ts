@@ -2,7 +2,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  addTracingExtensions,
   captureException,
   getClient,
   getCurrentScope,
@@ -26,7 +25,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   generationFunction: F,
   context: GenerationFunctionContext,
 ): F {
-  addTracingExtensions();
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
