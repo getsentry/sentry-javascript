@@ -21,7 +21,6 @@ sentryTest(
       if (sentryTraceHeader) {
         sentryTraceHeaders.push(sentryTraceHeader);
       }
-      expect(envelopeUrlRegex.test(url)).toBe(false);
 
       // We _should_ not have any sentry API requests
       if (envelopeUrlRegex.test(url)) {
