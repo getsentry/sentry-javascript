@@ -134,4 +134,33 @@ describe('eventFromUnknownInput', () => {
       },
     });
   });
+
+  it('handles class with error prop', () => {
+    const error = new Error('Some error');
+
+    class MyTestClass {
+      prop1 = 'hello';
+      prop2 = error;
+    }
+
+    const event = eventFromUnknownInput(defaultStackParser, new MyTestClass());
+
+    expect(event.exception?.values?.[0]).toEqual(
+      expect.objectContaining({
+        mechanism: { handled: true, synthetic: true, type: 'generic' },
+        type: 'Error',
+        value: 'Some error',
+      }),
+    );
+    expect(event.extra).toEqual({
+      __serialized__: {
+        prop1: 'hello',
+        prop2: {
+          message: 'Some error',
+          name: 'Error',
+          stack: expect.stringContaining('Error: Some error'),
+        },
+      },
+    });
+  });
 });
