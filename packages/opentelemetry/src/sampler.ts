@@ -1,4 +1,4 @@
-import type { Attributes, Context, Span} from '@opentelemetry/api';
+import type { Attributes, Context, Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
 import { isSpanContextValid, trace } from '@opentelemetry/api';
 import { TraceState } from '@opentelemetry/core';
