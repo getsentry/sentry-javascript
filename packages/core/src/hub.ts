@@ -24,7 +24,6 @@ import type { AsyncContextStrategy, Carrier } from './asyncContext';
 import { getMainCarrier, getSentryCarrier } from './asyncContext';
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { DEBUG_BUILD } from './debug-build';
-import { getCurrentHubShim } from './getCurrentHubShim';
 import { Scope } from './scope';
 import { closeSession, makeSession, updateSession } from './session';
 import { SDK_VERSION } from './version';
@@ -496,18 +495,6 @@ export class Hub implements HubInterface {
     return !!this.getStack().pop();
   }
 }
-
-/**
- * Returns the default hub instance.
- *
- * If a hub is already registered in the global carrier but this module
- * contains a more recent version, it replaces the registered version.
- * Otherwise, the currently registered hub will be returned.
- *
- * @deprecated Use the respective replacement method directly instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const getCurrentHub = getCurrentHubShim;
 
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {

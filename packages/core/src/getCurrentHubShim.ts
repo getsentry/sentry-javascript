@@ -71,6 +71,18 @@ export function getCurrentHubShim(): Hub {
 }
 
 /**
+ * Returns the default hub instance.
+ *
+ * If a hub is already registered in the global carrier but this module
+ * contains a more recent version, it replaces the registered version.
+ * Otherwise, the currently registered hub will be returned.
+ *
+ * @deprecated Use the respective replacement method directly instead.
+ */
+// eslint-disable-next-line deprecation/deprecation
+export const getCurrentHub = getCurrentHubShim;
+
+/**
  * Sends the current Session on the scope
  */
 function _sendSessionUpdate(): void {
