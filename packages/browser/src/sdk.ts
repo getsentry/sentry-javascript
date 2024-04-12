@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getCurrentScope, withScope } from '@sentry/core';
 import { functionToStringIntegration, inboundFiltersIntegration } from '@sentry/core';
 import {
   captureSession,
@@ -156,6 +156,11 @@ export function init(browserOptions: BrowserOptions = {}): void {
   };
 
   initAndBind(BrowserClient, clientOptions);
+
+  // tmp test
+  getCurrentScope();
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  withScope(() => {});
 
   if (options.autoSessionTracking) {
     startSessionTracking();
