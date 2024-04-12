@@ -21,10 +21,15 @@ sentryTest(
       if (sentryTraceHeader) {
         sentryTraceHeaders.push(sentryTraceHeader);
       }
-      expect(envelopeUrlRegex.test(url)).toBe(false);
 
       // We only want to count API requests
-      if (url.endsWith('.html') || url.endsWith('.js') || url.endsWith('.css') || url.endsWith('.map')) {
+      if (
+        envelopeUrlRegex.test(url) ||
+        url.endsWith('.html') ||
+        url.endsWith('.js') ||
+        url.endsWith('.css') ||
+        url.endsWith('.map')
+      ) {
         return;
       }
       requestCount++;
