@@ -1,43 +1,35 @@
 import { expect } from '@playwright/test';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { envelopeUrlRegex, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
 sentryTest(
   'should not create span for fetch requests with no active span but should attach sentry-trace header',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
-
-    let requestCount = 0;
     const sentryTraceHeaders: string[] = [];
-    page.on('request', request => {
-      const url = request.url();
 
-      const sentryTraceHeader = request.headers()['sentry-trace'];
+    await page.route('http://example.com/**', route => {
+      const sentryTraceHeader = route.request().headers()['sentry-trace'];
       if (sentryTraceHeader) {
         sentryTraceHeaders.push(sentryTraceHeader);
       }
 
-      // We _should_ not have any sentry API requests
-      if (envelopeUrlRegex.test(url)) {
-        console.log(request.postData());
-        throw new Error(`${url} is an envelope URL`);
-      }
-
-      // We only want to count API requests
-      if (url.endsWith('.html') || url.endsWith('.js') || url.endsWith('.css') || url.endsWith('.map')) {
-        return;
-      }
-      requestCount++;
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
     });
 
-    await page.goto(url);
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
-    expect(requestCount).toBe(3);
+    await Promise.all([page.goto(url), ...[0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))]);
+
+    expect(await page.evaluate('window._sentryTransactionsCount')).toBe(0);
 
     expect(sentryTraceHeaders).toHaveLength(3);
     expect(sentryTraceHeaders).toEqual([
