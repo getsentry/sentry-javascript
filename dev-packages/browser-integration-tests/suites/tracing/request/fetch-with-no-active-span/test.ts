@@ -24,6 +24,7 @@ sentryTest(
 
       // We _should_ not have any sentry API requests
       if (envelopeUrlRegex.test(url)) {
+        console.log(request.postData());
         throw new Error(`${url} is an envelope URL`);
       }
 
