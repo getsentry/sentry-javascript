@@ -50,16 +50,23 @@ function instrumentFetch(): void {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
-          let clonedResponse;
+          // We need to immediately clone the response, so that if the user reads the body before we call the handlers,
+          // we cannot clone the response inside the handlers since it would throw. The Replay integration for instance
+          // needs to clone the response body inside a handler to collect response size and breadcrumbs.
+          // If the cloning fails for whatever reason, we still pass the original response because it could be used for
+          // status.
+          let responseForHandlers = response;
+          let clonedResponseForResolving;
           try {
-            clonedResponse = response.clone();
+            responseForHandlers = response.clone();
+            clonedResponseForResolving = response.clone();
           } catch (e) {
             // noop
-            DEBUG_BUILD && logger.warn('Failed to clone response.');
+            DEBUG_BUILD && logger.warn('Failed to clone response body.');
           }
 
-          if (clonedResponse && clonedResponse.body) {
-            const responseReader = clonedResponse.body.getReader();
+          if (clonedResponseForResolving && clonedResponseForResolving.body) {
+            const responseReader = clonedResponseForResolving.body.getReader();
 
             // eslint-disable-next-line no-inner-declarations
             function consumeChunks({ done }: { done: boolean }): Promise<void> {
@@ -77,7 +84,7 @@ function instrumentFetch(): void {
                 triggerHandlers('fetch', {
                   ...handlerData,
                   endTimestamp: Date.now(),
-                  response,
+                  response: responseForHandlers,
                 });
               })
               .catch(() => {
@@ -87,7 +94,7 @@ function instrumentFetch(): void {
             triggerHandlers('fetch', {
               ...handlerData,
               endTimestamp: Date.now(),
-              response,
+              response: responseForHandlers,
             });
           }
 
