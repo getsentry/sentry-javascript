@@ -3,10 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node src/app.js",
+    "start": "ts-node src/app.ts",
     "test": "playwright test",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
-    "test:build": "pnpm install",
+    "typecheck": "tsc",
+    "test:build": "pnpm install && pnpm run typecheck",
     "test:assert": "pnpm test"
   },
   "dependencies": {

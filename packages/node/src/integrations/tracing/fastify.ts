@@ -31,8 +31,10 @@ export const fastifyIntegration = defineIntegration(_fastifyIntegration);
 
 // We inline the types we care about here
 interface Fastify {
-  register: (plugin: unknown) => void;
-  addHook: (hook: string, handler: (request: unknown, reply: unknown, error: Error) => void) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  register: (plugin: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  addHook: (hook: string, handler: (request: any, reply: any, error: Error) => void) => void;
 }
 
 /**
@@ -53,7 +55,7 @@ interface FastifyRequestRouteInfo {
  */
 export function setupFastifyErrorHandler(fastify: Fastify): void {
   const plugin = Object.assign(
-    function (fastify: Fastify, options: unknown, done: () => void): void {
+    function (fastify: Fastify, _options: unknown, done: () => void): void {
       fastify.addHook('onError', async (_request, _reply, error) => {
         captureException(error);
       });

@@ -1,8 +1,21 @@
-require('./tracing');
+import type * as S from '@sentry/node';
+const Sentry = require('@sentry/node') as typeof S;
 
-const Sentry = require('@sentry/node');
-const { fastify } = require('fastify');
-const http = require('http');
+Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
+  dsn: process.env.E2E_TEST_DSN,
+  integrations: [],
+  tracesSampleRate: 1,
+  tunnel: 'http://localhost:3031/', // proxy server
+  tracePropagationTargets: ['http://localhost:3030', '/external-allowed'],
+});
+
+import type * as H from 'http';
+import type * as F from 'fastify';
+
+// Make sure fastify is imported after Sentry is initialized
+const { fastify } = require('fastify') as typeof F;
+const http = require('http') as typeof H;
 
 const app = fastify();
 const port = 3030;
@@ -10,28 +23,28 @@ const port2 = 3040;
 
 Sentry.setupFastifyErrorHandler(app);
 
-app.get('/test-success', function (req, res) {
+app.get('/test-success', function (_req, res) {
   res.send({ version: 'v1' });
 });
 
-app.get('/test-param/:param', function (req, res) {
+app.get<{ Params: { param: string } }>('/test-param/:param', function (req, res) {
   res.send({ paramWas: req.params.param });
 });
 
-app.get('/test-inbound-headers/:id', function (req, res) {
+app.get<{ Params: { id: string } }>('/test-inbound-headers/:id', function (req, res) {
   const headers = req.headers;
 
   res.send({ headers, id: req.params.id });
 });
 
-app.get('/test-outgoing-http/:id', async function (req, res) {
+app.get<{ Params: { id: string } }>('/test-outgoing-http/:id', async function (req, res) {
   const id = req.params.id;
   const data = await makeHttpRequest(`http://localhost:3030/test-inbound-headers/${id}`);
 
   res.send(data);
 });
 
-app.get('/test-outgoing-fetch/:id', async function (req, res) {
+app.get<{ Params: { id: string } }>('/test-outgoing-fetch/:id', async function (req, res) {
   const id = req.params.id;
   const response = await fetch(`http://localhost:3030/test-inbound-headers/${id}`);
   const data = await response.json();
@@ -55,7 +68,7 @@ app.get('/test-error', async function (req, res) {
   res.send({ exceptionId });
 });
 
-app.get('/test-exception/:id', async function (req, res) {
+app.get<{ Params: { id: string } }>('/test-exception/:id', async function (req, res) {
   throw new Error(`This is an exception with id ${req.params.id}`);
 });
 
@@ -101,9 +114,9 @@ app2.get('/external-disallowed', function (req, res) {
 
 app2.listen({ port: port2 });
 
-function makeHttpRequest(url) {
+function makeHttpRequest(url: string) {
   return new Promise(resolve => {
-    const data = [];
+    const data: any[] = [];
 
     http
       .request(url, httpRes => {
