@@ -8,4 +8,5 @@ Sentry.init({
   integrations: [Sentry.browserTracingIntegration({ instrumentPageLoad: false })],
   tracePropagationTargets: ['http://example.com'],
   tracesSampleRate: 1,
+  autoSessionTracking: false
 });

@@ -13,4 +13,5 @@ Sentry.init({
   ],
   tracePropagationTargets: ['http://example.com'],
   tracesSampleRate: 1,
+  autoSessionTracking: false
 });
