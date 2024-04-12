@@ -187,6 +187,14 @@ if (options.captureStackTrace) {
         callFrameToStackFrame(frame, scripts.get(frame.location.scriptId), getModuleName),
       );
 
+      // Runtime.evaluate may never return if the event loop is blocked indefinitely
+      // In that case, we want to send the event anyway
+      const getScopeTimeout = setTimeout(() => {
+        sendAnrEvent(stackFrames).then(null, () => {
+          log('Sending ANR event failed.');
+        });
+      }, 5_000);
+
       // Evaluate a script in the currently paused context
       session.post(
         'Runtime.evaluate',
@@ -202,6 +210,8 @@ if (options.captureStackTrace) {
           if (err) {
             log(`Error executing script: '${err.message}'`);
           }
+
+          clearTimeout(getScopeTimeout);
 
           const scopes = param && param.result ? (param.result.value as ScopeData) : undefined;
 
