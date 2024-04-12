@@ -95,7 +95,6 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             return false;
           },
 
-          requireParentforOutgoingSpans: true,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
