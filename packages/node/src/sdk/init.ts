@@ -21,11 +21,10 @@ import {
   stackParserFromStackParserOptions,
 } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
-import { anrIntegration } from '../integrations/anr';
+import { anrIntegrationIfSupported } from '../integrations/anr';
 import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
-
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -64,7 +63,7 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     // Features
-    anrIntegration(),
+    ...anrIntegrationIfSupported,
     ...getCjsOnlyIntegrations(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];

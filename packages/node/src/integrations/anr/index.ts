@@ -49,12 +49,16 @@ async function getContexts(client: NodeClient): Promise<Contexts> {
   return event?.contexts || {};
 }
 
+function anrIntegrationIsSupported(): boolean {
+  return NODE_VERSION.major > 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor >= 17);
+}
+
 const INTEGRATION_NAME = 'Anr';
 
 type AnrInternal = { startWorker: () => void; stopWorker: () => void };
 
 const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
-  if (NODE_VERSION.major < 16 || (NODE_VERSION.major === 16 && NODE_VERSION.minor < 17)) {
+  if (!anrIntegrationIsSupported()) {
     throw new Error('ANR detection requires Node 16.17.0 or later');
   }
 
@@ -102,7 +106,15 @@ const _anrIntegration = ((options: Partial<AnrIntegrationOptions> = {}) => {
 
 type AnrReturn = (options?: Partial<AnrIntegrationOptions>) => Integration & AnrInternal;
 
+/**
+ * An integration that detects ANR events in the main event loop.
+ */
 export const anrIntegration = defineIntegration(_anrIntegration) as AnrReturn;
+
+/**
+ * If ANR is supported, return the integration, otherwise return an empty array
+ */
+export const anrIntegrationIfSupported = anrIntegrationIsSupported() ? [anrIntegration()] : [];
 
 /**
  * Starts the ANR worker thread
