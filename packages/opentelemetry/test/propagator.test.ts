@@ -8,17 +8,13 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { addTracingExtensions, withScope } from '@sentry/core';
+import { withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator, makeTraceState } from '../src/propagator';
 import { getScopesFromContext } from '../src/utils/contextData';
 import { getSamplingDecision } from '../src/utils/getSamplingDecision';
 import { cleanupOtel, mockSdkInit } from './helpers/mockSdkInit';
-
-beforeAll(() => {
-  addTracingExtensions();
-});
 
 describe('SentryPropagator', () => {
   const propagator = new SentryPropagator();

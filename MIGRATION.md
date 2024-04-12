@@ -65,7 +65,7 @@ We've removed the following packages:
 `@sentry/tracing` has been removed and will no longer be published. See
 [below](./MIGRATION.md/#3-removal-of-deprecated-apis) for more details.
 
-For Browser SDKs you can import `BrowserTracing` from the SDK directly:
+For Browser SDKs you can import `browserTracingIntegration` from the SDK directly:
 
 ```js
 // v7
@@ -86,12 +86,13 @@ import * as Sentry from '@sentry/browser';
 Sentry.init({
   dsn: '__DSN__',
   tracesSampleRate: 1.0,
-  integrations: [new Sentry.BrowserTracing()],
+  integrations: [Sentry.browserTracingIntegration()],
 });
 ```
 
-If you were importing `@sentry/tracing` for the side effect, you can now use `Sentry.addTracingExtensions()` to add the
-tracing extensions to the SDK. `addTracingExtensions` replaces the `addExtensionMethods` method from `@sentry/tracing`.
+If you don't want to use `browserTracingIntegration` but still manually start spans, you can now use
+`Sentry.registerSpanErrorInstrumentation()` to setup handlers for span instrumentation.
+`registerSpanErrorInstrumentation` replaces the `addExtensionMethods` method from `@sentry/tracing`.
 
 ```js
 // v7
@@ -108,7 +109,7 @@ Sentry.init({
 // v8
 import * as Sentry from '@sentry/browser';
 
-Sentry.addTracingExtensions();
+Sentry.registerSpanErrorInstrumentation();
 
 Sentry.init({
   dsn: '__DSN__',

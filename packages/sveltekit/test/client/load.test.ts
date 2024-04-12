@@ -33,10 +33,6 @@ const MOCK_LOAD_ARGS: any = {
   url: new URL('http://localhost:3000/users/123'),
 };
 
-beforeAll(() => {
-  SentrySvelte.addTracingExtensions();
-});
-
 describe('wrapLoadWithSentry', () => {
   beforeEach(() => {
     mockCaptureException.mockClear();

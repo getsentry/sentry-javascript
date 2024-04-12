@@ -16,9 +16,9 @@ export function _resetErrorsInstrumented(): void {
 }
 
 /**
- * Configures global error listeners
+ * Ensure that global errors automatically set the active span status.
  */
-export function registerErrorInstrumentation(): void {
+export function registerSpanErrorInstrumentation(): void {
   if (errorsInstrumented) {
     return;
   }

@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureException, getCurrentScope } from '@sentry/core';
+import { captureException, getCurrentScope } from '@sentry/core';
 import { extractTraceparentData } from '@sentry/utils';
 import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
@@ -22,7 +22,6 @@ function isReactClassComponent(target: unknown): target is ClassComponent {
  * Wraps a page component with Sentry error instrumentation.
  */
 export function wrapPageComponentWithSentry(pageComponent: FunctionComponent | ClassComponent): unknown {
-  addTracingExtensions();
   if (isReactClassComponent(pageComponent)) {
     return class SentryWrappedPageComponent extends pageComponent {
       public render(...args: unknown[]): unknown {

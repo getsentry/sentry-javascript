@@ -1,4 +1,4 @@
-import { addTracingExtensions, captureCheckIn } from '@sentry/core';
+import { captureCheckIn } from '@sentry/core';
 import type { NextApiRequest } from 'next';
 
 import type { VercelCronsConfig } from './types';
@@ -25,7 +25,6 @@ export function wrapApiHandlerWithSentryVercelCrons<F extends (...args: any[]) =
           return originalFunction.apply(thisArg, args);
         }
 
-        addTracingExtensions();
         const [req] = args as [NextApiRequest | EdgeRequest];
 
         let maybePromiseResult;

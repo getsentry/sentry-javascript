@@ -1,6 +1,5 @@
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addTracingExtensions,
   captureException,
   continueTrace,
   setHttpStatus,
@@ -51,8 +50,6 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         return wrappingTarget.apply(thisArg, args);
       }
       req.__withSentry_applied__ = true;
-
-      addTracingExtensions();
 
       return withIsolationScopeOrReuseFromRootSpan(isolationScope => {
         return continueTrace(

@@ -16,8 +16,3 @@ export const browserTracingIntegrationShim = defineIntegration((_options?: unkno
     name: 'BrowserTracing',
   };
 });
-
-/** Shim function */
-export function addTracingExtensionsShim(): void {
-  // noop
-}

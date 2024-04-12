@@ -2,7 +2,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  addTracingExtensions,
 } from '@sentry/core';
 import { NodeClient, getCurrentScope, getIsolationScope, setCurrentClient } from '@sentry/node';
 import * as SentryNode from '@sentry/node';
@@ -75,10 +74,6 @@ function getServerOnlyArgs() {
     },
   };
 }
-
-beforeAll(() => {
-  addTracingExtensions();
-});
 
 afterEach(() => {
   mockCaptureException.mockClear();

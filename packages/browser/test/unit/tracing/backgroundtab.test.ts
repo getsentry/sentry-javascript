@@ -1,4 +1,4 @@
-import { addTracingExtensions, getCurrentScope } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import { setCurrentClient } from '@sentry/core';
 
 import { TextDecoder, TextEncoder } from 'util';
@@ -29,8 +29,6 @@ describe('registerBackgroundTabDetection', () => {
     const client = new BrowserClient(options);
     setCurrentClient(client);
     client.init();
-
-    addTracingExtensions();
 
     global.document.addEventListener = jest.fn((event, callback) => {
       events[event] = callback;
