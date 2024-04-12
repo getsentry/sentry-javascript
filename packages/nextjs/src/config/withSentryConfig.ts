@@ -139,7 +139,7 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
-    // Order of these is important, they get applied last to first.
+    // Order of these is important, they get applied first to last.
     const newRewrites = [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
 
     if (typeof originalRewrites !== 'function') {
