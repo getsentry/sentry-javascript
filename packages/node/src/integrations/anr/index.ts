@@ -7,7 +7,9 @@ import { getCurrentScope, getGlobalScope, getIsolationScope } from '../..';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';
-import { base64WorkerScript } from './worker-script';
+
+// This string is a placeholder that gets overwritten with the worker code.
+export const base64WorkerScript = '###AnrWorkerScript###';
 
 const DEFAULT_INTERVAL = 50;
 const DEFAULT_HANG_THRESHOLD = 5000;
