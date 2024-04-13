@@ -3,7 +3,7 @@ import type { WrappedFunction } from '@sentry/types';
 
 import { htmlTreeAsString } from './browser';
 import { DEBUG_BUILD } from './debug-build';
-import { isElement, isError, isEvent, isInstanceOf, isPlainObject, isPrimitive } from './is';
+import { isElement, isError, isEvent, isFunction, isInstanceOf, isPlainObject, isPrimitive, isUndefined } from './is';
 import { logger } from './logger';
 import { truncate } from './string';
 
@@ -28,7 +28,7 @@ export function fill(source: { [key: string]: any }, name: string, replacementFa
 
   // Make sure it's a function first, as we need to attach an empty prototype for `defineProperties` to work
   // otherwise it'll throw "TypeError: Object.defineProperties called on non-object"
-  if (typeof wrapped === 'function') {
+  if (isFunction(wrapped)) {
     markFunctionWrapped(wrapped, original);
   }
 
@@ -139,7 +139,7 @@ export function convertToPlainObject<V>(
       ...getOwnProperties(value),
     };
 
-    if (typeof CustomEvent !== 'undefined' && isInstanceOf(value, CustomEvent)) {
+    if (!isUndefined(CustomEvent) && isInstanceOf(value, CustomEvent)) {
       newObj.detail = value.detail;
     }
 
@@ -233,7 +233,7 @@ function _dropUndefinedKeys<T>(inputValue: T, memoizationMap: Map<unknown, unkno
     memoizationMap.set(inputValue, returnValue);
 
     for (const key of Object.keys(inputValue)) {
-      if (typeof inputValue[key] !== 'undefined') {
+      if (!isUndefined(inputValue[key])) {
         returnValue[key] = _dropUndefinedKeys(inputValue[key], memoizationMap);
       }
     }

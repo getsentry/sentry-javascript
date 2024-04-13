@@ -17,8 +17,10 @@ import {
   isError,
   isErrorEvent,
   isEvent,
+  isNumber,
   isParameterizedString,
   isPlainObject,
+  isString,
   normalizeToSize,
   resolvedSyncPromise,
 } from '@sentry/utils';
@@ -151,7 +153,7 @@ function getSkipFirstStackStringLines(ex: Error): number {
  * Example: https://github.com/zertosh/invariant/blob/master/invariant.js#L46
  */
 function getPopFirstTopFrames(ex: Error & { framesToPop?: unknown }): number {
-  if (typeof ex.framesToPop === 'number') {
+  if (isNumber(ex.framesToPop)) {
     return ex.framesToPop;
   }
 
@@ -168,7 +170,7 @@ function extractMessage(ex: Error & { message: { error?: Error } }): string {
   if (!message) {
     return 'No error message';
   }
-  if (message.error && typeof message.error.message === 'string') {
+  if (message.error && isString(message.error.message)) {
     return message.error.message;
   }
   return message;

@@ -14,7 +14,7 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, isString, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
@@ -48,8 +48,8 @@ export function captureException(
 export function captureMessage(message: string, captureContext?: CaptureContext | SeverityLevel): string {
   // This is necessary to provide explicit scopes upgrade, without changing the original
   // arity of the `captureMessage(message, level)` method.
-  const level = typeof captureContext === 'string' ? captureContext : undefined;
-  const context = typeof captureContext !== 'string' ? { captureContext } : undefined;
+  const level = isString(captureContext) ? captureContext : undefined;
+  const context = !isString(captureContext) ? { captureContext } : undefined;
   return getCurrentScope().captureMessage(message, level, context);
 }
 

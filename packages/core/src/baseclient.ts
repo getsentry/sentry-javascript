@@ -33,10 +33,13 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  isNumber,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
+  isString,
   isThenable,
+  isUndefined,
   logger,
   makeDsn,
   rejectedSyncPromise,
@@ -225,7 +228,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   public captureSession(session: Session): void {
-    if (!(typeof session.release === 'string')) {
+    if (!isString(session.release)) {
       DEBUG_BUILD && logger.warn('Discarded session because of missing or non-string release');
     } else {
       this.sendSession(session);
@@ -703,8 +706,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
-    const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
-    if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
+    const parsedSampleRate = isUndefined(sampleRate) ? undefined : parseSampleRate(sampleRate);
+    if (isError && isNumber(parsedSampleRate) && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
       return rejectedSyncPromise(
         new SentryError(

@@ -9,7 +9,14 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
+import {
+  consoleSandbox,
+  isString,
+  isUndefined,
+  logger,
+  stackParserFromStackParserOptions,
+  supportsFetch,
+} from '@sentry/utils';
 
 import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { dedupeIntegration } from '@sentry/core';
@@ -46,12 +53,11 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
 function applyDefaultOptions(optionsArg: BrowserOptions = {}): BrowserOptions {
   const defaultOptions: BrowserOptions = {
     defaultIntegrations: getDefaultIntegrations(optionsArg),
-    release:
-      typeof __SENTRY_RELEASE__ === 'string' // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
-        ? __SENTRY_RELEASE__
-        : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
-          ? WINDOW.SENTRY_RELEASE.id
-          : undefined,
+    release: isString(__SENTRY_RELEASE__) // This allows build tooling to find-and-replace __SENTRY_RELEASE__ to inject a release value
+      ? __SENTRY_RELEASE__
+      : WINDOW.SENTRY_RELEASE && WINDOW.SENTRY_RELEASE.id // This supports the variable that sentry-webpack-plugin injects
+        ? WINDOW.SENTRY_RELEASE.id
+        : undefined,
     autoSessionTracking: true,
     sendClientReports: true,
   };
@@ -271,7 +277,7 @@ export function onLoad(callback: () => void): void {
  * Enable automatic Session Tracking for the initial page load.
  */
 function startSessionTracking(): void {
-  if (typeof WINDOW.document === 'undefined') {
+  if (isUndefined(WINDOW.document)) {
     DEBUG_BUILD && logger.warn('Session tracking in non-browser environment with @sentry/browser is not supported.');
     return;
   }

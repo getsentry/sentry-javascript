@@ -1,6 +1,6 @@
 import type { Primitive } from '@sentry/types';
 
-import { isSyntheticEvent, isVueViewModel } from './is';
+import { isFunction, isNumber, isSyntheticEvent, isUndefined, isVueViewModel } from './is';
 import type { MemoFunc } from './memo';
 import { memoBuilder } from './memo';
 import { convertToPlainObject } from './object';
@@ -106,10 +106,9 @@ function visit(
   // We can set `__sentry_override_normalization_depth__` on an object to ensure that from there
   // We keep a certain amount of depth.
   // This should be used sparingly, e.g. we use it for the redux integration to ensure we get a certain amount of state.
-  const remainingDepth =
-    typeof (value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'] === 'number'
-      ? ((value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'] as number)
-      : depth;
+  const remainingDepth = isNumber((value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'])
+    ? ((value as ObjOrArray<unknown>)['__sentry_override_normalization_depth__'] as number)
+    : depth;
 
   // We're also done if we've reached the max depth
   if (remainingDepth === 0) {
@@ -124,7 +123,7 @@ function visit(
 
   // If the value has a `toJSON` method, we call it to extract more information
   const valueWithToJSON = value as unknown & { toJSON?: () => unknown };
-  if (valueWithToJSON && typeof valueWithToJSON.toJSON === 'function') {
+  if (valueWithToJSON && isFunction(valueWithToJSON.toJSON)) {
     try {
       const jsonValue = valueWithToJSON.toJSON();
       // We need to normalize the return value of `.toJSON()` in case it has circular references
@@ -197,17 +196,17 @@ function stringifyValue(
     // It's safe to use `global`, `window`, and `document` here in this manner, as we are asserting using `typeof` first
     // which won't throw if they are not present.
 
-    if (typeof global !== 'undefined' && value === global) {
+    if (!isUndefined(global) && value === global) {
       return '[Global]';
     }
 
     // eslint-disable-next-line no-restricted-globals
-    if (typeof window !== 'undefined' && value === window) {
+    if (!isUndefined(window) && value === window) {
       return '[Window]';
     }
 
     // eslint-disable-next-line no-restricted-globals
-    if (typeof document !== 'undefined' && value === document) {
+    if (!isUndefined(document) && value === document) {
       return '[Document]';
     }
 
@@ -220,11 +219,11 @@ function stringifyValue(
       return '[SyntheticEvent]';
     }
 
-    if (typeof value === 'number' && value !== value) {
+    if (isNumber(value) && value !== value) {
       return '[NaN]';
     }
 
-    if (typeof value === 'function') {
+    if (isFunction(value)) {
       return `[Function: ${getFunctionName(value)}]`;
     }
 

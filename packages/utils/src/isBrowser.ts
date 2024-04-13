@@ -1,3 +1,4 @@
+import { isUndefined } from './is';
 import { isNodeEnv } from './node';
 import { GLOBAL_OBJ } from './worldwide';
 
@@ -6,7 +7,7 @@ import { GLOBAL_OBJ } from './worldwide';
  */
 export function isBrowser(): boolean {
   // eslint-disable-next-line no-restricted-globals
-  return typeof window !== 'undefined' && (!isNodeEnv() || isElectronNodeRenderer());
+  return !isUndefined(window) && (!isNodeEnv() || isElectronNodeRenderer());
 }
 
 type ElectronProcess = { type?: string };

@@ -1,5 +1,5 @@
 import type { SerializedSession, Session, SessionContext, SessionStatus } from '@sentry/types';
-import { dropUndefinedKeys, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, isNumber, isString, timestampInSeconds, uuid4 } from '@sentry/utils';
 /**
  * Creates a new `Session` object by setting certain default parameters. If optional @param context
  * is passed, the passed properties are applied to the session object.
@@ -73,12 +73,12 @@ export function updateSession(session: Session, context: SessionContext = {}): v
   if (!session.did && context.did) {
     session.did = `${context.did}`;
   }
-  if (typeof context.started === 'number') {
+  if (isNumber(context.started)) {
     session.started = context.started;
   }
   if (session.ignoreDuration) {
     session.duration = undefined;
-  } else if (typeof context.duration === 'number') {
+  } else if (isNumber(context.duration)) {
     session.duration = context.duration;
   } else {
     const duration = session.timestamp - session.started;
@@ -96,7 +96,7 @@ export function updateSession(session: Session, context: SessionContext = {}): v
   if (!session.userAgent && context.userAgent) {
     session.userAgent = context.userAgent;
   }
-  if (typeof context.errors === 'number') {
+  if (isNumber(context.errors)) {
     session.errors = context.errors;
   }
   if (context.status) {
@@ -144,7 +144,7 @@ function sessionToJSON(session: Session): SerializedSession {
     timestamp: new Date(session.timestamp * 1000).toISOString(),
     status: session.status,
     errors: session.errors,
-    did: typeof session.did === 'number' || typeof session.did === 'string' ? `${session.did}` : undefined,
+    did: isNumber(session.did) || isString(session.did) ? `${session.did}` : undefined,
     duration: session.duration,
     abnormal_mechanism: session.abnormal_mechanism,
     attrs: {

@@ -14,6 +14,7 @@ import type {
 } from '@sentry/types';
 
 import { dsnToString } from './dsn';
+import { isNumber, isString } from './is';
 import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
 import { GLOBAL_OBJ } from './worldwide';
@@ -96,10 +97,10 @@ export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
   let parts: string | Uint8Array[] = JSON.stringify(envHeaders);
 
   function append(next: string | Uint8Array): void {
-    if (typeof parts === 'string') {
-      parts = typeof next === 'string' ? parts + next : [encodeUTF8(parts), next];
+    if (isString(parts)) {
+      parts = isString(next) ? parts + next : [encodeUTF8(parts), next];
     } else {
-      parts.push(typeof next === 'string' ? encodeUTF8(next) : next);
+      parts.push(isString(next) ? encodeUTF8(next) : next);
     }
   }
 
@@ -108,7 +109,7 @@ export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
 
     append(`\n${JSON.stringify(itemHeaders)}\n`);
 
-    if (typeof payload === 'string' || payload instanceof Uint8Array) {
+    if (isString(payload) || payload instanceof Uint8Array) {
       append(payload);
     } else {
       let stringifiedPayload: string;
@@ -124,7 +125,7 @@ export function serializeEnvelope(envelope: Envelope): string | Uint8Array {
     }
   }
 
-  return typeof parts === 'string' ? parts : concatBuffers(parts);
+  return isString(parts) ? parts : concatBuffers(parts);
 }
 
 function concatBuffers(buffers: Uint8Array[]): Uint8Array {
@@ -144,7 +145,7 @@ function concatBuffers(buffers: Uint8Array[]): Uint8Array {
  * Parses an envelope
  */
 export function parseEnvelope(env: string | Uint8Array): Envelope {
-  let buffer = typeof env === 'string' ? encodeUTF8(env) : env;
+  let buffer = isString(env) ? encodeUTF8(env) : env;
 
   function readBinary(length: number): Uint8Array {
     const bin = buffer.subarray(0, length);
@@ -169,7 +170,7 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
 
   while (buffer.length) {
     const itemHeader = readJson<BaseEnvelopeItemHeaders>();
-    const binaryLength = typeof itemHeader.length === 'number' ? itemHeader.length : undefined;
+    const binaryLength = isNumber(itemHeader.length) ? itemHeader.length : undefined;
 
     items.push([itemHeader, binaryLength ? readBinary(binaryLength) : readJson()]);
   }
@@ -181,7 +182,7 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
  * Creates attachment envelope items
  */
 export function createAttachmentEnvelopeItem(attachment: Attachment): AttachmentItem {
-  const buffer = typeof attachment.data === 'string' ? encodeUTF8(attachment.data) : attachment.data;
+  const buffer = isString(attachment.data) ? encodeUTF8(attachment.data) : attachment.data;
 
   return [
     dropUndefinedKeys({

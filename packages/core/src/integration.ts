@@ -1,5 +1,5 @@
 import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
-import { arrayify, logger } from '@sentry/utils';
+import { arrayify, isFunction, logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -57,7 +57,7 @@ export function getIntegrationsToSetup(options: Pick<Options, 'defaultIntegratio
 
   if (Array.isArray(userIntegrations)) {
     integrations = [...defaultIntegrations, ...userIntegrations];
-  } else if (typeof userIntegrations === 'function') {
+  } else if (isFunction(userIntegrations)) {
     integrations = arrayify(userIntegrations(defaultIntegrations));
   } else {
     integrations = defaultIntegrations;
@@ -118,22 +118,26 @@ export function setupIntegration(client: Client, integration: Integration, integ
   integrationIndex[integration.name] = integration;
 
   // `setupOnce` is only called the first time
-  if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (installedIntegrations.indexOf(integration.name) === -1 && isFunction(integration.setupOnce)) {
     integration.setupOnce();
     installedIntegrations.push(integration.name);
   }
 
   // `setup` is run for each client
-  if (integration.setup && typeof integration.setup === 'function') {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (integration.setup && isFunction(integration.setup)) {
     integration.setup(client);
   }
 
-  if (typeof integration.preprocessEvent === 'function') {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (isFunction(integration.preprocessEvent)) {
     const callback = integration.preprocessEvent.bind(integration) as typeof integration.preprocessEvent;
     client.on('preprocessEvent', (event, hint) => callback(event, hint, client));
   }
 
-  if (typeof integration.processEvent === 'function') {
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (isFunction(integration.processEvent)) {
     const callback = integration.processEvent.bind(integration) as typeof integration.processEvent;
 
     const processor = Object.assign((event: Event, hint: EventHint) => callback(event, hint, client), {

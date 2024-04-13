@@ -1,4 +1,5 @@
 import type { StackFrame, StackLineParser, StackParser } from '@sentry/types';
+import { isFunction } from './is';
 
 const STACKTRACE_FRAME_LIMIT = 50;
 export const UNKNOWN_FUNCTION = '?';
@@ -123,7 +124,7 @@ const defaultFunctionName = '<anonymous>';
  */
 export function getFunctionName(fn: unknown): string {
   try {
-    if (!fn || typeof fn !== 'function') {
+    if (!fn || !isFunction(fn)) {
       return defaultFunctionName;
     }
     return fn.name || defaultFunctionName;

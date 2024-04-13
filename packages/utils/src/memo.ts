@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { isFunction } from './is';
+
 export type MemoFunc = [
   // memoize
   (obj: any) => boolean,
@@ -12,7 +14,7 @@ export type MemoFunc = [
  * Helper to decycle json objects
  */
 export function memoBuilder(): MemoFunc {
-  const hasWeakSet = typeof WeakSet === 'function';
+  const hasWeakSet = isFunction(WeakSet);
   const inner: any = hasWeakSet ? new WeakSet() : [];
   function memoize(obj: any): boolean {
     if (hasWeakSet) {

@@ -1,6 +1,7 @@
 import type { DsnComponents, DsnLike, DsnProtocol } from '@sentry/types';
 
 import { DEBUG_BUILD } from './debug-build';
+import { isString } from './is';
 import { consoleSandbox, logger } from './logger';
 
 /** Regular expression used to parse a Dsn. */
@@ -120,7 +121,7 @@ function validateDsn(dsn: DsnComponents): boolean {
  * @returns a valid DsnComponents object or `undefined` if @param from is an invalid DSN source
  */
 export function makeDsn(from: DsnLike): DsnComponents | undefined {
-  const components = typeof from === 'string' ? dsnFromString(from) : dsnFromComponents(from);
+  const components = isString(from) ? dsnFromString(from) : dsnFromComponents(from);
   if (!components || !validateDsn(components)) {
     return undefined;
   }

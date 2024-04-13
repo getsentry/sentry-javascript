@@ -4,6 +4,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  isUndefined,
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
@@ -144,11 +145,11 @@ export function addTracingHeadersToFetchRequest(
 
   const headers =
     options.headers ||
-    (typeof Request !== 'undefined' && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
+    (!isUndefined(Request) && isInstanceOf(request, Request) ? (request as Request).headers : undefined);
 
   if (!headers) {
     return { 'sentry-trace': sentryTraceHeader, baggage: sentryBaggageHeader };
-  } else if (typeof Headers !== 'undefined' && isInstanceOf(headers, Headers)) {
+  } else if (!isUndefined(Headers) && isInstanceOf(headers, Headers)) {
     const newHeaders = new Headers(headers as Headers);
 
     newHeaders.append('sentry-trace', sentryTraceHeader);

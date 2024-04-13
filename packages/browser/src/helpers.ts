@@ -6,6 +6,7 @@ import {
   addExceptionTypeValue,
   addNonEnumerableProperty,
   getOriginalFunction,
+  isFunction,
   markFunctionWrapped,
 } from '@sentry/utils';
 
@@ -55,7 +56,7 @@ export function wrap(
   //  original.__sentry_wrapped__ -> wrapped
   //  wrapped.__sentry_original__ -> original
 
-  if (typeof fn !== 'function') {
+  if (!isFunction(fn)) {
     return fn;
   }
 
@@ -84,7 +85,7 @@ export function wrap(
     const args = Array.prototype.slice.call(arguments);
 
     try {
-      if (before && typeof before === 'function') {
+      if (before && isFunction(before)) {
         before.apply(this, arguments);
       }
 

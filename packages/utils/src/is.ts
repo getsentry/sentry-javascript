@@ -78,6 +78,28 @@ export function isString(wat: unknown): wat is string {
 }
 
 /**
+ * Checks whether given value's type is a number
+ */
+export function isNumber(wat: unknown): wat is number {
+  return typeof wat === 'number';
+}
+
+/**
+ * Checks whether given value's type is a function
+ */
+// eslint-disable-next-line @typescript-eslint/ban-types
+export function isFunction(wat: unknown): wat is Function {
+  return typeof wat === 'function';
+}
+
+/**
+ * Checks whether given value's type is undefined
+ */
+export function isUndefined(wat: unknown): wat is undefined {
+  return typeof wat === 'undefined';
+}
+
+/**
  * Checks whether given string is parameterized
  * {@link isParameterizedString}.
  *

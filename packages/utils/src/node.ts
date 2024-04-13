@@ -4,6 +4,7 @@
  */
 
 import { isBrowserBundle } from './env';
+import { isUndefined } from './is';
 
 /**
  * Checks whether we're in the Node.js or Browser environment
@@ -14,8 +15,7 @@ export function isNodeEnv(): boolean {
   // explicitly check for browser bundles as those can be optimized statically
   // by terser/rollup.
   return (
-    !isBrowserBundle() &&
-    Object.prototype.toString.call(typeof process !== 'undefined' ? process : 0) === '[object process]'
+    !isBrowserBundle() && Object.prototype.toString.call(!isUndefined(process) ? process : 0) === '[object process]'
   );
 }
 

@@ -1,3 +1,4 @@
+import { isNumber } from './is';
 import { GLOBAL_OBJ } from './worldwide';
 
 const ONE_SECOND_IN_MS = 1000;
@@ -105,7 +106,7 @@ export const browserPerformanceTimeOrigin = ((): number | undefined => {
   // Date API.
   // eslint-disable-next-line deprecation/deprecation
   const navigationStart = performance.timing && performance.timing.navigationStart;
-  const hasNavigationStart = typeof navigationStart === 'number';
+  const hasNavigationStart = isNumber(navigationStart);
   // if navigationStart isn't available set delta to threshold so it isn't used
   const navigationStartDelta = hasNavigationStart ? Math.abs(navigationStart + performanceNow - dateNow) : threshold;
   const navigationStartIsReliable = navigationStartDelta < threshold;

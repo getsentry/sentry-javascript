@@ -340,7 +340,7 @@ export function winterCGHeadersToDict(winterCGHeaders: WebFetchHeaders): Record<
   const headers: Record<string, string> = {};
   try {
     winterCGHeaders.forEach((value, key) => {
-      if (typeof value === 'string') {
+      if (isString(value)) {
         // We check that value is a string even though it might be redundant to make sure prototype pollution is not possible.
         headers[key] = value;
       }

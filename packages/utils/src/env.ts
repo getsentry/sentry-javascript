@@ -13,6 +13,8 @@
  * users to be able to shake away expressions that it guards.
  */
 
+import { isUndefined } from './is';
+
 declare const __SENTRY_BROWSER_BUNDLE__: boolean | undefined;
 
 export type SdkSource = 'npm' | 'cdn' | 'loader';
@@ -23,7 +25,7 @@ export type SdkSource = 'npm' | 'cdn' | 'loader';
  * @returns true if this is a browser bundle build.
  */
 export function isBrowserBundle(): boolean {
-  return typeof __SENTRY_BROWSER_BUNDLE__ !== 'undefined' && !!__SENTRY_BROWSER_BUNDLE__;
+  return !isUndefined(__SENTRY_BROWSER_BUNDLE__) && !!__SENTRY_BROWSER_BUNDLE__;
 }
 
 /**

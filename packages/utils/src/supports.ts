@@ -1,4 +1,5 @@
 import { DEBUG_BUILD } from './debug-build';
+import { isFunction, isString } from './is';
 import { logger } from './logger';
 import { GLOBAL_OBJ } from './worldwide';
 
@@ -91,7 +92,7 @@ export function isNativeFetch(func: Function): boolean {
  * @returns true if `window.fetch` is natively implemented, false otherwise
  */
 export function supportsNativeFetch(): boolean {
-  if (typeof EdgeRuntime === 'string') {
+  if (isString(EdgeRuntime)) {
     return true;
   }
 
@@ -109,8 +110,8 @@ export function supportsNativeFetch(): boolean {
   // so create a "pure" iframe to see if that has native fetch
   let result = false;
   const doc = WINDOW.document;
-  // eslint-disable-next-line deprecation/deprecation
-  if (doc && typeof (doc.createElement as unknown) === 'function') {
+  // eslint-disable-next-line deprecation/deprecation, @typescript-eslint/unbound-method
+  if (doc && isFunction(doc.createElement as unknown)) {
     try {
       const sandbox = doc.createElement('iframe');
       sandbox.hidden = true;

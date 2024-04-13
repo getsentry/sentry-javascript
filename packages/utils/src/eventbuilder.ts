@@ -11,7 +11,7 @@ import type {
   StackParser,
 } from '@sentry/types';
 
-import { isError, isErrorEvent, isParameterizedString, isPlainObject } from './is';
+import { isError, isErrorEvent, isParameterizedString, isPlainObject, isString } from './is';
 import { addExceptionMechanism, addExceptionTypeValue } from './misc';
 import { normalizeToSize } from './normalize';
 import { extractExceptionKeysForMessage } from './object';
@@ -55,15 +55,15 @@ function getErrorPropertyFromObject(obj: Record<string, unknown>): Error | undef
 }
 
 function getMessageForObject(exception: Record<string, unknown>): string {
-  if ('name' in exception && typeof exception.name === 'string') {
+  if ('name' in exception && isString(exception.name)) {
     let message = `'${exception.name}' captured as exception`;
 
-    if ('message' in exception && typeof exception.message === 'string') {
+    if ('message' in exception && isString(exception.message)) {
       message += ` with message '${exception.message}'`;
     }
 
     return message;
-  } else if ('message' in exception && typeof exception.message === 'string') {
+  } else if ('message' in exception && isString(exception.message)) {
     return exception.message;
   }
 

@@ -21,7 +21,7 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, isFunction, isNumber, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -320,7 +320,7 @@ export class Scope implements ScopeInterface {
       return this;
     }
 
-    const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
+    const scopeToMerge = isFunction(captureContext) ? captureContext(this) : captureContext;
 
     const [scopeInstance, requestSession] =
       scopeToMerge instanceof Scope
@@ -385,7 +385,7 @@ export class Scope implements ScopeInterface {
    * @inheritDoc
    */
   public addBreadcrumb(breadcrumb: Breadcrumb, maxBreadcrumbs?: number): this {
-    const maxCrumbs = typeof maxBreadcrumbs === 'number' ? maxBreadcrumbs : DEFAULT_MAX_BREADCRUMBS;
+    const maxCrumbs = isNumber(maxBreadcrumbs) ? maxBreadcrumbs : DEFAULT_MAX_BREADCRUMBS;
 
     // No data has been changed, so don't notify scope listeners
     if (maxCrumbs <= 0) {
