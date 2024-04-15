@@ -43,7 +43,7 @@ sentryTest('captures response size from Content-Length header if available', asy
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+  const [, request ] = await Promise.all([
     page.evaluate(() => {
       /* eslint-disable */
       fetch('http://localhost:7654/foo').then(() => {
@@ -53,7 +53,6 @@ sentryTest('captures response size from Content-Length header if available', asy
       /* eslint-enable */
     }),
     requestPromise,
-    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -73,6 +72,7 @@ sentryTest('captures response size from Content-Length header if available', asy
     },
   });
 
+  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
@@ -135,7 +135,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+  const [, request] = await Promise.all([
     page.evaluate(() => {
       /* eslint-disable */
       fetch('http://localhost:7654/foo').then(() => {
@@ -145,7 +145,6 @@ sentryTest('captures response size without Content-Length header', async ({ getL
       /* eslint-enable */
     }),
     requestPromise,
-    replayRequestPromise,
   ]);
 
   const eventData = envelopeRequestParser(request);
@@ -163,8 +162,9 @@ sentryTest('captures response size without Content-Length header', async ({ getL
       // NOT set here from body, as this would be async
       url: 'http://localhost:7654/foo',
     },
-  });
+  })
 
+  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {
