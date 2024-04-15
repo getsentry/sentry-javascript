@@ -4,7 +4,7 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
-## 8.0.0-beta.0
+## 8.0.0-beta.1
 
 This is the first beta release of Sentry JavaScript SDK v8. With this release, there are no more planned breaking
 changes for the v8 cycle.
@@ -143,6 +143,10 @@ disabled.
 - ref(browser): Move browserTracing into browser pkg (#11484)
 - ref(feedback): Configure font size (#11437)
 - ref(feedback): Refactor Feedback types into @sentry/types and reduce the exported surface area (#11355)
+
+## 8.0.0-beta.0
+
+This release failed to publish correctly. Use 8.0.0-beta.1 instead.
 
 ## 8.0.0-alpha.9
 
