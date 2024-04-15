@@ -89,7 +89,7 @@ jobs:
 
       - name: Artifacts upload
         uses: actions/upload-artifact@v4
-        if: failure() && steps.test.outcome === 'failure'
+        if: failure() && steps.test.outcome == 'failure'
         with:
           name: playwright-test-results
           path: test-results
