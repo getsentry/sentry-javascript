@@ -95,6 +95,19 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   enableTracing?: boolean;
 
   /**
+   * If this is enabled, any spans started will always have their parent be the active root span,
+   * if there is any active span.
+   *
+   * This is necessary because in some environments (e.g. browser),
+   * we cannot guarantee an accurate active span.
+   * Because we cannot properly isolate execution environments,
+   * you may get wrong results when using e.g. nested `startSpan()` calls.
+   *
+   * To solve this, in these environments we'll by default enable this option.
+   */
+  parentSpanIsAlwaysRootSpan?: boolean;
+
+  /**
    * Initial data to populate scope.
    */
   initialScope?: CaptureContext;

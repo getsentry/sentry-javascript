@@ -31,14 +31,14 @@
         "default": "./build/cjs/index.js"
       }
     },
-    "./register": {
+    "./import": {
       "import": {
-        "default": "./build/register.mjs"
+        "default": "./build/import-hook.mjs"
       }
     },
-    "./hook": {
+    "./loader": {
       "import": {
-        "default": "./build/hook.mjs"
+        "default": "./build/loader-hook.mjs"
       }
     }
   },
@@ -82,7 +82,7 @@
     "@types/node": "^14.18.0"
   },
   "optionalDependencies": {
-    "opentelemetry-instrumentation-fetch-node": "1.1.2"
+    "opentelemetry-instrumentation-fetch-node": "1.2.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types",

@@ -1,6 +1,6 @@
 import {
   BrowserClient,
-  Hub,
+  Scope,
   breadcrumbsIntegration,
   dedupeIntegration,
   defaultStackParser,
@@ -31,6 +31,9 @@ const client = new BrowserClient({
   integrations,
 });
 
-const hub = new Hub(client);
+const scope = new Scope();
+scope.setClient(client);
 
-hub.captureException(new Error('test client'));
+client.init();
+
+scope.captureException(new Error('test client'));

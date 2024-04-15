@@ -55,7 +55,9 @@ export interface Layer {
 
 /**
  * @inheritDoc
+ * @deprecated This class will be removed in v8 (tmp-deprecating so we're aware of where this is a problem)
  */
+// eslint-disable-next-line deprecation/deprecation
 export class Hub implements HubInterface {
   /** Is a {@link Layer}[] containing the client and scope */
   private readonly _stack: Layer[];
@@ -494,23 +496,6 @@ export class Hub implements HubInterface {
   }
 }
 
-/**
- * Returns the default hub instance.
- *
- * If a hub is already registered in the global carrier but this module
- * contains a more recent version, it replaces the registered version.
- * Otherwise, the currently registered hub will be returned.
- *
- * @deprecated Use the respective replacement method directly instead.
- */
-export function getCurrentHub(): HubInterface {
-  // Get main carrier (global for every environment)
-  const carrier = getMainCarrier();
-
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.getCurrentHub() || getGlobalHub();
-}
-
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {
   return getGlobalSingleton('defaultCurrentScope', () => new Scope());
@@ -525,8 +510,10 @@ export function getDefaultIsolationScope(): Scope {
  * Get the global hub.
  * This will be removed during the v8 cycle and is only here to make migration easier.
  */
+// eslint-disable-next-line deprecation/deprecation
 export function getGlobalHub(): HubInterface {
   const registry = getMainCarrier();
+  // eslint-disable-next-line deprecation/deprecation
   const sentry = getSentryCarrier(registry) as { hub?: HubInterface };
 
   // If there's no hub, or its an old API, assign a new one
@@ -560,6 +547,7 @@ function withScope<T>(callback: (scope: ScopeInterface) => T): T {
 }
 
 function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
+  // eslint-disable-next-line deprecation/deprecation
   const hub = getGlobalHub() as Hub;
   // eslint-disable-next-line deprecation/deprecation
   return hub.withScope(() => {
@@ -580,7 +568,6 @@ function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T):
 /* eslint-disable deprecation/deprecation */
 function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
-    getCurrentHub: getGlobalHub,
     withIsolationScope,
     withScope,
     withSetScope,

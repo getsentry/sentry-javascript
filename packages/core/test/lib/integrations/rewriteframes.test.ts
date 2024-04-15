@@ -1,6 +1,6 @@
 import type { Event, StackFrame } from '@sentry/types';
 
-import { rewriteFramesIntegration } from '../../../src/integrations/rewriteframes';
+import { generateIteratee, rewriteFramesIntegration } from '../../../src/integrations/rewriteframes';
 
 let rewriteFrames: ReturnType<typeof rewriteFramesIntegration>;
 let exceptionEvent: Event;
@@ -10,6 +10,17 @@ let windowsLowerCaseExceptionEvent: Event;
 let windowsExceptionEventWithoutPrefix: Event;
 let windowsExceptionEventWithBackslashPrefix: Event;
 let multipleStacktracesEvent: Event;
+
+const originalWindow = global.window;
+
+beforeAll(() => {
+  // @ts-expect-error We need to do this because the integration has different behaviour on the browser and on the client
+  global.window = undefined;
+});
+
+afterAll(() => {
+  global.window = originalWindow;
+});
 
 describe('RewriteFrames', () => {
   beforeEach(() => {
@@ -296,6 +307,32 @@ describe('RewriteFrames', () => {
         },
       };
       expect(rewriteFrames.processEvent?.(brokenEvent, {}, {} as any)).toEqual(brokenEvent);
+    });
+  });
+
+  describe('generateIteratee()', () => {
+    describe('on the browser', () => {
+      it('should replace the `root` value in the filename with the `assetPrefix` value', () => {
+        const iteratee = generateIteratee({
+          isBrowser: true,
+          prefix: 'my-prefix://',
+          root: 'http://example.com/my/path',
+        });
+
+        const result = iteratee({ filename: 'http://example.com/my/path/static/asset.js' });
+        expect(result.filename).toBe('my-prefix:///static/asset.js');
+      });
+
+      it('should replace not the `root` value in the filename with the `assetPrefix` value, if the root value is not at the beginning of the frame', () => {
+        const iteratee = generateIteratee({
+          isBrowser: true,
+          prefix: 'my-prefix://',
+          root: '/my/path',
+        });
+
+        const result = iteratee({ filename: 'http://example.com/my/path/static/asset.js' });
+        expect(result.filename).toBe('http://example.com/my/path/static/asset.js'); // unchanged
+      });
     });
   });
 });

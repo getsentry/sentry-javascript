@@ -1,7 +1,7 @@
 import { conditionalTest } from '../../utils';
 import { cleanupChildProcesses, createRunner } from '../../utils/runner';
 
-const EXPECTED_ANR_EVENT = {
+const ANR_EVENT = {
   // Ensure we have context
   contexts: {
     trace: {
@@ -21,15 +21,6 @@ const EXPECTED_ANR_EVENT = {
       timezone: expect.any(String),
     },
   },
-  user: {
-    email: 'person@home.com',
-  },
-  breadcrumbs: [
-    {
-      timestamp: expect.any(Number),
-      message: 'important message!',
-    },
-  ],
   // and an exception that is our ANR
   exception: {
     values: [
@@ -60,21 +51,42 @@ const EXPECTED_ANR_EVENT = {
   },
 };
 
+const ANR_EVENT_WITH_SCOPE = {
+  ...ANR_EVENT,
+  user: {
+    email: 'person@home.com',
+  },
+  breadcrumbs: [
+    {
+      timestamp: expect.any(Number),
+      message: 'important message!',
+    },
+  ],
+};
+
 conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });
 
   test('CJS', done => {
-    createRunner(__dirname, 'basic.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.js').withMockSentryServer().expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
   });
 
   test('ESM', done => {
-    createRunner(__dirname, 'basic.mjs').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs').withMockSentryServer().expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
+  });
+
+  test('blocked indefinitely', done => {
+    createRunner(__dirname, 'indefinite.mjs').withMockSentryServer().expect({ event: ANR_EVENT }).start(done);
   });
 
   test('With --inspect', done => {
-    createRunner(__dirname, 'basic.mjs').withFlags('--inspect').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'basic.mjs')
+      .withMockSentryServer()
+      .withFlags('--inspect')
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
+      .start(done);
   });
 
   test('should exit', done => {
@@ -97,22 +109,23 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
 
   test('With session', done => {
     createRunner(__dirname, 'basic-session.js')
+      .withMockSentryServer()
       .expect({
         session: {
           status: 'abnormal',
           abnormal_mechanism: 'anr_foreground',
         },
       })
-      .expect({ event: EXPECTED_ANR_EVENT })
+      .expect({ event: ANR_EVENT_WITH_SCOPE })
       .start(done);
   });
 
   test('from forked process', done => {
-    createRunner(__dirname, 'forker.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'forker.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
   });
 
   test('worker can be stopped and restarted', done => {
-    createRunner(__dirname, 'stop-and-start.js').expect({ event: EXPECTED_ANR_EVENT }).start(done);
+    createRunner(__dirname, 'stop-and-start.js').expect({ event: ANR_EVENT_WITH_SCOPE }).start(done);
   });
 
   const EXPECTED_ISOLATED_EVENT = {
@@ -142,6 +155,9 @@ conditionalTest({ min: 16 })('should report ANR when event loop blocked', () => 
   };
 
   test('fetches correct isolated scope', done => {
-    createRunner(__dirname, 'isolated.mjs').expect({ event: EXPECTED_ISOLATED_EVENT }).start(done);
+    createRunner(__dirname, 'isolated.mjs')
+      .withMockSentryServer()
+      .expect({ event: EXPECTED_ISOLATED_EVENT })
+      .start(done);
   });
 });

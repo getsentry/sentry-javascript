@@ -37,7 +37,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -113,6 +112,7 @@ export {
   spotlightIntegration,
   initOpenTelemetry,
   spanToJSON,
+  spanToTraceHeader,
   trpcMiddleware,
 } from '@sentry/node';
 

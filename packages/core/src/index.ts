@@ -30,10 +30,6 @@ export {
   addEventProcessor,
 } from './exports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
-  Hub,
-  getGlobalHub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
 } from './hub';
@@ -69,6 +65,7 @@ export {
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
+export { createSpanEnvelope } from './span';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -106,3 +103,6 @@ export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

@@ -1,8 +1,8 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-
 import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext';
 import { getMainCarrier } from '../asyncContext';
+
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../hub';
@@ -10,13 +10,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
 import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
-import {
-  addChildSpanToSpan,
-  getActiveSpan,
-  spanIsSampled,
-  spanTimeInputToSeconds,
-  spanToJSON,
-} from '../utils/spanUtils';
+import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
 import { sampleSpan } from './sampling';
@@ -24,6 +18,8 @@ import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
 import { SPAN_STATUS_ERROR } from './spanstatus';
 import { setCapturedScopesOnSpan } from './utils';
+
+const SUPPRESS_TRACING_KEY = '__SENTRY_SUPPRESS_TRACING__';
 
 /**
  * Wraps a function with a transaction/span and finishes the span after the function is done.
@@ -44,7 +40,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
-    const parentSpan = _getSpanForScope(scope) as SentrySpan | undefined;
+    const parentSpan = getParentSpan(scope);
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -91,7 +87,7 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
   const spanContext = normalizeContext(context);
 
   return withScope(context.scope, scope => {
-    const parentSpan = _getSpanForScope(scope) as SentrySpan | undefined;
+    const parentSpan = getParentSpan(scope);
 
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
@@ -138,17 +134,15 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
   }
 
   const spanContext = normalizeContext(context);
-  const parentSpan = context.scope
-    ? (_getSpanForScope(context.scope) as SentrySpan | undefined)
-    : (getActiveSpan() as SentrySpan | undefined);
+
+  const scope = context.scope || getCurrentScope();
+  const parentSpan = getParentSpan(scope);
 
   const shouldSkipSpan = context.onlyIfParent && !parentSpan;
 
   if (shouldSkipSpan) {
     return new SentryNonRecordingSpan();
   }
-
-  const scope = context.scope || getCurrentScope();
 
   return createChildSpanOrTransaction({
     parentSpan,
@@ -204,6 +198,20 @@ export function withActiveSpan<T>(span: Span | null, callback: (scope: Scope) =>
   });
 }
 
+/** Suppress tracing in the given callback, ensuring no spans are generated inside of it. */
+export function suppressTracing<T>(callback: () => T): T {
+  const acs = getAcs();
+
+  if (acs.suppressTracing) {
+    return acs.suppressTracing(callback);
+  }
+
+  return withScope(scope => {
+    scope.setSDKProcessingMetadata({ [SUPPRESS_TRACING_KEY]: true });
+    return callback();
+  });
+}
+
 function createChildSpanOrTransaction({
   parentSpan,
   spanContext,
@@ -223,7 +231,7 @@ function createChildSpanOrTransaction({
 
   let span: Span;
   if (parentSpan && !forceTransaction) {
-    span = _startChildSpan(parentSpan, spanContext);
+    span = _startChildSpan(parentSpan, scope, spanContext);
     addChildSpanToSpan(parentSpan, span);
   } else if (parentSpan) {
     // If we forced a transaction but have a parent span, make sure to continue from the parent span, not the scope
@@ -237,6 +245,7 @@ function createChildSpanOrTransaction({
         parentSpanId,
         ...spanContext,
       },
+      scope,
       parentSampled,
     );
 
@@ -258,6 +267,7 @@ function createChildSpanOrTransaction({
         parentSpanId,
         ...spanContext,
       },
+      scope,
       parentSampled,
     );
 
@@ -296,22 +306,24 @@ function getAcs(): AsyncContextStrategy {
   return getAsyncContextStrategy(carrier);
 }
 
-function _startRootSpan(spanArguments: SentrySpanArguments, parentSampled?: boolean): SentrySpan {
+function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parentSampled?: boolean): SentrySpan {
   const client = getClient();
   const options: Partial<ClientOptions> = (client && client.getOptions()) || {};
 
   const { name = '', attributes } = spanArguments;
-  const [sampled, sampleRate] = sampleSpan(options, {
-    name,
-    parentSampled,
-    attributes,
-    transactionContext: {
-      name,
-      parentSampled,
-    },
-  });
+  const [sampled, sampleRate] = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY]
+    ? [false]
+    : sampleSpan(options, {
+        name,
+        parentSampled,
+        attributes,
+        transactionContext: {
+          name,
+          parentSampled,
+        },
+      });
 
-  const transaction = new SentrySpan({
+  const rootSpan = new SentrySpan({
     ...spanArguments,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
@@ -320,30 +332,32 @@ function _startRootSpan(spanArguments: SentrySpanArguments, parentSampled?: bool
     sampled,
   });
   if (sampleRate !== undefined) {
-    transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
+    rootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, sampleRate);
   }
 
   if (client) {
-    client.emit('spanStart', transaction);
+    client.emit('spanStart', rootSpan);
   }
 
-  return transaction;
+  return rootSpan;
 }
 
 /**
  * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
  * This inherits the sampling decision from the parent span.
  */
-function _startChildSpan(parentSpan: Span, spanArguments: SentrySpanArguments): SentrySpan {
+function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySpanArguments): Span {
   const { spanId, traceId } = parentSpan.spanContext();
-  const sampled = spanIsSampled(parentSpan);
+  const sampled = scope.getScopeData().sdkProcessingMetadata[SUPPRESS_TRACING_KEY] ? false : spanIsSampled(parentSpan);
 
-  const childSpan = new SentrySpan({
-    ...spanArguments,
-    parentSpanId: spanId,
-    traceId,
-    sampled,
-  });
+  const childSpan = sampled
+    ? new SentrySpan({
+        ...spanArguments,
+        parentSpanId: spanId,
+        traceId,
+        sampled,
+      })
+    : new SentryNonRecordingSpan({ traceId });
 
   addChildSpanToSpan(parentSpan, childSpan);
 
@@ -357,4 +371,20 @@ function _startChildSpan(parentSpan: Span, spanArguments: SentrySpanArguments): 
   }
 
   return childSpan;
+}
+
+function getParentSpan(scope: Scope): SentrySpan | undefined {
+  const span = _getSpanForScope(scope) as SentrySpan | undefined;
+
+  if (!span) {
+    return undefined;
+  }
+
+  const client = getClient();
+  const options: Partial<ClientOptions> = client ? client.getOptions() : {};
+  if (options.parentSpanIsAlwaysRootSpan) {
+    return getRootSpan(span) as SentrySpan;
+  }
+
+  return span;
 }

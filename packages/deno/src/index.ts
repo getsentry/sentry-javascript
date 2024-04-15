@@ -34,7 +34,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -74,6 +73,8 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

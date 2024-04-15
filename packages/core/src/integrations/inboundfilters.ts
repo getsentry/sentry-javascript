@@ -155,10 +155,6 @@ function _getPossibleEventMessages(event: Event): string[] {
     }
   }
 
-  if (DEBUG_BUILD && possibleMessages.length === 0) {
-    logger.error(`Could not extract message for event ${getEventDescription(event)}`);
-  }
-
   return possibleMessages;
 }
 

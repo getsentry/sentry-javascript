@@ -25,7 +25,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   NodeClient,
   Scope,
@@ -96,6 +95,8 @@ export {
   spotlightIntegration,
   setupFastifyErrorHandler,
   trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

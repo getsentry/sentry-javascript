@@ -1,5 +1,5 @@
 import { act, render } from '@testing-library/svelte';
-import { addTracingExtensions, getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
+import { getClient, getCurrentScope, getIsolationScope, init, startSpan } from '../src';
 
 import type { TransactionEvent } from '@sentry/types';
 import { vi } from 'vitest';
@@ -19,8 +19,6 @@ describe('Sentry.trackComponent()', () => {
     getCurrentScope().clear();
     getIsolationScope().clear();
 
-    addTracingExtensions();
-
     const beforeSendTransaction = vi.fn(event => {
       transactions.push(event);
       return null;
@@ -33,7 +31,7 @@ describe('Sentry.trackComponent()', () => {
     });
   });
 
-  it('creates nested init and update spans on component initialization', async () => {
+  it('creates init and update spans on component initialization', async () => {
     startSpan({ name: 'outer' }, span => {
       expect(span).toBeDefined();
       render(DummyComponent, { props: { options: {} } });
@@ -73,7 +71,7 @@ describe('Sentry.trackComponent()', () => {
       description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
-      parent_span_id: initSpanId,
+      parent_span_id: rootSpanId,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
@@ -128,7 +126,7 @@ describe('Sentry.trackComponent()', () => {
       description: '<Dummy$>',
       op: 'ui.svelte.update',
       origin: 'auto.ui.svelte',
-      parent_span_id: initSpanId,
+      parent_span_id: rootSpanId,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),

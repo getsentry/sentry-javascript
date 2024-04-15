@@ -1,15 +1,23 @@
 export {
-  browserTracingIntegration,
-  startBrowserTracingNavigationSpan,
-  startBrowserTracingPageLoadSpan,
-  BROWSER_TRACING_INTEGRATION_ID,
-  instrumentOutgoingRequests,
-  defaultRequestInstrumentationOptions,
   addPerformanceInstrumentationHandler,
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
   addTtfbInstrumentationHandler,
   addLcpInstrumentationHandler,
-} from './browser';
+} from './metrics/instrument';
 
-export type { RequestInstrumentationOptions } from './browser';
+export {
+  addPerformanceEntries,
+  startTrackingInteractions,
+  startTrackingLongTasks,
+  startTrackingWebVitals,
+} from './metrics/browserMetrics';
+
+export { addClickKeypressInstrumentationHandler } from './instrument/dom';
+
+export { addHistoryInstrumentationHandler } from './instrument/history';
+
+export {
+  addXhrInstrumentationHandler,
+  SENTRY_XHR_DATA_KEY,
+} from './instrument/xhr';

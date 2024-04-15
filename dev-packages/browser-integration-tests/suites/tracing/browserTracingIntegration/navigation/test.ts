@@ -49,25 +49,3 @@ sentryTest('should create a navigation transaction on page navigation', async ({
 
   expect(pageloadSpanId).not.toEqual(navigationSpanId);
 });
-
-sentryTest('should create a new trace for for multiple navigations', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
-
-  const url = await getLocalTestPath({ testDir: __dirname });
-
-  await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const navigationEvent1 = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
-  const navigationEvent2 = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#bar`);
-
-  expect(navigationEvent1.contexts?.trace?.op).toBe('navigation');
-  expect(navigationEvent2.contexts?.trace?.op).toBe('navigation');
-
-  const navigation1TraceId = navigationEvent1.contexts?.trace?.trace_id;
-  const navigation2TraceId = navigationEvent2.contexts?.trace?.trace_id;
-
-  expect(navigation1TraceId).toBeDefined();
-  expect(navigation2TraceId).toBeDefined();
-  expect(navigation1TraceId).not.toEqual(navigation2TraceId);
-});

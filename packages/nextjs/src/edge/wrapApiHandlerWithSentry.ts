@@ -1,6 +1,7 @@
-import { getActiveSpan } from '@sentry/core';
+import { getActiveSpan } from '@sentry/vercel-edge';
 
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
+import { withIsolationScopeOrReuseFromRootSpan } from '../common/utils/withIsolationScopeOrReuseFromRootSpan';
 import type { EdgeRouteHandler } from './types';
 
 /**
@@ -16,16 +17,18 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
 
       const activeSpan = getActiveSpan();
 
-      const wrappedHandler = withEdgeWrapping(wrappingTarget, {
-        spanDescription:
-          activeSpan || !(req instanceof Request)
-            ? `handler (${parameterizedRoute})`
-            : `${req.method} ${parameterizedRoute}`,
-        spanOp: activeSpan ? 'function' : 'http.server',
-        mechanismFunctionName: 'wrapApiHandlerWithSentry',
-      });
+      return withIsolationScopeOrReuseFromRootSpan(() => {
+        const wrappedHandler = withEdgeWrapping(wrappingTarget, {
+          spanDescription:
+            activeSpan || !(req instanceof Request)
+              ? `handler (${parameterizedRoute})`
+              : `${req.method} ${parameterizedRoute}`,
+          spanOp: activeSpan ? 'function' : 'http.server',
+          mechanismFunctionName: 'wrapApiHandlerWithSentry',
+        });
 
-      return wrappedHandler.apply(thisArg, args);
+        return wrappedHandler.apply(thisArg, args);
+      });
     },
   });
 }

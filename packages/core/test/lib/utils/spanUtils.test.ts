@@ -7,7 +7,6 @@ import {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
-  addTracingExtensions,
   setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
@@ -224,7 +223,6 @@ describe('getRootSpan', () => {
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
-    addTracingExtensions();
   });
 
   it('returns the root span of a span that is a root span', () => {

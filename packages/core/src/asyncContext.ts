@@ -1,7 +1,7 @@
-import type { Hub, Integration } from '@sentry/types';
+import type { Integration } from '@sentry/types';
 import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
-import type { startInactiveSpan, startSpan, startSpanManual, withActiveSpan } from './tracing/trace';
+import type { startInactiveSpan, startSpan, startSpanManual, suppressTracing, withActiveSpan } from './tracing/trace';
 import type { getActiveSpan } from './utils/spanUtils';
 
 /**
@@ -10,11 +10,6 @@ import type { getActiveSpan } from './utils/spanUtils';
  * Strategy used to track async context.
  */
 export interface AsyncContextStrategy {
-  /**
-   * Gets the currently active hub.
-   */
-  getCurrentHub: () => Hub;
-
   /**
    * Fork the isolation scope inside of the provided callback.
    */
@@ -62,6 +57,9 @@ export interface AsyncContextStrategy {
 
   /** Make a span the active span in the context of the callback. */
   withActiveSpan?: typeof withActiveSpan;
+
+  /** Suppress tracing in the given callback, ensuring no spans are generated inside of it.  */
+  suppressTracing?: typeof suppressTracing;
 }
 
 /**

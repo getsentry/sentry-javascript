@@ -208,7 +208,8 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   replay_recording: 'replay',
   check_in: 'monitor',
   feedback: 'feedback',
-  statsd: 'statsd',
+  span: 'span',
+  statsd: 'metric_bucket',
 };
 
 /**
@@ -218,7 +219,7 @@ export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCate
   return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
 }
 
-/** Extracts the minimal SDK info from from the metadata or an events */
+/** Extracts the minimal SDK info from the metadata or an events */
 export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
   if (!metadataOrEvent || !metadataOrEvent.sdk) {
     return;

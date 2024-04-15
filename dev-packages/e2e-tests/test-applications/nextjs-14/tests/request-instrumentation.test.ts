@@ -24,7 +24,8 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.otel.http',
+        // todo: without the HTTP integration in the Next.js SDK, this is set to 'manual' -> we could rename this to be more specific
+        'sentry.origin': 'manual',
       }),
       description: 'GET http://example.com/',
     }),

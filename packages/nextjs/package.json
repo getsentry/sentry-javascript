@@ -43,14 +43,14 @@
       "import": "./build/esm/index.server.js",
       "types": "./build/types/index.types.d.ts"
     },
-    "./register": {
+    "./import": {
       "import": {
-        "default": "./build/register.mjs"
+        "default": "./build/import-hook.mjs"
       }
     },
-    "./hook": {
+    "./loader": {
       "import": {
-        "default": "./build/hook.mjs"
+        "default": "./build/loader-hook.mjs"
       }
     }
   },
@@ -65,12 +65,14 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.7.0",
     "@rollup/plugin-commonjs": "24.0.0",
     "@sentry/core": "8.0.0-alpha.9",
     "@sentry/node": "8.0.0-alpha.9",
     "@sentry/react": "8.0.0-alpha.9",
     "@sentry/types": "8.0.0-alpha.9",
     "@sentry/utils": "8.0.0-alpha.9",
+    "@sentry/opentelemetry": "8.0.0-alpha.9",
     "@sentry/vercel-edge": "8.0.0-alpha.9",
     "@sentry/webpack-plugin": "2.16.0",
     "chalk": "3.0.0",
@@ -80,14 +82,13 @@
   },
   "devDependencies": {
     "@types/resolve": "1.20.3",
-    "@types/webpack": "^4.41.31",
     "eslint-plugin-react": "^7.31.11",
     "next": "13.2.0"
   },
   "peerDependencies": {
     "next": "^13.2.0 || ^14.0",
     "react": "16.x || 17.x || 18.x",
-    "webpack": ">= 4.0.0"
+    "webpack": ">= 5.0.0"
   },
   "peerDependenciesMeta": {
     "webpack": {

@@ -4,12 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   setCurrentClient,
 } from '../../../src';
-import {
-  SentrySpan,
-  addTracingExtensions,
-  getDynamicSamplingContextFromSpan,
-  startInactiveSpan,
-} from '../../../src/tracing';
+import { SentrySpan, getDynamicSamplingContextFromSpan, startInactiveSpan } from '../../../src/tracing';
 import { freezeDscOnSpan } from '../../../src/tracing/dynamicSamplingContext';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
@@ -19,7 +14,6 @@ describe('getDynamicSamplingContextFromSpan', () => {
     const client = new TestClient(options);
     setCurrentClient(client);
     client.init();
-    addTracingExtensions();
   });
 
   afterEach(() => {

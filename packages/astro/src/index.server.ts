@@ -23,7 +23,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,

@@ -2,7 +2,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_OK,
-  addTracingExtensions,
   captureException,
   continueTrace,
   getIsolationScope,
@@ -23,7 +22,6 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   options: { spanDescription: string; spanOp: string; mechanismFunctionName: string },
 ): (...params: Parameters<H>) => Promise<ReturnType<H>> {
   return async function (this: unknown, ...args) {
-    addTracingExtensions();
     const req: unknown = args[0];
 
     let sentryTrace;

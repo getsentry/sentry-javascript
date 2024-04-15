@@ -48,7 +48,6 @@ export {
   close,
   createTransport,
   flush,
-  Hub,
   SDK_VERSION,
   getSpanStatusFromHttpCode,
   setHttpStatus,
@@ -102,6 +101,7 @@ export {
   withActiveSpan,
   getRootSpan,
   spanToJSON,
+  spanToTraceHeader,
   trpcMiddleware,
 } from '@sentry/core';
 

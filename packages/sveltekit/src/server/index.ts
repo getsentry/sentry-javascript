@@ -18,7 +18,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   NodeClient,
   setCurrentClient,
   Scope,
@@ -70,6 +69,8 @@ export {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE,
   trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

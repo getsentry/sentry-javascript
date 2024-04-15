@@ -45,12 +45,15 @@ export type {
   StatsdItem,
   StatsdEnvelope,
   ProfileItem,
+  SpanEnvelope,
+  SpanItem,
 } from './envelope';
 export type { ExtendedError } from './error';
 export type { Event, EventHint, EventType, ErrorEvent, TransactionEvent } from './event';
 export type { EventProcessor } from './eventprocessor';
 export type { Exception } from './exception';
 export type { Extra, Extras } from './extra';
+// eslint-disable-next-line deprecation/deprecation
 export type { Hub } from './hub';
 export type { Integration, IntegrationClass, IntegrationFn } from './integration';
 export type { Mechanism } from './mechanism';
@@ -69,7 +72,18 @@ export type {
   Profile,
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
-export type { FeedbackEvent, UserFeedback } from './feedback';
+export type {
+  FeedbackDialog,
+  FeedbackEvent,
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  FeedbackModalIntegration,
+  FeedbackScreenshotIntegration,
+  SendFeedback,
+  SendFeedbackParams,
+  CreateDialogProps,
+  UserFeedback,
+} from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
 export type { Runtime } from './runtime';
 export type { CaptureContext, Scope, ScopeContext, ScopeData } from './scope';

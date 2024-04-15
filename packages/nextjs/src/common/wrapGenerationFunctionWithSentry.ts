@@ -2,13 +2,11 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
-  addTracingExtensions,
   captureException,
   getClient,
   getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
-  withIsolationScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
@@ -17,6 +15,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import { commonObjectToPropagationContext } from './utils/commonObjectTracing';
+import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
 
 /**
  * Wraps a generation function (e.g. generateMetadata) with Sentry error and performance instrumentation.
@@ -26,7 +25,6 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   generationFunction: F,
   context: GenerationFunctionContext,
 ): F {
-  addTracingExtensions();
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
@@ -47,7 +45,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         data = { params, searchParams };
       }
 
-      return withIsolationScope(isolationScope => {
+      return withIsolationScopeOrReuseFromRootSpan(isolationScope => {
         isolationScope.setSDKProcessingMetadata({
           request: {
             headers: headers ? winterCGHeadersToDict(headers) : undefined,

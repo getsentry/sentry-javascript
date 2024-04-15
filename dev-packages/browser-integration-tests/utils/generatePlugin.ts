@@ -26,21 +26,14 @@ const useLoader = bundleKey.startsWith('loader');
 // In this case, if we encounter this import, we want to add this CDN bundle file instead
 const IMPORTED_INTEGRATION_CDN_BUNDLE_PATHS: Record<string, string> = {
   httpClientIntegration: 'httpclient',
-  HttpClient: 'httpclient',
   captureConsoleIntegration: 'captureconsole',
   CaptureConsole: 'captureconsole',
   debugIntegration: 'debug',
-  Debug: 'debug',
   rewriteFramesIntegration: 'rewriteframes',
-  RewriteFrames: 'rewriteframes',
   contextLinesIntegration: 'contextlines',
-  ContextLines: 'contextlines',
   extraErrorDataIntegration: 'extraerrordata',
-  ExtraErrorData: 'extraerrordata',
   reportingObserverIntegration: 'reportingobserver',
-  ReportingObserver: 'reportingobserver',
   sessionTimingIntegration: 'sessiontiming',
-  SessionTiming: 'sessiontiming',
 };
 
 const BUNDLE_PATHS: Record<string, Record<string, string>> = {
@@ -55,6 +48,8 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle_tracing_min: 'build/bundles/bundle.tracing.min.js',
     bundle_tracing_replay: 'build/bundles/bundle.tracing.replay.js',
     bundle_tracing_replay_min: 'build/bundles/bundle.tracing.replay.min.js',
+    bundle_tracing_replay_feedback: 'build/bundles/bundle.tracing.replay.feedback.js',
+    bundle_tracing_replay_feedback_min: 'build/bundles/bundle.tracing.replay.feedback.min.js',
     loader_base: 'build/bundles/bundle.min.js',
     loader_eager: 'build/bundles/bundle.min.js',
     loader_debug: 'build/bundles/bundle.debug.min.js',
@@ -227,7 +222,8 @@ class SentryScenarioGenerationPlugin {
           const integrationBundleKey = bundleKey
             .replace('loader_', 'bundle_')
             .replace('_replay', '')
-            .replace('_tracing', '');
+            .replace('_tracing', '')
+            .replace('_feedback', '');
 
           this.requiredIntegrations.forEach(integration => {
             const fileName = `${integration}.bundle.js`;

@@ -5,7 +5,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON,
   SentryNonRecordingSpan,
   SentrySpan,
-  addTracingExtensions,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -24,7 +23,6 @@ const dsn = 'https://123@sentry.io/42';
 describe('startIdleSpan', () => {
   beforeEach(() => {
     jest.useFakeTimers();
-    addTracingExtensions();
 
     getCurrentScope().clear();
     getIsolationScope().clear();

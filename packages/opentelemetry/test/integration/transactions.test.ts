@@ -89,12 +89,6 @@ describe('Integration | Transactions', () => {
     ]);
 
     expect(transaction.contexts?.otel).toEqual({
-      attributes: {
-        'test.outer': 'test value',
-        'sentry.op': 'test op',
-        'sentry.origin': 'auto.test',
-        'sentry.source': 'task',
-      },
       resource: {
         'service.name': 'opentelemetry-test',
         'service.namespace': 'sentry',
@@ -259,14 +253,6 @@ describe('Integration | Transactions', () => {
           { message: 'test breadcrumb 3', timestamp: 123456 },
         ],
         contexts: expect.objectContaining({
-          otel: expect.objectContaining({
-            attributes: {
-              'test.outer': 'test value',
-              'sentry.op': 'test op',
-              'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
-            },
-          }),
           trace: {
             data: {
               'otel.kind': 'INTERNAL',
@@ -308,12 +294,6 @@ describe('Integration | Transactions', () => {
           { message: 'test breadcrumb 3b', timestamp: 123456 },
         ],
         contexts: expect.objectContaining({
-          otel: expect.objectContaining({
-            attributes: {
-              'test.outer': 'test value b',
-              'sentry.op': 'test op b',
-            },
-          }),
           trace: {
             data: {
               'otel.kind': 'INTERNAL',
@@ -391,13 +371,6 @@ describe('Integration | Transactions', () => {
     expect(beforeSendTransaction).toHaveBeenLastCalledWith(
       expect.objectContaining({
         contexts: expect.objectContaining({
-          otel: expect.objectContaining({
-            attributes: {
-              'sentry.op': 'test op',
-              'sentry.origin': 'auto.test',
-              'sentry.source': 'task',
-            },
-          }),
           trace: {
             data: {
               'otel.kind': 'INTERNAL',

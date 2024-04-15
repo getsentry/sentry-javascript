@@ -1,13 +1,9 @@
 import * as SentryCore from '@sentry/core';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, addTracingExtensions } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '@sentry/core';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 import type { AugmentedNextApiResponse, NextApiHandler } from '../../src/common/types';
 import { wrapApiHandlerWithSentry } from '../../src/server';
-
-// The wrap* functions require the hub to have tracing extensions. This is normally called by the NodeClient
-// constructor but the client isn't used in these tests.
-addTracingExtensions();
 
 const startSpanManualSpy = jest.spyOn(SentryCore, 'startSpanManual');
 

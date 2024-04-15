@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/core';
-import type { Hub } from '@sentry/core';
 
+import type { Hub } from '@sentry/types';
 import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';
@@ -24,6 +24,7 @@ describe('Unit | session | createSession', () => {
     jest.spyOn(Sentry, 'getCurrentHub').mockImplementation(() => {
       return {
         captureEvent: captureEventMock,
+        // eslint-disable-next-line deprecation/deprecation
       } as unknown as Hub;
     });
   });

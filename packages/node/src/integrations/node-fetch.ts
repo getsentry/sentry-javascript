@@ -3,7 +3,7 @@ import { SpanKind } from '@opentelemetry/api';
 import type { Instrumentation } from '@opentelemetry/instrumentation';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { addBreadcrumb, defineIntegration } from '@sentry/core';
-import { _INTERNAL, getSpanKind } from '@sentry/opentelemetry';
+import { getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
@@ -88,7 +88,7 @@ function _addRequestBreadcrumb(span: Span): void {
     return;
   }
 
-  const data = _INTERNAL.getRequestSpanData(span);
+  const data = getRequestSpanData(span);
   addBreadcrumb({
     category: 'http',
     data: {

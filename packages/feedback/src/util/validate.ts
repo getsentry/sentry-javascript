@@ -1,4 +1,4 @@
-import type { FeedbackFormData, FeedbackInternalOptions } from '../types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
 
 export type Props = Pick<
   FeedbackInternalOptions,

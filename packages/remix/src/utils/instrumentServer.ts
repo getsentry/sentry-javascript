@@ -430,6 +430,13 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       return origRequestHandler.call(this, request, loadContext);
     }
 
+    const upperCaseMethod = request.method.toUpperCase();
+
+    // We don't want to wrap OPTIONS and HEAD requests
+    if (upperCaseMethod === 'OPTIONS' || upperCaseMethod === 'HEAD') {
+      return origRequestHandler.call(this, request, loadContext);
+    }
+
     return withIsolationScope(async isolationScope => {
       const options = getClient()?.getOptions();
 

@@ -9,14 +9,9 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  consoleSandbox,
-  logger,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
+import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
@@ -140,7 +135,7 @@ export function init(browserOptions: BrowserOptions = {}): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     });
     return;
