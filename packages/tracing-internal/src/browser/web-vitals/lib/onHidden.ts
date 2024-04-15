@@ -22,9 +22,9 @@ export interface OnHiddenCallback {
 
 export const onHidden = (cb: OnHiddenCallback, once?: boolean): void => {
   const onHiddenOrPageHide = (event: Event): void => {
-    if (event.type === 'pagehide' || (WINDOW.document && WINDOW.document.visibilityState === 'hidden')) {
-      cb(event);
-      if (once) {
+    if (once && WINDOW.document) {
+      if (event.type === 'pagehide' || WINDOW.document.visibilityState === 'hidden') {
+        cb(event);
         WINDOW.document.removeEventListener('visibilitychange', onHiddenOrPageHide, true);
         WINDOW.document.removeEventListener('pagehide', onHiddenOrPageHide, true);
       }

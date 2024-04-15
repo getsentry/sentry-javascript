@@ -14,7 +14,7 @@ export function registerBackgroundTabDetection(): void {
     WINDOW.document.addEventListener('visibilitychange', () => {
       // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction() as IdleTransaction;
-      if (WINDOW.document.hidden && activeTransaction) {
+      if (WINDOW.document!.hidden && activeTransaction) {
         const statusType: SpanStatusType = 'cancelled';
 
         const { op, status } = spanToJSON(activeTransaction);
