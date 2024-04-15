@@ -1,6 +1,6 @@
 {
   "name": "@sentry/sveltekit",
-  "version": "8.0.0-alpha.9",
+  "version": "8.0.0-beta.1",
   "description": "Official Sentry SDK for SvelteKit",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/sveltekit",
@@ -37,12 +37,12 @@
     "@sveltejs/kit": "1.x || 2.x"
   },
   "dependencies": {
-    "@sentry/core": "8.0.0-alpha.9",
-    "@sentry/node": "8.0.0-alpha.9",
-    "@sentry/opentelemetry": "8.0.0-alpha.9",
-    "@sentry/svelte": "8.0.0-alpha.9",
-    "@sentry/types": "8.0.0-alpha.9",
-    "@sentry/utils": "8.0.0-alpha.9",
+    "@sentry/core": "8.0.0-beta.1",
+    "@sentry/node": "8.0.0-beta.1",
+    "@sentry/opentelemetry": "8.0.0-beta.1",
+    "@sentry/svelte": "8.0.0-beta.1",
+    "@sentry/types": "8.0.0-beta.1",
+    "@sentry/utils": "8.0.0-beta.1",
     "@sentry/vite-plugin": "2.14.2",
     "magic-string": "0.30.7",
     "magicast": "0.2.8",

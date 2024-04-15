@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/replay-canvas",
-  "version": "8.0.0-alpha.9",
+  "version": "8.0.0-beta.1",
   "description": "Replay canvas integration",
   "main": "build/npm/cjs/index.js",
   "module": "build/npm/esm/index.js",
@@ -72,10 +72,10 @@
     "@sentry-internal/rrweb": "2.12.0"
   },
   "dependencies": {
-    "@sentry-internal/replay": "8.0.0-alpha.9",
-    "@sentry/core": "8.0.0-alpha.9",
-    "@sentry/types": "8.0.0-alpha.9",
-    "@sentry/utils": "8.0.0-alpha.9"
+    "@sentry-internal/replay": "8.0.0-beta.1",
+    "@sentry/core": "8.0.0-beta.1",
+    "@sentry/types": "8.0.0-beta.1",
+    "@sentry/utils": "8.0.0-beta.1"
   },
   "engines": {
     "node": ">=14.18"
