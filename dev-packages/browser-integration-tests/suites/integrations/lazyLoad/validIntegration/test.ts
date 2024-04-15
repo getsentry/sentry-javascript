@@ -1,9 +1,18 @@
 import { expect } from '@playwright/test';
+import { SDK_VERSION } from '@sentry/browser';
 
 import { sentryTest } from '../../../../utils/fixtures';
 
 sentryTest('it allows to lazy load an integration', async ({ getLocalTestUrl, page }) => {
   const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/httpclient.min.js`, route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/javascript;',
+      body: "window.Sentry.httpClientIntegration = () => ({ name: 'HttpClient' })",
+    });
+  });
 
   await page.goto(url);
 
