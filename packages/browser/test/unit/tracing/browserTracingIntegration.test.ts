@@ -710,9 +710,9 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.1.14' });
 
-      // Propagation context is reset and does not contain the meta tag data
-      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
-      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
+      // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
+      expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).toEqual('1121201211212012');
     });
 
     it('puts frozen Dynamic Sampling Context on pageload span if sentry-trace data and only 3rd party baggage is present', () => {
@@ -747,9 +747,9 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({});
 
-      // Propagation context is reset and does not contain the meta tag data
-      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
-      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
+      // Propagation context keeps the meta tag trace data for later events on the same route to add them to the trace
+      expect(propagationContext.traceId).toEqual('12312012123120121231201212312012');
+      expect(propagationContext.parentSpanId).toEqual('1121201211212012');
     });
 
     it('ignores the meta tag data for navigation spans', () => {
@@ -843,9 +843,9 @@ describe('browserTracingIntegration', () => {
       expect(dynamicSamplingContext).toBeDefined();
       expect(dynamicSamplingContext).toStrictEqual({ release: '2.2.14' });
 
-      // Propagation context is reset and does not contain the meta tag data
-      expect(propagationContext.traceId).not.toEqual('12312012123120121231201212312012');
-      expect(propagationContext.parentSpanId).not.toEqual('1121201211212012');
+      // Propagation context keeps the custom trace data for later events on the same route to add them to the trace
+      expect(propagationContext.traceId).toEqual('12312012123120121231201212312011');
+      expect(propagationContext.parentSpanId).toEqual('1121201211212011');
     });
   });
 

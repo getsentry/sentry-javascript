@@ -265,10 +265,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
         // but afterwards, we want to reset it to avoid this also applying to other spans
         const scope = getCurrentScope();
-        const propagationContextBefore = scope.getPropagationContext();
 
         activeSpan = continueTrace({ sentryTrace, baggage }, () => {
-          // We update the outer current scope to have the correct propagation context...
+          // We update the outer current scope to have the correct propagation context
+          // this means, the scope active when the pageload span is created will continue to hold the
+          // propagationContext from the incoming trace, even after the pageload span ended.
           scope.setPropagationContext(getCurrentScope().getPropagationContext());
 
           // Ensure we are on the original current scope again, so the span is set as active on it
@@ -279,9 +280,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             });
           });
         });
-
-        // Reset this back to what it was before
-        scope.setPropagationContext(propagationContextBefore);
       });
 
       if (options.instrumentPageLoad && WINDOW.location) {
