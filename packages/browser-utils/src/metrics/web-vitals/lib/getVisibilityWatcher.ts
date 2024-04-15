@@ -19,50 +19,44 @@ import { WINDOW } from '../../types';
 let firstHiddenTime = -1;
 
 const initHiddenTime = () => {
-  if (WINDOW.document) {
-    // If the document is hidden when this code runs, assume it was always
-    // hidden and the page was loaded in the background, with the one exception
-    // that visibility state is always 'hidden' during prerendering, so we have
-    // to ignore that case until prerendering finishes (see: `prerenderingchange`
-    // event logic below).
-    firstHiddenTime = WINDOW.document.visibilityState === 'hidden' && !WINDOW.document.prerendering ? 0 : Infinity;
-  }
+  // If the document is hidden when this code runs, assume it was always
+  // hidden and the page was loaded in the background, with the one exception
+  // that visibility state is always 'hidden' during prerendering, so we have
+  // to ignore that case until prerendering finishes (see: `prerenderingchange`
+  // event logic below).
+  firstHiddenTime = WINDOW.document!.visibilityState === 'hidden' && !WINDOW.document!.prerendering ? 0 : Infinity;
 };
 
 const onVisibilityUpdate = (event: Event) => {
-  if (WINDOW.document) {
-    // If the document is 'hidden' and no previous hidden timestamp has been
-    // set, update it based on the current event data.
-    if (WINDOW.document.visibilityState === 'hidden' && firstHiddenTime > -1) {
-      // If the event is a 'visibilitychange' event, it means the page was
-      // visible prior to this change, so the event timestamp is the first
-      // hidden time.
-      // However, if the event is not a 'visibilitychange' event, then it must
-      // be a 'prerenderingchange' event, and the fact that the document is
-      // still 'hidden' from the above check means the tab was activated
-      // in a background state and so has always been hidden.
-      firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
+  // If the document is 'hidden' and no previous hidden timestamp has been
+  // set, update it based on the current event data.
+  if (WINDOW.document!.visibilityState === 'hidden' && firstHiddenTime > -1) {
+    // If the event is a 'visibilitychange' event, it means the page was
+    // visible prior to this change, so the event timestamp is the first
+    // hidden time.
+    // However, if the event is not a 'visibilitychange' event, then it must
+    // be a 'prerenderingchange' event, and the fact that the document is
+    // still 'hidden' from the above check means the tab was activated
+    // in a background state and so has always been hidden.
+    firstHiddenTime = event.type === 'visibilitychange' ? event.timeStamp : 0;
 
-      // Remove all listeners now that a `firstHiddenTime` value has been set.
-      WINDOW.document.removeEventListener('visibilitychange', onVisibilityUpdate, true);
-      WINDOW.document.removeEventListener('prerenderingchange', onVisibilityUpdate, true);
-    }
+    // Remove all listeners now that a `firstHiddenTime` value has been set.
+    removeEventListener('visibilitychange', onVisibilityUpdate, true);
+    removeEventListener('prerenderingchange', onVisibilityUpdate, true);
   }
 };
 
 const addChangeListeners = () => {
-  if (WINDOW.document) {
-    WINDOW.document.addEventListener('visibilitychange', onVisibilityUpdate, true);
-    // IMPORTANT: when a page is prerendering, its `visibilityState` is
-    // 'hidden', so in order to account for cases where this module checks for
-    // visibility during prerendering, an additional check after prerendering
-    // completes is also required.
-    WINDOW.document.addEventListener('prerenderingchange', onVisibilityUpdate, true);
-  }
+  addEventListener('visibilitychange', onVisibilityUpdate, true);
+  // IMPORTANT: when a page is prerendering, its `visibilityState` is
+  // 'hidden', so in order to account for cases where this module checks for
+  // visibility during prerendering, an additional check after prerendering
+  // completes is also required.
+  addEventListener('prerenderingchange', onVisibilityUpdate, true);
 };
 
 export const getVisibilityWatcher = () => {
-  if (firstHiddenTime < 0) {
+  if (WINDOW.document && firstHiddenTime < 0) {
     // If the document is hidden when this code runs, assume it was hidden
     // since navigation start. This isn't a perfect heuristic, but it's the
     // best we can do until an API is available to support querying past

@@ -87,7 +87,7 @@ export const onLCP = (onReport: LCPReportCallback, opts: ReportOpts = {}) => {
           // Wrap in a setTimeout so the callback is run in a separate task
           // to avoid extending the keyboard/click handler to reduce INP impact
           // https://github.com/GoogleChrome/web-vitals/issues/383
-          WINDOW.document.addEventListener(type, () => setTimeout(stopListening, 0), true);
+          addEventListener(type, () => setTimeout(stopListening, 0), true);
         }
       });
 

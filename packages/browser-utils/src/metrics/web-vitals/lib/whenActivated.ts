@@ -18,7 +18,7 @@ import { WINDOW } from '../../types';
 
 export const whenActivated = (callback: () => void) => {
   if (WINDOW.document && WINDOW.document.prerendering) {
-    WINDOW.document.addEventListener('prerenderingchange', () => callback(), true);
+    addEventListener('prerenderingchange', () => callback(), true);
   } else {
     callback();
   }

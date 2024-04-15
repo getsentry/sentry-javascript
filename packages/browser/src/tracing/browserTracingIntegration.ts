@@ -451,7 +451,7 @@ function registerInteractionListener(
 
   ['click'].forEach(type => {
     if (WINDOW.document) {
-      WINDOW.document.addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
     }
   });
 }

@@ -28,9 +28,9 @@ export const onHidden = (cb: OnHiddenCallback) => {
   };
 
   if (WINDOW.document) {
-    WINDOW.document.addEventListener('visibilitychange', onHiddenOrPageHide, true);
+    addEventListener('visibilitychange', onHiddenOrPageHide, true);
     // Some browsers have buggy implementations of visibilitychange,
     // so we use pagehide in addition, just to be safe.
-    WINDOW.document.addEventListener('pagehide', onHiddenOrPageHide, true);
+    addEventListener('pagehide', onHiddenOrPageHide, true);
   }
 };
