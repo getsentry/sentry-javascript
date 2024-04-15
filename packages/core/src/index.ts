@@ -30,8 +30,6 @@ export {
   addEventProcessor,
 } from './exports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
   getDefaultCurrentScope,
   getDefaultIsolationScope,
 } from './hub';
@@ -107,4 +105,4 @@ export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch
 export { trpcMiddleware } from './trpc';
 
 // eslint-disable-next-line deprecation/deprecation
-export { getCurrentHubShim } from './getCurrentHubShim';
+export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

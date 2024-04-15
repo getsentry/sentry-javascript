@@ -496,24 +496,6 @@ export class Hub implements HubInterface {
   }
 }
 
-/**
- * Returns the default hub instance.
- *
- * If a hub is already registered in the global carrier but this module
- * contains a more recent version, it replaces the registered version.
- * Otherwise, the currently registered hub will be returned.
- *
- * @deprecated Use the respective replacement method directly instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export function getCurrentHub(): HubInterface {
-  // Get main carrier (global for every environment)
-  const carrier = getMainCarrier();
-
-  const acs = getAsyncContextStrategy(carrier);
-  return acs.getCurrentHub() || getGlobalHub();
-}
-
 /** Get the default current scope. */
 export function getDefaultCurrentScope(): Scope {
   return getGlobalSingleton('defaultCurrentScope', () => new Scope());
@@ -586,7 +568,6 @@ function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T):
 /* eslint-disable deprecation/deprecation */
 function getHubStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
-    getCurrentHub: getGlobalHub,
     withIsolationScope,
     withScope,
     withSetScope,

@@ -1,12 +1,7 @@
 import * as api from '@opentelemetry/api';
-import {
-  getCurrentHubShim,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-  setAsyncContextStrategy,
-} from '@sentry/core';
+import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
 import type { withActiveSpan as defaultWithActiveSpan } from '@sentry/core';
-import type { Hub, Scope } from '@sentry/types';
+import type { Scope } from '@sentry/types';
 
 import {
   SENTRY_FORK_ISOLATION_SCOPE_CONTEXT_KEY,
@@ -37,23 +32,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
     return {
       scope: getDefaultCurrentScope(),
       isolationScope: getDefaultIsolationScope(),
-    };
-  }
-
-  // eslint-disable-next-line deprecation/deprecation
-  function getCurrentHub(): Hub {
-    // eslint-disable-next-line deprecation/deprecation
-    const hub = getCurrentHubShim();
-    return {
-      ...hub,
-      getScope: () => {
-        const scopes = getScopes();
-        return scopes.scope;
-      },
-      getIsolationScope: () => {
-        const scopes = getScopes();
-        return scopes.isolationScope;
-      },
     };
   }
 
@@ -114,7 +92,6 @@ export function setOpenTelemetryContextAsyncContextStrategy(): void {
   }
 
   setAsyncContextStrategy({
-    getCurrentHub,
     withScope,
     withSetScope,
     withSetIsolationScope,
