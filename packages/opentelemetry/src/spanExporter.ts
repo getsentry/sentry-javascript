@@ -212,8 +212,6 @@ function createTransactionForOtelSpan(span: ReadableSpan): TransactionEvent {
     contexts: {
       trace: traceContext,
       otel: {
-        // TODO: remove the attributes here?
-        attributes: removeSentryAttributes(span.attributes),
         resource: span.resource.attributes,
       },
     },
