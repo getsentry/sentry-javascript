@@ -137,7 +137,6 @@
     "yalc": "^1.0.0-pre.53"
   },
   "resolutions": {
-    "wrap-ansi": "7.0.0",
     "**/terser/source-map": "0.7.4"
   },
   "version": "0.0.0",
