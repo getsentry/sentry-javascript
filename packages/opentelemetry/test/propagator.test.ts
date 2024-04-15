@@ -8,7 +8,7 @@ import {
   trace,
 } from '@opentelemetry/api';
 import { suppressTracing } from '@opentelemetry/core';
-import { withScope } from '@sentry/core';
+import { getCurrentScope, withScope } from '@sentry/core';
 
 import { SENTRY_BAGGAGE_HEADER, SENTRY_SCOPES_CONTEXT_KEY, SENTRY_TRACE_HEADER } from '../src/constants';
 import { SentryPropagator, makeTraceState } from '../src/propagator';
