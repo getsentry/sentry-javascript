@@ -28,8 +28,6 @@ jobs:
     name: 'Check tests for flakiness'
     # Also skip if PR is from master -> develop
     if: ${{ github.base_ref != 'master' && github.ref != 'refs/heads/master' }}
-    # Continue on error so that we can upload test results (e.g. playwright traces) on failure
-    continue-on-error: true
     steps:
       - name: Check out current branch
         uses: actions/checkout@v4
