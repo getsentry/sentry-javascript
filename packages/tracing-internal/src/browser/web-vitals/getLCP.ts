@@ -73,7 +73,7 @@ export const onLCP = (onReport: ReportCallback): StopListening | undefined => {
     // generated. See: https://github.com/GoogleChrome/web-vitals/issues/75
     ['keydown', 'click'].forEach(type => {
       if (WINDOW.document) {
-        WINDOW.document.addEventListener(type, stopListening, { once: true, capture: true });
+        addEventListener(type, stopListening, { once: true, capture: true });
       }
     });
 

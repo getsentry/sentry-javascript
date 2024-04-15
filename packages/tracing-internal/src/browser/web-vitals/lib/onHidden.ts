@@ -22,19 +22,19 @@ export interface OnHiddenCallback {
 
 export const onHidden = (cb: OnHiddenCallback, once?: boolean): void => {
   const onHiddenOrPageHide = (event: Event): void => {
-    if (once && WINDOW.document) {
-      if (event.type === 'pagehide' || WINDOW.document.visibilityState === 'hidden') {
-        cb(event);
-        WINDOW.document.removeEventListener('visibilitychange', onHiddenOrPageHide, true);
-        WINDOW.document.removeEventListener('pagehide', onHiddenOrPageHide, true);
+    if (event.type === 'pagehide' || WINDOW.document!.visibilityState === 'hidden') {
+      cb(event);
+      if (once) {
+        removeEventListener('visibilitychange', onHiddenOrPageHide, true);
+        removeEventListener('pagehide', onHiddenOrPageHide, true);
       }
     }
   };
 
   if (WINDOW.document) {
-    WINDOW.document.addEventListener('visibilitychange', onHiddenOrPageHide, true);
+    addEventListener('visibilitychange', onHiddenOrPageHide, true);
     // Some browsers have buggy implementations of visibilitychange,
     // so we use pagehide in addition, just to be safe.
-    WINDOW.document.addEventListener('pagehide', onHiddenOrPageHide, true);
+    addEventListener('pagehide', onHiddenOrPageHide, true);
   }
 };
