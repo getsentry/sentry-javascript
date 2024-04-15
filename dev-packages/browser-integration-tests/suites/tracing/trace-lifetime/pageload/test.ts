@@ -1,7 +1,11 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 sentryTest(
   'should create a new trace for a navigation after the initial pageload',
@@ -46,5 +50,27 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
   ]);
 
   const errorTraceId = errorEvent.contexts?.trace?.trace_id;
+  expect(errorTraceId).toBe(pageloadTraceId);
+});
+
+sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestPath({ testDir: __dirname });
+
+  const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+  const [, , events] = await Promise.all([page.goto(url), page.locator('#errorBtn').click(), envelopeRequestsPromise]);
+
+  const pageloadEvent = events.find(event => event.type === 'transaction');
+  const errorEvent = events.find(event => !event.type);
+
+  expect(pageloadEvent?.contexts?.trace?.op).toBe('pageload');
+
+  const pageloadTraceId = pageloadEvent?.contexts?.trace?.trace_id;
+  expect(pageloadTraceId).toMatch(/^[0-9a-f]{32}$/);
+
+  const errorTraceId = errorEvent?.contexts?.trace?.trace_id;
   expect(errorTraceId).toBe(pageloadTraceId);
 });
