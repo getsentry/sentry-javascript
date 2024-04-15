@@ -27,7 +27,7 @@ sentryTest(
   },
 );
 
-sentryTest('error after pageload should have pageload traceId', async ({ getLocalTestPath, page }) => {
+sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
