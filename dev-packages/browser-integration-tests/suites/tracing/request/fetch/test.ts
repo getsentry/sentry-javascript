@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create spans for multiple fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for fetch requests', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -40,7 +40,7 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
   );
 });
 
-sentryTest('should attach `sentry-trace` header to multiple fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -56,10 +56,25 @@ sentryTest('should attach `sentry-trace` header to multiple fetch requests', asy
 
   expect(requests).toHaveLength(3);
 
-  for (const request of requests) {
-    const requestHeaders = request.headers();
-    expect(requestHeaders).toMatchObject({
-      'sentry-trace': expect.any(String),
-    });
-  }
+  const request1 = requests[0];
+  const requestHeaders1 = request1.headers();
+  expect(requestHeaders1).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+  });
+
+  const request2 = requests[1];
+  const requestHeaders2 = request2.headers();
+  expect(requestHeaders2).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+    'x-test-header': 'existing-header',
+  });
+
+  const request3 = requests[2];
+  const requestHeaders3 = request3.headers();
+  expect(requestHeaders3).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+  });
 });

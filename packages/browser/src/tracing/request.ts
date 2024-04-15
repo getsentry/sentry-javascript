@@ -6,6 +6,7 @@ import {
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
+  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -18,7 +19,7 @@ import {
   spanToTraceHeader,
   startInactiveSpan,
 } from '@sentry/core';
-import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
+import type { Client, HandlerDataXhr, SentryWrappedXMLHttpRequest, Span } from '@sentry/types';
 import {
   BAGGAGE_HEADER_NAME,
   addFetchInstrumentationHandler,
@@ -285,11 +286,11 @@ export function xhrCallback(
   const xhr = handlerData.xhr;
   const sentryXhrData = xhr && xhr[SENTRY_XHR_DATA_KEY];
 
-  if (!hasTracingEnabled() || !xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
+  if (!xhr || xhr.__sentry_own_request__ || !sentryXhrData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = shouldCreateSpan(sentryXhrData.url);
+  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(sentryXhrData.url);
 
   // check first if the request has finished and is tracked by an existing span which should now end
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
@@ -307,22 +308,21 @@ export function xhrCallback(
     return undefined;
   }
 
-  const scope = getCurrentScope();
-  const isolationScope = getIsolationScope();
+  const hasParent = !!getActiveSpan();
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
-        onlyIfParent: true,
-        attributes: {
-          type: 'xhr',
-          'http.method': sentryXhrData.method,
-          url: sentryXhrData.url,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-        },
-        op: 'http.client',
-      })
-    : new SentryNonRecordingSpan();
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+          attributes: {
+            type: 'xhr',
+            'http.method': sentryXhrData.method,
+            url: sentryXhrData.url,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+          },
+          op: 'http.client',
+        })
+      : new SentryNonRecordingSpan();
 
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
@@ -330,21 +330,36 @@ export function xhrCallback(
   const client = getClient();
 
   if (xhr.setRequestHeader && shouldAttachHeaders(sentryXhrData.url) && client) {
-    const { traceId, spanId, sampled, dsc } = {
-      ...isolationScope.getPropagationContext(),
-      ...scope.getPropagationContext(),
-    };
-
-    const sentryTraceHeader = span ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
-
-    const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
-      dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+    addTracingHeadersToXhrRequest(
+      xhr,
+      client,
+      // In the following cases, we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope:
+      // - If tracing is disabled (TWP)
+      // - If the span has no parent span - which means we ran into `onlyIfParent` check
+      hasTracingEnabled() && hasParent ? span : undefined,
     );
-
-    setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
   }
 
   return span;
+}
+
+function addTracingHeadersToXhrRequest(xhr: SentryWrappedXMLHttpRequest, client: Client, span?: Span): void {
+  const scope = getCurrentScope();
+  const isolationScope = getIsolationScope();
+  const { traceId, spanId, sampled, dsc } = {
+    ...isolationScope.getPropagationContext(),
+    ...scope.getPropagationContext(),
+  };
+
+  const sentryTraceHeader =
+    span && hasTracingEnabled() ? spanToTraceHeader(span) : generateSentryTraceHeader(traceId, spanId, sampled);
+
+  const sentryBaggageHeader = dynamicSamplingContextToSentryBaggageHeader(
+    dsc || (span ? getDynamicSamplingContextFromSpan(span) : getDynamicSamplingContextFromClient(traceId, client)),
+  );
+
+  setHeaderOnXhr(xhr, sentryTraceHeader, sentryBaggageHeader);
 }
 
 function setHeaderOnXhr(

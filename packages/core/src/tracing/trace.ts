@@ -357,7 +357,7 @@ function _startChildSpan(parentSpan: Span, scope: Scope, spanArguments: SentrySp
         traceId,
         sampled,
       })
-    : new SentryNonRecordingSpan();
+    : new SentryNonRecordingSpan({ traceId });
 
   addChildSpanToSpan(parentSpan, childSpan);
 
