@@ -88,7 +88,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             return false;
           },
 
-          requireParentforOutgoingSpans: true,
+          requireParentforOutgoingSpans: false,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
@@ -101,10 +101,10 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             const scopes = getCapturedScopesOnSpan(span);
 
-            // Update the isolation scope, isolate this request
             const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
             const scope = scopes.scope || getCurrentScope();
 
+            // Update the isolation scope, isolate this request
             isolationScope.setSDKProcessingMetadata({ request: req });
 
             const client = getClient<NodeClient>();
