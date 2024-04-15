@@ -4,6 +4,146 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.0
+
+This is the first beta release of Sentry JavaScript SDK v8. With this release, there are no more planned breaking
+changes for the v8 cycle.
+
+Read the [in-depth migration guide](./MIGRATION.md) to find out how to address any breaking changes in your code. All
+deprecations from the v7 cycle, with the exception of `getCurrentHub()`, have been removed and can no longer be used in
+v8.
+
+### Version Support
+
+The Sentry JavaScript SDK v8 now supports Node.js 14.8.0 or higher. This applies to `@sentry/node` and all of our
+node-based server-side sdks (`@sentry/nextjs`, `@sentry/remix`, etc.).
+
+The browser SDKs now require
+[ES2018+](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
+compatible browsers. New minimum browser versions:
+
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
+
+For more details, please see the [version support section in migration guide](./MIGRATION.md#1-version-support-changes).
+
+### Package removal
+
+The following packages will no longer be published
+
+- [@sentry/hub](./MIGRATION.md#sentryhub)
+- [@sentry/tracing](./MIGRATION.md#sentrytracing)
+- [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
+- [@sentry/replay](./MIGRATION.md#sentryreplay)
+
+### Initializing Server-side SDKs (Node, Bun, Next.js, SvelteKit, Astro, Remix):
+
+Initializing the SDKs on the server-side has been simplified. See more details in our migration docs about
+[initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk).
+
+### Performance Monitoring Changes
+
+The API around performance monitoring and tracing has been vastly improved, and we've added support for more
+integrations out of the box.
+
+- [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
+- [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Important Changes since v8.0.0-alpha.9
+
+- **feat(browser): Create spans as children of root span by default (#10986)**
+
+Because execution context isolation in browser environments does not work reliably, we deciced to keep a flat span
+hierarchy by default in v8.
+
+- **feat(core): Deprecate `addTracingExtensions` (#11579)**
+
+Instead of calling `Sentry.addTracingExtensions()` if you want to use performance in a browser SDK without using
+`browserTracingIntegration()`, you should now call `Sentry.registerSpanErrorInstrumentation()`.
+
+- **feat(core): Implement `suppressTracing` (#11468)**
+
+You can use the new `suppressTracing` API to ensure a given callback will not generate any spans:
+
+```js
+return Sentry.suppressTracing(() => {
+  // Ensure this fetch call does not generate a span
+  return fetch('/my-url');
+});
+```
+
+- **feat: Rename ESM loader hooks to `import` and `loader` (#11498)**
+
+We renamed the loader hooks for better clarity:
+
+```sh
+# For Node.js <= 18.18.2
+node --loader=@sentry/node/loader app.js
+
+# For Node.js >= 18.19.0
+node --import=@sentry/node/import app.js
+```
+
+- **feat(node): Do not exit process by default when other `onUncaughtException` handlers are registered in
+  `onUncaughtExceptionIntegration` (#11532)**
+
+In v8, we will no longer exit the node process by default if other uncaught exception handlers have been registered by
+the user.
+
+- **Better handling of transaction name for errors**
+
+We improved the way we keep the transaction name for error events, even when spans are not sampled or performance is
+disabled.
+
+- feat(fastify): Update scope `transactionName` when handling request (#11447)
+- feat(hapi): Update scope `transactionName` when handling request (#11448)
+- feat(koa): Update scope `transactionName` when creating router span (#11476)
+- feat(sveltekit): Update scope transactionName when handling server-side request (#11511)
+- feat(nestjs): Update scope transaction name with parameterized route (#11510)
+
+### Removal/Refactoring of deprecated functionality
+
+- feat(core): Remove `getCurrentHub` from `AsyncContextStrategy` (#11581)
+- feat(core): Remove `getGlobalHub` export (#11565)
+- feat(core): Remove `Hub` class export (#11560)
+- feat(core): Remove most Hub class exports (#11536)
+- feat(nextjs): Remove webpack 4 support (#11605)
+- feat(vercel-edge): Stop using hub (#11539)
+
+### Other Changes
+
+- feat: Hoist `getCurrentHub` shim to core as `getCurrentHubShim` (#11537)
+- feat(core): Add default behaviour for `rewriteFramesIntegration` in browser (#11535)
+- feat(core): Ensure replay envelopes are sent in order when offline (#11413)
+- feat(core): Extract errors from props in unkown inputs (#11526)
+- feat(core): Update metric normalization (#11518)
+- feat(feedback): Customize feedback placeholder text color (#11417)
+- feat(feedback): Maintain v7 compat in the @sentry-internal/feedback package (#11461)
+- feat(next): Handle existing root spans for isolation scope (#11479)
+- feat(node): Ensure tracing without performance (TWP) works (#11564)
+- feat(opentelemetry): Export `getRequestSpanData` (#11508)
+- feat(opentelemetry): Remove otel.attributes in context (#11604)
+- feat(ratelimit): Add metrics rate limit (#11538)
+- feat(remix): Skip span creation for `OPTIONS` and `HEAD` requests. (#11149)
+- feat(replay): Merge packages together & ensure bundles are built (#11552)
+- feat(tracing): Adds span envelope and datacategory (#11534)
+- fix(browser): Ensure pageload trace remains active after pageload span finished (#11600)
+- fix(browser): Ensure tracing without performance (TWP) works (#11561)
+- fix(nextjs): Fix `tunnelRoute` matching logic for hybrid cloud (#11576)
+- fix(nextjs): Remove Http integration from Next.js (#11304)
+- fix(node): Ensure isolation scope is correctly cloned for non-recording spans (#11503)
+- fix(node): Make fastify types more broad (#11544)
+- fix(node): Send ANR events without scope if event loop blocked indefinitely (#11578)
+- fix(tracing): Fixes latest route name and source not updating correctly (#11533)
+- ref(browser): Move browserTracing into browser pkg (#11484)
+- ref(feedback): Configure font size (#11437)
+- ref(feedback): Refactor Feedback types into @sentry/types and reduce the exported surface area (#11355)
+
 ## 8.0.0-alpha.9
 
 This is the eighth alpha release of Sentry JavaScript SDK v8, which includes a variety of breaking changes.
