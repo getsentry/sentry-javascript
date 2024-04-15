@@ -88,20 +88,21 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             return false;
           },
 
+          requireParentforOutgoingSpans: false,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
-
-            const scopes = getCapturedScopesOnSpan(span);
-
-            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-            const scope = scopes.scope || getCurrentScope();
 
             // both, incoming requests and "client" requests made within the app trigger the requestHook
             // we only want to isolate and further annotate incoming requests (IncomingMessage)
             if (_isClientRequest(req)) {
               return;
             }
+
+            const scopes = getCapturedScopesOnSpan(span);
+
+            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+            const scope = scopes.scope || getCurrentScope();
 
             // Update the isolation scope, isolate this request
             isolationScope.setSDKProcessingMetadata({ request: req });
