@@ -65,11 +65,9 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
   await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
-  const [, , events] = await Promise.all([
-    page.goto(`${url}#foo`),
-    page.locator('#errorBtn').click(),
-    envelopeRequestsPromise,
-  ]);
+  await page.goto(`${url}#foo`);
+  await page.locator('#errorBtn').click();
+  const events = await envelopeRequestsPromise;
 
   const navigationEvent = events.find(event => event.type === 'transaction');
   const errorEvent = events.find(event => !event.type);

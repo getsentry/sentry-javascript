@@ -63,7 +63,7 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
   const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
   await page.goto(url);
   await page.locator('#errorBtn').click();
-  const events = await envelopeRequestPromise;
+  const events = await envelopeRequestsPromise;
 
   const pageloadEvent = events.find(event => event.type === 'transaction');
   const errorEvent = events.find(event => !event.type);
