@@ -1,6 +1,6 @@
 {
   "name": "@sentry/svelte",
-  "version": "8.0.0-alpha.9",
+  "version": "8.0.0-beta.1",
   "description": "Official Sentry SDK for Svelte",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/svelte",
@@ -42,10 +42,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "8.0.0-alpha.9",
-    "@sentry/core": "8.0.0-alpha.9",
-    "@sentry/types": "8.0.0-alpha.9",
-    "@sentry/utils": "8.0.0-alpha.9",
+    "@sentry/browser": "8.0.0-beta.1",
+    "@sentry/core": "8.0.0-beta.1",
+    "@sentry/types": "8.0.0-beta.1",
+    "@sentry/utils": "8.0.0-beta.1",
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {
