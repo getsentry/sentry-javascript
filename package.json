@@ -136,11 +136,7 @@
     "vitest": "^0.29.2",
     "yalc": "^1.0.0-pre.53"
   },
-  "resolutions": {
-    "wrap-ansi": "7.0.0",
-    "string-width": "4.1.0",
-    "**/terser/source-map": "0.7.4"
-  },
+  "resolutions": {},
   "version": "0.0.0",
   "name": "sentry-javascript",
   "prettier": {
