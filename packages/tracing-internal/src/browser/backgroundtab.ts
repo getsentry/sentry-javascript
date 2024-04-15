@@ -10,7 +10,7 @@ import { WINDOW } from './types';
  * document is hidden.
  */
 export function registerBackgroundTabDetection(): void {
-  if (WINDOW && WINDOW.document) {
+  if (WINDOW.document) {
     WINDOW.document.addEventListener('visibilitychange', () => {
       // eslint-disable-next-line deprecation/deprecation
       const activeTransaction = getActiveTransaction() as IdleTransaction;

@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import { WINDOW } from '../types';
 import { bindReporter } from './lib/bindReporter';
 import { getActivationStart } from './lib/getActivationStart';
 import { getVisibilityWatcher } from './lib/getVisibilityWatcher';
@@ -71,7 +72,9 @@ export const onLCP = (onReport: ReportCallback): StopListening | undefined => {
     // stop LCP observation, it's unreliable since it can be programmatically
     // generated. See: https://github.com/GoogleChrome/web-vitals/issues/75
     ['keydown', 'click'].forEach(type => {
-      addEventListener(type, stopListening, { once: true, capture: true });
+      if (WINDOW.document) {
+        WINDOW.document.addEventListener(type, stopListening, { once: true, capture: true });
+      }
     });
 
     onHidden(stopListening, true);
