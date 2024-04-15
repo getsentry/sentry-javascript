@@ -7,50 +7,13 @@ import {
   getActiveSpan,
   getRootSpan,
   handleCallbackErrors,
-  setHttpStatus,
-  startSpan,
 } from '@sentry/core';
-import type { Span } from '@sentry/types';
 import { winterCGHeadersToDict } from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
 import { withIsolationScopeOrReuseFromRootSpan } from './utils/withIsolationScopeOrReuseFromRootSpan';
-
-/** As our own HTTP integration is disabled (src/server/index.ts) the rootSpan comes from Next.js.
- * In case there is no root span, we start a new span. */
-function startOrUpdateSpan(spanName: string, cb: (rootSpan: Span) => Promise<Response>): Promise<Response> {
-  const activeSpan = getActiveSpan();
-  const rootSpan = activeSpan && getRootSpan(activeSpan);
-
-  if (rootSpan) {
-    rootSpan.updateName(spanName);
-    rootSpan.setAttributes({
-      [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-    });
-
-    return cb(rootSpan);
-  } else {
-    return startSpan(
-      {
-        op: 'http.server',
-        name: spanName,
-        forceTransaction: true,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-        },
-      },
-      (span: Span) => {
-        return cb(span);
-      },
-    );
-  }
-}
 
 /**
  * Wraps a Next.js route handler with performance and error instrumentation.
@@ -71,36 +34,38 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
           },
         });
 
-        try {
-          return await startOrUpdateSpan(`${method} ${parameterizedRoute}`, async (rootSpan: Span) => {
-            const response: Response = await handleCallbackErrors(
-              () => originalFunction.apply(thisArg, args),
-              error => {
-                // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                if (isRedirectNavigationError(error)) {
-                  // Don't do anything
-                } else if (isNotFoundNavigationError(error) && rootSpan) {
-                  rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                } else {
-                  captureException(error, {
-                    mechanism: {
-                      handled: false,
-                    },
-                  });
-                }
-              },
-            );
+        const activeSpan = getActiveSpan();
+        const rootSpan = activeSpan && getRootSpan(activeSpan);
 
-            try {
-              if (rootSpan && response.status) {
-                setHttpStatus(rootSpan, response.status);
-              }
-            } catch {
-              // best effort - response may be undefined?
-            }
-
-            return response;
+        if (rootSpan) {
+          rootSpan.updateName(`${method} ${parameterizedRoute}`);
+          rootSpan.setAttributes({
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
           });
+        }
+
+        try {
+          const response: Response = await handleCallbackErrors(
+            () => originalFunction.apply(thisArg, args),
+            error => {
+              // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+              if (isRedirectNavigationError(error)) {
+                // Don't do anything
+              } else if (isNotFoundNavigationError(error) && rootSpan) {
+                rootSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+              } else {
+                captureException(error, {
+                  mechanism: {
+                    handled: false,
+                  },
+                });
+              }
+            },
+          );
+
+          return response;
         } finally {
           if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
             // 1. Edge transport requires manual flushing
