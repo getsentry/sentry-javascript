@@ -1,6 +1,6 @@
 {
   "name": "@sentry/profiling-node",
-  "version": "8.0.0-alpha.9",
+  "version": "8.0.0-beta.1",
   "description": "Official Sentry SDK for Node.js Profiling",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/profiling-node",
@@ -77,10 +77,10 @@
     "test": "cross-env SENTRY_PROFILER_BINARY_DIR=lib jest --config jest.config.js"
   },
   "dependencies": {
-    "@sentry/core": "8.0.0-alpha.9",
-    "@sentry/node": "8.0.0-alpha.9",
-    "@sentry/types": "8.0.0-alpha.9",
-    "@sentry/utils": "8.0.0-alpha.9",
+    "@sentry/core": "8.0.0-beta.1",
+    "@sentry/node": "8.0.0-beta.1",
+    "@sentry/types": "8.0.0-beta.1",
+    "@sentry/utils": "8.0.0-beta.1",
     "detect-libc": "^2.0.2",
     "node-abi": "^3.52.0"
   },
