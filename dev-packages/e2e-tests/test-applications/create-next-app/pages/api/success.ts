@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nextjs';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
-  Sentry.startSpan({ name: 'test-span', forceTransaction: true }, span => undefined);
+  Sentry.startSpan({ name: 'test-span' }, span => undefined);
 
   Sentry.flush().then(() => {
     res.status(200).json({
