@@ -1,4 +1,4 @@
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 
 import { getRequestSpanData } from '../../src/utils/getRequestSpanData';
 import { createSpan } from '../helpers/createSpan';
@@ -14,8 +14,8 @@ describe('getRequestSpanData', () => {
   it('works with http span', () => {
     const span = createSpan();
     span.setAttributes({
-      [SemanticAttributes.HTTP_URL]: 'http://example.com?foo=bar#baz',
-      [SemanticAttributes.HTTP_METHOD]: 'GET',
+      [SEMATTRS_HTTP_URL]: 'http://example.com?foo=bar#baz',
+      [SEMATTRS_HTTP_METHOD]: 'GET',
     });
 
     const data = getRequestSpanData(span);
@@ -31,7 +31,7 @@ describe('getRequestSpanData', () => {
   it('works without method', () => {
     const span = createSpan();
     span.setAttributes({
-      [SemanticAttributes.HTTP_URL]: 'http://example.com',
+      [SEMATTRS_HTTP_URL]: 'http://example.com',
     });
 
     const data = getRequestSpanData(span);
@@ -45,8 +45,8 @@ describe('getRequestSpanData', () => {
   it('works with incorrect URL', () => {
     const span = createSpan();
     span.setAttributes({
-      [SemanticAttributes.HTTP_URL]: 'malformed-url-here',
-      [SemanticAttributes.HTTP_METHOD]: 'GET',
+      [SEMATTRS_HTTP_URL]: 'malformed-url-here',
+      [SEMATTRS_HTTP_METHOD]: 'GET',
     });
 
     const data = getRequestSpanData(span);

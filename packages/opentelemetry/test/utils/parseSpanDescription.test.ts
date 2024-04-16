@@ -1,6 +1,18 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import {
+  SEMATTRS_DB_STATEMENT,
+  SEMATTRS_DB_SYSTEM,
+  SEMATTRS_FAAS_TRIGGER,
+  SEMATTRS_HTTP_HOST,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_ROUTE,
+  SEMATTRS_HTTP_STATUS_CODE,
+  SEMATTRS_HTTP_TARGET,
+  SEMATTRS_HTTP_URL,
+  SEMATTRS_MESSAGING_SYSTEM,
+  SEMATTRS_RPC_SERVICE,
+} from '@opentelemetry/semantic-conventions';
 
 import { descriptionForHttpMethod, getSanitizedUrl, parseSpanDescription } from '../../src/utils/parseSpanDescription';
 
@@ -31,7 +43,7 @@ describe('parseSpanDescription', () => {
     [
       'works with http method',
       {
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
       },
       'test name',
       SpanKind.CLIENT,
@@ -44,8 +56,8 @@ describe('parseSpanDescription', () => {
     [
       'works with db system',
       {
-        [SemanticAttributes.DB_SYSTEM]: 'mysql',
-        [SemanticAttributes.DB_STATEMENT]: 'SELECT * from users',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_STATEMENT]: 'SELECT * from users',
       },
       'test name',
       SpanKind.CLIENT,
@@ -58,7 +70,7 @@ describe('parseSpanDescription', () => {
     [
       'works with db system without statement',
       {
-        [SemanticAttributes.DB_SYSTEM]: 'mysql',
+        [SEMATTRS_DB_SYSTEM]: 'mysql',
       },
       'test name',
       SpanKind.CLIENT,
@@ -71,7 +83,7 @@ describe('parseSpanDescription', () => {
     [
       'works with rpc service',
       {
-        [SemanticAttributes.RPC_SERVICE]: 'rpc-test-service',
+        [SEMATTRS_RPC_SERVICE]: 'rpc-test-service',
       },
       'test name',
       undefined,
@@ -84,7 +96,7 @@ describe('parseSpanDescription', () => {
     [
       'works with messaging system',
       {
-        [SemanticAttributes.MESSAGING_SYSTEM]: 'test-messaging-system',
+        [SEMATTRS_MESSAGING_SYSTEM]: 'test-messaging-system',
       },
       'test name',
       undefined,
@@ -97,7 +109,7 @@ describe('parseSpanDescription', () => {
     [
       'works with faas trigger',
       {
-        [SemanticAttributes.FAAS_TRIGGER]: 'test-faas-trigger',
+        [SEMATTRS_FAAS_TRIGGER]: 'test-faas-trigger',
       },
       'test name',
       undefined,
@@ -131,9 +143,9 @@ describe('descriptionForHttpMethod', () => {
       'works with basic client GET',
       'GET',
       {
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_URL]: 'https://www.example.com/my-path',
-        [SemanticAttributes.HTTP_TARGET]: '/my-path',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
       },
       'test name',
       SpanKind.CLIENT,
@@ -150,9 +162,9 @@ describe('descriptionForHttpMethod', () => {
       'works with basic server POST',
       'POST',
       {
-        [SemanticAttributes.HTTP_METHOD]: 'POST',
-        [SemanticAttributes.HTTP_URL]: 'https://www.example.com/my-path',
-        [SemanticAttributes.HTTP_TARGET]: '/my-path',
+        [SEMATTRS_HTTP_METHOD]: 'POST',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path',
+        [SEMATTRS_HTTP_TARGET]: '/my-path',
       },
       'test name',
       SpanKind.SERVER,
@@ -169,10 +181,10 @@ describe('descriptionForHttpMethod', () => {
       'works with client GET with route',
       'GET',
       {
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_URL]: 'https://www.example.com/my-path/123',
-        [SemanticAttributes.HTTP_TARGET]: '/my-path/123',
-        [SemanticAttributes.HTTP_ROUTE]: '/my-path/:id',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_URL]: 'https://www.example.com/my-path/123',
+        [SEMATTRS_HTTP_TARGET]: '/my-path/123',
+        [SEMATTRS_HTTP_ROUTE]: '/my-path/:id',
       },
       'test name',
       SpanKind.CLIENT,
@@ -208,11 +220,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without query for client request',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/?what=true',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/?what=true',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/?what=true',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -226,11 +238,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses url without hash for client request',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/sub#hash',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/sub#hash',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/sub#hash',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -244,12 +256,12 @@ describe('getSanitizedUrl', () => {
     [
       'uses route if available for client request',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/?what=true',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/?what=true',
-        [SemanticAttributes.HTTP_ROUTE]: '/my-route',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/?what=true',
+        [SEMATTRS_HTTP_ROUTE]: '/my-route',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -263,10 +275,10 @@ describe('getSanitizedUrl', () => {
     [
       'falls back to target for client request if url not available',
       {
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/?what=true',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/?what=true',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.CLIENT,
       {
@@ -280,11 +292,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without query for server request',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/?what=true',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/?what=true',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/?what=true',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {
@@ -298,11 +310,11 @@ describe('getSanitizedUrl', () => {
     [
       'uses target without hash for server request',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/?what=true',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/sub#hash',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/sub#hash',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {
@@ -316,12 +328,12 @@ describe('getSanitizedUrl', () => {
     [
       'uses route for server request if available',
       {
-        [SemanticAttributes.HTTP_URL]: 'http://example.com/?what=true',
-        [SemanticAttributes.HTTP_METHOD]: 'GET',
-        [SemanticAttributes.HTTP_TARGET]: '/?what=true',
-        [SemanticAttributes.HTTP_ROUTE]: '/my-route',
-        [SemanticAttributes.HTTP_HOST]: 'example.com:80',
-        [SemanticAttributes.HTTP_STATUS_CODE]: 200,
+        [SEMATTRS_HTTP_URL]: 'http://example.com/?what=true',
+        [SEMATTRS_HTTP_METHOD]: 'GET',
+        [SEMATTRS_HTTP_TARGET]: '/?what=true',
+        [SEMATTRS_HTTP_ROUTE]: '/my-route',
+        [SEMATTRS_HTTP_HOST]: 'example.com:80',
+        [SEMATTRS_HTTP_STATUS_CODE]: 200,
       },
       SpanKind.SERVER,
       {
