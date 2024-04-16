@@ -124,11 +124,11 @@ sentryTest(
     const request = await requestPromise;
     const headers = request.headers();
 
-    // sampling decision is deferred b/c of no active span at the time of request
+    // sampling decision and DSC are continued from the pageload span even after it ended
     const pageloadTraceId = pageloadTraceContext?.trace_id;
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}$`));
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
     );
   },
 );
@@ -191,11 +191,11 @@ sentryTest(
     const request = await requestPromise;
     const headers = request.headers();
 
-    // sampling decision is deferred b/c of no active span at the time of request
+    // sampling decision and DSC are continued from the pageload span even after it ended
     const pageloadTraceId = pageloadTraceContext?.trace_id;
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}$`));
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
     );
   },
 );
