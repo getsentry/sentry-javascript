@@ -1,6 +1,15 @@
+/* eslint-disable max-lines */
 import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
-import type { Envelope, EnvelopeItemType, Event, SerializedSession, SessionAggregates } from '@sentry/types';
+import { SDK_VERSION } from '@sentry/node';
+import type {
+  Envelope,
+  EnvelopeItemType,
+  Event,
+  EventEnvelope,
+  SerializedSession,
+  SessionAggregates,
+} from '@sentry/types';
 import axios from 'axios';
 import { createBasicSentryServer } from './server';
 
@@ -25,6 +34,18 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
+    ...expected,
+  });
+}
+
+export function assertEnvelopeHeader(actual: Envelope[0], expected: Partial<Envelope[0]>): void {
+  expect(actual).toEqual({
+    event_id: expect.any(String),
+    sent_at: expect.any(String),
+    sdk: {
+      name: 'sentry.javascript.node',
+      version: SDK_VERSION,
+    },
     ...expected,
   });
 }
@@ -118,12 +139,19 @@ type Expected =
       sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
     };
 
+type ExpectedEnvelopeHeader =
+  | { event: Partial<EventEnvelope[0]> }
+  | { transaction: Partial<Envelope[0]> }
+  | { session: Partial<Envelope[0]> }
+  | { sessions: Partial<Envelope[0]> };
+
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 
   const expectedEnvelopes: Expected[] = [];
+  let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
   let withEnv: Record<string, string> = {};
@@ -139,6 +167,14 @@ export function createRunner(...paths: string[]) {
   return {
     expect: function (expected: Expected) {
       expectedEnvelopes.push(expected);
+      return this;
+    },
+    expectHeader: function (expected: ExpectedEnvelopeHeader) {
+      if (!expectedEnvelopeHeaders) {
+        expectedEnvelopeHeaders = [];
+      }
+
+      expectedEnvelopeHeaders.push(expected);
       return this;
     },
     expectError: function () {
@@ -170,7 +206,7 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
-      const expectedEnvelopeCount = expectedEnvelopes.length;
+      const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
       let scenarioServerPort: number | undefined;
@@ -196,6 +232,25 @@ export function createRunner(...paths: string[]) {
 
           if (ignored.includes(envelopeItemType)) {
             continue;
+          }
+
+          if (expectedEnvelopeHeaders) {
+            const header = envelope[0];
+            const expected = expectedEnvelopeHeaders.shift()?.[envelopeItemType as keyof ExpectedEnvelopeHeader];
+
+            try {
+              if (!expected) {
+                throw new Error(`No more expected envelope items but we received ${JSON.stringify(header)}`);
+              }
+
+              assertEnvelopeHeader(header, expected);
+
+              expectCallbackCalled();
+            } catch (e) {
+              complete(e as Error);
+            }
+
+            return;
           }
 
           const expected = expectedEnvelopes.shift();
