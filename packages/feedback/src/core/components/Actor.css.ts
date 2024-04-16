@@ -62,7 +62,6 @@ export function createActorStyles(): HTMLStyleElement {
   }
 }
 
-
 .feedback-icon path {
   fill: var(--foreground);
 }
