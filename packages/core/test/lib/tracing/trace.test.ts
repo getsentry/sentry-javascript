@@ -12,7 +12,7 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
-import { getAsyncContextStrategy } from '../../../src/hub';
+import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   SentrySpan,
   continueTrace,
