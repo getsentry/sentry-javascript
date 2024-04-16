@@ -26,8 +26,6 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, 
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
 
-  // await page.goto();
-
   const errorEventPromise2 = getFirstSentryEnvelopeRequest<Event>(page, `${url}#navigation`);
   await page.locator('#errorBtn').click();
   const errorEvent2 = await errorEventPromise2;
