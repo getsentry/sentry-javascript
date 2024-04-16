@@ -33,7 +33,7 @@ export function DialogComponent({ open, onFormSubmitted, successMessageText, ...
   const onSubmitSuccess = useCallback(
     (data: FeedbackFormData) => {
       props.onSubmitSuccess(data);
-      setTimeoutId(() =>
+      setTimeoutId(
         setTimeout(() => {
           onFormSubmitted();
           setTimeoutId(null);
