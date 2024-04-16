@@ -48,11 +48,11 @@ export function setCurrentClient(client: Client): void {
 }
 
 /**
- * Unfortunately, we still have to manually bind the client to the "hub" set on the global
+ * Unfortunately, we still have to manually bind the client to the "hub" property set on the global
  * Sentry carrier object. This is because certain scripts (e.g. our loader script) obtain
  * the client via `window.__SENTRY__.hub.getClient()`.
  *
- * @see {@link hub.ts getGlobalHub}
+ * @see {@link ./asyncContext/stackStrategy.ts getAsyncContextStack}
  */
 function registerClientOnGlobalHub(client: Client): void {
   const sentryGlobal = getSentryCarrier(getMainCarrier()) as { hub?: AsyncContextStack };

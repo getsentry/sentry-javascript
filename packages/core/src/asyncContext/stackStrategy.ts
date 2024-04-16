@@ -136,6 +136,7 @@ function getAsyncContextStack(): AsyncContextStack {
   // For now we continue to keep this as `hub` on the ACS,
   // as e.g. the Loader Script relies on this.
   // Eventually we may change this if/when we update the loader to not require this field anymore
+  // Related, we also write to `hub` in {@link ./../sdk.ts registerClientOnGlobalHub}
   const sentry = getSentryCarrier(registry) as { hub?: AsyncContextStack };
 
   if (sentry.hub) {
