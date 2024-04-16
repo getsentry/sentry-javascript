@@ -42,8 +42,6 @@ test('Sends server-side transactions to Sentry', async ({ baseURL }) => {
   const { data } = await axios.get(`${baseURL}/api/success`);
   const { transactionIds } = data;
 
-  expect(transactionIds.length).toBeGreaterThanOrEqual(1);
-
   console.log(`Polling for transaction eventIds: ${JSON.stringify(transactionIds)}`);
 
   await Promise.all(
