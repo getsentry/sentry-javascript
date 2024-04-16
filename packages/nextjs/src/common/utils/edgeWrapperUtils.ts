@@ -7,6 +7,7 @@ import {
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
+  withIsolationScope,
 } from '@sentry/core';
 import { winterCGRequestToRequestData } from '@sentry/utils';
 
@@ -24,64 +25,63 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
   return async function (this: unknown, ...args) {
     return escapeNextjsTracing(() => {
       const req: unknown = args[0];
+      return withIsolationScope(commonObjectToIsolationScope(req), isolationScope => {
+        let sentryTrace;
+        let baggage;
 
-      let sentryTrace;
-      let baggage;
+        if (req instanceof Request) {
+          sentryTrace = req.headers.get('sentry-trace') || '';
+          baggage = req.headers.get('baggage');
 
-      const isolationScope = commonObjectToIsolationScope(req);
+          isolationScope.setSDKProcessingMetadata({
+            request: winterCGRequestToRequestData(req),
+          });
+        }
 
-      if (req instanceof Request) {
-        sentryTrace = req.headers.get('sentry-trace') || '';
-        baggage = req.headers.get('baggage');
-
-        isolationScope.setSDKProcessingMetadata({
-          request: winterCGRequestToRequestData(req),
-        });
-      }
-
-      return continueTrace(
-        {
-          sentryTrace,
-          baggage,
-        },
-        () => {
-          return startSpan(
-            {
-              name: options.spanDescription,
-              op: options.spanOp,
-              forceTransaction: true,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
-              },
-            },
-            async span => {
-              const handlerResult = await handleCallbackErrors(
-                () => handler.apply(this, args),
-                error => {
-                  captureException(error, {
-                    mechanism: {
-                      type: 'instrument',
-                      handled: false,
-                      data: {
-                        function: options.mechanismFunctionName,
-                      },
-                    },
-                  });
+        return continueTrace(
+          {
+            sentryTrace,
+            baggage,
+          },
+          () => {
+            return startSpan(
+              {
+                name: options.spanDescription,
+                op: options.spanOp,
+                forceTransaction: true,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs.withEdgeWrapping',
                 },
-              );
+              },
+              async span => {
+                const handlerResult = await handleCallbackErrors(
+                  () => handler.apply(this, args),
+                  error => {
+                    captureException(error, {
+                      mechanism: {
+                        type: 'instrument',
+                        handled: false,
+                        data: {
+                          function: options.mechanismFunctionName,
+                        },
+                      },
+                    });
+                  },
+                );
 
-              if (handlerResult instanceof Response) {
-                setHttpStatus(span, handlerResult.status);
-              } else {
-                span.setStatus({ code: SPAN_STATUS_OK });
-              }
+                if (handlerResult instanceof Response) {
+                  setHttpStatus(span, handlerResult.status);
+                } else {
+                  span.setStatus({ code: SPAN_STATUS_OK });
+                }
 
-              return handlerResult;
-            },
-          ).finally(() => flushQueue());
-        },
-      );
+                return handlerResult;
+              },
+            ).finally(() => flushQueue());
+          },
+        );
+      });
     });
   };
 }
