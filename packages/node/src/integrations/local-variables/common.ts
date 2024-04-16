@@ -117,3 +117,16 @@ export interface LocalVariablesIntegrationOptions {
    */
   maxExceptionsPerSecond?: number;
 }
+
+export interface LocalVariablesWorkerArgs extends LocalVariablesIntegrationOptions {
+  /**
+   * Whether to enable debug logging.
+   */
+  debug: boolean;
+  /**
+   * Base path used to calculate module name.
+   *
+   * Defaults to `dirname(process.argv[1])` and falls back to `process.cwd()`
+   */
+  basePath?: string;
+}
