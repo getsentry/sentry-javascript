@@ -94,6 +94,7 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
+            'http.url': url,
             'server.address': parsedUrl.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',

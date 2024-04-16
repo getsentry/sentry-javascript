@@ -321,6 +321,7 @@ export function xhrCallback(
           attributes: {
             type: 'xhr',
             'http.method': sentryXhrData.method,
+            'http.url': sentryXhrData.url,
             url: sentryXhrData.url,
             'server.address': parsedUrl.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
