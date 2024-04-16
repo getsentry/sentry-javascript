@@ -12,7 +12,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
 import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
 import { flushQueue } from './utils/responseEnd';
-import { commonObjectToIsolationScope, escapeNextjsTracing } from './utils/tracingUtils';
+import { escapeNextjsTracing } from './utils/tracingUtils';
 
 /**
  * Wrap the given API route handler for tracing and error capturing. Thin wrapper around `withSentry`, which only
@@ -53,10 +53,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
         }
         req.__withSentry_applied__ = true;
 
-        const isolationScope = commonObjectToIsolationScope(req);
-        isolationScope.setSDKProcessingMetadata({ request: req });
-
-        return withIsolationScope(isolationScope, () => {
+        return withIsolationScope(isolationScope => {
           return continueTrace(
             {
               // TODO(v8): Make it so that continue trace will allow null as sentryTrace value and remove this fallback here
@@ -83,6 +80,8 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
               }
 
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
+
+              isolationScope.setSDKProcessingMetadata({ request: req });
 
               return startSpanManual(
                 {
