@@ -122,7 +122,7 @@ sentryTest(
     const request = await requestPromise;
     const headers = request.headers();
 
-    // sampling decision is deferred b/c of no active span at the time of request
+    // sampling decision is propagated from meta tag's sentry-trace sampled flag
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
@@ -152,7 +152,7 @@ sentryTest(
 
     const headers = request.headers();
 
-    // sampling decision is propagated from active span sampling decision
+    // sampling decision is propagated from meta tag's sentry-trace sampled flag
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
