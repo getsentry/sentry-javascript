@@ -88,7 +88,9 @@ export function escapeNextjsTracing<T>(cb: () => T): T {
         traceId: uuid4(),
         spanId: uuid4().substring(16),
       });
-      return cb();
+      return nextjsEscapedAsyncStorage.run(true, () => {
+        return cb();
+      });
     });
   }
 }
