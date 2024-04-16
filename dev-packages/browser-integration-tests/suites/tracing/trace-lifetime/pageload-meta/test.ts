@@ -157,3 +157,61 @@ sentryTest(
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
 );
+
+sentryTest(
+  'outgoing XHR request after <meta> tag pageload has pageload traceId in headers',
+  async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    expect(pageloadEvent?.contexts?.trace).toMatchObject({
+      op: 'pageload',
+      trace_id: META_TAG_TRACE_ID,
+      parent_span_id: META_TAG_PARENT_SPAN_ID,
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    });
+
+    const requestPromise = page.waitForRequest('http://example.com/*');
+    await page.locator('#xhrBtn').click();
+    const request = await requestPromise;
+    const headers = request.headers();
+
+    // sampling decision is propagated from meta tag's sentry-trace sampled flag
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
+    expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
+  },
+);
+
+sentryTest(
+  'outgoing XHR request during <meta> tag pageload has pageload traceId in headers',
+  async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    const pageloadEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const requestPromise = page.waitForRequest('http://example.com/*');
+    await page.goto(url);
+    await page.locator('#xhrBtn').click();
+    const [pageloadEvent, request] = await Promise.all([pageloadEventPromise, requestPromise]);
+
+    expect(pageloadEvent?.contexts?.trace).toMatchObject({
+      op: 'pageload',
+      trace_id: META_TAG_TRACE_ID,
+      parent_span_id: META_TAG_PARENT_SPAN_ID,
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    });
+
+    const headers = request.headers();
+
+    // sampling decision is propagated from meta tag's sentry-trace sampled flag
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
+    expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
+  },
+);
