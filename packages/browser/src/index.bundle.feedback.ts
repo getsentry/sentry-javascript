@@ -4,9 +4,7 @@ export * from './index.bundle.base';
 
 export {
   feedbackIntegration,
-  feedbackModalIntegration,
-  feedbackScreenshotIntegration,
   getFeedback,
-} from '@sentry-internal/feedback';
+} from './feedback';
 
 export { browserTracingIntegrationShim as browserTracingIntegration, replayIntegrationShim as replayIntegration };

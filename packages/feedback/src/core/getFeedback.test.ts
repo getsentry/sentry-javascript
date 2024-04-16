@@ -1,6 +1,6 @@
 import { getCurrentScope } from '@sentry/core';
 import { getFeedback } from './getFeedback';
-import { feedbackIntegration } from './integration';
+import { buildFeedbackIntegration } from './integration';
 import { mockSdk } from './mockSdk';
 
 describe('getFeedback', () => {
@@ -25,7 +25,11 @@ describe('getFeedback', () => {
   });
 
   it('works with a client with Feedback', () => {
-    const feedback = feedbackIntegration();
+    const feedback = buildFeedbackIntegration({
+      lazyLoadIntegration: jest.fn(),
+      getModalIntegration: jest.fn(),
+      getScreenshotIntegration: jest.fn(),
+    });
 
     mockSdk({
       sentryOptions: {

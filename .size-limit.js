@@ -62,18 +62,11 @@ module.exports = [
     limit: '37 KB',
   },
   {
-    name: '@sentry/browser (incl. Feedback, Feedback Modal)',
+    name: '@sentry/browser (incl. FeedbackAsync)',
     path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'feedbackIntegration', 'feedbackModalIntegration'),
+    import: createImport('init', 'feedbackAsyncIntegration'),
     gzip: true,
     limit: '37 KB',
-  },
-  {
-    name: '@sentry/browser (incl. Feedback, Feedback Modal, Feedback Screenshot)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'feedbackIntegration', 'feedbackModalIntegration', 'feedbackScreenshotIntegration'),
-    gzip: true,
-    limit: '40 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',

@@ -17,10 +17,8 @@ export {
 
 export {
   feedbackIntegration,
-  feedbackModalIntegration,
-  feedbackScreenshotIntegration,
   getFeedback,
-} from '@sentry-internal/feedback';
+} from './feedback';
 
 export {
   browserTracingIntegration,

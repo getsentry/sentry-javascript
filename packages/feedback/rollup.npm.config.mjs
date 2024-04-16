@@ -2,6 +2,7 @@ import { makeBaseNPMConfig, makeNPMConfigVariants } from '@sentry-internal/rollu
 
 export default makeNPMConfigVariants(
   makeBaseNPMConfig({
+    entrypoints: ['src/index.ts'],
     hasBundles: true,
     packageSpecificConfig: {
       output: {
