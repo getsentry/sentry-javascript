@@ -54,22 +54,7 @@ export function instrumentFetchRequest(
 
     const span = spans[spanId];
     if (span) {
-      if (handlerData.response) {
-        setHttpStatus(span, handlerData.response.status);
-
-        const contentLength =
-          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-
-        if (contentLength) {
-          const contentLengthNum = parseInt(contentLength);
-          if (contentLengthNum > 0) {
-            span.setAttribute('http.response_content_length', contentLengthNum);
-          }
-        }
-      } else if (handlerData.error) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      }
-      span.end();
+      endSpan(span, handlerData);
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -84,7 +69,8 @@ export function instrumentFetchRequest(
 
   const hasParent = !!getActiveSpan();
 
-  const parsedUrl = parseUrl(url);
+  const fullUrl = getFullURL(url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
   const span =
     shouldCreateSpanResult && hasParent
@@ -94,8 +80,8 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
-            'http.url': url,
-            'server.address': parsedUrl.host,
+            'http.url': fullUrl,
+            'server.address': host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
@@ -207,4 +193,32 @@ export function addTracingHeadersToFetchRequest(
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+function endSpan(span: Span, handlerData: HandlerDataFetch): void {
+  if (handlerData.response) {
+    setHttpStatus(span, handlerData.response.status);
+
+    const contentLength =
+      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+
+    if (contentLength) {
+      const contentLengthNum = parseInt(contentLength);
+      if (contentLengthNum > 0) {
+        span.setAttribute('http.response_content_length', contentLengthNum);
+      }
+    }
+  } else if (handlerData.error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  }
+  span.end();
 }
