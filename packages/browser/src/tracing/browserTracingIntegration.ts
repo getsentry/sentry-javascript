@@ -448,6 +448,8 @@ function registerInteractionListener(
   };
 
   ['click'].forEach(type => {
-    addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+    if (WINDOW.document) {
+      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+    }
   });
 }
