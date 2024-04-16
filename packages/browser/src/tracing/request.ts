@@ -4,6 +4,7 @@ import {
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getActiveSpan,
@@ -26,6 +27,7 @@ import {
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 import { WINDOW } from '../helpers';
@@ -310,6 +312,8 @@ export function xhrCallback(
 
   const hasParent = !!getActiveSpan();
 
+  const parsedUrl = parseUrl(sentryXhrData.url);
+
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
@@ -318,9 +322,10 @@ export function xhrCallback(
             type: 'xhr',
             'http.method': sentryXhrData.method,
             url: sentryXhrData.url,
+            'server.address': parsedUrl.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
-          op: 'http.client',
         })
       : new SentryNonRecordingSpan();
 

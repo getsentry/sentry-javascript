@@ -4,9 +4,10 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  parseUrl,
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import {
   SPAN_STATUS_ERROR,
   getDynamicSamplingContextFromClient,
@@ -83,6 +84,8 @@ export function instrumentFetchRequest(
 
   const hasParent = !!getActiveSpan();
 
+  const parsedUrl = parseUrl(url);
+
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
@@ -91,9 +94,10 @@ export function instrumentFetchRequest(
             url,
             type: 'fetch',
             'http.method': method,
+            'server.address': parsedUrl.host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
-          op: 'http.client',
         })
       : new SentryNonRecordingSpan();
 
