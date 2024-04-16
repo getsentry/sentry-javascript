@@ -284,6 +284,11 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         });
       });
 
+      // A trace should to stay the consistent over the entire time span of one route.
+      // Therefore, when the initial pageload or navigation transaction ends, we update the
+      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
+      // the dynamic sampling context valid, even after the transaction has ended.
+      // This ensures that the trace data is consistent for the entire duration of the route.
       client.on('spanEnd', span => {
         const op = spanToJSON(span).op;
         if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
@@ -291,17 +296,12 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         }
 
         const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
 
-        // A trace should to stay the same for the entire time span of one route.
-        // Therefore, when the initial pageload or navigation transaction is ended, we update the
-        // scope's propagation context to keep span-specific attributes like the `sampled` decision and
-        // the dynamic sampling context valid, even after the transaction has ended.
-        // This ensures that the trace data is consistent for the entire duration of the route.
         const newPropagationContext = {
-          ...scope.getPropagationContext(),
-          // it's okay to always set sampled: true/false here. If we have a span, it cannot be un-sampled.
-          sampled: spanIsSampled(span),
-          dsc: getDynamicSamplingContextFromSpan(span),
+          ...oldPropagationContext,
+          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
+          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
         };
 
         scope.setPropagationContext(newPropagationContext);
