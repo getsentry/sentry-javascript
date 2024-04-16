@@ -1,27 +1,12 @@
 import type { Client, Scope as ScopeInterface } from '@sentry/types';
-import { getGlobalSingleton } from '@sentry/utils';
 import { isThenable } from '@sentry/utils';
+import { getDefaultCurrentScope, getDefaultIsolationScope } from '../currentScopes';
+import { Scope } from '../scope';
 
-import type { AsyncContextStrategy, Carrier } from './asyncContext';
-import { getMainCarrier, getSentryCarrier } from './asyncContext';
-import { Scope } from './scope';
-import { SDK_VERSION } from './version';
+import { getMainCarrier, getSentryCarrier } from './../carrier';
+import type { AsyncContextStrategy } from './types';
 
-/**
- * API compatibility version of this hub.
- *
- * WARNING: This number should only be increased when the global interface
- * changes and new methods are introduced.
- *
- * @hidden
- */
-export const API_VERSION = parseFloat(SDK_VERSION);
-
-/**
- * A layer in the process stack.
- * @hidden
- */
-export interface Layer {
+interface Layer {
   client?: Client;
   scope: ScopeInterface;
 }
@@ -31,19 +16,12 @@ export interface Layer {
  */
 export class AsyncContextStack {
   private readonly _stack: Layer[];
-
   private _isolationScope: ScopeInterface;
 
-  public constructor(
-    client?: Client,
-    scope?: ScopeInterface,
-    isolationScope?: ScopeInterface,
-    private readonly _version: number = API_VERSION,
-  ) {
+  public constructor(scope?: ScopeInterface, isolationScope?: ScopeInterface) {
     let assignedScope;
     if (!scope) {
       assignedScope = new Scope();
-      assignedScope.setClient(client);
     } else {
       assignedScope = scope;
     }
@@ -51,30 +29,12 @@ export class AsyncContextStack {
     let assignedIsolationScope;
     if (!isolationScope) {
       assignedIsolationScope = new Scope();
-      assignedIsolationScope.setClient(client);
     } else {
       assignedIsolationScope = isolationScope;
     }
 
     this._stack = [{ scope: assignedScope }];
-
-    if (client) {
-      this.bindClient(client);
-    }
-
     this._isolationScope = assignedIsolationScope;
-  }
-
-  /**
-   * This binds the given client to the current scope.
-   */
-  public bindClient(client?: Client): void {
-    const top = this.getStackTop();
-    top.client = client;
-    top.scope.setClient(client);
-    if (client) {
-      client.init();
-    }
   }
 
   /**
@@ -166,16 +126,6 @@ export class AsyncContextStack {
   }
 }
 
-/** Get the default current scope. */
-export function getDefaultCurrentScope(): Scope {
-  return getGlobalSingleton('defaultCurrentScope', () => new Scope());
-}
-
-/** Get the default isolation scope. */
-export function getDefaultIsolationScope(): Scope {
-  return getGlobalSingleton('defaultIsolationScope', () => new Scope());
-}
-
 /**
  * Get the global async context stack.
  * This will be removed during the v8 cycle and is only here to make migration easier.
@@ -189,23 +139,8 @@ function getAsyncContextStack(): AsyncContextStack {
     return sentry.hub;
   }
 
-  sentry.hub = new AsyncContextStack(undefined, getDefaultCurrentScope(), getDefaultIsolationScope());
+  sentry.hub = new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope());
   return sentry.hub;
-}
-
-/**
- * Get the current async context strategy.
- * If none has been setup, the default will be used.
- */
-export function getAsyncContextStrategy(carrier: Carrier): AsyncContextStrategy {
-  const sentry = getSentryCarrier(carrier);
-
-  if (sentry.acs) {
-    return sentry.acs;
-  }
-
-  // Otherwise, use the default one
-  return getStackAsyncContextStrategy();
 }
 
 function withScope<T>(callback: (scope: ScopeInterface) => T): T {
@@ -215,7 +150,7 @@ function withScope<T>(callback: (scope: ScopeInterface) => T): T {
 function withSetScope<T>(scope: ScopeInterface, callback: (scope: ScopeInterface) => T): T {
   const hub = getAsyncContextStack() as AsyncContextStack;
   return hub.withScope(() => {
-    hub.getStackTop().scope = scope as Scope;
+    hub.getStackTop().scope = scope;
     return callback(scope);
   });
 }
@@ -226,7 +161,10 @@ function withIsolationScope<T>(callback: (isolationScope: ScopeInterface) => T):
   });
 }
 
-function getStackAsyncContextStrategy(): AsyncContextStrategy {
+/**
+ * Get the stack-based async context strategy.
+ */
+export function getStackAsyncContextStrategy(): AsyncContextStrategy {
   return {
     withIsolationScope,
     withScope,

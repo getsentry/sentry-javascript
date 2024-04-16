@@ -15,8 +15,8 @@ import {
   generateSentryTraceHeader,
   timestampInSeconds,
 } from '@sentry/utils';
-import { getMainCarrier } from '../asyncContext';
-import { getAsyncContextStrategy } from '../asyncContextStack';
+import { getAsyncContextStrategy } from '../asyncContext';
+import { getMainCarrier } from '../carrier';
 import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';

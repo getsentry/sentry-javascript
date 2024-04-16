@@ -1,6 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { Layer } from './asyncContextStack';
-export type { AsyncContextStrategy, Carrier } from './asyncContext';
+export type { AsyncContextStrategy } from './asyncContext/types';
+export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -30,21 +30,17 @@ export {
   addEventProcessor,
 } from './exports';
 export {
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-} from './asyncContextStack';
-export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   withScope,
   withIsolationScope,
   getClient,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './currentScopes';
-export {
-  getMainCarrier,
-  setAsyncContextStrategy,
-} from './asyncContext';
+export { setAsyncContextStrategy } from './asyncContext';
+export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';

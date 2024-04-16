@@ -2,8 +2,8 @@ import type { Client, ClientOptions } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
-import { getMainCarrier, getSentryCarrier } from './asyncContext';
-import type { AsyncContextStack } from './asyncContextStack';
+import type { AsyncContextStack } from './asyncContext/stackStrategy';
+import { getMainCarrier, getSentryCarrier } from './carrier';
 import { DEBUG_BUILD } from './debug-build';
 
 /** A class object that can instantiate Client objects. */
