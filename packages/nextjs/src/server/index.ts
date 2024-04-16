@@ -1,5 +1,5 @@
 import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
-import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
+import { getDefaultIntegrations, httpIntegration, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
@@ -75,6 +75,11 @@ export function init(options: NodeOptions): void {
         // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
         integration.name !== 'Http',
     ),
+    httpIntegration({
+      ignoreIncomingRequests() {
+        return true;
+      },
+    }),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
