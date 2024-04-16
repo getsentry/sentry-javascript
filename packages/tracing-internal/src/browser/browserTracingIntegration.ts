@@ -292,7 +292,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
     if (isPageloadTransaction && WINDOW.document) {
       WINDOW.document.addEventListener('readystatechange', () => {
-        if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
+        if (['interactive', 'complete'].includes(WINDOW.document!.readyState)) {
           idleTransaction.sendAutoFinishSignal();
         }
       });
@@ -538,7 +538,9 @@ function registerInteractionListener(
   };
 
   ['click'].forEach(type => {
-    addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+    if (WINDOW.document) {
+      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+    }
   });
 }
 

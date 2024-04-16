@@ -418,14 +418,16 @@ export class BrowserTracing implements Integration {
     );
 
     if (isPageloadTransaction) {
-      WINDOW.document.addEventListener('readystatechange', () => {
+      if (WINDOW.document) {
+        WINDOW.document.addEventListener('readystatechange', () => {
+          if (['interactive', 'complete'].includes(WINDOW.document!.readyState)) {
+            idleTransaction.sendAutoFinishSignal();
+          }
+        });
+
         if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
           idleTransaction.sendAutoFinishSignal();
         }
-      });
-
-      if (['interactive', 'complete'].includes(WINDOW.document.readyState)) {
-        idleTransaction.sendAutoFinishSignal();
       }
     }
 
@@ -496,7 +498,9 @@ export class BrowserTracing implements Integration {
     };
 
     ['click'].forEach(type => {
-      addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+      if (WINDOW.document) {
+        addEventListener(type, registerInteractionTransaction, { once: false, capture: true });
+      }
     });
   }
 

@@ -19,10 +19,12 @@ import { onHidden } from './onHidden';
 
 let firstHiddenTime = -1;
 
-const initHiddenTime = (): number => {
+const initHiddenTime = (): void => {
   // If the document is hidden and not prerendering, assume it was always
   // hidden and the page was loaded in the background.
-  return WINDOW.document.visibilityState === 'hidden' && !WINDOW.document.prerendering ? 0 : Infinity;
+  if (WINDOW.document && WINDOW.document.visibilityState) {
+    firstHiddenTime = WINDOW.document.visibilityState === 'hidden' && !WINDOW.document.prerendering ? 0 : Infinity;
+  }
 };
 
 const trackChanges = (): void => {
@@ -40,7 +42,7 @@ export const getVisibilityWatcher = (): {
     // since navigation start. This isn't a perfect heuristic, but it's the
     // best we can do until an API is available to support querying past
     // visibilityState.
-    firstHiddenTime = initHiddenTime();
+    initHiddenTime();
     trackChanges();
   }
   return {
