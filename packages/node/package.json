@@ -68,7 +68,7 @@
     "@opentelemetry/instrumentation-mysql": "0.35.0",
     "@opentelemetry/instrumentation-mysql2": "0.35.0",
     "@opentelemetry/instrumentation-nestjs-core": "0.34.0",
-    "@opentelemetry/instrumentation-pg": "0.38.0",
+    "@opentelemetry/instrumentation-pg": "0.40.0",
     "@opentelemetry/resources": "^1.23.0",
     "@opentelemetry/sdk-trace-base": "^1.23.0",
     "@opentelemetry/semantic-conventions": "^1.23.0",
