@@ -2,7 +2,7 @@ import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
 import { getGlobalSingleton } from '@sentry/utils';
 import { getMainCarrier } from './asyncContext';
-import { getAsyncContextStrategy } from './hub';
+import { getAsyncContextStrategy } from './asyncContextStack';
 import { Scope as ScopeClass } from './scope';
 
 /**

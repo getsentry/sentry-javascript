@@ -5,7 +5,7 @@ import { getMainCarrier } from '../asyncContext';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
-import { getAsyncContextStrategy } from '../hub';
+import { getAsyncContextStrategy } from '../asyncContextStack';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';

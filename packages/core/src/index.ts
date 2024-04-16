@@ -1,5 +1,5 @@
 export type { ClientClass } from './sdk';
-export type { Layer } from './hub';
+export type { Layer } from './asyncContextStack';
 export type { AsyncContextStrategy, Carrier } from './asyncContext';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
@@ -32,7 +32,7 @@ export {
 export {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-} from './hub';
+} from './asyncContextStack';
 export {
   getCurrentScope,
   getIsolationScope,

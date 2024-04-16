@@ -3,8 +3,8 @@ import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
 import { getMainCarrier, getSentryCarrier } from './asyncContext';
+import type { AsyncContextStack } from './asyncContextStack';
 import { DEBUG_BUILD } from './debug-build';
-import type { Hub } from './hub';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -55,11 +55,8 @@ export function setCurrentClient(client: Client): void {
  * @see {@link hub.ts getGlobalHub}
  */
 function registerClientOnGlobalHub(client: Client): void {
-  // eslint-disable-next-line deprecation/deprecation
-  const sentryGlobal = getSentryCarrier(getMainCarrier()) as { hub?: Hub };
-  // eslint-disable-next-line deprecation/deprecation
+  const sentryGlobal = getSentryCarrier(getMainCarrier()) as { hub?: AsyncContextStack };
   if (sentryGlobal.hub && typeof sentryGlobal.hub.getStackTop === 'function') {
-    // eslint-disable-next-line deprecation/deprecation
     sentryGlobal.hub.getStackTop().client = client;
   }
 }
