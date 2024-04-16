@@ -52,13 +52,6 @@ export class SentrySampler implements Sampler {
       return { decision: SamplingDecision.NOT_RECORD, traceState };
     }
 
-    // If we encounter a span emitted by Next.js, we do not want to sample it
-    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
-    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
-    if (spanAttributes['next.span_type']) {
-      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
-    }
-
     // If we have a http.client span that has no local parent, we never want to sample it
     // but we want to leave downstream sampling decisions up to the server
     if (
@@ -70,6 +63,14 @@ export class SentrySampler implements Sampler {
     }
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
+
+    // If we encounter a span emitted by Next.js, we do not want to sample it
+    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+    // BUT we only do this if we don't have a parent span with a sampling decision yet
+    if (spanAttributes['next.span_type'] && typeof parentSampled !== 'boolean') {
+      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
+    }
 
     const [sampled, sampleRate] = sampleSpan(options, {
       name: spanName,
