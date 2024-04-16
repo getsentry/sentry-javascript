@@ -2,7 +2,7 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
 import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
@@ -329,7 +329,7 @@ function getExistingBaggage(carrier: unknown): string | undefined {
  * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
  */
 function getCurrentURL(span: Span): string | undefined {
-  const urlAttribute = spanToJSON(span).data?.[SemanticAttributes.HTTP_URL];
+  const urlAttribute = spanToJSON(span).data?.[SEMATTRS_HTTP_URL];
   if (urlAttribute) {
     return urlAttribute;
   }

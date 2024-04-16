@@ -1,5 +1,5 @@
 import { SpanStatusCode } from '@opentelemetry/api';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK, getSpanStatusFromHttpCode } from '@sentry/core';
 import type { SpanStatus } from '@sentry/types';
 
@@ -53,8 +53,8 @@ export function mapStatus(span: AbstractSpan): SpanStatus {
 
   // If the span status is UNSET, we try to infer it from HTTP or GRPC status codes.
 
-  const httpCodeAttribute = attributes[SemanticAttributes.HTTP_STATUS_CODE];
-  const grpcCodeAttribute = attributes[SemanticAttributes.RPC_GRPC_STATUS_CODE];
+  const httpCodeAttribute = attributes[SEMATTRS_HTTP_STATUS_CODE];
+  const grpcCodeAttribute = attributes[SEMATTRS_RPC_GRPC_STATUS_CODE];
 
   const numberHttpCode =
     typeof httpCodeAttribute === 'number'

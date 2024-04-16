@@ -36,7 +36,7 @@ describe('withSentry', () => {
   });
 
   describe('tracing', () => {
-    it('starts a transaction and sets metadata when tracing is enabled', async () => {
+    it('starts a transaction when tracing is enabled', async () => {
       await wrappedHandlerNoError(req, res);
       expect(startSpanManualSpy).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -49,10 +49,6 @@ describe('withSentry', () => {
         }),
         expect.any(Function),
       );
-
-      expect(SentryCore.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
-        request: expect.objectContaining({ url: 'http://dogs.are.great' }),
-      });
     });
   });
 });

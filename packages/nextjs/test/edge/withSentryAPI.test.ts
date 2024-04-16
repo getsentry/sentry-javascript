@@ -58,10 +58,6 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
-
-    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
-      request: { headers: {}, method: 'POST', url: 'https://sentry.io/' },
-    });
   });
 
   it('should return a function that calls trace without throwing when no request is passed', async () => {
@@ -83,7 +79,5 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
-
-    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({});
   });
 });
