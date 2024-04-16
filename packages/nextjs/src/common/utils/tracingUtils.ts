@@ -62,7 +62,9 @@ interface AsyncLocalStorage<T> {
 let nextjsEscapedAsyncStorage: AsyncLocalStorage<true>;
 
 /**
- * TODO
+ * Will mark the execution context of the callback as "escaped" from Next.js internal tracing by unsetting the active
+ * span and propagation context. When an execution passes through this function multiple times, it is a noop after the
+ * first time.
  */
 export function escapeNextjsTracing<T>(cb: () => T): T {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
