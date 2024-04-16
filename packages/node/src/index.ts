@@ -37,9 +37,13 @@ export type { NodeOptions } from './types';
 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
-// These are custom variants that need to be used instead of the core one
-// As they have slightly different implementations
-export { continueTrace } from '@sentry/opentelemetry';
+export {
+  // These are custom variants that need to be used instead of the core one
+  // As they have slightly different implementations
+  continueTrace,
+  // This needs exporting so the NodeClient can be used without calling init
+  setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
+} from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
