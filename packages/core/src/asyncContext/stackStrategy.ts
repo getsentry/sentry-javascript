@@ -132,9 +132,12 @@ export class AsyncContextStack {
  */
 function getAsyncContextStack(): AsyncContextStack {
   const registry = getMainCarrier();
+
+  // For now we continue to keep this as `hub` on the ACS,
+  // as e.g. the Loader Script relies on this.
+  // Eventually we may change this if/when we update the loader to not require this field anymore
   const sentry = getSentryCarrier(registry) as { hub?: AsyncContextStack };
 
-  // If there's no hub, or its an old API, assign a new one
   if (sentry.hub) {
     return sentry.hub;
   }
