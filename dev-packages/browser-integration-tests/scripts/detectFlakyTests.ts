@@ -26,7 +26,6 @@ const MAX_PER_TEST_RUN_COUNT = 50;
 const MIN_PER_TEST_RUN_COUNT = 5;
 
 async function run(): Promise<void> {
-  console.log('xxx cwd', process.cwd());
   let testPaths: string[] = [];
 
   const changedPaths: string[] = process.env.CHANGED_TEST_PATHS ? JSON.parse(process.env.CHANGED_TEST_PATHS) : [];
@@ -156,10 +155,7 @@ function logError(error: unknown) {
  */
 function getApproximateNumberOfTests(testPath: string): number {
   try {
-    const content = fs.readFileSync(
-      path.join(process.cwd(), 'dev-packages', 'browser-integration-tests', testPath),
-      'utf-8',
-    );
+    const content = fs.readFileSync(path.join(process.cwd(), testPath, 'test.ts'), 'utf-8');
     const matches = content.match(/it\(|test\(|sentryTest\(/g);
     return Math.max(matches ? matches.length : 1, 1);
   } catch (e) {
