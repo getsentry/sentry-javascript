@@ -91,44 +91,20 @@ export function instrumentFetchRequest(
         onlyIfParent: true,
         attributes: {
           url,
-            type: 'fetch',
-            'http.method': method,
-            'http.url': fullUrl,
-            'server.address': host,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+          type: 'fetch',
+          'http.method': method,
+          'http.url': fullUrl,
+          'server.address': host,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
         },
         op: 'http.client',
       })
     : undefined;
 
-<<<<<<< HEAD:packages/tracing-internal/src/common/fetch.ts
   if (span) {
     handlerData.fetchData.__span = span.spanContext().spanId;
     spans[span.spanContext().spanId] = span;
   }
-=======
-  const fullUrl = getFullURL(url);
-  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
-
-  const span =
-    shouldCreateSpanResult && hasParent
-      ? startInactiveSpan({
-          name: `${method} ${url}`,
-          attributes: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-            'http.url': fullUrl,
-            'server.address': host,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-          },
-        })
-      : new SentryNonRecordingSpan();
-
-  handlerData.fetchData.__span = span.spanContext().spanId;
-  spans[span.spanContext().spanId] = span;
->>>>>>> daf2edf9b (feat(core): Add `server.address` to browser `http.client` spans (#11634)):packages/core/src/fetch.ts
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
     const request: string | Request = handlerData.args[0];
