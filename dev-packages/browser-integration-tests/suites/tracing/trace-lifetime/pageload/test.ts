@@ -274,8 +274,13 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      url,
+      eventAndTraceHeaderRequestParser,
+    );
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
@@ -284,13 +289,20 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.locator('#xhrBtn').click();
     const request = await requestPromise;
     const headers = request.headers();
 
     // sampling decision and DSC are continued from the pageload span even after it ended
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
@@ -307,13 +319,19 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      undefined,
+      eventAndTraceHeaderRequestParser,
+    );
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
-    const [pageloadEvent, request] = await Promise.all([pageloadEventPromise, requestPromise]);
+    const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
 
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
+
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -321,10 +339,17 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
