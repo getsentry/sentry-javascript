@@ -84,7 +84,7 @@ export interface FeedbackTextConfiguration {
   /**
    * The label for the Feedback widget button that opens the dialog
    */
-  buttonLabel: string;
+  buttonLabel: string | { desktop: string;  mobile: string};
 
   /**
    * The label for the Feedback form cancel button that closes dialog

@@ -10,7 +10,7 @@ export const LIGHT_THEME = {
   backgroundHover: '#f6f6f7',
   foreground: '#2b2233',
   border: '1.5px solid rgba(41, 35, 47, 0.13)',
-  borderRadius: '99px',
+  borderRadius: '25px',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
   success: '#268d75',

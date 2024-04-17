@@ -1,4 +1,4 @@
-import { NAVIGATOR } from '../constants';
+import { isMobile } from './isMobile';
 
 /**
  * Mobile browsers do not support `mediaDevices.getDisplayMedia` even though they have the api implemented
@@ -14,7 +14,7 @@ import { NAVIGATOR } from '../constants';
  * https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/getDisplayMedia
  */
 export function isScreenshotSupported(): boolean {
-  if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(NAVIGATOR.userAgent)) {
+  if (isMobile()) {
     return false;
   }
   if (!isSecureContext) {
