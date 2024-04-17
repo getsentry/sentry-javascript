@@ -16,6 +16,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  parseUrl,
 } from '@sentry/utils';
 
 type PolymorphicRequestHeaders =
@@ -81,24 +82,53 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
+  const fullUrl = getFullURL(url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
   const span = shouldCreateSpanResult
     ? startInactiveSpan({
         name: `${method} ${url}`,
         onlyIfParent: true,
         attributes: {
           url,
-          type: 'fetch',
-          'http.method': method,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+            type: 'fetch',
+            'http.method': method,
+            'http.url': fullUrl,
+            'server.address': host,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
         },
         op: 'http.client',
       })
     : undefined;
 
+<<<<<<< HEAD:packages/tracing-internal/src/common/fetch.ts
   if (span) {
     handlerData.fetchData.__span = span.spanContext().spanId;
     spans[span.spanContext().spanId] = span;
   }
+=======
+  const fullUrl = getFullURL(url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${method} ${url}`,
+          attributes: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+            'http.url': fullUrl,
+            'server.address': host,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          },
+        })
+      : new SentryNonRecordingSpan();
+
+  handlerData.fetchData.__span = span.spanContext().spanId;
+  spans[span.spanContext().spanId] = span;
+>>>>>>> daf2edf9b (feat(core): Add `server.address` to browser `http.client` spans (#11634)):packages/core/src/fetch.ts
 
   if (shouldAttachHeaders(handlerData.fetchData.url) && client) {
     const request: string | Request = handlerData.args[0];
@@ -197,4 +227,32 @@ export function addTracingHeadersToFetchRequest(
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+function endSpan(span: Span, handlerData: HandlerDataFetch): void {
+  if (handlerData.response) {
+    setHttpStatus(span, handlerData.response.status);
+
+    const contentLength =
+      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+
+    if (contentLength) {
+      const contentLengthNum = parseInt(contentLength);
+      if (contentLengthNum > 0) {
+        span.setAttribute('http.response_content_length', contentLengthNum);
+      }
+    }
+  } else if (handlerData.error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  }
+  span.end();
 }

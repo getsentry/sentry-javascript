@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,
@@ -21,6 +22,7 @@ import {
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 
@@ -119,6 +121,18 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceFetch) {
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      // We cannot use `window.location` in the generic fetch instrumentation,
+      // but we need it for reliable `server.address` attribute.
+      // so we extend this in here
+      if (createdSpan) {
+        const fullUrl = getFullURL(handlerData.fetchData.url);
+        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        createdSpan.setAttributes({
+          'http.url': fullUrl,
+          'server.address': host,
+        });
+      }
+
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
@@ -279,6 +293,9 @@ export function xhrCallback(
   const scope = getCurrentScope();
   const isolationScope = getIsolationScope();
 
+  const fullUrl = getFullURL(sentryXhrData.url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
   const span = shouldCreateSpanResult
     ? startInactiveSpan({
         name: `${sentryXhrData.method} ${sentryXhrData.url}`,
@@ -286,7 +303,9 @@ export function xhrCallback(
         attributes: {
           type: 'xhr',
           'http.method': sentryXhrData.method,
+          'http.url': fullUrl,
           url: sentryXhrData.url,
+          'server.address': host,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
         },
         op: 'http.client',
@@ -336,5 +355,16 @@ function setHeaderOnXhr(
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
+  }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    // By adding a base URL to new URL(), this will also work for relative urls
+    // If `url` is a full URL, the base URL is ignored anyhow
+    const parsed = new URL(url, WINDOW.location.origin);
+    return parsed.href;
+  } catch {
+    return undefined;
   }
 }

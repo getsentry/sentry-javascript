@@ -37,6 +37,13 @@ sentryTest('should create spans for multiple fetch requests', async ({ getLocalT
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: tracingEvent.contexts?.trace?.trace_id,
+      data: {
+        'http.method': 'GET',
+        'http.url': `http://example.com/${index}`,
+        url: `http://example.com/${index}`,
+        'server.address': 'example.com',
+        type: 'fetch',
+      },
     }),
   );
 });

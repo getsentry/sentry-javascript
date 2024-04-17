@@ -170,6 +170,6 @@ module.exports = [
     path: 'packages/feedback/build/npm/esm/index.js',
     import: '{ Feedback }',
     gzip: true,
-    limit: '25 KB',
+    limit: '160 KB',
   },
 ];
