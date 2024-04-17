@@ -4,6 +4,7 @@ import {
   addXhrInstrumentationHandler,
 } from '@sentry-internal/browser-utils';
 import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
   getActiveSpan,
@@ -26,6 +27,7 @@ import {
   browserPerformanceTimeOrigin,
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
+  parseUrl,
   stringMatchesSomePattern,
 } from '@sentry/utils';
 import { WINDOW } from '../helpers';
@@ -115,6 +117,18 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
   if (traceFetch) {
     addFetchInstrumentationHandler(handlerData => {
       const createdSpan = instrumentFetchRequest(handlerData, shouldCreateSpan, shouldAttachHeadersWithTargets, spans);
+      // We cannot use `window.location` in the generic fetch instrumentation,
+      // but we need it for reliable `server.address` attribute.
+      // so we extend this in here
+      if (createdSpan) {
+        const fullUrl = getFullURL(handlerData.fetchData.url);
+        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+        createdSpan.setAttributes({
+          'http.url': fullUrl,
+          'server.address': host,
+        });
+      }
+
       if (enableHTTPTimings && createdSpan) {
         addHTTPTimings(createdSpan);
       }
@@ -310,6 +324,9 @@ export function xhrCallback(
 
   const hasParent = !!getActiveSpan();
 
+  const fullUrl = getFullURL(sentryXhrData.url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
   const span =
     shouldCreateSpanResult && hasParent
       ? startInactiveSpan({
@@ -317,10 +334,12 @@ export function xhrCallback(
           attributes: {
             type: 'xhr',
             'http.method': sentryXhrData.method,
+            'http.url': fullUrl,
             url: sentryXhrData.url,
+            'server.address': host,
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
           },
-          op: 'http.client',
         })
       : new SentryNonRecordingSpan();
 
@@ -379,5 +398,16 @@ function setHeaderOnXhr(
     }
   } catch (_) {
     // Error: InvalidStateError: Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.
+  }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    // By adding a base URL to new URL(), this will also work for relative urls
+    // If `url` is a full URL, the base URL is ignored anyhow
+    const parsed = new URL(url, WINDOW.location.origin);
+    return parsed.href;
+  } catch {
+    return undefined;
   }
 }

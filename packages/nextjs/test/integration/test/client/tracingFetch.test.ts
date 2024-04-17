@@ -33,6 +33,8 @@ test('should correctly instrument `fetch` for performance tracing', async ({ pag
         data: {
           'http.method': 'GET',
           url: 'http://example.com',
+          'http.url': 'http://example.com/',
+          'server.address': 'example.com',
           type: 'fetch',
           'http.response_content_length': expect.any(Number),
           'http.response.status_code': 200,

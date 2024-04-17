@@ -1,51 +1,55 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 
-import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import { TEST_HOST, sentryTest } from '../../../../utils/fixtures';
+import {
+  envelopeRequestParser,
+  shouldSkipTracingTest,
+  waitForTransactionRequestOnUrl,
+} from '../../../../utils/helpers';
 
-sentryTest('should create spans for XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  const req = await waitForTransactionRequestOnUrl(page, url);
+  const tracingEvent = envelopeRequestParser(req);
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
-  const requestSpans = eventData.spans?.filter(({ op }) => op === 'http.client');
+  const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);
 
   requestSpans?.forEach((span, index) =>
     expect(span).toMatchObject({
-      description: `GET http://example.com/${index}`,
-      parent_span_id: eventData.contexts?.trace?.span_id,
+      description: `GET /test-req/${index}`,
+      parent_span_id: tracingEvent.contexts?.trace?.span_id,
       span_id: expect.any(String),
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
-      trace_id: eventData.contexts?.trace?.trace_id,
+      trace_id: tracingEvent.contexts?.trace?.trace_id,
       data: {
         'http.method': 'GET',
-        'http.url': `http://example.com/${index}`,
-        url: `http://example.com/${index}`,
-        'server.address': 'example.com',
-        type: 'xhr',
+        'http.url': `${TEST_HOST}/test-req/${index}`,
+        url: `/test-req/${index}`,
+        'server.address': 'sentry-test.io',
+        type: 'fetch',
       },
     }),
   );
 });
 
-sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([
       page.goto(url),
-      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`http://example.com/${idx}`))),
+      Promise.all([0, 1, 2].map(idx => page.waitForRequest(`${TEST_HOST}/test-req/${idx}`))),
     ])
   )[1];
 
