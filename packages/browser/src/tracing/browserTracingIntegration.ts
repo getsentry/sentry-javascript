@@ -18,7 +18,6 @@ import {
   getIsolationScope,
   getRootSpan,
   registerSpanErrorInstrumentation,
-  spanIsSampled,
   spanToJSON,
   startIdleSpan,
   withScope,
@@ -298,10 +297,13 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const scope = getCurrentScope();
         const oldPropagationContext = scope.getPropagationContext();
 
+        const newDsc = oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span);
+        const newDscSampled = newDsc.sampled === 'true' ? true : newDsc.sampled === 'false' ? false : undefined;
+
         const newPropagationContext = {
           ...oldPropagationContext,
-          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
-          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
+          sampled: newDscSampled,
+          dsc: newDsc,
         };
 
         scope.setPropagationContext(newPropagationContext);
