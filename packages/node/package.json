@@ -57,6 +57,7 @@
     "@opentelemetry/context-async-hooks": "^1.23.0",
     "@opentelemetry/core": "^1.23.0",
     "@opentelemetry/instrumentation": "0.48.0",
+    "@opentelemetry/instrumentation-connect": "0.35.0",
     "@opentelemetry/instrumentation-express": "0.35.0",
     "@opentelemetry/instrumentation-fastify": "0.33.0",
     "@opentelemetry/instrumentation-graphql": "0.37.0",

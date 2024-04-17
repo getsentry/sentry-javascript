@@ -1051,6 +1051,7 @@ jobs:
             'node-nestjs-app',
             'node-exports-test-app',
             'node-koa-app',
+            'node-connect-app',
             'vue-3',
             'webpack-4',
             'webpack-5'
