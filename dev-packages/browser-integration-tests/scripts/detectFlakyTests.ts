@@ -109,15 +109,15 @@ function getPerTestRunCount(testPaths: string[]) {
 
     // tests are usually run against all browsers we test with, so let's assume this
     const testRunCount = estimatedNumberOfTests * NUM_BROWSERS;
-    console.log('Estimated test run count:', testRunCount);
+    console.log(`Estimated test runs for one round: ${testRunCount}`);
 
     const estimatedTestRuntime = testRunCount * ASSUMED_TEST_DURATION_SECONDS;
-    console.log('Estimated test runtime:', estimatedTestRuntime);
+    console.log(`Estimated test runtime: ${estimatedTestRuntime}s`);
 
-    const expectedRuntime = Math.floor(MAX_TARGET_TEST_RUNTIME_SECONDS / estimatedTestRuntime);
-    console.log('Expected test run count:', expectedRuntime);
+    const expectedPerTestRunCount = Math.floor(MAX_TARGET_TEST_RUNTIME_SECONDS / estimatedTestRuntime);
+    console.log(`Expected per-test run count: ${expectedPerTestRunCount}`);
 
-    return Math.min(MAX_PER_TEST_RUN_COUNT, Math.max(expectedRuntime, MIN_PER_TEST_RUN_COUNT));
+    return Math.min(MAX_PER_TEST_RUN_COUNT, Math.max(expectedPerTestRunCount, MIN_PER_TEST_RUN_COUNT));
   }
 
   return parseInt(process.env.TEST_RUN_COUNT || '5');
