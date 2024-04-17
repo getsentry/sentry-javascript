@@ -32,7 +32,6 @@ where `window.document` is not available (such as web workers).
 - fix(feedback): Fix timeout on feedback submission (#11619)
 - fix(node): Allow use of `NodeClient` without calling `init` (#11585)
 - fix(node): Ensure DSC is correctly set in envelope headers (#11628)
-- ref(core): Rename `Hub` to `AsyncContextStack` & remove unneeded methods (#11630)
 
 ## 8.0.0-beta.1
 
