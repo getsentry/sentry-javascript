@@ -124,7 +124,7 @@
     "prettier": "^3.1.1",
     "replace-in-file": "^4.0.0",
     "rimraf": "^3.0.2",
-    "rollup": "^4.13.0",
+    "rollup": "^4.14.3",
     "rollup-plugin-cleanup": "^3.2.1",
     "rollup-plugin-license": "^3.3.1",
     "sinon": "^7.3.2",
