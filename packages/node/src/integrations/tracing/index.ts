@@ -1,5 +1,6 @@
 import type { Integration } from '@sentry/types';
 
+import { connectIntegration } from './connect';
 import { expressIntegration } from './express';
 import { fastifyIntegration } from './fastify';
 import { graphqlIntegration } from './graphql';
@@ -32,5 +33,6 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     nestIntegration(),
     hapiIntegration(),
     koaIntegration(),
+    connectIntegration(),
   ];
 }
