@@ -1,4 +1,4 @@
-import { getClient, getCurrentScope } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, getClient, getCurrentScope, spanToJSON } from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
@@ -109,6 +109,9 @@ describe('Sentry client SDK', () => {
 
         expect(browserTracing).toBeDefined();
 
+        // It is a "old" browser tracing integration
+        expect(typeof browserTracing['afterAllSetup']).toBe('undefined');
+
         // This shows that the user-configured options are still here
         expect(options.finalTimeout).toEqual(10);
 
@@ -124,18 +127,25 @@ describe('Sentry client SDK', () => {
           enableTracing: true,
         });
 
-        // eslint-disable-next-line deprecation/deprecation
-        const browserTracing = getClient<BrowserClient>()?.getIntegrationByName('BrowserTracing') as BrowserTracing;
-        const options = browserTracing.options;
+        const browserTracing =
+          getClient<BrowserClient>()?.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>(
+            'BrowserTracing',
+          );
+        const options = browserTracing?.options;
 
         expect(browserTracing).toBeDefined();
 
-        // This shows that the user-configured options are still here
-        expect(options.finalTimeout).toEqual(10);
+        // It is a "new" browser tracing integration
+        expect(typeof browserTracing?.afterAllSetup).toBe('function');
 
-        // But we force the routing instrumentation to be ours
-        // eslint-disable-next-line deprecation/deprecation
-        expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
+        // This shows that the user-configured options are still here
+        expect(options?.finalTimeout).toEqual(10);
+
+        // it is the svelte kit variety
+        expect(getActiveSpan()).toBeDefined();
+        expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
+          'auto.pageload.sveltekit',
+        );
       });
     });
   });

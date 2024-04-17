@@ -1,5 +1,5 @@
 import { applySdkMetadata, hasTracingEnabled } from '@sentry/core';
-import type { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
+import { BrowserOptions, browserTracingIntegration } from '@sentry/svelte';
 import { getDefaultIntegrations as getDefaultSvelteIntegrations } from '@sentry/svelte';
 import { WINDOW, getCurrentScope, init as initSvelteSdk } from '@sentry/svelte';
 import type { Integration } from '@sentry/types';
@@ -82,7 +82,7 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   if (isNewBrowserTracingIntegration(browserTracing)) {
     const { options } = browserTracing;
     // eslint-disable-next-line deprecation/deprecation
-    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+    integrations[integrations.indexOf(browserTracing)] = svelteKitBrowserTracingIntegration(options);
   }
 
   // If BrowserTracing was added, but it is not our forked version,
