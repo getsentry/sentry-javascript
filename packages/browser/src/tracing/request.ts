@@ -122,7 +122,7 @@ export function instrumentOutgoingRequests(_options?: Partial<RequestInstrumenta
       // so we extend this in here
       if (createdSpan) {
         const fullUrl = getFullURL(handlerData.fetchData.url);
-        const host = parseUrl(fullUrl).host;
+        const host = fullUrl ? parseUrl(fullUrl).host : undefined;
         createdSpan.setAttributes({
           'http.url': fullUrl,
           'server.address': host,
@@ -325,7 +325,7 @@ export function xhrCallback(
   const hasParent = !!getActiveSpan();
 
   const fullUrl = getFullURL(sentryXhrData.url);
-  const host = parseUrl(fullUrl).host;
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
   const span =
     shouldCreateSpanResult && hasParent
@@ -401,13 +401,13 @@ function setHeaderOnXhr(
   }
 }
 
-function getFullURL(url: string): string {
+function getFullURL(url: string): string | undefined {
   try {
     // By adding a base URL to new URL(), this will also work for relative urls
     // If `url` is a full URL, the base URL is ignored anyhow
     const parsed = new URL(url, WINDOW.location.origin);
     return parsed.href;
   } catch {
-    return url;
+    return undefined;
   }
 }
