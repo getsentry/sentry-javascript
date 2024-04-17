@@ -8,6 +8,7 @@ import {
 } from '../../../../utils/helpers';
 
 sentryTest('creates a new trace on each navigation', async ({ getLocalTestPath, page }) => {
+  // xxx test comment, remove before merging
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }

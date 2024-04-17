@@ -4,6 +4,8 @@ import { sentryTest } from '../../../utils/fixtures';
 import { envelopeRequestParser, shouldSkipTracingTest, waitForTransactionRequestOnUrl } from '../../../utils/helpers';
 
 sentryTest('parses a string sample rate', async ({ getLocalTestUrl, page }) => {
+  // xxx test comment, remove before merging
+
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
