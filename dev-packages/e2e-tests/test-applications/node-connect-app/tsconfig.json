@@ -4,7 +4,7 @@
     "esModuleInterop": true,
     "lib": ["dom", "dom.iterable", "esnext"],
     "strict": true,
-    "outDir": "dist"
+    "noEmit": true
   },
   "include": ["*.ts"]
 }
