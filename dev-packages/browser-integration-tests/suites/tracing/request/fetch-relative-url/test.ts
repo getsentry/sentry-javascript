@@ -16,6 +16,7 @@ sentryTest('should create spans for fetch requests', async ({ getLocalTestUrl, p
   const req = await waitForTransactionRequestOnUrl(page, url);
   const tracingEvent = envelopeRequestParser(req);
 
+  // eslint-disable-next-line deprecation/deprecation
   const requestSpans = tracingEvent.spans?.filter(({ op }) => op === 'http.client');
 
   expect(requestSpans).toHaveLength(3);
