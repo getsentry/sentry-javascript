@@ -14,9 +14,11 @@ import {
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getRootSpan,
   registerSpanErrorInstrumentation,
+  spanIsSampled,
   spanToJSON,
   startIdleSpan,
   withScope,
@@ -280,6 +282,29 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
             });
           });
         });
+      });
+
+      // A trace should to stay the consistent over the entire time span of one route.
+      // Therefore, when the initial pageload or navigation transaction ends, we update the
+      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
+      // the dynamic sampling context valid, even after the transaction has ended.
+      // This ensures that the trace data is consistent for the entire duration of the route.
+      client.on('spanEnd', span => {
+        const op = spanToJSON(span).op;
+        if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
+          return;
+        }
+
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        const newPropagationContext = {
+          ...oldPropagationContext,
+          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
+          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
+        };
+
+        scope.setPropagationContext(newPropagationContext);
       });
 
       if (options.instrumentPageLoad && WINDOW.location) {
