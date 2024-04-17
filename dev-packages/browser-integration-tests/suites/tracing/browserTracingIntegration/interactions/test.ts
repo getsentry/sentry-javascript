@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Contexts, Event, SpanJSON } from '@sentry/types';
+import type { Contexts, Event as SentryEvent, Measurements, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -30,7 +30,7 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await getFirstSentryEnvelopeRequest<Event>(page);
+  await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
@@ -70,12 +70,12 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     for (let i = 0; i < 4; i++) {
       await wait(100);
       await page.locator('[data-test-id=interaction-button]').click();
-      const envelope = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+      const envelope = await getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
       expect(envelope[0].spans).toHaveLength(1);
     }
   },
@@ -97,7 +97,7 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     await page.locator('[data-test-id=annotated-button]').click();
 
@@ -113,34 +113,50 @@ sentryTest(
   },
 );
 
-sentryTest(
-  'should use the element name for a clicked element when no component name',
-  async ({ browserName, getLocalTestPath, page }) => {
-    const supportedBrowsers = ['chromium', 'firefox'];
+sentryTest('should capture an INP click event span. @firefox', async ({ browserName, getLocalTestPath, page }) => {
+  const supportedBrowsers = ['chromium', 'firefox'];
 
-    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-      sentryTest.skip();
-    }
+  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+    sentryTest.skip();
+  }
 
-    await page.route('**/path/to/script.js', (route: Route) =>
-      route.fulfill({ path: `${__dirname}/assets/script.js` }),
-    );
+  await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
+  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
+    });
+  });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestPath({ testDir: __dirname });
 
-    await page.goto(url);
-    await getFirstSentryEnvelopeRequest<Event>(page);
+  await page.goto(url);
+  await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-    await page.locator('[data-test-id=styled-button]').click();
+  await page.locator('[data-test-id=interaction-button]').click();
+  await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
 
-    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
-    expect(envelopes).toHaveLength(1);
-    const eventData = envelopes[0];
+  // Wait for the interaction transaction from the enableInteractions experiment
+  await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
 
-    expect(eventData.spans).toHaveLength(1);
+  const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<
+    SpanJSON & { exclusive_time: number; measurements: Measurements }
+  >(page, 1, {
+    envelopeType: 'span',
+  });
+  // Page hide to trigger INP
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('pagehide'));
+  });
 
-    const interactionSpan = eventData.spans![0];
-    expect(interactionSpan.op).toBe('ui.interaction.click');
-    expect(interactionSpan.description).toBe('body > StyledButton');
-  },
-);
+  // Get the INP span envelope
+  const spanEnvelopes = await spanEnvelopesPromise;
+
+  expect(spanEnvelopes).toHaveLength(1);
+  expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
+  expect(spanEnvelopes[0].description).toBe('body > button.clicked');
+  expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(0);
+  expect(spanEnvelopes[0].measurements.inp.value).toBeGreaterThan(0);
+  expect(spanEnvelopes[0].measurements.inp.unit).toBe('millisecond');
+});

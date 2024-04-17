@@ -18,6 +18,8 @@ import { DEBUG_BUILD } from '../debug-build';
 
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
+  SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
+  SEMANTIC_ATTRIBUTE_PROFILE_ID,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -183,6 +185,8 @@ export class SentrySpan implements Span {
       trace_id: this._traceId,
       origin: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN] as SpanOrigin | undefined,
       _metrics_summary: getMetricSummaryJsonForSpan(this),
+      profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
+      exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
     });
   }
 
