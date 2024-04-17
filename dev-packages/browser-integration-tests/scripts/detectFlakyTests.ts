@@ -6,7 +6,7 @@ import * as glob from 'glob';
 /**
  * The number of browsers we run the tests in.
  */
-const NUM_BROWSERS = 4;
+const NUM_BROWSERS = 3;
 
 /**
  * Assume that each test runs for 3s.
