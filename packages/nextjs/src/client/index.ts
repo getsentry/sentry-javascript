@@ -10,8 +10,7 @@ import type { EventProcessor, Integration } from '@sentry/types';
 
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
-import { browserTracingIntegration } from './browserTracingIntegration';
-import { BrowserTracing } from './browserTracingIntegration';
+import { BrowserTracing, browserTracingIntegration } from './browserTracingIntegration';
 import { rewriteFramesIntegration } from './rewriteFramesIntegration';
 import { applyTunnelRouteOption } from './tunnelRoute';
 
@@ -107,7 +106,7 @@ function maybeUpdateBrowserTracingIntegration(integrations: Integration[]): Inte
   if (isNewBrowserTracingIntegration(browserTracing)) {
     const { options } = browserTracing;
     // eslint-disable-next-line deprecation/deprecation
-    integrations[integrations.indexOf(browserTracing)] = new BrowserTracing(options);
+    integrations[integrations.indexOf(browserTracing)] = browserTracingIntegration(options);
   }
 
   // If BrowserTracing was added, but it is not our forked version,

@@ -1,4 +1,4 @@
-import { BaseClient } from '@sentry/core';
+import { BaseClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, spanToJSON } from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import type { BrowserClient } from '@sentry/react';
 import { browserTracingIntegration } from '@sentry/react';
@@ -149,16 +149,20 @@ describe('Client init()', () => {
 
       const client = getClient<BrowserClient>()!;
       // eslint-disable-next-line deprecation/deprecation
-      const integration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
+      const integration = client.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>('BrowserTracing');
 
       expect(integration).toBeDefined();
-      expect(integration?.options).toEqual(
-        expect.objectContaining({
-          // eslint-disable-next-line deprecation/deprecation
-          routingInstrumentation: nextRouterInstrumentation,
-          // This proves it's still the user's copy
-          finalTimeout: 10,
-        }),
+
+      // It is a "new" browser tracing integration
+      expect(typeof integration?.afterAllSetup).toBe('function');
+
+      // This shows that the user-configured options are still here
+      expect(integration?.options?.finalTimeout).toEqual(10);
+
+      // it is the svelte kit variety
+      expect(getActiveSpan()).toBeDefined();
+      expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
+        'auto.pageload.nextjs.app_router_instrumentation',
       );
     });
 
@@ -176,6 +180,11 @@ describe('Client init()', () => {
       const browserTracingIntegration = client.getIntegrationByName<BrowserTracing>('BrowserTracing');
 
       expect(browserTracingIntegration).toBeDefined();
+
+      // It is a "old" browser tracing integration
+      // @ts-expect-error this does not exist
+      expect(typeof browserTracingIntegration!['afterAllSetup']).toBe('undefined');
+
       expect(browserTracingIntegration?.options).toEqual(
         expect.objectContaining({
           // eslint-disable-next-line deprecation/deprecation
