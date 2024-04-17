@@ -1,6 +1,5 @@
 /* eslint-disable max-lines */
 import {
-  SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   getClient,
   getCurrentScope,

@@ -54,23 +54,7 @@ export function instrumentFetchRequest(
 
     const span = spans[spanId];
     if (span) {
-      if (handlerData.response) {
-        setHttpStatus(span, handlerData.response.status);
-
-        const contentLength =
-          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-
-        if (contentLength) {
-          const contentLengthNum = parseInt(contentLength);
-          if (contentLengthNum > 0) {
-            span.setAttribute('http.response_content_length', contentLengthNum);
-          }
-        }
-      } else if (handlerData.error) {
-        span.setStatus('internal_error');
-      }
-      span.end();
-
+      endSpan(span, handlerData);
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
@@ -228,7 +212,7 @@ function endSpan(span: Span, handlerData: HandlerDataFetch): void {
       }
     }
   } else if (handlerData.error) {
-    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+    span.setStatus('internal_error');
   }
   span.end();
 }
