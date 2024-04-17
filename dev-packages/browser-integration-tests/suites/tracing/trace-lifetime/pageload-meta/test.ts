@@ -10,7 +10,7 @@ import {
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
-  'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=0.2,sentry-transaction=my-transaction,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
+  'sentry-trace_id=12345678901234567890123456789012,sentry-sample_rate=0.2,sentry-sampled=true,sentry-transaction=my-transaction,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
 
 sentryTest(
   'create a new trace for a navigation after the <meta> tag pageload trace',

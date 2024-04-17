@@ -130,11 +130,11 @@ sentryTest(
     const request = await requestPromise;
     const headers = request.headers();
 
-    // sampling decision is deferred b/c of no active span at the time of request
+    // sampling decision and DSC are continued from navigation span, even after it ended
     const navigationTraceId = navigationTraceContext?.trace_id;
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}$`));
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sample_rate=1,sentry-sampled=true`,
     );
   },
 );
@@ -203,11 +203,11 @@ sentryTest(
     const request = await xhrPromise;
     const headers = request.headers();
 
-    // sampling decision is deferred b/c of no active span at the time of request
+    // sampling decision and DSC are continued from navigation span, even after it ended
     const navigationTraceId = navigationTraceContext?.trace_id;
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}$`));
+    expect(headers['sentry-trace']).toMatch(new RegExp(`^${navigationTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId}`,
+      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sample_rate=1,sentry-sampled=true`,
     );
   },
 );
