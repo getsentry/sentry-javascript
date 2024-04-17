@@ -20,10 +20,13 @@ const MAX_TARGET_TEST_RUNTIME_SECONDS = 30 * 60;
 
 /**
  * Running one test 50x is what we consider enough to detect flakiness.
+ * Running one test 5x is the bare minimum
  */
 const MAX_PER_TEST_RUN_COUNT = 50;
+const MIN_PER_TEST_RUN_COUNT = 5;
 
 async function run(): Promise<void> {
+  console.log('xxx cwd', process.cwd());
   let testPaths: string[] = [];
 
   const changedPaths: string[] = process.env.CHANGED_TEST_PATHS ? JSON.parse(process.env.CHANGED_TEST_PATHS) : [];
@@ -41,8 +44,8 @@ ${changedPaths.join('\n')}
     }
   }
 
-  const runCount = getPerTestRunCount(testPaths);
-  console.log(`Running tests ${runCount} times each.`);
+  const repeatEachCount = getPerTestRunCount(testPaths);
+  console.log(`Running tests ${repeatEachCount} times each.`);
 
   const cwd = path.join(__dirname, '../');
 
@@ -51,7 +54,7 @@ ${changedPaths.join('\n')}
       const cp = childProcess.spawn(
         `npx playwright test ${
           testPaths.length ? testPaths.join(' ') : './suites'
-        } --reporter='line' --repeat-each ${runCount}`,
+        } --reporter='line' --repeat-each ${repeatEachCount}`,
         { shell: true, cwd },
       );
 
@@ -107,11 +110,15 @@ function getPerTestRunCount(testPaths: string[]) {
 
     // tests are usually run against all browsers we test with, so let's assume this
     const testRunCount = estimatedNumberOfTests * NUM_BROWSERS;
+    console.log('Estimated test run count:', testRunCount);
 
     const estimatedTestRuntime = testRunCount * ASSUMED_TEST_DURATION_SECONDS;
-    const expectedRuntime = Math.floor(MAX_TARGET_TEST_RUNTIME_SECONDS / estimatedTestRuntime);
+    console.log('Estimated test runtime:', estimatedTestRuntime);
 
-    return Math.min(MAX_PER_TEST_RUN_COUNT, Math.max(expectedRuntime, 5));
+    const expectedRuntime = Math.floor(MAX_TARGET_TEST_RUNTIME_SECONDS / estimatedTestRuntime);
+    console.log('Expected test run count:', expectedRuntime);
+
+    return Math.min(MAX_PER_TEST_RUN_COUNT, Math.max(expectedRuntime, MIN_PER_TEST_RUN_COUNT));
   }
 
   return parseInt(process.env.TEST_RUN_COUNT || '5');
@@ -149,7 +156,10 @@ function logError(error: unknown) {
  */
 function getApproximateNumberOfTests(testPath: string): number {
   try {
-    const content = fs.readFileSync(testPath, 'utf-8');
+    const content = fs.readFileSync(
+      path.join(process.cwd(), 'dev-packages', 'browser-integration-tests', testPath),
+      'utf-8',
+    );
     const matches = content.match(/it\(|test\(|sentryTest\(/g);
     return Math.max(matches ? matches.length : 1, 1);
   } catch (e) {
