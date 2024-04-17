@@ -1,11 +1,11 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
 import { propagationContextFromHeaders } from '@sentry/utils';
-import type { AsyncContextStrategy } from '../asyncContext';
-import { getMainCarrier } from '../asyncContext';
+import type { AsyncContextStrategy } from '../asyncContext/types';
+import { getMainCarrier } from '../carrier';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
-import { getAsyncContextStrategy } from '../hub';
+import { getAsyncContextStrategy } from '../asyncContext';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';

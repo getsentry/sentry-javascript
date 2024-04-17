@@ -76,6 +76,8 @@ test('Should trace outgoing fetch requests inside middleware and create breadcru
           'http.response.status_code': 200,
           type: 'fetch',
           url: 'http://localhost:3030/',
+          'http.url': 'http://localhost:3030/',
+          'server.address': 'localhost:3030',
           'sentry.op': 'http.client',
           'sentry.origin': 'auto.http.wintercg_fetch',
         },

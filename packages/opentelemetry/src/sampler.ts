@@ -9,7 +9,7 @@ import type { Client, SpanAttributes } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING, SENTRY_TRACE_STATE_URL } from './constants';
 
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_METHOD, SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { DEBUG_BUILD } from './debug-build';
 import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
@@ -43,7 +43,7 @@ export class SentrySampler implements Sampler {
     let traceState = parentContext?.traceState || new TraceState();
 
     // We always keep the URL on the trace state, so we can access it in the propagator
-    const url = spanAttributes[SemanticAttributes.HTTP_URL];
+    const url = spanAttributes[SEMATTRS_HTTP_URL];
     if (url && typeof url === 'string') {
       traceState = traceState.set(SENTRY_TRACE_STATE_URL, url);
     }
@@ -56,25 +56,20 @@ export class SentrySampler implements Sampler {
     // but we want to leave downstream sampling decisions up to the server
     if (
       spanKind === SpanKind.CLIENT &&
-      spanAttributes[SemanticAttributes.HTTP_METHOD] &&
+      spanAttributes[SEMATTRS_HTTP_METHOD] &&
       (!parentSpan || parentContext?.isRemote)
     ) {
       return { decision: SamplingDecision.NOT_RECORD, traceState };
     }
 
-    let parentSampled: boolean | undefined = undefined;
+    const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
 
-    // Only inherit sample rate if `traceId` is the same
-    // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
-    if (parentSpan && parentContext && isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
-      if (parentContext.isRemote) {
-        parentSampled = getParentRemoteSampled(parentSpan);
-        DEBUG_BUILD &&
-          logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
-      } else {
-        parentSampled = getSamplingDecision(parentContext);
-        DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
-      }
+    // If we encounter a span emitted by Next.js, we do not want to sample it
+    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+    // BUT we only do this if we don't have a parent span with a sampling decision yet
+    if (spanAttributes['next.span_type'] && typeof parentSampled !== 'boolean') {
+      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
     }
 
     const [sampled, sampleRate] = sampleSpan(options, {
@@ -91,7 +86,7 @@ export class SentrySampler implements Sampler {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,
     };
 
-    const method = `${spanAttributes[SemanticAttributes.HTTP_METHOD]}`.toUpperCase();
+    const method = `${spanAttributes[SEMATTRS_HTTP_METHOD]}`.toUpperCase();
     if (method === 'OPTIONS' || method === 'HEAD') {
       DEBUG_BUILD && logger.log(`[Tracing] Not sampling span because HTTP method is '${method}' for ${spanName}`);
       return {
@@ -128,4 +123,25 @@ function getParentRemoteSampled(parentSpan: Span): boolean | undefined {
 
   // Only inherit sampled if `traceId` is the same
   return traceparentData && traceId === traceparentData.traceId ? traceparentData.sampled : undefined;
+}
+
+function getParentSampled(parentSpan: Span, traceId: string, spanName: string): boolean | undefined {
+  const parentContext = parentSpan.spanContext();
+
+  // Only inherit sample rate if `traceId` is the same
+  // Note for testing: `isSpanContextValid()` checks the format of the traceId/spanId, so we need to pass valid ones
+  if (isSpanContextValid(parentContext) && parentContext.traceId === traceId) {
+    if (parentContext.isRemote) {
+      const parentSampled = getParentRemoteSampled(parentSpan);
+      DEBUG_BUILD &&
+        logger.log(`[Tracing] Inheriting remote parent's sampled decision for ${spanName}: ${parentSampled}`);
+      return parentSampled;
+    }
+
+    const parentSampled = getSamplingDecision(parentContext);
+    DEBUG_BUILD && logger.log(`[Tracing] Inheriting parent's sampled decision for ${spanName}: ${parentSampled}`);
+    return parentSampled;
+  }
+
+  return undefined;
 }

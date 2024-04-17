@@ -1,17 +1,18 @@
 import { makeBaseBundleConfig } from '@sentry-internal/rollup-utils';
 
-export function createAnrWorkerCode() {
+export function createWorkerCodeBuilder(entry, outDir) {
   let base64Code;
 
-  return {
-    workerRollupConfig: makeBaseBundleConfig({
+  return [
+    makeBaseBundleConfig({
       bundleType: 'node-worker',
-      entrypoints: ['src/integrations/anr/worker.ts'],
+      entrypoints: [entry],
+      sucrase: { disableESTransforms: true },
       licenseTitle: '@sentry/node',
       outputFileBase: () => 'worker-script.js',
       packageSpecificConfig: {
         output: {
-          dir: 'build/esm/integrations/anr',
+          dir: outDir,
           sourcemap: false,
         },
         plugins: [
@@ -24,8 +25,8 @@ export function createAnrWorkerCode() {
         ],
       },
     }),
-    getBase64Code() {
+    () => {
       return base64Code;
     },
-  };
+  ];
 }

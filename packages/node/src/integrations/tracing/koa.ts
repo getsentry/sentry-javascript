@@ -1,6 +1,6 @@
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
   captureException,
   defineIntegration,
@@ -26,7 +26,7 @@ const _koaIntegration = (() => {
                 return;
               }
               const attributes = spanToJSON(span).data;
-              const route = attributes && attributes[SemanticAttributes.HTTP_ROUTE];
+              const route = attributes && attributes[SEMATTRS_HTTP_ROUTE];
               const method = info.context.request.method.toUpperCase() || 'GET';
               if (route) {
                 getIsolationScope().setTransactionName(`${method} ${route}`);

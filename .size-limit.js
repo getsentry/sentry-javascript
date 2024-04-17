@@ -208,7 +208,7 @@ module.exports = [
       'tls',
     ],
     gzip: true,
-    limit: '150 KB',
+    limit: '160 KB',
   },
 ];
 
