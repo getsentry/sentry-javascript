@@ -6,6 +6,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,
