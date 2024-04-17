@@ -1,4 +1,4 @@
-name: Gitflow - Auto prepare release
+name: "Gitflow: Auto prepare release"
 on:
   pull_request:
     types:
