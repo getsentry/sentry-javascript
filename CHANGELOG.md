@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.111.0
+
+- feat(core): Add `server.address` to browser `http.client` spans (#11663)
+- fix: Ensure next & sveltekit correctly handle `browserTracingIntegration` (#11647)
+- fix(browser): Don't assume window.document is available (#11598)
+
 ## 7.110.1
 
 - fix(nextjs): Fix `tunnelRoute` matching logic for hybrid cloud (#11577)
