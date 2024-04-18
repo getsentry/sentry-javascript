@@ -187,6 +187,7 @@ export class SentrySpan implements Span {
       _metrics_summary: getMetricSummaryJsonForSpan(this),
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
+      measurements: timedEventsToMeasurements(this._events),
     });
   }
 
@@ -297,7 +298,7 @@ export class SentrySpan implements Span {
     };
 
     const measurements = timedEventsToMeasurements(this._events);
-    const hasMeasurements = Object.keys(measurements).length;
+    const hasMeasurements = measurements && Object.keys(measurements).length;
 
     if (hasMeasurements) {
       DEBUG_BUILD &&

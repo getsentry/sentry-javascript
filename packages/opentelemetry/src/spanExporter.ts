@@ -281,6 +281,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     op,
     origin,
     _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
+    measurements: timedEventsToMeasurements(span.events),
   });
 
   spans.push(spanJSON);
