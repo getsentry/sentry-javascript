@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
-sentryTest('should onerror calls with non-string first argument gracefully', async ({ getLocalTestPath, page }) => {
+sentryTest('should catch onerror calls with non-string first argument gracefully', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
