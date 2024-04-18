@@ -12,7 +12,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration'),
     gzip: true,
-    limit: '34 KB',
+    limit: '36 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay)',

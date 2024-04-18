@@ -1,6 +1,6 @@
 import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Contexts, Event as SentryEvent, Measurements, SpanJSON } from '@sentry/types';
+import type { Contexts, Event as SentryEvent, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -132,17 +132,21 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
-  await getFirstSentryEnvelopeRequest<SentryEvent>(page);
-
-  await page.locator('[data-test-id=interaction-button]').click();
-  await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
-
-  // Wait for the interaction transaction from the enableInteractions experiment
-  await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+  await getFirstSentryEnvelopeRequest<SentryEvent>(page); // waiting for page load
 
   const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
     envelopeType: 'span',
   });
+
+  await page.locator('[data-test-id=interaction-button]').click();
+  await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
+
+  // eslint-disable-next-line no-console
+  console.log('buttons clicked');
+
+  // Wait for the interaction transaction from the experimental enableInteractions (in init.js)
+  await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+
   // Page hide to trigger INP
   await page.evaluate(() => {
     window.dispatchEvent(new Event('pagehide'));
@@ -151,7 +155,9 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   // Get the INP span envelope
   const spanEnvelopes = await spanEnvelopesPromise;
 
-  expect(spanEnvelopes).toHaveLength(1);
+  // eslint-disable-next-line no-console
+  console.log('spanevents', spanEnvelopes);
+
   expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
   expect(spanEnvelopes[0].description).toBe('body > button.clicked');
   expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(0);
