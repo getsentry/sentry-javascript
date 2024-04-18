@@ -1,4 +1,4 @@
-name: 'Build & Test'
+name: 'CI: Build & Test'
 on:
   push:
     branches:
@@ -6,6 +6,8 @@ on:
       - master
       - release/**
   pull_request:
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       commit:
@@ -1051,6 +1053,7 @@ jobs:
             'node-nestjs-app',
             'node-exports-test-app',
             'node-koa-app',
+            'node-connect-app',
             'vue-3',
             'webpack-4',
             'webpack-5'

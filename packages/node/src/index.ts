@@ -22,6 +22,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
+export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
@@ -117,6 +118,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,
