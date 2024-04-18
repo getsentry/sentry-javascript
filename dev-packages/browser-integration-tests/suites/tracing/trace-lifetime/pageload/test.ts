@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
+import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
+  eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
   shouldSkipTracingTest,
@@ -16,8 +17,16 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
-    const navigationEvent = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+    const [pageloadEvent, pageloadTraceHeaders] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      url,
+      eventAndTraceHeaderRequestParser,
+    );
+    const [navigationEvent, navigationTraceHeaders] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      `${url}#foo`,
+      eventAndTraceHeaderRequestParser,
+    );
 
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
     const navigationTraceContext = navigationEvent.contexts?.trace;
@@ -29,12 +38,28 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeaders).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceContext?.trace_id,
+    });
+
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
     });
     expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+
+    expect(navigationTraceHeaders).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: navigationTraceContext?.trace_id,
+    });
 
     expect(pageloadTraceContext?.span_id).not.toEqual(navigationTraceContext?.span_id);
   },
@@ -47,7 +72,11 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    url,
+    eventAndTraceHeaderRequestParser,
+  );
   const pageloadTraceContext = pageloadEvent.contexts?.trace;
 
   expect(pageloadTraceContext).toMatchObject({
@@ -57,15 +86,35 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
   });
   expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  expect(pageloadTraceHeader).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: pageloadTraceContext?.trace_id,
+  });
+
+  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.locator('#errorBtn').click();
-  const errorEvent = await errorEventPromise;
+  const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
   const errorTraceContext = errorEvent.contexts?.trace;
 
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  expect(errorTraceHeader).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: pageloadTraceContext?.trace_id,
   });
 });
 
@@ -76,13 +125,20 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
 
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+  const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
+    page,
+    2,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.goto(url);
   await page.locator('#errorBtn').click();
-  const events = await envelopeRequestsPromise;
+  const envelopes = await envelopeRequestsPromise;
 
-  const pageloadEvent = events.find(event => event.type === 'transaction');
-  const errorEvent = events.find(event => !event.type);
+  const [pageloadEvent, pageloadTraceHeader] = envelopes.find(
+    eventAndHeader => eventAndHeader[0].type === 'transaction',
+  )!;
+  const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => !eventAndHeader[0].type)!;
 
   const pageloadTraceContext = pageloadEvent?.contexts?.trace;
   expect(pageloadTraceContext).toMatchObject({
@@ -92,11 +148,27 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
   });
   expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+  expect(pageloadTraceHeader).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: pageloadTraceContext?.trace_id,
+  });
+
   const errorTraceContext = errorEvent?.contexts?.trace;
   expect(errorTraceContext).toMatchObject({
     op: 'pageload',
     trace_id: pageloadTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  expect(errorTraceHeader).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: pageloadTraceContext?.trace_id,
   });
 });
 
@@ -109,8 +181,13 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      url,
+      eventAndTraceHeaderRequestParser,
+    );
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
@@ -119,13 +196,20 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.locator('#fetchBtn').click();
     const request = await requestPromise;
     const headers = request.headers();
 
     // sampling decision and DSC are continued from the pageload span even after it ended
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
@@ -142,13 +226,19 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      undefined,
+      eventAndTraceHeaderRequestParser,
+    );
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.goto(url);
     await page.locator('#fetchBtn').click();
-    const [pageloadEvent, request] = await Promise.all([pageloadEventPromise, requestPromise]);
+    const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
 
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
+
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -156,10 +246,17 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
@@ -176,8 +273,13 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      url,
+      eventAndTraceHeaderRequestParser,
+    );
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
@@ -186,13 +288,20 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.locator('#xhrBtn').click();
     const request = await requestPromise;
     const headers = request.headers();
 
     // sampling decision and DSC are continued from the pageload span even after it ended
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
@@ -209,13 +318,19 @@ sentryTest(
 
     const url = await getLocalTestPath({ testDir: __dirname });
 
-    const pageloadEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+    const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+      page,
+      undefined,
+      eventAndTraceHeaderRequestParser,
+    );
     const requestPromise = page.waitForRequest('http://example.com/*');
     await page.goto(url);
     await page.locator('#xhrBtn').click();
-    const [pageloadEvent, request] = await Promise.all([pageloadEventPromise, requestPromise]);
+    const [[pageloadEvent, pageloadTraceHeader], request] = await Promise.all([pageloadEventPromise, requestPromise]);
 
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
+    const pageloadTraceId = pageloadTraceContext?.trace_id;
+
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -223,10 +338,17 @@ sentryTest(
     });
     expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
+    expect(pageloadTraceHeader).toEqual({
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: pageloadTraceId,
+    });
+
     const headers = request.headers();
 
     // sampling decision is propagated from active span sampling decision
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
