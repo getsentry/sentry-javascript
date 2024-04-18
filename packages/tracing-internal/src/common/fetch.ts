@@ -16,6 +16,7 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  parseUrl,
 } from '@sentry/utils';
 
 type PolymorphicRequestHeaders =
@@ -53,23 +54,7 @@ export function instrumentFetchRequest(
 
     const span = spans[spanId];
     if (span) {
-      if (handlerData.response) {
-        setHttpStatus(span, handlerData.response.status);
-
-        const contentLength =
-          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-
-        if (contentLength) {
-          const contentLengthNum = parseInt(contentLength);
-          if (contentLengthNum > 0) {
-            span.setAttribute('http.response_content_length', contentLengthNum);
-          }
-        }
-      } else if (handlerData.error) {
-        span.setStatus('internal_error');
-      }
-      span.end();
-
+      endSpan(span, handlerData);
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
     }
@@ -81,6 +66,9 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
+  const fullUrl = getFullURL(url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
   const span = shouldCreateSpanResult
     ? startInactiveSpan({
         name: `${method} ${url}`,
@@ -89,6 +77,8 @@ export function instrumentFetchRequest(
           url,
           type: 'fetch',
           'http.method': method,
+          'http.url': fullUrl,
+          'server.address': host,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
         },
         op: 'http.client',
@@ -197,4 +187,32 @@ export function addTracingHeadersToFetchRequest(
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+function endSpan(span: Span, handlerData: HandlerDataFetch): void {
+  if (handlerData.response) {
+    setHttpStatus(span, handlerData.response.status);
+
+    const contentLength =
+      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+
+    if (contentLength) {
+      const contentLengthNum = parseInt(contentLength);
+      if (contentLengthNum > 0) {
+        span.setAttribute('http.response_content_length', contentLengthNum);
+      }
+    }
+  } else if (handlerData.error) {
+    span.setStatus('internal_error');
+  }
+  span.end();
 }
