@@ -551,6 +551,73 @@ describe('startSpan', () => {
 
     expect(result).toBe('aha');
   });
+
+  describe('[experimental] standalone and segment', () => {
+    it('starts a standalone segment span if both options are set', () => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone: true, segment: true },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBe(true);
+      expect(spanJson.segment_id).toBe(spanJson.span_id);
+      expect(spanJson.segment_id).toMatch(/^[a-f0-9]{16}$/);
+    });
+
+    it('starts a non-segment span if standalone is set and segment is false', () => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone: true, segment: false },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBe(false);
+      expect(spanJson.segment_id).toBeUndefined();
+    });
+
+    it('starts a standalone span (no data about segment) if only standalone is set ', () => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone: true },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBeUndefined();
+      expect(spanJson.segment_id).toBeUndefined();
+    });
+
+    it.each([undefined, false])('ignores segment if standalone is falsy (%s)', standalone => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone, segment: true },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBeUndefined();
+      expect(spanJson.segment_id).toBeUndefined();
+    });
+  });
 });
 
 describe('startSpanManual', () => {

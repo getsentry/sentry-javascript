@@ -26,4 +26,37 @@ export interface StartSpanOptions {
 
   /** Attributes for the span. */
   attributes?: SpanAttributes;
+
+  /**
+   * Experimental option without any stability guarantees. Use with caution!
+   */
+  experimental?: {
+    /**
+     * If set to true, always start a standalone span which will be sent as a
+     * standalone span envelope instead of a transaction envelope.
+     *
+     * @experimental this option is currently experimental and should only be
+     * used within SDK code. It might be removed or changed in the future.
+     * The payload ("envelope") of the resulting request sending the span to
+     * Sentry might change at any time.
+     *
+     * @private
+     * @hidden
+     */
+    standalone?: boolean;
+
+    /**
+     * If set to true and `standalone` is also set to `true`, the span will be
+     * sent as a standalone segment span (with `is_segment: true` and `segment_id`).
+     *
+     * If `standalone` is not set to `true`, this option has no effect.
+     *
+     * @experimental this option is currently experimental and should only be
+     * used within SDK code. It might be removed or changed in the future.
+     *
+     * @private
+     * @hidden
+     */
+    segment?: boolean;
+  };
 }

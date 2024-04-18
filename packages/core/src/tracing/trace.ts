@@ -45,7 +45,7 @@ export function startSpan<T>(context: StartSpanOptions, callback: (span: Span) =
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction({
+      : createChildOrRootSpan({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -92,7 +92,7 @@ export function startSpanManual<T>(context: StartSpanOptions, callback: (span: S
     const shouldSkipSpan = context.onlyIfParent && !parentSpan;
     const activeSpan = shouldSkipSpan
       ? new SentryNonRecordingSpan()
-      : createChildSpanOrTransaction({
+      : createChildOrRootSpan({
           parentSpan,
           spanContext,
           forceTransaction: context.forceTransaction,
@@ -144,7 +144,7 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
     return new SentryNonRecordingSpan();
   }
 
-  return createChildSpanOrTransaction({
+  return createChildOrRootSpan({
     parentSpan,
     spanContext,
     forceTransaction: context.forceTransaction,
@@ -212,7 +212,7 @@ export function suppressTracing<T>(callback: () => T): T {
   });
 }
 
-function createChildSpanOrTransaction({
+function createChildOrRootSpan({
   parentSpan,
   spanContext,
   forceTransaction,
@@ -291,14 +291,21 @@ function createChildSpanOrTransaction({
  * Eventually the StartSpanOptions will be more aligned with OpenTelemetry.
  */
 function normalizeContext(context: StartSpanOptions): SentrySpanArguments {
+  const exp = context.experimental || {};
+  const initialCtx: SentrySpanArguments = {
+    isStandalone: exp.standalone,
+    isSegment: exp.standalone && exp.segment,
+    ...context,
+  };
+
   if (context.startTime) {
-    const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...context };
+    const ctx: SentrySpanArguments & { startTime?: SpanTimeInput } = { ...initialCtx };
     ctx.startTimestamp = spanTimeInputToSeconds(context.startTime);
     delete ctx.startTime;
     return ctx;
   }
 
-  return context;
+  return initialCtx;
 }
 
 function getAcs(): AsyncContextStrategy {

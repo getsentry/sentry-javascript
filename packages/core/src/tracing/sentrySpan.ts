@@ -4,6 +4,7 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContextData,
+  SpanEnvelope,
   SpanJSON,
   SpanOrigin,
   SpanStatus,
@@ -16,6 +17,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 
+import { createSpanEnvelope } from '../envelope';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -58,6 +60,12 @@ export class SentrySpan implements Span {
   /** The timed events added to this span. */
   protected _events: TimedEvent[];
 
+  /** if true, treat span as a standalone span (not part of a transaction) */
+  private _isStandaloneSpan?: boolean;
+
+  /** send standalone span as segment span */
+  private _isSegmentSpan?: boolean;
+
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
    * or other span methods.
@@ -96,6 +104,9 @@ export class SentrySpan implements Span {
     if (this._endTime) {
       this._onSpanEnded();
     }
+
+    this._isStandaloneSpan = spanContext.isStandalone;
+    this._isSegmentSpan = spanContext.isStandalone && spanContext.isSegment;
   }
 
   /** @inheritdoc */
@@ -188,6 +199,8 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
+      is_segment: !this._isStandaloneSpan ? undefined : this._isSegmentSpan,
+      segment_id: this._isStandaloneSpan && this._isSegmentSpan ? this._spanId : undefined,
     });
   }
 
@@ -227,13 +240,20 @@ export class SentrySpan implements Span {
       client.emit('spanEnd', this);
     }
 
-    // If this is a root span, send it when it is endedf
-    if (this === getRootSpan(this)) {
-      const transactionEvent = this._convertSpanToTransaction();
-      if (transactionEvent) {
-        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-        scope.captureEvent(transactionEvent);
-      }
+    // If this is not a root span, we're done, otherwise, we send it when it is ended
+    if (this !== getRootSpan(this)) {
+      return;
+    }
+
+    if (this._isStandaloneSpan) {
+      sendSpanEnvelope(createSpanEnvelope([this]));
+      return;
+    }
+
+    const transactionEvent = this._convertSpanToTransaction();
+    if (transactionEvent) {
+      const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+      scope.captureEvent(transactionEvent);
     }
   }
 
@@ -317,4 +337,18 @@ function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): val
 // We want to filter out any incomplete SpanJSON objects
 function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
   return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
+}
+
+function sendSpanEnvelope(envelope: SpanEnvelope): void {
+  const client = getClient();
+  if (!client) {
+    return;
+  }
+
+  const transport = client.getTransport();
+  if (transport) {
+    transport.send(envelope).then(null, reason => {
+      DEBUG_BUILD && logger.error('Error while sending span:', reason);
+    });
+  }
 }
