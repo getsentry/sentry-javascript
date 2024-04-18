@@ -12,6 +12,7 @@ export function register() {
         // We are doing a lot of events at once in this test
         bufferSize: 1000,
       },
+      tracePropagationTargets: ['http://localhost:3030'],
     });
   }
 }
