@@ -160,8 +160,15 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
   });
 
   const errorTraceContext = errorEvent?.contexts?.trace;
-  expect(errorTraceContext).toMatchObject({
+  expect(errorTraceContext).toEqual({
+    data: {
+      'sentry.op': 'navigation',
+      'sentry.origin': 'auto.navigation.browser',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    },
     op: 'navigation',
+    origin: 'auto.navigation.browser',
     trace_id: navigationTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
