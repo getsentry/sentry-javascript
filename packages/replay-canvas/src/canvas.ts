@@ -55,13 +55,22 @@ const CANVAS_QUALITY = {
 };
 
 const INTEGRATION_NAME = 'ReplayCanvas';
+const DEFAULT_MAX_CANVAS_SIZE = 1280;
 
 /** Exported only for type safe tests. */
 export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
+  const [maxCanvasWidth, maxCanvasHeight] = options.maxCanvasSize || [];
   const _canvasOptions = {
     quality: options.quality || 'medium',
     enableManualSnapshot: options.enableManualSnapshot,
-    maxCanvasSize: options.maxCanvasSize || [1280, 1280],
+    maxCanvasSize: [
+      maxCanvasWidth ?
+        Math.min(maxCanvasWidth, DEFAULT_MAX_CANVAS_SIZE)
+      : DEFAULT_MAX_CANVAS_SIZE,
+      maxCanvasHeight ?
+        Math.min(maxCanvasHeight, DEFAULT_MAX_CANVAS_SIZE)
+        : DEFAULT_MAX_CANVAS_SIZE
+    ],
   };
 
   let canvasManagerResolve: (value: CanvasManager) => void;
