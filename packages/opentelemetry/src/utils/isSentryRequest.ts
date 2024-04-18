@@ -1,4 +1,4 @@
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import { getClient, isSentryRequestUrl } from '@sentry/core';
 
 import type { AbstractSpan } from '../types';
@@ -16,7 +16,7 @@ export function isSentryRequestSpan(span: AbstractSpan): boolean {
 
   const { attributes } = span;
 
-  const httpUrl = attributes[SemanticAttributes.HTTP_URL];
+  const httpUrl = attributes[SEMATTRS_HTTP_URL];
 
   if (!httpUrl) {
     return false;

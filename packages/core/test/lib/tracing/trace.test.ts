@@ -3,7 +3,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   Scope,
-  addTracingExtensions,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
@@ -13,22 +12,21 @@ import {
   spanToJSON,
   withScope,
 } from '../../../src';
-import { getAsyncContextStrategy } from '../../../src/hub';
+import { getAsyncContextStrategy } from '../../../src/asyncContext';
 import {
   SentrySpan,
   continueTrace,
+  registerSpanErrorInstrumentation,
   startInactiveSpan,
   startSpan,
   startSpanManual,
+  suppressTracing,
   withActiveSpan,
 } from '../../../src/tracing';
 import { SentryNonRecordingSpan } from '../../../src/tracing/sentryNonRecordingSpan';
-import { getActiveSpan, getRootSpan, getSpanDescendants } from '../../../src/utils/spanUtils';
+import { _setSpanForScope } from '../../../src/utils/spanOnScope';
+import { getActiveSpan, getRootSpan, getSpanDescendants, spanIsSampled } from '../../../src/utils/spanUtils';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
-
-beforeAll(() => {
-  addTracingExtensions();
-});
 
 const enum Type {
   Sync = 'sync',
@@ -39,7 +37,7 @@ let client: TestClient;
 
 describe('startSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -258,9 +256,8 @@ describe('startSpan', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+    _setSpanForScope(manualScope, parentSpan);
 
     startSpan({ name: 'GET users/[id]', scope: manualScope }, span => {
       expect(getCurrentScope()).not.toBe(initialScope);
@@ -354,6 +351,7 @@ describe('startSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -412,6 +410,48 @@ describe('startSpan', () => {
 
       expect(span).toBeDefined();
       expect(span).toBeInstanceOf(SentrySpan);
+    });
+  });
+
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpan({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpan({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpan({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+          });
+        });
+      });
     });
   });
 
@@ -489,7 +529,7 @@ describe('startSpan', () => {
   });
 
   it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
 
     const carrier = getMainCarrier();
 
@@ -515,7 +555,7 @@ describe('startSpan', () => {
 
 describe('startSpanManual', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -574,9 +614,8 @@ describe('startSpanManual', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+    _setSpanForScope(manualScope, parentSpan);
 
     startSpanManual({ name: 'GET users/[id]', scope: manualScope }, (span, finish) => {
       expect(getCurrentScope()).not.toBe(initialScope);
@@ -679,6 +718,7 @@ describe('startSpanManual', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -749,6 +789,54 @@ describe('startSpanManual', () => {
     });
   });
 
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpanManual({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpanManual({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpanManual({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(span.spanContext().spanId);
+            grandChildSpan.end();
+          });
+          childSpan.end();
+        });
+        span.end();
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      startSpanManual({ name: 'parent span' }, span => {
+        expect(spanToJSON(span).parent_span_id).toBe(undefined);
+        startSpanManual({ name: 'child span' }, childSpan => {
+          expect(spanToJSON(childSpan).parent_span_id).toBe(span.spanContext().spanId);
+          startSpanManual({ name: 'grand child span' }, grandChildSpan => {
+            expect(spanToJSON(grandChildSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+            grandChildSpan.end();
+          });
+          childSpan.end();
+        });
+        span.end();
+      });
+    });
+  });
+
   it('sets a child span reference on the parent span', () => {
     expect.assertions(1);
     startSpan({ name: 'outer' }, (outerSpan: any) => {
@@ -760,7 +848,7 @@ describe('startSpanManual', () => {
   });
 
   it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
 
     const carrier = getMainCarrier();
 
@@ -786,7 +874,7 @@ describe('startSpanManual', () => {
 
 describe('startInactiveSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -839,9 +927,8 @@ describe('startInactiveSpan', () => {
     const initialScope = getCurrentScope();
 
     const manualScope = initialScope.clone();
-    const parentSpan = new SentrySpan({ spanId: 'parent-span-id' });
-    // eslint-disable-next-line deprecation/deprecation
-    manualScope.setSpan(parentSpan);
+    const parentSpan = new SentrySpan({ spanId: 'parent-span-id', sampled: true });
+    _setSpanForScope(manualScope, parentSpan);
 
     const span = startInactiveSpan({ name: 'GET users/[id]', scope: manualScope });
 
@@ -932,6 +1019,7 @@ describe('startInactiveSpan', () => {
       trace: {
         data: {
           'sentry.source': 'custom',
+          'sentry.sample_rate': 1,
           'sentry.origin': 'manual',
         },
         parent_span_id: innerParentSpanId,
@@ -993,6 +1081,64 @@ describe('startInactiveSpan', () => {
     });
   });
 
+  describe('parentSpanIsAlwaysRootSpan', () => {
+    it('creates a span as child of root span if parentSpanIsAlwaysRootSpan=true', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: true,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+
+      startSpan({ name: 'parent span' }, span => {
+        const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+        startSpan({ name: 'child span' }, () => {
+          const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+          startSpan({ name: 'grand child span' }, () => {
+            const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+          });
+        });
+      });
+    });
+
+    it('does not creates a span as child of root span if parentSpanIsAlwaysRootSpan=false', () => {
+      const options = getDefaultTestClientOptions({
+        tracesSampleRate: 1,
+        parentSpanIsAlwaysRootSpan: false,
+      });
+      client = new TestClient(options);
+      setCurrentClient(client);
+      client.init();
+
+      const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+      expect(spanToJSON(inactiveSpan).parent_span_id).toBe(undefined);
+
+      startSpan({ name: 'parent span' }, span => {
+        const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+        expect(spanToJSON(inactiveSpan).parent_span_id).toBe(span.spanContext().spanId);
+
+        startSpan({ name: 'child span' }, childSpan => {
+          const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+          expect(spanToJSON(inactiveSpan).parent_span_id).toBe(childSpan.spanContext().spanId);
+
+          startSpan({ name: 'grand child span' }, grandChildSpan => {
+            const inactiveSpan = startInactiveSpan({ name: 'inactive span' });
+            expect(spanToJSON(inactiveSpan).parent_span_id).toBe(grandChildSpan.spanContext().spanId);
+          });
+        });
+      });
+    });
+  });
+
   it('includes the scope at the time the span was started when finished', async () => {
     const beforeSendTransaction = jest.fn(event => event);
 
@@ -1047,7 +1193,7 @@ describe('startInactiveSpan', () => {
   });
 
   it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
 
     const carrier = getMainCarrier();
 
@@ -1068,8 +1214,6 @@ describe('startInactiveSpan', () => {
 
 describe('continueTrace', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1185,8 +1329,6 @@ describe('continueTrace', () => {
 
 describe('getActiveSpan', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1205,16 +1347,16 @@ describe('getActiveSpan', () => {
   });
 
   it('works with an active span on the scope', () => {
-    const activeSpan = new SentrySpan({ spanId: 'aha' });
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope().setSpan(activeSpan);
+    const activeSpan = new SentrySpan({ spanId: 'aha', sampled: true });
 
-    const span = getActiveSpan();
-    expect(span).toBe(activeSpan);
+    withActiveSpan(activeSpan, () => {
+      const span = getActiveSpan();
+      expect(span).toBe(activeSpan);
+    });
   });
 
   it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
 
     const carrier = getMainCarrier();
 
@@ -1234,10 +1376,6 @@ describe('getActiveSpan', () => {
 });
 
 describe('withActiveSpan()', () => {
-  beforeAll(() => {
-    addTracingExtensions();
-  });
-
   beforeEach(() => {
     getCurrentScope().clear();
     getIsolationScope().clear();
@@ -1284,7 +1422,7 @@ describe('withActiveSpan()', () => {
   });
 
   it('uses implementation from ACS, if it exists', () => {
-    const staticSpan = new SentrySpan({ spanId: 'aha' });
+    const staticSpan = new SentrySpan({ spanId: 'aha', sampled: true });
     const staticScope = new Scope();
 
     const carrier = getMainCarrier();
@@ -1310,8 +1448,6 @@ describe('withActiveSpan()', () => {
 
 describe('span hooks', () => {
   beforeEach(() => {
-    addTracingExtensions();
-
     getCurrentScope().clear();
     getIsolationScope().clear();
     getGlobalScope().clear();
@@ -1356,5 +1492,66 @@ describe('span hooks', () => {
 
     expect(startedSpans).toEqual(['span1', 'span2', 'span3', 'span5', 'span4']);
     expect(endedSpans).toEqual(['span5', 'span3', 'span2', 'span1']);
+  });
+});
+
+describe('suppressTracing', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+    getGlobalScope().clear();
+
+    setAsyncContextStrategy(undefined);
+
+    const options = getDefaultTestClientOptions({ tracesSampleRate: 1 });
+    client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('works for a root span', () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    expect(span.isRecording()).toBe(false);
+    expect(spanIsSampled(span)).toBe(false);
+  });
+
+  it('works for a child span', () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span.isRecording()).toBe(true);
+      expect(spanIsSampled(span)).toBe(true);
+
+      const child1 = startInactiveSpan({ name: 'inner1' });
+
+      expect(child1.isRecording()).toBe(true);
+      expect(spanIsSampled(child1)).toBe(true);
+
+      const child2 = suppressTracing(() => {
+        return startInactiveSpan({ name: 'span' });
+      });
+
+      expect(child2.isRecording()).toBe(false);
+      expect(spanIsSampled(child2)).toBe(false);
+    });
+  });
+
+  it('works for a child span with forceTransaction=true', () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span.isRecording()).toBe(true);
+      expect(spanIsSampled(span)).toBe(true);
+
+      const child = suppressTracing(() => {
+        return startInactiveSpan({ name: 'span', forceTransaction: true });
+      });
+
+      expect(child.isRecording()).toBe(false);
+      expect(spanIsSampled(child)).toBe(false);
+    });
   });
 });

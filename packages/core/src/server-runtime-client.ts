@@ -20,10 +20,11 @@ import { DEBUG_BUILD } from './debug-build';
 import type { Scope } from './scope';
 import { SessionFlusher } from './sessionflusher';
 import {
-  addTracingExtensions,
   getDynamicSamplingContextFromClient,
   getDynamicSamplingContextFromSpan,
+  registerSpanErrorInstrumentation,
 } from './tracing';
+import { _getSpanForScope } from './utils/spanOnScope';
 import { getRootSpan, spanToTraceContext } from './utils/spanUtils';
 
 export interface ServerRuntimeClientOptions extends ClientOptions<BaseTransportOptions> {
@@ -46,7 +47,7 @@ export class ServerRuntimeClient<
    */
   public constructor(options: O) {
     // Server clients always support tracing
-    addTracingExtensions();
+    registerSpanErrorInstrumentation();
 
     super(options);
   }
@@ -252,8 +253,7 @@ export class ServerRuntimeClient<
       return [undefined, undefined];
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    const span = scope.getSpan();
+    const span = _getSpanForScope(scope);
     if (span) {
       const rootSpan = getRootSpan(span);
       const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);

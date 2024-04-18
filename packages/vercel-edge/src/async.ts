@@ -1,6 +1,5 @@
-import { Hub as HubClass, getGlobalHub } from '@sentry/core';
-import { setAsyncContextStrategy } from '@sentry/core';
-import type { Hub, Scope } from '@sentry/types';
+import { getDefaultCurrentScope, getDefaultIsolationScope, setAsyncContextStrategy } from '@sentry/core';
+import type { Scope } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
@@ -11,15 +10,15 @@ interface AsyncLocalStorage<T> {
   run<R, TArgs extends any[]>(store: T, callback: (...args: TArgs) => R, ...args: TArgs): R;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
-const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
-
-let asyncStorage: AsyncLocalStorage<Hub>;
+let asyncStorage: AsyncLocalStorage<{ scope: Scope; isolationScope: Scope }>;
 
 /**
  * Sets the async context strategy to use AsyncLocalStorage which should be available in the edge runtime.
  */
 export function setAsyncLocalStorageAsyncContextStrategy(): void {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+  const MaybeGlobalAsyncLocalStorage = (GLOBAL_OBJ as any).AsyncLocalStorage;
+
   if (!MaybeGlobalAsyncLocalStorage) {
     DEBUG_BUILD &&
       logger.warn(
@@ -32,81 +31,57 @@ export function setAsyncLocalStorageAsyncContextStrategy(): void {
     asyncStorage = new MaybeGlobalAsyncLocalStorage();
   }
 
-  function getCurrentAsyncStorageHub(): Hub | undefined {
-    return asyncStorage.getStore();
-  }
+  function getScopes(): { scope: Scope; isolationScope: Scope } {
+    const scopes = asyncStorage.getStore();
 
-  function getCurrentHub(): Hub {
-    return getCurrentAsyncStorageHub() || getGlobalHub();
+    if (scopes) {
+      return scopes;
+    }
+
+    // fallback behavior:
+    // if, for whatever reason, we can't find scopes on the context here, we have to fix this somehow
+    return {
+      scope: getDefaultCurrentScope(),
+      isolationScope: getDefaultIsolationScope(),
+    };
   }
 
   function withScope<T>(callback: (scope: Scope) => T): T {
-    const parentHub = getCurrentHub();
-
-    /* eslint-disable deprecation/deprecation */
-    const client = parentHub.getClient();
-    const scope = parentHub.getScope().clone();
-    const isolationScope = parentHub.getIsolationScope();
-    const newHub = new HubClass(client, scope, isolationScope);
-    /* eslint-enable deprecation/deprecation */
-
-    return asyncStorage.run(newHub, () => {
+    const scope = getScopes().scope.clone();
+    const isolationScope = getScopes().isolationScope;
+    return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(scope);
     });
   }
 
   function withSetScope<T>(scope: Scope, callback: (scope: Scope) => T): T {
-    const parentHub = getCurrentHub();
-
-    /* eslint-disable deprecation/deprecation */
-    const client = parentHub.getClient();
-    const isolationScope = parentHub.getIsolationScope();
-    const newHub = new HubClass(client, scope, isolationScope);
-    /* eslint-enable deprecation/deprecation */
-
-    return asyncStorage.run(newHub, () => {
+    const isolationScope = getScopes().isolationScope.clone();
+    return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(scope);
     });
   }
 
   function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T {
-    const parentHub = getCurrentHub();
-
-    /* eslint-disable deprecation/deprecation */
-    const client = parentHub.getClient();
-    const scope = parentHub.getScope().clone();
-    const isolationScope = parentHub.getIsolationScope().clone();
-    const newHub = new HubClass(client, scope, isolationScope);
-    /* eslint-enable deprecation/deprecation */
-
-    return asyncStorage.run(newHub, () => {
+    const scope = getScopes().scope;
+    const isolationScope = getScopes().isolationScope.clone();
+    return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
     });
   }
 
   function withSetIsolationScope<T>(isolationScope: Scope, callback: (isolationScope: Scope) => T): T {
-    const parentHub = getCurrentHub();
-
-    /* eslint-disable deprecation/deprecation */
-    const client = parentHub.getClient();
-    const scope = parentHub.getScope().clone();
-    const newHub = new HubClass(client, scope, isolationScope);
-    /* eslint-enable deprecation/deprecation */
-
-    return asyncStorage.run(newHub, () => {
+    const scope = getScopes().scope;
+    return asyncStorage.run({ scope, isolationScope }, () => {
       return callback(isolationScope);
     });
   }
 
   setAsyncContextStrategy({
-    getCurrentHub,
     withScope,
     withSetScope,
     withIsolationScope,
     withSetIsolationScope,
-    // eslint-disable-next-line deprecation/deprecation
-    getCurrentScope: () => getCurrentHub().getScope(),
-    // eslint-disable-next-line deprecation/deprecation
-    getIsolationScope: () => getCurrentHub().getIsolationScope(),
+    getCurrentScope: () => getScopes().scope,
+    getIsolationScope: () => getScopes().isolationScope,
   });
 }

@@ -1,10 +1,11 @@
-import type { Attachment, Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
+import type { Breadcrumb, Client, Event, RequestSessionStatus } from '@sentry/types';
 import {
   applyScopeDataToEvent,
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
   withIsolationScope,
+  withScope,
 } from '../../src';
 
 import { Scope } from '../../src/scope';
@@ -201,23 +202,6 @@ describe('Scope', () => {
       scope.setContext('os', { id: '1' });
       scope.setContext('os', null);
       expect(scope['_user']).toEqual({});
-    });
-
-    test('setSpan', () => {
-      const scope = new Scope();
-      const span = { fake: 'span' } as any;
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan(span);
-      expect(scope['_span']).toEqual(span);
-    });
-
-    test('setSpan with no value unsets it', () => {
-      const scope = new Scope();
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan({ fake: 'span' } as any);
-      // eslint-disable-next-line deprecation/deprecation
-      scope.setSpan();
-      expect(scope['_span']).toEqual(undefined);
     });
 
     test('setProcessingMetadata', () => {
@@ -560,29 +544,6 @@ describe('Scope', () => {
     });
   });
 
-  describe('getAttachments', () => {
-    /* eslint-disable deprecation/deprecation */
-    it('works without any data', async () => {
-      const scope = new Scope();
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([]);
-    });
-
-    it('works with attachments', async () => {
-      const attachment1 = { filename: '1' } as Attachment;
-      const attachment2 = { filename: '2' } as Attachment;
-
-      const scope = new Scope();
-      scope.addAttachment(attachment1);
-      scope.addAttachment(attachment2);
-
-      const actual = scope.getAttachments();
-      expect(actual).toEqual([attachment1, attachment2]);
-    });
-    /* eslint-enable deprecation/deprecation */
-  });
-
   describe('setClient() and getClient()', () => {
     it('allows storing and retrieving client objects', () => {
       const fakeClient = {} as Client;
@@ -893,40 +854,135 @@ describe('Scope', () => {
   });
 });
 
-describe('isolation scope', () => {
-  describe('withIsolationScope()', () => {
-    it('will pass an isolation scope without Sentry.init()', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(scope).toBeDefined();
+describe('withScope()', () => {
+  beforeEach(() => {
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getGlobalScope().clear();
+  });
+
+  it('will make the passed scope the active scope within the callback', done => {
+    withScope(scope => {
+      expect(getCurrentScope()).toBe(scope);
+      done();
+    });
+  });
+
+  it('will pass a scope that is different from the current active isolation scope', done => {
+    withScope(scope => {
+      expect(getIsolationScope()).not.toBe(scope);
+      done();
+    });
+  });
+
+  it('will always make the inner most passed scope the current isolation scope when nesting calls', done => {
+    withIsolationScope(_scope1 => {
+      withIsolationScope(scope2 => {
+        expect(getIsolationScope()).toBe(scope2);
         done();
       });
     });
+  });
 
-    it('will make the passed isolation scope the active isolation scope within the callback', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(getIsolationScope()).toBe(scope);
+  it('forks the scope when not passing any scope', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    withScope(scope => {
+      expect(getCurrentScope()).toBe(scope);
+      scope.setTag('bb', 'bb');
+      expect(scope).not.toBe(initialScope);
+      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+      done();
+    });
+  });
+
+  it('forks the scope when passing undefined', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    withScope(undefined, scope => {
+      expect(getCurrentScope()).toBe(scope);
+      scope.setTag('bb', 'bb');
+      expect(scope).not.toBe(initialScope);
+      expect(scope.getScopeData().tags).toEqual({ aa: 'aa', bb: 'bb' });
+      done();
+    });
+  });
+
+  it('sets the passed in scope as active scope', done => {
+    const initialScope = getCurrentScope();
+    initialScope.setTag('aa', 'aa');
+
+    const customScope = new Scope();
+
+    withScope(customScope, scope => {
+      expect(getCurrentScope()).toBe(customScope);
+      expect(scope).toBe(customScope);
+      done();
+    });
+  });
+});
+
+describe('withIsolationScope()', () => {
+  beforeEach(() => {
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    getGlobalScope().clear();
+  });
+
+  it('will make the passed isolation scope the active isolation scope within the callback', done => {
+    withIsolationScope(scope => {
+      expect(getIsolationScope()).toBe(scope);
+      done();
+    });
+  });
+
+  it('will pass an isolation scope that is different from the current active scope', done => {
+    withIsolationScope(scope => {
+      expect(getCurrentScope()).not.toBe(scope);
+      done();
+    });
+  });
+
+  it('will always make the inner most passed scope the current scope when nesting calls', done => {
+    withIsolationScope(_scope1 => {
+      withIsolationScope(scope2 => {
+        expect(getIsolationScope()).toBe(scope2);
         done();
       });
     });
+  });
 
-    it('will pass an isolation scope that is different from the current active scope', done => {
-      expect.assertions(1);
-      withIsolationScope(scope => {
-        expect(getCurrentScope()).not.toBe(scope);
-        done();
-      });
+  // Note: This is expected! In browser, we do not actually fork this
+  it('does not fork isolation scope when not passing any isolation scope', done => {
+    const isolationScope = getIsolationScope();
+
+    withIsolationScope(scope => {
+      expect(getIsolationScope()).toBe(scope);
+      expect(scope).toBe(isolationScope);
+      done();
     });
+  });
 
-    it('will always make the inner most passed scope the current scope when nesting calls', done => {
-      expect.assertions(1);
-      withIsolationScope(_scope1 => {
-        withIsolationScope(scope2 => {
-          expect(getIsolationScope()).toBe(scope2);
-          done();
-        });
-      });
+  it('does not fork isolation scope when passing undefined', done => {
+    const isolationScope = getIsolationScope();
+
+    withIsolationScope(undefined, scope => {
+      expect(getIsolationScope()).toBe(scope);
+      expect(scope).toBe(isolationScope);
+      done();
+    });
+  });
+
+  it('ignores passed in isolation scope', done => {
+    const isolationScope = getIsolationScope();
+    const customIsolationScope = new Scope();
+
+    withIsolationScope(customIsolationScope, scope => {
+      expect(getIsolationScope()).toBe(isolationScope);
+      expect(scope).toBe(isolationScope);
+      done();
     });
   });
 });

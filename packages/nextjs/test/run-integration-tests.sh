@@ -45,23 +45,25 @@ for NEXTJS_VERSION in 13; do
     export NODE_MAJOR=$NODE_MAJOR
     export USE_APPDIR=$USE_APPDIR
 
-    # Next.js v13 requires at least Node v16
-    if [ "$NODE_MAJOR" -lt "16" ] && [ "$NEXTJS_VERSION" -ge "13" ]; then
-      echo "[nextjs@$NEXTJS_VERSION] Not compatible with Node $NODE_MAJOR"
-      exit 0
-    fi
-
     echo "[nextjs@$NEXTJS_VERSION] Preparing environment..."
     rm -rf node_modules .next .env.local 2>/dev/null || true
 
     echo "[nextjs@$NEXTJS_VERSION] Installing dependencies..."
+
+    # Pin to a specific version
+    if [ "$NEXTJS_VERSION" -eq "13" ]; then
+      NEXTJS_PACKAGE_JSON_VERSION="13.2.0"
+    else
+      NEXTJS_PACKAGE_JSON_VERSION="$NEXTJS_VERSION.x"
+    fi
+
     # set the desired version of next long enough to run yarn, and then restore the old version (doing the restoration now
     # rather than during overall cleanup lets us look for "latest" in every loop)
     cp package.json package.json.bak
     if [[ $(uname) == "Darwin" ]]; then
-      sed -i "" /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+      sed -i "" /"next.*latest"/s/latest/"${NEXTJS_PACKAGE_JSON_VERSION}"/ package.json
     else
-      sed -i /"next.*latest"/s/latest/"${NEXTJS_VERSION}.x"/ package.json
+      sed -i /"next.*latest"/s/latest/"${NEXTJS_PACKAGE_JSON_VERSION}"/ package.json
     fi
 
     # Yarn install randomly started failing because it couldn't find some cache  so for now we need to run these two commands which seem to fix it.

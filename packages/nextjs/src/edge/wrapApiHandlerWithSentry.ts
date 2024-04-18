@@ -1,5 +1,3 @@
-import { getActiveSpan } from '@sentry/core';
-
 import { withEdgeWrapping } from '../common/utils/edgeWrapperUtils';
 import type { EdgeRouteHandler } from './types';
 
@@ -14,14 +12,11 @@ export function wrapApiHandlerWithSentry<H extends EdgeRouteHandler>(
     apply: (wrappingTarget, thisArg, args: Parameters<H>) => {
       const req = args[0];
 
-      const activeSpan = getActiveSpan();
-
       const wrappedHandler = withEdgeWrapping(wrappingTarget, {
-        spanDescription:
-          activeSpan || !(req instanceof Request)
-            ? `handler (${parameterizedRoute})`
-            : `${req.method} ${parameterizedRoute}`,
-        spanOp: activeSpan ? 'function' : 'http.server',
+        spanDescription: !(req instanceof Request)
+          ? `handler (${parameterizedRoute})`
+          : `${req.method} ${parameterizedRoute}`,
+        spanOp: 'http.server',
         mechanismFunctionName: 'wrapApiHandlerWithSentry',
       });
 

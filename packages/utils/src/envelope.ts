@@ -16,6 +16,7 @@ import type {
 import { dsnToString } from './dsn';
 import { normalize } from './normalize';
 import { dropUndefinedKeys } from './object';
+import { GLOBAL_OBJ } from './worldwide';
 
 /**
  * Creates an envelope.
@@ -71,14 +72,18 @@ export function envelopeContainsItemType(envelope: Envelope, types: EnvelopeItem
  * Encode a string to UTF8 array.
  */
 function encodeUTF8(input: string): Uint8Array {
-  return new TextEncoder().encode(input);
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.encodePolyfill
+    ? GLOBAL_OBJ.__SENTRY__.encodePolyfill(input)
+    : new TextEncoder().encode(input);
 }
 
 /**
  * Decode a UTF8 array to string.
  */
 function decodeUTF8(input: Uint8Array): string {
-  return new TextDecoder().decode(input);
+  return GLOBAL_OBJ.__SENTRY__ && GLOBAL_OBJ.__SENTRY__.decodePolyfill
+    ? GLOBAL_OBJ.__SENTRY__.decodePolyfill(input)
+    : new TextDecoder().decode(input);
 }
 
 /**
@@ -203,8 +208,8 @@ const ITEM_TYPE_TO_DATA_CATEGORY_MAP: Record<EnvelopeItemType, DataCategory> = {
   replay_recording: 'replay',
   check_in: 'monitor',
   feedback: 'feedback',
-  // TODO: This is a temporary workaround until we have a proper data category for metrics
-  statsd: 'unknown',
+  span: 'span',
+  statsd: 'metric_bucket',
 };
 
 /**
@@ -214,7 +219,7 @@ export function envelopeItemTypeToDataCategory(type: EnvelopeItemType): DataCate
   return ITEM_TYPE_TO_DATA_CATEGORY_MAP[type];
 }
 
-/** Extracts the minimal SDK info from from the metadata or an events */
+/** Extracts the minimal SDK info from the metadata or an events */
 export function getSdkMetadataForEnvelopeHeader(metadataOrEvent?: SdkMetadata | Event): SdkInfo | undefined {
   if (!metadataOrEvent || !metadataOrEvent.sdk) {
     return;

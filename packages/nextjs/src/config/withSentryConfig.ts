@@ -18,13 +18,14 @@ let showedExportModeTunnelWarning = false;
  * @param sentryBuildOptions Additional options to configure instrumentation and
  * @returns The modified config to be exported
  */
-export function withSentryConfig(
-  nextConfig: NextConfig = {},
-  sentryBuildOptions: SentryBuildOptions = {},
-): NextConfigFunction | NextConfigObject {
-  if (typeof nextConfig === 'function') {
+export function withSentryConfig<C>(nextConfig?: C, sentryBuildOptions: SentryBuildOptions = {}): C {
+  const castNextConfig = (nextConfig as NextConfig) || {};
+  if (typeof castNextConfig === 'function') {
     return function (this: unknown, ...webpackConfigFunctionArgs: unknown[]): ReturnType<NextConfigFunction> {
-      const maybePromiseNextConfig: ReturnType<typeof nextConfig> = nextConfig.apply(this, webpackConfigFunctionArgs);
+      const maybePromiseNextConfig: ReturnType<typeof castNextConfig> = castNextConfig.apply(
+        this,
+        webpackConfigFunctionArgs,
+      );
 
       if (isThenable(maybePromiseNextConfig)) {
         return maybePromiseNextConfig.then(promiseResultNextConfig => {
@@ -33,9 +34,9 @@ export function withSentryConfig(
       }
 
       return getFinalConfigObject(maybePromiseNextConfig, sentryBuildOptions);
-    };
+    } as C;
   } else {
-    return getFinalConfigObject(nextConfig, sentryBuildOptions);
+    return getFinalConfigObject(castNextConfig, sentryBuildOptions) as C;
   }
 }
 
@@ -68,6 +69,18 @@ function getFinalConfigObject(
       setUpTunnelRewriteRules(incomingUserNextConfigObject, userSentryOptions.tunnelRoute);
     }
   }
+
+  // We need to enable `instrumentation.ts` for users because we tell them to put their `Sentry.init()` calls inside of it.
+  if (incomingUserNextConfigObject.experimental?.instrumentationHook === false) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[@sentry/nextjs] You turned off the `instrumentationHook` option. Note that Sentry will not be initialized if you did not set it up inside `instrumentation.ts`.',
+    );
+  }
+  incomingUserNextConfigObject.experimental = {
+    instrumentationHook: true,
+    ...incomingUserNextConfigObject.experimental,
+  };
 
   return {
     ...incomingUserNextConfigObject,
@@ -124,25 +137,28 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
         {
           type: 'query',
           key: 'r', // short for region - we keep it short so matching is harder for ad-blockers
-          value: '(?<region>\\[a-z\\]{2})',
+          value: '(?<region>[a-z]{2})',
         },
       ],
       destination: 'https://o:orgid.ingest.:region.sentry.io/api/:projectid/envelope/?hsts=0',
     };
 
+    // Order of these is important, they get applied first to last.
+    const newRewrites = [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
+
     if (typeof originalRewrites !== 'function') {
-      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite];
+      return newRewrites;
     }
 
     // @ts-expect-error Expected 0 arguments but got 1 - this is from the future-proofing mentioned above, so we don't care about it
     const originalRewritesResult = await originalRewrites(...args);
 
     if (Array.isArray(originalRewritesResult)) {
-      return [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...originalRewritesResult];
+      return [...newRewrites, ...originalRewritesResult];
     } else {
       return {
         ...originalRewritesResult,
-        beforeFiles: [tunnelRouteRewriteWithRegion, tunnelRouteRewrite, ...(originalRewritesResult.beforeFiles || [])],
+        beforeFiles: [...newRewrites, ...(originalRewritesResult.beforeFiles || [])],
       };
     }
   };

@@ -25,7 +25,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   NodeClient,
   Scope,
@@ -88,12 +87,17 @@ export {
   mysqlIntegration,
   mysql2Integration,
   nestIntegration,
+  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
   setupFastifyErrorHandler,
+  trpcMiddleware,
+  spanToJSON,
+  spanToTraceHeader,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types

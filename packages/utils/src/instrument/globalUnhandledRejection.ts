@@ -3,7 +3,7 @@
 import type { HandlerDataUnhandledRejection } from '@sentry/types';
 
 import { GLOBAL_OBJ } from '../worldwide';
-import { addHandler, maybeInstrument, triggerHandlers } from './_handlers';
+import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
 let _oldOnUnhandledRejectionHandler: (typeof GLOBAL_OBJ)['onunhandledrejection'] | null = null;
 

@@ -19,14 +19,12 @@ import type {
   ScopeData,
   Session,
   SeverityLevel,
-  Span,
-  Transaction,
   User,
 } from '@sentry/types';
 import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
-import type { SentrySpan } from './tracing/sentrySpan';
+import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
  * Default value for maximum number of breadcrumbs added to an event.
@@ -87,9 +85,6 @@ export class Scope implements ScopeInterface {
    */
   protected _transactionName?: string;
 
-  /** Span */
-  protected _span?: Span;
-
   /** Session */
   protected _session?: Session;
 
@@ -116,14 +111,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Inherit values from the parent scope.
-   * @deprecated Use `scope.clone()` and `new Scope()` instead.
-   */
-  public static clone(scope?: Scope): Scope {
-    return scope ? scope.clone() : new Scope();
-  }
-
-  /**
    * @inheritDoc
    */
   public clone(): Scope {
@@ -134,7 +121,6 @@ export class Scope implements ScopeInterface {
     newScope._contexts = { ...this._contexts };
     newScope._user = this._user;
     newScope._level = this._level;
-    newScope._span = this._span;
     newScope._session = this._session;
     newScope._transactionName = this._transactionName;
     newScope._fingerprint = this._fingerprint;
@@ -144,6 +130,8 @@ export class Scope implements ScopeInterface {
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
+
+    _setSpanForScope(newScope, _getSpanForScope(this));
 
     return newScope;
   }
@@ -305,44 +293,6 @@ export class Scope implements ScopeInterface {
   }
 
   /**
-   * Sets the Span on the scope.
-   * @param span Span
-   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
-   */
-  public setSpan(span?: Span): this {
-    this._span = span;
-    this._notifyScopeListeners();
-    return this;
-  }
-
-  /**
-   * Returns the `Span` if there is one.
-   * @deprecated Use `getActiveSpan()` instead.
-   */
-  public getSpan(): Span | undefined {
-    return this._span;
-  }
-
-  /**
-   * Returns the `Transaction` attached to the scope (if there is one).
-   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
-   */
-  public getTransaction(): Transaction | undefined {
-    // Often, this span (if it exists at all) will be a transaction, but it's not guaranteed to be. Regardless, it will
-    // have a pointer to the currently-active transaction.
-    const span = this._span;
-
-    // Cannot replace with getRootSpan because getRootSpan returns a span, not a transaction
-    // Also, this method will be removed anyway.
-    // eslint-disable-next-line deprecation/deprecation
-    if (span && (span as SentrySpan).transaction) {
-      // eslint-disable-next-line deprecation/deprecation
-      return (span as SentrySpan).transaction;
-    }
-    return undefined;
-  }
-
-  /**
    * @inheritDoc
    */
   public setSession(session?: Session): this {
@@ -372,47 +322,37 @@ export class Scope implements ScopeInterface {
 
     const scopeToMerge = typeof captureContext === 'function' ? captureContext(this) : captureContext;
 
-    if (scopeToMerge instanceof Scope) {
-      const scopeData = scopeToMerge.getScopeData();
+    const [scopeInstance, requestSession] =
+      scopeToMerge instanceof Scope
+        ? [scopeToMerge.getScopeData(), scopeToMerge.getRequestSession()]
+        : isPlainObject(scopeToMerge)
+          ? [captureContext as ScopeContext, (captureContext as ScopeContext).requestSession]
+          : [];
 
-      this._tags = { ...this._tags, ...scopeData.tags };
-      this._extra = { ...this._extra, ...scopeData.extra };
-      this._contexts = { ...this._contexts, ...scopeData.contexts };
-      if (scopeData.user && Object.keys(scopeData.user).length) {
-        this._user = scopeData.user;
-      }
-      if (scopeData.level) {
-        this._level = scopeData.level;
-      }
-      if (scopeData.fingerprint.length) {
-        this._fingerprint = scopeData.fingerprint;
-      }
-      if (scopeToMerge.getRequestSession()) {
-        this._requestSession = scopeToMerge.getRequestSession();
-      }
-      if (scopeData.propagationContext) {
-        this._propagationContext = scopeData.propagationContext;
-      }
-    } else if (isPlainObject(scopeToMerge)) {
-      const scopeContext = captureContext as ScopeContext;
-      this._tags = { ...this._tags, ...scopeContext.tags };
-      this._extra = { ...this._extra, ...scopeContext.extra };
-      this._contexts = { ...this._contexts, ...scopeContext.contexts };
-      if (scopeContext.user) {
-        this._user = scopeContext.user;
-      }
-      if (scopeContext.level) {
-        this._level = scopeContext.level;
-      }
-      if (scopeContext.fingerprint) {
-        this._fingerprint = scopeContext.fingerprint;
-      }
-      if (scopeContext.requestSession) {
-        this._requestSession = scopeContext.requestSession;
-      }
-      if (scopeContext.propagationContext) {
-        this._propagationContext = scopeContext.propagationContext;
-      }
+    const { tags, extra, user, contexts, level, fingerprint = [], propagationContext } = scopeInstance || {};
+
+    this._tags = { ...this._tags, ...tags };
+    this._extra = { ...this._extra, ...extra };
+    this._contexts = { ...this._contexts, ...contexts };
+
+    if (user && Object.keys(user).length) {
+      this._user = user;
+    }
+
+    if (level) {
+      this._level = level;
+    }
+
+    if (fingerprint.length) {
+      this._fingerprint = fingerprint;
+    }
+
+    if (propagationContext) {
+      this._propagationContext = propagationContext;
+    }
+
+    if (requestSession) {
+      this._requestSession = requestSession;
     }
 
     return this;
@@ -432,11 +372,12 @@ export class Scope implements ScopeInterface {
     this._transactionName = undefined;
     this._fingerprint = undefined;
     this._requestSession = undefined;
-    this._span = undefined;
     this._session = undefined;
-    this._notifyScopeListeners();
+    _setSpanForScope(this, undefined);
     this._attachments = [];
     this._propagationContext = generatePropagationContext();
+
+    this._notifyScopeListeners();
     return this;
   }
 
@@ -491,16 +432,6 @@ export class Scope implements ScopeInterface {
 
   /**
    * @inheritDoc
-   * @deprecated Use `getScopeData()` instead.
-   */
-  public getAttachments(): Attachment[] {
-    const data = this.getScopeData();
-
-    return data.attachments;
-  }
-
-  /**
-   * @inheritDoc
    */
   public clearAttachments(): this {
     this._attachments = [];
@@ -509,36 +440,20 @@ export class Scope implements ScopeInterface {
 
   /** @inheritDoc */
   public getScopeData(): ScopeData {
-    const {
-      _breadcrumbs,
-      _attachments,
-      _contexts,
-      _tags,
-      _extra,
-      _user,
-      _level,
-      _fingerprint,
-      _eventProcessors,
-      _propagationContext,
-      _sdkProcessingMetadata,
-      _transactionName,
-      _span,
-    } = this;
-
     return {
-      breadcrumbs: _breadcrumbs,
-      attachments: _attachments,
-      contexts: _contexts,
-      tags: _tags,
-      extra: _extra,
-      user: _user,
-      level: _level,
-      fingerprint: _fingerprint || [],
-      eventProcessors: _eventProcessors,
-      propagationContext: _propagationContext,
-      sdkProcessingMetadata: _sdkProcessingMetadata,
-      transactionName: _transactionName,
-      span: _span,
+      breadcrumbs: this._breadcrumbs,
+      attachments: this._attachments,
+      contexts: this._contexts,
+      tags: this._tags,
+      extra: this._extra,
+      user: this._user,
+      level: this._level,
+      fingerprint: this._fingerprint || [],
+      eventProcessors: this._eventProcessors,
+      propagationContext: this._propagationContext,
+      sdkProcessingMetadata: this._sdkProcessingMetadata,
+      transactionName: this._transactionName,
+      span: _getSpanForScope(this),
     };
   }
 

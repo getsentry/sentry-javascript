@@ -9,19 +9,14 @@ import {
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
-import {
-  addHistoryInstrumentationHandler,
-  consoleSandbox,
-  logger,
-  stackParserFromStackParserOptions,
-  supportsFetch,
-} from '@sentry/utils';
+import { consoleSandbox, logger, stackParserFromStackParserOptions, supportsFetch } from '@sentry/utils';
 
+import { addHistoryInstrumentationHandler } from '@sentry-internal/browser-utils';
 import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-import { WINDOW, wrap as internalWrap } from './helpers';
+import { WINDOW } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
 import { globalHandlersIntegration } from './integrations/globalhandlers';
@@ -32,6 +27,10 @@ import { makeFetchTransport } from './transports/fetch';
 
 /** Get the default integrations for the browser SDK. */
 export function getDefaultIntegrations(_options: Options): Integration[] {
+  /**
+   * Note: Please make sure this stays in sync with Angular SDK, which re-exports
+   * `getDefaultIntegrations` but with an adjusted set of integrations.
+   */
   return [
     inboundFiltersIntegration(),
     functionToStringIntegration(),
@@ -136,7 +135,7 @@ export function init(browserOptions: BrowserOptions = {}): void {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.error(
-        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/troubleshooting/#setting-up-sentry-in-shared-environments-eg-browser-extensions',
+        '[Sentry] You cannot run Sentry this way in a browser extension, check: https://docs.sentry.io/platforms/javascript/best-practices/browser-extensions/',
       );
     });
     return;
@@ -266,23 +265,6 @@ export function forceLoad(): void {
  */
 export function onLoad(callback: () => void): void {
   callback();
-}
-
-/**
- * Wrap code within a try/catch block so the SDK is able to capture errors.
- *
- * @deprecated This function will be removed in v8.
- * It is not part of Sentry's official API and it's easily replaceable by using a try/catch block
- * and calling Sentry.captureException.
- *
- * @param fn A function to wrap.
- *
- * @returns The result of wrapped function call.
- */
-// TODO(v8): Remove this function
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function wrap(fn: (...args: any) => any): any {
-  return internalWrap(fn)();
 }
 
 /**

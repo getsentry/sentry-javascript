@@ -14,9 +14,6 @@ export const FIRST_PASS_COMPONENT_TRACKING_PREPROC_ID = 'FIRST_PASS_COMPONENT_TR
 /**
  * Svelte Preprocessor to inject Sentry performance monitoring related code
  * into Svelte components.
- *
- * @deprecated Use `withSentryConfig` which is the new way of making compile-time modifications
- *             to Svelte apps going forward.
  */
 export function componentTrackingPreprocessor(options?: ComponentTrackingInitOptions): PreprocessorGroup {
   const mergedOptions = { ...defaultComponentTrackingOptions, ...options };

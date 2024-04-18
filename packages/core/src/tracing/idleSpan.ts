@@ -5,6 +5,7 @@ import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON } from '../semanticAttributes';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
+import { _setSpanForScope } from '../utils/spanOnScope';
 import {
   getActiveSpan,
   getSpanDescendants,
@@ -195,8 +196,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
   function _pushActivity(spanId: string): void {
     _cancelIdleTimeout();
     activities.set(spanId, true);
-    DEBUG_BUILD && logger.log(`[Tracing] pushActivity: ${spanId}`);
-    DEBUG_BUILD && logger.log('[Tracing] new activities count', activities.size);
 
     const endTimestamp = timestampInSeconds();
     // We need to add the timeout here to have the real endtimestamp of the idle span
@@ -210,9 +209,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
    */
   function _popActivity(spanId: string): void {
     if (activities.has(spanId)) {
-      DEBUG_BUILD && logger.log(`[Tracing] popActivity ${spanId}`);
       activities.delete(spanId);
-      DEBUG_BUILD && logger.log('[Tracing] new activities count', activities.size);
     }
 
     if (activities.size === 0) {
@@ -232,8 +229,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       beforeSpanEnd(span);
     }
 
-    // eslint-disable-next-line deprecation/deprecation
-    scope.setSpan(previousActiveSpan);
+    _setSpanForScope(scope, previousActiveSpan);
 
     const spanJSON = spanToJSON(span);
 
@@ -248,8 +244,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
-    DEBUG_BUILD &&
-      logger.log('[Tracing] finishing idle span', new Date(endTimestamp * 1000).toISOString(), spanJSON.op);
+    logger.log(`[Tracing] Idle span "${spanJSON.op}" finished`);
 
     const childSpans = getSpanDescendants(span).filter(child => child !== span);
 
@@ -259,7 +254,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         childSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'cancelled' });
         childSpan.end(endTimestamp);
         DEBUG_BUILD &&
-          logger.log('[Tracing] cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
+          logger.log('[Tracing] Cancelling span since span ended early', JSON.stringify(childSpan, undefined, 2));
       }
 
       const childSpanJSON = spanToJSON(childSpan);
@@ -274,9 +269,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
       if (DEBUG_BUILD) {
         const stringifiedSpan = JSON.stringify(childSpan, undefined, 2);
         if (!spanStartedBeforeIdleSpanEnd) {
-          logger.log('[Tracing] discarding Span since it happened after idle span was finished', stringifiedSpan);
+          logger.log('[Tracing] Discarding span since it happened after idle span was finished', stringifiedSpan);
         } else if (!spanEndedBeforeFinalTimeout) {
-          logger.log('[Tracing] discarding Span since it finished after idle span final timeout', stringifiedSpan);
+          logger.log('[Tracing] Discarding span since it finished after idle span final timeout', stringifiedSpan);
         }
       }
 
@@ -284,8 +279,6 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
         removeChildSpanFromSpan(span, childSpan);
       }
     });
-
-    DEBUG_BUILD && logger.log('[Tracing] flushing idle span');
   }
 
   client.on('spanStart', startedSpan => {
@@ -347,10 +340,9 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
 function _startIdleSpan(options: StartSpanOptions): Span {
   const span = startInactiveSpan(options);
 
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentScope().setSpan(span);
+  _setSpanForScope(getCurrentScope(), span);
 
-  DEBUG_BUILD && logger.log(`Setting idle span on scope. Span ID: ${span.spanContext().spanId}`);
+  DEBUG_BUILD && logger.log('[Tracing] Started span is an idle span');
 
   return span;
 }

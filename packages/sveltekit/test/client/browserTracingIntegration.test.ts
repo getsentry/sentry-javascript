@@ -40,12 +40,8 @@ describe('browserTracingIntegration', () => {
         ...txnCtx,
         updateName: vi.fn(),
         setAttribute: vi.fn(),
-        startChild: vi.fn().mockImplementation(ctx => {
-          return { ...mockedRoutingSpan, ...ctx };
-        }),
-        setTag: vi.fn(),
       };
-      return createdRootSpan;
+      return createdRootSpan as Span;
     });
 
   const startBrowserTracingNavigationSpanSpy = vi
@@ -55,9 +51,8 @@ describe('browserTracingIntegration', () => {
         ...txnCtx,
         updateName: vi.fn(),
         setAttribute: vi.fn(),
-        setTag: vi.fn(),
       };
-      return createdRootSpan;
+      return createdRootSpan as Span;
     });
 
   const fakeClient = { getOptions: () => ({}), on: () => {} };
@@ -80,7 +75,6 @@ describe('browserTracingIntegration', () => {
   it('implements required hooks', () => {
     const integration = browserTracingIntegration();
     expect(integration.name).toEqual('BrowserTracing');
-    expect(integration.setupOnce).toBeDefined();
     expect(integration.afterAllSetup).toBeDefined();
   });
 
@@ -141,6 +135,29 @@ describe('browserTracingIntegration', () => {
     expect(startBrowserTracingPageLoadSpanSpy).toHaveBeenCalledTimes(0);
   });
 
+  it("updates the current scope's transactionName once it's resolved during pageload", () => {
+    const scopeSetTransactionNameSpy = vi.fn();
+
+    // @ts-expect-error - only returning a partial scope here, that's fine
+    vi.spyOn(SentrySvelte, 'getCurrentScope').mockImplementation(() => {
+      return {
+        setTransactionName: scopeSetTransactionNameSpy,
+      };
+    });
+
+    const integration = browserTracingIntegration();
+    // @ts-expect-error - the fakeClient doesn't satisfy Client but that's fine
+    integration.afterAllSetup(fakeClient);
+
+    // We emit an update to the `page` store to simulate the SvelteKit router lifecycle
+    // @ts-expect-error - page is a writable but the types say it's just readable
+    page.set({ route: { id: 'testRoute/:id' } });
+
+    // This should update the transaction name with the parameterized route:
+    expect(scopeSetTransactionNameSpy).toHaveBeenCalledTimes(3);
+    expect(scopeSetTransactionNameSpy).toHaveBeenLastCalledWith('testRoute/:id');
+  });
+
   it("doesn't start a navigation span when `instrumentNavigation` is false", () => {
     const integration = browserTracingIntegration({
       instrumentNavigation: false,
@@ -188,7 +205,6 @@ describe('browserTracingIntegration', () => {
       },
     });
 
-    // eslint-disable-next-line deprecation/deprecation
     expect(startInactiveSpanSpy).toHaveBeenCalledWith({
       op: 'ui.sveltekit.routing',
       name: 'SvelteKit Route Change',
@@ -251,7 +267,6 @@ describe('browserTracingIntegration', () => {
         },
       });
 
-      // eslint-disable-next-line deprecation/deprecation
       expect(startInactiveSpanSpy).toHaveBeenCalledWith({
         op: 'ui.sveltekit.routing',
         name: 'SvelteKit Route Change',

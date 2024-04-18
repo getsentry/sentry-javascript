@@ -16,15 +16,15 @@ targets:
   - name: npm
     id: '@sentry/core'
     includeNames: /^sentry-core-\d.*\.tgz$/
-  ## 1.4 Tracing package
+  ## 1.4 Browser Utils package
   - name: npm
-    id: '@sentry-internal/tracing'
-    includeNames: /^sentry-internal-tracing-\d.*\.tgz$/
-  ## 1.5 Replay package (browser only)
+    id: '@sentry-internal/browser-utils'
+    includeNames: /^sentry-internal-browser-utils-\d.*\.tgz$/
+  ## 1.5 Replay Internal package (browser only)
   - name: npm
-    id: '@sentry/replay'
-    includeNames: /^sentry-replay-\d.*\.tgz$/
-  ## 1.6. OpenTelemetry package
+    id: '@sentry-internal/replay'
+    includeNames: /^sentry-internal-replay-\d.*\.tgz$/
+  ## 1.6 OpenTelemetry package
   - name: npm
     id: '@sentry/opentelemetry'
     includeNames: /^sentry-opentelemetry-\d.*\.tgz$/
@@ -49,9 +49,6 @@ targets:
     includeNames: /^sentry-profiling-node-\d.*\.tgz$/
 
   ## 3 Browser-based Packages
-  - name: npm
-    id: '@sentry/angular-ivy'
-    includeNames: /^sentry-angular-ivy-\d.*\.tgz$/
   - name: npm
     id: '@sentry/angular'
     includeNames: /^sentry-angular-\d.*\.tgz$/
@@ -128,11 +125,6 @@ targets:
     id: '@sentry-internal/eslint-config-sdk'
     includeNames: /^sentry-internal-eslint-config-sdk-\d.*\.tgz$/
 
-  ## 8. Experimental packages
-  - name: npm
-    id: '@sentry/node-experimental'
-    includeNames: /^sentry-node-experimental-\d.*\.tgz$/
-
   # AWS Lambda Layer target
   - name: aws-lambda-layer
     includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
@@ -179,8 +171,6 @@ targets:
         onlyIfPresent: /^sentry-vue-\d.*\.tgz$/
       'npm:@sentry/gatsby':
         onlyIfPresent: /^sentry-gatsby-\d.*\.tgz$/
-      'npm:@sentry/angular-ivy':
-        onlyIfPresent: /^sentry-angular-ivy-\d.*\.tgz$/
       'npm:@sentry/angular':
         onlyIfPresent: /^sentry-angular-\d.*\.tgz$/
       'npm:@sentry/astro':

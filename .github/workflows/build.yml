@@ -1,4 +1,4 @@
-name: 'Build & Test'
+name: 'CI: Build & Test'
 on:
   push:
     branches:
@@ -6,6 +6,8 @@ on:
       - master
       - release/**
   pull_request:
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       commit:
@@ -96,13 +98,12 @@ jobs:
               - 'scripts/**'
               - 'packages/core/**'
               - 'packages/rollup-utils/**'
-              - 'packages/tracing/**'
-              - 'packages/tracing-internal/**'
               - 'packages/utils/**'
               - 'packages/types/**'
             browser: &browser
               - *shared
               - 'packages/browser/**'
+              - 'packages/browser-utils/**'
               - 'packages/replay/**'
               - 'packages/replay-canvas/**'
               - 'packages/feedback/**'
@@ -118,7 +119,6 @@ jobs:
             node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-experimental/**'
               - 'dev-packages/node-integration-tests/**'
             nextjs:
               - *shared
@@ -135,7 +135,6 @@ jobs:
             profiling_node:
               - *shared
               - 'packages/node/**'
-              - 'packages/node-experimental/**'
               - 'packages/profiling-node/**'
               - 'dev-packages/e2e-tests/test-applications/node-profiling/**'
             profiling_node_bindings:
@@ -271,6 +270,9 @@ jobs:
             ${{needs.job_get_metadata.outputs.is_develop == 'false' && env.NX_CACHE_RESTORE_KEYS || 'nx-never-restore'}}
 
       - name: Build packages
+        # Set the CODECOV_TOKEN for Bundle Analysis
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: yarn build
     outputs:
       # this needs to be passed on, because the `needs` context only looks at direct ancestors (so steps which depend on
@@ -411,6 +413,7 @@ jobs:
             ${{ github.workspace }}/packages/browser/build/bundles/**
             ${{ github.workspace }}/packages/replay/build/bundles/**
             ${{ github.workspace }}/packages/replay-canvas/build/bundles/**
+            ${{ github.workspace }}/packages/feedback/build/bundles/**
             ${{ github.workspace }}/packages/**/*.tgz
             ${{ github.workspace }}/packages/aws-serverless/build/aws/dist-serverless/*.zip
 
@@ -621,21 +624,20 @@ jobs:
           - bundle
           - bundle_min
           - bundle_replay
-          - bundle_replay_min
           - bundle_tracing
-          - bundle_tracing_min
           - bundle_tracing_replay
-          - bundle_tracing_replay_min
+          - bundle_tracing_replay_feedback
+          - bundle_tracing_replay_feedback_min
         project:
           - chromium
         include:
           # Only check all projects for esm & full bundle
           # We also shard the tests as they take the longest
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: ''
             shard: 1
             shards: 2
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: ''
             shard: 2
             shards: 2
@@ -652,7 +654,7 @@ jobs:
             shards: 3
         exclude:
           # Do not run the default chromium-only tests
-          - bundle: bundle_tracing_replay_min
+          - bundle: bundle_tracing_replay_feedback_min
             project: 'chromium'
           - bundle: esm
             project: 'chromium'
@@ -906,16 +908,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # For whatever reason, these segfault on Node 18, so we are skipping these for now...
-        node: [20, 21]
+        node: [18, 20, 21]
         remix: [1, 2]
         # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
         include:
           - node: 14
             remix: 1
-          # For whatever reason, these segfault on Node 16, so we are skipping these for now...
-          # - node: 16
-          #  remix: 1
+          - node: 16
+            remix: 1
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1038,6 +1038,7 @@ jobs:
             'create-remix-app-v2',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
+            # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
             'nextjs-app-dir',
             'nextjs-14',
             'react-create-hash-router',
@@ -1049,8 +1050,13 @@ jobs:
             'node-fastify-app',
             # TODO(v8): Re-enable hapi tests
             # 'node-hapi-app',
+            'node-nestjs-app',
             'node-exports-test-app',
-            'vue-3'
+            'node-koa-app',
+            'node-connect-app',
+            'vue-3',
+            'webpack-4',
+            'webpack-5'
           ]
         build-command:
           - false

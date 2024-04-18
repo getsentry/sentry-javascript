@@ -10,7 +10,6 @@ import type { RequestSession, Session } from './session';
 import type { SeverityLevel } from './severity';
 import type { Span } from './span';
 import type { PropagationContext } from './tracing';
-import type { Transaction } from './transaction';
 import type { User } from './user';
 
 /** JSDocs */
@@ -146,25 +145,6 @@ export interface Scope {
   setContext(name: string, context: Context | null): this;
 
   /**
-   * Sets the Span on the scope.
-   * @param span Span
-   * @deprecated Instead of setting a span on a scope, use `startSpan()`/`startSpanManual()` instead.
-   */
-  setSpan(span?: Span): this;
-
-  /**
-   * Returns the `Span` if there is one.
-   * @deprecated Use `getActiveSpan()` instead.
-   */
-  getSpan(): Span | undefined;
-
-  /**
-   * Returns the `Transaction` attached to the scope (if there is one).
-   * @deprecated You should not rely on the transaction, but just use `startSpan()` APIs instead.
-   */
-  getTransaction(): Transaction | undefined;
-
-  /**
    * Returns the `Session` if there is one
    */
   getSession(): Session | undefined;
@@ -218,11 +198,6 @@ export interface Scope {
    * @param attachment Attachment options
    */
   addAttachment(attachment: Attachment): this;
-
-  /**
-   * Returns an array of attachments on the scope
-   */
-  getAttachments(): Attachment[];
 
   /**
    * Clears attachments from the scope

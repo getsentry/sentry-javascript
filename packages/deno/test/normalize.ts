@@ -2,7 +2,7 @@
 import type { sentryTypes } from '../build-test/index.js';
 import { sentryUtils } from '../build-test/index.js';
 
-type EventOrSession = sentryTypes.Event | sentryTypes.Transaction | sentryTypes.Session;
+type EventOrSession = sentryTypes.Event | sentryTypes.Session;
 
 export function getNormalizedEvent(envelope: sentryTypes.Envelope): sentryTypes.Event | undefined {
   let event: sentryTypes.Event | undefined;

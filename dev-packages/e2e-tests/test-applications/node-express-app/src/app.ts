@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/node';
-import express from 'express';
 
 declare global {
   namespace globalThis {
@@ -15,6 +14,11 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
 });
+
+import { TRPCError, initTRPC } from '@trpc/server';
+import * as trpcExpress from '@trpc/server/adapters/express';
+import express from 'express';
+import { z } from 'zod';
 
 const app = express();
 const port = 3030;
@@ -47,6 +51,10 @@ app.get('/test-error', async function (req, res) {
   await Sentry.flush(2000);
 
   res.send({ exceptionId });
+});
+
+app.get('/test-exception/:id', function (req, _res) {
+  throw new Error(`This is an exception with id ${req.params.id}`);
 });
 
 app.get('/test-local-variables-uncaught', function (req, res) {
@@ -94,3 +102,36 @@ Sentry.addEventProcessor(event => {
 
   return event;
 });
+
+export const t = initTRPC.context<Context>().create();
+
+const procedure = t.procedure.use(Sentry.trpcMiddleware({ attachRpcInput: true }));
+
+export const appRouter = t.router({
+  getSomething: procedure.input(z.string()).query(opts => {
+    return { id: opts.input, name: 'Bilbo' };
+  }),
+  createSomething: procedure.mutation(async () => {
+    await new Promise(resolve => setTimeout(resolve, 400));
+    return { success: true };
+  }),
+  crashSomething: procedure.mutation(() => {
+    throw new Error('I crashed in a trpc handler');
+  }),
+  dontFindSomething: procedure.mutation(() => {
+    throw new TRPCError({ code: 'NOT_FOUND', cause: new Error('Page not found') });
+  }),
+});
+
+export type AppRouter = typeof appRouter;
+
+const createContext = () => ({ someStaticValue: 'asdf' });
+type Context = Awaited<ReturnType<typeof createContext>>;
+
+app.use(
+  '/trpc',
+  trpcExpress.createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  }),
+);

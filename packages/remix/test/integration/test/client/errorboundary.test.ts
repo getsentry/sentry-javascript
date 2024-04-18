@@ -39,4 +39,7 @@ test('should capture React component errors.', async ({ page }) => {
       mechanism: { type: useV2 ? 'instrument' : 'generic', handled: !useV2 },
     },
   ]);
+  expect(errorEnvelope.transaction).toBe(
+    useV2 ? 'routes/error-boundary-capture.$id' : 'routes/error-boundary-capture/$id',
+  );
 });

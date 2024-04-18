@@ -1,0 +1,18 @@
+{
+  "name": "webpack-4-test",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "serve -s build",
+    "build": "node build.mjs",
+    "test:build": "pnpm install && npx playwright install && pnpm build",
+    "test:assert": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.42.1",
+    "@sentry/browser": "latest || *",
+    "webpack": "^4.47.0",
+    "terser-webpack-plugin": "^4.2.3",
+    "html-webpack-plugin": "^4.5.2",
+    "serve": "^14.2.1"
+  }
+}

@@ -1,11 +1,5 @@
-import { get } from 'http';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const handler = async (_req: NextApiRequest, res: NextApiResponse): Promise<void> => {
-  // make an outgoing request in order to test that the `Http` integration creates a span
-  await new Promise(resolve => get('http://example.com', resolve));
-
+export default (_req: NextApiRequest, res: NextApiResponse) => {
   res.status(200).json({});
 };
-
-export default handler;

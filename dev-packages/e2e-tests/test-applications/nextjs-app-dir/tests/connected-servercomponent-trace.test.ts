@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Will capture a connected trace for all server components and generation functions when visiting a page', async ({
   page,

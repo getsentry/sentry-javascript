@@ -1,19 +1,8 @@
-import type {
-  Client,
-  Event,
-  EventHint,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  IntegrationFnResult,
-  Options,
-} from '@sentry/types';
+import type { Client, Event, EventHint, Integration, IntegrationFn, Options } from '@sentry/types';
 import { arrayify, logger } from '@sentry/utils';
 import { getClient } from './currentScopes';
 
 import { DEBUG_BUILD } from './debug-build';
-import { addGlobalEventProcessor } from './eventProcessors';
-import { getCurrentHub } from './hub';
 
 declare module '@sentry/types' {
   interface Integration {
@@ -130,8 +119,7 @@ export function setupIntegration(client: Client, integration: Integration, integ
 
   // `setupOnce` is only called the first time
   if (installedIntegrations.indexOf(integration.name) === -1 && typeof integration.setupOnce === 'function') {
-    // eslint-disable-next-line deprecation/deprecation
-    integration.setupOnce(addGlobalEventProcessor, getCurrentHub);
+    integration.setupOnce();
     installedIntegrations.push(integration.name);
   }
 
@@ -182,27 +170,9 @@ function findIndex<T>(arr: T[], callback: (item: T) => boolean): number {
 }
 
 /**
- * Convert a new integration function to the legacy class syntax.
- * In v8, we can remove this and instead export the integration functions directly.
- *
- * @deprecated This will be removed in v8!
- */
-export function convertIntegrationFnToClass<Fn extends IntegrationFn>(
-  name: string,
-  fn: Fn,
-): IntegrationClass<Integration> {
-  return Object.assign(
-    function ConvertedIntegration(...args: Parameters<Fn>): Integration {
-      return fn(...args);
-    },
-    { id: name },
-  ) as unknown as IntegrationClass<Integration>;
-}
-
-/**
  * Define an integration function that can be used to create an integration instance.
  * Note that this by design hides the implementation details of the integration, as they are considered internal.
  */
-export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => IntegrationFnResult {
+export function defineIntegration<Fn extends IntegrationFn>(fn: Fn): (...args: Parameters<Fn>) => Integration {
   return fn;
 }

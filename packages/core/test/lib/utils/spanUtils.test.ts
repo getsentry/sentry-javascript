@@ -7,8 +7,6 @@ import {
   SPAN_STATUS_OK,
   SPAN_STATUS_UNSET,
   SentrySpan,
-  Transaction,
-  addTracingExtensions,
   setCurrentClient,
   spanToTraceHeader,
   startInactiveSpan,
@@ -225,7 +223,6 @@ describe('getRootSpan', () => {
   beforeEach(() => {
     const client = new TestClient(getDefaultTestClientOptions({ tracesSampleRate: 1 }));
     setCurrentClient(client);
-    addTracingExtensions();
   });
 
   it('returns the root span of a span that is a root span', () => {
@@ -234,7 +231,7 @@ describe('getRootSpan', () => {
     expect(getRootSpan(root)).toBe(root);
   });
 
-  it('returns the root span of a child span xxx', () => {
+  it('returns the root span of a child span', () => {
     startSpan({ name: 'outer' }, root => {
       startSpan({ name: 'inner' }, inner => {
         expect(getRootSpan(inner)).toBe(root);
@@ -246,16 +243,5 @@ describe('getRootSpan', () => {
         });
       });
     });
-  });
-
-  it('returns the root span of a legacy transaction & its children', () => {
-    // eslint-disable-next-line deprecation/deprecation
-    const root = new Transaction({ name: 'test' });
-
-    expect(getRootSpan(root)).toBe(root);
-
-    // eslint-disable-next-line deprecation/deprecation
-    const childSpan = root.startChild({ name: 'child' });
-    expect(getRootSpan(childSpan)).toBe(root);
   });
 });

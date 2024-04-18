@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 import axios, { AxiosError } from 'axios';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -119,6 +119,20 @@ test('Sends successful transactions to Sentry', async ({ baseURL }) => {
       },
     )
     .toBe(200);
+});
+
+test('sends error with parameterized transaction name', async ({ baseURL }) => {
+  const errorEventPromise = waitForError('node-hapi-app', errorEvent => {
+    return errorEvent?.exception?.values?.[0]?.value === 'This is an error with id 123';
+  });
+
+  try {
+    await axios.get(`${baseURL}/test-error/123`);
+  } catch {}
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent?.transaction).toBe('GET /test-error/{id}');
 });
 
 test('Sends parameterized transactions to Sentry', async ({ baseURL }) => {

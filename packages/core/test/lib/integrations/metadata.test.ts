@@ -1,7 +1,7 @@
 import type { Event } from '@sentry/types';
 import { GLOBAL_OBJ, createStackParser, nodeStackLineParser, parseEnvelope } from '@sentry/utils';
 
-import { ModuleMetadata, captureException, createTransport, setCurrentClient } from '../../../src';
+import { captureException, createTransport, moduleMetadataIntegration, setCurrentClient } from '../../../src';
 import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 const stackParser = createStackParser(nodeStackLineParser());
@@ -26,8 +26,7 @@ describe('ModuleMetadata integration', () => {
       dsn: 'https://username@domain/123',
       enableSend: true,
       stackParser,
-      // eslint-disable-next-line deprecation/deprecation
-      integrations: [new ModuleMetadata()],
+      integrations: [moduleMetadataIntegration()],
       beforeSend: (event, _hint) => {
         // copy the frames since reverse in in-place
         const lastFrame = [...(event.exception?.values?.[0].stacktrace?.frames || [])].reverse()[0];

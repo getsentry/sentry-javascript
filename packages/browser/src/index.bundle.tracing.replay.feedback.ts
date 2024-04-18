@@ -1,10 +1,8 @@
-import { feedbackIntegration } from '@sentry-internal/feedback';
-import { browserTracingIntegration } from '@sentry-internal/tracing';
-import { addTracingExtensions } from '@sentry/core';
-import { replayIntegration } from '@sentry/replay';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 
-// We are patching the global object with our hub extension methods
-addTracingExtensions();
+registerSpanErrorInstrumentation();
+
+export * from './index.bundle.base';
 
 export {
   getActiveSpan,
@@ -14,8 +12,20 @@ export {
   startSpanManual,
   withActiveSpan,
   getSpanDescendants,
+  setMeasurement,
 } from '@sentry/core';
 
-export { feedbackIntegration, replayIntegration, browserTracingIntegration, addTracingExtensions };
+export {
+  feedbackIntegration,
+  feedbackModalIntegration,
+  feedbackScreenshotIntegration,
+  getFeedback,
+} from '@sentry-internal/feedback';
 
-export * from './index.bundle.base';
+export {
+  browserTracingIntegration,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from './tracing/browserTracingIntegration';
+
+export { replayIntegration } from '@sentry-internal/replay';

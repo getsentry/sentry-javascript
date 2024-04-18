@@ -1,6 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { Layer } from './hub';
-export type { AsyncContextStrategy, Carrier } from './asyncContext';
+export type { AsyncContextStrategy } from './asyncContext/types';
+export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -30,35 +30,21 @@ export {
   addEventProcessor,
 } from './exports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
-  Hub,
-  // eslint-disable-next-line deprecation/deprecation
-  makeMain,
-  getGlobalHub,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-} from './hub';
-export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   withScope,
   withIsolationScope,
   getClient,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './currentScopes';
-export {
-  getMainCarrier,
-  setAsyncContextStrategy,
-} from './asyncContext';
+export { setAsyncContextStrategy } from './asyncContext';
+export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
-export {
-  notifyEventProcessors,
-  // eslint-disable-next-line deprecation/deprecation
-  addGlobalEventProcessor,
-} from './eventProcessors';
+export { notifyEventProcessors } from './eventProcessors';
 export { getEnvelopeEndpointWithUrlEncodedAuth, getReportDialogEndpoint } from './api';
 export { BaseClient } from './baseclient';
 export { ServerRuntimeClient } from './server-runtime-client';
@@ -71,12 +57,11 @@ export {
   getIntegrationsToSetup,
   addIntegration,
   defineIntegration,
-  // eslint-disable-next-line deprecation/deprecation
-  convertIntegrationFnToClass,
 } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
+export { createSpanEnvelope } from './span';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
@@ -92,11 +77,9 @@ export {
   getActiveSpan,
   addChildSpanToSpan,
 } from './utils/spanUtils';
+export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
-/* eslint-disable deprecation/deprecation */
-export { ModuleMetadata } from './integrations/metadata';
-export { RequestData } from './integrations/requestdata';
 export { addBreadcrumb } from './breadcrumbs';
 export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/inboundfilters';
@@ -116,3 +99,7 @@ export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
+export { trpcMiddleware } from './trpc';
+
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

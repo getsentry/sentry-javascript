@@ -1,6 +1,16 @@
 import type { AttributeValue, Attributes } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import {
+  SEMATTRS_DB_STATEMENT,
+  SEMATTRS_DB_SYSTEM,
+  SEMATTRS_FAAS_TRIGGER,
+  SEMATTRS_HTTP_METHOD,
+  SEMATTRS_HTTP_ROUTE,
+  SEMATTRS_HTTP_TARGET,
+  SEMATTRS_HTTP_URL,
+  SEMATTRS_MESSAGING_SYSTEM,
+  SEMATTRS_RPC_SERVICE,
+} from '@opentelemetry/semantic-conventions';
 import type { TransactionSource } from '@sentry/types';
 import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 
@@ -25,19 +35,19 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   const name = spanHasName(span) ? span.name : '<unknown>';
 
   // if http.method exists, this is an http request span
-  const httpMethod = attributes[SemanticAttributes.HTTP_METHOD];
+  const httpMethod = attributes[SEMATTRS_HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod({ attributes, name, kind: getSpanKind(span) }, httpMethod);
   }
 
   // If db.type exists then this is a database call span.
-  const dbSystem = attributes[SemanticAttributes.DB_SYSTEM];
+  const dbSystem = attributes[SEMATTRS_DB_SYSTEM];
   if (dbSystem) {
     return descriptionForDbSystem({ attributes, name });
   }
 
   // If rpc.service exists then this is a rpc call span.
-  const rpcService = attributes[SemanticAttributes.RPC_SERVICE];
+  const rpcService = attributes[SEMATTRS_RPC_SERVICE];
   if (rpcService) {
     return {
       op: 'rpc',
@@ -47,7 +57,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   }
 
   // If messaging.system exists then this is a messaging system span.
-  const messagingSystem = attributes[SemanticAttributes.MESSAGING_SYSTEM];
+  const messagingSystem = attributes[SEMATTRS_MESSAGING_SYSTEM];
   if (messagingSystem) {
     return {
       op: 'message',
@@ -57,7 +67,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   }
 
   // If faas.trigger exists then this is a function as a service span.
-  const faasTrigger = attributes[SemanticAttributes.FAAS_TRIGGER];
+  const faasTrigger = attributes[SEMATTRS_FAAS_TRIGGER];
   if (faasTrigger) {
     return { op: faasTrigger.toString(), description: name, source: 'route' };
   }
@@ -67,7 +77,7 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
 
 function descriptionForDbSystem({ attributes, name }: { attributes: Attributes; name: string }): SpanDescription {
   // Use DB statement (Ex "SELECT * FROM table") if possible as description.
-  const statement = attributes[SemanticAttributes.DB_STATEMENT];
+  const statement = attributes[SEMATTRS_DB_STATEMENT];
 
   const description = statement ? statement.toString() : name;
 
@@ -134,11 +144,11 @@ export function getSanitizedUrl(
   hasRoute: boolean;
 } {
   // This is the relative path of the URL, e.g. /sub
-  const httpTarget = attributes[SemanticAttributes.HTTP_TARGET];
+  const httpTarget = attributes[SEMATTRS_HTTP_TARGET];
   // This is the full URL, including host & query params etc., e.g. https://example.com/sub?foo=bar
-  const httpUrl = attributes[SemanticAttributes.HTTP_URL];
+  const httpUrl = attributes[SEMATTRS_HTTP_URL];
   // This is the normalized route name - may not always be available!
-  const httpRoute = attributes[SemanticAttributes.HTTP_ROUTE];
+  const httpRoute = attributes[SEMATTRS_HTTP_ROUTE];
 
   const parsedUrl = typeof httpUrl === 'string' ? parseUrl(httpUrl) : undefined;
   const url = parsedUrl ? getSanitizedUrlString(parsedUrl) : undefined;

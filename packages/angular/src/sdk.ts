@@ -1,25 +1,52 @@
 import { VERSION } from '@angular/core';
 import type { BrowserOptions } from '@sentry/browser';
-import { getDefaultIntegrations, init as browserInit, setContext } from '@sentry/browser';
-import { applySdkMetadata } from '@sentry/core';
+import {
+  breadcrumbsIntegration,
+  globalHandlersIntegration,
+  httpContextIntegration,
+  linkedErrorsIntegration,
+} from '@sentry/browser';
+import { init as browserInit, setContext } from '@sentry/browser';
+import {
+  applySdkMetadata,
+  dedupeIntegration,
+  functionToStringIntegration,
+  inboundFiltersIntegration,
+} from '@sentry/core';
+import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { IS_DEBUG_BUILD } from './flags';
+
+/**
+ * Get the default integrations for the Angular SDK.
+ */
+export function getDefaultIntegrations(): Integration[] {
+  // Don't include the BrowserApiErrors integration as it interferes with the Angular SDK's `ErrorHandler`:
+  // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and
+  // thus provide a lower fidelity error than what `SentryErrorHandler`
+  // (see errorhandler.ts) would provide.
+  //
+  // see:
+  //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
+  //  - https://github.com/getsentry/sentry-javascript/issues/2744
+  return [
+    inboundFiltersIntegration(),
+    functionToStringIntegration(),
+    breadcrumbsIntegration(),
+    globalHandlersIntegration(),
+    linkedErrorsIntegration(),
+    dedupeIntegration(),
+    httpContextIntegration(),
+  ];
+}
 
 /**
  * Inits the Angular SDK
  */
 export function init(options: BrowserOptions): void {
   const opts = {
-    // Filter out BrowserApiErrors integration as it interferes with our Angular `ErrorHandler`:
-    // BrowserApiErrors would catch certain errors before they reach the `ErrorHandler` and thus provide a
-    // lower fidelity error than what `SentryErrorHandler` (see errorhandler.ts) would provide.
-    // see:
-    //  - https://github.com/getsentry/sentry-javascript/issues/5417#issuecomment-1453407097
-    //  - https://github.com/getsentry/sentry-javascript/issues/2744
-    defaultIntegrations: getDefaultIntegrations(options).filter(integration => {
-      return integration.name !== 'BrowserApiErrors';
-    }),
+    defaultIntegrations: getDefaultIntegrations(),
     ...options,
   };
 
@@ -30,7 +57,7 @@ export function init(options: BrowserOptions): void {
 }
 
 function checkAndSetAngularVersion(): void {
-  const ANGULAR_MINIMUM_VERSION = 10;
+  const ANGULAR_MINIMUM_VERSION = 14;
 
   const angularVersion = VERSION && VERSION.major ? parseInt(VERSION.major, 10) : undefined;
 
@@ -38,9 +65,10 @@ function checkAndSetAngularVersion(): void {
     if (angularVersion < ANGULAR_MINIMUM_VERSION) {
       IS_DEBUG_BUILD &&
         logger.warn(
-          `The Sentry SDK does not officially support Angular ${angularVersion}.`,
-          `This version of the Sentry SDK supports Angular ${ANGULAR_MINIMUM_VERSION} and above.`,
-          'Please consider upgrading your Angular version or downgrading the Sentry SDK.',
+          `This Sentry SDK does not officially support Angular ${angularVersion}.`,
+          `This SDK only supports Angular ${ANGULAR_MINIMUM_VERSION} and above.`,
+          "If you're using lower Angular versions, check the Angular Version Compatibility table in our docs: https://docs.sentry.io/platforms/javascript/guides/angular/#angular-version-compatibility.",
+          'Otherwise, please consider upgrading your Angular version.',
         );
     }
     setContext('angular', { version: angularVersion });

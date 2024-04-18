@@ -1,16 +1,15 @@
+import type {
+  FeedbackFormData,
+  FeedbackInternalOptions,
+  FeedbackScreenshotIntegration,
+  SendFeedback,
+} from '@sentry/types';
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
-import type {
-  FeedbackFormData,
-  FeedbackInternalOptions,
-  ScreenshotInput,
-  SendFeedbackOptions,
-  SendFeedbackParams,
-} from '../../types';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 
@@ -29,14 +28,15 @@ export interface Props
     | 'showEmail'
     | 'showName'
     | 'submitButtonLabel'
+    | 'isRequiredText'
   > {
   defaultEmail: string;
   defaultName: string;
   onFormClose: () => void;
-  onSubmit: (data: SendFeedbackParams, options?: SendFeedbackOptions) => void;
+  onSubmit: SendFeedback;
   onSubmitSuccess: (data: FeedbackFormData) => void;
   onSubmitError: (error: Error) => void;
-  screenshotInput: ScreenshotInput | undefined;
+  screenshotInput: ReturnType<FeedbackScreenshotIntegration['createInput']> | undefined;
 }
 
 function retrieveStringValue(formData: FormData, key: string): string {
@@ -66,14 +66,15 @@ export function Form({
   showEmail,
   showName,
   submitButtonLabel,
+  isRequiredText,
   screenshotInput,
 }: Props): VNode {
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
   const [showScreenshotInput, setShowScreenshotInput] = useState(false);
-  const ScreenshotInput = screenshotInput && screenshotInput.input;
-  const includeScreenshotValue = ScreenshotInput && showScreenshotInput;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ScreenshotInputComponent: any = screenshotInput && screenshotInput.input;
 
   const [screenshotError, setScreenshotError] = useState<null | Error>(null);
   const onScreenshotError = useCallback((error: Error) => {
@@ -110,7 +111,7 @@ export function Form({
           return;
         }
         const formData = new FormData(e.target);
-        const attachment = await (includeScreenshotValue ? screenshotInput.value() : undefined);
+        const attachment = await (screenshotInput && showScreenshotInput ? screenshotInput.value() : undefined);
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
@@ -132,20 +133,22 @@ export function Form({
         // pass
       }
     },
-    [includeScreenshotValue, onSubmitSuccess, onSubmitError],
+    [screenshotInput && showScreenshotInput, onSubmitSuccess, onSubmitError],
   );
 
   return (
     <form class="form" onSubmit={handleSubmit}>
-      {includeScreenshotValue ? <ScreenshotInput onError={onScreenshotError} /> : null}
+      {ScreenshotInputComponent && showScreenshotInput ? (
+        <ScreenshotInputComponent onError={onScreenshotError} />
+      ) : null}
 
-      <div class="form__right">
+      <div class="form__right" data-sentry-feedback={true}>
         <div class="form__top">
           {error ? <div class="form__error-container">{error}</div> : null}
 
           {showName ? (
             <label for="name" class="form__label">
-              <LabelText label={nameLabel} isRequired={isNameRequired} />
+              <LabelText label={nameLabel} isRequiredText={isRequiredText} isRequired={isNameRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultName}
@@ -162,7 +165,7 @@ export function Form({
 
           {showEmail ? (
             <label for="email" class="form__label">
-              <LabelText label={emailLabel} isRequired={isEmailRequired} />
+              <LabelText label={emailLabel} isRequiredText={isRequiredText} isRequired={isEmailRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultEmail}
@@ -178,7 +181,7 @@ export function Form({
           )}
 
           <label for="message" class="form__label">
-            <LabelText label={messageLabel} isRequired />
+            <LabelText label={messageLabel} isRequiredText={isRequiredText} isRequired />
             <textarea
               autoFocus
               class="form__input form__input--textarea"
@@ -190,7 +193,7 @@ export function Form({
             />
           </label>
 
-          {ScreenshotInput ? (
+          {ScreenshotInputComponent ? (
             <label for="screenshot" class="form__label">
               <span class="form__label__text">Screenshot</span>
 
@@ -223,11 +226,15 @@ export function Form({
   );
 }
 
-function LabelText({ label, isRequired }: { label: string; isRequired: boolean }): VNode {
+function LabelText({
+  label,
+  isRequired,
+  isRequiredText,
+}: { label: string; isRequired: boolean; isRequiredText: string }): VNode {
   return (
     <span class="form__label__text">
       {label}
-      {isRequired && <span class="form__label__text--required">(required)</span>}
+      {isRequired && <span class="form__label__text--required">{isRequiredText}</span>}
     </span>
   );
 }

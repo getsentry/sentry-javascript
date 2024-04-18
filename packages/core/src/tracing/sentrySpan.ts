@@ -1,49 +1,46 @@
 import type {
+  SentrySpanArguments,
   Span,
   SpanAttributeValue,
   SpanAttributes,
-  SpanContext,
   SpanContextData,
   SpanJSON,
   SpanOrigin,
   SpanStatus,
   SpanTimeInput,
-  TraceContext,
-  Transaction,
+  TimedEvent,
+  TransactionEvent,
+  TransactionSource,
 } from '@sentry/types';
 import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
-import { getClient } from '../currentScopes';
-
+import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
+
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
-import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
+} from '../semanticAttributes';
 import {
   TRACE_FLAG_NONE,
   TRACE_FLAG_SAMPLED,
-  addChildSpanToSpan,
   getRootSpan,
+  getSpanDescendants,
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
   spanToTraceContext,
 } from '../utils/spanUtils';
+import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
+import { logSpanEnd } from './logSpans';
+import { timedEventsToMeasurements } from './measurement';
+import { getCapturedScopesOnSpan } from './utils';
 
 /**
  * Span contains all data about a span
  */
 export class SentrySpan implements Span {
-  /**
-   * Data for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public data: { [key: string]: any };
-
-  /**
-   * @inheritDoc
-   * @deprecated Use top level `Sentry.getRootSpan()` instead
-   */
-  public transaction?: Transaction;
   protected _traceId: string;
   protected _spanId: string;
   protected _parentSpanId?: string | undefined;
@@ -56,8 +53,8 @@ export class SentrySpan implements Span {
   protected _endTime?: number | undefined;
   /** Internal keeper of the status */
   protected _status?: SpanStatus;
-
-  private _logMessage?: string;
+  /** The timed events added to this span. */
+  protected _events: TimedEvent[];
 
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
@@ -66,12 +63,10 @@ export class SentrySpan implements Span {
    * @hideconstructor
    * @hidden
    */
-  public constructor(spanContext: SpanContext = {}) {
+  public constructor(spanContext: SentrySpanArguments = {}) {
     this._traceId = spanContext.traceId || uuid4();
     this._spanId = spanContext.spanId || uuid4().substring(16);
     this._startTime = spanContext.startTimestamp || timestampInSeconds();
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = spanContext.data ? { ...spanContext.data } : {};
 
     this._attributes = {};
     this.setAttributes({
@@ -92,126 +87,14 @@ export class SentrySpan implements Span {
     if (spanContext.endTimestamp) {
       this._endTime = spanContext.endTimestamp;
     }
+
+    this._events = [];
+
+    // If the span is already ended, ensure we finalize the span immediately
+    if (this._endTime) {
+      this._onSpanEnded();
+    }
   }
-
-  // This rule conflicts with another eslint rule :(
-  /* eslint-disable @typescript-eslint/member-ordering */
-
-  /**
-   * The ID of the trace.
-   * @deprecated Use `spanContext().traceId` instead.
-   */
-  public get traceId(): string {
-    return this._traceId;
-  }
-
-  /**
-   * The ID of the trace.
-   * @deprecated You cannot update the traceId of a span after span creation.
-   */
-  public set traceId(traceId: string) {
-    this._traceId = traceId;
-  }
-
-  /**
-   * The ID of the span.
-   * @deprecated Use `spanContext().spanId` instead.
-   */
-  public get spanId(): string {
-    return this._spanId;
-  }
-
-  /**
-   * The ID of the span.
-   * @deprecated You cannot update the spanId of a span after span creation.
-   */
-  public set spanId(spanId: string) {
-    this._spanId = spanId;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `startSpan` functions instead.
-   */
-  public set parentSpanId(string) {
-    this._parentSpanId = string;
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToJSON(span).parent_span_id` instead.
-   */
-  public get parentSpanId(): string | undefined {
-    return this._parentSpanId;
-  }
-
-  /**
-   * Was this span chosen to be sent as part of the sample?
-   * @deprecated Use `isRecording()` instead.
-   */
-  public get sampled(): boolean | undefined {
-    return this._sampled;
-  }
-
-  /**
-   * Was this span chosen to be sent as part of the sample?
-   * @deprecated You cannot update the sampling decision of a span after span creation.
-   */
-  public set sampled(sampled: boolean | undefined) {
-    this._sampled = sampled;
-  }
-
-  /**
-   * Attributes for the span.
-   * @deprecated Use `spanToJSON(span).atttributes` instead.
-   */
-  public get attributes(): SpanAttributes {
-    return this._attributes;
-  }
-
-  /**
-   * Attributes for the span.
-   * @deprecated Use `setAttributes()` instead.
-   */
-  public set attributes(attributes: SpanAttributes) {
-    this._attributes = attributes;
-  }
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  public get startTimestamp(): number {
-    return this._startTime;
-  }
-
-  /**
-   * Timestamp in seconds (epoch time) indicating when the span started.
-   * @deprecated In v8, you will not be able to update the span start time after creation.
-   */
-  public set startTimestamp(startTime: number) {
-    this._startTime = startTime;
-  }
-
-  /**
-   * Timestamp in seconds when the span ended.
-   * @deprecated Use `spanToJSON()` instead.
-   */
-  public get endTimestamp(): number | undefined {
-    return this._endTime;
-  }
-
-  /**
-   * Timestamp in seconds when the span ended.
-   * @deprecated Set the end time via `span.end()` instead.
-   */
-  public set endTimestamp(endTime: number | undefined) {
-    this._endTime = endTime;
-  }
-
-  /* eslint-enable @typescript-eslint/member-ordering */
 
   /** @inheritdoc */
   public spanContext(): SpanContextData {
@@ -221,68 +104,6 @@ export class SentrySpan implements Span {
       traceId,
       traceFlags: sampled ? TRACE_FLAG_SAMPLED : TRACE_FLAG_NONE,
     };
-  }
-
-  /**
-   * Creates a new `Span` while setting the current `Span.id` as `parentSpanId`.
-   * Also the `sampled` decision will be inherited.
-   *
-   * @deprecated Use `startSpan()`, `startSpanManual()` or `startInactiveSpan()` instead.
-   */
-  public startChild(
-    spanContext: Pick<SpanContext, Exclude<keyof SpanContext, 'sampled' | 'traceId' | 'parentSpanId'>> = {},
-  ): Span {
-    const childSpan = new SentrySpan({
-      ...spanContext,
-      parentSpanId: this._spanId,
-      sampled: this._sampled,
-      traceId: this._traceId,
-    });
-
-    // To allow for interoperability we track the children of a span twice: Once with the span recorder (old) once with
-    // the `addChildSpanToSpan`. Eventually we will only use `addChildSpanToSpan` and drop the span recorder.
-    // To ensure interoperability with the `startSpan` API, `addChildSpanToSpan` is also called here.
-    addChildSpanToSpan(this, childSpan);
-
-    const rootSpan = getRootSpan(this);
-    // TODO: still set span.transaction here until we have a more permanent solution
-    // Probably similarly to the weakmap we hold in node-experimental
-    // eslint-disable-next-line deprecation/deprecation
-    childSpan.transaction = rootSpan as Transaction;
-
-    if (DEBUG_BUILD && rootSpan) {
-      const opStr = (spanContext && spanContext.op) || '< unknown op >';
-      const nameStr = spanToJSON(childSpan).description || '< unknown name >';
-      const idStr = rootSpan.spanContext().spanId;
-
-      const logMessage = `[Tracing] Starting '${opStr}' span on transaction '${nameStr}' (${idStr}).`;
-      logger.log(logMessage);
-      this._logMessage = logMessage;
-    }
-
-    const client = getClient();
-    if (client) {
-      client.emit('spanStart', childSpan);
-      // If it has an endTimestamp, it's already ended
-      if (spanContext.endTimestamp) {
-        client.emit('spanEnd', childSpan);
-      }
-    }
-
-    return childSpan;
-  }
-
-  /**
-   * Sets the data attribute on the current span
-   * @param key Data key
-   * @param value Data value
-   * @deprecated Use `setAttribute()` instead.
-   */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public setData(key: string, value: any): this {
-    // eslint-disable-next-line deprecation/deprecation
-    this.data = { ...this.data, [key]: value };
-    return this;
   }
 
   /** @inheritdoc */
@@ -334,51 +155,11 @@ export class SentrySpan implements Span {
     if (this._endTime) {
       return;
     }
-    const rootSpan = getRootSpan(this);
-    if (
-      DEBUG_BUILD &&
-      // Don't call this for transactions
-      rootSpan &&
-      rootSpan.spanContext().spanId !== this._spanId
-    ) {
-      const logMessage = this._logMessage;
-      if (logMessage) {
-        logger.log((logMessage as string).replace('Starting', 'Finishing'));
-      }
-    }
 
     this._endTime = spanTimeInputToSeconds(endTimestamp);
+    logSpanEnd(this);
 
     this._onSpanEnded();
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToJSON()` or access the fields directly instead.
-   */
-  public toContext(): SpanContext {
-    return dropUndefinedKeys({
-      data: this._getData(),
-      name: this._name,
-      endTimestamp: this._endTime,
-      op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
-      parentSpanId: this._parentSpanId,
-      sampled: this._sampled,
-      spanId: this._spanId,
-      startTimestamp: this._startTime,
-      status: this._status,
-      traceId: this._traceId,
-    });
-  }
-
-  /**
-   * @inheritDoc
-   *
-   * @deprecated Use `spanToTraceContext()` util function instead.
-   */
-  public getTraceContext(): TraceContext {
-    return spanToTraceContext(this);
   }
 
   /**
@@ -391,7 +172,7 @@ export class SentrySpan implements Span {
    */
   public getSpanJSON(): SpanJSON {
     return dropUndefinedKeys({
-      data: this._getData(),
+      data: this._attributes,
       description: this._name,
       op: this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP],
       parent_span_id: this._parentSpanId,
@@ -411,42 +192,27 @@ export class SentrySpan implements Span {
   }
 
   /**
-   * Convert the object to JSON.
-   * @deprecated Use `spanToJSON(span)` instead.
+   * @inheritdoc
    */
-  public toJSON(): SpanJSON {
-    return this.getSpanJSON();
-  }
+  public addEvent(
+    name: string,
+    attributesOrStartTime?: SpanAttributes | SpanTimeInput,
+    startTime?: SpanTimeInput,
+  ): this {
+    DEBUG_BUILD && logger.log('[Tracing] Adding an event to span:', name);
 
-  /**
-   * Get the merged data for this span.
-   * For now, this combines `data` and `attributes` together,
-   * until eventually we can ingest `attributes` directly.
-   */
-  private _getData():
-    | {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        [key: string]: any;
-      }
-    | undefined {
-    // eslint-disable-next-line deprecation/deprecation
-    const { data, _attributes: attributes } = this;
+    const time = isSpanTimeInput(attributesOrStartTime) ? attributesOrStartTime : startTime || timestampInSeconds();
+    const attributes = isSpanTimeInput(attributesOrStartTime) ? {} : attributesOrStartTime || {};
 
-    const hasData = Object.keys(data).length > 0;
-    const hasAttributes = Object.keys(attributes).length > 0;
+    const event: TimedEvent = {
+      name,
+      time: spanTimeInputToSeconds(time),
+      attributes,
+    };
 
-    if (!hasData && !hasAttributes) {
-      return undefined;
-    }
+    this._events.push(event);
 
-    if (hasData && hasAttributes) {
-      return {
-        ...data,
-        ...attributes,
-      };
-    }
-
-    return hasData ? data : attributes;
+    return this;
   }
 
   /** Emit `spanEnd` when the span is ended. */
@@ -455,5 +221,95 @@ export class SentrySpan implements Span {
     if (client) {
       client.emit('spanEnd', this);
     }
+
+    // If this is a root span, send it when it is endedf
+    if (this === getRootSpan(this)) {
+      const transactionEvent = this._convertSpanToTransaction();
+      if (transactionEvent) {
+        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+        scope.captureEvent(transactionEvent);
+      }
+    }
   }
+
+  /**
+   * Finish the transaction & prepare the event to send to Sentry.
+   */
+  private _convertSpanToTransaction(): TransactionEvent | undefined {
+    // We can only convert finished spans
+    if (!isFullFinishedSpan(spanToJSON(this))) {
+      return undefined;
+    }
+
+    if (!this._name) {
+      DEBUG_BUILD && logger.warn('Transaction has no name, falling back to `<unlabeled transaction>`.');
+      this._name = '<unlabeled transaction>';
+    }
+
+    const { scope: capturedSpanScope, isolationScope: capturedSpanIsolationScope } = getCapturedScopesOnSpan(this);
+    const scope = capturedSpanScope || getCurrentScope();
+    const client = scope.getClient() || getClient();
+
+    if (this._sampled !== true) {
+      // At this point if `sampled !== true` we want to discard the transaction.
+      DEBUG_BUILD && logger.log('[Tracing] Discarding transaction because its trace was not chosen to be sampled.');
+
+      if (client) {
+        client.recordDroppedEvent('sample_rate', 'transaction');
+      }
+
+      return undefined;
+    }
+
+    // The transaction span itself should be filtered out
+    const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
+
+    const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
+
+    const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;
+
+    const transaction: TransactionEvent = {
+      contexts: {
+        trace: spanToTraceContext(this),
+      },
+      spans,
+      start_timestamp: this._startTime,
+      timestamp: this._endTime,
+      transaction: this._name,
+      type: 'transaction',
+      sdkProcessingMetadata: {
+        capturedSpanScope,
+        capturedSpanIsolationScope,
+        ...dropUndefinedKeys({
+          dynamicSamplingContext: getDynamicSamplingContextFromSpan(this),
+        }),
+      },
+      _metrics_summary: getMetricSummaryJsonForSpan(this),
+      ...(source && {
+        transaction_info: {
+          source,
+        },
+      }),
+    };
+
+    const measurements = timedEventsToMeasurements(this._events);
+    const hasMeasurements = Object.keys(measurements).length;
+
+    if (hasMeasurements) {
+      DEBUG_BUILD &&
+        logger.log('[Measurements] Adding measurements to transaction', JSON.stringify(measurements, undefined, 2));
+      transaction.measurements = measurements;
+    }
+
+    return transaction;
+  }
+}
+
+function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): value is SpanTimeInput {
+  return (value && typeof value === 'number') || value instanceof Date || Array.isArray(value);
+}
+
+// We want to filter out any incomplete SpanJSON objects
+function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
+  return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
 }

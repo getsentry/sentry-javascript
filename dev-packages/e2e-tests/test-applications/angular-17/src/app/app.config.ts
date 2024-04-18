@@ -1,7 +1,7 @@
 import { APP_INITIALIZER, ApplicationConfig, ErrorHandler } from '@angular/core';
 import { Router, provideRouter } from '@angular/router';
 
-import { TraceService, createErrorHandler } from '@sentry/angular-ivy';
+import { TraceService, createErrorHandler } from '@sentry/angular';
 import { routes } from './app.routes';
 
 export const appConfig: ApplicationConfig = {

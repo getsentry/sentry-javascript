@@ -1,6 +1,6 @@
 {
   "name": "@sentry/nextjs",
-  "version": "8.0.0-alpha.2",
+  "version": "8.0.0-beta.2",
   "description": "Official Sentry SDK for Next.js",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/nextjs",
@@ -11,17 +11,47 @@
   },
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
-  "browser": "build/esm/index.client.js",
   "types": "build/types/index.types.d.ts",
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "edge": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "edge-light": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "worker": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
+      "workerd": {
+        "import": "./build/esm/edge/index.js",
+        "require": "./build/cjs/edge/index.js",
+        "default": "./build/esm/edge/index.js"
+      },
       "browser": {
         "import": "./build/esm/index.client.js",
         "require": "./build/cjs/index.client.js"
       },
       "node": "./build/cjs/index.server.js",
+      "import": "./build/esm/index.server.js",
       "types": "./build/types/index.types.d.ts"
+    },
+    "./import": {
+      "import": {
+        "default": "./build/import-hook.mjs"
+      }
+    },
+    "./loader": {
+      "import": {
+        "default": "./build/loader-hook.mjs"
+      }
     }
   },
   "typesVersions": {
@@ -35,14 +65,16 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/api": "1.7.0",
     "@rollup/plugin-commonjs": "24.0.0",
-    "@sentry/core": "8.0.0-alpha.2",
-    "@sentry/node-experimental": "8.0.0-alpha.2",
-    "@sentry/react": "8.0.0-alpha.2",
-    "@sentry/types": "8.0.0-alpha.2",
-    "@sentry/utils": "8.0.0-alpha.2",
-    "@sentry/vercel-edge": "8.0.0-alpha.2",
-    "@sentry/webpack-plugin": "2.14.3",
+    "@sentry/core": "8.0.0-beta.2",
+    "@sentry/node": "8.0.0-beta.2",
+    "@sentry/opentelemetry": "8.0.0-beta.2",
+    "@sentry/react": "8.0.0-beta.2",
+    "@sentry/types": "8.0.0-beta.2",
+    "@sentry/utils": "8.0.0-beta.2",
+    "@sentry/vercel-edge": "8.0.0-beta.2",
+    "@sentry/webpack-plugin": "2.16.0",
     "chalk": "3.0.0",
     "resolve": "1.22.8",
     "rollup": "3.29.4",
@@ -50,14 +82,13 @@
   },
   "devDependencies": {
     "@types/resolve": "1.20.3",
-    "@types/webpack": "^4.41.31",
     "eslint-plugin-react": "^7.31.11",
     "next": "13.2.0"
   },
   "peerDependencies": {
     "next": "^13.2.0 || ^14.0",
     "react": "16.x || 17.x || 18.x",
-    "webpack": ">= 4.0.0"
+    "webpack": ">= 5.0.0"
   },
   "peerDependenciesMeta": {
     "webpack": {

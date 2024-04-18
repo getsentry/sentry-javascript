@@ -54,12 +54,12 @@ declare const __VERCEL_CRONS_CONFIGURATION__: VercelCronsConfig;
 
 let wrappedHandler = userProvidedHandler;
 
-if (wrappedHandler) {
-  wrappedHandler = Sentry.wrapApiHandlerWithSentry(wrappedHandler, '__ROUTE__');
-}
-
 if (wrappedHandler && __VERCEL_CRONS_CONFIGURATION__) {
   wrappedHandler = Sentry.wrapApiHandlerWithSentryVercelCrons(wrappedHandler, __VERCEL_CRONS_CONFIGURATION__);
+}
+
+if (wrappedHandler) {
+  wrappedHandler = Sentry.wrapApiHandlerWithSentry(wrappedHandler, '__ROUTE__');
 }
 
 export default wrappedHandler;

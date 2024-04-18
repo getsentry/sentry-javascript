@@ -1,0 +1,22 @@
+{
+  "name": "sentry-prisma-test",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "db-up": "docker compose up -d",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev -n sentry-test",
+    "setup": "run-s --silent db-up generate migrate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "5.9.1",
+    "prisma": "^5.9.1"
+  }
+}

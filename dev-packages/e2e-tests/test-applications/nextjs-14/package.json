@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr",
+    "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
@@ -26,8 +26,20 @@
     "wait-port": "1.0.4"
   },
   "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@sentry-internal/feedback": "latest || *",
+    "@sentry-internal/replay-canvas": "latest || *",
+    "@sentry-internal/browser-utils": "latest || *",
+    "@sentry/browser": "latest || *",
+    "@sentry/core": "latest || *",
+    "@sentry/nextjs": "latest || *",
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "@sentry/react": "latest || *",
+    "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
-    "@sentry/utils": "latest || *"
+    "@sentry/utils": "latest || *",
+    "@sentry/vercel-edge": "latest || *"
   },
   "volta": {
     "extends": "../../package.json"

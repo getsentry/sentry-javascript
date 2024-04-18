@@ -8,8 +8,8 @@ _Bad software is everywhere, and we're tired of it. Sentry is on a mission to he
 faster, so we can get back to enjoying technology. If you want to join us
 [<kbd>**Check out our open positions**</kbd>](https://sentry.io/careers/)_
 
-![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/Build%20&%20Test/badge.svg)
-[![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/master/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
+![Build & Test](https://github.com/getsentry/sentry-javascript/workflows/CI:%20Build%20&%20Test/badge.svg)
+[![codecov](https://codecov.io/gh/getsentry/sentry-javascript/branch/develop/graph/badge.svg)](https://codecov.io/gh/getsentry/sentry-javascript)
 [![npm version](https://img.shields.io/npm/v/@sentry/core.svg)](https://www.npmjs.com/package/@sentry/core)
 [![Discord](https://img.shields.io/discord/621778831602221064)](https://discord.gg/Ww9hbqr)
 
@@ -45,8 +45,6 @@ package. Please refer to the README and instructions of those SDKs for more deta
   integrations for Express
 - [`@sentry/angular`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular): Browser SDK for
   Angular
-- [`@sentry/angular-ivy`](https://github.com/getsentry/sentry-javascript/tree/master/packages/angular-ivy): Browser SDK
-  for Angular with native support for Angular's Ivy rendering engine.
 - [`@sentry/astro`](https://github.com/getsentry/sentry-javascript/tree/master/packages/astro): SDK for Astro
 - [`@sentry/ember`](https://github.com/getsentry/sentry-javascript/tree/master/packages/ember): Browser SDK for Ember
 - [`@sentry/react`](https://github.com/getsentry/sentry-javascript/tree/master/packages/react): Browser SDK for React
@@ -95,8 +93,8 @@ Besides the high-level SDKs, this repository contains shared packages, helpers a
 development. If you're thinking about contributing to or creating a JavaScript-based SDK, have a look at the resources
 below:
 
-- [`@sentry/replay`](https://github.com/getsentry/sentry-javascript/tree/master/packages/replay): Provides the
-  integration for Session Replay.
+- [`@sentry-internal/replay`](https://github.com/getsentry/sentry-javascript/tree/master/packages/replay-internal):
+  Provides the integration for Session Replay.
 - [`@sentry/core`](https://github.com/getsentry/sentry-javascript/tree/master/packages/core): The base for all
   JavaScript SDKs with interfaces, type definitions and base classes.
 - [`@sentry/utils`](https://github.com/getsentry/sentry-javascript/tree/master/packages/utils): A set of helpers and

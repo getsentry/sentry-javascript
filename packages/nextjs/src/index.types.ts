@@ -19,7 +19,9 @@ export declare function init(
   options: Options | clientSdk.BrowserOptions | serverSdk.NodeOptions | edgeSdk.EdgeOptions,
 ): void;
 
-export declare const Integrations: undefined; // TODO(v8): Remove this line. Can only be done when dependencies don't export `Integrations` anymore.
+export declare const getClient: typeof clientSdk.getClient;
+export declare const getRootSpan: typeof serverSdk.getRootSpan;
+export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
 export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
@@ -33,8 +35,6 @@ export declare const ErrorBoundary: typeof clientSdk.ErrorBoundary;
 export declare const createReduxEnhancer: typeof clientSdk.createReduxEnhancer;
 export declare const showReportDialog: typeof clientSdk.showReportDialog;
 export declare const withErrorBoundary: typeof clientSdk.withErrorBoundary;
-
-export declare const Transaction: typeof edgeSdk.Transaction;
 
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
 

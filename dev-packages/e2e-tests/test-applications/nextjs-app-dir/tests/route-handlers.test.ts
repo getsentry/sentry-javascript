@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError, waitForTransaction } from '../event-proxy-server';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Should create a transaction for route handlers', async ({ request }) => {
   const routehandlerTransactionPromise = waitForTransaction('nextjs-13-app-dir', async transactionEvent => {
@@ -48,8 +48,15 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   const routehandlerTransaction = await routehandlerTransactionPromise;
   const routehandlerError = await errorEventPromise;
 
-  expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
+  // Assert that isolation scope works properly
+  expect(routehandlerTransaction.tags?.['my-isolated-tag']).toBe(true);
+  expect(routehandlerTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
+  expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  expect(routehandlerTransaction.contexts?.trace?.status).toBe('unknown_error');
   expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');
+  expect(routehandlerTransaction.contexts?.trace?.origin).toBe('auto.function.nextjs');
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
   // TODO: Uncomment once we update the scope transaction name on the server side
@@ -86,6 +93,12 @@ test.describe('Edge runtime', () => {
 
     const routehandlerTransaction = await routehandlerTransactionPromise;
     const routehandlerError = await errorEventPromise;
+
+    // Assert that isolation scope works properly
+    expect(routehandlerTransaction.tags?.['my-isolated-tag']).toBe(true);
+    expect(routehandlerTransaction.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+    expect(routehandlerError.tags?.['my-isolated-tag']).toBe(true);
+    expect(routehandlerError.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
 
     expect(routehandlerTransaction.contexts?.trace?.status).toBe('internal_error');
     expect(routehandlerTransaction.contexts?.trace?.op).toBe('http.server');

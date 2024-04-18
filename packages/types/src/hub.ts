@@ -12,18 +12,15 @@ import type { User } from './user';
 /**
  * Internal class used to make sure we always have the latest internal functions
  * working in case we have a version conflict.
+ *
+ * @deprecated This interface will be removed in a future major version of the SDK in favour of
+ * `Scope` and `Client` objects and APIs.
+ *
+ * Most APIs referencing `Hub` are themselves and will be removed in version 8 of the SDK. More information:
+ * - [Migration Guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub)
+ *
  */
 export interface Hub {
-  /**
-   * Checks if this hub's version is older than the given version.
-   *
-   * @param version A version number to compare to.
-   * @return True if the given version is newer; otherwise false.
-   *
-   * @deprecated This will be removed in v8.
-   */
-  isOlderThan(version: number): boolean;
-
   /**
    * This binds the given client to the current scope.
    * @param client An SDK client (client) instance.
@@ -31,31 +28,6 @@ export interface Hub {
    * @deprecated Use `initAndBind()` directly.
    */
   bindClient(client?: Client): void;
-
-  /**
-   * Create a new scope to store context information.
-   *
-   * The scope will be layered on top of the current one. It is isolated, i.e. all
-   * breadcrumbs and context information added to this scope will be removed once
-   * the scope ends. Be sure to always remove this scope with {@link this.popScope}
-   * when the operation finishes or throws.
-   *
-   * @returns Scope, the new cloned scope
-   *
-   * @deprecated Use `withScope` instead.
-   */
-  pushScope(): Scope;
-
-  /**
-   * Removes a previously pushed scope from the stack.
-   *
-   * This restores the state before the scope was pushed. All breadcrumbs and
-   * context information added since the last call to {@link this.pushScope} are
-   * discarded.
-   *
-   * @deprecated Use `withScope` instead.
-   */
-  popScope(): boolean;
 
   /**
    * Creates a new scope with and executes the given operation within.
@@ -234,13 +206,4 @@ export interface Hub {
    * @deprecated Use top-level `captureSession` instead.
    */
   captureSession(endSession?: boolean): void;
-
-  /**
-   * Returns if default PII should be sent to Sentry and propagated in outgoing requests
-   * when Tracing is used.
-   *
-   * @deprecated Use top-level `getClient().getOptions().sendDefaultPii` instead. This function
-   * only unnecessarily increased API surface but only wrapped accessing the option.
-   */
-  shouldSendDefaultPii(): boolean;
 }

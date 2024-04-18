@@ -1,9 +1,9 @@
+import type { FeedbackFormData } from '@sentry/types';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
 import { useCallback, useMemo, useState } from 'preact/hooks';
 import { SUCCESS_MESSAGE_TIMEOUT } from '../../constants';
-import type { FeedbackFormData } from '../../types';
 import { DialogContent } from './DialogContent';
 import { DialogHeader } from './DialogHeader';
 import type { Props as HeaderProps } from './DialogHeader';
@@ -33,7 +33,12 @@ export function DialogComponent({ open, onFormSubmitted, successMessageText, ...
   const onSubmitSuccess = useCallback(
     (data: FeedbackFormData) => {
       props.onSubmitSuccess(data);
-      setTimeoutId(() => setTimeout(onFormSubmitted, SUCCESS_MESSAGE_TIMEOUT));
+      setTimeoutId(
+        setTimeout(() => {
+          onFormSubmitted();
+          setTimeoutId(null);
+        }, SUCCESS_MESSAGE_TIMEOUT),
+      );
     },
     [onFormSubmitted],
   );

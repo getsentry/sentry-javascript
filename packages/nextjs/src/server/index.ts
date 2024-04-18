@@ -1,32 +1,22 @@
-import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient, setTag } from '@sentry/core';
-import type { NodeOptions } from '@sentry/node-experimental';
-import {
-  Integrations as OriginalIntegrations,
-  getDefaultIntegrations,
-  init as nodeInit,
-} from '@sentry/node-experimental';
-import type { EventProcessor } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
+import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
+import type { NodeOptions } from '@sentry/node';
+import { GLOBAL_OBJ, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../common/debug-build';
 import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolicationEventProcessor';
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { Http } from './httpIntegration';
-import { OnUncaughtException } from './onUncaughtExceptionIntegration';
 
-export * from '@sentry/node-experimental';
+export * from '@sentry/node';
+import type { EventProcessor } from '@sentry/types';
+
 export { captureUnderscoreErrorException } from '../common/_error';
 
-export const Integrations = {
-  ...OriginalIntegrations,
-  Http,
-  OnUncaughtException,
-};
-
-const globalWithInjectedValues = global as typeof global & {
+const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
+  __sentryRewritesTunnelPath__?: string;
 };
 
 /**
@@ -71,22 +61,20 @@ export function showReportDialog(): void {
   return;
 }
 
-const IS_VERCEL = !!process.env.VERCEL;
-
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
-  addTracingExtensions();
-
   if (isBuild()) {
     return;
   }
 
   const customDefaultIntegrations = [
     ...getDefaultIntegrations(options).filter(
-      integration => !['Http', 'OnUncaughtException'].includes(integration.name),
+      integration =>
+        // Next.js comes with its own Node-Fetch instrumentation, so we shouldn't add ours on-top
+        integration.name !== 'NodeFetch' &&
+        // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
+        integration.name !== 'Http',
     ),
-    new Http(),
-    new OnUncaughtException(),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
@@ -119,18 +107,66 @@ export function init(options: NodeOptions): void {
 
   nodeInit(opts);
 
-  const filterTransactions: EventProcessor = event => {
-    return event.type === 'transaction' && event.transaction === '/404' ? null : event;
-  };
+  addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type === 'transaction') {
+          // Filter out transactions for static assets
+          // This regex matches the default path to the static assets (`_next/static`) and could potentially filter out too many transactions.
+          // We match `/_next/static/` anywhere in the transaction name because its location may change with the basePath setting.
+          if (event.transaction?.match(/^GET (\/.*)?\/_next\/static\//)) {
+            return null;
+          }
 
-  filterTransactions.id = 'NextServer404TransactionFilter';
+          // Filter out transactions for requests to the tunnel route
+          if (
+            globalWithInjectedValues.__sentryRewritesTunnelPath__ &&
+            event.transaction === `POST ${globalWithInjectedValues.__sentryRewritesTunnelPath__}`
+          ) {
+            return null;
+          }
 
-  setTag('runtime', 'node');
-  if (IS_VERCEL) {
-    setTag('vercel', true);
-  }
+          // Filter out requests to resolve source maps for stack frames in dev mode
+          if (event.transaction?.match(/\/__nextjs_original-stack-frame/)) {
+            return null;
+          }
 
-  addEventProcessor(filterTransactions);
+          // Filter out /404 transactions for pages-router which seem to be created excessively
+          if (event.transaction === '/404') {
+            return null;
+          }
+
+          return event;
+        } else {
+          return event;
+        }
+      }) satisfies EventProcessor,
+      { id: 'NextLowQualityTransactionsFilter' },
+    ),
+  );
+
+  // TODO(v8): Remove this because we have `suppressTracing`
+  addEventProcessor(
+    Object.assign(
+      (event => {
+        if (event.type === 'transaction') {
+          event.spans = event.spans?.filter(span => {
+            // Filter out spans for Sentry event sends
+            const httpTargetAttribute: unknown = span.data?.['http.target'];
+            if (typeof httpTargetAttribute === 'string') {
+              // TODO: Find a more robust matching logic - We likely want to use the OTEL SDK's `suppressTracing` in our transport, if we end up using it, we can delete this filtering logic here.
+              return !httpTargetAttribute.includes('sentry_client') && !httpTargetAttribute.includes('sentry_key');
+            }
+
+            return true;
+          });
+        }
+
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'NextFilterSentrySpans' },
+    ),
+  );
 
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);

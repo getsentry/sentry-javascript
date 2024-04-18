@@ -1,4 +1,4 @@
-name: 'Tag issue with package label'
+name: 'Automation: Tag issue with package label'
 
 on:
   issues:
@@ -36,9 +36,6 @@ jobs:
                 "label": "Package: Browser"
               },
               "@sentry.angular": {
-                "label": "Package: Angular"
-              },
-              "@sentry.angular-ivy": {
                 "label": "Package: Angular"
               },
               "@sentry.bun": {

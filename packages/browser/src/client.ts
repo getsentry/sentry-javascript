@@ -34,7 +34,10 @@ export type BrowserOptions = Options<BrowserTransportOptions> &
  */
 export type BrowserClientOptions = ClientOptions<BrowserTransportOptions> &
   BrowserClientReplayOptions &
-  BrowserClientProfilingOptions;
+  BrowserClientProfilingOptions & {
+    /** If configured, this URL will be used as base URL for lazy loading integration. */
+    cdnBaseUrl?: string;
+  };
 
 /**
  * The Sentry Browser SDK Client.
@@ -49,12 +52,17 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
    * @param options Configuration options for this SDK.
    */
   public constructor(options: BrowserClientOptions) {
+    const opts = {
+      // We default this to true, as it is the safer scenario
+      parentSpanIsAlwaysRootSpan: true,
+      ...options,
+    };
     const sdkSource = WINDOW.SENTRY_SDK_SOURCE || getSDKSource();
-    applySdkMetadata(options, 'browser', ['browser'], sdkSource);
+    applySdkMetadata(opts, 'browser', ['browser'], sdkSource);
 
-    super(options);
+    super(opts);
 
-    if (options.sendClientReports && WINDOW.document) {
+    if (opts.sendClientReports && WINDOW.document) {
       WINDOW.document.addEventListener('visibilitychange', () => {
         if (WINDOW.document.visibilityState === 'hidden') {
           this._flushOutcomes();

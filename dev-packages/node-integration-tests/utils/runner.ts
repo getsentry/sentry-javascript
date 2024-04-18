@@ -1,6 +1,15 @@
+/* eslint-disable max-lines */
 import { spawn, spawnSync } from 'child_process';
 import { join } from 'path';
-import type { Envelope, EnvelopeItemType, Event, SerializedSession } from '@sentry/types';
+import { SDK_VERSION } from '@sentry/node';
+import type {
+  Envelope,
+  EnvelopeItemType,
+  Event,
+  EventEnvelope,
+  SerializedSession,
+  SessionAggregates,
+} from '@sentry/types';
 import axios from 'axios';
 import { createBasicSentryServer } from './server';
 
@@ -25,6 +34,18 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
+    ...expected,
+  });
+}
+
+export function assertEnvelopeHeader(actual: Envelope[0], expected: Partial<Envelope[0]>): void {
+  expect(actual).toEqual({
+    event_id: expect.any(String),
+    sent_at: expect.any(String),
+    sdk: {
+      name: 'sentry.javascript.node',
+      version: SDK_VERSION,
+    },
     ...expected,
   });
 }
@@ -113,7 +134,16 @@ type Expected =
     }
   | {
       session: Partial<SerializedSession> | ((event: SerializedSession) => void);
+    }
+  | {
+      sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
     };
+
+type ExpectedEnvelopeHeader =
+  | { event: Partial<EventEnvelope[0]> }
+  | { transaction: Partial<Envelope[0]> }
+  | { session: Partial<Envelope[0]> }
+  | { sessions: Partial<Envelope[0]> };
 
 /** Creates a test runner */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -121,11 +151,14 @@ export function createRunner(...paths: string[]) {
   const testPath = join(...paths);
 
   const expectedEnvelopes: Expected[] = [];
+  let expectedEnvelopeHeaders: ExpectedEnvelopeHeader[] | undefined = undefined;
   const flags: string[] = [];
   const ignored: EnvelopeItemType[] = [];
+  let withEnv: Record<string, string> = {};
   let withSentryServer = false;
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
+  let expectError = false;
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -134,6 +167,22 @@ export function createRunner(...paths: string[]) {
   return {
     expect: function (expected: Expected) {
       expectedEnvelopes.push(expected);
+      return this;
+    },
+    expectHeader: function (expected: ExpectedEnvelopeHeader) {
+      if (!expectedEnvelopeHeaders) {
+        expectedEnvelopeHeaders = [];
+      }
+
+      expectedEnvelopeHeaders.push(expected);
+      return this;
+    },
+    expectError: function () {
+      expectError = true;
+      return this;
+    },
+    withEnv: function (env: Record<string, string>) {
+      withEnv = env;
       return this;
     },
     withFlags: function (...args: string[]) {
@@ -157,7 +206,7 @@ export function createRunner(...paths: string[]) {
       return this;
     },
     start: function (done?: (e?: unknown) => void) {
-      const expectedEnvelopeCount = expectedEnvelopes.length;
+      const expectedEnvelopeCount = Math.max(expectedEnvelopes.length, (expectedEnvelopeHeaders || []).length);
 
       let envelopeCount = 0;
       let scenarioServerPort: number | undefined;
@@ -183,6 +232,25 @@ export function createRunner(...paths: string[]) {
 
           if (ignored.includes(envelopeItemType)) {
             continue;
+          }
+
+          if (expectedEnvelopeHeaders) {
+            const header = envelope[0];
+            const expected = expectedEnvelopeHeaders.shift()?.[envelopeItemType as keyof ExpectedEnvelopeHeader];
+
+            try {
+              if (!expected) {
+                throw new Error(`No more expected envelope items but we received ${JSON.stringify(header)}`);
+              }
+
+              assertEnvelopeHeader(header, expected);
+
+              expectCallbackCalled();
+            } catch (e) {
+              complete(e as Error);
+            }
+
+            return;
           }
 
           const expected = expectedEnvelopes.shift();
@@ -255,8 +323,8 @@ export function createRunner(...paths: string[]) {
           }
 
           const env = mockServerPort
-            ? { ...process.env, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
-            : process.env;
+            ? { ...process.env, ...withEnv, SENTRY_DSN: `http://public@localhost:${mockServerPort}/1337` }
+            : { ...process.env, ...withEnv };
 
           // eslint-disable-next-line no-console
           if (process.env.DEBUG) console.log('starting scenario', testPath, flags, env.SENTRY_DSN);
@@ -268,7 +336,7 @@ export function createRunner(...paths: string[]) {
           });
 
           if (ensureNoErrorOutput) {
-            child.stderr.on('data', (data: Buffer) => {
+            child.stderr?.on('data', (data: Buffer) => {
               const output = data.toString();
               complete(new Error(`Expected no error output but got: '${output}'`));
             });
@@ -314,7 +382,7 @@ export function createRunner(...paths: string[]) {
           }
 
           let buffer = Buffer.alloc(0);
-          child.stdout.on('data', (data: Buffer) => {
+          child.stdout?.on('data', (data: Buffer) => {
             // This is horribly memory inefficient but it's only for tests
             buffer = Buffer.concat([buffer, data]);
 
@@ -347,7 +415,18 @@ export function createRunner(...paths: string[]) {
           }
 
           const url = `http://localhost:${scenarioServerPort}${path}`;
-          if (method === 'get') {
+          if (expectError) {
+            try {
+              if (method === 'get') {
+                await axios.get(url, { headers });
+              } else {
+                await axios.post(url, { headers });
+              }
+            } catch (e) {
+              return;
+            }
+            return;
+          } else if (method === 'get') {
             return (await axios.get(url, { headers })).data;
           } else {
             return (await axios.post(url, { headers })).data;

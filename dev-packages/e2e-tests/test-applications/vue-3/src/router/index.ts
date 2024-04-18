@@ -17,6 +17,10 @@ const router = createRouter({
       path: '/users/:id',
       component: () => import('../views/UserIdView.vue'),
     },
+    {
+      path: '/users-error/:id',
+      component: () => import('../views/UserIdErrorView.vue'),
+    },
   ],
 });
 

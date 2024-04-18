@@ -1,17 +1,22 @@
-// eslint-disable max-lines
+import type { FeedbackDialog } from '@sentry/types';
+/* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { DOCUMENT, WINDOW } from '../../constants';
-import type { Dialog } from '../../types';
+import { CROP_COLOR, DOCUMENT, WINDOW } from '../../constants';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
+
+const CROP_BUTTON_SIZE = 30;
+const CROP_BUTTON_BORDER = 3;
+const CROP_BUTTON_OFFSET = CROP_BUTTON_SIZE + CROP_BUTTON_BORDER;
+const DPI = WINDOW.devicePixelRatio;
 
 interface FactoryParams {
   h: typeof hType;
   imageBuffer: HTMLCanvasElement;
-  dialog: Dialog;
+  dialog: FeedbackDialog;
 }
 
 interface Props {
@@ -19,10 +24,10 @@ interface Props {
 }
 
 interface Box {
-  startx: number;
-  starty: number;
-  endx: number;
-  endy: number;
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
 }
 
 interface Rect {
@@ -34,24 +39,26 @@ interface Rect {
 
 const constructRect = (box: Box): Rect => {
   return {
-    x: Math.min(box.startx, box.endx),
-    y: Math.min(box.starty, box.endy),
-    width: Math.abs(box.startx - box.endx),
-    height: Math.abs(box.starty - box.endy),
+    x: Math.min(box.startX, box.endX),
+    y: Math.min(box.startY, box.endY),
+    width: Math.abs(box.startX - box.endX),
+    height: Math.abs(box.startY - box.endY),
   };
 };
 
 const getContainedSize = (img: HTMLCanvasElement): Box => {
+  const imgClientHeight = img.clientHeight;
+  const imgClientWidth = img.clientWidth;
   const ratio = img.width / img.height;
-  let width = img.clientHeight * ratio;
-  let height = img.clientHeight;
-  if (width > img.clientWidth) {
-    width = img.clientWidth;
-    height = img.clientWidth / ratio;
+  let width = imgClientHeight * ratio;
+  let height = imgClientHeight;
+  if (width > imgClientWidth) {
+    width = imgClientWidth;
+    height = imgClientWidth / ratio;
   }
-  const x = (img.clientWidth - width) / 2;
-  const y = (img.clientHeight - height) / 2;
-  return { startx: x, starty: y, endx: width + x, endy: height + y };
+  const x = (imgClientWidth - width) / 2;
+  const y = (imgClientHeight - height) / 2;
+  return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -62,7 +69,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     const canvasContainerRef = useRef<HTMLDivElement>(null);
     const cropContainerRef = useRef<HTMLDivElement>(null);
     const croppingRef = useRef<HTMLCanvasElement>(null);
-    const [croppingRect, setCroppingRect] = useState<Box>({ startx: 0, starty: 0, endx: 0, endy: 0 });
+    const [croppingRect, setCroppingRect] = useState<Box>({ startX: 0, startY: 0, endX: 0, endY: 0 });
     const [confirmCrop, setConfirmCrop] = useState(false);
 
     useEffect(() => {
@@ -73,8 +80,14 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       const cropper = croppingRef.current;
       const imageDimensions = constructRect(getContainedSize(imageBuffer));
       if (cropper) {
-        cropper.width = imageDimensions.width;
-        cropper.height = imageDimensions.height;
+        cropper.width = imageDimensions.width * DPI;
+        cropper.height = imageDimensions.height * DPI;
+        cropper.style.width = `${imageDimensions.width}px`;
+        cropper.style.height = `${imageDimensions.height}px`;
+        const ctx = cropper.getContext('2d');
+        if (ctx) {
+          ctx.scale(DPI, DPI);
+        }
       }
 
       const cropButton = cropContainerRef.current;
@@ -85,7 +98,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
         cropButton.style.top = `${imageDimensions.y}px`;
       }
 
-      setCroppingRect({ startx: 0, starty: 0, endx: imageDimensions.width, endy: imageDimensions.height });
+      setCroppingRect({ startX: 0, startY: 0, endX: imageDimensions.width, endY: imageDimensions.height });
     }
 
     useEffect(() => {
@@ -98,9 +111,9 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       if (!ctx) {
         return;
       }
+
       const imageDimensions = constructRect(getContainedSize(imageBuffer));
       const croppingBox = constructRect(croppingRect);
-
       ctx.clearRect(0, 0, imageDimensions.width, imageDimensions.height);
 
       // draw gray overlay around the selection
@@ -109,53 +122,63 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
       ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
 
       // draw selection border
-      ctx.strokeStyle = 'purple';
+      ctx.strokeStyle = CROP_COLOR;
       ctx.lineWidth = 3;
-      ctx.strokeRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
+      ctx.strokeRect(croppingBox.x + 1, croppingBox.y + 1, croppingBox.width - 2, croppingBox.height - 2);
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(croppingBox.x + 3, croppingBox.y + 3, croppingBox.width - 6, croppingBox.height - 6);
     }, [croppingRect]);
 
     function onGrabButton(e: Event, corner: string): void {
       setConfirmCrop(false);
       const handleMouseMove = makeHandleMouseMove(corner);
       const handleMouseUp = (): void => {
-        croppingRef.current && croppingRef.current.removeEventListener('mousemove', handleMouseMove);
+        DOCUMENT.removeEventListener('mousemove', handleMouseMove);
         DOCUMENT.removeEventListener('mouseup', handleMouseUp);
         setConfirmCrop(true);
       };
 
       DOCUMENT.addEventListener('mouseup', handleMouseUp);
-      croppingRef.current && croppingRef.current.addEventListener('mousemove', handleMouseMove);
+      DOCUMENT.addEventListener('mousemove', handleMouseMove);
     }
 
     const makeHandleMouseMove = useCallback((corner: string) => {
       return function (e: MouseEvent) {
+        if (!croppingRef.current) {
+          return;
+        }
+        const cropCanvas = croppingRef.current;
+        const cropBoundingRect = cropCanvas.getBoundingClientRect();
+        const mouseX = e.clientX - cropBoundingRect.x;
+        const mouseY = e.clientY - cropBoundingRect.y;
         switch (corner) {
-          case 'topleft':
+          case 'top-left':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.min(e.offsetX, prev.endx - 30),
-              starty: Math.min(e.offsetY, prev.endy - 30),
+              startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
+              startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'topright':
+          case 'top-right':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.max(e.offsetX, prev.startx + 30),
-              starty: Math.min(e.offsetY, prev.endy - 30),
+              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
+              startY: Math.min(Math.max(0, mouseY), prev.endY - CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'bottomleft':
+          case 'bottom-left':
             setCroppingRect(prev => ({
               ...prev,
-              startx: Math.min(e.offsetX, prev.endx - 30),
-              endy: Math.max(e.offsetY, prev.starty + 30),
+              startX: Math.min(Math.max(0, mouseX), prev.endX - CROP_BUTTON_OFFSET),
+              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
             }));
             break;
-          case 'bottomright':
+          case 'bottom-right':
             setCroppingRect(prev => ({
               ...prev,
-              endx: Math.max(e.offsetX, prev.startx + 30),
-              endy: Math.max(e.offsetY, prev.starty + 30),
+              endX: Math.max(Math.min(mouseX, cropCanvas.width / DPI), prev.startX + CROP_BUTTON_OFFSET),
+              endY: Math.max(Math.min(mouseY, cropCanvas.height / DPI), prev.startY + CROP_BUTTON_OFFSET),
             }));
             break;
         }
@@ -196,7 +219,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
 
     useTakeScreenshot({
       onBeforeScreenshot: useCallback(() => {
-        dialog.el.style.display = 'none';
+        (dialog.el as HTMLElement).style.display = 'none';
       }, []),
       onScreenshot: useCallback(
         (imageSource: HTMLVideoElement) => {
@@ -206,18 +229,18 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
           }
           imageBuffer.width = imageSource.videoWidth;
           imageBuffer.height = imageSource.videoHeight;
-          context.drawImage(imageSource, 0, 0, imageSource.videoWidth, imageSource.videoHeight);
+          context.drawImage(imageSource, 0, 0);
         },
         [imageBuffer],
       ),
       onAfterScreenshot: useCallback(() => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         const container = canvasContainerRef.current;
         container && container.appendChild(imageBuffer);
         resizeCropper();
       }, []),
       onError: useCallback(error => {
-        dialog.el.style.display = 'block';
+        (dialog.el as HTMLElement).style.display = 'block';
         onError(error);
       }, []),
     });
@@ -225,50 +248,50 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
     return (
       <div class="editor">
         <style dangerouslySetInnerHTML={styles} />
-        <div class="canvasContainer" ref={canvasContainerRef}>
-          <div class="cropButtonContainer" style={{ position: 'absolute' }} ref={cropContainerRef}>
+        <div class="editor__canvas-container" ref={canvasContainerRef}>
+          <div class="editor__crop-container" style={{ position: 'absolute' }} ref={cropContainerRef}>
             <canvas style={{ position: 'absolute' }} ref={croppingRef}></canvas>
             <CropCorner
-              left={croppingRect.startx}
-              top={croppingRect.starty}
+              left={croppingRect.startX - CROP_BUTTON_BORDER}
+              top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
-              corner="topleft"
+              corner="top-left"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.endx - 30}
-              top={croppingRect.starty}
+              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+              top={croppingRect.startY - CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
-              corner="topright"
+              corner="top-right"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.startx}
-              top={croppingRect.endy - 30}
+              left={croppingRect.startX - CROP_BUTTON_BORDER}
+              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
-              corner="bottomleft"
+              corner="bottom-left"
             ></CropCorner>
             <CropCorner
-              left={croppingRect.endx - 30}
-              top={croppingRect.endy - 30}
+              left={croppingRect.endX - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
+              top={croppingRect.endY - CROP_BUTTON_SIZE + CROP_BUTTON_BORDER}
               onGrabButton={onGrabButton}
-              corner="bottomright"
+              corner="bottom-right"
             ></CropCorner>
             <div
               style={{
-                left: Math.max(0, croppingRect.endx - 191),
-                top: Math.max(0, croppingRect.endy + 8),
+                left: Math.max(0, croppingRect.endX - 191),
+                top: Math.max(0, croppingRect.endY + 8),
                 display: confirmCrop ? 'flex' : 'none',
               }}
-              class="crop-btn-group"
+              class="editor__crop-btn-group"
             >
               <button
                 onClick={e => {
                   e.preventDefault();
                   if (croppingRef.current) {
                     setCroppingRect({
-                      startx: 0,
-                      starty: 0,
-                      endx: croppingRef.current.width,
-                      endy: croppingRef.current.height,
+                      startX: 0,
+                      startY: 0,
+                      endX: croppingRef.current.width / DPI,
+                      endY: croppingRef.current.height / DPI,
                     });
                   }
                   setConfirmCrop(false);
@@ -308,15 +331,10 @@ function CropCorner({
 }): VNode {
   return (
     <button
-      class="crop-btn"
+      class={`editor__crop-corner editor__crop-corner--${corner} `}
       style={{
         top: top,
         left: left,
-        borderTop: corner === 'topleft' || corner === 'topright' ? 'solid purple' : 'none',
-        borderLeft: corner === 'topleft' || corner === 'bottomleft' ? 'solid purple' : 'none',
-        borderRight: corner === 'topright' || corner === 'bottomright' ? 'solid purple' : 'none',
-        borderBottom: corner === 'bottomleft' || corner === 'bottomright' ? 'solid purple' : 'none',
-        borderWidth: '3px',
       }}
       onMouseDown={e => {
         e.preventDefault();

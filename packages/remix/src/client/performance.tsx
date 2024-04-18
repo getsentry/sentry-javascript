@@ -2,6 +2,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   getActiveSpan,
+  getCurrentScope,
   getRootSpan,
 } from '@sentry/core';
 import type { browserTracingIntegration as originalBrowserTracingIntegration } from '@sentry/react';
@@ -13,7 +14,7 @@ import {
   startBrowserTracingPageLoadSpan,
   withErrorBoundary,
 } from '@sentry/react';
-import type { Span, StartSpanOptions, TransactionContext } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/types';
 import { isNodeEnv, logger } from '@sentry/utils';
 import * as React from 'react';
 
@@ -52,7 +53,6 @@ let _useEffect: UseEffect | undefined;
 let _useLocation: UseLocation | undefined;
 let _useMatches: UseMatches | undefined;
 
-let _customStartTransaction: ((context: TransactionContext) => Span | undefined) | undefined;
 let _instrumentNavigation: boolean | undefined;
 
 function getInitPathName(): string | undefined {
@@ -83,18 +83,13 @@ export function startPageloadSpan(): void {
     },
   };
 
-  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
-  if (!_customStartTransaction) {
-    const client = getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
-    if (!client) {
-      return;
-    }
-
-    startBrowserTracingPageLoadSpan(client, spanContext);
-  } else {
-    _customStartTransaction(spanContext);
+  if (!client) {
+    return;
   }
+
+  startBrowserTracingPageLoadSpan(client, spanContext);
 }
 
 function startNavigationSpan(matches: RouteMatch<string>[]): void {
@@ -107,18 +102,13 @@ function startNavigationSpan(matches: RouteMatch<string>[]): void {
     },
   };
 
-  // If _customStartTransaction is not defined, we know that we are using the browserTracingIntegration
-  if (!_customStartTransaction) {
-    const client = getClient<BrowserClient>();
+  const client = getClient<BrowserClient>();
 
-    if (!client) {
-      return;
-    }
-
-    startBrowserTracingNavigationSpan(client, spanContext);
-  } else {
-    _customStartTransaction(spanContext);
+  if (!client) {
+    return;
   }
+
+  startBrowserTracingNavigationSpan(client, spanContext);
 }
 
 /**
@@ -158,14 +148,18 @@ export function withSentry<P extends Record<string, unknown>, R extends React.Co
     const matches = _useMatches();
 
     _useEffect(() => {
-      const activeRootSpan = getActiveSpan();
+      if (matches && matches.length) {
+        const routeName = matches[matches.length - 1].id;
+        getCurrentScope().setTransactionName(routeName);
 
-      if (activeRootSpan && matches && matches.length) {
-        const transaction = getRootSpan(activeRootSpan);
+        const activeRootSpan = getActiveSpan();
+        if (activeRootSpan) {
+          const transaction = getRootSpan(activeRootSpan);
 
-        if (transaction) {
-          transaction.updateName(matches[matches.length - 1].id);
-          transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          if (transaction) {
+            transaction.updateName(routeName);
+            transaction.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+          }
         }
       }
 
@@ -214,17 +208,14 @@ export function setGlobals({
   useLocation,
   useMatches,
   instrumentNavigation,
-  customStartTransaction,
 }: {
   useEffect?: UseEffect;
   useLocation?: UseLocation;
   useMatches?: UseMatches;
   instrumentNavigation?: boolean;
-  customStartTransaction?: (context: TransactionContext) => Span | undefined;
 }): void {
   _useEffect = useEffect;
   _useLocation = useLocation;
   _useMatches = useMatches;
   _instrumentNavigation = instrumentNavigation;
-  _customStartTransaction = customStartTransaction;
 }

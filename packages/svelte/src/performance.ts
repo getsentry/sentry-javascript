@@ -3,7 +3,7 @@ import type { Span } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
 
-import { getRootSpan, startInactiveSpan, withActiveSpan } from '@sentry/core';
+import { startInactiveSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
 import type { TrackComponentOptions } from './types';
 
@@ -19,8 +19,10 @@ const defaultTrackComponentOptions: {
 /**
  * Tracks the Svelte component's intialization and mounting operation as well as
  * updates and records them as spans.
+ *
  * This function is injected automatically into your Svelte components' code
- * if you are using the Sentry componentTrackingPreprocessor.
+ * if you are using the withSentryConfig wrapper.
+ *
  * Alternatively, you can call it yourself if you don't want to use the preprocessor.
  */
 export function trackComponent(options?: TrackComponentOptions): void {
@@ -32,17 +34,16 @@ export function trackComponent(options?: TrackComponentOptions): void {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
 
-  let initSpan: Span | undefined = undefined;
   if (mergedOptions.trackInit) {
-    initSpan = recordInitSpan(componentName);
+    recordInitSpan(componentName);
   }
 
   if (mergedOptions.trackUpdates) {
-    recordUpdateSpans(componentName, initSpan);
+    recordUpdateSpans(componentName);
   }
 }
 
-function recordInitSpan(componentName: string): Span | undefined {
+function recordInitSpan(componentName: string): void {
   const initSpan = startInactiveSpan({
     onlyIfParent: true,
     op: UI_SVELTE_INIT,
@@ -53,35 +54,21 @@ function recordInitSpan(componentName: string): Span | undefined {
   onMount(() => {
     initSpan.end();
   });
-
-  return initSpan;
 }
 
-function recordUpdateSpans(componentName: string, initSpan?: Span): void {
+function recordUpdateSpans(componentName: string): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
-    // We need to get the active transaction again because the initial one could
-    // already be finished or there is currently no transaction going on.
+    // If there is no active span, we skip
     const activeSpan = getActiveSpan();
     if (!activeSpan) {
       return;
     }
 
-    // If we are initializing the component when the update span is started, we start it as child
-    // of the init span. Else, we start it as a child of the transaction.
-    const parentSpan =
-      initSpan && initSpan.isRecording() && getRootSpan(initSpan) === getRootSpan(activeSpan)
-        ? initSpan
-        : getRootSpan(activeSpan);
-
-    if (!parentSpan) return;
-
-    updateSpan = withActiveSpan(parentSpan, () => {
-      return startInactiveSpan({
-        op: UI_SVELTE_UPDATE,
-        name: componentName,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
-      });
+    updateSpan = startInactiveSpan({
+      op: UI_SVELTE_UPDATE,
+      name: componentName,
+      attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
     });
   });
 

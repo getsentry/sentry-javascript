@@ -1,9 +1,8 @@
-import { registerErrorInstrumentation } from './errors';
+import { registerSpanErrorInstrumentation } from './errors';
 
 /**
- * Adds tracing extensions.
- * TODO (v8): Do we still need this?? Can we solve this differently?
+ * @deprecated Use `registerSpanErrorInstrumentation()` instead. In v9, this function will be removed. Note that you don't need to call this in Node-based SDKs or when using `browserTracingIntegration`.
  */
 export function addTracingExtensions(): void {
-  registerErrorInstrumentation();
+  registerSpanErrorInstrumentation();
 }

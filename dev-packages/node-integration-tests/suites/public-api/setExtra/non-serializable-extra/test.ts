@@ -1,11 +1,16 @@
-import { TestEnv, assertSentryEvent } from '../../../../utils';
+import { cleanupChildProcesses, createRunner } from '../../../../utils/runner';
 
-test('should normalize non-serializable extra', async () => {
-  const env = await TestEnv.init(__dirname);
-  const event = await env.getEnvelopeRequest();
+afterAll(() => {
+  cleanupChildProcesses();
+});
 
-  assertSentryEvent(event[2], {
-    message: 'non_serializable',
-    extra: {},
-  });
+test('should normalize non-serializable extra', done => {
+  createRunner(__dirname, 'scenario.ts')
+    .expect({
+      event: {
+        message: 'non_serializable',
+        extra: {},
+      },
+    })
+    .start(done);
 });

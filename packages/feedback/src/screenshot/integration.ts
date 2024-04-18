@@ -1,22 +1,38 @@
-import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn, IntegrationFnResult } from '@sentry/types';
-import { createInput } from './createInput';
+import type { FeedbackDialog, FeedbackScreenshotIntegration, IntegrationFn } from '@sentry/types';
+import type { Attachment } from '@sentry/types';
+import type { h as hType } from 'preact';
+import { DOCUMENT } from '../constants';
+import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
 
-interface PublicFeedbackScreenshotIntegration {
-  createInput: typeof createInput;
-}
-
-const INTEGRATION_NAME = 'FeedbackScreenshot';
-
-export type IFeedbackScreenshotIntegration = IntegrationFnResult & PublicFeedbackScreenshotIntegration;
-
-export const _feedbackScreenshotIntegration = (() => {
+export const feedbackScreenshotIntegration = ((): FeedbackScreenshotIntegration => {
   return {
-    name: INTEGRATION_NAME,
+    name: 'FeedbackScreenshot',
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     setupOnce() {},
-    createInput,
+    createInput: (h: unknown, dialog: FeedbackDialog) => {
+      const imageBuffer = DOCUMENT.createElement('canvas');
+
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: makeScreenshotEditorComponent({ h: h as typeof hType, imageBuffer, dialog }) as any,
+
+        value: async () => {
+          const blob = await new Promise<Parameters<BlobCallback>[0]>(resolve => {
+            imageBuffer.toBlob(resolve, 'image/png');
+          });
+          if (blob) {
+            const data = new Uint8Array(await blob.arrayBuffer());
+            const attachment: Attachment = {
+              data,
+              filename: 'screenshot.png',
+              contentType: 'application/png',
+              // attachmentType?: string;
+            };
+            return attachment;
+          }
+          return undefined;
+        },
+      };
+    },
   };
 }) satisfies IntegrationFn;
-
-export const feedbackScreenshotIntegration = defineIntegration(_feedbackScreenshotIntegration);

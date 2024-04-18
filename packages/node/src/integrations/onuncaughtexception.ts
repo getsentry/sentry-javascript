@@ -1,11 +1,10 @@
-import { captureException, convertIntegrationFnToClass, defineIntegration } from '@sentry/core';
+import { captureException, defineIntegration } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { Integration, IntegrationClass, IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
-import type { NodeClient } from '../client';
 import { DEBUG_BUILD } from '../debug-build';
-import { logAndExitProcess } from './utils/errorhandling';
+import type { NodeClient } from '../sdk/client';
+import { logAndExitProcess } from '../utils/errorhandling';
 
 type OnFatalErrorHandler = (firstError: Error, secondError?: Error) => void;
 
@@ -13,17 +12,13 @@ type TaggedListener = NodeJS.UncaughtExceptionListener & {
   tag?: string;
 };
 
-// CAREFUL: Please think twice before updating the way _options looks because the Next.js SDK depends on it in `index.server.ts`
 interface OnUncaughtExceptionOptions {
-  // TODO(v8): Evaluate whether we should switch the default behaviour here.
-  // Also, we can evaluate using https://nodejs.org/api/process.html#event-uncaughtexceptionmonitor per default, and
-  // falling back to current behaviour when that's not available.
   /**
    * Controls if the SDK should register a handler to exit the process on uncaught errors:
    * - `true`: The SDK will exit the process on all uncaught errors.
    * - `false`: The SDK will only exit the process when there are no other `uncaughtException` handlers attached.
    *
-   * Default: `true`
+   * Default: `false`
    */
   exitEvenIfOtherHandlersAreRegistered: boolean;
 
@@ -40,41 +35,22 @@ interface OnUncaughtExceptionOptions {
 
 const INTEGRATION_NAME = 'OnUncaughtException';
 
-const _onUncaughtExceptionIntegration = ((options: Partial<OnUncaughtExceptionOptions> = {}) => {
-  const _options = {
-    exitEvenIfOtherHandlersAreRegistered: true,
+/**
+ * Add a global exception handler.
+ */
+export const onUncaughtExceptionIntegration = defineIntegration((options: Partial<OnUncaughtExceptionOptions> = {}) => {
+  const optionsWithDefaults = {
+    exitEvenIfOtherHandlersAreRegistered: false,
     ...options,
   };
 
   return {
     name: INTEGRATION_NAME,
     setup(client: NodeClient) {
-      global.process.on('uncaughtException', makeErrorHandler(client, _options));
+      global.process.on('uncaughtException', makeErrorHandler(client, optionsWithDefaults));
     },
   };
-}) satisfies IntegrationFn;
-
-export const onUncaughtExceptionIntegration = defineIntegration(_onUncaughtExceptionIntegration);
-
-/**
- * Global Exception handler.
- * @deprecated Use `onUncaughtExceptionIntegration()` instead.
- */
-// eslint-disable-next-line deprecation/deprecation
-export const OnUncaughtException = convertIntegrationFnToClass(
-  INTEGRATION_NAME,
-  onUncaughtExceptionIntegration,
-) as IntegrationClass<Integration & { setup: (client: NodeClient) => void }> & {
-  new (
-    options?: Partial<{
-      exitEvenIfOtherHandlersAreRegistered: boolean;
-      onFatalError?(this: void, firstError: Error, secondError?: Error): void;
-    }>,
-  ): Integration;
-};
-
-// eslint-disable-next-line deprecation/deprecation
-export type OnUncaughtException = typeof OnUncaughtException;
+});
 
 type ErrorHandler = { _errorHandler: boolean } & ((error: Error) => void);
 
@@ -103,20 +79,19 @@ export function makeErrorHandler(client: NodeClient, options: OnUncaughtExceptio
       // exit behaviour of the SDK accordingly:
       // - If other listeners are attached, do not exit.
       // - If the only listener attached is ours, exit.
-      const userProvidedListenersCount = (
-        global.process.listeners('uncaughtException') as TaggedListener[]
-      ).reduce<number>((acc, listener) => {
-        if (
+      const userProvidedListenersCount = (global.process.listeners('uncaughtException') as TaggedListener[]).filter(
+        listener => {
           // There are 3 listeners we ignore:
-          listener.name === 'domainUncaughtExceptionClear' || // as soon as we're using domains this listener is attached by node itself
-          (listener.tag && listener.tag === 'sentry_tracingErrorCallback') || // the handler we register for tracing
-          (listener as ErrorHandler)._errorHandler // the handler we register in this integration
-        ) {
-          return acc;
-        } else {
-          return acc + 1;
-        }
-      }, 0);
+          return (
+            // as soon as we're using domains this listener is attached by node itself
+            listener.name !== 'domainUncaughtExceptionClear' &&
+            // the handler we register for tracing
+            listener.tag !== 'sentry_tracingErrorCallback' &&
+            // the handler we register in this integration
+            (listener as ErrorHandler)._errorHandler !== true
+          );
+        },
+      ).length;
 
       const processWouldExit = userProvidedListenersCount === 0;
       const shouldApplyFatalHandlingLogic = options.exitEvenIfOtherHandlersAreRegistered || processWouldExit;

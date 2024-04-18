@@ -6,6 +6,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,
@@ -13,7 +14,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
@@ -38,7 +38,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -98,17 +97,27 @@ export {
   setupExpressErrorHandler,
   fastifyIntegration,
   setupFastifyErrorHandler,
+  koaIntegration,
+  setupKoaErrorHandler,
+  connectIntegration,
+  setupConnectErrorHandler,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
   nestIntegration,
+  setupNestErrorHandler,
   postgresIntegration,
   prismaIntegration,
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
+  initOpenTelemetry,
+  spanToJSON,
+  spanToTraceHeader,
+  trpcMiddleware,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 export {
@@ -123,9 +132,6 @@ export {
 export type { BunOptions } from './types';
 
 export { BunClient } from './client';
-export {
-  getDefaultIntegrations,
-  init,
-} from './sdk';
+export { getDefaultIntegrations, init } from './sdk';
 export { bunServerIntegration } from './integrations/bunserver';
 export { makeFetchTransport } from './transports';

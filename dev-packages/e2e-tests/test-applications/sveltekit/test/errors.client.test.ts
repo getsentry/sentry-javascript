@@ -1,20 +1,20 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '../event-proxy-server';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 import { waitForInitialPageload } from '../utils';
 
 test.describe('client-side errors', () => {
   test('captures error thrown on click', async ({ page }) => {
-    await page.goto('/client-error');
-
-    await expect(page.getByText('Client error')).toBeVisible();
+    await waitForInitialPageload(page, { route: '/client-error' });
 
     const errorEventPromise = waitForError('sveltekit', errorEvent => {
       return errorEvent?.exception?.values?.[0]?.value === 'Click Error';
     });
 
-    const clickPromise = page.getByText('Throw error').click();
+    await page.getByText('Throw error').click();
 
-    const [errorEvent, _] = await Promise.all([errorEventPromise, clickPromise]);
+    await expect(errorEventPromise).resolves.toBeDefined();
+
+    const errorEvent = await errorEventPromise;
 
     const errorEventFrames = errorEvent.exception?.values?.[0]?.stacktrace?.frames;
 

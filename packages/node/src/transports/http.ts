@@ -1,9 +1,8 @@
 import * as http from 'node:http';
 import * as https from 'node:https';
 import { Readable } from 'stream';
-import { URL } from 'url';
 import { createGzip } from 'zlib';
-import { createTransport } from '@sentry/core';
+import { createTransport, suppressTracing } from '@sentry/core';
 import type {
   BaseTransportOptions,
   Transport,
@@ -13,7 +12,6 @@ import type {
 } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 import { HttpsProxyAgent } from '../proxy';
-
 import type { HTTPModule } from './http-module';
 
 export interface NodeTransportOptions extends BaseTransportOptions {
@@ -81,8 +79,11 @@ export function makeNodeTransport(options: NodeTransportOptions): Transport {
     ? (new HttpsProxyAgent(proxy) as http.Agent)
     : new nativeHttpModule.Agent({ keepAlive, maxSockets: 30, timeout: 2000 });
 
-  const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
-  return createTransport(options, requestExecutor);
+  // This ensures we do not generate any spans in OpenTelemetry for the transport
+  return suppressTracing(() => {
+    const requestExecutor = createRequestExecutor(options, options.httpModule ?? nativeHttpModule, agent);
+    return createTransport(options, requestExecutor);
+  });
 }
 
 /**

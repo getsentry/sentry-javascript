@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Creates a pageload transaction for app router routes', async ({ page }) => {
   const randomRoute = String(Math.random());

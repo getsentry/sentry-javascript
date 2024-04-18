@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 import axios, { AxiosError } from 'axios';
-import { waitForTransaction } from '../event-proxy-server';
 
 const authToken = process.env.E2E_TEST_AUTH_TOKEN;
 const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
@@ -56,6 +56,23 @@ test('Sends an API route transaction', async ({ baseURL }) => {
   expect(transactionEvent).toEqual(
     expect.objectContaining({
       spans: [
+        {
+          data: {
+            'plugin.name': 'fastify -> sentry-fastify-error-handler',
+            'fastify.type': 'middleware',
+            'hook.name': 'onRequest',
+            'otel.kind': 'INTERNAL',
+            'sentry.origin': 'manual',
+          },
+          description: 'middleware - fastify -> sentry-fastify-error-handler',
+          parent_span_id: expect.any(String),
+          span_id: expect.any(String),
+          start_timestamp: expect.any(Number),
+          status: 'ok',
+          timestamp: expect.any(Number),
+          trace_id: expect.any(String),
+          origin: 'manual',
+        },
         {
           data: {
             'plugin.name': 'fastify -> sentry-fastify-error-handler',

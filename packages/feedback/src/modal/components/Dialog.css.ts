@@ -128,9 +128,14 @@ export function createDialogStyles(): HTMLStyleElement {
   border: var(--input-border);
   border-radius: var(--form-content-border-radius);
   color: var(--input-foreground);
-  font-size: 14px;
+  font-size: var(--font-size);
   font-weight: 500;
   padding: 6px 12px;
+}
+
+.form__input::placeholder {
+  color: var(--input-foreground);
+  opacity: 0.65;
 }
 
 .form__input:focus-visible {
@@ -153,7 +158,8 @@ export function createDialogStyles(): HTMLStyleElement {
   border: var(--cancel-border);
   border-radius: var(--form-content-border-radius);
   cursor: pointer;
-  font-size: 14px;
+  font-family: inherit;
+  font-size: var(--font-size);
   font-weight: 600;
   padding: 6px 16px;
 }

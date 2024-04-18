@@ -1,11 +1,9 @@
-import { maybeCaptureExceptionForTimedEvent } from './utils/captureExceptionForTimedEvent';
-import { getRequestSpanData } from './utils/getRequestSpanData';
+export { getRequestSpanData } from './utils/getRequestSpanData';
 
 export type { OpenTelemetryClient } from './types';
 export { wrapClientClass } from './custom/client';
 
 export { getSpanKind } from './utils/getSpanKind';
-export { getSpanScopes } from './utils/spanData';
 
 export { getScopesFromContext } from './utils/contextData';
 
@@ -25,10 +23,10 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
 
+export { suppressTracing } from './utils/suppressTracing';
+
 // eslint-disable-next-line deprecation/deprecation
-export { setupGlobalHub } from './custom/hub';
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHub } from './custom/getCurrentHub';
+export { getCurrentHubShim } from '@sentry/core';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
@@ -39,16 +37,7 @@ export { SentrySampler } from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
+export { addOpenTelemetryInstrumentation } from './instrumentation';
+
 // Legacy
 export { getClient } from '@sentry/core';
-
-/**
- * The following internal utils are not considered public API and are subject to change.
- * @hidden
- */
-const _INTERNAL = {
-  maybeCaptureExceptionForTimedEvent,
-  getRequestSpanData,
-} as const;
-
-export { _INTERNAL };

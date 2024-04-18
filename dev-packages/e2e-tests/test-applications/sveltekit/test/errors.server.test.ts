@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForError } from '../event-proxy-server';
+import { waitForError } from '@sentry-internal/event-proxy-server';
 
 test.describe('server-side errors', () => {
   test('captures universal load error', async ({ page }) => {
@@ -63,7 +63,6 @@ test.describe('server-side errors', () => {
       }),
     );
 
-    // TODO: Uncomment once we update the scope transaction name on the server side
-    // expect(errorEvent.transaction).toEqual('GET /server-route-error');
+    expect(errorEvent.transaction).toEqual('GET /server-route-error');
   });
 });

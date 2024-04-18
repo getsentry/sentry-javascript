@@ -51,12 +51,18 @@ module.exports = {
       },
     },
     {
-      files: ['scenarios/**', 'dev-packages/rollup-utils/**'],
+      files: ['scenarios/**', 'dev-packages/rollup-utils/**', 'dev-packages/bundle-analyzer-scenarios/**'],
       parserOptions: {
         sourceType: 'module',
       },
       rules: {
         'no-console': 'off',
+      },
+    },
+    {
+      files: ['vite.config.ts'],
+      parserOptions: {
+        project: ['tsconfig.test.json'],
       },
     },
   ],

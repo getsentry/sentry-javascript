@@ -52,7 +52,7 @@ const tracingBaseBundleConfig = makeBaseBundleConfig({
 const replayBaseBundleConfig = makeBaseBundleConfig({
   bundleType: 'standalone',
   entrypoints: ['src/index.bundle.replay.ts'],
-  licenseTitle: '@sentry/browser & @sentry/replay',
+  licenseTitle: '@sentry/browser (Replay)',
   outputFileBase: () => 'bundles/bundle.replay',
 });
 

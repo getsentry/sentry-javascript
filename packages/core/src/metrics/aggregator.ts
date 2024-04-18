@@ -1,11 +1,11 @@
 import type { Client, MeasurementUnit, MetricsAggregator as MetricsAggregatorBase, Primitive } from '@sentry/types';
 import { timestampInSeconds } from '@sentry/utils';
 import { updateMetricSummaryOnActiveSpan } from '../utils/spanUtils';
-import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, NAME_AND_TAG_KEY_NORMALIZATION_REGEX, SET_METRIC_TYPE } from './constants';
+import { DEFAULT_FLUSH_INTERVAL, MAX_WEIGHT, SET_METRIC_TYPE } from './constants';
 import { captureAggregateMetrics } from './envelope';
 import { METRIC_MAP } from './instance';
 import type { MetricBucket, MetricType } from './types';
-import { getBucketKey, sanitizeTags } from './utils';
+import { getBucketKey, sanitizeMetricKey, sanitizeTags, sanitizeUnit } from './utils';
 
 /**
  * A metrics aggregator that aggregates metrics in memory and flushes them periodically.
@@ -20,7 +20,9 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   // that we store in memory.
   private _bucketsTotalWeight;
 
-  private readonly _interval: ReturnType<typeof setInterval>;
+  // Cast to any so that it can use Node.js timeout
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly _interval: any;
 
   // SDKs are required to shift the flush interval by random() * rollup_in_seconds.
   // That shift is determined once per startup to create jittering.
@@ -37,7 +39,14 @@ export class MetricsAggregator implements MetricsAggregatorBase {
   public constructor(private readonly _client: Client) {
     this._buckets = new Map();
     this._bucketsTotalWeight = 0;
-    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL);
+
+    this._interval = setInterval(() => this._flush(), DEFAULT_FLUSH_INTERVAL) as any;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (this._interval.unref) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      this._interval.unref();
+    }
+
     this._flushShift = Math.floor((Math.random() * DEFAULT_FLUSH_INTERVAL) / 1000);
     this._forceFlush = false;
   }
@@ -49,13 +58,14 @@ export class MetricsAggregator implements MetricsAggregatorBase {
     metricType: MetricType,
     unsanitizedName: string,
     value: number | string,
-    unit: MeasurementUnit = 'none',
+    unsanitizedUnit: MeasurementUnit = 'none',
     unsanitizedTags: Record<string, Primitive> = {},
     maybeFloatTimestamp = timestampInSeconds(),
   ): void {
     const timestamp = Math.floor(maybeFloatTimestamp);
-    const name = unsanitizedName.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
+    const name = sanitizeMetricKey(unsanitizedName);
     const tags = sanitizeTags(unsanitizedTags);
+    const unit = sanitizeUnit(unsanitizedUnit as string);
 
     const bucketKey = getBucketKey(metricType, name, unit, tags);
 

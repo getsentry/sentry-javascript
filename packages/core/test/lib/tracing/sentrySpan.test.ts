@@ -20,17 +20,6 @@ describe('SentrySpan', () => {
     });
   });
 
-  describe('new SentrySpan', () => {
-    test('simple', () => {
-      const span = new SentrySpan({ sampled: true });
-      // eslint-disable-next-line deprecation/deprecation
-      const span2 = span.startChild();
-      expect((span2 as any).parentSpanId).toBe((span as any).spanId);
-      expect((span2 as any).traceId).toBe((span as any).traceId);
-      expect((span2 as any).sampled).toBe((span as any).sampled);
-    });
-  });
-
   describe('setters', () => {
     test('setName', () => {
       const span = new SentrySpan({});
@@ -58,8 +47,13 @@ describe('SentrySpan', () => {
     });
 
     test('with parent', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
-      const spanB = new SentrySpan({ traceId: 'c', spanId: 'd', sampled: false, parentSpanId: spanA.spanId });
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
+      const spanB = new SentrySpan({
+        traceId: 'c',
+        spanId: 'd',
+        sampled: false,
+        parentSpanId: spanA.spanContext().spanId,
+      });
       const serialized = spanToJSON(spanB);
       expect(serialized).toHaveProperty('parent_span_id', 'b');
       expect(serialized).toHaveProperty('span_id', 'd');
@@ -67,9 +61,9 @@ describe('SentrySpan', () => {
     });
 
     test('should drop all `undefined` values', () => {
-      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' }) as any;
+      const spanA = new SentrySpan({ traceId: 'a', spanId: 'b' });
       const spanB = new SentrySpan({
-        parentSpanId: spanA.spanId,
+        parentSpanId: spanA.spanContext().spanId,
         spanId: 'd',
         traceId: 'c',
       });
@@ -338,70 +332,6 @@ describe('SentrySpan', () => {
         traceId: span['_traceId'],
         traceFlags: TRACE_FLAG_NONE,
       });
-    });
-  });
-
-  // Ensure that attributes & data are merged together
-  describe('_getData', () => {
-    it('works without data & attributes', () => {
-      const span = new SentrySpan();
-
-      expect(span['_getData']()).toEqual({
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-    });
-
-    it('works with data only', () => {
-      const span = new SentrySpan();
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('foo', 'bar');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'bar',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      expect(span['_getData']()).toStrictEqual({
-        // eslint-disable-next-line deprecation/deprecation
-        ...span.data,
-        'sentry.origin': 'manual',
-      });
-    });
-
-    it('works with attributes only', () => {
-      const span = new SentrySpan();
-      span.setAttribute('foo', 'bar');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'bar',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).toBe(span.attributes);
-    });
-
-    it('merges data & attributes', () => {
-      const span = new SentrySpan();
-      span.setAttribute('foo', 'foo');
-      span.setAttribute('bar', 'bar');
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('foo', 'foo2');
-      // eslint-disable-next-line deprecation/deprecation
-      span.setData('baz', 'baz');
-
-      expect(span['_getData']()).toEqual({
-        foo: 'foo',
-        bar: 'bar',
-        baz: 'baz',
-        // origin is set by default to 'manual' in the SentrySpan constructor
-        'sentry.origin': 'manual',
-      });
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).not.toBe(span.attributes);
-      // eslint-disable-next-line deprecation/deprecation
-      expect(span['_getData']()).not.toBe(span.data);
     });
   });
 });

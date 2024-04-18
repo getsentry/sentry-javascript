@@ -1,30 +1,37 @@
-import * as fs from 'fs';
-import type { Event, IntegrationFnResult, StackFrame } from '@sentry/types';
+import { promises } from 'fs';
+import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
-import { contextLinesIntegration } from '../../src';
-import { resetFileContentCache } from '../../src/integrations/contextlines';
-import { defaultStackParser } from '../../src/sdk';
-import { getError } from '../helper/error';
+import { _contextLinesIntegration, resetFileContentCache } from '../../src/integrations/contextlines';
+import { defaultStackParser } from '../../src/sdk/api';
+import { getError } from '../helpers/error';
+
+jest.mock('fs', () => {
+  const actual = jest.requireActual('fs');
+  return {
+    ...actual,
+    promises: {
+      ...actual.promises,
+      readFile: jest.fn(actual.promises),
+    },
+  };
+});
 
 describe('ContextLines', () => {
-  let readFileSpy: jest.SpyInstance;
-  let contextLines: IntegrationFnResult;
+  const readFileSpy = promises.readFile as unknown as jest.SpyInstance;
+  let contextLines: ReturnType<typeof _contextLinesIntegration>;
 
   async function addContext(frames: StackFrame[]): Promise<void> {
-    await (contextLines as IntegrationFnResult & { processEvent: (event: Event) => Promise<Event> }).processEvent({
-      exception: { values: [{ stacktrace: { frames } }] },
-    });
+    await contextLines.processEvent({ exception: { values: [{ stacktrace: { frames } }] } });
   }
 
   beforeEach(() => {
-    readFileSpy = jest.spyOn(fs, 'readFile');
-    contextLines = contextLinesIntegration();
+    contextLines = _contextLinesIntegration();
     resetFileContentCache();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.clearAllMocks();
   });
 
   describe('lru file cache', () => {
@@ -101,8 +108,7 @@ describe('ContextLines', () => {
     });
 
     test('parseStack with no context', async () => {
-      // eslint-disable-next-line deprecation/deprecation
-      contextLines = contextLinesIntegration({ frameContextLines: 0 });
+      contextLines = _contextLinesIntegration({ frameContextLines: 0 });
 
       expect.assertions(1);
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
@@ -114,8 +120,6 @@ describe('ContextLines', () => {
 
   test('does not attempt to readfile multiple times if it fails', async () => {
     expect.assertions(1);
-    // eslint-disable-next-line deprecation/deprecation
-    contextLines = contextLinesIntegration();
 
     readFileSpy.mockImplementation(() => {
       throw new Error("ENOENT: no such file or directory, open '/does/not/exist.js'");

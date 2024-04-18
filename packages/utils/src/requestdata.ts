@@ -2,7 +2,6 @@ import type {
   Event,
   ExtractedNodeRequestData,
   PolymorphicRequest,
-  Transaction,
   TransactionSource,
   WebFetchHeaders,
   WebFetchRequest,
@@ -23,17 +22,6 @@ const DEFAULT_INCLUDES = {
 };
 const DEFAULT_REQUEST_INCLUDES = ['cookies', 'data', 'headers', 'method', 'query_string', 'url'];
 export const DEFAULT_USER_INCLUDES = ['id', 'username', 'email'];
-
-type InjectedNodeDeps = {
-  cookie: {
-    parse: (cookieStr: string) => Record<string, string>;
-  };
-  url: {
-    parse: (urlStr: string) => {
-      query: string | null;
-    };
-  };
-};
 
 /**
  * Options deciding what parts of the request to use when enhancing an event
@@ -61,45 +49,6 @@ export type AddRequestDataToEventOptions = {
 };
 
 export type TransactionNamingScheme = 'path' | 'methodPath' | 'handler';
-
-/**
- * Sets parameterized route as transaction name e.g.: `GET /users/:id`
- * Also adds more context data on the transaction from the request
- */
-export function addRequestDataToTransaction(
-  transaction: Transaction | undefined,
-  req: PolymorphicRequest,
-  // TODO(v8): Remove this parameter in v8
-  _deps?: InjectedNodeDeps,
-): void {
-  if (!transaction) return;
-
-  // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
-  // eslint-disable-next-line deprecation/deprecation
-  if (!transaction.attributes['sentry.source'] || transaction.attributes['sentry.source'] === 'url') {
-    // Attempt to grab a parameterized route off of the request
-    const [name, source] = extractPathForTransaction(req, { path: true, method: true });
-    transaction.updateName(name);
-    // TODO(v8): SEMANTIC_ATTRIBUTE_SENTRY_SOURCE is in core, align this once we merge utils & core
-    transaction.setAttribute('sentry.source', source);
-  }
-  transaction.setAttribute('url', req.originalUrl || req.url);
-  if (req.baseUrl) {
-    transaction.setAttribute('baseUrl', req.baseUrl);
-  }
-
-  const query = extractQueryParams(req);
-  if (typeof query === 'string') {
-    transaction.setAttribute('query', query);
-  } else if (query) {
-    Object.keys(query).forEach(key => {
-      const val = query[key];
-      if (typeof val === 'string' || typeof val === 'number') {
-        transaction.setAttribute(`query.${key}`, val);
-      }
-    });
-  }
-}
 
 /**
  * Extracts a complete and parameterized path from the request object and uses it to construct transaction name.
@@ -349,7 +298,7 @@ export function addRequestDataToEvent(
     }
   }
 
-  if (include.transaction && !event.transaction) {
+  if (include.transaction && !event.transaction && event.type === 'transaction') {
     // TODO do we even need this anymore?
     // TODO make this work for nextjs
     event.transaction = extractTransaction(req, include.transaction);

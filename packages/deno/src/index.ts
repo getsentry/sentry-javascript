@@ -6,6 +6,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,
@@ -13,7 +14,6 @@ export type {
   StackFrame,
   Stacktrace,
   Thread,
-  Transaction,
   User,
 } from '@sentry/types';
 export type { AddRequestDataToEventOptions } from '@sentry/utils';
@@ -35,7 +35,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -75,6 +74,8 @@ export {
   startSession,
   captureSession,
   endSession,
+  spanToJSON,
+  spanToTraceHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

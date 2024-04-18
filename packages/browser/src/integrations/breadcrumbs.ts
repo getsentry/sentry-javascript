@@ -1,29 +1,28 @@
-/* eslint-disable max-lines */
+import {
+  SENTRY_XHR_DATA_KEY,
+  addClickKeypressInstrumentationHandler,
+  addHistoryInstrumentationHandler,
+  addXhrInstrumentationHandler,
+} from '@sentry-internal/browser-utils';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type {
+  Breadcrumb,
   Client,
   Event as SentryEvent,
+  FetchBreadcrumbData,
+  FetchBreadcrumbHint,
   HandlerDataConsole,
   HandlerDataDom,
   HandlerDataFetch,
   HandlerDataHistory,
   HandlerDataXhr,
   IntegrationFn,
-} from '@sentry/types';
-import type {
-  Breadcrumb,
-  FetchBreadcrumbData,
-  FetchBreadcrumbHint,
   XhrBreadcrumbData,
   XhrBreadcrumbHint,
-} from '@sentry/types/build/types/breadcrumb';
+} from '@sentry/types';
 import {
-  SENTRY_XHR_DATA_KEY,
-  addClickKeypressInstrumentationHandler,
   addConsoleInstrumentationHandler,
   addFetchInstrumentationHandler,
-  addHistoryInstrumentationHandler,
-  addXhrInstrumentationHandler,
   getComponentName,
   getEventDescription,
   htmlTreeAsString,

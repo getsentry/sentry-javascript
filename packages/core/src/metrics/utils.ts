@@ -1,6 +1,5 @@
 import type { MeasurementUnit, MetricBucketItem, Primitive } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
-import { NAME_AND_TAG_KEY_NORMALIZATION_REGEX, TAG_VALUE_NORMALIZATION_REGEX } from './constants';
 import type { MetricType } from './types';
 
 /**
@@ -55,14 +54,71 @@ export function serializeMetricBuckets(metricBucketItems: MetricBucketItem[]): s
 }
 
 /**
+ * Sanitizes units
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
+export function sanitizeUnit(unit: string): string {
+  return unit.replace(/[^\w]+/gi, '_');
+}
+
+/**
+ * Sanitizes metric keys
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
+export function sanitizeMetricKey(key: string): string {
+  return key.replace(/[^\w\-.]+/gi, '_');
+}
+
+/**
+ * Sanitizes metric keys
+ *
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
+function sanitizeTagKey(key: string): string {
+  return key.replace(/[^\w\-./]+/gi, '');
+}
+
+/**
+ * These Regex's are straight from the normalisation docs:
+ * https://develop.sentry.dev/sdk/metrics/#normalization
+ */
+const tagValueReplacements: [string, string][] = [
+  ['\n', '\\n'],
+  ['\r', '\\r'],
+  ['\t', '\\t'],
+  ['\\', '\\\\'],
+  ['|', '\\u{7c}'],
+  [',', '\\u{2c}'],
+];
+
+function getCharOrReplacement(input: string): string {
+  for (const [search, replacement] of tagValueReplacements) {
+    if (input === search) {
+      return replacement;
+    }
+  }
+
+  return input;
+}
+
+function sanitizeTagValue(value: string): string {
+  return [...value].reduce((acc, char) => acc + getCharOrReplacement(char), '');
+}
+
+/**
  * Sanitizes tags.
  */
 export function sanitizeTags(unsanitizedTags: Record<string, Primitive>): Record<string, string> {
   const tags: Record<string, string> = {};
   for (const key in unsanitizedTags) {
     if (Object.prototype.hasOwnProperty.call(unsanitizedTags, key)) {
-      const sanitizedKey = key.replace(NAME_AND_TAG_KEY_NORMALIZATION_REGEX, '_');
-      tags[sanitizedKey] = String(unsanitizedTags[key]).replace(TAG_VALUE_NORMALIZATION_REGEX, '');
+      const sanitizedKey = sanitizeTagKey(key);
+      tags[sanitizedKey] = sanitizeTagValue(String(unsanitizedTags[key]));
     }
   }
   return tags;

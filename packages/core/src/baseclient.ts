@@ -53,6 +53,7 @@ import { setupIntegration, setupIntegrations } from './integration';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
+import { parseSampleRate } from './utils/parseSampleRate';
 import { prepareEvent } from './utils/prepareEvent';
 
 const ALREADY_SEEN_ERROR = "Not capturing exception because it's already been captured.";
@@ -100,9 +101,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** Array of set up integrations. */
   protected _integrations: IntegrationIndex;
 
-  /** Indicates whether this client's integrations have been set up. */
-  protected _integrationsInitialized: boolean;
-
   /** Number of calls being processed */
   protected _numProcessing: number;
 
@@ -122,7 +120,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected constructor(options: O) {
     this._options = options;
     this._integrations = {};
-    this._integrationsInitialized = false;
     this._numProcessing = 0;
     this._outcomes = {};
     this._hooks = {};
@@ -135,7 +132,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     }
 
     if (this._dsn) {
-      const url = getEnvelopeEndpointWithUrlEncodedAuth(this._dsn, options);
+      const url = getEnvelopeEndpointWithUrlEncodedAuth(
+        this._dsn,
+        options.tunnel,
+        options._metadata ? options._metadata.sdk : undefined,
+      );
       this._transport = options.transport({
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
@@ -297,16 +298,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritDoc */
   public addEventProcessor(eventProcessor: EventProcessor): void {
     this._eventProcessors.push(eventProcessor);
-  }
-
-  /**
-   * This is an internal function to setup all integrations that should run on the client.
-   * @deprecated Use `client.init()` instead.
-   */
-  public setupIntegrations(forceInitialize?: boolean): void {
-    if ((forceInitialize && !this._integrationsInitialized) || (this._isEnabled() && !this._integrationsInitialized)) {
-      this._setupIntegrations();
-    }
   }
 
   /** @inheritdoc */
@@ -529,9 +520,6 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const { integrations } = this._options;
     this._integrations = setupIntegrations(this, integrations);
     afterSetupIntegrations(this, integrations);
-
-    // TODO v8: We don't need this flag anymore
-    this._integrationsInitialized = true;
   }
 
   /** Updates existing session based on the provided event */
@@ -715,7 +703,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // 1.0 === 100% events are sent
     // 0.0 === 0% events are sent
     // Sampling for transaction happens somewhere else
-    if (isError && typeof sampleRate === 'number' && Math.random() > sampleRate) {
+    const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
+    if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
       return rejectedSyncPromise(
         new SentryError(

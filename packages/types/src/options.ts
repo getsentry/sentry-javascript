@@ -1,5 +1,5 @@
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
-import type { ErrorEvent, Event, EventHint, TransactionEvent } from './event';
+import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
 import type { CaptureContext } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
@@ -93,6 +93,19 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * Note that `tracesSampleRate` and `tracesSampler` take precedence over this option.
    */
   enableTracing?: boolean;
+
+  /**
+   * If this is enabled, any spans started will always have their parent be the active root span,
+   * if there is any active span.
+   *
+   * This is necessary because in some environments (e.g. browser),
+   * we cannot guarantee an accurate active span.
+   * Because we cannot properly isolate execution environments,
+   * you may get wrong results when using e.g. nested `startSpan()` calls.
+   *
+   * To solve this, in these environments we'll by default enable this option.
+   */
+  parentSpanIsAlwaysRootSpan?: boolean;
 
   /**
    * Initial data to populate scope.
@@ -255,7 +268,6 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    */
   tracesSampler?: (samplingContext: SamplingContext) => number | boolean;
 
-  // TODO (v8): Narrow the response type to `ErrorEvent` - this is technically a breaking change.
   /**
    * An event-processing callback for error and message events, guaranteed to be invoked after all other event
    * processors, which allows an event to be modified or dropped.
@@ -267,9 +279,8 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<Event | null> | Event | null;
+  beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<ErrorEvent | null> | ErrorEvent | null;
 
-  // TODO (v8): Narrow the response type to `TransactionEvent` - this is technically a breaking change.
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
    * processors. This allows an event to be modified or dropped before it's sent.
@@ -281,7 +292,10 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSendTransaction?: (event: TransactionEvent, hint: EventHint) => PromiseLike<Event | null> | Event | null;
+  beforeSendTransaction?: (
+    event: TransactionEvent,
+    hint: EventHint,
+  ) => PromiseLike<TransactionEvent | null> | TransactionEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify

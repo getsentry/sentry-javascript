@@ -8,12 +8,14 @@ setTimeout(() => {
 }, 10000);
 
 Sentry.init({
-  dsn: 'https://public@dsn.ingest.sentry.io/1337',
+  dsn: process.env.SENTRY_DSN,
   release: '1.0',
-  debug: true,
   integrations: [Sentry.anrIntegration({ captureStackTrace: true, anrThreshold: 100 })],
   autoSessionTracking: true,
 });
+
+Sentry.setUser({ email: 'person@home.com' });
+Sentry.addBreadcrumb({ message: 'important message!' });
 
 function longWork() {
   for (let i = 0; i < 20; i++) {

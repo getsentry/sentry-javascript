@@ -6,9 +6,8 @@ document.getElementById('go-background').addEventListener('click', () => {
 });
 
 document.getElementById('start-span').addEventListener('click', () => {
-  const span = Sentry.startInactiveSpan({ name: 'test-span' });
+  const span = Sentry.startBrowserTracingNavigationSpan(Sentry.getClient(), { name: 'test-span' });
   window.span = span;
-  Sentry.getCurrentScope().setSpan(span);
 });
 
 window.getSpanJson = () => {

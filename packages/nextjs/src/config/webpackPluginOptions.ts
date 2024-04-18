@@ -1,5 +1,5 @@
 import * as path from 'path';
-import { getSentryRelease } from '@sentry/node-experimental';
+import { getSentryRelease } from '@sentry/node';
 import type { SentryWebpackPluginOptions } from '@sentry/webpack-plugin';
 import type { BuildContext, NextConfigObject, SentryBuildOptions } from './types';
 
@@ -11,7 +11,9 @@ export function getWebpackPluginOptions(
   buildContext: BuildContext,
   sentryBuildOptions: SentryBuildOptions,
 ): SentryWebpackPluginOptions {
-  const { buildId, isServer, config: userNextConfig, dir: projectDir } = buildContext;
+  const { buildId, isServer, config: userNextConfig, dir: projectDir, nextRuntime } = buildContext;
+
+  const prefixInsert = !isServer ? 'Client' : nextRuntime === 'edge' ? 'Edge' : 'Node.js';
 
   const distDirAbsPath = path.join(projectDir, (userNextConfig as NextConfigObject).distDir || '.next'); // `.next` is the default directory
 
@@ -88,6 +90,9 @@ export function getWebpackPluginOptions(
       setCommits: sentryBuildOptions.release?.setCommits,
       deploy: sentryBuildOptions.release?.deploy,
       ...sentryBuildOptions.unstable_sentryWebpackPluginOptions?.release,
+    },
+    _metaOptions: {
+      loggerPrefixOverride: `[@sentry/nextjs - ${prefixInsert}]`,
     },
     ...sentryBuildOptions.unstable_sentryWebpackPluginOptions,
   };

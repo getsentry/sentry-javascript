@@ -3,9 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 
 import { wrapApiHandlerWithSentry } from '../../src/edge';
 
-// @ts-expect-error Request does not exist on type Global
 const origRequest = global.Request;
-// @ts-expect-error Response does not exist on type Global
 const origResponse = global.Response;
 
 // @ts-expect-error Request does not exist on type Global
@@ -29,9 +27,7 @@ global.Request = class Request {
 global.Response = class Response {};
 
 afterAll(() => {
-  // @ts-expect-error Request does not exist on type Global
   global.Request = origRequest;
-  // @ts-expect-error Response does not exist on type Global
   global.Response = origResponse;
 });
 
@@ -62,10 +58,6 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
-
-    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({
-      request: { headers: {}, method: 'POST', url: 'https://sentry.io/' },
-    });
   });
 
   it('should return a function that calls trace without throwing when no request is passed', async () => {
@@ -87,7 +79,5 @@ describe('wrapApiHandlerWithSentry', () => {
       }),
       expect.any(Function),
     );
-
-    expect(coreSdk.getIsolationScope().getScopeData().sdkProcessingMetadata).toEqual({});
   });
 });

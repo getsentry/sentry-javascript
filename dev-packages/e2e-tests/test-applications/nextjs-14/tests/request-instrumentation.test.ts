@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { waitForTransaction } from '../event-proxy-server';
+import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('Should send a transaction with a fetch span', async ({ page }) => {
   const transactionPromise = waitForTransaction('nextjs-14', async transactionEvent => {
@@ -13,7 +13,7 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.node.undici',
+        'next.span_type': 'AppRender.fetch', // This span is created by Next.js own fetch instrumentation
       }),
       description: 'GET http://example.com/',
     }),
@@ -24,7 +24,8 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'sentry.origin': 'auto.http.node.http',
+        // todo: without the HTTP integration in the Next.js SDK, this is set to 'manual' -> we could rename this to be more specific
+        'sentry.origin': 'manual',
       }),
       description: 'GET http://example.com/',
     }),

@@ -1,15 +1,7 @@
-import type {
-  Client,
-  Event,
-  EventHint,
-  Integration,
-  IntegrationClass,
-  IntegrationFn,
-  Transaction,
-} from '@sentry/types';
+import type { Client, IntegrationFn, Span } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
 import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
-import { convertIntegrationFnToClass, defineIntegration } from '../integration';
+import { defineIntegration } from '../integration';
 import { spanToJSON } from '../utils/spanUtils';
 
 export type RequestDataIntegrationOptions = {
@@ -100,7 +92,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
       // value with a high-quality one
-      const reqWithTransaction = req as { _sentryTransaction?: Transaction };
+      const reqWithTransaction = req as { _sentryTransaction?: Span };
       const transaction = reqWithTransaction._sentryTransaction;
       if (transaction) {
         const name = spanToJSON(transaction).description || '';
@@ -127,41 +119,11 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
   };
 }) satisfies IntegrationFn;
 
-export const requestDataIntegration = defineIntegration(_requestDataIntegration);
-
 /**
  * Add data about a request to an event. Primarily for use in Node-based SDKs, but included in `@sentry/core`
  * so it can be used in cross-platform SDKs like `@sentry/nextjs`.
- * @deprecated Use `requestDataIntegration()` instead.
  */
-// eslint-disable-next-line deprecation/deprecation
-export const RequestData = convertIntegrationFnToClass(INTEGRATION_NAME, requestDataIntegration) as IntegrationClass<
-  Integration & { processEvent: (event: Event, hint: EventHint, client: Client) => Event }
-> & {
-  new (options?: {
-    /**
-     * Controls what data is pulled from the request and added to the event
-     */
-    include?: {
-      cookies?: boolean;
-      data?: boolean;
-      headers?: boolean;
-      ip?: boolean;
-      query_string?: boolean;
-      url?: boolean;
-      user?:
-        | boolean
-        | {
-            id?: boolean;
-            username?: boolean;
-            email?: boolean;
-          };
-    };
-
-    /** Whether to identify transactions by parameterized path, parameterized path with method, or handler name */
-    transactionNamingScheme?: TransactionNamingScheme;
-  }): Integration;
-};
+export const requestDataIntegration = defineIntegration(_requestDataIntegration);
 
 /** Convert this integration's options to match what `addRequestDataToEvent` expects */
 /** TODO: Can possibly be deleted once https://github.com/getsentry/sentry-javascript/issues/5718 is fixed */

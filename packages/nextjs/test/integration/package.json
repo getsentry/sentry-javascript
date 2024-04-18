@@ -8,7 +8,7 @@
     "start": "next start",
     "pretest": "yarn build",
     "test:client": "playwright test",
-    "test:server": "jest --detectOpenHandles --forceExit --runInBand"
+    "test:server": "jest --forceExit --runInBand"
   },
   "dependencies": {
     "@sentry/nextjs": "file:../../",
@@ -27,13 +27,12 @@
   "resolutions": {
     "@sentry/browser": "file:../../../browser",
     "@sentry/core": "file:../../../core",
-    "@sentry/node": "file:../../../node-experimental",
-    "@sentry/node-experimental": "file:../../../node",
+    "@sentry/node": "file:../../../node",
     "@sentry/opentelemetry": "file:../../../opentelemetry",
     "@sentry/react": "file:../../../react",
-    "@sentry/replay": "file:../../../replay",
+    "@sentry-internal/browser-utils": "file:../../../browser-utils",
+    "@sentry-internal/replay": "file:../../../replay-internal",
     "@sentry-internal/replay-canvas": "file:../../../replay-canvas",
-    "@sentry-internal/tracing": "file:../../../tracing-internal",
     "@sentry-internal/feedback": "file:../../../feedback",
     "@sentry/types": "file:../../../types",
     "@sentry/utils": "file:../../../utils",

@@ -1,10 +1,13 @@
-import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
-import { browserTracingIntegration } from '@sentry-internal/tracing';
-import { addTracingExtensions } from '@sentry/core';
-import { replayIntegration } from '@sentry/replay';
+import {
+  feedbackIntegrationShim,
+  feedbackModalIntegrationShim,
+  feedbackScreenshotIntegrationShim,
+} from '@sentry-internal/integration-shims';
+import { registerSpanErrorInstrumentation } from '@sentry/core';
 
-// We are patching the global object with our hub extension methods
-addTracingExtensions();
+registerSpanErrorInstrumentation();
+
+export * from './index.bundle.base';
 
 export {
   getActiveSpan,
@@ -14,13 +17,19 @@ export {
   startSpanManual,
   withActiveSpan,
   getSpanDescendants,
+  setMeasurement,
 } from '@sentry/core';
 
 export {
-  replayIntegration,
-  feedbackIntegrationShim as feedbackIntegration,
   browserTracingIntegration,
-  addTracingExtensions,
+  startBrowserTracingNavigationSpan,
+  startBrowserTracingPageLoadSpan,
+} from './tracing/browserTracingIntegration';
+
+export {
+  feedbackIntegrationShim as feedbackIntegration,
+  feedbackModalIntegrationShim as feedbackModalIntegration,
+  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
 };
 
-export * from './index.bundle.base';
+export { replayIntegration } from '@sentry-internal/replay';

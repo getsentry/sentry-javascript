@@ -10,6 +10,7 @@ const DEFAULT_IGNORE_ERRORS = [
   /^Script error\.?$/,
   /^Javascript error: Script error\.? on line 0$/,
   /^ResizeObserver loop completed with undelivered notifications.$/,
+  /^Cannot redefine property: googletag$/,
 ];
 
 /** Options for the InboundFilters integration */
@@ -152,10 +153,6 @@ function _getPossibleEventMessages(event: Event): string[] {
         possibleMessages.push(`${lastException.type}: ${lastException.value}`);
       }
     }
-  }
-
-  if (DEBUG_BUILD && possibleMessages.length === 0) {
-    logger.error(`Could not extract message for event ${getEventDescription(event)}`);
   }
 
   return possibleMessages;
