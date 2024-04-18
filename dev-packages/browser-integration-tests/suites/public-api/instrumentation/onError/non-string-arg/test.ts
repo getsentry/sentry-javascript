@@ -12,7 +12,7 @@ sentryTest('should onerror calls with non-string first argument gracefully', asy
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({
     type: 'Error',
-    value: 'stringError',
+    value: 'Object captured as exception with keys: otherKey, type',
     mechanism: {
       type: 'onerror',
       handled: false,
