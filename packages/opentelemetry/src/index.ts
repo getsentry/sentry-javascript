@@ -37,5 +37,7 @@ export { SentrySampler } from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
 
+export { addOpenTelemetryInstrumentation } from './instrumentation';
+
 // Legacy
 export { getClient } from '@sentry/core';
