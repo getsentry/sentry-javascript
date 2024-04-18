@@ -1,19 +1,17 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
 import { defineIntegration } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 const _prismaIntegration = (() => {
   return {
     name: 'Prisma',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [
-          // does not have a hook to adjust spans & add origin
-          new prismaInstrumentation.PrismaInstrumentation({}),
-        ],
-      });
+      addOpenTelemetryInstrumentation(
+        // does not have a hook to adjust spans & add origin
+        new prismaInstrumentation.PrismaInstrumentation({}),
+      );
     },
   };
 }) satisfies IntegrationFn;
