@@ -22,7 +22,6 @@ function runVariant(variant) {
     /**
      * The test runner will replace each of these placeholders with the contents of the corresponding file.
      */
-    {{ suites/onerror.js }} // biome-ignore format: No trailing commas
     {{ suites/onunhandledrejection.js }} // biome-ignore format: No trailing commas
     {{ suites/builtins.js }} // biome-ignore format: No trailing commas
     {{ suites/loader.js }} // biome-ignore format: No trailing commas
