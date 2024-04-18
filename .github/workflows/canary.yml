@@ -1,4 +1,4 @@
-name: 'Canary Tests'
+name: 'CI: Canary Tests'
 on:
   schedule:
     # Run every day at midnight

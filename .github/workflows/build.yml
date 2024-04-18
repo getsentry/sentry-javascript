@@ -1,4 +1,4 @@
-name: 'Build & Test'
+name: 'CI: Build & Test'
 on:
   push:
     branches:
