@@ -147,10 +147,16 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   // Wait for the interaction transaction from the experimental enableInteractions (in init.js)
   await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
 
+  // eslint-disable-next-line no-console
+  console.log('waited for interaction ev');
+
   // Page hide to trigger INP
   await page.evaluate(() => {
     window.dispatchEvent(new Event('pagehide'));
   });
+
+  // eslint-disable-next-line no-console
+  console.log('pagehide done');
 
   // Get the INP span envelope
   const spanEnvelopes = await spanEnvelopesPromise;
