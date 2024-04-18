@@ -143,7 +143,7 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
     transactionEvent.spans = spans;
 
     const measurements = timedEventsToMeasurements(span.events);
-    if (Object.keys(measurements).length) {
+    if (measurements && Object.keys(measurements).length) {
       transactionEvent.measurements = measurements;
     }
 

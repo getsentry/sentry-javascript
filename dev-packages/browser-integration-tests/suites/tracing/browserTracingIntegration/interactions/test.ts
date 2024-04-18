@@ -140,9 +140,7 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   // Wait for the interaction transaction from the enableInteractions experiment
   await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
 
-  const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<
-    SpanJSON & { exclusive_time: number; measurements: Measurements }
-  >(page, 1, {
+  const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
     envelopeType: 'span',
   });
   // Page hide to trigger INP
@@ -157,6 +155,6 @@ sentryTest('should capture an INP click event span. @firefox', async ({ browserN
   expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
   expect(spanEnvelopes[0].description).toBe('body > button.clicked');
   expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements.inp.value).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements.inp.unit).toBe('millisecond');
+  expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(0);
+  expect(spanEnvelopes[0].measurements?.inp.unit).toBe('millisecond');
 });
