@@ -113,60 +113,34 @@ sentryTest(
   },
 );
 
-sentryTest('should capture an INP click event span. @firefox', async ({ browserName, getLocalTestPath, page }) => {
-  const supportedBrowsers = ['chromium', 'firefox'];
+sentryTest(
+  'should use the element name for a clicked element when no component name',
+  async ({ browserName, getLocalTestPath, page }) => {
+    const supportedBrowsers = ['chromium', 'firefox'];
 
-  if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
-    sentryTest.skip();
-  }
+    if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
+      sentryTest.skip();
+    }
 
-  await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
-  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-    return route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ id: 'test-id' }),
-    });
-  });
+    await page.route('**/path/to/script.js', (route: Route) =>
+      route.fulfill({ path: `${__dirname}/assets/script.js` }),
+    );
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  await page.goto(url);
-  await getFirstSentryEnvelopeRequest<SentryEvent>(page); // waiting for page load
+    await page.goto(url);
+    await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-  const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
-    envelopeType: 'span',
-  });
+    await page.locator('[data-test-id=styled-button]').click();
 
-  await page.locator('[data-test-id=interaction-button]').click();
-  await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
+    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    expect(envelopes).toHaveLength(1);
+    const eventData = envelopes[0];
 
-  // eslint-disable-next-line no-console
-  console.log('buttons clicked');
+    expect(eventData.spans).toHaveLength(1);
 
-  // Wait for the interaction transaction from the experimental enableInteractions (in init.js)
-  await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
-
-  // eslint-disable-next-line no-console
-  console.log('waited for interaction ev');
-
-  // Page hide to trigger INP
-  await page.evaluate(() => {
-    window.dispatchEvent(new Event('pagehide'));
-  });
-
-  // eslint-disable-next-line no-console
-  console.log('pagehide done');
-
-  // Get the INP span envelope
-  const spanEnvelopes = await spanEnvelopesPromise;
-
-  // eslint-disable-next-line no-console
-  console.log('spanevents', spanEnvelopes);
-
-  expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
-  expect(spanEnvelopes[0].description).toBe('body > button.clicked');
-  expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements?.inp.unit).toBe('millisecond');
-});
+    const interactionSpan = eventData.spans![0];
+    expect(interactionSpan.op).toBe('ui.interaction.click');
+    expect(interactionSpan.description).toBe('body > StyledButton');
+  },
+);

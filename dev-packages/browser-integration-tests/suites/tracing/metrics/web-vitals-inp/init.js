@@ -8,9 +8,7 @@ Sentry.init({
     Sentry.browserTracingIntegration({
       idleTimeout: 1000,
       enableLongTask: false,
-      _experiments: {
-        enableInteractions: true,
-      },
+      enableInp: true,
     }),
   ],
   tracesSampleRate: 1,
