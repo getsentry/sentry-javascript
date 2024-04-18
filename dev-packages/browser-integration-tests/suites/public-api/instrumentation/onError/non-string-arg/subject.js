@@ -1,5 +1,3 @@
-
-
 function run() {
   window.onerror({
     type: 'error',

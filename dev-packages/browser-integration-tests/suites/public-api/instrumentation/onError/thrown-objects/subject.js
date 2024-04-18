@@ -1,5 +1,3 @@
-
-
 function run() {
   try {
     throw { error: 'stuff is broken', somekey: 'ok' };

@@ -1,5 +1,3 @@
-
-
 function run() {
   try {
     eval('foo{};');
