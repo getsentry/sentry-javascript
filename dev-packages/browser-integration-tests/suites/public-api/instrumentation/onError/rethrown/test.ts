@@ -14,7 +14,8 @@ sentryTest(
     expect(events[0].exception?.values).toHaveLength(1);
     expect(events[0].exception?.values?.[0]).toMatchObject({
       type: 'ReferenceError',
-      value: 'foo is not defined',
+      // this exact error message varies between browsers, but they should all reference 'foo'
+      value: expect.stringContaining('foo'),
       mechanism: {
         type: 'generic',
         handled: true,
