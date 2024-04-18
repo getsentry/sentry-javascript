@@ -676,7 +676,7 @@ describe('browserTracingIntegration', () => {
       expect(newCurrentScopePropCtx?.traceId).not.toEqual(oldCurrentScopePropCtx?.traceId);
     });
 
-    it("saves the span's sampling decision and its DSC on the propagationContext when the span finishes", () => {
+    it("saves the span's positive sampling decision and its DSC on the propagationContext when the span finishes", () => {
       const client = new BrowserClient(
         getDefaultBrowserClientOptions({
           tracesSampleRate: 1,
@@ -709,6 +709,45 @@ describe('browserTracingIntegration', () => {
           public_key: 'examplePublicKey',
           sample_rate: '1',
           sampled: 'true',
+          transaction: 'mySpan',
+          trace_id: propCtxBeforeEnd?.traceId,
+        },
+      });
+    });
+
+    it("saves the span's negative sampling decision and its DSC on the propagationContext when the span finishes", () => {
+      const client = new BrowserClient(
+        getDefaultBrowserClientOptions({
+          tracesSampleRate: 0,
+          integrations: [browserTracingIntegration({ instrumentPageLoad: false })],
+        }),
+      );
+      setCurrentClient(client);
+      client.init();
+
+      const navigationSpan = startBrowserTracingNavigationSpan(client, {
+        name: 'mySpan',
+        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route' },
+      });
+
+      const propCtxBeforeEnd = getCurrentScope().getPropagationContext();
+      expect(propCtxBeforeEnd).toStrictEqual({
+        spanId: expect.stringMatching(/[a-f0-9]{16}/),
+        traceId: expect.stringMatching(/[a-f0-9]{32}/),
+      });
+
+      navigationSpan!.end();
+
+      const propCtxAfterEnd = getCurrentScope().getPropagationContext();
+      expect(propCtxAfterEnd).toStrictEqual({
+        spanId: propCtxBeforeEnd?.spanId,
+        traceId: propCtxBeforeEnd?.traceId,
+        sampled: false,
+        dsc: {
+          environment: 'production',
+          public_key: 'examplePublicKey',
+          sample_rate: '0',
+          sampled: 'false',
           transaction: 'mySpan',
           trace_id: propCtxBeforeEnd?.traceId,
         },
