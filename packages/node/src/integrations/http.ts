@@ -42,18 +42,22 @@ interface HttpOptions {
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    */
   ignoreIncomingRequests?: (url: string) => boolean;
+
+  /** Allows to pass a custom version of HttpInstrumentation. We use this for Next.js. */
+  _instrumentation?: typeof HttpInstrumentation;
 }
 
 const _httpIntegration = ((options: HttpOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
   const _ignoreIncomingRequests = options.ignoreIncomingRequests;
+  const _InstrumentationClass = options._instrumentation || HttpInstrumentation;
 
   return {
     name: 'Http',
     setupOnce() {
       addOpenTelemetryInstrumentation(
-        new HttpInstrumentation({
+        new _InstrumentationClass({
           ignoreOutgoingRequestHook: request => {
             const url = getRequestUrl(request);
 
