@@ -1,0 +1,1 @@
+Sentry.captureMessage('test');
