@@ -10,7 +10,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
-  continueTrace,
   getActiveSpan,
   getClient,
   getCurrentScope,
@@ -21,7 +20,6 @@ import {
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
-  withScope,
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
