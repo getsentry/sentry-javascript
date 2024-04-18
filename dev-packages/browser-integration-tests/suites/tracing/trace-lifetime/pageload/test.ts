@@ -157,8 +157,15 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
   });
 
   const errorTraceContext = errorEvent?.contexts?.trace;
-  expect(errorTraceContext).toMatchObject({
+  expect(errorTraceContext).toEqual({
+    data: {
+      'sentry.op': 'pageload',
+      'sentry.origin': 'auto.pageload.browser',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'url',
+    },
     op: 'pageload',
+    origin: 'auto.pageload.browser',
     trace_id: pageloadTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
