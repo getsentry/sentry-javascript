@@ -9,10 +9,10 @@ import { FEEDBACK_API_SOURCE } from '../constants';
  * Public API to send a Feedback item to Sentry
  */
 export const sendFeedback: SendFeedback = (
-  { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
+  options: SendFeedbackParams,
   { includeReplay = true } = {},
 ): Promise<string> => {
-  if (!message) {
+  if (!options.message) {
     throw new Error('Unable to submit feedback with empty message');
   }
 
@@ -23,7 +23,14 @@ export const sendFeedback: SendFeedback = (
     throw new Error('No client setup, cannot send feedback.');
   }
 
-  const eventId = captureFeedback({ name, email, message, attachments, source, url }, { includeReplay });
+  const eventId = captureFeedback(
+    {
+      source: FEEDBACK_API_SOURCE,
+      url: getLocationHref(),
+      ...options,
+    },
+    { includeReplay },
+  );
 
   // We want to wait for the feedback to be sent (or not)
   return new Promise<string>((resolve, reject) => {

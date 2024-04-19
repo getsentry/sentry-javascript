@@ -30,13 +30,11 @@ describe('sendFeedback', () => {
     patchedDecoder && delete global.window.TextDecoder;
   });
 
-  it('sends feedback', async () => {
+  it('sends feedback with minimal options', async () => {
     mockSdk();
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
     const promise = sendFeedback({
-      name: 'doe',
-      email: 're@example.org',
       message: 'mi',
     });
 
@@ -67,11 +65,68 @@ describe('sendFeedback', () => {
                 trace_id: expect.any(String),
               },
               feedback: {
-                contact_email: 're@example.org',
                 message: 'mi',
-                name: 'doe',
                 source: 'api',
                 url: 'http://localhost/',
+              },
+            },
+            level: 'info',
+            environment: 'production',
+            event_id: expect.any(String),
+            timestamp: expect.any(Number),
+            type: 'feedback',
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it('sends feedback with full options', async () => {
+    mockSdk();
+    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+
+    const promise = sendFeedback({
+      name: 'doe',
+      email: 're@example.org',
+      message: 'mi',
+      url: 'http://example.com/',
+      source: 'custom-source',
+      associatedEventId: '1234',
+    });
+
+    expect(promise).toBeInstanceOf(Promise);
+
+    const eventId = await promise;
+
+    expect(typeof eventId).toEqual('string');
+
+    expect(mockTransport).toHaveBeenCalledWith([
+      {
+        event_id: expect.any(String),
+        sent_at: expect.any(String),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+        },
+      },
+      [
+        [
+          { type: 'feedback' },
+          {
+            breadcrumbs: undefined,
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+              },
+              feedback: {
+                name: 'doe',
+                contact_email: 're@example.org',
+                message: 'mi',
+                url: 'http://example.com/',
+                source: 'custom-source',
+                associated_event_id: '1234',
               },
             },
             level: 'info',

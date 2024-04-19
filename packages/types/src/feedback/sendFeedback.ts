@@ -39,6 +39,7 @@ export interface SendFeedbackParams {
   attachments?: Attachment[];
   url?: string;
   source?: string;
+  associatedEventId?: string;
 }
 
 interface SendFeedbackOptions {
