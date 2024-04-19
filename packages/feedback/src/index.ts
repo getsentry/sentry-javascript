@@ -1,4 +1,4 @@
-// This file is used as entry point to generate the npm package with the core feedback integration
+// This file is used as entry point to generate the npm package and CDN bundles.
 
 export { sendFeedback } from './core/sendFeedback';
 export { buildFeedbackIntegration } from './core/integration';
