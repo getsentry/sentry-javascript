@@ -5,11 +5,14 @@ jest.mock('@sentry/utils', () => ({
   browserPerformanceTimeOrigin: Date.now(),
 }));
 
+import { createMirror } from '@sentry-internal/rrweb-snapshot';
 import { WINDOW } from '../../../src/constants';
 import { createPerformanceEntries, getLargestContentfulPaint } from '../../../src/util/createPerformanceEntries';
 import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navigation';
 
 describe('Unit | util | createPerformanceEntries', () => {
+  const mirror = createMirror();
+
   beforeEach(function () {
     if (!WINDOW.performance.getEntriesByType) {
       WINDOW.performance.getEntriesByType = jest.fn((type: string) => {
@@ -54,7 +57,7 @@ describe('Unit | util | createPerformanceEntries', () => {
     } as const;
 
     // @ts-expect-error Needs a PerformanceEntry mock
-    expect(createPerformanceEntries([data])).toEqual([]);
+    expect(createPerformanceEntries([data], mirror)).toEqual([]);
   });
 
   describe('getLargestContentfulPaint', () => {
@@ -64,7 +67,7 @@ describe('Unit | util | createPerformanceEntries', () => {
         entries: [],
       };
 
-      const event = getLargestContentfulPaint(metric);
+      const event = getLargestContentfulPaint(metric, mirror);
 
       expect(event).toEqual({
         type: 'largest-contentful-paint',

@@ -1,4 +1,5 @@
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
+import { createMirror } from '@sentry-internal/rrweb-snapshot';
 import * as SentryUtils from '@sentry/utils';
 
 import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/constants';
@@ -205,32 +206,35 @@ describe('Integration | flush', () => {
       Promise.all(
         createPerformanceSpans(
           replay,
-          createPerformanceEntries([
-            {
-              name: 'https://sentry.io/foo.js',
-              entryType: 'resource',
-              startTime: 176.59999990463257,
-              duration: 5.600000023841858,
-              initiatorType: 'link',
-              nextHopProtocol: 'h2',
-              workerStart: 177.5,
-              redirectStart: 0,
-              redirectEnd: 0,
-              fetchStart: 177.69999992847443,
-              domainLookupStart: 177.69999992847443,
-              domainLookupEnd: 177.69999992847443,
-              connectStart: 177.69999992847443,
-              connectEnd: 177.69999992847443,
-              secureConnectionStart: 177.69999992847443,
-              requestStart: 177.5,
-              responseStart: 181,
-              responseEnd: 182.19999992847443,
-              transferSize: 0,
-              encodedBodySize: 0,
-              decodedBodySize: 0,
-              serverTiming: [],
-            } as unknown as PerformanceResourceTiming,
-          ]),
+          createPerformanceEntries(
+            [
+              {
+                name: 'https://sentry.io/foo.js',
+                entryType: 'resource',
+                startTime: 176.59999990463257,
+                duration: 5.600000023841858,
+                initiatorType: 'link',
+                nextHopProtocol: 'h2',
+                workerStart: 177.5,
+                redirectStart: 0,
+                redirectEnd: 0,
+                fetchStart: 177.69999992847443,
+                domainLookupStart: 177.69999992847443,
+                domainLookupEnd: 177.69999992847443,
+                connectStart: 177.69999992847443,
+                connectEnd: 177.69999992847443,
+                secureConnectionStart: 177.69999992847443,
+                requestStart: 177.5,
+                responseStart: 181,
+                responseEnd: 182.19999992847443,
+                transferSize: 0,
+                encodedBodySize: 0,
+                decodedBodySize: 0,
+                serverTiming: [],
+              } as unknown as PerformanceResourceTiming,
+            ],
+            createMirror(),
+          ),
         ),
       ),
     );
