@@ -134,7 +134,7 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 
   const url = await getLocalTestUrl({ testDir: __dirname });
 
-  // ensure navigation transaction is finished
+  // ensure pageload transaction is finished
   await getFirstSentryEnvelopeRequest<Event>(page, url);
 
   const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
@@ -202,7 +202,7 @@ sentryTest(
       });
     });
 
-    // ensure navigation transaction is finished
+    // ensure pageload transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     const [navigationEvent, navigationTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -276,7 +276,7 @@ sentryTest(
       });
     });
 
-    // ensure navigation transaction is finished
+    // ensure pageload transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
 
     const navigationEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -454,5 +454,47 @@ sentryTest(
     expect(headers['baggage']).toEqual(
       `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${navigationTraceId},sentry-sample_rate=1,sentry-sampled=true`,
     );
+  },
+);
+
+sentryTest(
+  'user feedback event after navigation has navigation traceId in headers',
+  async ({ getLocalTestPath, page }) => {
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
+
+    const url = await getLocalTestPath({ testDir: __dirname });
+
+    // ensure pageload transaction is finished
+    await getFirstSentryEnvelopeRequest<Event>(page, url);
+
+    const navigationEvent = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#foo`);
+
+    const navigationTraceContext = navigationEvent.contexts?.trace;
+    expect(navigationTraceContext).toMatchObject({
+      op: 'navigation',
+      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    });
+    expect(navigationTraceContext).not.toHaveProperty('parent_span_id');
+
+    const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+
+    await page.getByText('Report a Bug').click();
+    expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
+    await page.locator('[name="name"]').fill('Jane Doe');
+    await page.locator('[name="email"]').fill('janedoe@example.org');
+    await page.locator('[name="message"]').fill('my example feedback');
+    await page.locator('[data-sentry-feedback] .btn--primary').click();
+
+    const feedbackEvent = await feedbackEventPromise;
+    const feedbackTraceContext = feedbackEvent.contexts?.trace;
+
+    expect(feedbackTraceContext).toMatchObject({
+      op: 'navigation',
+      trace_id: navigationTraceContext?.trace_id,
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+    });
   },
 );
