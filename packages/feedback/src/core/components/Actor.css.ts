@@ -56,6 +56,12 @@ export function createActorStyles(): HTMLStyleElement {
 .widget__actor__text {
 }
 
+@media (max-width: 600px) {
+  .widget__actor__text {
+    display: none;
+  }
+}
+
 .feedback-icon path {
   fill: var(--foreground);
 }

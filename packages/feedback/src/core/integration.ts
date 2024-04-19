@@ -31,7 +31,6 @@ import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
 import type { OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from './types';
-import { isMobile } from '../util/isMobile';
 
 type Unsubscribe = () => void;
 
@@ -218,7 +217,7 @@ export const feedbackIntegration = (({
 
   const autoInjectActor = (): void => {
     const shadow = _createShadow(_options);
-    const actor = Actor({ buttonLabel: (typeof _options.buttonLabel === 'object' ? (isMobile() ? _options.buttonLabel.mobile : _options.buttonLabel.desktop) : _options.buttonLabel), shadow });
+    const actor = Actor({ buttonLabel: _options.buttonLabel, shadow });
     const mergedOptions = mergeOptions(_options, {
       onFormOpen() {
         actor.removeFromDom();

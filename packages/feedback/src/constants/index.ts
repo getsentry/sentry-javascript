@@ -9,7 +9,7 @@ export const WINDOW = GLOBAL_OBJ as typeof GLOBAL_OBJ & Window;
 export const DOCUMENT = WINDOW.document;
 export const NAVIGATOR = WINDOW.navigator;
 
-export const ACTOR_LABEL = { desktop: 'Report a Bug', mobile: '' };
+export const ACTOR_LABEL = 'Report a Bug';
 export const CANCEL_BUTTON_LABEL = 'Cancel';
 export const SUBMIT_BUTTON_LABEL = 'Send Bug Report';
 export const FORM_TITLE = 'Report a Bug';
