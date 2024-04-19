@@ -25,18 +25,19 @@ describe('getFeedback', () => {
   });
 
   it('works with a client with Feedback', () => {
-    const feedback = buildFeedbackIntegration({
+    const feedbackIntegration = buildFeedbackIntegration({
       lazyLoadIntegration: jest.fn(),
     });
 
+    const configuredIntegration = feedbackIntegration({});
     mockSdk({
       sentryOptions: {
-        integrations: [feedback],
+        integrations: [configuredIntegration],
       },
     });
 
     const actual = getFeedback();
     expect(actual).toBeDefined();
-    expect(actual === feedback).toBe(true);
+    expect(actual === configuredIntegration).toBe(true);
   });
 });
