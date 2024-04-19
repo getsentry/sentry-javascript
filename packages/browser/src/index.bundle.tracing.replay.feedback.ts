@@ -15,10 +15,8 @@ export {
   setMeasurement,
 } from '@sentry/core';
 
-export {
-  feedbackIntegration,
-  getFeedback,
-} from './feedback';
+export { feedbackIntegration } from './feedback';
+export { getFeedback } from '@sentry-internal/feedback';
 
 export {
   browserTracingIntegration,
