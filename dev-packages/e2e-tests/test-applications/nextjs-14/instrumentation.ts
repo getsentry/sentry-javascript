@@ -12,7 +12,10 @@ export function register() {
         // We are doing a lot of events at once in this test
         bufferSize: 1000,
       },
-      tracePropagationTargets: ['http://localhost:3030'],
+      tracePropagationTargets: [
+        'http://localhost:3030/propagation/test-outgoing-fetch/check',
+        'http://localhost:3030/propagation/test-outgoing-http/check',
+      ],
     });
   }
 }
