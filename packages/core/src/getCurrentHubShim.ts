@@ -54,14 +54,11 @@ export function getCurrentHubShim(): Hub {
     },
 
     startSession,
-
     endSession,
-
-    captureSession(endSession?: boolean): void {
+    captureSession(end?: boolean): void {
       // both send the update and pull the session from the scope
-      if (endSession) {
-        // eslint-disable-next-line deprecation/deprecation
-        return this.endSession();
+      if (end) {
+        return endSession();
       }
 
       // only send the update

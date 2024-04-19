@@ -11,5 +11,7 @@ Sentry.init({
 });
 
 Sentry.startSpan({ name: 'test span' }, () => {
-  Sentry.captureException(new Error('foo'));
+  Sentry.startSpan({ name: 'test inner span' }, () => {
+    Sentry.captureException(new Error('foo'));
+  });
 });
