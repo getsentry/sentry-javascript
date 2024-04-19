@@ -1,8 +1,6 @@
 // This file is used as entry point to generate the npm package with the core feedback integration
 
-// TODO: Move sendFeedback into @sentry/core
 export { sendFeedback } from './core/sendFeedback';
-
 export { buildFeedbackIntegration } from './core/integration';
 export { getFeedback } from './core/getFeedback';
 export { feedbackModalIntegration } from './modal/integration';
