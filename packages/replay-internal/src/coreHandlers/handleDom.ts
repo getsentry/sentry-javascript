@@ -1,5 +1,4 @@
-import { record } from '@sentry-internal/rrweb';
-import type { serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
+import type { Mirror, serializedElementNodeWithId, serializedNodeWithId } from '@sentry-internal/rrweb-snapshot';
 import { NodeType } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb, HandlerDataDom } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
@@ -19,7 +18,7 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
       return;
     }
 
-    const result = handleDom(handlerData);
+    const result = handleDom(handlerData, replay.getDomMirror());
 
     if (!result) {
       return;
@@ -50,10 +49,10 @@ export const handleDomListener: (replay: ReplayContainer) => (handlerData: Handl
 };
 
 /** Get the base DOM breadcrumb. */
-export function getBaseDomBreadcrumb(target: Node | null, message: string): Breadcrumb {
-  const nodeId = record.mirror.getId(target);
-  const node = nodeId && record.mirror.getNode(nodeId);
-  const meta = node && record.mirror.getMeta(node);
+export function getBaseDomBreadcrumb(target: Node | null, message: string, mirror: Mirror): Breadcrumb {
+  const nodeId = mirror.getId(target);
+  const node = nodeId && mirror.getNode(nodeId);
+  const meta = node && mirror.getMeta(node);
   const element = meta && isElement(meta) ? meta : null;
 
   return {
@@ -80,12 +79,12 @@ export function getBaseDomBreadcrumb(target: Node | null, message: string): Brea
  * An event handler to react to DOM events.
  * Exported for tests.
  */
-export function handleDom(handlerData: HandlerDataDom): Breadcrumb | null {
+export function handleDom(handlerData: HandlerDataDom, mirror: Mirror): Breadcrumb | null {
   const { target, message } = getDomTarget(handlerData);
 
   return createBreadcrumb({
     category: `ui.${handlerData.name}`,
-    ...getBaseDomBreadcrumb(target, message),
+    ...getBaseDomBreadcrumb(target, message, mirror),
   });
 }
 

@@ -1,3 +1,4 @@
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 import { htmlTreeAsString } from '@sentry/utils';
 
@@ -7,7 +8,7 @@ import { getBaseDomBreadcrumb } from './handleDom';
 import { addBreadcrumbEvent } from './util/addBreadcrumbEvent';
 
 /** Handle keyboard events & create breadcrumbs. */
-export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEvent): void {
+export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEvent, mirror: Mirror): void {
   if (!replay.isEnabled()) {
     return;
   }
@@ -17,7 +18,7 @@ export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEven
   // session with a single "keydown" breadcrumb is created)
   replay.updateUserActivity();
 
-  const breadcrumb = getKeyboardBreadcrumb(event);
+  const breadcrumb = getKeyboardBreadcrumb(event, mirror);
 
   if (!breadcrumb) {
     return;
@@ -27,7 +28,7 @@ export function handleKeyboardEvent(replay: ReplayContainer, event: KeyboardEven
 }
 
 /** exported only for tests */
-export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
+export function getKeyboardBreadcrumb(event: KeyboardEvent, mirror: Mirror): Breadcrumb | null {
   const { metaKey, shiftKey, ctrlKey, altKey, key, target } = event;
 
   // never capture for input fields
@@ -46,7 +47,7 @@ export function getKeyboardBreadcrumb(event: KeyboardEvent): Breadcrumb | null {
   }
 
   const message = htmlTreeAsString(target, { maxStringLength: 200 }) || '<unknown>';
-  const baseBreadcrumb = getBaseDomBreadcrumb(target as Node, message);
+  const baseBreadcrumb = getBaseDomBreadcrumb(target as Node, message, mirror);
 
   return createBreadcrumb({
     category: 'ui.keyDown',

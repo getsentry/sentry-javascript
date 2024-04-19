@@ -1,3 +1,5 @@
+import type { record } from '@sentry-internal/rrweb';
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import type {
   Breadcrumb,
   ErrorEvent,
@@ -232,6 +234,7 @@ export interface ReplayPluginOptions extends ReplayNetworkOptions {
   _experiments: Partial<{
     captureExceptions: boolean;
     traceInternals: boolean;
+    recordFn: typeof record;
   }>;
 }
 
@@ -465,6 +468,7 @@ export interface ReplayContainer {
   isPaused(): boolean;
   isRecordingCanvas(): boolean;
   getContext(): InternalEventContext;
+  getDomMirror(): Mirror;
   initializeSampling(): void;
   start(): void;
   stop(options?: { reason?: string; forceflush?: boolean }): Promise<void>;

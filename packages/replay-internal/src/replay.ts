@@ -1,5 +1,6 @@
 /* eslint-disable max-lines */ // TODO: We might want to split this file up
 import { EventType, record } from '@sentry-internal/rrweb';
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   captureException,
@@ -140,6 +141,13 @@ export class ReplayContainer implements ReplayContainerInterface {
   private _hasInitializedCoreListeners: boolean;
 
   /**
+   * The `record` function to use, defaults to package's `record()`, but we can
+   * opt to pass in a different version, i.e. if we wanted to test a different
+   * version.
+   */
+  private _recordFn: typeof record;
+
+  /**
    * Function to stop recording
    */
   private _stopRecording: ReturnType<typeof record> | undefined;
@@ -207,11 +215,20 @@ export class ReplayContainer implements ReplayContainerInterface {
     if (slowClickConfig) {
       this.clickDetector = new ClickDetector(this, slowClickConfig);
     }
+
+    this._recordFn = options._experiments.recordFn || record;
   }
 
   /** Get the event context. */
   public getContext(): InternalEventContext {
     return this._context;
+  }
+
+  /**
+   * Returns rrweb's mirror
+   */
+  public getDomMirror(): Mirror {
+    return this._recordFn.mirror;
   }
 
   /** If recording is currently enabled. */
@@ -353,7 +370,7 @@ export class ReplayContainer implements ReplayContainerInterface {
     try {
       const canvasOptions = this._canvas;
 
-      this._stopRecording = record({
+      this._stopRecording = this._recordFn({
         ...this._recordingOptions,
         // When running in error sampling mode, we need to overwrite `checkoutEveryNms`
         // Without this, it would record forever, until an error happens, which we don't want
@@ -926,7 +943,7 @@ export class ReplayContainer implements ReplayContainerInterface {
 
   /** Ensure page remains active when a key is pressed. */
   private _handleKeyboardEvent: (event: KeyboardEvent) => void = (event: KeyboardEvent) => {
-    handleKeyboardEvent(this, event);
+    handleKeyboardEvent(this, event, this.getDomMirror());
   };
 
   /**
@@ -1021,7 +1038,9 @@ export class ReplayContainer implements ReplayContainerInterface {
    * are included in the replay event before it is finished and sent to Sentry.
    */
   private _addPerformanceEntries(): Promise<Array<AddEventResult | null>> {
-    const performanceEntries = createPerformanceEntries(this.performanceEntries).concat(this.replayPerformanceEntries);
+    const performanceEntries = createPerformanceEntries(this.performanceEntries, this.getDomMirror()).concat(
+      this.replayPerformanceEntries,
+    );
 
     this.performanceEntries = [];
     this.replayPerformanceEntries = [];

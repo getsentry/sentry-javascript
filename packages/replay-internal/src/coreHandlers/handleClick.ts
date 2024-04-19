@@ -1,4 +1,5 @@
-import { IncrementalSource, MouseInteractions, record } from '@sentry-internal/rrweb';
+import { IncrementalSource, MouseInteractions } from '@sentry-internal/rrweb';
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import type { Breadcrumb } from '@sentry/types';
 
 import { WINDOW } from '../constants';
@@ -308,7 +309,11 @@ function nowInSeconds(): number {
 }
 
 /** Update the click detector based on a recording event of rrweb. */
-export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickDetector, event: RecordingEvent): void {
+export function updateClickDetectorForRecordingEvent(
+  clickDetector: ReplayClickDetector,
+  event: RecordingEvent,
+  mirror: Mirror,
+): void {
   try {
     // note: We only consider incremental snapshots here
     // This means that any full snapshot is ignored for mutation detection - the reason is that we simply cannot know if a mutation happened here.
@@ -333,7 +338,7 @@ export function updateClickDetectorForRecordingEvent(clickDetector: ReplayClickD
 
     if (isIncrementalMouseInteraction(event)) {
       const { type, id } = event.data;
-      const node = record.mirror.getNode(id);
+      const node = mirror.getNode(id);
 
       if (node instanceof HTMLElement && type === MouseInteractions.Click) {
         clickDetector.registerClick(node);

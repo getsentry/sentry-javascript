@@ -27,7 +27,7 @@ export function setupPerformanceObserver(replay: ReplayContainer): () => void {
 
   clearCallbacks.push(
     addLcpInstrumentationHandler(({ metric }) => {
-      replay.replayPerformanceEntries.push(getLargestContentfulPaint(metric));
+      replay.replayPerformanceEntries.push(getLargestContentfulPaint(metric, replay.getDomMirror()));
     }),
   );
 

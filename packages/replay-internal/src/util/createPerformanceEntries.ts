@@ -1,4 +1,4 @@
-import { record } from '@sentry-internal/rrweb';
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 
 import { WINDOW } from '../constants';
@@ -16,7 +16,7 @@ import type {
 // Map entryType -> function to normalize data for event
 const ENTRY_TYPES: Record<
   string,
-  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
+  (entry: AllPerformanceEntry, mirror: Mirror) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
   // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
@@ -30,16 +30,22 @@ const ENTRY_TYPES: Record<
  */
 export function createPerformanceEntries(
   entries: AllPerformanceEntry[],
+  mirror: Mirror,
 ): ReplayPerformanceEntry<AllPerformanceEntryData>[] {
-  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
+  return entries
+    .map(entry => createPerformanceEntry(entry, mirror))
+    .filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
 }
 
-function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
+function createPerformanceEntry(
+  entry: AllPerformanceEntry,
+  mirror: Mirror,
+): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
   if (!ENTRY_TYPES[entry.entryType]) {
     return null;
   }
 
-  return ENTRY_TYPES[entry.entryType](entry);
+  return ENTRY_TYPES[entry.entryType](entry, mirror);
 }
 
 function getAbsoluteTime(time: number): number {
@@ -48,7 +54,7 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
+function createPaintEntry(entry: PerformancePaintTiming, _mirror: Mirror): ReplayPerformanceEntry<PaintData> {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -61,7 +67,10 @@ function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry
   };
 }
 
-function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+function createNavigationEntry(
+  entry: PerformanceNavigationTiming,
+  _mirror: Mirror,
+): ReplayPerformanceEntry<NavigationData> | null {
   const {
     entryType,
     name,
@@ -108,6 +117,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
 
 function createResourceEntry(
   entry: ExperimentalPerformanceResourceTiming,
+  _mirror: Mirror,
 ): ReplayPerformanceEntry<ResourceData> | null {
   const {
     entryType,
@@ -143,10 +153,13 @@ function createResourceEntry(
 /**
  * Add a LCP event to the replay based on an LCP metric.
  */
-export function getLargestContentfulPaint(metric: {
-  value: number;
-  entries: PerformanceEntry[];
-}): ReplayPerformanceEntry<LargestContentfulPaintData> {
+export function getLargestContentfulPaint(
+  metric: {
+    value: number;
+    entries: PerformanceEntry[];
+  },
+  mirror: Mirror,
+): ReplayPerformanceEntry<LargestContentfulPaintData> {
   const entries = metric.entries;
   const lastEntry = entries[entries.length - 1] as (PerformanceEntry & { element?: Element }) | undefined;
   const element = lastEntry ? lastEntry.element : undefined;
@@ -163,7 +176,7 @@ export function getLargestContentfulPaint(metric: {
     data: {
       value,
       size: value,
-      nodeId: element ? record.mirror.getId(element) : undefined,
+      nodeId: element ? mirror.getId(element) : undefined,
     },
   };
 
