@@ -32,10 +32,13 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
+  const envelopesPromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
 
-  const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+  const envelopes = await envelopesPromise;
+
   expect(envelopes).toHaveLength(1);
 
   const eventData = envelopes[0];
@@ -73,9 +76,10 @@ sentryTest(
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     for (let i = 0; i < 4; i++) {
+      const envelopePromise = getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
       await wait(100);
       await page.locator('[data-test-id=interaction-button]').click();
-      const envelope = await getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
+      const envelope = await envelopePromise;
       expect(envelope[0].spans).toHaveLength(1);
     }
   },
@@ -99,9 +103,11 @@ sentryTest(
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
+    const envelopePromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+
     await page.locator('[data-test-id=annotated-button]').click();
 
-    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    const envelopes = await envelopePromise;
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
 
@@ -131,9 +137,11 @@ sentryTest(
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
+    const envelopesPromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+
     await page.locator('[data-test-id=styled-button]').click();
 
-    const envelopes = await getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    const envelopes = await envelopesPromise;
     expect(envelopes).toHaveLength(1);
     const eventData = envelopes[0];
 
