@@ -48,4 +48,4 @@ interface SendFeedbackOptions {
   includeReplay?: boolean;
 }
 
-export type SendFeedback = (params: SendFeedbackParams, options?: SendFeedbackOptions) => Promise<void>;
+export type SendFeedback = (params: SendFeedbackParams, options?: SendFeedbackOptions) => Promise<string>;

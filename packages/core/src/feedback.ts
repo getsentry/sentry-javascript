@@ -1,4 +1,5 @@
 import type { Attachment, EventHint, FeedbackEvent } from '@sentry/types';
+import { dropUndefinedKeys } from '@sentry/utils';
 import { getClient, getCurrentScope } from './currentScopes';
 import { createAttachmentEnvelope } from './envelope';
 
@@ -31,14 +32,14 @@ export function captureFeedback(
 
   const feedbackEvent: FeedbackEvent = {
     contexts: {
-      feedback: {
+      feedback: dropUndefinedKeys({
         contact_email: email,
         name,
         message,
         url,
         source,
         associated_event_id: associatedEventId,
-      },
+      }),
     },
     type: 'feedback',
     level: 'info',
@@ -58,7 +59,10 @@ export function captureFeedback(
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     void transport.send(
       createAttachmentEnvelope(
-        feedbackEvent,
+        {
+          ...feedbackEvent,
+          event_id: eventId,
+        },
         attachments,
         dsn,
         client.getOptions()._metadata,

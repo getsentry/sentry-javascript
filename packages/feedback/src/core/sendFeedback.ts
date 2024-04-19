@@ -11,7 +11,7 @@ import { FEEDBACK_API_SOURCE } from '../constants';
 export const sendFeedback: SendFeedback = (
   { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true } = {},
-): Promise<void> => {
+): Promise<string> => {
   if (!message) {
     throw new Error('Unable to submit feedback with empty message');
   }
@@ -26,9 +26,9 @@ export const sendFeedback: SendFeedback = (
   const eventId = captureFeedback({ name, email, message, attachments, source, url }, { includeReplay });
 
   // We want to wait for the feedback to be sent (or not)
-  return new Promise<void>((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     // After 5s, we want to clear anyhow
-    const timeout = setTimeout(() => reject('timeout'), 5_000);
+    const timeout = setTimeout(() => reject('Unable to determine if Feedback was correctly sent.'), 5_000);
 
     client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
       if (event.event_id !== eventId) {
@@ -38,7 +38,11 @@ export const sendFeedback: SendFeedback = (
       clearTimeout(timeout);
 
       // Require valid status codes, otherwise can assume feedback was not sent successfully
-      if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
+      if (
+        response &&
+        typeof response.statusCode === 'number' &&
+        (response.statusCode < 200 || response.statusCode >= 300)
+      ) {
         if (response.statusCode === 0) {
           return reject(
             'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
@@ -47,7 +51,7 @@ export const sendFeedback: SendFeedback = (
         return reject('Unable to send Feedback. Invalid response from server.');
       }
 
-      resolve();
+      resolve(eventId);
     });
   });
 };

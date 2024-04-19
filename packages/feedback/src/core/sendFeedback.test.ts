@@ -1,23 +1,60 @@
-import { getClient } from '@sentry/core';
+import {
+  addBreadcrumb,
+  getClient,
+  getCurrentScope,
+  getIsolationScope,
+  startSpan,
+  withIsolationScope,
+  withScope,
+} from '@sentry/core';
 
 import { mockSdk } from './mockSdk';
 import { sendFeedback } from './sendFeedback';
 
+import { TextDecoder, TextEncoder } from 'util';
+const patchedEncoder = (!global.window.TextEncoder && (global.window.TextEncoder = TextEncoder)) || true;
+// @ts-expect-error patch the encoder on the window, else importing JSDOM fails (deleted in afterAll)
+const patchedDecoder = (!global.window.TextDecoder && (global.window.TextDecoder = TextDecoder)) || true;
+
 describe('sendFeedback', () => {
+  beforeEach(() => {
+    getIsolationScope().clear();
+    getCurrentScope().clear();
+    jest.clearAllMocks();
+  });
+
+  afterAll(() => {
+    // @ts-expect-error patch the encoder on the window, else importing JSDOM fails
+    patchedEncoder && delete global.window.TextEncoder;
+    // @ts-expect-error patch the encoder on the window, else importing JSDOM fails
+    patchedDecoder && delete global.window.TextDecoder;
+  });
+
   it('sends feedback', async () => {
     mockSdk();
     const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
 
-    await sendFeedback({
+    const promise = sendFeedback({
       name: 'doe',
       email: 're@example.org',
       message: 'mi',
     });
+
+    expect(promise).toBeInstanceOf(Promise);
+
+    const eventId = await promise;
+
+    expect(typeof eventId).toEqual('string');
+
     expect(mockTransport).toHaveBeenCalledWith([
       {
         event_id: expect.any(String),
         sent_at: expect.any(String),
-        trace: expect.anything(),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+        },
       },
       [
         [
@@ -26,7 +63,6 @@ describe('sendFeedback', () => {
             breadcrumbs: undefined,
             contexts: {
               trace: {
-                parent_span_id: undefined,
                 span_id: expect.any(String),
                 trace_id: expect.any(String),
               },
@@ -41,10 +77,304 @@ describe('sendFeedback', () => {
             level: 'info',
             environment: 'production',
             event_id: expect.any(String),
-            // TODO: Why is there no platform here?
             timestamp: expect.any(Number),
             type: 'feedback',
           },
+        ],
+      ],
+    ]);
+  });
+
+  it('applies active span data to feedback', async () => {
+    mockSdk({ sentryOptions: { enableTracing: true } });
+    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+
+    await startSpan({ name: 'test span' }, () => {
+      return sendFeedback({
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      });
+    });
+
+    expect(mockTransport).toHaveBeenCalledWith([
+      {
+        event_id: expect.any(String),
+        sent_at: expect.any(String),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+          sample_rate: '1',
+          sampled: 'true',
+          transaction: 'test span',
+        },
+      },
+      [
+        [
+          { type: 'feedback' },
+          {
+            breadcrumbs: undefined,
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+                data: {
+                  'sentry.origin': 'manual',
+                  'sentry.sample_rate': 1,
+                  'sentry.source': 'custom',
+                },
+                origin: 'manual',
+              },
+              feedback: {
+                contact_email: 're@example.org',
+                message: 'mi',
+                name: 'doe',
+                source: 'api',
+                url: 'http://localhost/',
+              },
+            },
+            level: 'info',
+            environment: 'production',
+            event_id: expect.any(String),
+            timestamp: expect.any(Number),
+            type: 'feedback',
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it('applies scope data to feedback', async () => {
+    mockSdk({ sentryOptions: { enableTracing: true } });
+    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+
+    await withIsolationScope(isolationScope => {
+      isolationScope.setTag('test-1', 'tag');
+      isolationScope.setExtra('test-1', 'extra');
+
+      return withScope(scope => {
+        scope.setTag('test-2', 'tag');
+        scope.setExtra('test-2', 'extra');
+
+        addBreadcrumb({ message: 'test breadcrumb', timestamp: 12345 });
+
+        return sendFeedback({
+          name: 'doe',
+          email: 're@example.org',
+          message: 'mi',
+        });
+      });
+    });
+
+    expect(mockTransport).toHaveBeenCalledWith([
+      {
+        event_id: expect.any(String),
+        sent_at: expect.any(String),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+        },
+      },
+      [
+        [
+          { type: 'feedback' },
+          {
+            breadcrumbs: [{ message: 'test breadcrumb', timestamp: 12345 }],
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+              },
+              feedback: {
+                contact_email: 're@example.org',
+                message: 'mi',
+                name: 'doe',
+                source: 'api',
+                url: 'http://localhost/',
+              },
+            },
+            extra: {
+              'test-1': 'extra',
+              'test-2': 'extra',
+            },
+            tags: {
+              'test-1': 'tag',
+              'test-2': 'tag',
+            },
+            level: 'info',
+            environment: 'production',
+            event_id: expect.any(String),
+            timestamp: expect.any(Number),
+            type: 'feedback',
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it('handles 400 transport error', async () => {
+    mockSdk();
+    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 400 });
+    });
+
+    await expect(
+      sendFeedback({
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      }),
+    ).rejects.toMatch('Unable to send Feedback. Invalid response from server.');
+  });
+
+  it('handles 0 transport error', async () => {
+    mockSdk();
+    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 0 });
+    });
+
+    await expect(
+      sendFeedback({
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      }),
+    ).rejects.toMatch(
+      'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
+    );
+  });
+
+  it('handles 200 transport response', async () => {
+    mockSdk();
+    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return Promise.resolve({ statusCode: 200 });
+    });
+
+    await expect(
+      sendFeedback({
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      }),
+    ).resolves.toEqual(expect.any(String));
+  });
+
+  it('handles timeout', async () => {
+    jest.useFakeTimers();
+
+    mockSdk();
+    jest.spyOn(getClient()!.getTransport()!, 'send').mockImplementation(() => {
+      return new Promise(resolve => setTimeout(resolve, 10_000));
+    });
+
+    const promise = sendFeedback({
+      name: 'doe',
+      email: 're@example.org',
+      message: 'mi',
+    });
+
+    jest.advanceTimersByTime(5_000);
+
+    await expect(promise).rejects.toMatch('Unable to determine if Feedback was correctly sent.');
+
+    jest.useRealTimers();
+  });
+
+  it('sends attachments', async () => {
+    mockSdk();
+    const mockTransport = jest.spyOn(getClient()!.getTransport()!, 'send');
+
+    const attachment1 = new Uint8Array([1, 2, 3, 4, 5]);
+    const attachment2 = new Uint8Array([6, 7, 8, 9]);
+
+    const promise = sendFeedback({
+      name: 'doe',
+      email: 're@example.org',
+      message: 'mi',
+      attachments: [
+        {
+          data: attachment1,
+          filename: 'test-file.txt',
+        },
+        {
+          data: attachment2,
+          filename: 'test-file2.txt',
+        },
+      ],
+    });
+
+    expect(promise).toBeInstanceOf(Promise);
+
+    const eventId = await promise;
+
+    expect(typeof eventId).toEqual('string');
+    expect(mockTransport).toHaveBeenCalledTimes(2);
+
+    const [feedbackEnvelope, attachmentEnvelope] = mockTransport.mock.calls;
+
+    // Feedback event is sent normally in one envelope
+    expect(feedbackEnvelope[0]).toEqual([
+      {
+        event_id: eventId,
+        sent_at: expect.any(String),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+        },
+      },
+      [
+        [
+          { type: 'feedback' },
+          {
+            breadcrumbs: undefined,
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+              },
+              feedback: {
+                contact_email: 're@example.org',
+                message: 'mi',
+                name: 'doe',
+                source: 'api',
+                url: 'http://localhost/',
+              },
+            },
+            level: 'info',
+            environment: 'production',
+            event_id: eventId,
+            timestamp: expect.any(Number),
+            type: 'feedback',
+          },
+        ],
+      ],
+    ]);
+
+    // Attachments are sent in separate envelope
+    expect(attachmentEnvelope[0]).toEqual([
+      {
+        event_id: eventId,
+        sent_at: expect.any(String),
+      },
+      [
+        [
+          {
+            type: 'attachment',
+            length: 5,
+            filename: 'test-file.txt',
+          },
+          attachment1,
+        ],
+        [
+          {
+            type: 'attachment',
+            length: 4,
+            filename: 'test-file2.txt',
+          },
+          attachment2,
         ],
       ],
     ]);
