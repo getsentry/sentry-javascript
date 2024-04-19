@@ -73,13 +73,15 @@ export function init(options: NodeOptions): void {
   const customDefaultIntegrations = [
     ...getDefaultIntegrations(options).filter(
       integration =>
-        // Next.js comes with its own Node-Fetch instrumentation, so we shouldn't add ours on-top
-        integration.name !== 'NodeFetch' &&
         // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
         integration.name !== 'Http',
     ),
     httpIntegration(),
   ];
+
+  // Turn off Next.js' own fetch instrumentation
+  // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
+  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
