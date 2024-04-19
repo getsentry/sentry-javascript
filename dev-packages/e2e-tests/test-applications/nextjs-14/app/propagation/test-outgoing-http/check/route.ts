@@ -1,15 +1,5 @@
-import { headers } from 'next/headers';
-import { NextResponse } from 'next/server';
+import { checkHandler } from '../../utils';
 
 export const dynamic = 'force-dynamic';
 
-export function GET() {
-  const headerList = headers();
-
-  const headerObj: Record<string, unknown> = {};
-  headerList.forEach((value, key) => {
-    headerObj[key] = value;
-  });
-
-  return NextResponse.json({ headers: headerObj });
-}
+export const GET = checkHandler;
