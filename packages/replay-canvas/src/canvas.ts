@@ -64,12 +64,8 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
     quality: options.quality || 'medium',
     enableManualSnapshot: options.enableManualSnapshot,
     maxCanvasSize: [
-      maxCanvasWidth ?
-        Math.min(maxCanvasWidth, DEFAULT_MAX_CANVAS_SIZE)
-      : DEFAULT_MAX_CANVAS_SIZE,
-      maxCanvasHeight ?
-        Math.min(maxCanvasHeight, DEFAULT_MAX_CANVAS_SIZE)
-        : DEFAULT_MAX_CANVAS_SIZE
+      maxCanvasWidth ? Math.min(maxCanvasWidth, DEFAULT_MAX_CANVAS_SIZE) : DEFAULT_MAX_CANVAS_SIZE,
+      maxCanvasHeight ? Math.min(maxCanvasHeight, DEFAULT_MAX_CANVAS_SIZE) : DEFAULT_MAX_CANVAS_SIZE,
     ] as [number, number],
   };
 
