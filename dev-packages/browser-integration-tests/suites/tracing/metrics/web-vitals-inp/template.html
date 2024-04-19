@@ -5,12 +5,8 @@
   </head>
   <body>
     <div>Rendered Before Long Task</div>
-    <button data-test-id="interaction-button">Click Me</button>
-    <button data-test-id="slow-interaction-button">Also Click Me</button>
-    <button data-test-id="annotated-button" data-sentry-component="AnnotatedButton" data-sentry-element="StyledButton">Click Me</button>
-    <button data-test-id="styled-button" data-sentry-element="StyledButton">Click Me</button>
-    <button data-test-id="click-me-button">Subscribe</button>
-
-    <script src="https://example.com/path/to/script.js"></script>
+    <button data-test-id="slow-button">Slow</button>
+    <button data-test-id="not-so-slow-button" data-sentry-component="not-so-slow-button" data-sentry-element="not-so-slow-button">Not so slow</button>
+    <button data-test-id="normal-button" data-sentry-element="NormalButton">Click Me</button>
   </body>
 </html>

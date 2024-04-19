@@ -31,32 +31,19 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
   await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
 
   const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
-    // envelopeType: 'span', // todo: does not work with envelopType
+    // envelopeType: 'span', // todo: does not work with envelopeType
   });
 
-  await page.locator('[data-test-id=interaction-button]').click();
-  await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
-
-  // eslint-disable-next-line no-console
-  console.log('buttons clicked');
+  await page.locator('[data-test-id=normal-button]').click();
+  await page.locator('.clicked[data-test-id=normal-button]').isVisible();
 
   // Page hide to trigger INP
   await page.evaluate(() => {
-    // eslint-disable-next-line no-console
-    console.log('dispatching event');
     window.dispatchEvent(new Event('pagehide'));
   });
 
-  // eslint-disable-next-line no-console
-  console.log('event dispatched');
-
   // Get the INP span envelope
   const spanEnvelopes = await spanEnvelopesPromise;
-
-  // eslint-disable-next-line no-console
-  console.log('waited for envelope');
-
-  // expect(spanEnvelopes).toBe(1);
 
   expect(spanEnvelopes).toHaveLength(1);
   expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
@@ -92,38 +79,28 @@ sentryTest(
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
-      // envelopeType: 'span',
+      // envelopeType: 'span', // todo: does not work with envelopeType
     });
 
-    await page.locator('[data-test-id=interaction-button]').click();
-    await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
+    await page.locator('[data-test-id=normal-button]').click();
+    await page.locator('.clicked[data-test-id=normal-button]').isVisible();
 
-    // eslint-disable-next-line no-console
-    console.log('2 - clicked first time');
-
-    await page.locator('[data-test-id=slow-interaction-button]').click();
-    await page.locator('.clicked[data-test-id=slow-interaction-button]').isVisible();
-
-    // eslint-disable-next-line no-console
-    console.log('2 - clicked second time');
+    await page.locator('[data-test-id=slow-button]').click();
+    await page.locator('.clicked[data-test-id=slow-button]').isVisible();
 
     // Page hide to trigger INP
     await page.evaluate(() => {
       window.dispatchEvent(new Event('pagehide'));
     });
 
-    // eslint-disable-next-line no-console
-    console.log('2 - dispatched event');
-
     // Get the INP span envelope
     const spanEnvelopes = await spanEnvelopesPromise;
 
-    // expect(spanEnvelopes).toBe(2);
     expect(spanEnvelopes).toHaveLength(1);
     expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
     expect(spanEnvelopes[0].description).toBe('body > button.clicked');
-    expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(150);
-    expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(150);
+    expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(400);
+    expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(400);
     expect(spanEnvelopes[0].measurements?.inp.unit).toBe('millisecond');
   },
 );
