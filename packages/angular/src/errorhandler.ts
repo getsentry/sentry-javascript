@@ -121,14 +121,18 @@ class SentryErrorHandler implements AngularErrorHandler {
       if (client && !this._registeredAfterSendEventHandler) {
         client.on('afterSendEvent', (event: Event) => {
           if (!event.type && event.event_id) {
-            Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id });
+            runOutsideAngular(() => {
+              Sentry.showReportDialog({ ...this._options.dialogOptions, eventId: event.event_id! });
+            });
           }
         });
 
         // We only want to register this hook once in the lifetime of the error handler
         this._registeredAfterSendEventHandler = true;
       } else if (!client) {
-        Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
+        runOutsideAngular(() => {
+          Sentry.showReportDialog({ ...this._options.dialogOptions, eventId });
+        });
       }
     }
   }
