@@ -6,6 +6,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   startSession,
   captureSession,
   endSession,
