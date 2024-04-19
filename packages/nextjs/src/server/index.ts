@@ -13,6 +13,8 @@ export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
 import { httpIntegration } from './httpIntegration';
 
+export { httpIntegration };
+
 export { captureUnderscoreErrorException } from '../common/_error';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
