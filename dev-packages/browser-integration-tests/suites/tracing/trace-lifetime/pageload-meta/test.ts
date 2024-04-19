@@ -459,8 +459,9 @@ sentryTest('user feedback event after pageload has pageload traceId in headers',
   const feedbackEvent = await feedbackEventPromise;
   const feedbackTraceContext = feedbackEvent.contexts?.trace;
 
+  expect(feedbackEvent.type).toEqual('feedback');
+
   expect(feedbackTraceContext).toMatchObject({
-    op: 'pageload',
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),

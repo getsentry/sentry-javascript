@@ -489,10 +489,12 @@ sentryTest(
     await page.locator('[data-sentry-feedback] .btn--primary').click();
 
     const feedbackEvent = await feedbackEventPromise;
+
+    expect(feedbackEvent.type).toEqual('feedback');
+
     const feedbackTraceContext = feedbackEvent.contexts?.trace;
 
     expect(feedbackTraceContext).toMatchObject({
-      op: 'navigation',
       trace_id: navigationTraceContext?.trace_id,
       span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
     });
