@@ -3,9 +3,12 @@ import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-s
 import { createTRPCProxyClient, httpBatchLink } from '@trpc/client';
 import type { AppRouter } from '../src/app';
 
-test('Should record transaction for trpc query', async ({ baseURL }) => {
+test('Should record span for trpc query', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express-app', transactionEvent => {
-    return transactionEvent.transaction === 'trpc/getSomething';
+    return (
+      transactionEvent.transaction === 'GET /trpc' &&
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/getSomething')
+    );
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -21,6 +24,16 @@ test('Should record transaction for trpc query', async ({ baseURL }) => {
   await expect(transactionEventPromise).resolves.toBeDefined();
   const transaction = await transactionEventPromise;
 
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'sentry.op': 'rpc.server',
+        'sentry.origin': 'auto.rpc.trpc',
+      }),
+      description: `trpc/getSomething`,
+    }),
+  );
+
   expect(transaction.contexts?.trpc).toMatchObject({
     procedure_type: 'query',
     input: 'foobar',
@@ -29,7 +42,10 @@ test('Should record transaction for trpc query', async ({ baseURL }) => {
 
 test('Should record transaction for trpc mutation', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express-app', transactionEvent => {
-    return transactionEvent.transaction === 'trpc/createSomething';
+    return (
+      transactionEvent.transaction === 'POST /trpc' &&
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/createSomething')
+    );
   });
 
   const trpcClient = createTRPCProxyClient<AppRouter>({
@@ -45,6 +61,16 @@ test('Should record transaction for trpc mutation', async ({ baseURL }) => {
   await expect(transactionEventPromise).resolves.toBeDefined();
   const transaction = await transactionEventPromise;
 
+  expect(transaction.spans).toContainEqual(
+    expect.objectContaining({
+      data: expect.objectContaining({
+        'sentry.op': 'rpc.server',
+        'sentry.origin': 'auto.rpc.trpc',
+      }),
+      description: `trpc/createSomething`,
+    }),
+  );
+
   expect(transaction.contexts?.trpc).toMatchObject({
     procedure_type: 'mutation',
   });
@@ -52,7 +78,10 @@ test('Should record transaction for trpc mutation', async ({ baseURL }) => {
 
 test('Should record transaction and error for a crashing trpc handler', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express-app', transactionEvent => {
-    return transactionEvent.transaction === 'trpc/crashSomething';
+    return (
+      transactionEvent.transaction === 'POST /trpc' &&
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/crashSomething')
+    );
   });
 
   const errorEventPromise = waitForError('node-express-app', errorEvent => {
@@ -75,7 +104,10 @@ test('Should record transaction and error for a crashing trpc handler', async ({
 
 test('Should record transaction and error for a trpc handler that returns a status code', async ({ baseURL }) => {
   const transactionEventPromise = waitForTransaction('node-express-app', transactionEvent => {
-    return transactionEvent.transaction === 'trpc/dontFindSomething';
+    return (
+      transactionEvent.transaction === 'POST /trpc' &&
+      !!transactionEvent.spans?.find(span => span.description === 'trpc/dontFindSomething')
+    );
   });
 
   const errorEventPromise = waitForError('node-express-app', errorEvent => {
