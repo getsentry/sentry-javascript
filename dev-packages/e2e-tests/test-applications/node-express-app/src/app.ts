@@ -1,8 +1,4 @@
 import * as Sentry from '@sentry/node';
-import { TRPCError, initTRPC } from '@trpc/server';
-import * as trpcExpress from '@trpc/server/adapters/express';
-import express from 'express';
-import { z } from 'zod';
 
 declare global {
   namespace globalThis {
@@ -18,6 +14,11 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
 });
+
+import { TRPCError, initTRPC } from '@trpc/server';
+import * as trpcExpress from '@trpc/server/adapters/express';
+import express from 'express';
+import { z } from 'zod';
 
 const app = express();
 const port = 3030;
@@ -50,6 +51,10 @@ app.get('/test-error', async function (req, res) {
   await Sentry.flush(2000);
 
   res.send({ exceptionId });
+});
+
+app.get('/test-exception/:id', function (req, _res) {
+  throw new Error(`This is an exception with id ${req.params.id}`);
 });
 
 app.get('/test-local-variables-uncaught', function (req, res) {

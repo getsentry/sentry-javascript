@@ -1,4 +1,3 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
@@ -10,6 +9,7 @@ import {
   getIsolationScope,
   getRootSpan,
 } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
@@ -19,9 +19,7 @@ const _hapiIntegration = (() => {
   return {
     name: 'Hapi',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [new HapiInstrumentation()],
-      });
+      addOpenTelemetryInstrumentation(new HapiInstrumentation());
     },
   };
 }) satisfies IntegrationFn;

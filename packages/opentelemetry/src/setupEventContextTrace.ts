@@ -28,12 +28,13 @@ export function setupEventContextTrace(client: Client): void {
       ...event.contexts,
     };
 
+    const rootSpan = getRootSpan(span);
+
     event.sdkProcessingMetadata = {
-      dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(rootSpan),
       ...event.sdkProcessingMetadata,
     };
 
-    const rootSpan = getRootSpan(span);
     const transactionName = spanHasName(rootSpan) ? rootSpan.name : undefined;
     if (transactionName && !event.transaction) {
       event.transaction = transactionName;

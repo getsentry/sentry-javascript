@@ -1,15 +1,13 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { MySQLInstrumentation } from '@opentelemetry/instrumentation-mysql';
 import { defineIntegration } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 const _mysqlIntegration = (() => {
   return {
     name: 'Mysql',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [new MySQLInstrumentation({})],
-      });
+      addOpenTelemetryInstrumentation(new MySQLInstrumentation({}));
     },
   };
 }) satisfies IntegrationFn;
