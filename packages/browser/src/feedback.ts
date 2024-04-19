@@ -11,10 +11,3 @@ export const feedbackIntegration = buildFeedbackIntegration({
   getModalIntegration: () => feedbackModalIntegration,
   getScreenshotIntegration: () => feedbackScreenshotIntegration,
 });
-
-// This is for users who want to have a lazy-loaded feedback widget
-export const feedbackAsyncIntegration = buildFeedbackIntegration({
-  lazyLoadIntegration,
-  getModalIntegration: null,
-  getScreenshotIntegration: null,
-});
