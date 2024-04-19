@@ -90,7 +90,7 @@ export const buildFeedbackIntegration = ({
     onSubmitSuccess,
     onSubmitError,
     onFormSubmitted,
-  }: OptionalFeedbackConfiguration) => {
+  }: OptionalFeedbackConfiguration = {}) => {
     const _options = {
       id,
       autoInject,
