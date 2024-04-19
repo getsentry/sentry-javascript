@@ -13,6 +13,6 @@ const blockUI = (delay = 70) => e => {
   e.target.classList.add('clicked');
 };
 
-document.querySelector('[data-test-id=not-so-slow-button]').addEventListener('click', blockUI(200));
-document.querySelector('[data-test-id=slow-button]').addEventListener('click', blockUI(500));
+document.querySelector('[data-test-id=not-so-slow-button]').addEventListener('click', blockUI(300));
+document.querySelector('[data-test-id=slow-button]').addEventListener('click', blockUI(450));
 document.querySelector('[data-test-id=normal-button]').addEventListener('click', blockUI());

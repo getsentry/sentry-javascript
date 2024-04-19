@@ -1,6 +1,5 @@
-import type { Route } from '@playwright/test';
 import { expect } from '@playwright/test';
-import type { Contexts, Event as SentryEvent, SpanJSON } from '@sentry/types';
+import type { Event as SentryEvent } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
@@ -9,30 +8,18 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-type TransactionJSON = SpanJSON & {
-  spans: SpanJSON[];
-  contexts: Contexts;
-  platform: string;
-  type: string;
-};
-
-const wait = (time: number) => new Promise(res => setTimeout(res, time));
-
 sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
-
-  await page.route('**/path/to/script.js', (route: Route) => route.fulfill({ path: `${__dirname}/assets/script.js` }));
-
   const url = await getLocalTestPath({ testDir: __dirname });
 
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-  const envelopesPromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+  const envelopesPromise = getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
 
   await page.locator('[data-test-id=interaction-button]').click();
   await page.locator('.clicked[data-test-id=interaction-button]').isVisible();
@@ -67,17 +54,13 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('**/path/to/script.js', (route: Route) =>
-      route.fulfill({ path: `${__dirname}/assets/script.js` }),
-    );
-
     const url = await getLocalTestPath({ testDir: __dirname });
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
     for (let i = 0; i < 4; i++) {
       const envelopePromise = getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
-      await wait(100);
+      await page.waitForTimeout(1000);
       await page.locator('[data-test-id=interaction-button]').click();
       const envelope = await envelopePromise;
       expect(envelope[0].spans).toHaveLength(1);
@@ -94,16 +77,12 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('**/path/to/script.js', (route: Route) =>
-      route.fulfill({ path: `${__dirname}/assets/script.js` }),
-    );
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-    const envelopePromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    const envelopePromise = getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
 
     await page.locator('[data-test-id=annotated-button]').click();
 
@@ -128,23 +107,19 @@ sentryTest(
       sentryTest.skip();
     }
 
-    await page.route('**/path/to/script.js', (route: Route) =>
-      route.fulfill({ path: `${__dirname}/assets/script.js` }),
-    );
-
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
-    const envelopesPromise = getMultipleSentryEnvelopeRequests<TransactionJSON>(page, 1);
+    const envelopesPromise = getMultipleSentryEnvelopeRequests<SentryEvent>(page, 1);
 
     await page.locator('[data-test-id=styled-button]').click();
 
     const envelopes = await envelopesPromise;
     expect(envelopes).toHaveLength(1);
-    const eventData = envelopes[0];
 
+    const eventData = envelopes[0];
     expect(eventData.spans).toHaveLength(1);
 
     const interactionSpan = eventData.spans![0];
