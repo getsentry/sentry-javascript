@@ -1,8 +1,9 @@
-import { createAttachmentEnvelope, createEventEnvelope, getClient, withScope } from '@sentry/core';
-import type { FeedbackEvent, SendFeedback, SendFeedbackParams } from '@sentry/types';
+import { captureFeedback } from '@sentry/core';
+import { getClient } from '@sentry/core';
+import type { SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
+import type { Event } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
-import { FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE } from '../constants';
-import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
+import { FEEDBACK_API_SOURCE } from '../constants';
 
 /**
  * Public API to send a Feedback item to Sentry
@@ -10,91 +11,44 @@ import { prepareFeedbackEvent } from '../util/prepareFeedbackEvent';
 export const sendFeedback: SendFeedback = (
   { name, email, message, attachments, source = FEEDBACK_API_SOURCE, url = getLocationHref() }: SendFeedbackParams,
   { includeReplay = true } = {},
-) => {
+): Promise<void> => {
   if (!message) {
     throw new Error('Unable to submit feedback with empty message');
   }
 
+  // We want to wait for the feedback to be sent (or not)
   const client = getClient();
-  const transport = client && client.getTransport();
-  const dsn = client && client.getDsn();
 
-  if (!client || !transport || !dsn) {
-    throw new Error('Invalid Sentry client');
+  if (!client) {
+    throw new Error('No client setup, cannot send feedback.');
   }
 
-  const baseEvent: FeedbackEvent = {
-    contexts: {
-      feedback: {
-        contact_email: email,
-        name,
-        message,
-        url,
-        source,
-      },
-    },
-    type: 'feedback',
-  };
+  const eventId = captureFeedback({ name, email, message, attachments, source, url }, { includeReplay });
 
-  return withScope(async scope => {
-    // No use for breadcrumbs in feedback
-    scope.clearBreadcrumbs();
+  // We want to wait for the feedback to be sent (or not)
+  return new Promise<void>((resolve, reject) => {
+    // After 5s, we want to clear anyhow
+    const timeout = setTimeout(() => reject('timeout'), 5_000);
 
-    if ([FEEDBACK_API_SOURCE, FEEDBACK_WIDGET_SOURCE].includes(String(source))) {
-      scope.setLevel('info');
-    }
-
-    const feedbackEvent = await prepareFeedbackEvent({
-      scope,
-      client,
-      event: baseEvent,
-    });
-
-    if (client.emit) {
-      client.emit('beforeSendFeedback', feedbackEvent, { includeReplay: Boolean(includeReplay) });
-    }
-
-    try {
-      const response = await transport.send(
-        createEventEnvelope(feedbackEvent, dsn, client.getOptions()._metadata, client.getOptions().tunnel),
-      );
-
-      if (attachments && attachments.length) {
-        // TODO: https://docs.sentry.io/platforms/javascript/enriching-events/attachments/
-        await transport.send(
-          createAttachmentEnvelope(
-            feedbackEvent,
-            attachments,
-            dsn,
-            client.getOptions()._metadata,
-            client.getOptions().tunnel,
-          ),
-        );
+    client.on('afterSendEvent', (event: Event, response: TransportMakeRequestResponse) => {
+      if (event.event_id !== eventId) {
+        return;
       }
+
+      clearTimeout(timeout);
 
       // Require valid status codes, otherwise can assume feedback was not sent successfully
       if (typeof response.statusCode === 'number' && (response.statusCode < 200 || response.statusCode >= 300)) {
         if (response.statusCode === 0) {
-          throw new Error(
+          return reject(
             'Unable to send Feedback. This is because of network issues, or because you are using an ad-blocker.',
           );
         }
-        throw new Error('Unable to send Feedback. Invalid response from server.');
+        return reject('Unable to send Feedback. Invalid response from server.');
       }
 
-      return response;
-    } catch (err) {
-      const error = new Error('Unable to send Feedback');
-
-      try {
-        // In case browsers don't allow this property to be writable
-        // @ts-expect-error This needs lib es2022 and newer
-        error.cause = err;
-      } catch {
-        // nothing to do
-      }
-      throw error;
-    }
+      resolve();
+    });
   });
 };
 

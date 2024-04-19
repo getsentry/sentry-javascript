@@ -1,6 +1,5 @@
 import type { Attachment } from '../attachment';
 import type { Event } from '../event';
-import type { TransportMakeRequestResponse } from '../transport';
 import type { User } from '../user';
 
 /**
@@ -19,6 +18,7 @@ interface FeedbackContext extends Record<string, unknown> {
   name?: string;
   replay_id?: string;
   url?: string;
+  associated_event_id?: string;
 }
 
 /**
@@ -48,7 +48,4 @@ interface SendFeedbackOptions {
   includeReplay?: boolean;
 }
 
-export type SendFeedback = (
-  params: SendFeedbackParams,
-  options?: SendFeedbackOptions,
-) => Promise<TransportMakeRequestResponse>;
+export type SendFeedback = (params: SendFeedbackParams, options?: SendFeedbackOptions) => Promise<void>;

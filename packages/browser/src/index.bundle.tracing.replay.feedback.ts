@@ -13,6 +13,7 @@ export {
   withActiveSpan,
   getSpanDescendants,
   setMeasurement,
+  captureFeedback,
 } from '@sentry/core';
 
 export {

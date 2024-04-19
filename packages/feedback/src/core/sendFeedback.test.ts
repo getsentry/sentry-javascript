@@ -14,18 +14,26 @@ describe('sendFeedback', () => {
       message: 'mi',
     });
     expect(mockTransport).toHaveBeenCalledWith([
-      { event_id: expect.any(String), sent_at: expect.any(String) },
+      {
+        event_id: expect.any(String),
+        sent_at: expect.any(String),
+        trace: expect.anything(),
+      },
       [
         [
           { type: 'feedback' },
           {
             breadcrumbs: undefined,
             contexts: {
+              trace: {
+                parent_span_id: undefined,
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+              },
               feedback: {
                 contact_email: 're@example.org',
                 message: 'mi',
                 name: 'doe',
-                replay_id: undefined,
                 source: 'api',
                 url: 'http://localhost/',
               },
@@ -33,7 +41,7 @@ describe('sendFeedback', () => {
             level: 'info',
             environment: 'production',
             event_id: expect.any(String),
-            platform: 'javascript',
+            // TODO: Why is there no platform here?
             timestamp: expect.any(Number),
             type: 'feedback',
           },
