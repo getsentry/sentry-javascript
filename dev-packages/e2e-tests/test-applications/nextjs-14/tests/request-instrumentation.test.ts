@@ -8,24 +8,27 @@ test('Should send a transaction with a fetch span', async ({ page }) => {
 
   await page.goto(`/request-instrumentation`);
 
-  expect((await transactionPromise).spans).toContainEqual(
+  await expect(transactionPromise).resolves.toBeDefined();
+
+  const transactionEvent = await transactionPromise;
+
+  expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        'next.span_type': 'AppRender.fetch', // This span is created by Next.js own fetch instrumentation
+        'sentry.origin': 'auto.http.otel.node_fetch',
       }),
       description: 'GET http://example.com/',
     }),
   );
 
-  expect((await transactionPromise).spans).toContainEqual(
+  expect(transactionEvent.spans).toContainEqual(
     expect.objectContaining({
       data: expect.objectContaining({
         'http.method': 'GET',
         'sentry.op': 'http.client',
-        // todo: without the HTTP integration in the Next.js SDK, this is set to 'manual' -> we could rename this to be more specific
-        'sentry.origin': 'manual',
+        'sentry.origin': 'auto.http.otel.http',
       }),
       description: 'GET http://example.com/',
     }),

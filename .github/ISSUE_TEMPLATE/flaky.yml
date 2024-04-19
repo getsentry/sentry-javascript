@@ -18,7 +18,7 @@ body:
     id: job-name
     attributes:
       label: Name of Job
-      placeholder: Build & Test / Nextjs (Node 14) Tests
+      placeholder: "CI: Build & Test / Nextjs (Node 14) Tests"
       description: name of job as reported in the status report
     validations:
       required: true

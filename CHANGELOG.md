@@ -4,6 +4,61 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.3
+
+### Important Changes
+
+- **feat(opentelemetry): Add `addOpenTelemetryInstrumentation` (#11667)**
+
+A utility function `addOpenTelemetryInstrumentation` was added that allows for the registration of instrumentations that
+conform to the OpenTelemetry JS API without having to specify `@opentelemetry/instrumentation` as a dependency.
+
+- **ref(core): Don't start transaction for trpc middleware (#11697)**
+
+Going forward, the Sentry `trpcMiddleware` will only create spans. Previously it used to always create a transaction.
+This change was made to integrate more nicely with the HTTP instrumentation added in earlier versions to avoid creating
+unnecessary transactions.
+
+### Other Changes
+
+- feat(nextjs): Instrument outgoing http requests (#11685)
+- feat(opentelemetry): Remove setupGlobalHub (#11668)
+- fix: Missing ErrorEvent export are added to node, browser, bun, deno, vercel-edge sub-packages (#11649)
+- fix(nextjs): Do not sample next spans if they have remote parent (#11680)
+- fix(nextjs): Re-enable OTEL fetch instrumentation and disable Next.js fetch instrumentation (#11686)
+- fix(node): Ensure DSC on envelope header uses root span (#11683)
+- ref(browser): Streamline pageload span creation and scope handling (#11679)
+- ref(core): Directly use endSession (#11669)
+
+## 8.0.0-beta.2
+
+### Important Changes
+
+- **feat(browser): Update `propagationContext` on `spanEnd` to keep trace consistent**
+
+To ensure consistency throughout a route's duration, we update the scope's propagation context when the initial page
+load or navigation span ends. This keeps span-specific attributes like the sampled decision and dynamic sampling context
+on the scope, even after the transaction has ended.
+
+- **fix(browser): Don't assume window.document is available (#11602)**
+
+We won't assume `window.dodument` is available in the browser SDKs anymore. This should prevent errors in environments
+where `window.document` is not available (such as web workers).
+
+### Other changes
+
+- feat(core): Add `server.address` to browser `http.client` spans (#11634)
+- feat(opentelemetry): Update OTEL packages & relax some version ranges (#11580)
+- feat(deps): bump @opentelemetry/instrumentation-hapi from 0.34.0 to 0.36.0 (#11496)
+- feat(deps): bump @opentelemetry/instrumentation-koa from 0.37.0 to 0.39.0 (#11495)
+- feat(deps): bump @opentelemetry/instrumentation-pg from 0.38.0 to 0.40.0 (#11494)
+- feat(nextjs): Skip OTEL root spans emitted by Next.js (#11623)
+- feat(node): Collect Local Variables via a worker (#11586)
+- fix(nextjs): Escape Next.js' OpenTelemetry instrumentation (#11625)
+- fix(feedback): Fix timeout on feedback submission (#11619)
+- fix(node): Allow use of `NodeClient` without calling `init` (#11585)
+- fix(node): Ensure DSC is correctly set in envelope headers (#11628)
+
 ## 8.0.0-beta.1
 
 This is the first beta release of Sentry JavaScript SDK v8. With this release, there are no more planned breaking

@@ -1,4 +1,4 @@
-name: Gitflow - Auto prepare release
+name: "Gitflow: Auto prepare release"
 on:
   pull_request:
     types:
@@ -25,7 +25,7 @@ jobs:
           # Parse version from head branch
           text: ${{ github.head_ref }}
           # match: preprare-release/xx.xx.xx
-          regex: '^prepare-release\/(\d+\.\d+\.\d+)$'
+          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta)\.\d+)?$'
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1

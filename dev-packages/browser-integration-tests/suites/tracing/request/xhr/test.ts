@@ -24,6 +24,13 @@ sentryTest('should create spans for XHR requests', async ({ getLocalTestPath, pa
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: eventData.contexts?.trace?.trace_id,
+      data: {
+        'http.method': 'GET',
+        'http.url': `http://example.com/${index}`,
+        url: `http://example.com/${index}`,
+        'server.address': 'example.com',
+        type: 'xhr',
+      },
     }),
   );
 });

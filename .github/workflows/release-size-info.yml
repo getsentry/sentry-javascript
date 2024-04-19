@@ -1,4 +1,4 @@
-name: Add size info to release
+name: "Automation: Add size info to release"
 on:
   release:
     types:
@@ -27,4 +27,4 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ steps.get_version.outputs.version }}
-          workflow_name: 'Build & Test'
+          workflow_name: 'CI: Build & Test'

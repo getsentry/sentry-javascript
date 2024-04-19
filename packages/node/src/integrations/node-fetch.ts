@@ -1,13 +1,14 @@
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import type { Instrumentation } from '@opentelemetry/instrumentation';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { addBreadcrumb, defineIntegration } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import { getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { NODE_MAJOR } from '../nodeVersion';
+
+import type { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
 
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 
@@ -29,7 +30,7 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
 
-  async function getInstrumentation(): Promise<[Instrumentation] | void> {
+  async function getInstrumentation(): Promise<FetchInstrumentation | void> {
     // Only add NodeFetch if Node >= 18, as previous versions do not support it
     if (NODE_MAJOR < 18) {
       DEBUG_BUILD && logger.log('NodeFetch is not supported on Node < 18, skipping instrumentation...');
@@ -38,22 +39,20 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
     try {
       const pkg = await import('opentelemetry-instrumentation-fetch-node');
-      return [
-        new pkg.FetchInstrumentation({
-          ignoreRequestHook: (request: { origin?: string }) => {
-            const url = request.origin;
-            return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
-          },
-          onRequest: ({ span }: { span: Span }) => {
-            _updateSpan(span);
+      return new pkg.FetchInstrumentation({
+        ignoreRequestHook: (request: { origin?: string }) => {
+          const url = request.origin;
+          return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
+        },
+        onRequest: ({ span }: { span: Span }) => {
+          _updateSpan(span);
 
-            if (_breadcrumbs) {
-              _addRequestBreadcrumb(span);
-            }
-          },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any),
-      ];
+          if (_breadcrumbs) {
+            _addRequestBreadcrumb(span);
+          }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
     } catch (error) {
       // Could not load instrumentation
       DEBUG_BUILD && logger.log('Could not load NodeFetch instrumentation.');
@@ -64,11 +63,9 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
     name: 'NodeFetch',
     setupOnce() {
       // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      getInstrumentation().then(instrumentations => {
-        if (instrumentations) {
-          registerInstrumentations({
-            instrumentations,
-          });
+      getInstrumentation().then(instrumentation => {
+        if (instrumentation) {
+          addOpenTelemetryInstrumentation(instrumentation);
         }
       });
     },

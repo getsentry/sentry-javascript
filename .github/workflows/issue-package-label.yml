@@ -1,4 +1,4 @@
-name: 'Tag issue with package label'
+name: 'Automation: Tag issue with package label'
 
 on:
   issues:

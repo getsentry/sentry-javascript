@@ -10,20 +10,26 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   TRACING_DEFAULTS,
-  continueTrace,
   getActiveSpan,
   getClient,
   getCurrentScope,
+  getDynamicSamplingContextFromSpan,
   getIsolationScope,
   getRootSpan,
   registerSpanErrorInstrumentation,
+  spanIsSampled,
   spanToJSON,
   startIdleSpan,
-  withScope,
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
-import { browserPerformanceTimeOrigin, getDomElement, logger, uuid4 } from '@sentry/utils';
+import {
+  browserPerformanceTimeOrigin,
+  getDomElement,
+  logger,
+  propagationContextFromHeaders,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -261,25 +267,36 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
         const sentryTrace = traceOptions.sentryTrace || getMetaContent('sentry-trace');
         const baggage = traceOptions.baggage || getMetaContent('baggage');
 
-        // Continue trace updates the scope in the callback only, but we want to break out of it again...
-        // This is a bit hacky, because we want to get the span to use both the correct scope _and_ the correct propagation context
-        // but afterwards, we want to reset it to avoid this also applying to other spans
-        const scope = getCurrentScope();
+        const propagationContext = propagationContextFromHeaders(sentryTrace, baggage);
+        getCurrentScope().setPropagationContext(propagationContext);
 
-        activeSpan = continueTrace({ sentryTrace, baggage }, () => {
-          // We update the outer current scope to have the correct propagation context
-          // this means, the scope active when the pageload span is created will continue to hold the
-          // propagationContext from the incoming trace, even after the pageload span ended.
-          scope.setPropagationContext(getCurrentScope().getPropagationContext());
-
-          // Ensure we are on the original current scope again, so the span is set as active on it
-          return withScope(scope, () => {
-            return _createRouteSpan(client, {
-              op: 'pageload',
-              ...startSpanOptions,
-            });
-          });
+        activeSpan = _createRouteSpan(client, {
+          op: 'pageload',
+          ...startSpanOptions,
         });
+      });
+
+      // A trace should to stay the consistent over the entire time span of one route.
+      // Therefore, when the initial pageload or navigation root span ends, we update the
+      // scope's propagation context to keep span-specific attributes like the `sampled` decision and
+      // the dynamic sampling context valid, even after the root span has ended.
+      // This ensures that the trace data is consistent for the entire duration of the route.
+      client.on('spanEnd', span => {
+        const op = spanToJSON(span).op;
+        if (span !== getRootSpan(span) || (op !== 'navigation' && op !== 'pageload')) {
+          return;
+        }
+
+        const scope = getCurrentScope();
+        const oldPropagationContext = scope.getPropagationContext();
+
+        const newPropagationContext = {
+          ...oldPropagationContext,
+          sampled: oldPropagationContext.sampled !== undefined ? oldPropagationContext.sampled : spanIsSampled(span),
+          dsc: oldPropagationContext.dsc || getDynamicSamplingContextFromSpan(span),
+        };
+
+        scope.setPropagationContext(newPropagationContext);
       });
 
       if (options.instrumentPageLoad && WINDOW.location) {
