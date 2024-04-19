@@ -1,16 +1,19 @@
+import { createMirror } from '@sentry-internal/rrweb-snapshot';
 import { getKeyboardBreadcrumb } from '../../../src/coreHandlers/handleKeyboardEvent';
 
 describe('Unit | coreHandlers | handleKeyboardEvent', () => {
+  const mirror = createMirror();
+
   describe('getKeyboardBreadcrumb', () => {
     it('returns null for event on input', function () {
       const event = makeKeyboardEvent({ tagName: 'input', key: 'Escape' });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toBeNull();
     });
 
     it('returns null for event on textarea', function () {
       const event = makeKeyboardEvent({ tagName: 'textarea', key: 'Escape' });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toBeNull();
     });
 
@@ -24,13 +27,13 @@ describe('Unit | coreHandlers | handleKeyboardEvent', () => {
       });
 
       const event = makeKeyboardEvent({ target, key: 'Escape' });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toBeNull();
     });
 
     it('returns breadcrumb for Escape event on body', function () {
       const event = makeKeyboardEvent({ tagName: 'body', key: 'Escape' });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toEqual({
         category: 'ui.keyDown',
         data: {
@@ -48,19 +51,19 @@ describe('Unit | coreHandlers | handleKeyboardEvent', () => {
 
     it.each(['a', '1', '!', '~', ']'])('returns null for %s key on body', key => {
       const event = makeKeyboardEvent({ tagName: 'body', key });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toEqual(null);
     });
 
     it.each(['a', '1', '!', '~', ']'])('returns null for %s key + Shift on body', key => {
       const event = makeKeyboardEvent({ tagName: 'body', key, shiftKey: true });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toEqual(null);
     });
 
     it.each(['a', '1', '!', '~', ']'])('returns breadcrumb for %s key + Ctrl on body', key => {
       const event = makeKeyboardEvent({ tagName: 'body', key, ctrlKey: true });
-      const actual = getKeyboardBreadcrumb(event);
+      const actual = getKeyboardBreadcrumb(event, mirror);
       expect(actual).toEqual({
         category: 'ui.keyDown',
         data: {

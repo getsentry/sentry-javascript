@@ -1,8 +1,11 @@
+import { createMirror } from '@sentry-internal/rrweb-snapshot';
 import type { HandlerDataDom } from '@sentry/types';
 
 import { handleDom } from '../../../src/coreHandlers/handleDom';
 
 describe('Unit | coreHandlers | handleDom', () => {
+  const mirror = createMirror();
+
   test('it works with a basic click event on a div', () => {
     const parent = document.createElement('body');
     const target = document.createElement('div');
@@ -15,7 +18,7 @@ describe('Unit | coreHandlers | handleDom', () => {
         target,
       },
     };
-    const actual = handleDom(handlerData);
+    const actual = handleDom(handlerData, mirror);
     expect(actual).toEqual({
       category: 'ui.click',
       data: {},
@@ -37,7 +40,7 @@ describe('Unit | coreHandlers | handleDom', () => {
         target,
       },
     };
-    const actual = handleDom(handlerData);
+    const actual = handleDom(handlerData, mirror);
     expect(actual).toEqual({
       category: 'ui.click',
       data: {},
@@ -62,7 +65,7 @@ describe('Unit | coreHandlers | handleDom', () => {
         target,
       },
     };
-    const actual = handleDom(handlerData);
+    const actual = handleDom(handlerData, mirror);
     expect(actual).toEqual({
       category: 'ui.click',
       data: {},
@@ -87,7 +90,7 @@ describe('Unit | coreHandlers | handleDom', () => {
         target,
       },
     };
-    const actual = handleDom(handlerData);
+    const actual = handleDom(handlerData, mirror);
     expect(actual).toEqual({
       category: 'ui.click',
       data: {},
@@ -118,7 +121,7 @@ describe('Unit | coreHandlers | handleDom', () => {
         target,
       },
     };
-    const actual = handleDom(handlerData);
+    const actual = handleDom(handlerData, mirror);
     expect(actual).toEqual({
       category: 'ui.click',
       data: {},
