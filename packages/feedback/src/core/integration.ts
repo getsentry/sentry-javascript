@@ -57,7 +57,7 @@ export const buildFeedbackIntegration = ({
     autoInject = true,
     showEmail = true,
     showName = true,
-    showScreenshot = true,
+    showScreenshot = false,
     useSentryUser = {
       email: 'email',
       name: 'username',
@@ -178,7 +178,8 @@ export const buildFeedbackIntegration = ({
           : undefined,
       ]);
       if (!modalIntegration || (showScreenshot && !screenshotIntegration)) {
-        // trouble!
+        // TODO: Let the end-user retry async loading
+        // Include more verbose logs so developers can understand the options (like preloading).
         throw new Error('Missing feedback helper integration!');
       }
 
