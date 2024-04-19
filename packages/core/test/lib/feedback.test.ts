@@ -1,5 +1,5 @@
-import { Span } from '@sentry/types';
-import { getCurrentScope, setCurrentClient, startSpan } from '../../src';
+import type { Span } from '@sentry/types';
+import { addBreadcrumb, getCurrentScope, setCurrentClient, startSpan, withIsolationScope, withScope } from '../../src';
 import { captureFeedback } from '../../src/feedback';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 
@@ -373,6 +373,86 @@ describe('captureFeedback', () => {
             level: 'info',
             environment: 'production',
             event_id: eventId,
+            timestamp: expect.any(Number),
+            type: 'feedback',
+          },
+        ],
+      ],
+    ]);
+  });
+
+  it('applies scope data to feedback', async () => {
+    const client = new TestClient(
+      getDefaultTestClientOptions({
+        dsn: 'https://dsn@ingest.f00.f00/1',
+        enableSend: true,
+        enableTracing: true,
+        // We don't care about transactions here...
+        beforeSendTransaction() {
+          return null;
+        },
+      }),
+    );
+    setCurrentClient(client);
+    client.init();
+
+    const mockTransport = jest.spyOn(client.getTransport()!, 'send');
+
+    withIsolationScope(isolationScope => {
+      isolationScope.setTag('test-1', 'tag');
+      isolationScope.setExtra('test-1', 'extra');
+
+      return withScope(scope => {
+        scope.setTag('test-2', 'tag');
+        scope.setExtra('test-2', 'extra');
+
+        addBreadcrumb({ message: 'test breadcrumb', timestamp: 12345 });
+
+        captureFeedback({
+          name: 'doe',
+          email: 're@example.org',
+          message: 'mi',
+        });
+      });
+    });
+
+    expect(mockTransport).toHaveBeenCalledWith([
+      {
+        event_id: expect.any(String),
+        sent_at: expect.any(String),
+        trace: {
+          trace_id: expect.any(String),
+          environment: 'production',
+          public_key: 'dsn',
+        },
+      },
+      [
+        [
+          { type: 'feedback' },
+          {
+            breadcrumbs: [{ message: 'test breadcrumb', timestamp: 12345 }],
+            contexts: {
+              trace: {
+                span_id: expect.any(String),
+                trace_id: expect.any(String),
+              },
+              feedback: {
+                contact_email: 're@example.org',
+                message: 'mi',
+                name: 'doe',
+              },
+            },
+            extra: {
+              'test-1': 'extra',
+              'test-2': 'extra',
+            },
+            tags: {
+              'test-1': 'tag',
+              'test-2': 'tag',
+            },
+            level: 'info',
+            environment: 'production',
+            event_id: expect.any(String),
             timestamp: expect.any(Number),
             type: 'feedback',
           },
