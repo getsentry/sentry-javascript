@@ -11,6 +11,9 @@ import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegrati
 
 export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
+import { httpIntegration } from './httpIntegration';
+
+export { httpIntegration };
 
 export { captureUnderscoreErrorException } from '../common/_error';
 
@@ -75,6 +78,7 @@ export function init(options: NodeOptions): void {
         // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
         integration.name !== 'Http',
     ),
+    httpIntegration(),
   ];
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
