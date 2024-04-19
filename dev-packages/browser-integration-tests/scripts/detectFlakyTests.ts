@@ -9,9 +9,9 @@ import * as glob from 'glob';
 const NUM_BROWSERS = 3;
 
 /**
- * Assume that each test runs for 3s.
+ * Assume that each test runs for 2s.
  */
-const ASSUMED_TEST_DURATION_SECONDS = 3;
+const ASSUMED_TEST_DURATION_SECONDS = 2;
 
 /**
  * We keep the runtime of the detector if possible under 30min.

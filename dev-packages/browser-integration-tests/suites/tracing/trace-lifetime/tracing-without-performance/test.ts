@@ -1,7 +1,11 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import type { EventAndTraceHeader } from '../../../../utils/helpers';
+import {
+  eventAndTraceHeaderRequestParser,
+  getFirstSentryEnvelopeRequest,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
@@ -16,9 +20,13 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.locator('#errorBtn').click();
-  const errorEvent = await errorEventPromise;
+  const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
@@ -26,14 +34,32 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, 
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
 
-  const errorEventPromise2 = getFirstSentryEnvelopeRequest<Event>(page, `${url}#navigation`);
+  expect(errorTraceHeader).toEqual({
+    environment: 'prod',
+    public_key: 'public',
+    release: '1.0.0',
+    trace_id: META_TAG_TRACE_ID,
+  });
+
+  const errorEventPromise2 = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    `${url}#navigation`,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.locator('#errorBtn').click();
-  const errorEvent2 = await errorEventPromise2;
+  const [errorEvent2, errorTraceHeader2] = await errorEventPromise2;
 
   expect(errorEvent2.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
+
+  expect(errorTraceHeader2).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    trace_id: errorEvent2.contexts?.trace?.trace_id,
+  });
+
   expect(errorEvent2.contexts?.trace?.trace_id).not.toBe(META_TAG_TRACE_ID);
 });
 

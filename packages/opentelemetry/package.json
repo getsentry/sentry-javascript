@@ -49,6 +49,7 @@
   "peerDependencies": {
     "@opentelemetry/api": "^1.8.0",
     "@opentelemetry/core": "^1.23.0",
+    "@opentelemetry/instrumentation": "0.48.0",
     "@opentelemetry/sdk-trace-base": "^1.23.0",
     "@opentelemetry/semantic-conventions": "^1.23.0"
   },

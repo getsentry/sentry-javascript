@@ -1,8 +1,8 @@
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
 import {
   addBreadcrumb,
@@ -52,7 +52,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
   return {
     name: 'Http',
     setupOnce() {
-      const instrumentations = [
+      addOpenTelemetryInstrumentation(
         new HttpInstrumentation({
           ignoreOutgoingRequestHook: request => {
             const url = getRequestUrl(request);
@@ -141,11 +141,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             }
           },
         }),
-      ];
-
-      registerInstrumentations({
-        instrumentations,
-      });
+      );
     },
   };
 }) satisfies IntegrationFn;
