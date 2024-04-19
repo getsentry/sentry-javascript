@@ -41,10 +41,9 @@ type Unsubscribe = () => void;
 interface BuilderOptions {
   // The type here should be `keyof typeof LazyLoadableIntegrations`, but that'll cause a cicrular
   // dependency with @sentry/core
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  lazyLoadIntegration: (name: any) => Promise<IntegrationFn>;
-  getModalIntegration: null | (() => IntegrationFn);
-  getScreenshotIntegration: null | (() => IntegrationFn);
+  lazyLoadIntegration: (name: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration') => Promise<IntegrationFn>;
+  getModalIntegration?: null | (() => IntegrationFn);
+  getScreenshotIntegration?: null | (() => IntegrationFn);
 }
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
@@ -153,7 +152,7 @@ export const buildFeedbackIntegration = ({
 
     const _findIntegration = async <I extends Integration>(
       integrationName: string,
-      getter: null | (() => IntegrationFn),
+      getter: undefined | null | (() => IntegrationFn),
       functionMethodName: 'feedbackModalIntegration' | 'feedbackScreenshotIntegration',
     ): Promise<I> => {
       const client = getClient();

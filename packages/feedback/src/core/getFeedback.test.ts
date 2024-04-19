@@ -27,8 +27,6 @@ describe('getFeedback', () => {
   it('works with a client with Feedback', () => {
     const feedback = buildFeedbackIntegration({
       lazyLoadIntegration: jest.fn(),
-      getModalIntegration: jest.fn(),
-      getScreenshotIntegration: jest.fn(),
     });
 
     mockSdk({

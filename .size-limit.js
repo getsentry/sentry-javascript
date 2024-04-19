@@ -68,13 +68,6 @@ module.exports = [
     gzip: true,
     limit: '33 KB',
   },
-  {
-    name: '@sentry/browser (incl. sendFeedback)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'sendFeedback'),
-    gzip: true,
-    limit: '30 KB',
-  },
   // React SDK (ESM)
   {
     name: '@sentry/react',
@@ -159,6 +152,13 @@ module.exports = [
     gzip: false,
     brotli: false,
     limit: '220 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
+    path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '241 KB',
   },
   // Next.js SDK (ESM)
   {
