@@ -22,7 +22,7 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestPath, page }) =
   const itemHeader = item[0];
   const spanJson = item[1];
 
-  expect(headers).toMatchObject({
+  expect(headers).toEqual({
     sent_at: expect.any(String),
   });
 
