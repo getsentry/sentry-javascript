@@ -70,7 +70,7 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
       maxCanvasHeight ?
         Math.min(maxCanvasHeight, DEFAULT_MAX_CANVAS_SIZE)
         : DEFAULT_MAX_CANVAS_SIZE
-    ],
+    ] as [number, number],
   };
 
   let canvasManagerResolve: (value: CanvasManager) => void;
