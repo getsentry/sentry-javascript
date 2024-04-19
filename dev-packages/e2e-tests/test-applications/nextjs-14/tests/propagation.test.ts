@@ -47,25 +47,18 @@ test('Propagates trace for outgoing fetch requests', async ({ baseURL, request }
   expect(inboundTransaction.contexts?.trace?.trace_id).toStrictEqual(expect.any(String));
   expect(inboundTransaction.contexts?.trace?.trace_id).toBe(outboundTransaction.contexts?.trace?.trace_id);
 
-  // Currently we create two nested spans for fetch requests in Next.js. One OTEL generated span and one span created by Next.js.
-  const nextjsHttpClientSpan = outboundTransaction.spans?.find(
-    span => span.op === 'http.client' && span.data?.['next.span_type'] !== undefined,
-  );
-  const otelHttpClientSpan = outboundTransaction.spans?.find(
+  const httpClientSpan = outboundTransaction.spans?.find(
     span => span.op === 'http.client' && span.data?.['sentry.origin'] === 'auto.http.otel.node_fetch',
   );
 
-  // We assert on the Next.js fetch span. Just so we are more aware of it. Technically we do not depend on it in any way.
-  expect(nextjsHttpClientSpan).toBeDefined();
-
   // Right now we assert that the OTEL span is the last span before propagating
-  expect(otelHttpClientSpan).toBeDefined();
-  expect(otelHttpClientSpan?.span_id).toStrictEqual(expect.any(String));
-  expect(inboundTransaction.contexts?.trace?.parent_span_id).toBe(otelHttpClientSpan?.span_id);
+  expect(httpClientSpan).toBeDefined();
+  expect(httpClientSpan?.span_id).toStrictEqual(expect.any(String));
+  expect(inboundTransaction.contexts?.trace?.parent_span_id).toBe(httpClientSpan?.span_id);
 
   expect(headers).toMatchObject({
     baggage: expect.any(String),
-    'sentry-trace': `${outboundTransaction.contexts?.trace?.trace_id}-${otelHttpClientSpan?.span_id}-1`,
+    'sentry-trace': `${outboundTransaction.contexts?.trace?.trace_id}-${httpClientSpan?.span_id}-1`,
   });
 });
 

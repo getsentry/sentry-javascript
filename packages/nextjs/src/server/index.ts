@@ -79,6 +79,10 @@ export function init(options: NodeOptions): void {
     httpIntegration(),
   ];
 
+  // Turn off Next.js' own fetch instrumentation
+  // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
+  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
+
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
   const distDirName = globalWithInjectedValues.__rewriteFramesDistDir__;
