@@ -1,4 +1,4 @@
-import { record } from '@sentry-internal/rrweb';
+import type { Mirror } from '@sentry-internal/rrweb-snapshot';
 import { browserPerformanceTimeOrigin } from '@sentry/utils';
 
 import { WINDOW } from '../constants';
@@ -17,7 +17,7 @@ import type {
 // Map entryType -> function to normalize data for event
 const ENTRY_TYPES: Record<
   string,
-  (entry: AllPerformanceEntry) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
+  (entry: AllPerformanceEntry, mirror: Mirror) => null | ReplayPerformanceEntry<AllPerformanceEntryData>
 > = {
   // @ts-expect-error TODO: entry type does not fit the create* functions entry type
   resource: createResourceEntry,
@@ -56,10 +56,10 @@ interface LayoutShiftAttribution {
  * Handler creater for web vitals
  */
 export function webVitalHandler(
-  getter: (metric: Metric) => ReplayPerformanceEntry<AllPerformanceEntryData>,
+  getter: (metric: Metric, mirror: Mirror) => ReplayPerformanceEntry<AllPerformanceEntryData>,
   replay: ReplayContainer,
 ): (data: { metric: Metric }) => void {
-  return ({ metric }) => void replay.replayPerformanceEntries.push(getter(metric));
+  return ({ metric }) => void replay.replayPerformanceEntries.push(getter(metric, replay.getDomMirror()));
 }
 
 /**
@@ -67,16 +67,22 @@ export function webVitalHandler(
  */
 export function createPerformanceEntries(
   entries: AllPerformanceEntry[],
+  mirror: Mirror,
 ): ReplayPerformanceEntry<AllPerformanceEntryData>[] {
-  return entries.map(createPerformanceEntry).filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
+  return entries
+    .map(entry => createPerformanceEntry(entry, mirror))
+    .filter(Boolean) as ReplayPerformanceEntry<AllPerformanceEntryData>[];
 }
 
-function createPerformanceEntry(entry: AllPerformanceEntry): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
+function createPerformanceEntry(
+  entry: AllPerformanceEntry,
+  mirror: Mirror,
+): ReplayPerformanceEntry<AllPerformanceEntryData> | null {
   if (!ENTRY_TYPES[entry.entryType]) {
     return null;
   }
 
-  return ENTRY_TYPES[entry.entryType](entry);
+  return ENTRY_TYPES[entry.entryType](entry, mirror);
 }
 
 function getAbsoluteTime(time: number): number {
@@ -85,7 +91,7 @@ function getAbsoluteTime(time: number): number {
   return ((browserPerformanceTimeOrigin || WINDOW.performance.timeOrigin) + time) / 1000;
 }
 
-function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry<PaintData> {
+function createPaintEntry(entry: PerformancePaintTiming, _mirror: Mirror): ReplayPerformanceEntry<PaintData> {
   const { duration, entryType, name, startTime } = entry;
 
   const start = getAbsoluteTime(startTime);
@@ -98,7 +104,10 @@ function createPaintEntry(entry: PerformancePaintTiming): ReplayPerformanceEntry
   };
 }
 
-function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerformanceEntry<NavigationData> | null {
+function createNavigationEntry(
+  entry: PerformanceNavigationTiming,
+  _mirror: Mirror,
+): ReplayPerformanceEntry<NavigationData> | null {
   const {
     entryType,
     name,
@@ -145,6 +154,7 @@ function createNavigationEntry(entry: PerformanceNavigationTiming): ReplayPerfor
 
 function createResourceEntry(
   entry: ExperimentalPerformanceResourceTiming,
+  _mirror: Mirror,
 ): ReplayPerformanceEntry<ResourceData> | null {
   const {
     entryType,
@@ -180,38 +190,38 @@ function createResourceEntry(
 /**
  * Add a LCP event to the replay based on a LCP metric.
  */
-export function getLargestContentfulPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+export function getLargestContentfulPaint(metric: Metric, mirror: Mirror): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { element?: Node }) | undefined;
   const node = lastEntry ? lastEntry.element : undefined;
-  return getWebVital(metric, 'largest-contentful-paint', node);
+  return getWebVital(metric, 'largest-contentful-paint', node, mirror);
 }
 
 /**
  * Add a CLS event to the replay based on a CLS metric.
  */
-export function getCumulativeLayoutShift(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+export function getCumulativeLayoutShift(metric: Metric, mirror: Mirror): ReplayPerformanceEntry<WebVitalData> {
   // get first node that shifts
   const firstEntry = metric.entries[0] as (PerformanceEntry & { sources?: LayoutShiftAttribution[] }) | undefined;
   const node = firstEntry ? (firstEntry.sources ? firstEntry.sources[0].node : undefined) : undefined;
-  return getWebVital(metric, 'cumulative-layout-shift', node);
+  return getWebVital(metric, 'cumulative-layout-shift', node, mirror);
 }
 
 /**
  * Add a FID event to the replay based on a FID metric.
  */
-export function getFirstInputDelay(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+export function getFirstInputDelay(metric: Metric, mirror: Mirror): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
   const node = lastEntry ? lastEntry.target : undefined;
-  return getWebVital(metric, 'first-input-delay', node);
+  return getWebVital(metric, 'first-input-delay', node, mirror);
 }
 
 /**
  * Add an INP event to the replay based on an INP metric.
  */
-export function getInteractionToNextPaint(metric: Metric): ReplayPerformanceEntry<WebVitalData> {
+export function getInteractionToNextPaint(metric: Metric, mirror: Mirror): ReplayPerformanceEntry<WebVitalData> {
   const lastEntry = metric.entries[metric.entries.length - 1] as (PerformanceEntry & { target?: Node }) | undefined;
   const node = lastEntry ? lastEntry.target : undefined;
-  return getWebVital(metric, 'interaction-to-next-paint', node);
+  return getWebVital(metric, 'interaction-to-next-paint', node, mirror);
 }
 
 /**
@@ -221,6 +231,7 @@ export function getWebVital(
   metric: Metric,
   name: string,
   node: Node | undefined,
+  mirror: Mirror | undefined,
 ): ReplayPerformanceEntry<WebVitalData> {
   const value = metric.value;
   const rating = metric.rating;
@@ -236,7 +247,7 @@ export function getWebVital(
       value,
       size: value,
       rating,
-      nodeId: node ? record.mirror.getId(node) : undefined,
+      nodeId: node && mirror ? mirror.getId(node) : undefined,
     },
   };
 

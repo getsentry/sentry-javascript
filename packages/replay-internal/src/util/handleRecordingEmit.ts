@@ -32,7 +32,7 @@ export function getHandleRecordingEmit(replay: ReplayContainer): RecordingEmitCa
     hadFirstEvent = true;
 
     if (replay.clickDetector) {
-      updateClickDetectorForRecordingEvent(replay.clickDetector, event);
+      updateClickDetectorForRecordingEvent(replay.clickDetector, event, replay.getDomMirror());
     }
 
     // The handler returns `true` if we do not want to trigger debounced flush, `false` if we want to debounce flush.
