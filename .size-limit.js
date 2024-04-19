@@ -55,6 +55,13 @@ module.exports = [
     limit: '86 KB',
   },
   {
+    name: '@sentry/browser (incl. sendFeedback)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'sendFeedback'),
+    gzip: true,
+    limit: '40 KB',
+  },
+  {
     name: '@sentry/browser (incl. Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackIntegration'),
