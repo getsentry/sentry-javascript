@@ -1,8 +1,4 @@
-import {
-  browserTracingIntegration,
-  feedbackIntegration,
-  replayIntegration,
-} from '../../src';
+import { browserTracingIntegration, feedbackIntegration, replayIntegration } from '../../src';
 import * as TracingReplayFeedbackBundle from '../../src/index.bundle.tracing.replay.feedback';
 
 describe('index.bundle.tracing.replay.feedback', () => {
