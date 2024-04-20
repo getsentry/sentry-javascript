@@ -1,5 +1,6 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
+import 'dotenv/config';
 
 const PORT = Number(process.env.PORT || '3030');
 
@@ -55,6 +56,9 @@ const config: PlaywrightTestConfig = {
     {
       command: `PORT=${PORT} npm run dev`,
       port: PORT,
+      env: {
+
+      }
     },
   ],
 };

@@ -9,7 +9,7 @@ Prerequisites: Docker
 
 - Copy `.env.example` to `.env`
 - Fill in auth information in `.env` for an example Sentry project
-  - The `E2E_TEST_AUTH_TOKEN` must have all the default permissions
+  - The `E2E_TEST_AUTH_TOKEN` must have all the default permissions (at least `project:read`)
 - Run `yarn build:tarball` in the root of the repository
 
 To finally run all of the tests:
@@ -62,8 +62,8 @@ want to run a canary test, add it to the `canary.yml` workflow.
 **An important thing to note:** In the context of the build/test commands the fake test registry is available at
 `http://127.0.0.1:4873`. It hosts all of our packages as if they were to be published with the state of the current
 branch. This means we can install the packages from this registry via the `.npmrc` configuration as seen above. If you
-add Sentry dependencies to your test application, you should set the dependency versions set to `latest || *` in order
-for it to work with both regular and prerelease versions:
+add Sentry dependencies to your test application, you should set the dependency versions to `latest || *` in order for
+it to work with both regular and prerelease versions:
 
 ```jsonc
 // package.json
@@ -124,3 +124,23 @@ A standardized frontend test application has the following features:
 ### Standardized Backend Test Apps
 
 TBD
+
+## Troubleshooting
+
+If you encounter issues installing dependencies or building packages, make sure you:
+
+- are using `volta` as a toolchain manager (you will want to manage your `node` and `yarn` bins with it)
+- have not messed up with yarn configuration (see an example [issue](https://github.com/yarnpkg/yarn/issues/4890) and a
+  possible [solution](https://github.com/yarnpkg/yarn/issues/5259#issuecomment-379769451))
+- have tried these steps:
+  - `yarn build:tarball` (from the monorepo root) to build packages and create an archive per package;
+  - `pnpm store prune` (from the `e2e-tests` dir) to make sure the latest tarball is published to the test registry;
+  - `yarn test:e2e` or `yarn test:run <test-app-name>` (from the `e2e-tests` dir) to run the tests.
+- have read and followd the [How to set up a new test](#how-to-set-up-a-new-test);
+- have set up your `.env` (as per [instructions](#how-to-run))to resemble this:
+  ```sh
+  E2E_TEST_AUTH_TOKEN=sntryu_549************************************************************b79
+  E2E_TEST_DSN=https://dce09ec*********************c8ce@o**************36.ingest.us.sentry.io/450***********040
+  E2E_TEST_SENTRY_ORG_SLUG=however-u-called-your-org
+  E2E_TEST_SENTRY_TEST_PROJECT=for-example-sentry-js-test-project
+  ```
