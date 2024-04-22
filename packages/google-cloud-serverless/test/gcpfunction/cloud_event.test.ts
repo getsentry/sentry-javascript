@@ -86,7 +86,7 @@ describe('wrapCloudEventFunction', () => {
 
     describe('wrapEventFunction() as Promise', () => {
       test('successful execution', async () => {
-        const func: CloudEventFunction = (_context) =>
+        const func: CloudEventFunction = _context =>
           new Promise(resolve => {
             setTimeout(() => {
               resolve(42);
@@ -111,7 +111,7 @@ describe('wrapCloudEventFunction', () => {
 
       test('capture error', async () => {
         const error = new Error('wat');
-        const handler: CloudEventFunction = (_context) =>
+        const handler: CloudEventFunction = _context =>
           new Promise((_, reject) => {
             setTimeout(() => {
               reject(error);
