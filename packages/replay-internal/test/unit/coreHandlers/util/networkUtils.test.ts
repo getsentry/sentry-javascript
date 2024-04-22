@@ -8,8 +8,9 @@ import {
   getFullUrl,
   parseContentLengthHeader,
 } from '../../../../src/coreHandlers/util/networkUtils';
+import { useFakeTimers } from '../../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | coreHandlers | util | networkUtils', () => {
   describe('parseContentLengthHeader()', () => {

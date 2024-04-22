@@ -1,7 +1,8 @@
 import { BASE_TIMESTAMP } from '../..';
 import { SKIPPED, THROTTLED, throttle } from '../../../src/util/throttle';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | util | throttle', () => {
   it('executes when not hitting the limit', () => {

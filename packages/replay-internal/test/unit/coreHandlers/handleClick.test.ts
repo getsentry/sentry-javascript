@@ -3,8 +3,9 @@ import type { Breadcrumb } from '@sentry/types';
 import { BASE_TIMESTAMP } from '../..';
 import { ClickDetector, ignoreElement } from '../../../src/coreHandlers/handleClick';
 import type { ReplayContainer } from '../../../src/types';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | coreHandlers | handleClick', () => {
   describe('ClickDetector', () => {
