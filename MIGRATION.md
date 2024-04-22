@@ -177,12 +177,10 @@ The `Transaction` integration has been removed from `@sentry/integrations`. Ther
 #### @sentry/serverless
 
 `@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
-different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`. These new packages have smaller
-bundle size than `@sentry/serverless`, which should improve your serverless cold-start times.
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`.
 
-`@sentry/aws-serverless` and `@sentry/google-cloud-serverless` has also been changed to only emit CJS builds. The ESM
-build for the `@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be
-re-added at a later date.
+The `@sentry/google-cloud-serverless` package has also been changed to only emit CJS builds because it can only
+instrument CJS. ESM support will be re-added at a later date.
 
 In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
 directly import from the SDK instead.

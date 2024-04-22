@@ -20,6 +20,10 @@
   "exports": {
     "./package.json": "./package.json",
     ".": {
+      "import": {
+        "types": "./build/npm/types/index.d.ts",
+        "default": "./build/npm/esm/index.js"
+      },
       "require": {
         "types": "./build/npm/types/index.d.ts",
         "default": "./build/npm/cjs/index.js"
@@ -47,19 +51,16 @@
     "access": "public"
   },
   "dependencies": {
+    "@opentelemetry/instrumentation-aws-lambda": "0.40.0",
+    "@opentelemetry/instrumentation-aws-sdk": "0.40.0",
     "@sentry/core": "8.0.0-beta.3",
     "@sentry/node": "8.0.0-beta.3",
     "@sentry/types": "8.0.0-beta.3",
     "@sentry/utils": "8.0.0-beta.3",
-    "@types/aws-lambda": "^8.10.62",
-    "@types/express": "^4.17.14"
+    "@types/aws-lambda": "^8.10.62"
   },
   "devDependencies": {
-    "@types/node": "^14.18.0",
-    "aws-sdk": "^2.765.0",
-    "find-up": "^5.0.0",
-    "nock": "^13.0.4",
-    "npm-packlist": "^2.1.4"
+    "@types/node": "^14.18.0"
   },
   "scripts": {
     "build": "run-p build:transpile build:types build:bundle",
