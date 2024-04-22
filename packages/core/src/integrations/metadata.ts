@@ -24,7 +24,7 @@ interface Options {
     /**
      * Drop event if no stack frames have matching metadata
      */
-    ifNoStackFrameMetadataMatch?: (metadata: ModuleMetadata) => boolean;
+    ifNoStackFrameMetadataMatches?: (metadata: ModuleMetadata) => boolean;
   };
 }
 
@@ -55,10 +55,10 @@ const _moduleMetadataIntegration = ((options: Options = {}) => {
         event.exception &&
         event.exception.values &&
         options.dropEvent &&
-        options.dropEvent.ifNoStackFrameMetadataMatch
+        options.dropEvent.ifNoStackFrameMetadataMatches
       ) {
         const metadata = getAllModuleMetadata(event.exception.values);
-        if (!metadata.some(options.dropEvent.ifNoStackFrameMetadataMatch)) {
+        if (!metadata.some(options.dropEvent.ifNoStackFrameMetadataMatches)) {
           return null;
         }
       }
