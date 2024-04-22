@@ -81,6 +81,7 @@ export { parseSampleRate } from './utils/parseSampleRate';
 export { applySdkMetadata } from './utils/sdkMetadata';
 export { DEFAULT_ENVIRONMENT } from './constants';
 export { addBreadcrumb } from './breadcrumbs';
+export { inAppIntegration } from './integrations/in-app';
 export { functionToStringIntegration } from './integrations/functiontostring';
 export { inboundFiltersIntegration } from './integrations/inboundfilters';
 export { linkedErrorsIntegration } from './integrations/linkederrors';

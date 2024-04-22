@@ -16,7 +16,6 @@ import { dedupeIntegration } from '@sentry/core';
 import type { BrowserClientOptions, BrowserOptions } from './client';
 import { BrowserClient } from './client';
 import { DEBUG_BUILD } from './debug-build';
-import { inAppIntegration } from './exports';
 import { WINDOW } from './helpers';
 import { breadcrumbsIntegration } from './integrations/breadcrumbs';
 import { browserApiErrorsIntegration } from './integrations/browserapierrors';
@@ -41,7 +40,6 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     linkedErrorsIntegration(),
     dedupeIntegration(),
     httpContextIntegration(),
-    inAppIntegration(),
   ];
 }
 

@@ -96,6 +96,5 @@ export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { httpContextIntegration } from './integrations/httpcontext';
 export { linkedErrorsIntegration } from './integrations/linkederrors';
 export { browserApiErrorsIntegration } from './integrations/browserapierrors';
-export { inAppIntegration } from './integrations/in-app';
 
 export { lazyLoadIntegration } from './utils/lazyLoadIntegration';

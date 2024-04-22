@@ -10,6 +10,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  inAppIntegration,
 } from '@sentry/core';
 
 export {
