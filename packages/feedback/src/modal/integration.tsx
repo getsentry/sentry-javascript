@@ -1,5 +1,11 @@
 import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
-import type { CreateDialogProps, FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
+import type {
+  CreateDialogProps,
+  FeedbackDialog,
+  FeedbackFormData,
+  FeedbackModalIntegration,
+  IntegrationFn,
+} from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
@@ -19,7 +25,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const style = createDialogStyles(options);
 
       let originalOverflow = '';
-      const dialog = {
+      const dialog: FeedbackDialog = {
         get el() {
           return el;
         },

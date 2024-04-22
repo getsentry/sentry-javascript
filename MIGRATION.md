@@ -1283,6 +1283,13 @@ export class HeaderComponent {
 }
 ```
 
+# Upgrading Sentry Feedback (beta, 7.x to 8.0)
+
+For details on upgrading Feedback in its beta phase, please view the
+[dedicated Feedback MIGRATION docs](./docs/migration/feedback.md).
+
+---
+
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
