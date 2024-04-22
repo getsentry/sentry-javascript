@@ -4,7 +4,7 @@ import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import { getFilenameDebugIdMap } from '@sentry/core';
-import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
+import { forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 import type { Profile, RawThreadCpuProfile, ThreadCpuProfile } from './types';
