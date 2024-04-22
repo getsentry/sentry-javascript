@@ -15,14 +15,13 @@ import {
   parseEnvelope,
   serializeEnvelope,
 } from '../src/envelope';
-import { dropUndefinedKeys } from '../src/object';
 import type { InternalGlobal } from '../src/worldwide';
 import { GLOBAL_OBJ } from '../src/worldwide';
 
 describe('envelope', () => {
   describe('createSpanEnvelope()', () => {
     it('span-envelope-item of INP event has the correct object structure', () => {
-      const attributes: SpanAttributes = dropUndefinedKeys({
+      const attributes: SpanAttributes = {
         release: 'releaseString',
         environment: 'dev',
         transaction: '/test-route',
@@ -30,7 +29,7 @@ describe('envelope', () => {
         user: 10,
         profile_id: 'test-profile-id',
         replay_id: 'test-replay-id',
-      });
+      };
 
       const startTime = 1713365480;
 

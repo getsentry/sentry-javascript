@@ -140,9 +140,9 @@ function _trackINP(): () => void {
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
     });
 
-    const envelope = span ? createSpanEnvelope([span]) : undefined;
+    const envelope = createSpanEnvelope([span]);
     const transport = client && client.getTransport();
-    if (transport && envelope) {
+    if (transport) {
       transport.send(envelope).then(null, reason => {
         DEBUG_BUILD && logger.error('Error while sending interaction:', reason);
       });
