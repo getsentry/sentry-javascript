@@ -63,4 +63,67 @@ describe('ModuleMetadata integration', () => {
 
     captureException(new Error('Some error'));
   });
+
+  test('Drops event if no stack frames have matching metadata', done => {
+    expect.assertions(0);
+
+    const options = getDefaultTestClientOptions({
+      dsn: 'https://username@domain/123',
+      enableSend: true,
+      stackParser,
+      integrations: [
+        moduleMetadataIntegration({ dropEvent: { ifNoStackFrameMetadataMatches: m => m?.team === 'backend' } }),
+      ],
+      transport: () =>
+        createTransport({ recordDroppedEvent: () => undefined }, async req => {
+          expect(req.body).toBeUndefined();
+          done();
+          return {};
+        }),
+    });
+
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    captureException(new Error('Some error'));
+
+    setTimeout(() => {
+      done();
+    }, 2000);
+  });
+
+  test('Sends event if stack frames have matching metadata', done => {
+    expect.assertions(1);
+
+    let callbackCalled = false;
+
+    const options = getDefaultTestClientOptions({
+      dsn: 'https://username@domain/123',
+      enableSend: true,
+      stackParser,
+      integrations: [
+        moduleMetadataIntegration({
+          dropEvent: {
+            ifNoStackFrameMetadataMatches: m => {
+              callbackCalled = true;
+              return m?.team === 'frontend';
+            },
+          },
+        }),
+      ],
+      transport: () =>
+        createTransport({ recordDroppedEvent: () => undefined }, async _ => {
+          expect(callbackCalled).toBe(true);
+          done();
+          return {};
+        }),
+    });
+
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    captureException(new Error('Some error'));
+  });
 });
