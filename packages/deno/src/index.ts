@@ -109,6 +109,16 @@ export {
 export { breadcrumbsIntegration, dedupeIntegration } from '@sentry/browser';
 import { Integrations as CoreIntegrations } from '@sentry/core';
 
+export {
+  captureConsoleIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  reportingObserverIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  httpClientIntegration,
+} from '@sentry/integrations';
+
 export { denoContextIntegration } from './integrations/context';
 export { globalHandlersIntegration } from './integrations/globalhandlers';
 export { normalizePathsIntegration } from './integrations/normalizepaths';

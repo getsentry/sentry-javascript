@@ -103,6 +103,18 @@ export {
   init,
 } from './sdk';
 
+export {
+  captureConsoleIntegration,
+  dedupeIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  reportingObserverIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  httpClientIntegration,
+  contextLinesIntegration,
+} from '@sentry/integrations';
+
 import { Integrations as CoreIntegrations, RequestData } from '@sentry/core';
 
 import { WinterCGFetch } from './integrations/wintercg-fetch';
