@@ -3,7 +3,6 @@ import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
 import { makeFetchTransport } from '../../../src/transports/fetch';
 import type { BrowserTransportOptions } from '../../../src/transports/types';
-import type { FetchImpl } from '../../../src/transports/utils';
 
 const DEFAULT_FETCH_TRANSPORT_OPTIONS: BrowserTransportOptions = {
   url: 'https://sentry.io/api/42/store/?sentry_key=123&sentry_version=7',
@@ -37,7 +36,7 @@ describe('NewFetchTransport', () => {
         status: 200,
         text: () => Promise.resolve({}),
       }),
-    ) as unknown as FetchImpl;
+    ) as unknown as typeof window.fetch;
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
@@ -63,7 +62,7 @@ describe('NewFetchTransport', () => {
         status: 200,
         text: () => Promise.resolve({}),
       }),
-    ) as unknown as FetchImpl;
+    ) as unknown as typeof window.fetch;
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(headers.get).toHaveBeenCalledTimes(0);
@@ -81,7 +80,7 @@ describe('NewFetchTransport', () => {
         status: 200,
         text: () => Promise.resolve({}),
       }),
-    ) as unknown as FetchImpl;
+    ) as unknown as typeof window.fetch;
 
     const REQUEST_OPTIONS: RequestInit = {
       referrerPolicy: 'strict-origin',
@@ -102,8 +101,8 @@ describe('NewFetchTransport', () => {
     });
   });
 
-  it('handles when `getNativeFetchImplementation` is undefined', async () => {
-    const mockFetch = jest.fn(() => undefined) as unknown as FetchImpl;
+  it('handles when `getNativetypeof window.fetchementation` is undefined', async () => {
+    const mockFetch = jest.fn(() => undefined) as unknown as typeof window.fetch;
     const transport = makeFetchTransport(DEFAULT_FETCH_TRANSPORT_OPTIONS, mockFetch);
 
     expect(mockFetch).toHaveBeenCalledTimes(0);
@@ -118,7 +117,7 @@ describe('NewFetchTransport', () => {
         status: 200,
         text: () => Promise.resolve({}),
       }),
-    ) as unknown as FetchImpl;
+    ) as unknown as typeof window.fetch;
 
     const REQUEST_OPTIONS: RequestInit = {
       referrerPolicy: 'strict-origin',

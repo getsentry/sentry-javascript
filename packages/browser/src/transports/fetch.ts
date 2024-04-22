@@ -1,17 +1,17 @@
+import { clearCachedImplementation, getNativeImplementation } from '@sentry-internal/browser-utils';
 import { createTransport } from '@sentry/core';
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
 import { rejectedSyncPromise } from '@sentry/utils';
+import type { WINDOW } from '../helpers';
 
 import type { BrowserTransportOptions } from './types';
-import type { FetchImpl } from './utils';
-import { clearCachedFetchImplementation, getNativeFetchImplementation } from './utils';
 
 /**
  * Creates a Transport that uses the Fetch API to send events to Sentry.
  */
 export function makeFetchTransport(
   options: BrowserTransportOptions,
-  nativeFetch: FetchImpl | undefined = getNativeFetchImplementation(),
+  nativeFetch: typeof WINDOW.fetch | undefined = getNativeImplementation('fetch'),
 ): Transport {
   let pendingBodySize = 0;
   let pendingCount = 0;
@@ -42,7 +42,7 @@ export function makeFetchTransport(
     };
 
     if (!nativeFetch) {
-      clearCachedFetchImplementation();
+      clearCachedImplementation('fetch');
       return rejectedSyncPromise('No fetch implementation available');
     }
 
@@ -59,7 +59,7 @@ export function makeFetchTransport(
         };
       });
     } catch (e) {
-      clearCachedFetchImplementation();
+      clearCachedImplementation('fetch');
       pendingBodySize -= requestSize;
       pendingCount--;
       return rejectedSyncPromise(e);
