@@ -18,7 +18,13 @@ export { addClickKeypressInstrumentationHandler } from './instrument/dom';
 
 export { addHistoryInstrumentationHandler } from './instrument/history';
 
-export { fetch, setTimeout, clearCachedImplementation, getNativeImplementation } from './getNativeImplementation';
+export {
+  fetch,
+  setTimeout,
+  clearCachedImplementation,
+  getNativeImplementation,
+  setCachedImplementation,
+} from './getNativeImplementation';
 
 export {
   addXhrInstrumentationHandler,

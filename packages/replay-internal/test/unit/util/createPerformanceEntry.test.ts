@@ -1,4 +1,7 @@
-jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
+import { useFakeTimers } from '../../utils/use-fake-timers';
+
+useFakeTimers();
+jest.setSystemTime(new Date('2023-01-01'));
 
 jest.mock('@sentry/utils', () => ({
   ...jest.requireActual('@sentry/utils'),

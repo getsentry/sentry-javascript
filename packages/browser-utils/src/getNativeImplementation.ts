@@ -67,6 +67,18 @@ export function clearCachedImplementation(name: keyof CacheableImplementations):
 }
 
 /**
+ * Sets a cached implementation.
+ * This should NOT be used, and is only here
+ * @hidden
+ */
+export function setCachedImplementation<T extends keyof CacheableImplementations>(
+  name: T,
+  impl: CacheableImplementations[T],
+): void {
+  cachedImplementations[name] = impl;
+}
+
+/**
  * A special usecase for incorrectly wrapped Fetch APIs in conjunction with ad-blockers.
  * Whenever someone wraps the Fetch API and returns the wrong promise chain,
  * this chain becomes orphaned and there is no possible way to capture it's rejections

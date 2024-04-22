@@ -2,8 +2,9 @@ import { BASE_TIMESTAMP } from '../../..';
 import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcrumbEvent';
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
+import { useFakeTimers } from '../../../utils/use-fake-timers';
 
-jest.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
   beforeEach(function () {
