@@ -4959,13 +4959,13 @@
     "@opentelemetry/instrumentation" "^0.48.0"
     "@opentelemetry/semantic-conventions" "^1.0.0"
 
-"@opentelemetry/instrumentation-fastify@0.33.0":
-  version "0.33.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fastify/-/instrumentation-fastify-0.33.0.tgz#4f4013b2677c94d7f8f34e0aeab77bca16524d8e"
-  integrity sha512-sl3q9Mt+yM6GlZJKhfLUIRrVEYqfmI0hqYLha5OFG5rLrgnZCCZVy8ra4+Pa40ecH1409cvwwBPf7k9AHEQBTw==
+"@opentelemetry/instrumentation-fastify@0.35.0":
+  version "0.35.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/instrumentation-fastify/-/instrumentation-fastify-0.35.0.tgz#e8e197594d6989bac3a4a5129f2c51deec759841"
+  integrity sha512-lUHj4lYmJswKHR0twg3KFSiIkfTlF4tyh+VwyrrNDYy7yGDqzftP3tP4coVdhT78RRp3DpcAGggbfrIJbdP9pA==
   dependencies:
     "@opentelemetry/core" "^1.8.0"
-    "@opentelemetry/instrumentation" "^0.48.0"
+    "@opentelemetry/instrumentation" "^0.50.0"
     "@opentelemetry/semantic-conventions" "^1.0.0"
 
 "@opentelemetry/instrumentation-graphql@0.37.0":
