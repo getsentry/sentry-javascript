@@ -15,6 +15,22 @@ import { getPropagationContextFromSpan } from './propagator';
 import { getSamplingDecision } from './utils/getSamplingDecision';
 import { setIsSetup } from './utils/setupCheck';
 
+// https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
+const NEXTJS_SPAN_NAME_PREFIXES = [
+  'BaseServer',
+  'LoadComponents',
+  'NextServer',
+  'createServer',
+  'startServer',
+  'NextNodeServer',
+  'Render',
+  'AppRender',
+  'Router',
+  'Node',
+  'AppRouteRouteHandlers',
+  'ResolveMetadata',
+];
+
 /**
  * A custom OTEL sampler that uses Sentry sampling rates to make its decision
  */
@@ -68,7 +84,10 @@ export class SentrySampler implements Sampler {
     // The reason for this is that the data quality of the spans varies, it is different per version of Next,
     // and we need to keep our manual instrumentation around for the edge runtime anyhow.
     // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
-    if (spanAttributes['next.span_type'] && (typeof parentSampled !== 'boolean' || parentContext?.isRemote)) {
+    if (
+      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.includes(spanName.split('.')[0])) &&
+      (typeof parentSampled !== 'boolean' || parentContext?.isRemote)
+    ) {
       return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
     }
 
