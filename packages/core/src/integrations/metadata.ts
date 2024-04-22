@@ -1,14 +1,36 @@
-import type { EventItem, IntegrationFn } from '@sentry/types';
+import type { EventItem, Exception, IntegrationFn } from '@sentry/types';
 import { forEachEnvelopeItem } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 import { addMetadataToStackFrames, stripMetadataFromStackFrames } from '../metadata';
 
-const INTEGRATION_NAME = 'ModuleMetadata';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ModuleMetadata = any;
 
-const _moduleMetadataIntegration = (() => {
+function getAllModuleMetadata(exceptions: Exception[]): ModuleMetadata[] {
+  return exceptions.reduce(
+    (acc, exception) => {
+      if (exception.stacktrace && exception.stacktrace.frames) {
+        acc.push(...exception.stacktrace.frames.map(frame => frame.module_metadata));
+      }
+      return acc;
+    },
+    [] as ModuleMetadata[],
+  );
+}
+
+interface Options {
+  dropEvent?: {
+    /**
+     * Drop event if no stack frames have matching metadata
+     */
+    ifNoStackFrameMetadataMatch?: (metadata: ModuleMetadata) => boolean;
+  };
+}
+
+const _moduleMetadataIntegration = ((options: Options = {}) => {
   return {
-    name: INTEGRATION_NAME,
+    name: 'ModuleMetadata',
     setup(client) {
       // We need to strip metadata from stack frames before sending them to Sentry since these are client side only.
       client.on('beforeEnvelope', envelope => {
@@ -28,6 +50,19 @@ const _moduleMetadataIntegration = (() => {
     processEvent(event, _hint, client) {
       const stackParser = client.getOptions().stackParser;
       addMetadataToStackFrames(stackParser, event);
+
+      if (
+        event.exception &&
+        event.exception.values &&
+        options.dropEvent &&
+        options.dropEvent.ifNoStackFrameMetadataMatch
+      ) {
+        const metadata = getAllModuleMetadata(event.exception.values);
+        if (!metadata.some(options.dropEvent.ifNoStackFrameMetadataMatch)) {
+          return null;
+        }
+      }
+
       return event;
     },
   };
