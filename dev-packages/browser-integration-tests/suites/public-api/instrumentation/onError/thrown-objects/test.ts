@@ -2,12 +2,22 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
+import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../../utils/helpers';
 
 sentryTest('should catch thrown objects', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
 
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  await page.goto(url);
+
+  runScriptInSandbox(page, {
+    content: `
+    throw {
+      error: 'stuff is broken',
+      somekey: 'ok'
+    };`,
+  });
+
+  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({

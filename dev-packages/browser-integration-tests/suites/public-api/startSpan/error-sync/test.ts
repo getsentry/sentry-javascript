@@ -2,7 +2,11 @@ import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  getMultipleSentryEnvelopeRequests,
+  runScriptInSandbox,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 sentryTest('should capture an error within a sync startSpan callback', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
@@ -10,10 +14,22 @@ sentryTest('should capture an error within a sync startSpan callback', async ({ 
   }
 
   const url = await getLocalTestPath({ testDir: __dirname });
-  const gotoPromise = page.goto(url);
-  const envelopePromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+  await page.goto(url);
 
-  const [, events] = await Promise.all([gotoPromise, envelopePromise]);
+  runScriptInSandbox(page, {
+    content: `
+      function run() {
+        Sentry.startSpan({ name: 'parent_span' }, () => {
+          throw new Error('Sync Error');
+        });
+      }
+
+      setTimeout(run);
+      `,
+  });
+
+  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 2);
+
   const txn = events.find(event => event.type === 'transaction');
   const err = events.find(event => !event.type);
 

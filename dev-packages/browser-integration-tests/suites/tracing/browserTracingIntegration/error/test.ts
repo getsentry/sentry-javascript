@@ -1,7 +1,11 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getMultipleSentryEnvelopeRequests, shouldSkipTracingTest } from '../../../../utils/helpers';
+import {
+  getMultipleSentryEnvelopeRequests,
+  runScriptInSandbox,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 sentryTest(
   'should put the pageload transaction name onto an error event caught during pageload',
@@ -13,6 +17,12 @@ sentryTest(
     const url = await getLocalTestPath({ testDir: __dirname });
 
     await page.goto(url);
+
+    runScriptInSandbox(page, {
+      content: `
+        throw new Error('Error during pageload');
+      `,
+    });
 
     const [e1, e2] = await getMultipleSentryEnvelopeRequests<Event>(page, 2);
 

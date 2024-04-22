@@ -148,11 +148,17 @@ export const countEnvelopes = async (
  * Run script at the given path inside the test environment.
  *
  * @param {Page} page
- * @param {string} path
+ * @param {{ path?: string; content?: string }} impl
  * @return {*}  {Promise<void>}
  */
-async function runScriptInSandbox(page: Page, path: string): Promise<void> {
-  await page.addScriptTag({ path });
+async function runScriptInSandbox(
+  page: Page,
+  impl: {
+    path?: string;
+    content?: string;
+  },
+): Promise<void> {
+  await page.addScriptTag({ path: impl.path, content: impl.content });
 }
 
 /**
@@ -340,26 +346,11 @@ async function getFirstSentryEnvelopeRequest<T>(
 }
 
 /**
- * Manually inject a script into the page of given URL.
- * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
- * The given script should be vanilla browser JavaScript
+ * Trigger an error in the page context.
+ * This function is useful to test error handling in the page.
  *
  * @param {Page} page
- * @param {string} url
- * @param {string} scriptPath
- * @return {*}  {Promise<Array<Event>>}
+ * @param {unknown} error
  */
-async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: string): Promise<Array<Event>> {
-  await page.goto(url);
-  await runScriptInSandbox(page, scriptPath);
 
-  return getSentryEvents(page);
-}
-
-export {
-  runScriptInSandbox,
-  getMultipleSentryEnvelopeRequests,
-  getFirstSentryEnvelopeRequest,
-  getSentryEvents,
-  injectScriptAndGetEvents,
-};
+export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };
