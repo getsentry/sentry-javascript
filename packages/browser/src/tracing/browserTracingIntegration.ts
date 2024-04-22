@@ -1,6 +1,8 @@
+/* eslint-disable max-lines */
 import {
   addHistoryInstrumentationHandler,
   addPerformanceEntries,
+  startTrackingINP,
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingWebVitals,
@@ -95,6 +97,13 @@ export interface BrowserTracingOptions {
   enableLongTask: boolean;
 
   /**
+   * If true, Sentry will capture first input delay and add it to the corresponding transaction.
+   *
+   * Default: true
+   */
+  enableInp: boolean;
+
+  /**
    * Flag to disable patching all together for fetch requests.
    *
    * Default: true
@@ -145,6 +154,7 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   instrumentPageLoad: true,
   markBackgroundSpan: true,
   enableLongTask: true,
+  enableInp: true,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -167,6 +177,10 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   };
 
   const _collectWebVitals = startTrackingWebVitals();
+
+  if (options.enableInp) {
+    startTrackingINP();
+  }
 
   if (options.enableLongTask) {
     startTrackingLongTasks();

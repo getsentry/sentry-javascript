@@ -52,7 +52,7 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '86 KB',
+    limit: '87 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -165,7 +165,7 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '261 KB',
+    limit: '264 KB',
   },
   // Next.js SDK (ESM)
   {
