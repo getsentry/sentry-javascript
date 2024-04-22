@@ -84,6 +84,59 @@ describe('wrapCloudEventFunction', () => {
       expect(mockFlush).toBeCalledWith(2000);
     });
 
+    describe('wrapEventFunction() as Promise', () => {
+      test('successful execution', async () => {
+        const func: CloudEventFunction = _context =>
+          new Promise(resolve => {
+            setTimeout(() => {
+              resolve(42);
+            }, 10);
+          });
+        const wrappedHandler = wrapCloudEventFunction(func);
+        await expect(handleCloudEvent(wrappedHandler)).resolves.toBe(42);
+
+        const fakeTransactionContext = {
+          name: 'event.type',
+          op: 'function.gcp.cloud_event',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          },
+        };
+
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockSpan.end).toBeCalled();
+        expect(mockFlush).toBeCalledWith(2000);
+      });
+
+      test('capture error', async () => {
+        const error = new Error('wat');
+        const handler: CloudEventFunction = _context =>
+          new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(error);
+            }, 10);
+          });
+
+        const wrappedHandler = wrapCloudEventFunction(handler);
+        await expect(handleCloudEvent(wrappedHandler)).rejects.toThrowError(error);
+
+        const fakeTransactionContext = {
+          name: 'event.type',
+          op: 'function.gcp.cloud_event',
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.serverless.gcp_cloud_event',
+          },
+        };
+
+        expect(mockStartSpanManual).toBeCalledWith(fakeTransactionContext, expect.any(Function));
+        expect(mockCaptureException).toBeCalledWith(error, expect.any(Function));
+        expect(mockSpan.end).toBeCalled();
+        expect(mockFlush).toBeCalled();
+      });
+    });
+
     test('capture error', async () => {
       const error = new Error('wat');
       const handler: CloudEventFunction = _context => {
