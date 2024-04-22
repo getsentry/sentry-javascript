@@ -145,7 +145,7 @@ export const countEnvelopes = async (
 };
 
 /**
- * Run script at the given path inside the test environment.
+ * Run script inside the test environment.
  *
  * @param {Page} page
  * @param {{ path?: string; content?: string }} impl
@@ -158,7 +158,15 @@ async function runScriptInSandbox(
     content?: string;
   },
 ): Promise<void> {
-  await page.addScriptTag({ path: impl.path, content: impl.content });
+  try {
+    await page.addScriptTag({ path: impl.path, content: impl.content });
+  } catch (e) {
+    // no-op
+  }
+}
+
+/**
+ *
 }
 
 /**

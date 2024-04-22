@@ -9,15 +9,16 @@ sentryTest('should catch thrown objects', async ({ getLocalTestPath, page }) => 
 
   await page.goto(url);
 
-  runScriptInSandbox(page, {
-    content: `
-    throw {
-      error: 'stuff is broken',
-      somekey: 'ok'
-    };`,
-  });
-
-  const eventData = await getFirstSentryEnvelopeRequest<Event>(page);
+  const [, eventData] = await Promise.all([
+    runScriptInSandbox(page, {
+      content: `
+      throw {
+        error: 'stuff is broken',
+        somekey: 'ok'
+      };`,
+    }),
+    getFirstSentryEnvelopeRequest<Event>(page),
+  ]);
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({

@@ -11,18 +11,19 @@ sentryTest(
 
     await page.goto(url);
 
-    runScriptInSandbox(page, {
-      content: `
-        try {
-          foo();
-        } catch (e) {
-          Sentry.captureException(e);
-          throw e;
-        }
-      `,
-    });
-
-    const events = await getMultipleSentryEnvelopeRequests<Event>(page, 1);
+    const [, events] = await Promise.all([
+      runScriptInSandbox(page, {
+        content: `
+          try {
+            foo();
+          } catch (e) {
+            Sentry.captureException(e);
+            throw e;
+          }
+        `,
+      }),
+      getMultipleSentryEnvelopeRequests<Event>(page, 1),
+    ]);
 
     expect(events[0].exception?.values).toHaveLength(1);
     expect(events[0].exception?.values?.[0]).toMatchObject({

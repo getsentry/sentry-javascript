@@ -16,8 +16,9 @@ sentryTest('should capture an error within a sync startSpan callback', async ({ 
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  runScriptInSandbox(page, {
-    content: `
+  const [, events] = await Promise.all([
+    runScriptInSandbox(page, {
+      content: `
       function run() {
         Sentry.startSpan({ name: 'parent_span' }, () => {
           throw new Error('Sync Error');
@@ -26,9 +27,9 @@ sentryTest('should capture an error within a sync startSpan callback', async ({ 
 
       setTimeout(run);
       `,
-  });
-
-  const events = await getMultipleSentryEnvelopeRequests<Event>(page, 2);
+    }),
+    getMultipleSentryEnvelopeRequests<Event>(page, 2),
+  ]);
 
   const txn = events.find(event => event.type === 'transaction');
   const err = events.find(event => !event.type);
