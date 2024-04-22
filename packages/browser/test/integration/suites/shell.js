@@ -24,7 +24,6 @@ function runVariant(variant) {
      */
     {{ suites/onunhandledrejection.js }} // biome-ignore format: No trailing commas
     {{ suites/builtins.js }} // biome-ignore format: No trailing commas
-    {{ suites/loader.js }} // biome-ignore format: No trailing commas
   });
 }
 
@@ -33,5 +32,3 @@ for (var idx in variants) {
     runVariant(variants[idx]);
   })();
 }
-
-{{ suites/loader-specific.js }} // biome-ignore format: No trailing commas
