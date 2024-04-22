@@ -1,5 +1,5 @@
 import * as os from 'os';
-import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Client, Context, Envelope, Event } from '@sentry/types';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
