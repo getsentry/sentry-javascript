@@ -59,7 +59,7 @@ export {
   defineIntegration,
 } from './integration';
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
-export { prepareEvent } from './utils/prepareEvent';
+export { getFilenameDebugIdMap, prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
 export { createSpanEnvelope } from './span';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';

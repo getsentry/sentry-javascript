@@ -160,13 +160,13 @@ function applyClientOptions(event: Event, options: ClientOptions): void {
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
 
 /**
- * Puts debug IDs into the stack frames of an error event.
+ * Given a stackParser, retrieve every filename and debugId pair
  */
-export function applyDebugIds(event: Event, stackParser: StackParser): void {
+export function getFilenameDebugIdMap(stackParser: StackParser): Record<string, string> {
   const debugIdMap = GLOBAL_OBJ._sentryDebugIds;
 
   if (!debugIdMap) {
-    return;
+    return {};
   }
 
   let debugIdStackFramesCache: Map<string, StackFrame[]>;
@@ -179,7 +179,7 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
   }
 
   // Build a map of filename -> debug_id
-  const filenameDebugIdMap = Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
+  return Object.keys(debugIdMap).reduce<Record<string, string>>((acc, debugIdStackTrace) => {
     let parsedStack: StackFrame[];
     const cachedParsedStack = debugIdStackFramesCache.get(debugIdStackTrace);
     if (cachedParsedStack) {
@@ -198,6 +198,14 @@ export function applyDebugIds(event: Event, stackParser: StackParser): void {
     }
     return acc;
   }, {});
+}
+
+/**
+ * Puts debug IDs into the stack frames of an error event.
+ */
+export function applyDebugIds(event: Event, stackParser: StackParser): void {
+  // Build a map of filename -> debug_id
+  const filenameDebugIdMap = getFilenameDebugIdMap(stackParser);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
