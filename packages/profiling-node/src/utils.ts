@@ -263,8 +263,6 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   return events;
 }
 
-const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
-
 /**
  * Cross reference profile collected resources with debug_ids and return a list of debug images.
  * @param {string[]} resource_paths
