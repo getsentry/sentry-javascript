@@ -161,7 +161,10 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
 }
 
 function applySpanToEvent(event: Event, span: Span): void {
-  event.contexts = { trace: spanToTraceContext(span), ...event.contexts };
+  event.contexts = {
+    trace: spanToTraceContext(span, false),
+    ...event.contexts,
+  };
 
   event.sdkProcessingMetadata = {
     dynamicSamplingContext: getDynamicSamplingContextFromSpan(span),

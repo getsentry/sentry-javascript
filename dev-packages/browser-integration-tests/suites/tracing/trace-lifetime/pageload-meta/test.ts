@@ -168,14 +168,6 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
   });
 
   expect(errorEvent?.contexts?.trace).toEqual({
-    data: {
-      'sentry.op': 'pageload',
-      'sentry.origin': 'auto.pageload.browser',
-      'sentry.sample_rate': 1,
-      'sentry.source': 'url',
-    },
-    op: 'pageload',
-    origin: 'auto.pageload.browser',
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),

@@ -275,7 +275,7 @@ export class SentrySpan implements Span {
 
     const transaction: TransactionEvent = {
       contexts: {
-        trace: spanToTraceContext(this),
+        trace: spanToTraceContext(this, true),
       },
       spans,
       start_timestamp: this._startTime,
