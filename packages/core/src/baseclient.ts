@@ -22,6 +22,8 @@ import type {
   SessionAggregates,
   SeverityLevel,
   Span,
+  SpanAttributes,
+  SpanContextData,
   StartSpanOptions,
   TransactionEvent,
   Transport,
@@ -418,6 +420,20 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(
+    hook: 'afterSampling',
+    callback: (
+      samplingData: {
+        spanAttributes: SpanAttributes;
+        spanName: string;
+        parentSampled?: boolean;
+        parentContext?: SpanContextData;
+      },
+      samplingDecision: { decision: boolean },
+    ) => void,
+  ): void;
+
+  /** @inheritdoc */
+  public on(
     hook: 'startPageLoadSpan',
     callback: (
       options: StartSpanOptions,
@@ -441,6 +457,18 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     // @ts-expect-error We assue the types are correct
     this._hooks[hook].push(callback);
   }
+
+  /** @inheritdoc */
+  public emit(
+    hook: 'afterSampling',
+    samplingData: {
+      spanAttributes: SpanAttributes;
+      spanName: string;
+      parentSampled?: boolean;
+      parentContext?: SpanContextData;
+    },
+    samplingDecision: { decision: boolean },
+  ): void;
 
   /** @inheritdoc */
   public emit(hook: 'spanStart', span: Span): void;
