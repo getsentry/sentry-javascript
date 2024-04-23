@@ -112,8 +112,6 @@
     "jest": "^27.5.1",
     "jest-environment-node": "^27.5.1",
     "jsdom": "^19.0.0",
-    "karma-browserstack-launcher": "^1.5.1",
-    "karma-firefox-launcher": "^1.1.0",
     "lerna": "7.1.1",
     "madge": "4.0.2",
     "nodemon": "^2.0.16",

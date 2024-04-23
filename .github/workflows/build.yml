@@ -1202,7 +1202,6 @@ jobs:
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
-        job_browser_integration_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
