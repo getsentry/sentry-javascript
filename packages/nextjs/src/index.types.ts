@@ -27,6 +27,7 @@ export declare const Integrations: typeof clientSdk.Integrations &
   typeof edgeSdk.Integrations;
 
 export declare const linkedErrorsIntegration: typeof clientSdk.linkedErrorsIntegration;
+export declare const contextLinesIntegration: typeof clientSdk.contextLinesIntegration;
 
 export declare const defaultIntegrations: Integration[];
 export declare const getDefaultIntegrations: (options: Options) => Integration[];

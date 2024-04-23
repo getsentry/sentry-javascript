@@ -35,7 +35,6 @@
     "localforage": "^1.8.1"
   },
   "devDependencies": {
-    "@sentry/browser": "7.111.0",
     "chai": "^4.1.2"
   },
   "scripts": {
