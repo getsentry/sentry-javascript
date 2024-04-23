@@ -11,17 +11,24 @@ sentryTest(
 
     await page.goto(url);
 
-    const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 1);
+    const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
     runScriptInSandbox(page, {
       content: `
-          try {
-            foo();
-          } catch (e) {
-            Sentry.captureException(e);
-            throw e;
-          }
-        `,
+      try {
+        try {
+          foo();
+        } catch (e) {
+          Sentry.captureException(e);
+          throw e; // intentionally re-throw
+        }
+      } catch (e) {
+        // simulate window.onerror without generating a Script error
+        window.onerror('error', 'file.js', 1, 1, e);
+      }
+
+      Sentry.captureException(new Error('error 2'));
+    `,
     });
 
     const events = await errorEventsPromise;
@@ -31,6 +38,20 @@ sentryTest(
       type: 'ReferenceError',
       // this exact error message varies between browsers, but they should all reference 'foo'
       value: expect.stringContaining('foo'),
+      mechanism: {
+        type: 'generic',
+        handled: true,
+      },
+      stacktrace: {
+        frames: expect.any(Array),
+      },
+    });
+
+    // This is not a refernece error, but another generic error
+    expect(events[1].exception?.values).toHaveLength(1);
+    expect(events[1].exception?.values?.[0]).toMatchObject({
+      type: 'Error',
+      value: 'error 2',
       mechanism: {
         type: 'generic',
         handled: true,
