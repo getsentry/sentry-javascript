@@ -9,12 +9,12 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('creates a new trace on each navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('creates a new trace on each navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await getFirstSentryEnvelopeRequest(page, url);
 
@@ -31,6 +31,9 @@ sentryTest('creates a new trace on each navigation', async ({ getLocalTestPath, 
 
   const navigation1TraceContext = navigation1Event.contexts?.trace;
   const navigation2TraceContext = navigation2Event.contexts?.trace;
+
+  expect(navigation1Event.type).toEqual('transaction');
+  expect(navigation2Event.type).toEqual('transaction');
 
   expect(navigation1TraceContext).toMatchObject({
     op: 'navigation',
@@ -65,12 +68,12 @@ sentryTest('creates a new trace on each navigation', async ({ getLocalTestPath, 
   expect(navigation1TraceContext?.trace_id).not.toEqual(navigation2TraceContext?.trace_id);
 });
 
-sentryTest('error after navigation has navigation traceId', async ({ getLocalTestPath, page }) => {
+sentryTest('error after navigation has navigation traceId', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // ensure pageload transaction is finished
   await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -81,6 +84,8 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
     eventAndTraceHeaderRequestParser,
   );
   const navigationTraceContext = navigationEvent.contexts?.trace;
+
+  expect(navigationEvent.type).toEqual('transaction');
 
   expect(navigationTraceContext).toMatchObject({
     op: 'navigation',
@@ -105,6 +110,8 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
+  expect(errorEvent.type).toEqual(undefined);
+
   const errorTraceContext = errorEvent.contexts?.trace;
   expect(errorTraceContext).toEqual({
     trace_id: navigationTraceContext?.trace_id,
@@ -119,12 +126,12 @@ sentryTest('error after navigation has navigation traceId', async ({ getLocalTes
   });
 });
 
-sentryTest('error during navigation has new navigation traceId', async ({ getLocalTestPath, page }) => {
+sentryTest('error during navigation has new navigation traceId', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   // ensure navigation transaction is finished
   await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -142,6 +149,9 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 
   const [navigationEvent, navigationTraceHeader] = envelopes.find(envelope => envelope[0].type === 'transaction')!;
   const [errorEvent, errorTraceHeader] = envelopes.find(envelope => !envelope[0].type)!;
+
+  expect(navigationEvent.type).toEqual('transaction');
+  expect(errorEvent.type).toEqual(undefined);
 
   const navigationTraceContext = navigationEvent?.contexts?.trace;
   expect(navigationTraceContext).toMatchObject({
@@ -161,14 +171,6 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 
   const errorTraceContext = errorEvent?.contexts?.trace;
   expect(errorTraceContext).toEqual({
-    data: {
-      'sentry.op': 'navigation',
-      'sentry.origin': 'auto.navigation.browser',
-      'sentry.sample_rate': 1,
-      'sentry.source': 'url',
-    },
-    op: 'navigation',
-    origin: 'auto.navigation.browser',
     trace_id: navigationTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
@@ -184,12 +186,20 @@ sentryTest('error during navigation has new navigation traceId', async ({ getLoc
 
 sentryTest(
   'outgoing fetch request after navigation has navigation traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     // ensure navigation transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -201,6 +211,8 @@ sentryTest(
     );
 
     const navigationTraceContext = navigationEvent.contexts?.trace;
+
+    expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -232,12 +244,20 @@ sentryTest(
 
 sentryTest(
   'outgoing fetch request during navigation has navigation traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     // ensure navigation transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
@@ -256,6 +276,8 @@ sentryTest(
     ]);
 
     const navigationTraceContext = navigationEvent.contexts?.trace;
+
+    expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -284,12 +306,20 @@ sentryTest(
 
 sentryTest(
   'outgoing XHR request after navigation has navigation traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     // ensure navigation transaction is finished
     await getFirstSentryEnvelopeRequest(page, url);
@@ -301,6 +331,8 @@ sentryTest(
     );
 
     const navigationTraceContext = navigationEvent.contexts?.trace;
+
+    expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -332,12 +364,20 @@ sentryTest(
 
 sentryTest(
   'outgoing XHR request during navigation has navigation traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     // ensure navigation transaction is finished
     await getFirstSentryEnvelopeRequest(page, url);
@@ -356,6 +396,8 @@ sentryTest(
     ]);
 
     const navigationTraceContext = navigationEvent.contexts?.trace;
+
+    expect(navigationEvent.type).toEqual('transaction');
     expect(navigationTraceContext).toMatchObject({
       op: 'navigation',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
