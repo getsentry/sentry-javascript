@@ -176,6 +176,7 @@ export function _instrumentEmberRouter(
       },
       op: 'ui.ember.transition',
       name: `route:${fromRoute} -> route:${toRoute}`,
+      onlyIfParent: true,
     });
   });
 
@@ -237,6 +238,7 @@ function _instrumentEmberRunloop(config: EmberSentryConfig): void {
             name: 'runloop',
             op: `ui.ember.runloop.${queue}`,
             startTimestamp: currentQueueStart,
+            onlyIfParent: true,
           })?.end(now);
         }
         currentQueueStart = undefined;
@@ -310,6 +312,7 @@ function processComponentRenderAfter(
       op,
       origin: 'auto.ui.ember',
       startTimestamp: begin.now,
+      onlyIfParent: true,
     })?.end(now);
   }
 }
@@ -394,6 +397,7 @@ function _instrumentInitialLoad(config: EmberSentryConfig): void {
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
     },
+    onlyIfParent: true,
     startTimestamp,
   })?.end(endTimestamp);
   performance.clearMarks(startName);
