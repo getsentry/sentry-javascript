@@ -10,7 +10,7 @@
   },
   "namedInputs": {
     "default": ["{projectRoot}/**/*", "sharedGlobals"],
-    "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json"],
+    "sharedGlobals": ["{workspaceRoot}/*.js", "{workspaceRoot}/*.json", "{workspaceRoot}/yarn.lock"],
     "production": ["default", "!{projectRoot}/test/**/*", "!{projectRoot}/**/*.md", "!{projectRoot}/*.tgz"]
   },
   "targetDefaults": {
@@ -27,12 +27,22 @@
     "build:transpile": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:transpile"],
-      "outputs": ["{projectRoot}/build"]
+      "outputs": [
+        "{projectRoot}/build/esm",
+        "{projectRoot}/build/cjs",
+        "{projectRoot}/build/npm/esm",
+        "{projectRoot}/build/npm/cjs"
+      ]
     },
     "build:types": {
       "inputs": ["production", "^production"],
       "dependsOn": ["^build:types"],
-      "outputs": ["{projectRoot}/build/**/*.d.ts"]
+      "outputs": [
+        "{projectRoot}/build/types",
+        "{projectRoot}/build/types-ts3.8",
+        "{projectRoot}/build/npm/types",
+        "{projectRoot}/build/npm/types-ts3.8"
+      ]
     },
     "lint": {
       "inputs": ["default"],
