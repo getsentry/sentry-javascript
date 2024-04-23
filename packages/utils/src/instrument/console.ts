@@ -1,9 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/ban-types */
 import type { ConsoleLevel, HandlerDataConsole } from '@sentry/types';
 
 import { CONSOLE_LEVELS, originalConsoleMethods } from '../logger';
-import { fill } from '../object';
 import { GLOBAL_OBJ } from '../worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
@@ -14,9 +12,8 @@ import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
  * @hidden
  */
 export function addConsoleInstrumentationHandler(handler: (data: HandlerDataConsole) => void): void {
-  const type = 'console';
-  addHandler(type, handler);
-  maybeInstrument(type, instrumentConsole);
+  addHandler('console', handler);
+  maybeInstrument('console', instrumentConsole);
 }
 
 function instrumentConsole(): void {
@@ -24,21 +21,18 @@ function instrumentConsole(): void {
     return;
   }
 
-  CONSOLE_LEVELS.forEach(function (level: ConsoleLevel): void {
+  CONSOLE_LEVELS.forEach((level: ConsoleLevel): void => {
     if (!(level in GLOBAL_OBJ.console)) {
       return;
     }
 
-    fill(GLOBAL_OBJ.console, level, function (originalConsoleMethod: () => any): Function {
-      originalConsoleMethods[level] = originalConsoleMethod;
-
-      return function (...args: any[]): void {
+    originalConsoleMethods[level] = GLOBAL_OBJ.console[level];
+    GLOBAL_OBJ.console[level] = new Proxy(GLOBAL_OBJ.console[level], {
+      apply(target, thisArg, args): any {
         const handlerData: HandlerDataConsole = { args, level };
         triggerHandlers('console', handlerData);
-
-        const log = originalConsoleMethods[level];
-        log && log.apply(GLOBAL_OBJ.console, args);
-      };
+        return target.apply(thisArg, args);
+      },
     });
   });
 }
