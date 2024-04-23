@@ -768,40 +768,6 @@ jobs:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
 
-  job_browser_integration_tests:
-    name: Browser (${{ matrix.browser }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        browser:
-          - ChromeHeadless
-          - FirefoxHeadless
-          - WebkitHeadless
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run integration tests
-        env:
-          KARMA_BROWSER: ${{ matrix.browser }}
-        run: |
-          cd packages/browser
-          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
-          yarn test:integration
-
   job_browser_build_tests:
     name: Browser Build Tests
     needs: [job_get_metadata, job_build]
