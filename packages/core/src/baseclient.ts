@@ -420,7 +420,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public on(
-    hook: 'afterSampling',
+    hook: 'beforeSampling',
     callback: (
       samplingData: {
         spanAttributes: SpanAttributes;
@@ -460,7 +460,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public emit(
-    hook: 'afterSampling',
+    hook: 'beforeSampling',
     samplingData: {
       spanAttributes: SpanAttributes;
       spanName: string;

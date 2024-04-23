@@ -64,19 +64,9 @@ export class SentrySampler implements Sampler {
 
     const parentSampled = parentSpan ? getParentSampled(parentSpan, traceId, spanName) : undefined;
 
-    const [samplerDecision, sampleRate] = sampleSpan(options, {
-      name: spanName,
-      attributes: spanAttributes,
-      transactionContext: {
-        name: spanName,
-        parentSampled,
-      },
-      parentSampled,
-    });
-
-    const mutableSamplingDecision = { decision: samplerDecision };
+    const mutableSamplingDecision = { decision: true };
     this._client.emit(
-      'afterSampling',
+      'beforeSampling',
       {
         spanAttributes: spanAttributes,
         spanName: spanName,
@@ -85,8 +75,19 @@ export class SentrySampler implements Sampler {
       },
       mutableSamplingDecision,
     );
+    if (!mutableSamplingDecision.decision) {
+      return { decision: SamplingDecision.NOT_RECORD, traceState: traceState };
+    }
 
-    const sampled = mutableSamplingDecision.decision;
+    const [sampled, sampleRate] = sampleSpan(options, {
+      name: spanName,
+      attributes: spanAttributes,
+      transactionContext: {
+        name: spanName,
+        parentSampled,
+      },
+      parentSampled,
+    });
 
     const attributes: Attributes = {
       [SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE]: sampleRate,

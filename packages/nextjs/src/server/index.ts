@@ -130,7 +130,7 @@ export function init(options: NodeOptions): void {
   nodeInit(opts);
 
   const client = getClient();
-  client?.on('afterSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
+  client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
     // If we encounter a span emitted by Next.js, we do not want to sample it
     // The reason for this is that the data quality of the spans varies, it is different per version of Next,
     // and we need to keep our manual instrumentation around for the edge runtime anyhow.

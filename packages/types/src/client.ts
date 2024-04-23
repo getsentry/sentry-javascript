@@ -180,7 +180,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** TODO */
   on(
-    hook: 'afterSampling',
+    hook: 'beforeSampling',
     callback: (
       samplingData: {
         spanAttributes: SpanAttributes;
@@ -278,7 +278,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** TODO */
   emit(
-    hook: 'afterSampling',
+    hook: 'beforeSampling',
     samplingData: {
       spanAttributes: SpanAttributes;
       spanName: string;
