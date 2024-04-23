@@ -137,7 +137,7 @@ export function init(options: NodeOptions): void {
     // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
     if (
       (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.includes(spanName.split('.')[0])) &&
-      (typeof parentSampled !== 'boolean' || parentContext?.isRemote)
+      (parentSampled === undefined || parentContext?.isRemote)
     ) {
       samplingDecision.decision = false;
     }
