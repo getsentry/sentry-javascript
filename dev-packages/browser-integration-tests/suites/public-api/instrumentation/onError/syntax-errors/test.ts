@@ -9,14 +9,15 @@ sentryTest('should catch syntax errors', async ({ getLocalTestPath, page }) => {
 
   await page.goto(url);
 
-  const [, eventData] = await Promise.all([
-    runScriptInSandbox(page, {
-      content: `
+  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+
+  runScriptInSandbox(page, {
+    content: `
       foo{}; // SyntaxError
     `,
-    }),
-    getFirstSentryEnvelopeRequest<Event>(page),
-  ]);
+  });
+
+  const eventData = await errorEventPromise;
 
   expect(eventData.exception?.values).toHaveLength(1);
   expect(eventData.exception?.values?.[0]).toMatchObject({

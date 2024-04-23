@@ -166,10 +166,6 @@ async function runScriptInSandbox(
 }
 
 /**
- *
-}
-
-/**
  * Get Sentry events at the given URL, or the current page.
  *
  * @param {Page} page
@@ -352,13 +348,5 @@ async function getFirstSentryEnvelopeRequest<T>(
 ): Promise<T> {
   return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
 }
-
-/**
- * Trigger an error in the page context.
- * This function is useful to test error handling in the page.
- *
- * @param {Page} page
- * @param {unknown} error
- */
 
 export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

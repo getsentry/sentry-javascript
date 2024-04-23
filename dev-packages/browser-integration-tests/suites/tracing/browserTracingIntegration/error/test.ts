@@ -18,14 +18,15 @@ sentryTest(
 
     await page.goto(url);
 
-    const [, [e1, e2]] = await Promise.all([
-      runScriptInSandbox(page, {
-        content: `
+    const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+
+    runScriptInSandbox(page, {
+      content: `
           throw new Error('Error during pageload');
         `,
-      }),
-      getMultipleSentryEnvelopeRequests<Event>(page, 2),
-    ]);
+    });
+
+    const [e1, e2] = await errorEventsPromise;
 
     const pageloadTxnEvent = e1.type === 'transaction' ? e1 : e2;
     const errorEvent = e1.type === 'transaction' ? e2 : e1;
