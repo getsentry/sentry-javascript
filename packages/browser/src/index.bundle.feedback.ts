@@ -2,11 +2,7 @@ import { browserTracingIntegrationShim, replayIntegrationShim } from '@sentry-in
 
 export * from './index.bundle.base';
 
-export {
-  feedbackIntegration,
-  feedbackModalIntegration,
-  feedbackScreenshotIntegration,
-  getFeedback,
-} from '@sentry-internal/feedback';
+export { feedbackIntegration } from './feedback';
+export { getFeedback } from '@sentry-internal/feedback';
 
 export { browserTracingIntegrationShim as browserTracingIntegration, replayIntegrationShim as replayIntegration };

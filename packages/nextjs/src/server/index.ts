@@ -151,29 +151,6 @@ export function init(options: NodeOptions): void {
     ),
   );
 
-  // TODO(v8): Remove this because we have `suppressTracing`
-  addEventProcessor(
-    Object.assign(
-      (event => {
-        if (event.type === 'transaction') {
-          event.spans = event.spans?.filter(span => {
-            // Filter out spans for Sentry event sends
-            const httpTargetAttribute: unknown = span.data?.['http.target'];
-            if (typeof httpTargetAttribute === 'string') {
-              // TODO: Find a more robust matching logic - We likely want to use the OTEL SDK's `suppressTracing` in our transport, if we end up using it, we can delete this filtering logic here.
-              return !httpTargetAttribute.includes('sentry_client') && !httpTargetAttribute.includes('sentry_key');
-            }
-
-            return true;
-          });
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'NextFilterSentrySpans' },
-    ),
-  );
-
   if (process.env.NODE_ENV === 'development') {
     addEventProcessor(devErrorSymbolicationEventProcessor);
   }
