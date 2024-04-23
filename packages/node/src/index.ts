@@ -145,6 +145,17 @@ export const Integrations = {
   ...TracingIntegrations,
 };
 
+export {
+  captureConsoleIntegration,
+  dedupeIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  reportingObserverIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  httpClientIntegration,
+} from '@sentry/integrations';
+
 export { consoleIntegration } from './integrations/console';
 export { onUncaughtExceptionIntegration } from './integrations/onuncaughtexception';
 export { onUnhandledRejectionIntegration } from './integrations/onunhandledrejection';

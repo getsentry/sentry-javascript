@@ -3,7 +3,7 @@
 /* eslint-disable deprecation/deprecation */
 import type { Event, EventProcessor, Hub, Integration } from '@sentry/types';
 import { GLOBAL_OBJ, logger, normalize, uuid4 } from '@sentry/utils';
-import localForage from 'localforage';
+import * as localForage from 'localforage';
 
 import { DEBUG_BUILD } from './debug-build';
 

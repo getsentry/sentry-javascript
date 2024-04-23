@@ -55,6 +55,18 @@ export {
 } from '@sentry-internal/feedback';
 
 export {
+  captureConsoleIntegration,
+  dedupeIntegration,
+  debugIntegration,
+  extraErrorDataIntegration,
+  reportingObserverIntegration,
+  rewriteFramesIntegration,
+  sessionTimingIntegration,
+  httpClientIntegration,
+  contextLinesIntegration,
+} from '@sentry/integrations';
+
+export {
   // eslint-disable-next-line deprecation/deprecation
   BrowserTracing,
   defaultRequestInstrumentationOptions,
