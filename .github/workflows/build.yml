@@ -1141,14 +1141,14 @@ jobs:
   job_profiling_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    # Dependabot specifically also has access to secrets
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
       # Only run profiling e2e tests if profiling node bindings have changed
       always() && needs.job_e2e_prepare.result == 'success' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]' && (
+     (
         (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
         (needs.job_get_metadata.outputs.is_release == 'true') ||
         (github.event_name != 'pull_request')
