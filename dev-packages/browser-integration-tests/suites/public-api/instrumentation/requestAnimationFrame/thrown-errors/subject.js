@@ -1,3 +1,3 @@
-// requestAnimationFrame(function () {
-//   throw new Error('requestAnimationFrame_error');
-// });
+requestAnimationFrame(function () {
+  throw new Error('requestAnimationFrame_error');
+});
