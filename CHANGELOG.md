@@ -4,6 +4,39 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.112.0
+
+### Important Changes
+
+- **feat: Export pluggable integrations from SDK packages (#11723)**
+
+Instead of installing `@sentry/integrations`, you can now import the pluggable integrations directly from your SDK
+package:
+
+```js
+// Before
+import * as Sentry fromv '@sentry/browser';
+import { dedupeIntegration } from '@sentry/integrations';
+
+Sentry.init({
+  integrations: [dedupeIntegration()],
+});
+
+// After
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  integrations: [Sentry.dedupeIntegration()],
+});
+```
+
+Note that only the functional integrations (e.g. `xxxIntegration()`) are re-exported.
+
+### Other Changes
+
+- feat(replay): Add "maxCanvasSize" option for replay canvases (#11732)
+- fix(serverless): [v7] Check if cloud event callback is a function (#11734)
+
 ## 7.111.0
 
 - feat(core): Add `server.address` to browser `http.client` spans (#11663)
