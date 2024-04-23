@@ -294,7 +294,6 @@ function normalizeContext(context: StartSpanOptions): SentrySpanArguments {
   const exp = context.experimental || {};
   const initialCtx: SentrySpanArguments = {
     isStandalone: exp.standalone,
-    isSegment: exp.standalone && exp.segment,
     ...context,
   };
 

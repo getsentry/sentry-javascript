@@ -33,7 +33,7 @@ export interface StartSpanOptions {
   experimental?: {
     /**
      * If set to true, always start a standalone span which will be sent as a
-     * standalone span envelope instead of a transaction envelope.
+     * standalone segment span envelope instead of a transaction envelope.
      *
      * @internal this option is currently experimental and should only be
      * used within SDK code. It might be removed or changed in the future.
@@ -43,18 +43,5 @@ export interface StartSpanOptions {
      * @hidden
      */
     standalone?: boolean;
-
-    /**
-     * If set to true and `standalone` is also set to `true`, the span will be
-     * sent as a standalone segment span (with `is_segment: true` and `segment_id`).
-     *
-     * If `standalone` is not set to `true`, this option has no effect.
-     *
-     * @internal this option is currently experimental and should only be
-     * used within SDK code. It might be removed or changed in the future.
-     *
-     * @hidden
-     */
-    segment?: boolean;
   };
 }

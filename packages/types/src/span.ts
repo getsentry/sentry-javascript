@@ -191,23 +191,13 @@ export interface SentrySpanArguments {
   endTimestamp?: number | undefined;
 
   /**
-   * Set to `true` if this span should be sent as a standalone span as
-   * opposed to a transaction.
+   * Set to `true` if this span should be sent as a standalone segment span
+   * as opposed to a transaction.
    *
    * @experimental this option is currently experimental and should only be
    * used within SDK code. It might be removed or changed in the future.
    */
   isStandalone?: boolean | undefined;
-
-  /**
-   * Set to `true` if this span is a segment span. For now, this is used for
-   * standalone single spans that are not part of a transaction but should
-   * show up in the Sentry UI (as opposed to a non-segment standalone span).
-   *
-   * @experimental this option is currently experimental and should only be
-   * used within SDK code. It might be removed or changed in the future.
-   */
-  isSegment?: boolean | undefined;
 }
 
 /**

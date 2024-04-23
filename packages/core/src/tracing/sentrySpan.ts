@@ -63,9 +63,6 @@ export class SentrySpan implements Span {
   /** if true, treat span as a standalone span (not part of a transaction) */
   private _isStandaloneSpan?: boolean;
 
-  /** send standalone span as segment span */
-  private _isSegmentSpan?: boolean;
-
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
    * or other span methods.
@@ -106,7 +103,6 @@ export class SentrySpan implements Span {
     }
 
     this._isStandaloneSpan = spanContext.isStandalone;
-    this._isSegmentSpan = spanContext.isStandalone && spanContext.isSegment;
   }
 
   /** @inheritdoc */
@@ -199,8 +195,8 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
-      is_segment: !this._isStandaloneSpan ? undefined : this._isSegmentSpan,
-      segment_id: this._isStandaloneSpan && this._isSegmentSpan ? this._spanId : undefined,
+      is_segment: this._isStandaloneSpan || undefined,
+      segment_id: this._isStandaloneSpan ? this._spanId : undefined,
     });
   }
 
@@ -240,7 +236,8 @@ export class SentrySpan implements Span {
       client.emit('spanEnd', this);
     }
 
-    // If this is not a root span, we're done, otherwise, we send it when it is ended
+    // If this is not a root span (== segment span) and we don't want to send it standalone, we're done.
+    // otherwise, we send it
     if (this !== getRootSpan(this)) {
       return;
     }
@@ -289,6 +286,7 @@ export class SentrySpan implements Span {
     // The transaction span itself should be filtered out
     const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
 
+    // TODO: filter out standalone spans!
     const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
     const source = this._attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] as TransactionSource | undefined;

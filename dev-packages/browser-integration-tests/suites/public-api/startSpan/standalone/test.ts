@@ -1,14 +1,14 @@
 import { expect } from '@playwright/test';
 import type { SpanEnvelope } from '@sentry/types';
 
-import { sentryTest } from '../../../../../utils/fixtures';
+import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
-} from '../../../../../utils/helpers';
+} from '../../../../utils/helpers';
 
-sentryTest('sends a segment-less span envelope', async ({ getLocalTestPath, page }) => {
+sentryTest('sends a segment span envelope', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -42,5 +42,7 @@ sentryTest('sends a segment-less span envelope', async ({ getLocalTestPath, page
     start_timestamp: expect.any(Number),
     timestamp: expect.any(Number),
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    is_segment: true,
+    segment_id: spanJson.span_id,
   });
 });
