@@ -533,7 +533,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [8, 10, 12, 14, 16, 18, 20, 21]
+        node: [8, 10, 12, 14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -595,7 +595,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20, 21]
+        node: [10, 12, 14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -884,12 +884,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [10, 12, 14, 16, 18, 20, 21]
+        node: [10, 12, 14, 16, 18, 20, 22]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
-          - node: 20
+          - node: 22
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -925,7 +925,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 21]
+        node: [18, 20, 22]
         remix: [1, 2]
         # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
         include:
@@ -1338,6 +1338,8 @@ jobs:
             node: 18
           - os: ubuntu-20.04
             node: 20
+          - os: ubuntu-20.04
+            node: 22
 
             # x64 musl
           - os: ubuntu-20.04
@@ -1349,6 +1351,9 @@ jobs:
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
+          - os: ubuntu-20.04
+            container: node:22-alpine3.17
+            node: 22
 
             # arm64 glibc
           - os: ubuntu-20.04
@@ -1360,6 +1365,9 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             node: 20
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 22
 
             # arm64 musl
           - os: ubuntu-20.04
@@ -1374,6 +1382,10 @@ jobs:
             arch: arm64
             container: node:20-alpine3.17
             node: 20
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:22-alpine3.17
+            node: 22
 
             # macos x64
           - os: macos-11
@@ -1385,35 +1397,42 @@ jobs:
           - os: macos-11
             node: 20
             arch: x64
+          - os: macos-11
+            node: 22
+            arch: x64
 
             # macos arm64
           - os: macos-12
             arch: arm64
             node: 16
             target_platform: darwin
-
           - os: macos-12
             arch: arm64
             node: 18
             target_platform: darwin
-
           - os: macos-12
             arch: arm64
             node: 20
+            target_platform: darwin
+          - os: macos-12
+            arch: arm64
+            node: 22
             target_platform: darwin
 
             # windows x64
           - os: windows-2022
             node: 16
             arch: x64
-
           - os: windows-2022
             node: 18
             arch: x64
-
           - os: windows-2022
             node: 20
             arch: x64
+          - os: windows-2022
+            node: 22
+            arch: x64
+
     steps:
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')
