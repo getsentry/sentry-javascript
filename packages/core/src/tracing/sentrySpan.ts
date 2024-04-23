@@ -32,7 +32,7 @@ import {
   getStatusMessage,
   spanTimeInputToSeconds,
   spanToJSON,
-  spanToTraceContext,
+  spanToTransactionTraceContext,
 } from '../utils/spanUtils';
 import { getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanEnd } from './logSpans';
@@ -275,7 +275,7 @@ export class SentrySpan implements Span {
 
     const transaction: TransactionEvent = {
       contexts: {
-        trace: spanToTraceContext(this, true),
+        trace: spanToTransactionTraceContext(this),
       },
       spans,
       start_timestamp: this._startTime,

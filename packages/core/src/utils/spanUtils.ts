@@ -34,15 +34,29 @@ export const TRACE_FLAG_SAMPLED = 0x1;
  * By default, this will only include trace_id, span_id & parent_span_id.
  * If `includeAllData` is true, it will also include data, op, status & origin.
  */
-export function spanToTraceContext(span: Span, includeAllData = false): TraceContext {
+export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, op, parent_span_id, status, origin } = spanToJSON(span);
 
-  const reqFields = { parent_span_id, span_id, trace_id };
-  // These are only included if `includeAllData` is true
-  const optFields = { data, op, status, origin };
+  return dropUndefinedKeys({
+    parent_span_id,
+    span_id,
+    trace_id,
+    data,
+    op,
+    status,
+    origin,
+  });
+}
 
-  return dropUndefinedKeys(includeAllData ? { ...reqFields, ...optFields } : reqFields);
+/**
+ * Convert a span to a trace context, which can be sent as the `trace` context in a non-transaction event.
+ */
+export function spanToTraceContext(span: Span): TraceContext {
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
+  const { parent_span_id } = spanToJSON(span);
+
+  return dropUndefinedKeys({ parent_span_id, span_id, trace_id });
 }
 
 /**

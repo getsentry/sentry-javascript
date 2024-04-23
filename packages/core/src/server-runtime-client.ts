@@ -257,7 +257,7 @@ export class ServerRuntimeClient<
     if (span) {
       const rootSpan = getRootSpan(span);
       const samplingContext = getDynamicSamplingContextFromSpan(rootSpan);
-      return [samplingContext, spanToTraceContext(rootSpan, false)];
+      return [samplingContext, spanToTraceContext(rootSpan)];
     }
 
     const { traceId, spanId, parentSpanId, dsc } = scope.getPropagationContext();

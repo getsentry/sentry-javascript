@@ -162,7 +162,7 @@ function applySdkMetadataToEvent(event: Event, sdkProcessingMetadata: ScopeData[
 
 function applySpanToEvent(event: Event, span: Span): void {
   event.contexts = {
-    trace: spanToTraceContext(span, false),
+    trace: spanToTraceContext(span),
     ...event.contexts,
   };
 
