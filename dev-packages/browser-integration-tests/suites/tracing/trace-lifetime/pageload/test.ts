@@ -10,12 +10,12 @@ import {
 
 sentryTest(
   'should create a new trace for a navigation after the initial pageload',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const [pageloadEvent, pageloadTraceHeaders] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
       page,
@@ -30,6 +30,9 @@ sentryTest(
 
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
     const navigationTraceContext = navigationEvent.contexts?.trace;
+
+    expect(pageloadEvent.type).toEqual('transaction');
+    expect(navigationEvent.type).toEqual('transaction');
 
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
@@ -65,12 +68,12 @@ sentryTest(
   },
 );
 
-sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPath, page }) => {
+sentryTest('error after pageload has pageload traceId', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
     page,
@@ -79,6 +82,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
   );
   const pageloadTraceContext = pageloadEvent.contexts?.trace;
 
+  expect(pageloadEvent.type).toEqual('transaction');
   expect(pageloadTraceContext).toMatchObject({
     op: 'pageload',
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -103,6 +107,7 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
   const errorTraceContext = errorEvent.contexts?.trace;
+  expect(errorEvent.type).toEqual(undefined);
 
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
@@ -118,12 +123,12 @@ sentryTest('error after pageload has pageload traceId', async ({ getLocalTestPat
   });
 });
 
-sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPath, page }) => {
+sentryTest('error during pageload has pageload traceId', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const envelopeRequestsPromise = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
     page,
@@ -141,6 +146,8 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
   const [errorEvent, errorTraceHeader] = envelopes.find(eventAndHeader => !eventAndHeader[0].type)!;
 
   const pageloadTraceContext = pageloadEvent?.contexts?.trace;
+
+  expect(pageloadEvent.type).toEqual('transaction');
   expect(pageloadTraceContext).toMatchObject({
     op: 'pageload',
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -157,6 +164,8 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
   });
 
   const errorTraceContext = errorEvent?.contexts?.trace;
+
+  expect(errorEvent.type).toEqual(undefined);
   expect(errorTraceContext).toEqual({
     trace_id: pageloadTraceContext?.trace_id,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
@@ -173,12 +182,20 @@ sentryTest('error during pageload has pageload traceId', async ({ getLocalTestPa
 
 sentryTest(
   'outgoing fetch request after pageload has pageload traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
       page,
@@ -188,6 +205,7 @@ sentryTest(
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
     const pageloadTraceId = pageloadTraceContext?.trace_id;
 
+    expect(pageloadEvent.type).toEqual('transaction');
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -218,12 +236,20 @@ sentryTest(
 
 sentryTest(
   'outgoing fetch request during pageload has pageload traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
       page,
@@ -238,6 +264,7 @@ sentryTest(
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
     const pageloadTraceId = pageloadTraceContext?.trace_id;
 
+    expect(pageloadEvent.type).toEqual('transaction');
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
@@ -263,59 +290,73 @@ sentryTest(
   },
 );
 
-sentryTest(
-  'outgoing XHR request after pageload has pageload traceId in headers',
-  async ({ getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
+sentryTest('outgoing XHR request after pageload has pageload traceId in headers', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest()) {
+    sentryTest.skip();
+  }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    const pageloadTraceContext = pageloadEvent.contexts?.trace;
-    const pageloadTraceId = pageloadTraceContext?.trace_id;
-
-    expect(pageloadTraceContext).toMatchObject({
-      op: 'pageload',
-      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  await page.route('http://example.com/**', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
     });
-    expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
+  });
 
-    expect(pageloadTraceHeader).toEqual({
-      environment: 'production',
-      public_key: 'public',
-      sample_rate: '1',
-      sampled: 'true',
-      trace_id: pageloadTraceId,
-    });
+  const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    url,
+    eventAndTraceHeaderRequestParser,
+  );
+  const pageloadTraceContext = pageloadEvent.contexts?.trace;
+  const pageloadTraceId = pageloadTraceContext?.trace_id;
 
-    const requestPromise = page.waitForRequest('http://example.com/*');
-    await page.locator('#xhrBtn').click();
-    const request = await requestPromise;
-    const headers = request.headers();
+  expect(pageloadEvent.type).toEqual('transaction');
+  expect(pageloadTraceContext).toMatchObject({
+    op: 'pageload',
+    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+  expect(pageloadTraceContext).not.toHaveProperty('parent_span_id');
 
-    // sampling decision and DSC are continued from the pageload span even after it ended
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
-    expect(headers['baggage']).toEqual(
-      `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
-    );
-  },
-);
+  expect(pageloadTraceHeader).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: pageloadTraceId,
+  });
+
+  const requestPromise = page.waitForRequest('http://example.com/*');
+  await page.locator('#xhrBtn').click();
+  const request = await requestPromise;
+  const headers = request.headers();
+
+  // sampling decision and DSC are continued from the pageload span even after it ended
+  expect(headers['sentry-trace']).toMatch(new RegExp(`^${pageloadTraceId}-[0-9a-f]{16}-1$`));
+  expect(headers['baggage']).toEqual(
+    `sentry-environment=production,sentry-public_key=public,sentry-trace_id=${pageloadTraceId},sentry-sample_rate=1,sentry-sampled=true`,
+  );
+});
 
 sentryTest(
   'outgoing XHR request during pageload has pageload traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/**', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     const pageloadEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
       page,
@@ -330,6 +371,7 @@ sentryTest(
     const pageloadTraceContext = pageloadEvent.contexts?.trace;
     const pageloadTraceId = pageloadTraceContext?.trace_id;
 
+    expect(pageloadEvent.type).toEqual('transaction');
     expect(pageloadTraceContext).toMatchObject({
       op: 'pageload',
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
