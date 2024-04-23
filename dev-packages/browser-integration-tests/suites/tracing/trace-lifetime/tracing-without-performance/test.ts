@@ -12,12 +12,12 @@ const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
   'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
 
-sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
@@ -28,6 +28,7 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, 
   await page.locator('#errorBtn').click();
   const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
+  expect(errorEvent.type).toEqual(undefined);
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
@@ -63,12 +64,21 @@ sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, 
   expect(errorEvent2.contexts?.trace?.trace_id).not.toBe(META_TAG_TRACE_ID);
 });
 
-sentryTest('outgoing fetch requests have new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('outgoing fetch requests have new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await page.route('http://example.com/**', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   await page.goto(url);
 
   const requestPromise = page.waitForRequest('http://example.com/*');
@@ -96,12 +106,21 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
   expect(headers2['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
 });
 
-sentryTest('outgoing XHR requests have new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('outgoing XHR requests have new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await page.route('http://example.com/**', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   await page.goto(url);
 
   const requestPromise = page.waitForRequest('http://example.com/*');

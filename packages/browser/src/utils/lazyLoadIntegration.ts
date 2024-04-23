@@ -33,12 +33,15 @@ const WindowWithMaybeIntegration = WINDOW as {
 export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegrations): Promise<IntegrationFn> {
   const bundle = LazyLoadableIntegrations[name];
 
-  if (!bundle || !WindowWithMaybeIntegration.Sentry) {
+  // `window.Sentry` is only set when using a CDN bundle, but this method can also be used via the NPM package
+  const sentryOnWindow = (WindowWithMaybeIntegration.Sentry = WindowWithMaybeIntegration.Sentry || {});
+
+  if (!bundle) {
     throw new Error(`Cannot lazy load integration: ${name}`);
   }
 
   // Bail if the integration already exists
-  const existing = WindowWithMaybeIntegration.Sentry[name];
+  const existing = sentryOnWindow[name];
   if (typeof existing === 'function') {
     return existing;
   }
@@ -61,7 +64,7 @@ export async function lazyLoadIntegration(name: keyof typeof LazyLoadableIntegra
     throw new Error(`Error when loading integration: ${name}`);
   }
 
-  const integrationFn = WindowWithMaybeIntegration.Sentry[name];
+  const integrationFn = sentryOnWindow[name];
 
   if (typeof integrationFn !== 'function') {
     throw new Error(`Could not load integration: ${name}`);

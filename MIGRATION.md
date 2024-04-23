@@ -873,8 +873,9 @@ Sentry.init({
 
 #### Breaking `sentrySvelteKit()` changes
 
-We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
-change, resolving uploaded source maps should work out of the box much more often than before
+We upgraded the `@sentry/vite-plugin` from version 0.x to 2.x. This package is internally used by the
+`@sentry/sveltekit` SDK. With this change, resolving uploaded source maps should work out of the box much more often
+than before
 ([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
 
 To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
