@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../../utils/fixtures';
+import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest('Event listener instrumentation preserves "this" context', async ({ getLocalTestPath, page }) => {
   const url = await getLocalTestPath({ testDir: __dirname });
