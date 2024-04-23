@@ -22,7 +22,7 @@ sentryTest(
   },
 );
 
-sentryTest.only(
+sentryTest(
   'wrapped callback should preserve correct context - `bind` bound method',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
