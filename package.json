@@ -130,6 +130,9 @@
     "vitest": "^0.29.2",
     "yalc": "^1.0.0-pre.53"
   },
+  "resolutions": {
+    "gauge/strip-ansi": "6.0.1"
+  },
   "version": "0.0.0",
   "name": "sentry-javascript",
   "prettier": {
