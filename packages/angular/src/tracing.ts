@@ -89,12 +89,14 @@ export class TraceService implements OnDestroy {
       if (client) {
         // see comment in `_isPageloadOngoing` for rationale
         if (!this._isPageloadOngoing()) {
-          startBrowserTracingNavigationSpan(client, {
-            name: strippedUrl,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-            },
+          runOutsideAngular(() => {
+            startBrowserTracingNavigationSpan(client, {
+              name: strippedUrl,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.angular',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+              },
+            });
           });
         } else {
           // The first time we end up here, we set the pageload flag to false
@@ -104,18 +106,20 @@ export class TraceService implements OnDestroy {
         }
 
         this._routingSpan =
-          startInactiveSpan({
-            name: `${navigationEvent.url}`,
-            op: ANGULAR_ROUTING_OP,
-            attributes: {
-              [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
-              url: strippedUrl,
-              ...(navigationEvent.navigationTrigger && {
-                navigationTrigger: navigationEvent.navigationTrigger,
-              }),
-            },
-          }) || null;
+          runOutsideAngular(() =>
+            startInactiveSpan({
+              name: `${navigationEvent.url}`,
+              op: ANGULAR_ROUTING_OP,
+              attributes: {
+                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular',
+                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
+                url: strippedUrl,
+                ...(navigationEvent.navigationTrigger && {
+                  navigationTrigger: navigationEvent.navigationTrigger,
+                }),
+              },
+            }),
+          ) || null;
 
         return;
       }
@@ -252,11 +256,13 @@ export class TraceDirective implements OnInit, AfterViewInit {
     }
 
     if (getActiveSpan()) {
-      this._tracingSpan = startInactiveSpan({
-        name: `<${this.componentName}>`,
-        op: ANGULAR_INIT_OP,
-        attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive' },
-      });
+      this._tracingSpan = runOutsideAngular(() =>
+        startInactiveSpan({
+          name: `<${this.componentName}>`,
+          op: ANGULAR_INIT_OP,
+          attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_directive' },
+        }),
+      );
     }
   }
 
@@ -266,7 +272,7 @@ export class TraceDirective implements OnInit, AfterViewInit {
    */
   public ngAfterViewInit(): void {
     if (this._tracingSpan) {
-      this._tracingSpan.end();
+      runOutsideAngular(() => this._tracingSpan!.end());
     }
   }
 }
@@ -298,14 +304,16 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
     const originalOnInit = target.prototype.ngOnInit;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngOnInit = function (...args: any[]): ReturnType<typeof originalOnInit> {
-      tracingSpan = startInactiveSpan({
-        onlyIfParent: true,
-        name: `<${options && options.name ? options.name : 'unnamed'}>`,
-        op: ANGULAR_INIT_OP,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
-        },
-      });
+      tracingSpan = runOutsideAngular(() =>
+        startInactiveSpan({
+          onlyIfParent: true,
+          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          op: ANGULAR_INIT_OP,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_class_decorator',
+          },
+        }),
+      );
 
       if (originalOnInit) {
         return originalOnInit.apply(this, args);
@@ -316,7 +324,7 @@ export function TraceClass(options?: TraceClassOptions): ClassDecorator {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     target.prototype.ngAfterViewInit = function (...args: any[]): ReturnType<typeof originalAfterViewInit> {
       if (tracingSpan) {
-        tracingSpan.end();
+        runOutsideAngular(() => tracingSpan.end());
       }
       if (originalAfterViewInit) {
         return originalAfterViewInit.apply(this, args);
@@ -344,15 +352,17 @@ export function TraceMethod(options?: TraceMethodOptions): MethodDecorator {
     descriptor.value = function (...args: any[]): ReturnType<typeof originalMethod> {
       const now = timestampInSeconds();
 
-      startInactiveSpan({
-        onlyIfParent: true,
-        name: `<${options && options.name ? options.name : 'unnamed'}>`,
-        op: `${ANGULAR_OP}.${String(propertyKey)}`,
-        startTime: now,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
-        },
-      }).end(now);
+      runOutsideAngular(() => {
+        startInactiveSpan({
+          onlyIfParent: true,
+          name: `<${options && options.name ? options.name : 'unnamed'}>`,
+          op: `${ANGULAR_OP}.${String(propertyKey)}`,
+          startTime: now,
+          attributes: {
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.angular.trace_method_decorator',
+          },
+        }).end(now);
+      });
 
       if (originalMethod) {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
