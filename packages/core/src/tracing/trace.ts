@@ -327,7 +327,7 @@ function _startRootSpan(spanArguments: SentrySpanArguments, scope: Scope, parent
     ...spanArguments,
     attributes: {
       [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom',
-      ...spanArguments.attributes,
+      ...attributes,
     },
     sampled,
   });

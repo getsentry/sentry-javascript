@@ -64,6 +64,10 @@ let _measurements: Measurements = {};
 let _lcpEntry: LargestContentfulPaint | undefined;
 let _clsEntry: LayoutShift | undefined;
 
+const DEFAULT_ATTRIBUTES: SpanAttributes = {
+  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
+};
+
 /**
  * Start tracking web vitals.
  * The callback returned by this function can be used to stop tracking & ensure all measurements are final & captured.
@@ -109,9 +113,7 @@ export function startTrackingLongTasks(): void {
         name: 'Main UI thread blocked',
         op: 'ui.long-task',
         startTime,
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+        attributes: DEFAULT_ATTRIBUTES,
       });
       if (span) {
         span.end(startTime + duration);
@@ -137,10 +139,8 @@ export function startTrackingInteractions(): void {
         const spanOptions: StartSpanOptions & Required<Pick<StartSpanOptions, 'attributes'>> = {
           name: htmlTreeAsString(entry.target),
           op: `ui.interaction.${entry.name}`,
-          startTime: startTime,
-          attributes: {
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-          },
+          startTime,
+          attributes: DEFAULT_ATTRIBUTES,
         };
 
         const componentName = getComponentName(entry.target);
@@ -148,10 +148,7 @@ export function startTrackingInteractions(): void {
           spanOptions.attributes['ui.component_name'] = componentName;
         }
 
-        const span = startInactiveSpan(spanOptions);
-        if (span) {
-          span.end(startTime + duration);
-        }
+        startInactiveSpan(spanOptions).end(startTime + duration);
       }
     }
   });
@@ -232,10 +229,12 @@ export function addPerformanceEntries(span: Span): void {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   performanceEntries.slice(_performanceCursor).forEach((entry: Record<string, any>) => {
-    const startTime = msToSec(entry.startTime);
+    const name = entry.name;
+    const startTimeMs = entry.startTime;
+    const startTimeSec = msToSec(entry.startTime);
     const duration = msToSec(entry.duration);
 
-    if (op === 'navigation' && transactionStartTime && timeOrigin + startTime < transactionStartTime) {
+    if (op === 'navigation' && transactionStartTime && timeOrigin + startTimeSec < transactionStartTime) {
       return;
     }
 
@@ -247,25 +246,25 @@ export function addPerformanceEntries(span: Span): void {
       case 'mark':
       case 'paint':
       case 'measure': {
-        _addMeasureSpans(span, entry, startTime, duration, timeOrigin);
+        _addMeasureSpans(span, entry, startTimeSec, duration, timeOrigin);
 
         // capture web vitals
         const firstHidden = getVisibilityWatcher();
         // Only report if the page wasn't hidden prior to the web vital.
-        const shouldRecord = entry.startTime < firstHidden.firstHiddenTime;
+        const shouldRecord = startTimeMs < firstHidden.firstHiddenTime;
 
-        if (entry.name === 'first-paint' && shouldRecord) {
+        if (name === 'first-paint' && shouldRecord) {
           DEBUG_BUILD && logger.log('[Measurements] Adding FP');
-          _measurements['fp'] = { value: entry.startTime, unit: 'millisecond' };
+          _measurements['fp'] = { value: startTimeMs, unit: 'millisecond' };
         }
-        if (entry.name === 'first-contentful-paint' && shouldRecord) {
+        if (name === 'first-contentful-paint' && shouldRecord) {
           DEBUG_BUILD && logger.log('[Measurements] Adding FCP');
-          _measurements['fcp'] = { value: entry.startTime, unit: 'millisecond' };
+          _measurements['fcp'] = { value: startTimeMs, unit: 'millisecond' };
         }
         break;
       }
       case 'resource': {
-        _addResourceSpans(span, entry, entry.name as string, startTime, duration, timeOrigin);
+        _addResourceSpans(span, entry, name as string, startTimeSec, duration, timeOrigin);
         break;
       }
       default:
@@ -305,9 +304,7 @@ export function addPerformanceEntries(span: Span): void {
       startAndEndSpan(span, fidMark.value, fidMark.value + msToSec(_measurements['fid'].value), {
         name: 'first input delay',
         op: 'ui.action',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+        attributes: DEFAULT_ATTRIBUTES,
       });
 
       // Delete mark.fid as we don't want it to be part of final payload
@@ -347,9 +344,7 @@ export function _addMeasureSpans(
   startAndEndSpan(span, measureStartTimestamp, measureEndTimestamp, {
     name: entry.name as string,
     op: entry.entryType as string,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-    },
+    attributes: DEFAULT_ATTRIBUTES,
   });
 
   return measureStartTimestamp;
@@ -385,9 +380,7 @@ function _addPerformanceNavigationTiming(
   startAndEndSpan(span, timeOrigin + msToSec(start), timeOrigin + msToSec(end), {
     op: 'browser',
     name: name || event,
-    attributes: {
-      [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-    },
+    attributes: DEFAULT_ATTRIBUTES,
   });
 }
 
@@ -406,9 +399,7 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
       {
         op: 'browser',
         name: 'request',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+        attributes: DEFAULT_ATTRIBUTES,
       },
     );
 
@@ -419,9 +410,7 @@ function _addRequest(span: Span, entry: Record<string, any>, timeOrigin: number)
       {
         op: 'browser',
         name: 'response',
-        attributes: {
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.browser.metrics',
-        },
+        attributes: DEFAULT_ATTRIBUTES,
       },
     );
   }
@@ -452,9 +441,7 @@ export function _addResourceSpans(
 
   const parsedUrl = parseUrl(resourceUrl);
 
-  const attributes: SpanAttributes = {
-    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.resource.browser.metrics',
-  };
+  const attributes = DEFAULT_ATTRIBUTES;
   setResourceEntrySizeData(attributes, entry, 'transferSize', 'http.response_transfer_size');
   setResourceEntrySizeData(attributes, entry, 'encodedBodySize', 'http.response_content_length');
   setResourceEntrySizeData(attributes, entry, 'decodedBodySize', 'http.decoded_response_content_length');
@@ -491,15 +478,17 @@ function _trackNavigator(span: Span): void {
     return;
   }
 
+  const attributes: SpanAttributes = {};
+
   // track network connectivity
   const connection = navigator.connection;
   if (connection) {
     if (connection.effectiveType) {
-      span.setAttribute('effectiveConnectionType', connection.effectiveType);
+      attributes['effectiveConnectionType'] = connection.effectiveType;
     }
 
     if (connection.type) {
-      span.setAttribute('connectionType', connection.type);
+      attributes['connectionType'] = connection.type;
     }
 
     if (isMeasurementValue(connection.rtt)) {
@@ -508,44 +497,49 @@ function _trackNavigator(span: Span): void {
   }
 
   if (isMeasurementValue(navigator.deviceMemory)) {
-    span.setAttribute('deviceMemory', `${navigator.deviceMemory} GB`);
+    attributes['deviceMemory'] = `${navigator.deviceMemory} GB`;
   }
 
   if (isMeasurementValue(navigator.hardwareConcurrency)) {
-    span.setAttribute('hardwareConcurrency', String(navigator.hardwareConcurrency));
+    attributes['hardwareConcurrency'] = String(navigator.hardwareConcurrency);
   }
+
+  span.setAttributes(attributes);
 }
 
 /** Add LCP / CLS data to span to allow debugging */
 function _tagMetricInfo(span: Span): void {
+  const attributes: SpanAttributes = {};
+
   if (_lcpEntry) {
     DEBUG_BUILD && logger.log('[Measurements] Adding LCP Data');
 
     // Capture Properties of the LCP element that contributes to the LCP.
 
     if (_lcpEntry.element) {
-      span.setAttribute('lcp.element', htmlTreeAsString(_lcpEntry.element));
+      attributes['lcp.element'] = htmlTreeAsString(_lcpEntry.element);
     }
 
     if (_lcpEntry.id) {
-      span.setAttribute('lcp.id', _lcpEntry.id);
+      attributes['lcp.id'] = _lcpEntry.id;
     }
 
     if (_lcpEntry.url) {
       // Trim URL to the first 200 characters.
-      span.setAttribute('lcp.url', _lcpEntry.url.trim().slice(0, 200));
+      attributes['lcp.url'] = _lcpEntry.url.trim().slice(0, 200);
     }
-
-    span.setAttribute('lcp.size', _lcpEntry.size);
+    attributes['lcp.size'] = _lcpEntry.size;
   }
 
   // See: https://developer.mozilla.org/en-US/docs/Web/API/LayoutShift
   if (_clsEntry && _clsEntry.sources) {
     DEBUG_BUILD && logger.log('[Measurements] Adding CLS Data');
-    _clsEntry.sources.forEach((source, index) =>
-      span.setAttribute(`cls.source.${index + 1}`, htmlTreeAsString(source.node)),
-    );
+    _clsEntry.sources.forEach((source, index) => {
+      attributes[`cls.source.${index + 1}`] = htmlTreeAsString(source.node);
+    });
   }
+
+  span.setAttributes(attributes);
 }
 
 function setResourceEntrySizeData(

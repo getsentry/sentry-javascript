@@ -54,12 +54,15 @@ export function browserTracingIntegration(
  * This function is extracted to make unit testing easier.
  */
 export function _updateSpanAttributesForParametrizedUrl(route: string, span?: Span): void {
-  const attributes = (span && spanToJSON(span).data) || {};
-
-  if (span && attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
-    span.updateName(route);
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
-    span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, `auto.${spanToJSON(span).op}.angular`);
+  if (span) {
+    const attributes = spanToJSON(span).data || {};
+    if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_SOURCE] === 'url') {
+      span.updateName(route);
+      span.setAttributes({
+        [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: `auto.${spanToJSON(span).op}.angular`,
+      });
+    }
   }
 }
 

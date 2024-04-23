@@ -65,29 +65,39 @@ export class SentrySpan implements Span {
    * @hideconstructor
    * @hidden
    */
-  public constructor(spanContext: SentrySpanArguments = {}) {
-    this._traceId = spanContext.traceId || uuid4();
-    this._spanId = spanContext.spanId || uuid4().substring(16);
-    this._startTime = spanContext.startTimestamp || timestampInSeconds();
+  public constructor({
+    traceId,
+    spanId,
+    startTimestamp,
+    op,
+    attributes,
+    name,
+    parentSpanId,
+    sampled,
+    endTimestamp,
+  }: SentrySpanArguments = {}) {
+    this._traceId = traceId || uuid4();
+    this._spanId = spanId || uuid4().substring(16);
+    this._startTime = startTimestamp || timestampInSeconds();
 
     this._attributes = {};
     this.setAttributes({
       [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'manual',
-      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: spanContext.op,
-      ...spanContext.attributes,
+      [SEMANTIC_ATTRIBUTE_SENTRY_OP]: op,
+      ...attributes,
     });
 
-    this._name = spanContext.name;
+    this._name = name;
 
-    if (spanContext.parentSpanId) {
-      this._parentSpanId = spanContext.parentSpanId;
+    if (parentSpanId) {
+      this._parentSpanId = parentSpanId;
     }
     // We want to include booleans as well here
-    if ('sampled' in spanContext) {
-      this._sampled = spanContext.sampled;
+    if (sampled !== undefined) {
+      this._sampled = sampled;
     }
-    if (spanContext.endTimestamp) {
-      this._endTime = spanContext.endTimestamp;
+    if (endTimestamp) {
+      this._endTime = endTimestamp;
     }
 
     this._events = [];
