@@ -56,7 +56,9 @@ function _wrapCloudEventFunction(
               DEBUG_BUILD && logger.error(e);
             })
             .then(() => {
-              callback(...args);
+              if (typeof callback === 'function') {
+                callback(...args);
+              }
             });
         });
 
