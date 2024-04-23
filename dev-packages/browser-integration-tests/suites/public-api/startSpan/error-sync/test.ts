@@ -8,19 +8,26 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture an error within a sync startSpan callback', async ({ getLocalTestPath, page }) => {
-  if (shouldSkipTracingTest()) {
-    sentryTest.skip();
-  }
+sentryTest(
+  'should capture an error within a sync startSpan callback',
+  async ({ getLocalTestPath, page, browserName }) => {
+    if (browserName === 'webkit') {
+      // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
+      sentryTest.skip();
+    }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+    if (shouldSkipTracingTest()) {
+      sentryTest.skip();
+    }
 
-  await page.goto(url);
+    const url = await getLocalTestPath({ testDir: __dirname });
 
-  const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+    await page.goto(url);
 
-  runScriptInSandbox(page, {
-    content: `
+    const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
+
+    runScriptInSandbox(page, {
+      content: `
       function run() {
         Sentry.startSpan({ name: 'parent_span' }, () => {
           throw new Error('Sync Error');
@@ -29,13 +36,14 @@ sentryTest('should capture an error within a sync startSpan callback', async ({ 
 
       setTimeout(run);
       `,
-  });
+    });
 
-  const events = await errorEventsPromise;
+    const events = await errorEventsPromise;
 
-  const txn = events.find(event => event.type === 'transaction');
-  const err = events.find(event => !event.type);
+    const txn = events.find(event => event.type === 'transaction');
+    const err = events.find(event => !event.type);
 
-  expect(txn).toMatchObject({ transaction: 'parent_span' });
-  expect(err?.exception?.values?.[0]?.value).toBe('Sync Error');
-});
+    expect(txn).toMatchObject({ transaction: 'parent_span' });
+    expect(err?.exception?.values?.[0]?.value).toBe('Sync Error');
+  },
+);

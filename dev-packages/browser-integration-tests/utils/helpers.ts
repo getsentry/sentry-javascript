@@ -146,6 +146,9 @@ export const countEnvelopes = async (
 
 /**
  * Run script inside the test environment.
+ * This is useful for throwing errors in the test environment.
+ *
+ * Errors thrown from this function are not guaranteed to be captured by Sentry, especially in Webkit.
  *
  * @param {Page} page
  * @param {{ path?: string; content?: string }} impl

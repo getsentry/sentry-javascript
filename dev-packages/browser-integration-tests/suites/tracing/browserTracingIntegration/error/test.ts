@@ -9,7 +9,12 @@ import {
 
 sentryTest(
   'should put the pageload transaction name onto an error event caught during pageload',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestPath, page, browserName }) => {
+    if (browserName === 'webkit') {
+      // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
+      sentryTest.skip();
+    }
+
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
