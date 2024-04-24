@@ -1,11 +1,11 @@
 import { expect } from '@playwright/test';
 import type { Event } from '@sentry/types';
 
-import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest } from '../../../../utils/helpers';
+import { sentryTest } from '../../../../../utils/fixtures';
+import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
 sentryTest(
-  'Event listener instrumentation should capture an error thrown in an event handler',
+  'should capture exceptions from XMLHttpRequest event handlers (e.g. onreadystatechange)',
   async ({ getLocalTestPath, page }) => {
     const url = await getLocalTestPath({ testDir: __dirname });
 
@@ -14,10 +14,13 @@ sentryTest(
     expect(eventData.exception?.values).toHaveLength(1);
     expect(eventData.exception?.values?.[0]).toMatchObject({
       type: 'Error',
-      value: 'event_listener_error',
+      value: 'xhr_error',
       mechanism: {
         type: 'instrument',
         handled: false,
+        data: {
+          function: 'onreadystatechange',
+        },
       },
       stacktrace: {
         frames: expect.any(Array),

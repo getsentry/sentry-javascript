@@ -3,7 +3,7 @@ import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } fr
 import type { Event } from '@sentry/types';
 import type { Callback, Handler } from 'aws-lambda';
 
-import { init, wrapHandler } from '../src/awslambda';
+import { init, wrapHandler } from '../src/sdk';
 
 const mockSpanEnd = jest.fn();
 const mockStartInactiveSpan = jest.fn((...spanArgs) => ({ ...spanArgs }));

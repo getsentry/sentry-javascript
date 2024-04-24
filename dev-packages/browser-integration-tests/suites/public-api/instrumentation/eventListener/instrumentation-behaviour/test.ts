@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../../utils/fixtures';
+import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'Event listener instrumentation should attach the same event listener only once',

@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../../utils/fixtures';
+import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'Event listener instrumentation should not wrap event listeners multiple times',
