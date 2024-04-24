@@ -11,7 +11,11 @@ import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
 import { vi } from 'vitest';
 
-import { BrowserTracing, init } from '../../src/client';
+import {
+  BrowserTracing,
+  browserTracingIntegration as sveltekitBrowserTracingIntegration,
+  init,
+} from '../../src/client';
 import { svelteKitRoutingInstrumentation } from '../../src/client/router';
 
 const svelteInit = vi.spyOn(SentrySvelte, 'init');
@@ -145,23 +149,50 @@ describe('Sentry client SDK', () => {
           getClient<BrowserClient>()?.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>(
             'BrowserTracing',
           );
-        const options = browserTracing?.options;
 
         expect(browserTracing).toBeDefined();
 
         // It is a "new" browser tracing integration
         expect(typeof browserTracing?.afterAllSetup).toBe('function');
 
-        // This shows that the user-configured options are still here
-        expect(options?.finalTimeout).toEqual(10);
-        expect(options?.instrumentPageLoad).toEqual(true);
-        expect(options?.instrumentNavigation).toEqual(false);
-
         // it is the svelte kit variety
         expect(getActiveSpan()).toBeDefined();
         expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
           'auto.pageload.sveltekit',
         );
+
+        // This shows that the user-configured options are still here
+        expect(browserTracing?.options.finalTimeout).toEqual(10);
+        expect(browserTracing?.options.instrumentPageLoad).toEqual(true);
+        expect(browserTracing?.options.instrumentNavigation).toEqual(false);
+      });
+
+      it('forces correct router instrumentation if user provides Sveltekit `browserTracingIntegration` ', () => {
+        init({
+          dsn: 'https://public@dsn.ingest.sentry.io/1337',
+          integrations: [sveltekitBrowserTracingIntegration({ finalTimeout: 10, instrumentNavigation: false })],
+          enableTracing: true,
+        });
+
+        const client = getClient<BrowserClient>()!;
+        // eslint-disable-next-line deprecation/deprecation
+        const integration = client.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>('BrowserTracing');
+
+        expect(integration).toBeDefined();
+
+        // It is a "new" browser tracing integration
+        expect(typeof integration?.afterAllSetup).toBe('function');
+
+        // it correctly starts the pageload span
+        expect(getActiveSpan()).toBeDefined();
+        expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
+          'auto.pageload.sveltekit',
+        );
+
+        // This shows that the user-configured options are still here
+        expect(integration?.options.finalTimeout).toEqual(10);
+        expect(integration?.options.instrumentNavigation).toBe(false);
+        expect(integration?.options.instrumentPageLoad).toBe(true);
       });
     });
   });
