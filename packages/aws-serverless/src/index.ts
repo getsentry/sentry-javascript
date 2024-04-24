@@ -18,7 +18,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -78,6 +77,8 @@ export {
   setupExpressErrorHandler,
   koaIntegration,
   setupKoaErrorHandler,
+  connectIntegration,
+  setupConnectErrorHandler,
   fastifyIntegration,
   graphqlIntegration,
   mongoIntegration,
@@ -95,6 +96,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   trpcMiddleware,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 export {
@@ -106,7 +108,8 @@ export {
   sessionTimingIntegration,
 } from '@sentry/core';
 
-export { getDefaultIntegrations, init, tryPatchHandler, wrapHandler } from './awslambda';
-export type { WrapperOptions } from './awslambda';
+export { awsIntegration } from './integration/aws';
+export { awsLambdaIntegration } from './integration/awslambda';
 
-export { awsServicesIntegration } from './awsservices';
+export { getDefaultIntegrations, init, tryPatchHandler, wrapHandler } from './sdk';
+export type { WrapperOptions } from './sdk';

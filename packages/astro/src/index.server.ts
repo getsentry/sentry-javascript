@@ -23,7 +23,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -88,6 +87,7 @@ export {
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

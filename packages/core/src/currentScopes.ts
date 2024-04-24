@@ -1,9 +1,19 @@
 import type { Scope } from '@sentry/types';
 import type { Client } from '@sentry/types';
 import { getGlobalSingleton } from '@sentry/utils';
-import { getMainCarrier } from './asyncContext';
-import { getAsyncContextStrategy } from './hub';
+import { getAsyncContextStrategy } from './asyncContext';
+import { getMainCarrier } from './carrier';
 import { Scope as ScopeClass } from './scope';
+
+/** Get the default current scope. */
+export function getDefaultCurrentScope(): Scope {
+  return getGlobalSingleton('defaultCurrentScope', () => new ScopeClass());
+}
+
+/** Get the default isolation scope. */
+export function getDefaultIsolationScope(): Scope {
+  return getGlobalSingleton('defaultIsolationScope', () => new ScopeClass());
+}
 
 /**
  * Get the currently active scope.

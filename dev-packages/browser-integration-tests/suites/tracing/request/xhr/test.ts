@@ -4,7 +4,7 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should create spans for multiple XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should create spans for XHR requests', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -24,11 +24,18 @@ sentryTest('should create spans for multiple XHR requests', async ({ getLocalTes
       start_timestamp: expect.any(Number),
       timestamp: expect.any(Number),
       trace_id: eventData.contexts?.trace?.trace_id,
+      data: {
+        'http.method': 'GET',
+        'http.url': `http://example.com/${index}`,
+        url: `http://example.com/${index}`,
+        'server.address': 'example.com',
+        type: 'xhr',
+      },
     }),
   );
 });
 
-sentryTest('should attach `sentry-trace` header to multiple XHR requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to XHR requests', async ({ getLocalTestPath, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
@@ -44,10 +51,25 @@ sentryTest('should attach `sentry-trace` header to multiple XHR requests', async
 
   expect(requests).toHaveLength(3);
 
-  for (const request of requests) {
-    const requestHeaders = request.headers();
-    expect(requestHeaders).toMatchObject({
-      'sentry-trace': expect.any(String),
-    });
-  }
+  const request1 = requests[0];
+  const requestHeaders1 = request1.headers();
+  expect(requestHeaders1).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+  });
+
+  const request2 = requests[1];
+  const requestHeaders2 = request2.headers();
+  expect(requestHeaders2).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+    'x-test-header': 'existing-header',
+  });
+
+  const request3 = requests[2];
+  const requestHeaders3 = request3.headers();
+  expect(requestHeaders3).toMatchObject({
+    'sentry-trace': expect.stringMatching(/^([a-f0-9]{32})-([a-f0-9]{16})-1$/),
+    baggage: expect.any(String),
+  });
 });

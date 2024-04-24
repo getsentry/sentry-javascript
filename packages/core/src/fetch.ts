@@ -4,9 +4,10 @@ import {
   dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   isInstanceOf,
+  parseUrl,
 } from '@sentry/utils';
 import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from './semanticAttributes';
 import {
   SPAN_STATUS_ERROR,
   getDynamicSamplingContextFromClient,
@@ -16,7 +17,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { spanToTraceHeader } from './utils/spanUtils';
+import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -41,11 +42,11 @@ export function instrumentFetchRequest(
   spans: Record<string, Span>,
   spanOrigin: SpanOrigin = 'auto.http.browser',
 ): Span | undefined {
-  if (!hasTracingEnabled() || !handlerData.fetchData) {
+  if (!handlerData.fetchData) {
     return undefined;
   }
 
-  const shouldCreateSpanResult = shouldCreateSpan(handlerData.fetchData.url);
+  const shouldCreateSpanResult = hasTracingEnabled() && shouldCreateSpan(handlerData.fetchData.url);
 
   if (handlerData.endTimestamp && shouldCreateSpanResult) {
     const spanId = handlerData.fetchData.__span;
@@ -53,22 +54,7 @@ export function instrumentFetchRequest(
 
     const span = spans[spanId];
     if (span) {
-      if (handlerData.response) {
-        setHttpStatus(span, handlerData.response.status);
-
-        const contentLength =
-          handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
-
-        if (contentLength) {
-          const contentLengthNum = parseInt(contentLength);
-          if (contentLengthNum > 0) {
-            span.setAttribute('http.response_content_length', contentLengthNum);
-          }
-        }
-      } else if (handlerData.error) {
-        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-      }
-      span.end();
+      endSpan(span, handlerData);
 
       // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
       delete spans[spanId];
@@ -81,19 +67,26 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        name: `${method} ${url}`,
-        onlyIfParent: true,
-        attributes: {
-          url,
-          type: 'fetch',
-          'http.method': method,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-        },
-        op: 'http.client',
-      })
-    : new SentryNonRecordingSpan();
+  const hasParent = !!getActiveSpan();
+
+  const fullUrl = getFullURL(url);
+  const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${method} ${url}`,
+          attributes: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+            'http.url': fullUrl,
+            'server.address': host,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          },
+        })
+      : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
@@ -107,7 +100,17 @@ export function instrumentFetchRequest(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const options: { [key: string]: any } = handlerData.args[1];
 
-    options.headers = addTracingHeadersToFetchRequest(request, client, scope, options, span);
+    options.headers = addTracingHeadersToFetchRequest(
+      request,
+      client,
+      scope,
+      options,
+      // In the following cases, we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope:
+      // - If tracing is disabled (TWP)
+      // - If the span has no parent span - which means we ran into `onlyIfParent` check
+      hasTracingEnabled() && hasParent ? span : undefined,
+    );
   }
 
   return span;
@@ -190,4 +193,32 @@ export function addTracingHeadersToFetchRequest(
       baggage: newBaggageHeaders.length > 0 ? newBaggageHeaders.join(',') : undefined,
     };
   }
+}
+
+function getFullURL(url: string): string | undefined {
+  try {
+    const parsed = new URL(url);
+    return parsed.href;
+  } catch {
+    return undefined;
+  }
+}
+
+function endSpan(span: Span, handlerData: HandlerDataFetch): void {
+  if (handlerData.response) {
+    setHttpStatus(span, handlerData.response.status);
+
+    const contentLength =
+      handlerData.response && handlerData.response.headers && handlerData.response.headers.get('content-length');
+
+    if (contentLength) {
+      const contentLengthNum = parseInt(contentLength);
+      if (contentLengthNum > 0) {
+        span.setAttribute('http.response_content_length', contentLengthNum);
+      }
+    }
+  } else if (handlerData.error) {
+    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+  }
+  span.end();
 }

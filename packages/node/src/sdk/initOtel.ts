@@ -1,7 +1,11 @@
 import { DiagLogLevel, diag } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import {
+  SEMRESATTRS_SERVICE_NAME,
+  SEMRESATTRS_SERVICE_NAMESPACE,
+  SEMRESATTRS_SERVICE_VERSION,
+} from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
 import { SentryPropagator, SentrySampler, SentrySpanProcessor, setupEventContextTrace } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
@@ -36,9 +40,9 @@ export function setupOtel(client: NodeClient): BasicTracerProvider {
   const provider = new BasicTracerProvider({
     sampler: new SentrySampler(client),
     resource: new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: 'node',
-      [SemanticResourceAttributes.SERVICE_NAMESPACE]: 'sentry',
-      [SemanticResourceAttributes.SERVICE_VERSION]: SDK_VERSION,
+      [SEMRESATTRS_SERVICE_NAME]: 'node',
+      [SEMRESATTRS_SERVICE_NAMESPACE]: 'sentry',
+      [SEMRESATTRS_SERVICE_VERSION]: SDK_VERSION,
     }),
     forceFlushTimeoutMillis: 500,
   });

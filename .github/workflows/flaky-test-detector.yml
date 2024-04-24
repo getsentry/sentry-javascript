@@ -1,4 +1,4 @@
-name: 'Detect flaky tests'
+name: 'CI: Detect flaky tests'
 on:
   workflow_dispatch:
   pull_request:

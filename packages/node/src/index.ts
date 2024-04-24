@@ -22,6 +22,7 @@ export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
 export { hapiIntegration, setupHapiErrorHandler } from './integrations/tracing/hapi';
 export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa';
+export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
 export { init, getDefaultIntegrations } from './sdk/init';
@@ -37,9 +38,14 @@ export type { NodeOptions } from './types';
 
 export { addRequestDataToEvent, DEFAULT_USER_INCLUDES, extractRequestData } from '@sentry/utils';
 
-// These are custom variants that need to be used instead of the core one
-// As they have slightly different implementations
-export { continueTrace } from '@sentry/opentelemetry';
+export {
+  addOpenTelemetryInstrumentation,
+  // These are custom variants that need to be used instead of the core one
+  // As they have slightly different implementations
+  continueTrace,
+  // This needs exporting so the NodeClient can be used without calling init
+  setOpenTelemetryContextAsyncContextStrategy as setNodeAsyncContextStrategy,
+} from '@sentry/opentelemetry';
 
 export {
   addBreadcrumb,
@@ -48,7 +54,6 @@ export {
   close,
   createTransport,
   flush,
-  Hub,
   SDK_VERSION,
   getSpanStatusFromHttpCode,
   setHttpStatus,
@@ -114,6 +119,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,

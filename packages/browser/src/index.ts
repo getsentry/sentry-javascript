@@ -30,8 +30,9 @@ export type {
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
+export { feedbackIntegration } from './feedback';
+export { feedbackAsyncIntegration } from './feedbackAsync';
 export {
-  feedbackIntegration,
   getFeedback,
   sendFeedback,
 } from '@sentry-internal/feedback';
@@ -39,13 +40,17 @@ export {
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,
+} from './tracing/request';
+export {
   browserTracingIntegration,
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
-} from '@sentry-internal/browser-utils';
-export type { RequestInstrumentationOptions } from '@sentry-internal/browser-utils';
+} from './tracing/browserTracingIntegration';
+export type { RequestInstrumentationOptions } from './tracing/request';
 export {
+  // eslint-disable-next-line deprecation/deprecation
   addTracingExtensions,
+  registerSpanErrorInstrumentation,
   getActiveSpan,
   getRootSpan,
   startSpan,

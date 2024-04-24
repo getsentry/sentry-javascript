@@ -2,8 +2,9 @@ import type { Baggage, Context, Span, SpanContext, TextMapGetter, TextMapSetter 
 import { context } from '@opentelemetry/api';
 import { TraceFlags, propagation, trace } from '@opentelemetry/api';
 import { TraceState, W3CBaggagePropagator, isTracingSuppressed } from '@opentelemetry/core';
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_URL } from '@opentelemetry/semantic-conventions';
 import type { continueTrace } from '@sentry/core';
+import { hasTracingEnabled } from '@sentry/core';
 import { getRootSpan } from '@sentry/core';
 import { spanToJSON } from '@sentry/core';
 import { getClient, getCurrentScope, getDynamicSamplingContextFromClient, getIsolationScope } from '@sentry/core';
@@ -26,6 +27,7 @@ import {
   SENTRY_TRACE_STATE_DSC,
   SENTRY_TRACE_STATE_PARENT_SPAN_ID,
   SENTRY_TRACE_STATE_SAMPLED_NOT_RECORDING,
+  SENTRY_TRACE_STATE_URL,
 } from './constants';
 import { DEBUG_BUILD } from './debug-build';
 import { getScopesFromContext, setScopesOnContext } from './utils/contextData';
@@ -84,7 +86,8 @@ export class SentryPropagator extends W3CBaggagePropagator {
     }
 
     const activeSpan = trace.getSpan(context);
-    const url = activeSpan && spanToJSON(activeSpan).data?.[SemanticAttributes.HTTP_URL];
+    const url = activeSpan && getCurrentURL(activeSpan);
+
     const tracePropagationTargets = getClient()?.getOptions()?.tracePropagationTargets;
     if (
       typeof url === 'string' &&
@@ -92,7 +95,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
       !this._shouldInjectTraceData(tracePropagationTargets, url)
     ) {
       DEBUG_BUILD &&
-        logger.log('[Tracing] Not injecting trace data for url because it does not matchTracePropagationTargets:', url);
+        logger.log(
+          '[Tracing] Not injecting trace data for url because it does not match tracePropagationTargets:',
+          url,
+        );
       return;
     }
 
@@ -120,7 +126,10 @@ export class SentryPropagator extends W3CBaggagePropagator {
       }, baggage);
     }
 
-    setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+    // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
+    if (traceId && traceId !== '00000000000000000000000000000000') {
+      setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+    }
 
     super.inject(propagation.setBaggage(context, baggage), carrier, setter);
   }
@@ -212,7 +221,7 @@ function getInjectionData(context: Context): {
   spanId: string | undefined;
   sampled: boolean | undefined;
 } {
-  const span = trace.getSpan(context);
+  const span = hasTracingEnabled() ? trace.getSpan(context) : undefined;
   const spanIsRemote = span?.spanContext().isRemote;
 
   // If we have a local span, we can just pick everything from it
@@ -230,39 +239,15 @@ function getInjectionData(context: Context): {
   }
 
   // Else we try to use the propagation context from the scope
-  const scope = getScopesFromContext(context)?.scope;
-  if (scope) {
-    const propagationContext = scope.getPropagationContext();
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
-    return {
-      dynamicSamplingContext,
-      traceId: propagationContext.traceId,
-      spanId: propagationContext.spanId,
-      sampled: propagationContext.sampled,
-    };
-  }
+  const scope = getScopesFromContext(context)?.scope || getCurrentScope();
 
-  // Else, we look at the remote span context
-  if (span) {
-    const spanContext = span.spanContext();
-    const propagationContext = getPropagationContextFromSpan(span);
-    const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, spanContext.traceId);
-
-    return {
-      dynamicSamplingContext,
-      traceId: spanContext.traceId,
-      spanId: spanContext.spanId,
-      sampled: getSamplingDecision(spanContext),
-    };
-  }
-
-  // If we have neither, there is nothing much we can do, but that should not happen usually
-  // Unless there is a detached OTEL context being passed around
+  const propagationContext = scope.getPropagationContext();
+  const dynamicSamplingContext = getDynamicSamplingContext(propagationContext, propagationContext.traceId);
   return {
-    dynamicSamplingContext: undefined,
-    traceId: undefined,
-    spanId: undefined,
-    sampled: undefined,
+    dynamicSamplingContext,
+    traceId: propagationContext.traceId,
+    spanId: propagationContext.spanId,
+    sampled: propagationContext.sampled,
   };
 }
 
@@ -332,4 +317,28 @@ function getExistingBaggage(carrier: unknown): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * It is pretty tricky to get access to the outgoing request URL of a request in the propagator.
+ * As we only have access to the context of the span to be sent and the carrier (=headers),
+ * but the span may be unsampled and thus have no attributes.
+ *
+ * So we use the following logic:
+ * 1. If we have an active span, we check if it has a URL attribute.
+ * 2. Else, if the active span has no URL attribute (e.g. it is unsampled), we check a special trace state (which we set in our sampler).
+ */
+function getCurrentURL(span: Span): string | undefined {
+  const urlAttribute = spanToJSON(span).data?.[SEMATTRS_HTTP_URL];
+  if (urlAttribute) {
+    return urlAttribute;
+  }
+
+  // Also look at the traceState, which we may set in the sampler even for unsampled spans
+  const urlTraceState = span.spanContext().traceState?.get(SENTRY_TRACE_STATE_URL);
+  if (urlTraceState) {
+    return urlTraceState;
+  }
+
+  return undefined;
 }

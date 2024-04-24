@@ -48,12 +48,6 @@ describe('lazyLoadIntegration', () => {
     await expect(() => lazyLoadIntegration('invalid!!!')).rejects.toThrow('Cannot lazy load integration: invalid!!!');
   });
 
-  test('it rejects without global Sentry variable', async () => {
-    await expect(() => lazyLoadIntegration('httpClientIntegration')).rejects.toThrow(
-      'Cannot lazy load integration: httpClientIntegration',
-    );
-  });
-
   test('it does not inject a script tag if integration already exists', async () => {
     // @ts-expect-error For testing sake
     global.Sentry = Sentry;
@@ -64,7 +58,7 @@ describe('lazyLoadIntegration', () => {
     expect(global.document.querySelectorAll('script')).toHaveLength(0);
   });
 
-  test('it injects a script tag if integration is not yet loaded xxx', async () => {
+  test('it injects a script tag if integration is not yet loaded', async () => {
     // @ts-expect-error For testing sake
     global.Sentry = {
       ...Sentry,

@@ -52,35 +52,28 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '80 KB',
+    limit: '87 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'feedbackIntegration'),
     gzip: true,
-    limit: '35 KB',
-  },
-  {
-    name: '@sentry/browser (incl. Feedback, Feedback Modal)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'feedbackIntegration', 'feedbackModalIntegration'),
-    gzip: true,
-    limit: '35 KB',
-  },
-  {
-    name: '@sentry/browser (incl. Feedback, Feedback Modal, Feedback Screenshot)',
-    path: 'packages/browser/build/npm/esm/index.js',
-    import: createImport('init', 'feedbackIntegration', 'feedbackModalIntegration', 'feedbackScreenshotIntegration'),
-    gzip: true,
-    limit: '35 KB',
+    limit: '40 KB',
   },
   {
     name: '@sentry/browser (incl. sendFeedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'sendFeedback'),
     gzip: true,
-    limit: '30 KB',
+    limit: '28 KB',
+  },
+  {
+    name: '@sentry/browser (incl. FeedbackAsync)',
+    path: 'packages/browser/build/npm/esm/index.js',
+    import: createImport('init', 'feedbackAsyncIntegration'),
+    gzip: true,
+    limit: '33 KB',
   },
   // React SDK (ESM)
   {
@@ -143,7 +136,7 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '75 KB',
+    limit: '86 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -166,6 +159,13 @@ module.exports = [
     gzip: false,
     brotli: false,
     limit: '220 KB',
+  },
+  {
+    name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
+    path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
+    gzip: false,
+    brotli: false,
+    limit: '264 KB',
   },
   // Next.js SDK (ESM)
   {
@@ -208,7 +208,7 @@ module.exports = [
       'tls',
     ],
     gzip: true,
-    limit: '150 KB',
+    limit: '180 KB',
   },
 ];
 

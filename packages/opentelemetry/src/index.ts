@@ -23,10 +23,10 @@ export { isSentryRequestSpan } from './utils/isSentryRequest';
 export { getActiveSpan } from './utils/getActiveSpan';
 export { startSpan, startSpanManual, startInactiveSpan, withActiveSpan, continueTrace } from './trace';
 
+export { suppressTracing } from './utils/suppressTracing';
+
 // eslint-disable-next-line deprecation/deprecation
-export { setupGlobalHub } from './custom/hub';
-// eslint-disable-next-line deprecation/deprecation
-export { getCurrentHub } from './custom/getCurrentHub';
+export { getCurrentHubShim } from '@sentry/core';
 export { setupEventContextTrace } from './setupEventContextTrace';
 
 export { setOpenTelemetryContextAsyncContextStrategy } from './asyncContextStrategy';
@@ -36,6 +36,8 @@ export { SentrySpanProcessor } from './spanProcessor';
 export { SentrySampler } from './sampler';
 
 export { openTelemetrySetupCheck } from './utils/setupCheck';
+
+export { addOpenTelemetryInstrumentation } from './instrumentation';
 
 // Legacy
 export { getClient } from '@sentry/core';

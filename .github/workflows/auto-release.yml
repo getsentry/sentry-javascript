@@ -1,4 +1,4 @@
-name: Gitflow - Auto prepare release
+name: "Gitflow: Auto prepare release"
 on:
   pull_request:
     types:
@@ -20,20 +20,27 @@ jobs:
 
       # https://github.com/actions-ecosystem/action-regex-match
       - uses: actions-ecosystem/action-regex-match@v2
-        id: version
+        id: version-regex
         with:
           # Parse version from head branch
           text: ${{ github.head_ref }}
           # match: preprare-release/xx.xx.xx
-          regex: '^prepare-release\/(\d+\.\d+\.\d+)$'
+          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta)\.\d+)?$'
+
+      - name: Extract version
+        id: get_version
+        run: |
+          version=${{ steps.version-regex.outputs.match }}
+          version=${version/'prepare-release/'/''}
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Prepare release
         uses: getsentry/action-prepare-release@v1
-        if: github.event.pull_request.merged == true && steps.version.outputs.match != ''
+        if: github.event.pull_request.merged == true && steps.version-regex.outputs.match != '' && steps.get_version.outputs.version != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GH_RELEASE_PAT }}
         with:
-          version: ${{ steps.version.outputs.group1 }}
+          version: ${{ steps.get_version.outputs.version }}
           force: false
           merge_target: master
           craft_config_from_merge_target: true

@@ -1,8 +1,8 @@
 import type { ClientRequest, IncomingMessage, ServerResponse } from 'http';
 import type { Span } from '@opentelemetry/api';
 import { SpanKind } from '@opentelemetry/api';
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
 import {
   addBreadcrumb,
@@ -42,18 +42,22 @@ interface HttpOptions {
    * This controls both span & breadcrumb creation - spans will be non recording if tracing is disabled.
    */
   ignoreIncomingRequests?: (url: string) => boolean;
+
+  /** Allows to pass a custom version of HttpInstrumentation. We use this for Next.js. */
+  _instrumentation?: typeof HttpInstrumentation;
 }
 
 const _httpIntegration = ((options: HttpOptions = {}) => {
   const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
   const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
   const _ignoreIncomingRequests = options.ignoreIncomingRequests;
+  const _InstrumentationClass = options._instrumentation || HttpInstrumentation;
 
   return {
     name: 'Http',
     setupOnce() {
-      const instrumentations = [
-        new HttpInstrumentation({
+      addOpenTelemetryInstrumentation(
+        new _InstrumentationClass({
           ignoreOutgoingRequestHook: request => {
             const url = getRequestUrl(request);
 
@@ -88,7 +92,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             return false;
           },
 
-          requireParentforOutgoingSpans: true,
+          requireParentforOutgoingSpans: false,
           requireParentforIncomingSpans: false,
           requestHook: (span, req) => {
             addOriginToSpan(span, 'auto.http.otel.http');
@@ -101,10 +105,10 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             const scopes = getCapturedScopesOnSpan(span);
 
-            // Update the isolation scope, isolate this request
             const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
             const scope = scopes.scope || getCurrentScope();
 
+            // Update the isolation scope, isolate this request
             isolationScope.setSDKProcessingMetadata({ request: req });
 
             const client = getClient<NodeClient>();
@@ -141,11 +145,7 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             }
           },
         }),
-      ];
-
-      registerInstrumentations({
-        instrumentations,
-      });
+      );
     },
   };
 }) satisfies IntegrationFn;

@@ -28,3 +28,10 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT = 'sentry.measurement_un
 
 /** The value of a measurement, which may be stored as a TimedEvent. */
 export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_value';
+
+/**
+ * The id of the profile that this span occured in.
+ */
+export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
+
+export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';

@@ -18,7 +18,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   NodeClient,
   setCurrentClient,
   Scope,
@@ -72,6 +71,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

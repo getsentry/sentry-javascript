@@ -1,12 +1,9 @@
 import { isThenable, normalize } from '@sentry/utils';
-import {
-  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
-  SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
-  captureException,
-  setContext,
-  startSpanManual,
-} from '.';
+
 import { getClient } from './currentScopes';
+import { captureException, setContext } from './exports';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from './semanticAttributes';
+import { startSpanManual } from './tracing';
 
 interface SentryTrpcMiddlewareOptions {
   /** Whether to include procedure inputs in reported events. Defaults to `false`. */
@@ -58,7 +55,6 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       {
         name: `trpc/${path}`,
         op: 'rpc.server',
-        forceTransaction: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',

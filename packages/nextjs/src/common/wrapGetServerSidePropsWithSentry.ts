@@ -1,10 +1,4 @@
-import {
-  addTracingExtensions,
-  getActiveSpan,
-  getDynamicSamplingContextFromSpan,
-  getRootSpan,
-  spanToTraceHeader,
-} from '@sentry/core';
+import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type { GetServerSideProps } from 'next';
 
@@ -27,8 +21,6 @@ export function wrapGetServerSidePropsWithSentry(
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
-
-      addTracingExtensions();
 
       const [context] = args;
       const { req, res } = context;

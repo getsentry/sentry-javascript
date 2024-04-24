@@ -1,17 +1,19 @@
 import type { Client } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
+import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 
+import { getRootSpan } from '@sentry/core';
 import { getActiveSpan } from './utils/getActiveSpan';
 import { spanHasParentId } from './utils/spanTypes';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
-  client.addEventProcessor(event => {
+  client.on('preprocessEvent', event => {
     const span = getActiveSpan();
     // For transaction events, this is handled separately
     // Because the active span may not be the span that is actually the transaction event
     if (!span || event.type === 'transaction') {
-      return event;
+      return;
     }
 
     const spanContext = span.spanContext();
@@ -24,6 +26,13 @@ export function setupEventContextTrace(client: Client): void {
         parent_span_id: spanHasParentId(span) ? span.parentSpanId : undefined,
       }),
       ...event.contexts,
+    };
+
+    const rootSpan = getRootSpan(span);
+
+    event.sdkProcessingMetadata = {
+      dynamicSamplingContext: getDynamicSamplingContextFromSpan(rootSpan),
+      ...event.sdkProcessingMetadata,
     };
 
     return event;

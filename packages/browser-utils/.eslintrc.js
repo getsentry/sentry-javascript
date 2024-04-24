@@ -11,9 +11,10 @@ module.exports = {
       },
     },
     {
-      files: ['src/browser/web-vitals/**'],
+      files: ['src/metrics/**'],
       rules: {
         '@typescript-eslint/explicit-function-return-type': 'off',
+        '@typescript-eslint/no-non-null-assertion': 'off',
       },
     },
   ],

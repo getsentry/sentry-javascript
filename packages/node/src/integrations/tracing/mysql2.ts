@@ -1,6 +1,6 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { MySQL2Instrumentation } from '@opentelemetry/instrumentation-mysql2';
 import { defineIntegration } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
@@ -9,15 +9,13 @@ const _mysql2Integration = (() => {
   return {
     name: 'Mysql2',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [
-          new MySQL2Instrumentation({
-            responseHook(span) {
-              addOriginToSpan(span, 'auto.db.otel.mysql2');
-            },
-          }),
-        ],
-      });
+      addOpenTelemetryInstrumentation(
+        new MySQL2Instrumentation({
+          responseHook(span) {
+            addOriginToSpan(span, 'auto.db.otel.mysql2');
+          },
+        }),
+      );
     },
   };
 }) satisfies IntegrationFn;

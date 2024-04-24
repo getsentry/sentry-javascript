@@ -15,12 +15,13 @@ import {
   getRootSpan,
   spanIsSampled,
   spanToJSON,
+  suppressTracing,
   withScope,
 } from '@sentry/core';
 import type { Event, Scope } from '@sentry/types';
 import { makeTraceState } from '../src/propagator';
 
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_METHOD } from '@opentelemetry/semantic-conventions';
 import { continueTrace, startInactiveSpan, startSpan, startSpanManual } from '../src/trace';
 import type { AbstractSpan } from '../src/types';
 import { getDynamicSamplingContextFromSpan } from '../src/utils/dynamicSamplingContext';
@@ -1369,35 +1370,26 @@ describe('HTTP methods (sampling)', () => {
   });
 
   it('does sample when HTTP method is other than OPTIONS or HEAD', () => {
-    const spanGET = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'GET' } },
-      span => {
-        return span;
-      },
-    );
+    const spanGET = startSpanManual({ name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'GET' } }, span => {
+      return span;
+    });
     expect(spanIsSampled(spanGET)).toBe(true);
     expect(getSamplingDecision(spanGET.spanContext())).toBe(true);
 
-    const spanPOST = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'POST' } },
-      span => {
-        return span;
-      },
-    );
+    const spanPOST = startSpanManual({ name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'POST' } }, span => {
+      return span;
+    });
     expect(spanIsSampled(spanPOST)).toBe(true);
     expect(getSamplingDecision(spanPOST.spanContext())).toBe(true);
 
-    const spanPUT = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'PUT' } },
-      span => {
-        return span;
-      },
-    );
+    const spanPUT = startSpanManual({ name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'PUT' } }, span => {
+      return span;
+    });
     expect(spanIsSampled(spanPUT)).toBe(true);
     expect(getSamplingDecision(spanPUT.spanContext())).toBe(true);
 
     const spanDELETE = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'DELETE' } },
+      { name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'DELETE' } },
       span => {
         return span;
       },
@@ -1407,23 +1399,17 @@ describe('HTTP methods (sampling)', () => {
   });
 
   it('does not sample when HTTP method is OPTIONS', () => {
-    const span = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'OPTIONS' } },
-      span => {
-        return span;
-      },
-    );
+    const span = startSpanManual({ name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'OPTIONS' } }, span => {
+      return span;
+    });
     expect(spanIsSampled(span)).toBe(false);
     expect(getSamplingDecision(span.spanContext())).toBe(false);
   });
 
   it('does not sample when HTTP method is HEAD', () => {
-    const span = startSpanManual(
-      { name: 'test span', attributes: { [SemanticAttributes.HTTP_METHOD]: 'HEAD' } },
-      span => {
-        return span;
-      },
-    );
+    const span = startSpanManual({ name: 'test span', attributes: { [SEMATTRS_HTTP_METHOD]: 'HEAD' } }, span => {
+      return span;
+    });
     expect(spanIsSampled(span)).toBe(false);
     expect(getSamplingDecision(span.spanContext())).toBe(false);
   });
@@ -1572,6 +1558,58 @@ describe('continueTrace', () => {
     );
 
     expect(result).toEqual('aha');
+  });
+});
+
+describe('suppressTracing', () => {
+  beforeEach(() => {
+    mockSdkInit({ enableTracing: true });
+  });
+
+  afterEach(() => {
+    cleanupOtel();
+  });
+
+  it('works for a root span', () => {
+    const span = suppressTracing(() => {
+      return startInactiveSpan({ name: 'span' });
+    });
+
+    expect(span.isRecording()).toBe(false);
+    expect(spanIsSampled(span)).toBe(false);
+  });
+
+  it('works for a child span', () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span.isRecording()).toBe(true);
+      expect(spanIsSampled(span)).toBe(true);
+
+      const child1 = startInactiveSpan({ name: 'inner1' });
+
+      expect(child1.isRecording()).toBe(true);
+      expect(spanIsSampled(child1)).toBe(true);
+
+      const child2 = suppressTracing(() => {
+        return startInactiveSpan({ name: 'span' });
+      });
+
+      expect(child2.isRecording()).toBe(false);
+      expect(spanIsSampled(child2)).toBe(false);
+    });
+  });
+
+  it('works for a child span with forceTransaction=true', () => {
+    startSpan({ name: 'outer' }, span => {
+      expect(span.isRecording()).toBe(true);
+      expect(spanIsSampled(span)).toBe(true);
+
+      const child = suppressTracing(() => {
+        return startInactiveSpan({ name: 'span', forceTransaction: true });
+      });
+
+      expect(child.isRecording()).toBe(false);
+      expect(spanIsSampled(child)).toBe(false);
+    });
   });
 });
 

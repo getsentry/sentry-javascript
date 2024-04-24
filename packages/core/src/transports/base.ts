@@ -26,7 +26,7 @@ import {
 
 import { DEBUG_BUILD } from '../debug-build';
 
-export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
 /**
  * Creates an instance of a Sentry `Transport`
@@ -49,10 +49,10 @@ export function createTransport(
 
     // Drop rate limited items from envelope
     forEachEnvelopeItem(envelope, (item, type) => {
-      const envelopeItemDataCategory = envelopeItemTypeToDataCategory(type);
-      if (isRateLimited(rateLimits, envelopeItemDataCategory)) {
+      const dataCategory = envelopeItemTypeToDataCategory(type);
+      if (isRateLimited(rateLimits, dataCategory)) {
         const event: Event | undefined = getEventForEnvelopeItem(item, type);
-        options.recordDroppedEvent('ratelimit_backoff', envelopeItemDataCategory, event);
+        options.recordDroppedEvent('ratelimit_backoff', dataCategory, event);
       } else {
         filteredEnvelopeItems.push(item);
       }

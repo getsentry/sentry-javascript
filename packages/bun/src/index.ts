@@ -6,6 +6,7 @@ export type {
   SdkInfo,
   Event,
   EventHint,
+  ErrorEvent,
   Exception,
   Session,
   SeverityLevel,
@@ -37,7 +38,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -99,6 +99,8 @@ export {
   setupFastifyErrorHandler,
   koaIntegration,
   setupKoaErrorHandler,
+  connectIntegration,
+  setupConnectErrorHandler,
   graphqlIntegration,
   mongoIntegration,
   mongooseIntegration,
@@ -115,6 +117,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   trpcMiddleware,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 export {

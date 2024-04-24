@@ -18,7 +18,6 @@ export {
   getCurrentScope,
   getGlobalScope,
   getIsolationScope,
-  Hub,
   setCurrentClient,
   Scope,
   SDK_VERSION,
@@ -78,6 +77,8 @@ export {
   setupExpressErrorHandler,
   koaIntegration,
   setupKoaErrorHandler,
+  connectIntegration,
+  setupConnectErrorHandler,
   fastifyIntegration,
   graphqlIntegration,
   mongoIntegration,
@@ -95,6 +96,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   trpcMiddleware,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 export {

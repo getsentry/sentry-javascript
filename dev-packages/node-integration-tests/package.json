@@ -1,6 +1,6 @@
 {
   "name": "@sentry-internal/node-integration-tests",
-  "version": "8.0.0-alpha.9",
+  "version": "8.0.0-beta.3",
   "license": "MIT",
   "engines": {
     "node": ">=14.18"
@@ -30,13 +30,14 @@
     "@nestjs/core": "^10.3.3",
     "@nestjs/platform-express": "^10.3.3",
     "@prisma/client": "5.9.1",
-    "@sentry/node": "8.0.0-alpha.9",
-    "@sentry/types": "8.0.0-alpha.9",
+    "@sentry/node": "8.0.0-beta.3",
+    "@sentry/types": "8.0.0-beta.3",
     "@types/mongodb": "^3.6.20",
     "@types/mysql": "^2.15.21",
     "@types/pg": "^8.6.5",
     "apollo-server": "^3.11.1",
     "axios": "^1.6.7",
+    "connect": "^3.7.0",
     "cors": "^2.8.5",
     "cron": "^3.1.6",
     "express": "^4.17.3",
@@ -49,6 +50,7 @@
     "mysql2": "^3.7.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
+    "@aws-sdk/client-s3": "^3.552.0",
     "proxy": "^2.1.1",
     "reflect-metadata": "0.2.1",
     "rxjs": "^7.8.1",

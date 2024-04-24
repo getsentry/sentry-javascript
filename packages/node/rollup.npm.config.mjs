@@ -1,13 +1,22 @@
 import replace from '@rollup/plugin-replace';
 import { makeBaseNPMConfig, makeNPMConfigVariants, makeOtelLoaders } from '@sentry-internal/rollup-utils';
-import { createAnrWorkerCode } from './rollup.anr-worker.config.mjs';
+import { createWorkerCodeBuilder } from './rollup.anr-worker.config.mjs';
 
-const { workerRollupConfig, getBase64Code } = createAnrWorkerCode();
+const [anrWorkerConfig, getAnrBase64Code] = createWorkerCodeBuilder(
+  'src/integrations/anr/worker.ts',
+  'build/esm/integrations/anr',
+);
+
+const [localVariablesWorkerConfig, getLocalVariablesBase64Code] = createWorkerCodeBuilder(
+  'src/integrations/local-variables/worker.ts',
+  'build/esm/integrations/local-variables',
+);
 
 export default [
   ...makeOtelLoaders('./build', 'otel'),
-  // The worker needs to be built first since it's output is used in the main bundle.
-  workerRollupConfig,
+  // The workers needs to be built first since it's their output is copied in the main bundle.
+  anrWorkerConfig,
+  localVariablesWorkerConfig,
   ...makeNPMConfigVariants(
     makeBaseNPMConfig({
       packageSpecificConfig: {
@@ -23,10 +32,11 @@ export default [
         plugins: [
           replace({
             delimiters: ['###', '###'],
-            // removes some webpack warnings
+            // removes some rollup warnings
             preventAssignment: true,
             values: {
-              base64WorkerScript: () => getBase64Code(),
+              AnrWorkerScript: () => getAnrBase64Code(),
+              LocalVariablesWorkerScript: () => getLocalVariablesBase64Code(),
             },
           }),
         ],

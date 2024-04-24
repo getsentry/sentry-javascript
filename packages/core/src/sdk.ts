@@ -1,10 +1,10 @@
-import type { Client, ClientOptions, Hub as HubInterface } from '@sentry/types';
+import type { Client, ClientOptions } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
+import type { AsyncContextStack } from './asyncContext/stackStrategy';
+import { getMainCarrier, getSentryCarrier } from './carrier';
 import { DEBUG_BUILD } from './debug-build';
-import type { Hub } from './hub';
-import { getCurrentHub } from './hub';
 
 /** A class object that can instantiate Client objects. */
 export type ClientClass<F extends Client, O extends ClientOptions> = new (options: O) => F;
@@ -44,18 +44,19 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
  */
 export function setCurrentClient(client: Client): void {
   getCurrentScope().setClient(client);
-
-  // is there a hub too?
-  // eslint-disable-next-line deprecation/deprecation
-  const hub = getCurrentHub();
-  if (isHubClass(hub)) {
-    // eslint-disable-next-line deprecation/deprecation
-    const top = hub.getStackTop();
-    top.client = client;
-  }
+  registerClientOnGlobalHub(client);
 }
 
-function isHubClass(hub: HubInterface): hub is Hub {
-  // eslint-disable-next-line deprecation/deprecation
-  return !!(hub as Hub).getStackTop;
+/**
+ * Unfortunately, we still have to manually bind the client to the "hub" property set on the global
+ * Sentry carrier object. This is because certain scripts (e.g. our loader script) obtain
+ * the client via `window.__SENTRY__.hub.getClient()`.
+ *
+ * @see {@link ./asyncContext/stackStrategy.ts getAsyncContextStack}
+ */
+function registerClientOnGlobalHub(client: Client): void {
+  const sentryGlobal = getSentryCarrier(getMainCarrier()) as { hub?: AsyncContextStack };
+  if (sentryGlobal.hub && typeof sentryGlobal.hub.getStackTop === 'function') {
+    sentryGlobal.hub.getStackTop().client = client;
+  }
 }

@@ -1,4 +1,4 @@
-import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
+import { SEMATTRS_HTTP_STATUS_CODE, SEMATTRS_RPC_GRPC_STATUS_CODE } from '@opentelemetry/semantic-conventions';
 import { SPAN_STATUS_ERROR, SPAN_STATUS_OK } from '@sentry/core';
 import type { SpanStatus } from '@sentry/types';
 
@@ -62,11 +62,11 @@ describe('mapStatus', () => {
     span.setStatus({ code: 0 }); // UNSET
 
     if (httpCode) {
-      span.setAttribute(SemanticAttributes.HTTP_STATUS_CODE, httpCode);
+      span.setAttribute(SEMATTRS_HTTP_STATUS_CODE, httpCode);
     }
 
     if (grpcCode) {
-      span.setAttribute(SemanticAttributes.RPC_GRPC_STATUS_CODE, grpcCode);
+      span.setAttribute(SEMATTRS_RPC_GRPC_STATUS_CODE, grpcCode);
     }
 
     const actual = mapStatus(span);

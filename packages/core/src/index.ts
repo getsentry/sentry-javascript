@@ -1,6 +1,6 @@
 export type { ClientClass } from './sdk';
-export type { Layer } from './hub';
-export type { AsyncContextStrategy, Carrier } from './asyncContext';
+export type { AsyncContextStrategy } from './asyncContext/types';
+export type { Carrier } from './carrier';
 export type { OfflineStore, OfflineTransportOptions } from './transports/offline';
 export type { ServerRuntimeClientOptions } from './server-runtime-client';
 export type { RequestDataIntegrationOptions } from './integrations/requestdata';
@@ -8,7 +8,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -30,25 +30,17 @@ export {
   addEventProcessor,
 } from './exports';
 export {
-  // eslint-disable-next-line deprecation/deprecation
-  getCurrentHub,
-  Hub,
-  getGlobalHub,
-  getDefaultCurrentScope,
-  getDefaultIsolationScope,
-} from './hub';
-export {
   getCurrentScope,
   getIsolationScope,
   getGlobalScope,
   withScope,
   withIsolationScope,
   getClient,
+  getDefaultCurrentScope,
+  getDefaultIsolationScope,
 } from './currentScopes';
-export {
-  getMainCarrier,
-  setAsyncContextStrategy,
-} from './asyncContext';
+export { setAsyncContextStrategy } from './asyncContext';
+export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
 export { SessionFlusher } from './sessionflusher';
 export { Scope } from './scope';
@@ -106,3 +98,6 @@ export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+
+// eslint-disable-next-line deprecation/deprecation
+export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

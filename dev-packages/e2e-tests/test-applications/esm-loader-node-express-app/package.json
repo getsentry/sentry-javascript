@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "start": "node --import=@sentry/node/register src/app.mjs",
+    "start": "node --import=@sentry/node/import-hook src/app.mjs",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install",
     "test:assert": "playwright test"

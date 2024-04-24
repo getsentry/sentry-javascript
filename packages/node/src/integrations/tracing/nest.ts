@@ -1,6 +1,6 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
 import { captureException, defineIntegration, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
@@ -28,9 +28,7 @@ const _nestIntegration = (() => {
   return {
     name: 'Nest',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [new NestInstrumentation({})],
-      });
+      addOpenTelemetryInstrumentation(new NestInstrumentation({}));
     },
   };
 }) satisfies IntegrationFn;

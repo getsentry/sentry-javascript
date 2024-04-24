@@ -2,15 +2,7 @@ import type { Integration } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 import { FAKE_FUNCTION } from './common';
 
-const FEEDBACK_INTEGRATION_METHODS = [
-  'openDialog',
-  'closeDialog',
-  'attachTo',
-  'createWidget',
-  'removeWidget',
-  'getWidget',
-  'remove',
-] as const;
+const FEEDBACK_INTEGRATION_METHODS = ['attachTo', 'createWidget', 'remove'] as const;
 
 type FeedbackSpecificMethods = Record<(typeof FEEDBACK_INTEGRATION_METHODS)[number], () => void>;
 

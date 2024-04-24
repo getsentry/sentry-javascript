@@ -1,10 +1,4 @@
-import {
-  addTracingExtensions,
-  getActiveSpan,
-  getDynamicSamplingContextFromSpan,
-  getRootSpan,
-  spanToTraceHeader,
-} from '@sentry/core';
+import { getActiveSpan, getDynamicSamplingContextFromSpan, getRootSpan, spanToTraceHeader } from '@sentry/core';
 import { dynamicSamplingContextToSentryBaggageHeader } from '@sentry/utils';
 import type App from 'next/app';
 
@@ -27,8 +21,6 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
       if (isBuild()) {
         return wrappingTarget.apply(thisArg, args);
       }
-
-      addTracingExtensions();
 
       const [context] = args;
       const { req, res } = context.ctx;

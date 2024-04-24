@@ -1,5 +1,12 @@
 import type { Page, Request } from '@playwright/test';
-import type { EnvelopeItem, EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
+import type {
+  Envelope,
+  EnvelopeItem,
+  EnvelopeItemType,
+  Event,
+  EventEnvelope,
+  EventEnvelopeHeaders,
+} from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -38,6 +45,30 @@ export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] =>
 
   return items;
 };
+
+export type EventAndTraceHeader = [Event, EventEnvelopeHeaders['trace']];
+
+/**
+ * Returns the first event item and `trace` envelope header from an envelope.
+ * This is particularly helpful if you want to test dynamic sampling and trace propagation-related cases.
+ */
+export const eventAndTraceHeaderRequestParser = (request: Request | null): EventAndTraceHeader => {
+  const envelope = properFullEnvelopeParser<EventEnvelope>(request);
+  return getEventAndTraceHeader(envelope);
+};
+
+const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
+};
+
+function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
+  const event = envelope[1][0][1] as Event;
+  const trace = envelope[0].trace;
+  return [event, trace];
+}
 
 export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
   return properEnvelopeParser(request)[0][envelopeIndex] as T;
@@ -187,6 +218,18 @@ export function waitForTransactionRequest(page: Page): Promise<Request> {
 export function shouldSkipTracingTest(): boolean {
   const bundle = process.env.PW_BUNDLE as string | undefined;
   return bundle != null && !bundle.includes('tracing') && !bundle.includes('esm') && !bundle.includes('cjs');
+}
+
+/**
+ * We can only test replay tests in certain bundles/packages:
+ * - NPM (ESM, CJS)
+ * - CDN bundles that contain the Replay integration
+ *
+ * @returns `true` if we should skip the feedback test
+ */
+export function shouldSkipFeedbackTest(): boolean {
+  const bundle = process.env.PW_BUNDLE as string | undefined;
+  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
 }
 
 /**

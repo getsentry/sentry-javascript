@@ -1,4 +1,4 @@
-import { addEventProcessor, addTracingExtensions, applySdkMetadata, getClient } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -8,19 +8,35 @@ import { devErrorSymbolicationEventProcessor } from '../common/devErrorSymbolica
 import { getVercelEnv } from '../common/getVercelEnv';
 import { isBuild } from '../common/utils/isBuild';
 import { distDirRewriteFramesIntegration } from './distDirRewriteFramesIntegration';
-import { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
 
 export * from '@sentry/node';
 import type { EventProcessor } from '@sentry/types';
-import { requestIsolationScopeIntegration } from './requestIsolationScopeIntegration';
+import { httpIntegration } from './httpIntegration';
+
+export { httpIntegration };
 
 export { captureUnderscoreErrorException } from '../common/_error';
-export { onUncaughtExceptionIntegration } from './onUncaughtExceptionIntegration';
 
 const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __rewriteFramesDistDir__?: string;
   __sentryRewritesTunnelPath__?: string;
 };
+
+// https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
+const NEXTJS_SPAN_NAME_PREFIXES = [
+  'BaseServer.',
+  'LoadComponents.',
+  'NextServer.',
+  'createServer.',
+  'startServer.',
+  'NextNodeServer.',
+  'Render.',
+  'AppRender.',
+  'Router.',
+  'Node.',
+  'AppRouteRouteHandlers.',
+  'ResolveMetadata.',
+];
 
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
@@ -66,8 +82,6 @@ export function showReportDialog(): void {
 
 /** Inits the Sentry NextJS SDK on node. */
 export function init(options: NodeOptions): void {
-  addTracingExtensions();
-
   if (isBuild()) {
     return;
   }
@@ -75,15 +89,15 @@ export function init(options: NodeOptions): void {
   const customDefaultIntegrations = [
     ...getDefaultIntegrations(options).filter(
       integration =>
-        integration.name !== 'OnUncaughtException' &&
-        // Next.js comes with its own Node-Fetch instrumentation, so we shouldn't add ours on-top
-        integration.name !== 'NodeFetch' &&
-        // Next.js comes with its own Http instrumentation for OTel which lead to double spans for route handler requests
+        // Next.js comes with its own Http instrumentation for OTel which would lead to double spans for route handler requests
         integration.name !== 'Http',
     ),
-    onUncaughtExceptionIntegration(),
-    requestIsolationScopeIntegration(),
+    httpIntegration(),
   ];
+
+  // Turn off Next.js' own fetch instrumentation
+  // https://github.com/lforst/nextjs-fork/blob/1994fd186defda77ad971c36dc3163db263c993f/packages/next/src/server/lib/patch-fetch.ts#L245
+  process.env.NEXT_OTEL_FETCH_DISABLED = '1';
 
   // This value is injected at build time, based on the output directory specified in the build config. Though a default
   // is set there, we set it here as well, just in case something has gone wrong with the injection.
@@ -92,7 +106,7 @@ export function init(options: NodeOptions): void {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  const opts = {
+  const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
@@ -114,6 +128,20 @@ export function init(options: NodeOptions): void {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   nodeInit(opts);
+
+  const client = getClient();
+  client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
+    // If we encounter a span emitted by Next.js, we do not want to sample it
+    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
+    if (
+      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
+      (parentSampled === undefined || parentContext?.isRemote)
+    ) {
+      samplingDecision.decision = false;
+    }
+  });
 
   addEventProcessor(
     Object.assign(
@@ -150,28 +178,6 @@ export function init(options: NodeOptions): void {
         }
       }) satisfies EventProcessor,
       { id: 'NextLowQualityTransactionsFilter' },
-    ),
-  );
-
-  addEventProcessor(
-    Object.assign(
-      (event => {
-        if (event.type === 'transaction') {
-          event.spans = event.spans?.filter(span => {
-            // Filter out spans for Sentry event sends
-            const httpTargetAttribute: unknown = span.data?.['http.target'];
-            if (typeof httpTargetAttribute === 'string') {
-              // TODO: Find a more robust matching logic - We likely want to use the OTEL SDK's `suppressTracing` in our transport, if we end up using it, we can delete this filtering logic here.
-              return !httpTargetAttribute.includes('sentry_client') && !httpTargetAttribute.includes('sentry_key');
-            }
-
-            return true;
-          });
-        }
-
-        return event;
-      }) satisfies EventProcessor,
-      { id: 'NextFilterSentrySpans' },
     ),
   );
 
