@@ -26,7 +26,7 @@ sentryTest(
 
     const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-    runScriptInSandbox(page, {
+    await runScriptInSandbox(page, {
       content: `
       function run() {
         Sentry.startSpan({ name: 'parent_span' }, () => {

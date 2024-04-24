@@ -16,7 +16,7 @@ sentryTest('should catch thrown errors', async ({ getLocalTestPath, page, browse
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  runScriptInSandbox(page, {
+  await runScriptInSandbox(page, {
     content: `
       throw new Error('realError');
       `,

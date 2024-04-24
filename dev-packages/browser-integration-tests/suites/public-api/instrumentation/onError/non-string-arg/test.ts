@@ -18,7 +18,7 @@ sentryTest(
 
     const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-    runScriptInSandbox(page, {
+    await runScriptInSandbox(page, {
       content: `
         throw {
           type: 'Error',

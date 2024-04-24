@@ -25,7 +25,7 @@ sentryTest(
 
     const errorEventsPromise = getMultipleSentryEnvelopeRequests<Event>(page, 2);
 
-    runScriptInSandbox(page, {
+    await runScriptInSandbox(page, {
       content: `
           throw new Error('Error during pageload');
         `,

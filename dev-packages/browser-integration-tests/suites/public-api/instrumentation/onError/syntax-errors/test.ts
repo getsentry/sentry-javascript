@@ -16,7 +16,7 @@ sentryTest('should catch syntax errors', async ({ getLocalTestPath, page, browse
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  runScriptInSandbox(page, {
+  await runScriptInSandbox(page, {
     content: `
       foo{}; // SyntaxError
     `,

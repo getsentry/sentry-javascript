@@ -16,7 +16,7 @@ sentryTest('should catch thrown strings', async ({ getLocalTestPath, page, brows
 
   const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
 
-  runScriptInSandbox(page, {
+  await runScriptInSandbox(page, {
     content: `
       throw 'stringError';
     `,
