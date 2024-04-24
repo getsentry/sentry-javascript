@@ -14,7 +14,7 @@ export function createActorStyles(): HTMLStyleElement {
   top: var(--top);
   z-index: var(--z-index);
 
-  line-height: 25px;
+  line-height: 16px;
 
   display: flex;
   align-items: center;
@@ -26,7 +26,7 @@ export function createActorStyles(): HTMLStyleElement {
   font-family: inherit;
   font-size: var(--font-size);
   font-weight: 600;
-  padding: 12px 16px;
+  padding: 16px;
   text-decoration: none;
   z-index: 9000;
 
@@ -54,6 +54,12 @@ export function createActorStyles(): HTMLStyleElement {
 }
 
 .widget__actor__text {
+}
+
+@media (max-width: 600px) {
+  .widget__actor__text {
+    display: none;
+  }
 }
 
 .feedback-icon path {
