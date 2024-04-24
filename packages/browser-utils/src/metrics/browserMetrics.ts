@@ -14,7 +14,7 @@ import {
   addTtfbInstrumentationHandler,
 } from './instrument';
 import { WINDOW } from './types';
-import { isMeasurementValue, startAndEndSpan } from './utils';
+import { getBrowserPerformanceAPI, isMeasurementValue, msToSec, startAndEndSpan } from './utils';
 import { getNavigationEntry } from './web-vitals/lib/getNavigationEntry';
 import { getVisibilityWatcher } from './web-vitals/lib/getVisibilityWatcher';
 
@@ -57,19 +57,6 @@ interface NavigatorDeviceMemory {
 }
 
 const MAX_INT_AS_BYTES = 2147483647;
-
-/**
- * Converts from milliseconds to seconds
- * @param time time in ms
- */
-function msToSec(time: number): number {
-  return time / 1000;
-}
-
-function getBrowserPerformanceAPI(): Performance | undefined {
-  // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
-  return WINDOW && WINDOW.addEventListener && WINDOW.performance;
-}
 
 let _performanceCursor: number = 0;
 
@@ -170,6 +157,8 @@ export function startTrackingInteractions(): void {
   });
 }
 
+export { startTrackingINP } from './inp';
+
 /** Starts tracking the Cumulative Layout Shift on the current page. */
 function _trackCLS(): () => void {
   return addClsInstrumentationHandler(({ metric }) => {
@@ -226,7 +215,7 @@ function _trackTtfb(): () => void {
   });
 }
 
-/** Add performance related spans to a span */
+/** Add performance related spans to a transaction */
 export function addPerformanceEntries(span: Span): void {
   const performance = getBrowserPerformanceAPI();
   if (!performance || !WINDOW.performance.getEntries || !browserPerformanceTimeOrigin) {

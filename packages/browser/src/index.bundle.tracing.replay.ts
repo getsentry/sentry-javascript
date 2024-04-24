@@ -1,8 +1,4 @@
-import {
-  feedbackIntegrationShim,
-  feedbackModalIntegrationShim,
-  feedbackScreenshotIntegrationShim,
-} from '@sentry-internal/integration-shims';
+import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
 import { registerSpanErrorInstrumentation } from '@sentry/core';
 
 registerSpanErrorInstrumentation();
@@ -26,10 +22,6 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 
-export {
-  feedbackIntegrationShim as feedbackIntegration,
-  feedbackModalIntegrationShim as feedbackModalIntegration,
-  feedbackScreenshotIntegrationShim as feedbackScreenshotIntegration,
-};
+export { feedbackIntegrationShim as feedbackIntegration };
 
 export { replayIntegration } from '@sentry-internal/replay';

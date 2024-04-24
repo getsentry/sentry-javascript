@@ -8,7 +8,7 @@ import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
 import type { SerializedSession, Session, SessionAggregates } from './session';
-import type { Span } from './span';
+import type { SpanJSON } from './span';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
 
@@ -98,7 +98,7 @@ type ReplayRecordingItem = BaseEnvelopeItem<ReplayRecordingItemHeaders, ReplayRe
 export type StatsdItem = BaseEnvelopeItem<StatsdItemHeaders, string>;
 export type FeedbackItem = BaseEnvelopeItem<FeedbackItemHeaders, FeedbackEvent>;
 export type ProfileItem = BaseEnvelopeItem<ProfileItemHeaders, Profile>;
-export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Span>;
+export type SpanItem = BaseEnvelopeItem<SpanItemHeaders, Partial<SpanJSON>>;
 
 export type EventEnvelopeHeaders = { event_id: string; sent_at: string; trace?: DynamicSamplingContext };
 type SessionEnvelopeHeaders = { sent_at: string };
