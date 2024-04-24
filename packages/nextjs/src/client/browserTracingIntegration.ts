@@ -5,7 +5,7 @@ import {
   startBrowserTracingNavigationSpan,
   startBrowserTracingPageLoadSpan,
 } from '@sentry/react';
-import type { Integration, StartSpanOptions } from '@sentry/types';
+import type { StartSpanOptions } from '@sentry/types';
 import { nextRouterInstrumentation } from '../index.client';
 
 /**
@@ -42,7 +42,7 @@ export class BrowserTracing extends OriginalBrowserTracing {
  */
 export function browserTracingIntegration(
   options?: Parameters<typeof originalBrowserTracingIntegration>[0],
-): Integration {
+): ReturnType<typeof originalBrowserTracingIntegration> {
   const browserTracingIntegrationInstance = originalBrowserTracingIntegration({
     // eslint-disable-next-line deprecation/deprecation
     tracingOrigins:
@@ -61,8 +61,16 @@ export function browserTracingIntegration(
     instrumentPageLoad: false,
   });
 
+  const fullOptions = {
+    ...browserTracingIntegrationInstance.options,
+    instrumentPageLoad: true,
+    instrumentNavigation: true,
+    ...options,
+  };
+
   return {
     ...browserTracingIntegrationInstance,
+    options: fullOptions,
     afterAllSetup(client) {
       const startPageloadCallback = (startSpanOptions: StartSpanOptions): void => {
         startBrowserTracingPageLoadSpan(client, startSpanOptions);
@@ -80,7 +88,7 @@ export function browserTracingIntegration(
       nextRouterInstrumentation(
         () => undefined,
         false,
-        options?.instrumentNavigation,
+        fullOptions.instrumentNavigation,
         startPageloadCallback,
         startNavigationCallback,
       );
@@ -90,7 +98,7 @@ export function browserTracingIntegration(
       // eslint-disable-next-line deprecation/deprecation
       nextRouterInstrumentation(
         () => undefined,
-        options?.instrumentPageLoad,
+        fullOptions.instrumentPageLoad,
         false,
         startPageloadCallback,
         startNavigationCallback,

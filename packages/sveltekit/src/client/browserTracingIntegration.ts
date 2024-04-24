@@ -9,7 +9,7 @@ import {
   startBrowserTracingPageLoadSpan,
   startInactiveSpan,
 } from '@sentry/svelte';
-import type { Client, Integration, Span } from '@sentry/types';
+import type { Client, Span } from '@sentry/types';
 import { svelteKitRoutingInstrumentation } from './router';
 
 /**
@@ -36,7 +36,7 @@ export class BrowserTracing extends OriginalBrowserTracing {
  */
 export function browserTracingIntegration(
   options: Parameters<typeof originalBrowserTracingIntegration>[0] = {},
-): Integration {
+): ReturnType<typeof originalBrowserTracingIntegration> {
   const integration = {
     ...originalBrowserTracingIntegration({
       ...options,
@@ -45,16 +45,24 @@ export function browserTracingIntegration(
     }),
   };
 
+  const fullOptions = {
+    ...integration.options,
+    instrumentPageLoad: true,
+    instrumentNavigation: true,
+    ...options,
+  };
+
   return {
     ...integration,
+    options: fullOptions,
     afterAllSetup: client => {
       integration.afterAllSetup(client);
 
-      if (options.instrumentPageLoad !== false) {
+      if (fullOptions.instrumentPageLoad) {
         _instrumentPageload(client);
       }
 
-      if (options.instrumentNavigation !== false) {
+      if (fullOptions.instrumentNavigation) {
         _instrumentNavigations(client);
       }
     },

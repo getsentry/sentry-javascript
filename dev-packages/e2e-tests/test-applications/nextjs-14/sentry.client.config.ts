@@ -6,4 +6,7 @@ Sentry.init({
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1.0,
   sendDefaultPii: true,
+
+  // Ensure it also works with passing the integration
+  integrations: [Sentry.browserTracingIntegration()],
 });
