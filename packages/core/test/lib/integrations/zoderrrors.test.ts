@@ -1,6 +1,6 @@
 import type { Event, EventHint } from '@sentry/types';
 
-import { applyZodErrorsToEvent } from '../src/index';
+import { applyZodErrorsToEvent } from '../../../src/integrations/zoderrors';
 
 // Simplified type definition
 interface ZodIssue {
@@ -39,20 +39,6 @@ class ZodError extends Error {
     const error = new ZodError(issues);
     return error;
   };
-
-  flatten() {
-    const fieldErrors: any = {};
-    const formErrors: any[] = [];
-    for (const sub of this.issues) {
-      if (sub.path.length > 0) {
-        fieldErrors[sub.path[0]] = fieldErrors[sub.path[0]] || [];
-        fieldErrors[sub.path[0]].push(sub);
-      } else {
-        formErrors.push(sub);
-      }
-    }
-    return { formErrors, fieldErrors };
-  }
 }
 
 describe('applyZodErrorsToEvent()', () => {
