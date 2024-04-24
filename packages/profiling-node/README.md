@@ -68,7 +68,7 @@ npm i -g windows-build-tools
 
 ### Prebuilt binaries
 
-We currently ship prebuilt binaries for a few of the most common platforms and node versions (v16-20).
+We currently ship prebuilt binaries for a few of the most common platforms and node versions (v16-22).
 
 - macOS x64
 - Linux ARM64 (musl)
