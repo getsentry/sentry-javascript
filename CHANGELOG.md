@@ -4,6 +4,10 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.112.2
+
+- fix(nextjs|sveltekit): Ensure we can pass `browserTracingIntegration` (#11765)
+
 ## 7.112.1
 
 - fix(ember/v7): Do not create rendering spans without transaction (#11750)
