@@ -154,7 +154,7 @@ export const wrapRequestHandler = <NextFn>(
       } else if (framework === SupportedFramework.Fastify) {
         (res as FastifyReply).send = wrapEndMethod((res as FastifyReply).send);
       } else {
-        throw new Error('Ubnreachable');
+        throw new Error('Unreachable');
       }
 
       const request = extractRequestData(req);
@@ -179,12 +179,12 @@ export const wrapRequestHandler = <NextFn>(
       if (build instanceof Promise) {
         return build.then(resolved => {
           routes = createRoutes(resolved.routes);
-          startRequestHandlerTransactionWithRoutes.call(this, handler, routes, framework, req, res, next, url);
+          startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
         });
       }
 
       routes = createRoutes(build.routes);
-      return startRequestHandlerTransactionWithRoutes.call(this, handler, routes, framework, req, res, next, url);
+      return startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
     });
   };
 };

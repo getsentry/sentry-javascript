@@ -8,7 +8,7 @@ const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
 const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 
 // standard front-end test, see criteria in `e2e-tests/README.md`
-test.skip('Sends a client-side exception to Sentry', async ({ page }) => {
+test('Sends a client-side exception to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const exceptionButton = page.locator('id=exception-button');
@@ -40,7 +40,7 @@ test.skip('Sends a client-side exception to Sentry', async ({ page }) => {
     .toBe(200);
 });
 
-test.skip('Sends a pageload transaction to Sentry', async ({ page }) => {
+test('Sends a pageload transaction to Sentry', async ({ page }) => {
   await page.goto('/');
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
@@ -145,7 +145,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   expect(hadPageNavigationTransaction).toBe(true);
 });
 
-test.skip('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
+test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
   await page.goto('/');
 
   const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
@@ -159,8 +159,9 @@ test.skip('Renders `sentry-trace` and `baggage` meta tags for the root route', a
   expect(baggageMetaTag).toBeTruthy();
 });
 
-test.skip('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
+test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ page }) => {
   await page.goto('/user/123');
+
   const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
     state: 'attached',
   });
