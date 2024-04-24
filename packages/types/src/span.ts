@@ -1,3 +1,4 @@
+import type { Measurements } from './measurement';
 import type { Primitive } from './misc';
 import type { HrTime } from './opentelemetry';
 import type { SpanStatus } from './spanStatus';
@@ -54,6 +55,9 @@ export interface SpanJSON {
   trace_id: string;
   origin?: SpanOrigin;
   _metrics_summary?: Record<string, Array<MetricSummary>>;
+  profile_id?: string;
+  exclusive_time?: number;
+  measurements?: Measurements;
 }
 
 // These are aligned with OpenTelemetry trace flags

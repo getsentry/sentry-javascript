@@ -4,6 +4,76 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.4
+
+### Important Changes
+
+- **feat(browser): Add INP support for v8 (#11650)**
+
+INP web vital support was now forward-ported to version 8. Recording of INP data is enabled by default.
+
+- **feat(core): Increase default transport buffer size from 30 to 64 (#11764)**
+
+The default limit of queued events to be sent was increased from 30 to 64 events. You may observe a higher memory
+footprint of the SDK. You can override this limit by setting the `transportOptions.bufferSize` option in
+`Sentry.init()`.
+
+- **feat(replay): Add "maxCanvasSize" option for replay canvases (#11617)**
+
+A `maxCanvasSize` option was added to the `replayCanvasIntegration` to disallow capturing of canvases larger than a
+certain size. This value defaults to `1280` which will not capture canvases bigger than 1280x1280 pixels.
+
+### Other Changes
+
+- deps: Downgrade `@opentelemetry/instrumentation-http` to `0.48.0` (#11745)
+- deps(nextjs): Remove unnecessary and faulty `@opentelemetry/api` dependency from Next.js package (#11717)
+- feat(aws): Add OTEL based integrations (#11548)
+- feat(core): Ensure trace context only includes relevant data (#11713)
+- feat(deps): Bump @opentelemetry/instrumentation-fastify from 0.33.0 to 0.35.0 (#11690)
+- feat(deps): Bump @opentelemetry/instrumentation-graphql from 0.37.0 to 0.39.0 (#11692)
+- feat(deps): Bump @opentelemetry/instrumentation-http from 0.48.0 to 0.50.0 (#11725)
+- feat(deps): Bump @opentelemetry/instrumentation-mongoose from 0.35.0 to 0.37.0 (#11693)
+- feat(deps): Bump @opentelemetry/instrumentation-mysql2 from 0.35.0 to 0.37.0 (#11726)
+- feat(deps): Bump @opentelemetry/instrumentation-nestjs-core from 0.34.0 to 0.36.0 (#11727)
+- feat(deps): Bump @opentelemetry/sdk-metrics from 1.21.0 to 1.23.0 (#11695)
+- feat(deps): Bump @prisma/instrumentation from 5.9.0 to 5.12.1 (#11724)
+- feat(feedback): Create async bundles and code to resolve helper integrations (#11621)
+- feat(nextjs): Sample out low-quality spans on older Next.js versions (#11722)
+- feat(opentelemetry): Support new http method attribute (#11756)
+- feat(opentelemetry): Use rest args for addOpenTelemetryInstrumentation (#11721)
+- feat(replay): Upgrade rrweb packages to 2.15.0 (#11736)
+- fix(browser): Ensure `lazyLoadIntegration` works in NPM mode (#11673)
+- fix(browser): Set custom sentry source correctly (#11735)
+- fix(ember): Do not create rendering spans without transaction (#11749)
+- fix(serverless): Check if cloud event callback is a function (#9044) (#11701)
+- ref(nextjs): Remove unnecessary logic to filter symbolification/sentry spans (#11714)
+
+## 8.0.0-beta.3
+
+### Important Changes
+
+- **feat(opentelemetry): Add `addOpenTelemetryInstrumentation` (#11667)**
+
+A utility function `addOpenTelemetryInstrumentation` was added that allows for the registration of instrumentations that
+conform to the OpenTelemetry JS API without having to specify `@opentelemetry/instrumentation` as a dependency.
+
+- **ref(core): Don't start transaction for trpc middleware (#11697)**
+
+Going forward, the Sentry `trpcMiddleware` will only create spans. Previously it used to always create a transaction.
+This change was made to integrate more nicely with the HTTP instrumentation added in earlier versions to avoid creating
+unnecessary transactions.
+
+### Other Changes
+
+- feat(nextjs): Instrument outgoing http requests (#11685)
+- feat(opentelemetry): Remove setupGlobalHub (#11668)
+- fix: Missing ErrorEvent export are added to node, browser, bun, deno, vercel-edge sub-packages (#11649)
+- fix(nextjs): Do not sample next spans if they have remote parent (#11680)
+- fix(nextjs): Re-enable OTEL fetch instrumentation and disable Next.js fetch instrumentation (#11686)
+- fix(node): Ensure DSC on envelope header uses root span (#11683)
+- ref(browser): Streamline pageload span creation and scope handling (#11679)
+- ref(core): Directly use endSession (#11669)
+
 ## 8.0.0-beta.2
 
 ### Important Changes

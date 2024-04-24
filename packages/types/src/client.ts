@@ -14,7 +14,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
-import type { Span } from './span';
+import type { Span, SpanAttributes, SpanContextData } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
@@ -179,6 +179,23 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /**
+   * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
+   * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
+   */
+  on(
+    hook: 'beforeSampling',
+    callback: (
+      samplingData: {
+        spanAttributes: SpanAttributes;
+        spanName: string;
+        parentSampled?: boolean;
+        parentContext?: SpanContextData;
+      },
+      samplingDecision: { decision: boolean },
+    ) => void,
+  ): void;
+
+  /**
    * Register a callback for whenever a span is ended.
    * Receives the span as argument.
    */
@@ -261,6 +278,18 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whener a span starts. */
   emit(hook: 'spanStart', span: Span): void;
+
+  /** A hook that is called every time before a span is sampled. */
+  emit(
+    hook: 'beforeSampling',
+    samplingData: {
+      spanAttributes: SpanAttributes;
+      spanName: string;
+      parentSampled?: boolean;
+      parentContext?: SpanContextData;
+    },
+    samplingDecision: { decision: boolean },
+  ): void;
 
   /** Fire a hook whener a span ends. */
   emit(hook: 'spanEnd', span: Span): void;

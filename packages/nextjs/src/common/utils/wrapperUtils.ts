@@ -17,7 +17,7 @@ import { isString } from '@sentry/utils';
 
 import { platformSupportsStreaming } from './platformSupportsStreaming';
 import { autoEndSpanOnResponseEnd, flushQueue } from './responseEnd';
-import { commonObjectToIsolationScope } from './tracingUtils';
+import { commonObjectToIsolationScope, escapeNextjsTracing } from './tracingUtils';
 
 declare module 'http' {
   interface IncomingMessage {
@@ -90,44 +90,46 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
   },
 ): (...params: Parameters<F>) => Promise<ReturnType<F>> {
   return async function (this: unknown, ...args: Parameters<F>): Promise<ReturnType<F>> {
-    const isolationScope = commonObjectToIsolationScope(req);
-    return withIsolationScope(isolationScope, () => {
-      isolationScope.setSDKProcessingMetadata({
-        request: req,
-      });
+    return escapeNextjsTracing(() => {
+      const isolationScope = commonObjectToIsolationScope(req);
+      return withIsolationScope(isolationScope, () => {
+        isolationScope.setSDKProcessingMetadata({
+          request: req,
+        });
 
-      const sentryTrace =
-        req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
-      const baggage = req.headers?.baggage;
+        const sentryTrace =
+          req.headers && isString(req.headers['sentry-trace']) ? req.headers['sentry-trace'] : undefined;
+        const baggage = req.headers?.baggage;
 
-      return continueTrace({ sentryTrace, baggage }, () => {
-        const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
-        return withActiveSpan(requestSpan, () => {
-          return startSpanManual(
-            {
-              op: 'function.nextjs',
-              name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+        return continueTrace({ sentryTrace, baggage }, () => {
+          const requestSpan = getOrStartRequestSpan(req, res, options.requestedRouteName);
+          return withActiveSpan(requestSpan, () => {
+            return startSpanManual(
+              {
+                op: 'function.nextjs',
+                name: `${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                },
               },
-            },
-            async dataFetcherSpan => {
-              dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
-              try {
-                return await origDataFetcher.apply(this, args);
-              } catch (e) {
-                dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                throw e;
-              } finally {
-                dataFetcherSpan.end();
-                if (!platformSupportsStreaming()) {
-                  await flushQueue();
+              async dataFetcherSpan => {
+                dataFetcherSpan.setStatus({ code: SPAN_STATUS_OK });
+                try {
+                  return await origDataFetcher.apply(this, args);
+                } catch (e) {
+                  dataFetcherSpan.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  requestSpan?.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                  throw e;
+                } finally {
+                  dataFetcherSpan.end();
+                  if (!platformSupportsStreaming()) {
+                    await flushQueue();
+                  }
                 }
-              }
-            },
-          );
+              },
+            );
+          });
         });
       });
     });
