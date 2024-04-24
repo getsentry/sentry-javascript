@@ -24,18 +24,18 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
 
 // https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
 const NEXTJS_SPAN_NAME_PREFIXES = [
-  'BaseServer',
-  'LoadComponents',
-  'NextServer',
-  'createServer',
-  'startServer',
-  'NextNodeServer',
-  'Render',
-  'AppRender',
-  'Router',
-  'Node',
-  'AppRouteRouteHandlers',
-  'ResolveMetadata',
+  'BaseServer.',
+  'LoadComponents.',
+  'NextServer.',
+  'createServer.',
+  'startServer.',
+  'NextNodeServer.',
+  'Render.',
+  'AppRender.',
+  'Router.',
+  'Node.',
+  'AppRouteRouteHandlers.',
+  'ResolveMetadata.',
 ];
 
 /**
@@ -136,7 +136,7 @@ export function init(options: NodeOptions): void {
     // and we need to keep our manual instrumentation around for the edge runtime anyhow.
     // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
     if (
-      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.includes(spanName.split('.')[0])) &&
+      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
       (parentSampled === undefined || parentContext?.isRemote)
     ) {
       samplingDecision.decision = false;
