@@ -26,7 +26,7 @@ import {
 
 import { DEBUG_BUILD } from '../debug-build';
 
-export const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
+export const DEFAULT_TRANSPORT_BUFFER_SIZE = 64;
 
 /**
  * Creates an instance of a Sentry `Transport`
