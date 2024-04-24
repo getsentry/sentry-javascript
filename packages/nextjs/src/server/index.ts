@@ -22,6 +22,22 @@ const globalWithInjectedValues = GLOBAL_OBJ as typeof GLOBAL_OBJ & {
   __sentryRewritesTunnelPath__?: string;
 };
 
+// https://github.com/lforst/nextjs-fork/blob/9051bc44d969a6e0ab65a955a2fc0af522a83911/packages/next/src/server/lib/trace/constants.ts#L11
+const NEXTJS_SPAN_NAME_PREFIXES = [
+  'BaseServer.',
+  'LoadComponents.',
+  'NextServer.',
+  'createServer.',
+  'startServer.',
+  'NextNodeServer.',
+  'Render.',
+  'AppRender.',
+  'Router.',
+  'Node.',
+  'AppRouteRouteHandlers.',
+  'ResolveMetadata.',
+];
+
 /**
  * A passthrough error boundary for the server that doesn't depend on any react. Error boundaries don't catch SSR errors
  * so they should simply be a passthrough.
@@ -90,7 +106,7 @@ export function init(options: NodeOptions): void {
     customDefaultIntegrations.push(distDirRewriteFramesIntegration({ distDirName }));
   }
 
-  const opts = {
+  const opts: NodeOptions = {
     environment: process.env.SENTRY_ENVIRONMENT || getVercelEnv(false) || process.env.NODE_ENV,
     defaultIntegrations: customDefaultIntegrations,
     ...options,
@@ -112,6 +128,20 @@ export function init(options: NodeOptions): void {
   applySdkMetadata(opts, 'nextjs', ['nextjs', 'node']);
 
   nodeInit(opts);
+
+  const client = getClient();
+  client?.on('beforeSampling', ({ spanAttributes, spanName, parentSampled, parentContext }, samplingDecision) => {
+    // If we encounter a span emitted by Next.js, we do not want to sample it
+    // The reason for this is that the data quality of the spans varies, it is different per version of Next,
+    // and we need to keep our manual instrumentation around for the edge runtime anyhow.
+    // BUT we only do this if we don't have a parent span with a sampling decision yet (or if the parent is remote)
+    if (
+      (spanAttributes['next.span_type'] || NEXTJS_SPAN_NAME_PREFIXES.some(prefix => spanName.startsWith(prefix))) &&
+      (parentSampled === undefined || parentContext?.isRemote)
+    ) {
+      samplingDecision.decision = false;
+    }
+  });
 
   addEventProcessor(
     Object.assign(
