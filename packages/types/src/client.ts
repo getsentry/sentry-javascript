@@ -178,7 +178,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    */
   on(hook: 'spanStart', callback: (span: Span) => void): void;
 
-  /** TODO */
+  /**
+   * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
+   * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
+   */
   on(
     hook: 'beforeSampling',
     callback: (
@@ -276,7 +279,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /** Fire a hook whener a span starts. */
   emit(hook: 'spanStart', span: Span): void;
 
-  /** TODO */
+  /** A hook that is called every time before a span is sampled. */
   emit(
     hook: 'beforeSampling',
     samplingData: {
