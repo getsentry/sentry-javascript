@@ -59,8 +59,8 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
       if (!envelopeHeader.dsn) {
         // eslint-disable-next-line no-console
         console.log(
-          '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Envelope Header:',
-          envelopeHeader,
+          '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
+          proxyRequestBody,
         );
 
         proxyResponse.writeHead(200);
