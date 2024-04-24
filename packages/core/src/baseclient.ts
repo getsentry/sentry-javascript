@@ -17,6 +17,7 @@ import type {
   Integration,
   Outcome,
   ParameterizedString,
+  Scope,
   SdkMetadata,
   Session,
   SessionAggregates,
@@ -46,13 +47,12 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getIsolationScope } from './currentScopes';
+import { getCurrentScope, getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
-import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
 import { parseSampleRate } from './utils/parseSampleRate';
@@ -151,7 +151,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureException(exception: any, hint?: EventHint, scope: Scope = getCurrentScope()): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
@@ -178,7 +178,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     message: ParameterizedString,
     level?: SeverityLevel,
     hint?: EventHint,
-    scope?: Scope,
+    scope: Scope = getCurrentScope(),
   ): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
@@ -202,7 +202,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, scope: Scope = getCurrentScope()): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
@@ -635,7 +635,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope?: Scope,
+    scope: Scope = getCurrentScope(),
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -719,7 +719,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param scope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, scope: Scope = getCurrentScope()): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
