@@ -1,4 +1,11 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, getClient, getCurrentScope, spanToJSON } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
+  getClient,
+  getCurrentScope,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 import type { BrowserClient } from '@sentry/svelte';
 import * as SentrySvelte from '@sentry/svelte';
 import { SDK_VERSION, WINDOW, browserTracingIntegration } from '@sentry/svelte';
@@ -14,6 +21,11 @@ describe('Sentry client SDK', () => {
     afterEach(() => {
       vi.clearAllMocks();
       WINDOW.__SENTRY__.hub = undefined;
+    });
+
+    beforeEach(() => {
+      getCurrentScope().clear();
+      getIsolationScope().clear();
     });
 
     it('adds SvelteKit metadata to the SDK options', () => {
@@ -99,7 +111,7 @@ describe('Sentry client SDK', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
           // eslint-disable-next-line deprecation/deprecation
-          integrations: [new BrowserTracing({ finalTimeout: 10 })],
+          integrations: [new BrowserTracing({ finalTimeout: 10, startTransactionOnLocationChange: false })],
           enableTracing: true,
         });
 
@@ -118,12 +130,14 @@ describe('Sentry client SDK', () => {
         // But we force the routing instrumentation to be ours
         // eslint-disable-next-line deprecation/deprecation
         expect(options.routingInstrumentation).toEqual(svelteKitRoutingInstrumentation);
+        expect(options.startTransactionOnPageLoad).toEqual(true);
+        expect(options.startTransactionOnLocationChange).toEqual(false);
       });
 
       it('Merges a user-provided browserTracingIntegration with the automatically added one', () => {
         init({
           dsn: 'https://public@dsn.ingest.sentry.io/1337',
-          integrations: [browserTracingIntegration({ finalTimeout: 10 })],
+          integrations: [browserTracingIntegration({ finalTimeout: 10, instrumentNavigation: false })],
           enableTracing: true,
         });
 
@@ -140,6 +154,8 @@ describe('Sentry client SDK', () => {
 
         // This shows that the user-configured options are still here
         expect(options?.finalTimeout).toEqual(10);
+        expect(options?.instrumentPageLoad).toEqual(true);
+        expect(options?.instrumentNavigation).toEqual(false);
 
         // it is the svelte kit variety
         expect(getActiveSpan()).toBeDefined();
