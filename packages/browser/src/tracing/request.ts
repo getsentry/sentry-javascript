@@ -327,21 +327,23 @@ export function xhrCallback(
   const fullUrl = getFullURL(sentryXhrData.url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
-  const span =
-    shouldCreateSpanResult && hasParent
-      ? startInactiveSpan({
-          name: `${sentryXhrData.method} ${sentryXhrData.url}`,
-          attributes: {
-            type: 'xhr',
-            'http.method': sentryXhrData.method,
-            'http.url': fullUrl,
-            url: sentryXhrData.url,
-            'server.address': host,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-          },
-        })
-      : new SentryNonRecordingSpan();
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        name: `${sentryXhrData.method} ${sentryXhrData.url}`,
+        attributes: {
+          type: 'xhr',
+          'http.method': sentryXhrData.method,
+          'http.url': fullUrl,
+          url: sentryXhrData.url,
+          'server.address': host,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+        },
+        experimental: {
+          standalone: !hasParent,
+        },
+      })
+    : new SentryNonRecordingSpan();
 
   xhr.__sentry_xhr_span_id__ = span.spanContext().spanId;
   spans[xhr.__sentry_xhr_span_id__] = span;
@@ -352,11 +354,9 @@ export function xhrCallback(
     addTracingHeadersToXhrRequest(
       xhr,
       client,
-      // In the following cases, we do not want to use the span as base for the trace headers,
-      // which means that the headers will be generated from the scope:
-      // - If tracing is disabled (TWP)
-      // - If the span has no parent span - which means we ran into `onlyIfParent` check
-      hasTracingEnabled() && hasParent ? span : undefined,
+      // If performance is disabled (TWP), we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope and the sampling decision is deferred
+      hasTracingEnabled() ? span : undefined,
     );
   }
 
