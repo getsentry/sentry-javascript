@@ -22,8 +22,18 @@ sentryTest('sends a segment span envelope', async ({ getLocalTestPath, page }) =
   const itemHeader = item[0];
   const spanJson = item[1];
 
+  const traceId = spanJson.trace_id;
+
   expect(headers).toEqual({
     sent_at: expect.any(String),
+    trace: {
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: traceId,
+      transaction: 'standalone_segment_span',
+    },
   });
 
   expect(itemHeader).toEqual({

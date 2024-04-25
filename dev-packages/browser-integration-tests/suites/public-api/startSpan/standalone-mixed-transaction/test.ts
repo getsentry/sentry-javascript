@@ -38,9 +38,16 @@ sentryTest(
     expect(traceId).toMatch(/[a-f0-9]{32}/);
     expect(parentSpanId).toMatch(/[a-f0-9]{16}/);
 
-    // TODO: the span envelope also needs to contain the `trace` header (follow-up PR)
     expect(spanEnvelopeHeader).toEqual({
       sent_at: expect.any(String),
+      trace: {
+        environment: 'production',
+        public_key: 'public',
+        sample_rate: '1',
+        sampled: 'true',
+        trace_id: traceId,
+        transaction: 'outer',
+      },
     });
 
     expect(transactionEnvelopeHeader).toEqual({
