@@ -74,7 +74,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
+  public eventFromException(exception: unknown, hint?: EventHint): Promise<Event> {
     return eventFromException(this._options.stackParser, exception, hint, this._options.attachStacktrace);
   }
 
@@ -85,7 +85,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     message: ParameterizedString,
     level: SeverityLevel = 'info',
     hint?: EventHint,
-  ): PromiseLike<Event> {
+  ): Promise<Event> {
     return eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace);
   }
 
@@ -112,7 +112,7 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event | null> {
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope): Promise<Event | null> {
     event.platform = event.platform || 'javascript';
     return super._prepareEvent(event, hint, scope);
   }

@@ -130,7 +130,7 @@ describe('NewFetchTransport', () => {
       mockFetch,
     );
 
-    const promises: PromiseLike<unknown>[] = [];
+    const promises: Promise<unknown>[] = [];
     for (let i = 0; i < 30; i++) {
       promises.push(transport.send(LARGE_ERROR_ENVELOPE));
     }

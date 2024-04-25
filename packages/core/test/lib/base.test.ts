@@ -1,5 +1,5 @@
 import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
-import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
+import { SentryError, dsnToString, logger } from '@sentry/utils';
 
 import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
 import * as integrationModule from '../../src/integration';
@@ -1574,7 +1574,7 @@ describe('BaseClient', () => {
       const spy = jest.spyOn(TestClient.instance!, 'eventFromMessage');
       spy.mockImplementationOnce(
         (message, level) =>
-          new SyncPromise(resolve => {
+          new Promise(resolve => {
             setTimeout(() => resolve({ message, level }), 150);
           }),
       );

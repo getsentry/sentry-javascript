@@ -11,7 +11,7 @@ import type {
   SeverityLevel,
   TraceContext,
 } from '@sentry/types';
-import { eventFromMessage, eventFromUnknownInput, logger, resolvedSyncPromise, uuid4 } from '@sentry/utils';
+import { eventFromMessage, eventFromUnknownInput, logger, uuid4 } from '@sentry/utils';
 
 import { BaseClient } from './baseclient';
 import { createCheckInEnvelope } from './checkin';
@@ -55,8 +55,8 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  public eventFromException(exception: unknown, hint?: EventHint): PromiseLike<Event> {
-    return resolvedSyncPromise(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
+  public eventFromException(exception: unknown, hint?: EventHint): Promise<Event> {
+    return Promise.resolve(eventFromUnknownInput(this, this._options.stackParser, exception, hint));
   }
 
   /**
@@ -66,8 +66,8 @@ export class ServerRuntimeClient<
     message: ParameterizedString,
     level: SeverityLevel = 'info',
     hint?: EventHint,
-  ): PromiseLike<Event> {
-    return resolvedSyncPromise(
+  ): Promise<Event> {
+    return Promise.resolve(
       eventFromMessage(this._options.stackParser, message, level, hint, this._options.attachStacktrace),
     );
   }
@@ -124,7 +124,7 @@ export class ServerRuntimeClient<
    *
    * @inheritdoc
    */
-  public close(timeout?: number): PromiseLike<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     if (this._sessionFlusher) {
       this._sessionFlusher.close();
     }
@@ -221,12 +221,7 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  protected _prepareEvent(
-    event: Event,
-    hint: EventHint,
-    scope?: Scope,
-    isolationScope?: Scope,
-  ): PromiseLike<Event | null> {
+  protected _prepareEvent(event: Event, hint: EventHint, scope?: Scope, isolationScope?: Scope): Promise<Event | null> {
     if (this._options.platform) {
       event.platform = event.platform || this._options.platform;
     }

@@ -10,7 +10,6 @@ import {
   isVueViewModel,
 } from '../src/is';
 import { supportsDOMError, supportsDOMException, supportsErrorEvent } from '../src/supports';
-import { resolvedSyncPromise } from '../src/syncpromise';
 
 class SentryError extends Error {
   public name: string;
@@ -85,7 +84,6 @@ describe('isPrimitive()', () => {
 describe('isThenable()', () => {
   test('should work as advertised', () => {
     expect(isThenable(Promise.resolve(true))).toEqual(true);
-    expect(isThenable(resolvedSyncPromise(true))).toEqual(true);
 
     expect(isThenable(undefined)).toEqual(false);
     expect(isThenable(null)).toEqual(false);
@@ -106,7 +104,6 @@ describe('isInstanceOf()', () => {
     }
     expect(isInstanceOf(new Error('wat'), Error)).toEqual(true);
     expect(isInstanceOf(new Date(), Date)).toEqual(true);
-    // @ts-expect-error Foo implicity has any type, doesn't have constructor
     expect(isInstanceOf(new Foo(), Foo)).toEqual(true);
 
     expect(isInstanceOf(new Error('wat'), Foo)).toEqual(false);

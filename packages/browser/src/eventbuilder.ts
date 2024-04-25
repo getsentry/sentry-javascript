@@ -20,7 +20,6 @@ import {
   isParameterizedString,
   isPlainObject,
   normalizeToSize,
-  resolvedSyncPromise,
 } from '@sentry/utils';
 
 type Prototype = { constructor: (...args: unknown[]) => unknown };
@@ -183,7 +182,7 @@ export function eventFromException(
   exception: unknown,
   hint?: EventHint,
   attachStacktrace?: boolean,
-): PromiseLike<Event> {
+): Promise<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromUnknownInput(stackParser, exception, syntheticException, attachStacktrace);
   addExceptionMechanism(event); // defaults to { type: 'generic', handled: true }
@@ -191,7 +190,7 @@ export function eventFromException(
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return resolvedSyncPromise(event);
+  return Promise.resolve(event);
 }
 
 /**
@@ -204,14 +203,14 @@ export function eventFromMessage(
   level: SeverityLevel = 'info',
   hint?: EventHint,
   attachStacktrace?: boolean,
-): PromiseLike<Event> {
+): Promise<Event> {
   const syntheticException = (hint && hint.syntheticException) || undefined;
   const event = eventFromString(stackParser, message, syntheticException, attachStacktrace);
   event.level = level;
   if (hint && hint.event_id) {
     event.event_id = hint.event_id;
   }
-  return resolvedSyncPromise(event);
+  return Promise.resolve(event);
 }
 
 /**

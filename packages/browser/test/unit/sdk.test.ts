@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import { Scope, createTransport } from '@sentry/core';
 import type { Client, Integration } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import type { BrowserOptions } from '../../src';
 import { WINDOW } from '../../src';
@@ -12,7 +11,7 @@ const PUBLIC_DSN = 'https://username@domain/123';
 function getDefaultBrowserOptions(options: Partial<BrowserOptions> = {}): BrowserOptions {
   return {
     integrations: [],
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
     ...options,
   };

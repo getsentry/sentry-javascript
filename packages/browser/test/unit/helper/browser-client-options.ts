@@ -1,5 +1,4 @@
 import { createTransport } from '@sentry/core';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import type { BrowserClientOptions } from '../../../src/client';
 
@@ -7,7 +6,7 @@ export function getDefaultBrowserClientOptions(options: Partial<BrowserClientOpt
   return {
     dsn: 'http://examplePublicKey@localhost/0',
     integrations: [],
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
     ...options,
   };

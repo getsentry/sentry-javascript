@@ -1,6 +1,6 @@
 import type { AttachmentItem, EventEnvelope, EventItem, TransportMakeRequestResponse } from '@sentry/types';
 import type { PromiseBuffer } from '@sentry/utils';
-import { createEnvelope, resolvedSyncPromise, serializeEnvelope } from '@sentry/utils';
+import { createEnvelope, serializeEnvelope } from '@sentry/utils';
 
 import { createTransport } from '../../../src/transports/base';
 
@@ -40,7 +40,7 @@ describe('createTransport', () => {
       add: jest.fn(),
       drain: jest.fn(),
     };
-    const transport = createTransport(transportOptions, _ => resolvedSyncPromise({}), mockBuffer);
+    const transport = createTransport(transportOptions, _ => Promise.resolve({}), mockBuffer);
     /* eslint-disable @typescript-eslint/unbound-method */
     expect(mockBuffer.drain).toHaveBeenCalledTimes(0);
     await transport.flush(1000);
@@ -54,7 +54,7 @@ describe('createTransport', () => {
       expect.assertions(1);
       const transport = createTransport(transportOptions, req => {
         expect(req.body).toEqual(serializeEnvelope(ERROR_ENVELOPE));
-        return resolvedSyncPromise({});
+        return Promise.resolve({});
       });
       await transport.send(ERROR_ENVELOPE);
     });
@@ -94,7 +94,7 @@ describe('createTransport', () => {
         }
 
         const mockRequestExecutor = jest.fn(_ => {
-          return resolvedSyncPromise(transportResponse);
+          return Promise.resolve(transportResponse);
         });
 
         const mockRecordDroppedEventCallback = jest.fn();

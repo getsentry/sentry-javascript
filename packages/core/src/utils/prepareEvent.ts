@@ -48,7 +48,7 @@ export function prepareEvent(
   scope?: ScopeInterface,
   client?: Client,
   isolationScope?: ScopeInterface,
-): PromiseLike<Event | null> {
+): Promise<Event | null> {
   const { normalizeDepth = 3, normalizeMaxBreadth = 1_000 } = options;
   const prepared: Event = {
     ...event,

@@ -19,7 +19,7 @@ interface StubOptions {
 }
 
 interface CreateStubFunc extends CallableFunction {
-  (createStub: unknown, options: StubOptions): PromiseLike<Stub>;
+  (createStub: unknown, options: StubOptions): Promise<Stub>;
 }
 
 interface Stub {

@@ -1,6 +1,5 @@
 import { BaseClient, createTransport, initAndBind } from '@sentry/core';
 import type { BrowserClientReplayOptions, ClientOptions, Event, SeverityLevel } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 export interface TestClientOptions extends ClientOptions, BrowserClientReplayOptions {}
 
@@ -15,8 +14,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
   /**
    *
    */
-  public eventFromException(exception: any): PromiseLike<Event> {
-    return resolvedSyncPromise({
+  public eventFromException(exception: any): Promise<Event> {
+    return Promise.resolve({
       exception: {
         values: [
           {
@@ -33,8 +32,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
   /**
    *
    */
-  public eventFromMessage(message: string, level: SeverityLevel = 'info'): PromiseLike<Event> {
-    return resolvedSyncPromise({ message, level });
+  public eventFromMessage(message: string, level: SeverityLevel = 'info'): Promise<Event> {
+    return Promise.resolve({ message, level });
   }
 }
 
@@ -52,7 +51,7 @@ export function getDefaultClientOptions(options: Partial<ClientOptions> = {}): C
   return {
     integrations: [],
     dsn: 'https://username@domain/123',
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
     ...options,
   };

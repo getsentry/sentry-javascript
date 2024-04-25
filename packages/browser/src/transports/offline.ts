@@ -24,7 +24,7 @@ import { makeFetchTransport } from './fetch';
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-type Store = <T>(callback: (store: IDBObjectStore) => T | PromiseLike<T>) => Promise<T>;
+type Store = <T>(callback: (store: IDBObjectStore) => T | Promise<T>) => Promise<T>;
 
 function promisifyRequest<T = undefined>(request: IDBRequest<T> | IDBTransaction): Promise<T> {
   return new Promise<T>((resolve, reject) => {

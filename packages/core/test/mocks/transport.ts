@@ -1,10 +1,9 @@
 import type { Transport } from '@sentry/types';
-import { SyncPromise } from '@sentry/utils';
 
 import { createTransport } from '../../src/transports/base';
 
 async function sleep(delay: number): Promise<void> {
-  return new SyncPromise(resolve => setTimeout(resolve, delay));
+  return new Promise(resolve => setTimeout(resolve, delay));
 }
 
 export function makeFakeTransport(delay: number = 2000): {
@@ -18,10 +17,10 @@ export function makeFakeTransport(delay: number = 2000): {
   const makeTransport = () =>
     createTransport({ recordDroppedEvent: () => undefined }, () => {
       sendCalled++;
-      return new SyncPromise(async res => {
-        await sleep(delay);
+      return new Promise(resolve => {
+        sleep(delay);
         sentCount++;
-        res({});
+        resolve({});
       });
     });
   return { makeTransport, getSendCalled: () => sendCalled, getSentCount: () => sentCount, delay };

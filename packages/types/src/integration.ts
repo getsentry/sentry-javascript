@@ -50,7 +50,7 @@ export interface Integration {
    * Return `null` to drop the event, or mutate the event & return it.
    * This receives the client that the integration was installed for as third argument.
    */
-  processEvent?(event: Event, hint: EventHint, client: Client): Event | null | PromiseLike<Event | null>;
+  processEvent?(event: Event, hint: EventHint, client: Client): Event | null | Promise<Event | null>;
 }
 
 /**

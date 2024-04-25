@@ -13,7 +13,7 @@ export interface MockSdkParams {
 }
 
 class MockTransport implements Transport {
-  send: (request: Envelope) => PromiseLike<TransportMakeRequestResponse>;
+  send: (request: Envelope) => Promise<TransportMakeRequestResponse>;
 
   constructor() {
     this.send = jest.fn(async () => {

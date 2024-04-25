@@ -19,8 +19,8 @@ export declare const contextLinesIntegration: typeof clientSdk.contextLinesInteg
 export declare const getDefaultIntegrations: (options: Options) => Integration[];
 export declare const defaultStackParser: StackParser;
 
-export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+export declare function close(timeout?: number | undefined): Promise<boolean>;
+export declare function flush(timeout?: number | undefined): Promise<boolean>;
 
 // eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;

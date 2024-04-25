@@ -105,7 +105,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise which resolves to `true` if the flush completes successfully before the timeout, or `false` if
    * it doesn't.
    */
-  close(timeout?: number): PromiseLike<boolean>;
+  close(timeout?: number): Promise<boolean>;
 
   /**
    * Wait for all events to be sent or the timeout to expire, whichever comes first.
@@ -115,7 +115,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @returns A promise that will resolve with `true` if all events are sent before the timeout, or `false` if there are
    * still events in the queue when the timeout is reached.
    */
-  flush(timeout?: number): PromiseLike<boolean>;
+  flush(timeout?: number): Promise<boolean>;
 
   /**
    * Adds an event processor that applies to any event processed by this client.
@@ -146,10 +146,10 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   init(): void;
 
   /** Creates an {@link Event} from all inputs to `captureException` and non-primitive inputs to `captureMessage`. */
-  eventFromException(exception: any, hint?: EventHint): PromiseLike<Event>;
+  eventFromException(exception: any, hint?: EventHint): Promise<Event>;
 
   /** Creates an {@link Event} from primitive inputs to `captureMessage`. */
-  eventFromMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint): PromiseLike<Event>;
+  eventFromMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint): Promise<Event>;
 
   /** Submits the event to Sentry */
   sendEvent(event: Event, hint?: EventHint): void;
@@ -158,7 +158,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   sendSession(session: Session | SessionAggregates): void;
 
   /** Sends an envelope to Sentry */
-  sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse>;
+  sendEnvelope(envelope: Envelope): Promise<TransportMakeRequestResponse>;
 
   /**
    * Record on the client that an event got dropped (ie, an event that will not be sent to sentry).

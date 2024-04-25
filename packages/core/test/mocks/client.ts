@@ -8,7 +8,6 @@ import type {
   Session,
   SeverityLevel,
 } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import { BaseClient } from '../../src/baseclient';
 import { initAndBind } from '../../src/sdk';
@@ -23,7 +22,7 @@ export function getDefaultTestClientOptions(options: Partial<TestClientOptions> 
         {
           recordDroppedEvent: () => undefined,
         }, // noop
-        _ => resolvedSyncPromise({}),
+        _ => Promise.resolve({}),
       ),
     stackParser: () => [],
     ...options,
@@ -49,7 +48,7 @@ export class TestClient extends BaseClient<TestClientOptions> {
     TestClient.instance = this;
   }
 
-  public eventFromException(exception: any): PromiseLike<Event> {
+  public eventFromException(exception: any): Promise<Event> {
     const event: Event = {
       exception: {
         values: [
@@ -67,11 +66,11 @@ export class TestClient extends BaseClient<TestClientOptions> {
       event.exception.values[0] = { ...event.exception.values[0], stacktrace: { frames } };
     }
 
-    return resolvedSyncPromise(event);
+    return Promise.resolve(event);
   }
 
-  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): PromiseLike<Event> {
-    return resolvedSyncPromise({ message, level });
+  public eventFromMessage(message: ParameterizedString, level: SeverityLevel = 'info'): Promise<Event> {
+    return Promise.resolve({ message, level });
   }
 
   public sendEvent(event: Event, hint?: EventHint): void {

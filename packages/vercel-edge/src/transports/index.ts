@@ -22,9 +22,9 @@ const DEFAULT_TRANSPORT_BUFFER_SIZE = 30;
 export class IsolatedPromiseBuffer {
   // We just have this field because the promise buffer interface requires it.
   // If we ever remove it from the interface we should also remove it here.
-  public $: Array<PromiseLike<TransportMakeRequestResponse>>;
+  public $: Array<Promise<TransportMakeRequestResponse>>;
 
-  private _taskProducers: (() => PromiseLike<TransportMakeRequestResponse>)[];
+  private _taskProducers: (() => Promise<TransportMakeRequestResponse>)[];
 
   private readonly _bufferSize: number;
 
@@ -37,7 +37,7 @@ export class IsolatedPromiseBuffer {
   /**
    * @inheritdoc
    */
-  public add(taskProducer: () => PromiseLike<TransportMakeRequestResponse>): PromiseLike<TransportMakeRequestResponse> {
+  public add(taskProducer: () => Promise<TransportMakeRequestResponse>): Promise<TransportMakeRequestResponse> {
     if (this._taskProducers.length >= this._bufferSize) {
       return Promise.reject(new SentryError('Not adding Promise because buffer limit was reached.'));
     }
@@ -49,7 +49,7 @@ export class IsolatedPromiseBuffer {
   /**
    * @inheritdoc
    */
-  public drain(timeout?: number): PromiseLike<boolean> {
+  public drain(timeout?: number): Promise<boolean> {
     const oldTaskProducers = [...this._taskProducers];
     this._taskProducers = [];
 
@@ -81,7 +81,7 @@ export class IsolatedPromiseBuffer {
  * Creates a Transport that uses the Edge Runtimes native fetch API to send events to Sentry.
  */
 export function makeEdgeTransport(options: VercelEdgeTransportOptions): Transport {
-  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+  function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',

@@ -279,7 +279,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
    * @param hint Event metadata useful for processing.
    * @returns A new event that will be sent | null.
    */
-  beforeSend?: (event: ErrorEvent, hint: EventHint) => PromiseLike<ErrorEvent | null> | ErrorEvent | null;
+  beforeSend?: (event: ErrorEvent, hint: EventHint) => Promise<ErrorEvent | null> | ErrorEvent | null;
 
   /**
    * An event-processing callback for transaction events, guaranteed to be invoked after all other event
@@ -295,7 +295,7 @@ export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOp
   beforeSendTransaction?: (
     event: TransactionEvent,
     hint: EventHint,
-  ) => PromiseLike<TransactionEvent | null> | TransactionEvent | null;
+  ) => Promise<TransactionEvent | null> | TransactionEvent | null;
 
   /**
    * A callback invoked when adding a breadcrumb, allowing to optionally modify

@@ -46,8 +46,8 @@ export declare const getClient: typeof clientSdk.getClient;
 // eslint-disable-next-line deprecation/deprecation
 export declare const getCurrentHub: typeof clientSdk.getCurrentHub;
 
-export declare function close(timeout?: number | undefined): PromiseLike<boolean>;
-export declare function flush(timeout?: number | undefined): PromiseLike<boolean>;
+export declare function close(timeout?: number | undefined): Promise<boolean>;
+export declare function flush(timeout?: number | undefined): Promise<boolean>;
 
 export declare const continueTrace: typeof clientSdk.continueTrace;
 

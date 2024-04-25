@@ -31,7 +31,6 @@ import type {
 } from '@sentry/types';
 import {
   SentryError,
-  SyncPromise,
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
@@ -41,8 +40,6 @@ import {
   isThenable,
   logger,
   makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -269,7 +266,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public flush(timeout?: number): PromiseLike<boolean> {
+  public flush(timeout?: number): Promise<boolean> {
     const transport = this._transport;
     if (transport) {
       this.emit('flush');
@@ -277,14 +274,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         return transport.flush(timeout).then(transportFlushed => clientFinished && transportFlushed);
       });
     } else {
-      return resolvedSyncPromise(true);
+      return Promise.resolve(true);
     }
   }
 
   /**
    * @inheritDoc
    */
-  public close(timeout?: number): PromiseLike<boolean> {
+  public close(timeout?: number): Promise<boolean> {
     return this.flush(timeout).then(result => {
       this.getOptions().enabled = false;
       this.emit('close');
@@ -526,7 +523,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritdoc
    */
-  public sendEnvelope(envelope: Envelope): PromiseLike<TransportMakeRequestResponse> {
+  public sendEnvelope(envelope: Envelope): Promise<TransportMakeRequestResponse> {
     this.emit('beforeEnvelope', envelope);
 
     if (this._isEnabled() && this._transport) {
@@ -538,7 +535,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     DEBUG_BUILD && logger.error('Transport disabled');
 
-    return resolvedSyncPromise({});
+    return Promise.resolve({});
   }
 
   /* eslint-enable @typescript-eslint/unified-signatures */
@@ -593,8 +590,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @returns A promise which will resolve to `true` if processing is already done or finishes before the timeout, and
    * `false` otherwise
    */
-  protected _isClientDoneProcessing(timeout?: number): PromiseLike<boolean> {
-    return new SyncPromise(resolve => {
+  protected _isClientDoneProcessing(timeout?: number): Promise<boolean> {
+    return new Promise(resolve => {
       let ticked: number = 0;
       const tick: number = 1;
 
@@ -637,7 +634,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     hint: EventHint,
     scope?: Scope,
     isolationScope = getIsolationScope(),
-  ): PromiseLike<Event | null> {
+  ): Promise<Event | null> {
     const options = this.getOptions();
     const integrations = Object.keys(this._integrations);
     if (!hint.integrations && integrations.length > 0) {
@@ -685,7 +682,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param hint
    * @param scope
    */
-  protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): PromiseLike<string | undefined> {
+  protected _captureEvent(event: Event, hint: EventHint = {}, scope?: Scope): Promise<string | undefined> {
     return this._processEvent(event, hint, scope).then(
       finalEvent => {
         return finalEvent.event_id;
@@ -717,9 +714,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
    * @param scope A scope containing event metadata.
-   * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
+   * @returns A Promise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): Promise<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
@@ -734,7 +731,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const parsedSampleRate = typeof sampleRate === 'undefined' ? undefined : parseSampleRate(sampleRate);
     if (isError && typeof parsedSampleRate === 'number' && Math.random() > parsedSampleRate) {
       this.recordDroppedEvent('sample_rate', 'error', event);
-      return rejectedSyncPromise(
+      return Promise.reject(
         new SentryError(
           `Discarding event because it's not included in the random sample (sampling rate = ${sampleRate})`,
           'log',
@@ -808,7 +805,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * Occupies the client with processing and event
    */
-  protected _process<T>(promise: PromiseLike<T>): void {
+  protected _process<T>(promise: Promise<T>): void {
     this._numProcessing++;
     void promise.then(
       value => {
@@ -842,7 +839,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public abstract eventFromException(_exception: any, _hint?: EventHint): PromiseLike<Event>;
+  public abstract eventFromException(_exception: any, _hint?: EventHint): Promise<Event>;
 
   /**
    * @inheritDoc
@@ -851,16 +848,16 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     _message: ParameterizedString,
     _level?: SeverityLevel,
     _hint?: EventHint,
-  ): PromiseLike<Event>;
+  ): Promise<Event>;
 }
 
 /**
  * Verifies that return value of configured `beforeSend` or `beforeSendTransaction` is of expected type, and returns the value if so.
  */
 function _validateBeforeSendResult(
-  beforeSendResult: PromiseLike<Event | null> | Event | null,
+  beforeSendResult: Promise<Event | null> | Event | null,
   beforeSendLabel: string,
-): PromiseLike<Event | null> | Event | null {
+): Promise<Event | null> | Event | null {
   const invalidValueError = `${beforeSendLabel} must return \`null\` or a valid event.`;
   if (isThenable(beforeSendResult)) {
     return beforeSendResult.then(
@@ -887,7 +884,7 @@ function processBeforeSend(
   options: ClientOptions,
   event: Event,
   hint: EventHint,
-): PromiseLike<Event | null> | Event | null {
+): Promise<Event | null> | Event | null {
   const { beforeSend, beforeSendTransaction } = options;
 
   if (isErrorEvent(event) && beforeSend) {

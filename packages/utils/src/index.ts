@@ -21,7 +21,6 @@ export * from './stacktrace';
 export * from './node-stack-trace';
 export * from './string';
 export * from './supports';
-export * from './syncpromise';
 export * from './time';
 export * from './tracing';
 export * from './env';

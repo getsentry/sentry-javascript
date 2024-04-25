@@ -1,6 +1,5 @@
 import { createTransport } from '@sentry/core';
 import type { Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { rejectedSyncPromise } from '@sentry/utils';
 
 import type { BrowserTransportOptions } from './types';
 import type { FetchImpl } from './utils';
@@ -16,7 +15,7 @@ export function makeFetchTransport(
   let pendingBodySize = 0;
   let pendingCount = 0;
 
-  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+  async function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     const requestSize = request.body.length;
     pendingBodySize += requestSize;
     pendingCount++;
@@ -43,7 +42,7 @@ export function makeFetchTransport(
 
     if (!nativeFetch) {
       clearCachedFetchImplementation();
-      return rejectedSyncPromise('No fetch implementation available');
+      throw new Error('No fetch implementation available');
     }
 
     try {
@@ -62,7 +61,7 @@ export function makeFetchTransport(
       clearCachedFetchImplementation();
       pendingBodySize -= requestSize;
       pendingCount--;
-      return rejectedSyncPromise(e);
+      throw e;
     }
   }
 

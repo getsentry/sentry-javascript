@@ -12,7 +12,7 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
       console.log(JSON.stringify(request));
       return Promise.resolve({ statusCode: 200 });
     },
-    flush(): PromiseLike<boolean> {
+    flush(): Promise<boolean> {
       return Promise.resolve(true);
     },
   };

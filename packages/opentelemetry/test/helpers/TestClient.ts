@@ -1,6 +1,5 @@
 import { BaseClient, createTransport, getCurrentScope } from '@sentry/core';
 import type { Client, ClientOptions, Event, Options, SeverityLevel } from '@sentry/types';
-import { resolvedSyncPromise } from '@sentry/utils';
 
 import { wrapClientClass } from '../../src/custom/client';
 import type { OpenTelemetryClient } from '../../src/types';
@@ -10,8 +9,8 @@ class BaseTestClient extends BaseClient<ClientOptions> {
     super(options);
   }
 
-  public eventFromException(exception: any): PromiseLike<Event> {
-    return resolvedSyncPromise({
+  public eventFromException(exception: any): Promise<Event> {
+    return Promise.resolve({
       exception: {
         values: [
           {
@@ -23,8 +22,8 @@ class BaseTestClient extends BaseClient<ClientOptions> {
     });
   }
 
-  public eventFromMessage(message: string, level: SeverityLevel = 'info'): PromiseLike<Event> {
-    return resolvedSyncPromise({ message, level });
+  public eventFromMessage(message: string, level: SeverityLevel = 'info'): Promise<Event> {
+    return Promise.resolve({ message, level });
   }
 }
 
@@ -44,7 +43,7 @@ export function getDefaultTestClientOptions(options: Partial<Options> = {}): Cli
   return {
     enableTracing: true,
     integrations: [],
-    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => resolvedSyncPromise({})),
+    transport: () => createTransport({ recordDroppedEvent: () => undefined }, _ => Promise.resolve({})),
     stackParser: () => [],
     ...options,
   } as ClientOptions;

@@ -1,7 +1,6 @@
 import { getClient, getCurrentScope } from '@sentry/core';
 import type { ReplayEvent, TransportMakeRequestResponse } from '@sentry/types';
 import type { RateLimits } from '@sentry/utils';
-import { resolvedSyncPromise } from '@sentry/utils';
 import { isRateLimited, updateRateLimits } from '@sentry/utils';
 
 import { REPLAY_EVENT_NAME, UNABLE_TO_SEND_REPLAY } from '../constants';
@@ -37,7 +36,7 @@ export async function sendReplayRequest({
   const dsn = client && client.getDsn();
 
   if (!client || !transport || !dsn || !session.sampled) {
-    return resolvedSyncPromise({});
+    return Promise.resolve({});
   }
 
   const baseEvent: ReplayEvent = {
@@ -58,7 +57,7 @@ export async function sendReplayRequest({
     // Taken from baseclient's `_processEvent` method, where this is handled for errors/transactions
     client.recordDroppedEvent('event_processor', 'replay', baseEvent);
     logInfo('An event processor returned `null`, will not send event.');
-    return resolvedSyncPromise({});
+    return Promise.resolve({});
   }
 
   /*

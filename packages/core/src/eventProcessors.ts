@@ -1,5 +1,5 @@
 import type { Event, EventHint, EventProcessor } from '@sentry/types';
-import { SyncPromise, isThenable, logger } from '@sentry/utils';
+import { isThenable, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
 
@@ -11,8 +11,8 @@ export function notifyEventProcessors(
   event: Event | null,
   hint: EventHint,
   index: number = 0,
-): PromiseLike<Event | null> {
-  return new SyncPromise<Event | null>((resolve, reject) => {
+): Promise<Event | null> {
+  return new Promise<Event | null>((resolve, reject) => {
     const processor = processors[index];
     if (event === null || typeof processor !== 'function') {
       resolve(event);

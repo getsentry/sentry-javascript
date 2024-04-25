@@ -27,8 +27,8 @@ export interface BaseTransportOptions extends InternalBaseTransportOptions {
 }
 
 export interface Transport {
-  send(request: Envelope): PromiseLike<TransportMakeRequestResponse>;
-  flush(timeout?: number): PromiseLike<boolean>;
+  send(request: Envelope): Promise<TransportMakeRequestResponse>;
+  flush(timeout?: number): Promise<boolean>;
 }
 
-export type TransportRequestExecutor = (request: TransportRequest) => PromiseLike<TransportMakeRequestResponse>;
+export type TransportRequestExecutor = (request: TransportRequest) => Promise<TransportMakeRequestResponse>;

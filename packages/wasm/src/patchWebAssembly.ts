@@ -7,7 +7,7 @@ export function patchWebAssembly(): void {
   if ('instantiateStreaming' in WebAssembly) {
     const origInstantiateStreaming = WebAssembly.instantiateStreaming;
     WebAssembly.instantiateStreaming = function instantiateStreaming(
-      response: Response | PromiseLike<Response>,
+      response: Response | Promise<Response>,
       importObject: WebAssembly.Imports,
     ): Promise<WebAssembly.Module> {
       return Promise.resolve(response).then(response => {

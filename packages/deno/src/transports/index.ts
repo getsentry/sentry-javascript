@@ -1,6 +1,6 @@
 import { createTransport } from '@sentry/core';
 import type { BaseTransportOptions, Transport, TransportMakeRequestResponse, TransportRequest } from '@sentry/types';
-import { consoleSandbox, rejectedSyncPromise } from '@sentry/utils';
+import { consoleSandbox } from '@sentry/utils';
 
 export interface DenoTransportOptions extends BaseTransportOptions {
   /** Custom headers for the transport. Used by the XHRTransport and FetchTransport */
@@ -21,7 +21,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
     });
   }
 
-  function makeRequest(request: TransportRequest): PromiseLike<TransportMakeRequestResponse> {
+  function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     const requestOptions: RequestInit = {
       body: request.body,
       method: 'POST',
@@ -40,7 +40,7 @@ export function makeFetchTransport(options: DenoTransportOptions): Transport {
         };
       });
     } catch (e) {
-      return rejectedSyncPromise(e);
+      return Promise.reject(e);
     }
   }
 
