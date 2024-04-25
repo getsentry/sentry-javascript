@@ -46,13 +46,17 @@ interface BuilderOptions {
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
 
-// We want to avoid repeating the whole type definition here...
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
   getModalIntegration,
   getScreenshotIntegration,
-}: BuilderOptions) => {
+}: BuilderOptions): IntegrationFn<
+  Integration & {
+    attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration): Unsubscribe;
+    createWidget(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    remove(): void;
+  }
+> => {
   const feedbackIntegration = (({
     // FeedbackGeneralConfiguration
     id = 'sentry-feedback',
