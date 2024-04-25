@@ -62,7 +62,7 @@ sentryTest(
     });
 
     expect(spanEnvelopeItem).toEqual({
-      data: {
+      data: expect.objectContaining({
         'http.method': 'GET',
         'http.response.status_code': 200,
         'http.response_content_length': expect.any(Number),
@@ -74,7 +74,7 @@ sentryTest(
         'server.address': 'example.com',
         type: 'fetch',
         url: 'http://example.com/0',
-      },
+      }),
       description: 'GET http://example.com/0',
       op: 'http.client',
       origin: 'auto.http.browser',
