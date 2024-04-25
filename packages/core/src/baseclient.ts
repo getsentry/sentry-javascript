@@ -47,7 +47,7 @@ import {
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
-import { getCurrentScope, getIsolationScope } from './currentScopes';
+import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
@@ -151,7 +151,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope: Scope = getCurrentScope()): string | undefined {
+  public captureException(exception: any, hint?: EventHint, currentScope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
@@ -162,7 +162,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this._process(
       this.eventFromException(exception, hint)
-        .then(event => this._captureEvent(event, hint, scope))
+        .then(event => this._captureEvent(event, hint, currentScope))
         .then(result => {
           eventId = result;
         }),
@@ -178,7 +178,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     message: ParameterizedString,
     level?: SeverityLevel,
     hint?: EventHint,
-    scope: Scope = getCurrentScope(),
+    currentScope?: Scope,
   ): string | undefined {
     let eventId: string | undefined = hint && hint.event_id;
 
@@ -190,7 +190,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this._process(
       promisedEvent
-        .then(event => this._captureEvent(event, hint, scope))
+        .then(event => this._captureEvent(event, hint, currentScope))
         .then(result => {
           eventId = result;
         }),
@@ -202,7 +202,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope: Scope = getCurrentScope()): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string | undefined {
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
@@ -215,7 +215,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
 
     this._process(
-      this._captureEvent(event, hint, capturedSpanScope || scope).then(result => {
+      this._captureEvent(event, hint, capturedSpanScope || currentScope).then(result => {
         eventId = result;
       }),
     );
@@ -629,13 +629,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The original event.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
+   * @param currentScope A scope containing event metadata.
    * @returns A new event with more information.
    */
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope: Scope = getCurrentScope(),
+    currentScope?: Scope,
     isolationScope = getIsolationScope(),
   ): PromiseLike<Event | null> {
     const options = this.getOptions();
@@ -646,14 +646,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope, this, isolationScope).then(evt => {
+    return prepareEvent(options, event, hint, currentScope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
       }
 
       const propagationContext = {
         ...isolationScope.getPropagationContext(),
-        ...(scope ? scope.getPropagationContext() : undefined),
+        ...(currentScope ? currentScope.getPropagationContext() : undefined),
       };
 
       const trace = evt.contexts && evt.contexts.trace;
@@ -716,10 +716,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
+   * @param currentScope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, scope: Scope = getCurrentScope()): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
@@ -747,7 +747,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
 
-    return this._prepareEvent(event, hint, scope, capturedSpanIsolationScope)
+    return this._prepareEvent(event, hint, currentScope, capturedSpanIsolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory, event);
@@ -768,7 +768,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
-        const session = scope && scope.getSession();
+        const session = currentScope && currentScope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }
