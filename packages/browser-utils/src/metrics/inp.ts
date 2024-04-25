@@ -11,6 +11,7 @@ import {
   sampleSpan,
   spanIsSampled,
   spanToJSON,
+  startInactiveSpan,
 } from '@sentry/core';
 import type { Integration, SpanAttributes } from '@sentry/types';
 import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/utils';
@@ -100,7 +101,6 @@ function _trackINP(): () => void {
     const profileId = scope.getScopeData().contexts?.profile?.profile_id as string | undefined;
 
     const name = htmlTreeAsString(entry.target);
-    const parentSampled = activeSpan ? spanIsSampled(activeSpan) : undefined;
     const attributes: SpanAttributes = dropUndefinedKeys({
       release: options.release,
       environment: options.environment,
@@ -111,28 +111,14 @@ function _trackINP(): () => void {
       replay_id: replayId || undefined,
     });
 
-    /** Check to see if the span should be sampled */
-    const [sampled] = sampleSpan(options, {
+    const span = startInactiveSpan({
       name,
-      parentSampled,
-      attributes,
-      transactionContext: {
-        name,
-        parentSampled,
-      },
-    });
-
-    // Nothing to do
-    if (!sampled) {
-      return;
-    }
-
-    const span = new SentrySpan({
-      startTimestamp: startTime,
-      endTimestamp: startTime + duration,
       op: `ui.interaction.${interactionType}`,
-      name,
       attributes,
+      startTime: startTime,
+      experimental: {
+        standalone: true,
+      },
     });
 
     span.addEvent('inp', {
@@ -140,13 +126,6 @@ function _trackINP(): () => void {
       [SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE]: metric.value,
     });
 
-    const envelope = createSpanEnvelope([span]);
-    const transport = client && client.getTransport();
-    if (transport) {
-      transport.send(envelope).then(null, reason => {
-        DEBUG_BUILD && logger.error('Error while sending interaction:', reason);
-      });
-    }
-    return;
+    span.end(startTime + duration);
   });
 }

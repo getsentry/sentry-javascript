@@ -1,12 +1,14 @@
 import { expect } from '@playwright/test';
-import type { Event as SentryEvent, SpanJSON } from '@sentry/types';
+import type { Event as SentryEvent, SpanEnvelope, SpanJSON } from '@sentry/types';
 
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+  properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
+import { getFullRecordingSnapshots } from '../../../../utils/replayHelpers';
 
 sentryTest('should capture an INP click event span.', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium'];
@@ -28,9 +30,12 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page); // wait for page load
 
-  const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
-    envelopeType: 'span',
-  });
+  const spanEnvelopePromise = getMultipleSentryEnvelopeRequests<SpanEnvelope>(
+    page,
+    1,
+    { envelopeType: 'span' },
+    properFullEnvelopeRequestParser,
+  );
 
   await page.locator('[data-test-id=normal-button]').click();
   await page.locator('.clicked[data-test-id=normal-button]').isVisible();
@@ -43,14 +48,53 @@ sentryTest('should capture an INP click event span.', async ({ browserName, getL
   });
 
   // Get the INP span envelope
-  const spanEnvelopes = await spanEnvelopesPromise;
+  const spanEnvelope = (await spanEnvelopePromise)[0];
 
-  expect(spanEnvelopes).toHaveLength(1);
-  expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
-  expect(spanEnvelopes[0].description).toBe('body > NormalButton');
-  expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(0);
-  expect(spanEnvelopes[0].measurements?.inp.unit).toBe('millisecond');
+  const spanEnvelopeHeaders = spanEnvelope[0];
+  const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+  const traceId = spanEnvelopeHeaders.trace!.trace_id;
+  expect(traceId).toMatch(/[a-f0-9]{32}/);
+
+  expect(spanEnvelopeHeaders).toEqual({
+    sent_at: expect.any(String),
+    trace: {
+      environment: 'production',
+      public_key: 'public',
+      sample_rate: '1',
+      sampled: 'true',
+      trace_id: traceId,
+    },
+  });
+
+  const inpValue = spanEnvelopeItem.measurements?.inp.value;
+  expect(inpValue).toBeGreaterThan(0);
+
+  expect(spanEnvelopeItem).toEqual({
+    data: {
+      'sentry.exclusive_time': inpValue,
+      'sentry.op': 'ui.interaction.click',
+      'sentry.origin': 'manual',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'custom',
+    },
+    measurements: {
+      inp: {
+        unit: 'millisecond',
+        value: inpValue,
+      },
+    },
+    description: 'body > NormalButton',
+    exclusive_time: inpValue,
+    op: 'ui.interaction.click',
+    origin: 'manual',
+    is_segment: true,
+    segment_id: spanEnvelopeItem.span_id,
+    span_id: expect.stringMatching(/[a-f0-9]{16}/),
+    start_timestamp: expect.any(Number),
+    timestamp: expect.any(Number),
+    trace_id: traceId,
+  });
 });
 
 sentryTest(
@@ -85,7 +129,7 @@ sentryTest(
 
     await page.waitForTimeout(500);
 
-    const spanEnvelopesPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
+    const spanPromise = getMultipleSentryEnvelopeRequests<SpanJSON>(page, 1, {
       envelopeType: 'span',
     });
 
@@ -95,13 +139,12 @@ sentryTest(
     });
 
     // Get the INP span envelope
-    const spanEnvelopes = await spanEnvelopesPromise;
+    const span = (await spanPromise)[0];
 
-    expect(spanEnvelopes).toHaveLength(1);
-    expect(spanEnvelopes[0].op).toBe('ui.interaction.click');
-    expect(spanEnvelopes[0].description).toBe('body > SlowButton');
-    expect(spanEnvelopes[0].exclusive_time).toBeGreaterThan(400);
-    expect(spanEnvelopes[0].measurements?.inp.value).toBeGreaterThan(400);
-    expect(spanEnvelopes[0].measurements?.inp.unit).toBe('millisecond');
+    expect(span.op).toBe('ui.interaction.click');
+    expect(span.description).toBe('body > SlowButton');
+    expect(span.exclusive_time).toBeGreaterThan(400);
+    expect(span.measurements?.inp.value).toBeGreaterThan(400);
+    expect(span.measurements?.inp.unit).toBe('millisecond');
   },
 );
