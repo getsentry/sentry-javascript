@@ -1,11 +1,7 @@
 import { expect, test } from '@playwright/test';
-import axios, { AxiosError } from 'axios';
+import { AxiosError, axios } from './axios';
 
 const EVENT_POLLING_TIMEOUT = 90_000;
-
-const authToken = process.env.E2E_TEST_AUTH_TOKEN;
-const sentryTestOrgSlug = process.env.E2E_TEST_SENTRY_ORG_SLUG;
-const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 
 // standard front-end test, see criteria in `e2e-tests/README.md`
 test('Sends a client-side exception to Sentry', async ({ page }) => {
@@ -22,10 +18,7 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
     .poll(
       async () => {
         try {
-          const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${eventId}/`,
-            { headers: { Authorization: `Bearer ${authToken}` } },
-          );
+          const response = await axios.get(`/events/${eventId}/`);
           return response.status;
         } catch (e) {
           const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
@@ -47,28 +40,19 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 1;
     if (hasTransactions) return window.recordedTransactions
   });
-
-  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
-
-  if (recordedTransactionEventIds === undefined) {
-    throw new Error("Application didn't record any transaction event IDs.");
-  }
+  const eventIds = await recordedTransactionsHandle.jsonValue();
+  if (!eventIds) throw new Error("Application didn't record any transaction event IDs.");
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(eventIds)}`);
 
   let hadPageLoadTransaction = false;
-
-  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
-
-  // meaning at least one should be 'pageload'
+  // meaning, we expect at least one of those events to be 'pageload'
   await Promise.all(
-    (recordedTransactionEventIds as string[]).map(async eventId => {
+    eventIds.map(async eventId => {
       await expect
         .poll(
           async () => {
             try {
-              const response = await axios.get(
-                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${eventId}/`,
-                { headers: { Authorization: `Bearer ${authToken}` } },
-              );
+              const response = await axios.get(`/events/${eventId}/`);
               hadPageLoadTransaction = response.data.contexts.trace.op === 'pageload';
               return response.status;
             } catch (e) {
@@ -102,28 +86,21 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 2;
     if (hasTransactions) return window.recordedTransactions
   });
-
-  const recordedTransactionEventIds = await recordedTransactionsHandle.jsonValue();
-
-  if (recordedTransactionEventIds === undefined) {
-    throw new Error("Application didn't record any transaction event IDs.");
-  }
+  const eventIds = await recordedTransactionsHandle.jsonValue();
+  if (!eventIds) throw new Error("Application didn't record any transaction event IDs.");
 
   let hadPageNavigationTransaction = false;
 
-  console.log(`Polling for transaction eventIds: ${JSON.stringify(recordedTransactionEventIds)}`);
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(eventIds)}`);
 
   // meaning at least one should be 'navigation'
   await Promise.all(
-    (recordedTransactionEventIds as string[]).map(async eventId => {
+    (eventIds as string[]).map(async eventId => {
       await expect
         .poll(
           async () => {
             try {
-              const response = await axios.get(
-                `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${eventId}/`,
-                { headers: { Authorization: `Bearer ${authToken}` } },
-              );
+              const response = await axios.get(`/events/${eventId}/`);
               hadPageNavigationTransaction = response.data.contexts.trace.op === 'navigation';
               return response.status;
             } catch (e) {
