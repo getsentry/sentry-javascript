@@ -1,4 +1,10 @@
-import { BaseClient, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan, spanToJSON } from '@sentry/core';
+import {
+  BaseClient,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  getActiveSpan,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 import * as SentryReact from '@sentry/react';
 import type { BrowserClient } from '@sentry/react';
 import { browserTracingIntegration } from '@sentry/react';
@@ -7,7 +13,13 @@ import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { JSDOM } from 'jsdom';
 
-import { BrowserTracing, breadcrumbsIntegration, init, nextRouterInstrumentation } from '../src/client';
+import {
+  BrowserTracing,
+  breadcrumbsIntegration,
+  browserTracingIntegration as nextjsBrowserTracingIntegration,
+  init,
+  nextRouterInstrumentation,
+} from '../src/client';
 
 const reactInit = jest.spyOn(SentryReact, 'init');
 const captureEvent = jest.spyOn(BaseClient.prototype, 'captureEvent');
@@ -35,6 +47,11 @@ function findIntegrationByName(integrations: Integration[] = [], name: string): 
 const TEST_DSN = 'https://public@dsn.ingest.sentry.io/1337';
 
 describe('Client init()', () => {
+  beforeEach(() => {
+    getCurrentScope().clear();
+    getIsolationScope().clear();
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
     WINDOW.__SENTRY__.hub = undefined;
@@ -141,9 +158,16 @@ describe('Client init()', () => {
     });
 
     it('forces correct router instrumentation if user provides `browserTracingIntegration`', () => {
+      const beforeStartSpan = jest.fn(options => options);
       init({
         dsn: TEST_DSN,
-        integrations: [browserTracingIntegration({ finalTimeout: 10 })],
+        integrations: [
+          browserTracingIntegration({
+            finalTimeout: 10,
+            instrumentNavigation: false,
+            beforeStartSpan,
+          }),
+        ],
         enableTracing: true,
       });
 
@@ -156,14 +180,58 @@ describe('Client init()', () => {
       // It is a "new" browser tracing integration
       expect(typeof integration?.afterAllSetup).toBe('function');
 
-      // This shows that the user-configured options are still here
-      expect(integration?.options?.finalTimeout).toEqual(10);
+      // the hooks is correctly invoked
+      expect(beforeStartSpan).toHaveBeenCalledTimes(1);
+      expect(beforeStartSpan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: '/',
+          op: 'pageload',
+        }),
+      );
 
-      // it is the svelte kit variety
+      // it correctly starts the page load span
       expect(getActiveSpan()).toBeDefined();
       expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
         'auto.pageload.nextjs.app_router_instrumentation',
       );
+
+      // This shows that the user-configured options are still here
+      expect(integration?.options.finalTimeout).toEqual(10);
+      expect(integration?.options.instrumentNavigation).toBe(false);
+      expect(integration?.options.instrumentPageLoad).toBe(true);
+    });
+
+    it('forces correct router instrumentation if user provides Next.js `browserTracingIntegration` ', () => {
+      init({
+        dsn: TEST_DSN,
+        integrations: [
+          nextjsBrowserTracingIntegration({
+            finalTimeout: 10,
+            instrumentNavigation: false,
+          }),
+        ],
+        enableTracing: true,
+      });
+
+      const client = getClient<BrowserClient>()!;
+      // eslint-disable-next-line deprecation/deprecation
+      const integration = client.getIntegrationByName<ReturnType<typeof browserTracingIntegration>>('BrowserTracing');
+
+      expect(integration).toBeDefined();
+
+      // It is a "new" browser tracing integration
+      expect(typeof integration?.afterAllSetup).toBe('function');
+
+      // it correctly starts the pageload span
+      expect(getActiveSpan()).toBeDefined();
+      expect(spanToJSON(getActiveSpan()!).data?.[SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]).toEqual(
+        'auto.pageload.nextjs.app_router_instrumentation',
+      );
+
+      // This shows that the user-configured options are still here
+      expect(integration?.options.finalTimeout).toEqual(10);
+      expect(integration?.options.instrumentNavigation).toBe(false);
+      expect(integration?.options.instrumentPageLoad).toBe(true);
     });
 
     it('forces correct router instrumentation if user provides `BrowserTracing` in a function', () => {
@@ -187,10 +255,10 @@ describe('Client init()', () => {
 
       expect(browserTracingIntegration?.options).toEqual(
         expect.objectContaining({
+          startTransactionOnPageLoad: true,
+          startTransactionOnLocationChange: false,
           // eslint-disable-next-line deprecation/deprecation
           routingInstrumentation: nextRouterInstrumentation,
-          // This proves it's still the user's copy
-          startTransactionOnLocationChange: false,
         }),
       );
     });
