@@ -1,5 +1,4 @@
-import { cssBundleHref } from '@remix-run/css-bundle';
-import { LinksFunction, MetaFunction, json } from '@remix-run/node';
+import { MetaFunction, json } from '@remix-run/node';
 import {
   Links,
   LiveReload,
@@ -12,8 +11,8 @@ import {
 } from '@remix-run/react';
 import { captureRemixErrorBoundaryError, withSentry } from '@sentry/remix';
 import type { SentryMetaArgs } from '@sentry/remix';
-
-export const links: LinksFunction = () => [...(cssBundleHref ? [{ rel: 'stylesheet', href: cssBundleHref }] : [])];
+// eslint-disable-next-line import/no-unresolved
+import '#app/styles/global.css';
 
 export const loader = () => {
   return json({
@@ -26,7 +25,7 @@ export const loader = () => {
 export const meta = ({ data }: SentryMetaArgs<MetaFunction<typeof loader>>) => {
   return [
     {
-      env: data.ENV,
+      env: JSON.stringify(data.ENV),
     },
     {
       name: 'sentry-trace',
@@ -42,12 +41,31 @@ export const meta = ({ data }: SentryMetaArgs<MetaFunction<typeof loader>>) => {
 export function ErrorBoundary() {
   const error = useRouteError();
   const eventId = captureRemixErrorBoundaryError(error);
+  const { ENV } = useLoaderData<typeof loader>();
 
   return (
-    <div>
-      <span>ErrorBoundary Error</span>
-      <span id="event-id">{eventId}</span>
-    </div>
+    <html lang="en">
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.ENV = ${JSON.stringify(ENV)}`,
+          }}
+        />
+        <Meta />
+        <Links />
+      </head>
+      <body>
+        <div>
+          <p>ErrorBoundary Error</p>
+          <p id="event-id">{eventId}</p>
+        </div>
+        <ScrollRestoration />
+        <Scripts />
+        <LiveReload />
+      </body>
+    </html>
   );
 }
 

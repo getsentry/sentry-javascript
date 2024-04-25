@@ -147,10 +147,16 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
 
 test('Renders `sentry-trace` and `baggage` meta tags for the root route', async ({ page }) => {
   await page.goto('/');
-
+  // For referece:
+  // should resemble this (the trace is actually generate per request):
+  //<meta name="sentry-trace" content="5ca317544dcf46b29b81dc33fb75650e-e71485ffa21ebb6c-1">
   const sentryTraceMetaTag = await page.waitForSelector('meta[name="sentry-trace"]', {
     state: 'attached',
   });
+
+  // For referece:
+  // should resemble this (the trace ID inside content being actually generated per request, see above):
+  // <meta name="baggage" content="sentry-environment=qa,sentry-public_key=dced...ce,sentry-trace_id=5c..c-1,sentry-sample_rate=1,sentry-transaction=routes%2Fuser.%24id,sentry-sampled=true">
   const baggageMetaTag = await page.waitForSelector('meta[name="baggage"]', {
     state: 'attached',
   });

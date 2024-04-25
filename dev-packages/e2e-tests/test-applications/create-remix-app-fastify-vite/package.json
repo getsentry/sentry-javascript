@@ -13,7 +13,6 @@
     "test:assert": "pnpm playwright test"
   },
   "dependencies": {
-    "@remix-run/css-bundle": "^2.8.1",
     "@remix-run/express": "^2.8.1",
     "@remix-run/node": "^2.8.1",
     "@remix-run/react": "^2.8.1",

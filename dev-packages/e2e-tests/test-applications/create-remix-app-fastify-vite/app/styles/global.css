@@ -1,0 +1,16 @@
+:root {
+  --bg-clr: white;
+  --txt-clr: black;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-clr: black;
+    --txt-clr: white;
+  }
+}
+
+body {
+  background: var(--bg-clr);
+  color: var(--txt-clr);
+}

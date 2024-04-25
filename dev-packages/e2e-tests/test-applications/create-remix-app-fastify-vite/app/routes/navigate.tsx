@@ -10,7 +10,7 @@ export const loader: LoaderFunction = async ({ params: { id } }) => {
 };
 
 export default function LoaderError() {
-  const data = useLoaderData();
+  const data = useLoaderData<typeof loader>();
 
   return (
     <div>
