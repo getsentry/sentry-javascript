@@ -451,6 +451,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url);
 
+      isolationScope.setTransactionName(name);
       isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,

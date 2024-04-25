@@ -22,6 +22,7 @@ describe('Server Side Rendering', () => {
     });
 
     assertSentryEvent(event[2], {
+      transaction: 'routes/ssr-error',
       exception: {
         values: [
           {
