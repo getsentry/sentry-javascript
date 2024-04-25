@@ -15,7 +15,7 @@ export {
   setMeasurement,
 } from '@sentry/core';
 
-export { feedbackAsyncIntegration as feedbackIntegration } from './feedbackAsync';
+export { feedbackAsyncIntegration } from './feedbackAsync';
 export { getFeedback } from '@sentry-internal/feedback';
 
 export {

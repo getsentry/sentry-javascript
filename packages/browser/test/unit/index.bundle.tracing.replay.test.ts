@@ -9,6 +9,6 @@ describe('index.bundle.tracing.replay', () => {
 
     expect(TracingReplayBundle.browserTracingIntegration).toBe(browserTracingIntegration);
 
-    expect(TracingReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
+    expect(TracingReplayBundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
   });
 });

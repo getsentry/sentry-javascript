@@ -6,6 +6,6 @@ import * as ReplayBundle from '../../src/index.bundle.replay';
 describe('index.bundle.replay', () => {
   it('has correct exports', () => {
     expect(ReplayBundle.replayIntegration).toBe(replayIntegration);
-    expect(ReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
+    expect(ReplayBundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
   });
 });

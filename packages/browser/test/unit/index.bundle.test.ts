@@ -5,6 +5,6 @@ import * as Bundle from '../../src/index.bundle';
 describe('index.bundle', () => {
   it('has correct exports', () => {
     expect(Bundle.replayIntegration).toBe(replayIntegrationShim);
-    expect(Bundle.feedbackIntegration).toBe(feedbackIntegrationShim);
+    expect(Bundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
   });
 });

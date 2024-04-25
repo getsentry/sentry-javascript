@@ -8,6 +8,6 @@ export * from './index.bundle.base';
 
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
-  feedbackIntegrationShim as feedbackIntegration,
+  feedbackIntegrationShim as feedbackAsyncIntegration,
   replayIntegrationShim as replayIntegration,
 };
