@@ -1,5 +1,5 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { consoleSandbox, propagationContextFromHeaders } from '@sentry/utils';
+import { propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
 
@@ -138,14 +138,9 @@ export function startInactiveSpan(context: StartSpanOptions): Span {
   const scope = context.scope || getCurrentScope();
   const parentSpan = getParentSpan(scope);
 
-  consoleSandbox(() =>
-    console.log(JSON.stringify({ parentSpan, onlyIfParent: context.onlyIfParent, spanContext }, null, 2)),
-  );
-
   const shouldSkipSpan = context.onlyIfParent && !parentSpan;
 
   if (shouldSkipSpan) {
-    consoleSandbox(() => console.log('ret nonrecording span'));
     return new SentryNonRecordingSpan();
   }
 
