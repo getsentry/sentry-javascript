@@ -38,6 +38,8 @@ export function withEdgeWrapping<H extends EdgeRouteHandler>(
           });
         }
 
+        isolationScope.setTransactionName(options.spanDescription);
+
         return continueTrace(
           {
             sentryTrace,

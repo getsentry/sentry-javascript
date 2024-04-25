@@ -98,6 +98,8 @@ test('Should capture an error and transaction with correct status for a faulty s
 
   expect(transactionEvent.contexts?.trace?.status).toBe('internal_error');
 
+  expect(errorEvent.transaction).toBe(`Page Server Component (/server-component/faulty)`);
+
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
   expect(transactionEvent.tags?.['my-isolated-tag']).toBe(true);

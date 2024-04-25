@@ -60,4 +60,6 @@ test('Should record exceptions for faulty edge routes', async ({ request }) => {
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  expect(errorEvent.transaction).toBe('GET /api/error-edge-endpoint');
 });

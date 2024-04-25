@@ -52,6 +52,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, async () => {
+          isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
           getCurrentScope().setPropagationContext(propagationContext);
           try {
             return startSpan(

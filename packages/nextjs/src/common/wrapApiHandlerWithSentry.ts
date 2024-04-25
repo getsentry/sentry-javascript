@@ -81,6 +81,7 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
 
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
+              isolationScope.setTransactionName(`${reqMethod}${reqPath}`);
               isolationScope.setSDKProcessingMetadata({ request: req });
 
               return startSpanManual(

@@ -15,6 +15,8 @@ test('Should record exceptions for faulty edge server components', async ({ page
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+
+  expect(errorEvent.transaction).toBe(`Page Server Component (/edge-server-components/error)`);
 });
 
 test('Should record transaction for edge server components', async ({ page }) => {

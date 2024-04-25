@@ -75,6 +75,7 @@ async function withServerActionInstrumentationImplementation<A extends (...args:
           );
       }
 
+      isolationScope.setTransactionName(`serverAction/${serverActionName}`);
       isolationScope.setSDKProcessingMetadata({
         request: {
           headers: fullHeadersObject,
