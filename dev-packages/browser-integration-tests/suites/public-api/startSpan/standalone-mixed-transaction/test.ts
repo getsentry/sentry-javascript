@@ -1,7 +1,6 @@
 import { expect } from '@playwright/test';
-import type { Envelope, Event, EventEnvelope, EventItem, SpanEnvelope, TransactionEvent } from '@sentry/types';
+import type { Envelope, EventEnvelope, SpanEnvelope, TransactionEvent } from '@sentry/types';
 
-import exp from 'constants';
 import { sentryTest } from '../../../../utils/fixtures';
 import {
   getMultipleSentryEnvelopeRequests,
@@ -12,8 +11,6 @@ import {
 sentryTest(
   'sends a transaction and a span envelope if a standalone span is created as a child of an ongoing span tree',
   async ({ getLocalTestPath, page }) => {
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }

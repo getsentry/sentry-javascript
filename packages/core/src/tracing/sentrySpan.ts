@@ -13,7 +13,7 @@ import type {
   TransactionEvent,
   TransactionSource,
 } from '@sentry/types';
-import { consoleSandbox, dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 
@@ -252,31 +252,16 @@ export class SentrySpan implements Span {
     // So for now, this is either what we previously refer to as the root span,
     // or a standalone span.
     const isSegmentSpan = this._isStandaloneSpan || this === getRootSpan(this);
-    consoleSandbox(() => {
-      console.log('isSegmentSpan', isSegmentSpan);
-    });
 
-    // If this is not a root span (== segment span) and we don't want to send it
     if (!isSegmentSpan) {
-      consoleSandbox(() => {
-        console.log('early ret');
-      });
       return;
     }
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      consoleSandbox(() => {
-        console.log('calling sendSpanEnvelope');
-      });
-
       sendSpanEnvelope(createSpanEnvelope([this]));
       return;
     }
-
-    consoleSandbox(() => {
-      console.log('converting to transaction');
-    });
 
     const transactionEvent = this._convertSpanToTransaction();
     if (transactionEvent) {
@@ -373,22 +358,13 @@ function isStandaloneSpan(span: Span): boolean {
 }
 
 function sendSpanEnvelope(envelope: SpanEnvelope): void {
-  consoleSandbox(() => {
-    console.log('sendSpanEnvelope', envelope);
-  });
   const client = getClient();
   if (!client) {
-    consoleSandbox(() => {
-      console.log('no client');
-    });
     return;
   }
 
   const transport = client.getTransport();
   if (transport) {
-    consoleSandbox(() => {
-      console.log('transport send');
-    });
     transport.send(envelope).then(null, reason => {
       DEBUG_BUILD && logger.error('Error while sending span:', reason);
     });
