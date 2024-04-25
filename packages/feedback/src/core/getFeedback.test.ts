@@ -39,5 +39,9 @@ describe('getFeedback', () => {
     const actual = getFeedback();
     expect(actual).toBeDefined();
     expect(actual === configuredIntegration).toBe(true);
+
+    // has correct type
+    expect(typeof actual?.attachTo).toBe('function');
+    expect(typeof actual?.createWidget).toBe('function');
   });
 });
