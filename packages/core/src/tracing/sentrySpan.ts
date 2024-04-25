@@ -195,8 +195,8 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
-      is_segment: this._isStandaloneSpan || undefined,
-      segment_id: this._isStandaloneSpan ? this._spanId : undefined,
+      is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
+      segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
     });
   }
 
