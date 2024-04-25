@@ -66,10 +66,10 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(event, _hint, _client) {
+    processEvent(event) {
       // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
       // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
-      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
+      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be cleaned up. Once
       // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
 
       const { sdkProcessingMetadata = {} } = event;
