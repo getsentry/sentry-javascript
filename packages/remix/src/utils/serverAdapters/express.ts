@@ -202,7 +202,11 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
     // transaction closes, and make sure to wait until that's done before flushing events
     await new Promise<void>(resolve => {
       setImmediate(() => {
-        span.end();
+        // Double checking whether the span is not already finished,
+        // OpenTelemetry gives error if we try to end a finished span
+        if (span.isRecording()) {
+          span.end();
+        }
         resolve();
       });
     });
