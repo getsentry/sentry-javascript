@@ -15,7 +15,6 @@ import type {
   User,
 } from '@sentry/types';
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
-import { getAsyncContextStrategy } from './asyncContext';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
 import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
