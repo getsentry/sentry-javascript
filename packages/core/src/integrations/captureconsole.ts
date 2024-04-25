@@ -63,10 +63,12 @@ function consoleHandler(args: unknown[], level: string): void {
       return event;
     });
 
-    if (level === 'assert' && args[0] === false) {
-      const message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
-      scope.setExtra('arguments', args.slice(1));
-      captureMessage(message, captureContext);
+    if (level === 'assert') {
+      if (args[0] === false) {
+        const message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
+        scope.setExtra('arguments', args.slice(1));
+        captureMessage(message, captureContext);
+      }
       return;
     }
 
