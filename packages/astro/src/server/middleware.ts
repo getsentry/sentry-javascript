@@ -66,8 +66,8 @@ export const handleRequest: (options?: MiddlewareOptions) => MiddlewareResponseH
     if (getActiveSpan()) {
       return instrumentRequest(ctx, next, handlerOptions);
     }
-    return withIsolationScope(() => {
-      return instrumentRequest(ctx, next, handlerOptions);
+    return withIsolationScope(isolationScope => {
+      return instrumentRequest(ctx, next, handlerOptions, isolationScope);
     });
   };
 };
@@ -76,6 +76,7 @@ async function instrumentRequest(
   ctx: Parameters<MiddlewareResponseHandler>[0],
   next: Parameters<MiddlewareResponseHandler>[1],
   options: MiddlewareOptions,
+  isolationScope?: Scope,
 ): Promise<Response> {
   // Make sure we don't accidentally double wrap (e.g. user added middleware and integration auto added it)
   const locals = ctx.locals as AstroLocalsWithSentry;
@@ -120,6 +121,8 @@ async function instrumentRequest(
         if (ctx.url.hash) {
           attributes['http.fragment'] = ctx.url.hash;
         }
+
+        isolationScope?.setTransactionName(`${method} ${interpolatedRoute || ctx.url.pathname}`);
 
         const res = await startSpan(
           {
