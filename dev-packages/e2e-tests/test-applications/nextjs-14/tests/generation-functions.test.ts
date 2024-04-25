@@ -40,6 +40,8 @@ test('Should send a transaction and an error event for a faulty generateMetadata
   const errorEvent = await errorEventPromise;
   const transactionEvent = await transactionPromise;
 
+  expect(errorEvent.transaction).toBe('Page.generateMetadata (/generation-functions)');
+
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
@@ -82,6 +84,10 @@ test('Should send a transaction and an error event for a faulty generateViewport
 
   expect(await transactionPromise).toBeDefined();
   expect(await errorEventPromise).toBeDefined();
+
+  const errorEvent = await errorEventPromise;
+
+  expect(errorEvent.transaction).toBe('Page.generateViewport (/generation-functions)');
 });
 
 test('Should send a transaction event with correct status for a generateMetadata() function invokation with redirect()', async ({
