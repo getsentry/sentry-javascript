@@ -106,7 +106,7 @@ type CheckInEnvelopeHeaders = { trace?: DynamicSamplingContext };
 type ClientReportEnvelopeHeaders = BaseEnvelopeHeaders;
 type ReplayEnvelopeHeaders = BaseEnvelopeHeaders;
 type StatsdEnvelopeHeaders = BaseEnvelopeHeaders;
-type SpanEnvelopeHeaders = BaseEnvelopeHeaders;
+type SpanEnvelopeHeaders = BaseEnvelopeHeaders & { trace?: DynamicSamplingContext };
 
 export type EventEnvelope = BaseEnvelope<
   EventEnvelopeHeaders,

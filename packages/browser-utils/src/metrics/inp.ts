@@ -2,20 +2,15 @@ import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_UNIT,
   SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE,
-  SentrySpan,
-  createSpanEnvelope,
   getActiveSpan,
   getClient,
   getCurrentScope,
   getRootSpan,
-  sampleSpan,
-  spanIsSampled,
   spanToJSON,
   startInactiveSpan,
 } from '@sentry/core';
 import type { Integration, SpanAttributes } from '@sentry/types';
-import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString, logger } from '@sentry/utils';
-import { DEBUG_BUILD } from '../debug-build';
+import { browserPerformanceTimeOrigin, dropUndefinedKeys, htmlTreeAsString } from '@sentry/utils';
 import { addInpInstrumentationHandler } from './instrument';
 import { getBrowserPerformanceAPI, msToSec } from './utils';
 

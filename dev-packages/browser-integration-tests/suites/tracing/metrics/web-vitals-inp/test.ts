@@ -8,7 +8,6 @@ import {
   properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
-import { getFullRecordingSnapshots } from '../../../../utils/replayHelpers';
 
 sentryTest('should capture an INP click event span.', async ({ browserName, getLocalTestPath, page }) => {
   const supportedBrowsers = ['chromium'];
