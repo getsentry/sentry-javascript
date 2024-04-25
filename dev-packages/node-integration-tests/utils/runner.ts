@@ -7,6 +7,7 @@ import type {
   EnvelopeItemType,
   Event,
   EventEnvelope,
+  SerializedCheckIn,
   SerializedSession,
   SessionAggregates,
 } from '@sentry/types';
@@ -34,6 +35,13 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
+    ...expected,
+  });
+}
+
+export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial<SerializedCheckIn>): void {
+  expect(actual).toMatchObject({
+    check_in_id: expect.any(String),
     ...expected,
   });
 }
@@ -137,6 +145,9 @@ type Expected =
     }
   | {
       sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
+    }
+  | {
+      check_in: Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
     };
 
 type ExpectedEnvelopeHeader =
@@ -295,6 +306,17 @@ export function createRunner(...paths: string[]) {
                 expected.session(session);
               } else {
                 assertSentrySession(session, expected.session);
+              }
+
+              expectCallbackCalled();
+            }
+
+            if ('check_in' in expected) {
+              const checkIn = item[1] as SerializedCheckIn;
+              if (typeof expected.check_in === 'function') {
+                expected.check_in(checkIn);
+              } else {
+                assertSentryCheckIn(checkIn, expected.check_in);
               }
 
               expectCallbackCalled();
