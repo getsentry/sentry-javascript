@@ -28,7 +28,7 @@ export interface StartSpanOptions {
   attributes?: SpanAttributes;
 
   /**
-   * Experimental option without any stability guarantees. Use with caution!
+   * Experimental options without any stability guarantees. Use with caution!
    */
   experimental?: {
     /**
