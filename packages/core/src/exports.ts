@@ -15,9 +15,10 @@ import type {
   User,
 } from '@sentry/types';
 import { GLOBAL_OBJ, isThenable, logger, timestampInSeconds, uuid4 } from '@sentry/utils';
+import { getAsyncContextStrategy } from './asyncContext';
 
 import { DEFAULT_ENVIRONMENT } from './constants';
-import { getClient, getCurrentScope, getIsolationScope } from './currentScopes';
+import { getClient, getCurrentScope, getIsolationScope, withIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { closeSession, makeSession, updateSession } from './session';
 import type { ExclusiveEventHintOrCaptureContext } from './utils/prepareEvent';
@@ -160,28 +161,30 @@ export function withMonitor<T>(
     captureCheckIn({ monitorSlug, status, checkInId, duration: timestampInSeconds() - now });
   }
 
-  let maybePromiseResult: T;
-  try {
-    maybePromiseResult = callback();
-  } catch (e) {
-    finishCheckIn('error');
-    throw e;
-  }
+  return withIsolationScope(() => {
+    let maybePromiseResult: T;
+    try {
+      maybePromiseResult = callback();
+    } catch (e) {
+      finishCheckIn('error');
+      throw e;
+    }
 
-  if (isThenable(maybePromiseResult)) {
-    Promise.resolve(maybePromiseResult).then(
-      () => {
-        finishCheckIn('ok');
-      },
-      () => {
-        finishCheckIn('error');
-      },
-    );
-  } else {
-    finishCheckIn('ok');
-  }
+    if (isThenable(maybePromiseResult)) {
+      Promise.resolve(maybePromiseResult).then(
+        () => {
+          finishCheckIn('ok');
+        },
+        () => {
+          finishCheckIn('error');
+        },
+      );
+    } else {
+      finishCheckIn('ok');
+    }
 
-  return maybePromiseResult;
+    return maybePromiseResult;
+  });
 }
 
 /**
