@@ -52,7 +52,7 @@ export function ErrorBoundary() {
 }
 
 function App() {
-  const { ENV } = useLoaderData();
+  const { ENV } = useLoaderData<typeof loader>();
 
   return (
     <html lang="en">

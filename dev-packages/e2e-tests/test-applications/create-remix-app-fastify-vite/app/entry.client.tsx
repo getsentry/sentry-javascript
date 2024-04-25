@@ -1,5 +1,6 @@
 import { RemixBrowser, useLocation, useMatches } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
+import type { ISentry } from 'types';
 import { StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 
@@ -12,7 +13,7 @@ Sentry.init({
       useLocation,
       useMatches,
     }),
-    Sentry.replayIntegration(),
+    (Sentry as ISentry).replayIntegration(),
   ],
   // Performance Monitoring
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
