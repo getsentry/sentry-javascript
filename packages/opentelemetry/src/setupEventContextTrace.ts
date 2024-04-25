@@ -1,10 +1,10 @@
-import { getRootSpan } from '@sentry/core';
 import type { Client } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 import { getDynamicSamplingContextFromSpan } from './utils/dynamicSamplingContext';
 
+import { getRootSpan } from '@sentry/core';
 import { getActiveSpan } from './utils/getActiveSpan';
-import { spanHasName, spanHasParentId } from './utils/spanTypes';
+import { spanHasParentId } from './utils/spanTypes';
 
 /** Ensure the `trace` context is set on all events. */
 export function setupEventContextTrace(client: Client): void {
@@ -35,9 +35,6 @@ export function setupEventContextTrace(client: Client): void {
       ...event.sdkProcessingMetadata,
     };
 
-    const transactionName = spanHasName(rootSpan) ? rootSpan.name : undefined;
-    if (transactionName && !event.transaction) {
-      event.transaction = transactionName;
-    }
+    return event;
   });
 }

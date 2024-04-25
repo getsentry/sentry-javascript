@@ -1,8 +1,7 @@
-import type { Client, IntegrationFn, Span } from '@sentry/types';
+import type { IntegrationFn } from '@sentry/types';
 import type { AddRequestDataToEventOptions, TransactionNamingScheme } from '@sentry/utils';
-import { addRequestDataToEvent, extractPathForTransaction } from '@sentry/utils';
+import { addRequestDataToEvent } from '@sentry/utils';
 import { defineIntegration } from '../integration';
-import { spanToJSON } from '../utils/spanUtils';
 
 export type RequestDataIntegrationOptions = {
   /**
@@ -67,12 +66,11 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
   return {
     name: INTEGRATION_NAME,
-    processEvent(event, _hint, client) {
+    processEvent(event) {
       // Note: In the long run, most of the logic here should probably move into the request data utility functions. For
       // the moment it lives here, though, until https://github.com/getsentry/sentry-javascript/issues/5718 is addressed.
-      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be clened up. Once
+      // (TL;DR: Those functions touch many parts of the repo in many different ways, and need to be cleaned up. Once
       // that's happened, it will be easier to add this logic in without worrying about unexpected side effects.)
-      const { transactionNamingScheme } = _options;
 
       const { sdkProcessingMetadata = {} } = event;
       const req = sdkProcessingMetadata.request;
@@ -83,38 +81,7 @@ const _requestDataIntegration = ((options: RequestDataIntegrationOptions = {}) =
 
       const addRequestDataOptions = convertReqDataIntegrationOptsToAddReqDataOpts(_options);
 
-      const processedEvent = addRequestDataToEvent(event, req, addRequestDataOptions);
-
-      // Transaction events already have the right `transaction` value
-      if (event.type === 'transaction' || transactionNamingScheme === 'handler') {
-        return processedEvent;
-      }
-
-      // In all other cases, use the request's associated transaction (if any) to overwrite the event's `transaction`
-      // value with a high-quality one
-      const reqWithTransaction = req as { _sentryTransaction?: Span };
-      const transaction = reqWithTransaction._sentryTransaction;
-      if (transaction) {
-        const name = spanToJSON(transaction).description || '';
-
-        // TODO (v8): Remove the nextjs check and just base it on `transactionNamingScheme` for all SDKs. (We have to
-        // keep it the way it is for the moment, because changing the names of transactions in Sentry has the potential
-        // to break things like alert rules.)
-        const shouldIncludeMethodInTransactionName =
-          getSDKName(client) === 'sentry.javascript.nextjs'
-            ? name.startsWith('/api')
-            : transactionNamingScheme !== 'path';
-
-        const [transactionValue] = extractPathForTransaction(req, {
-          path: true,
-          method: shouldIncludeMethodInTransactionName,
-          customRoute: name,
-        });
-
-        processedEvent.transaction = transactionValue;
-      }
-
-      return processedEvent;
+      return addRequestDataToEvent(event, req, addRequestDataOptions);
     },
   };
 }) satisfies IntegrationFn;
@@ -165,16 +132,4 @@ function convertReqDataIntegrationOptsToAddReqDataOpts(
       transaction: transactionNamingScheme,
     },
   };
-}
-
-function getSDKName(client: Client): string | undefined {
-  try {
-    // For a long chain like this, it's fewer bytes to combine a try-catch with assuming everything is there than to
-    // write out a long chain of `a && a.b && a.b.c && ...`
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return client.getOptions()._metadata!.sdk!.name;
-  } catch (err) {
-    // In theory we should never get here
-    return undefined;
-  }
 }
