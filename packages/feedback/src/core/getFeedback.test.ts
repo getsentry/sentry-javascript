@@ -43,5 +43,6 @@ describe('getFeedback', () => {
     // has correct type
     expect(typeof actual?.attachTo).toBe('function');
     expect(typeof actual?.createWidget).toBe('function');
+    expect(typeof actual?.remove).toBe('function');
   });
 });
