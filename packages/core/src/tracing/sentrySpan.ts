@@ -4,6 +4,7 @@ import type {
   SpanAttributeValue,
   SpanAttributes,
   SpanContextData,
+  SpanEnvelope,
   SpanJSON,
   SpanOrigin,
   SpanStatus,
@@ -16,6 +17,7 @@ import { dropUndefinedKeys, logger, timestampInSeconds, uuid4 } from '@sentry/ut
 import { getClient, getCurrentScope } from '../currentScopes';
 import { DEBUG_BUILD } from '../debug-build';
 
+import { createSpanEnvelope } from '../envelope';
 import { getMetricSummaryJsonForSpan } from '../metrics/metric-summary';
 import {
   SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME,
@@ -58,6 +60,9 @@ export class SentrySpan implements Span {
   /** The timed events added to this span. */
   protected _events: TimedEvent[];
 
+  /** if true, treat span as a standalone span (not part of a transaction) */
+  private _isStandaloneSpan?: boolean;
+
   /**
    * You should never call the constructor manually, always use `Sentry.startSpan()`
    * or other span methods.
@@ -96,6 +101,8 @@ export class SentrySpan implements Span {
     if (this._endTime) {
       this._onSpanEnded();
     }
+
+    this._isStandaloneSpan = spanContext.isStandalone;
   }
 
   /** @inheritdoc */
@@ -188,6 +195,8 @@ export class SentrySpan implements Span {
       profile_id: this._attributes[SEMANTIC_ATTRIBUTE_PROFILE_ID] as string | undefined,
       exclusive_time: this._attributes[SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME] as number | undefined,
       measurements: timedEventsToMeasurements(this._events),
+      is_segment: (this._isStandaloneSpan && getRootSpan(this) === this) || undefined,
+      segment_id: this._isStandaloneSpan ? getRootSpan(this).spanContext().spanId : undefined,
     });
   }
 
@@ -220,6 +229,18 @@ export class SentrySpan implements Span {
     return this;
   }
 
+  /**
+   * This method should generally not be used,
+   * but for now we need a way to publicly check if the `_isStandaloneSpan` flag is set.
+   * USE THIS WITH CAUTION!
+   * @internal
+   * @hidden
+   * @experimental
+   */
+  public isStandaloneSpan(): boolean {
+    return !!this._isStandaloneSpan;
+  }
+
   /** Emit `spanEnd` when the span is ended. */
   private _onSpanEnded(): void {
     const client = getClient();
@@ -227,13 +248,25 @@ export class SentrySpan implements Span {
       client.emit('spanEnd', this);
     }
 
-    // If this is a root span, send it when it is endedf
-    if (this === getRootSpan(this)) {
-      const transactionEvent = this._convertSpanToTransaction();
-      if (transactionEvent) {
-        const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
-        scope.captureEvent(transactionEvent);
-      }
+    // A segment span is basically the root span of a local span tree.
+    // So for now, this is either what we previously refer to as the root span,
+    // or a standalone span.
+    const isSegmentSpan = this._isStandaloneSpan || this === getRootSpan(this);
+
+    if (!isSegmentSpan) {
+      return;
+    }
+
+    // if this is a standalone span, we send it immediately
+    if (this._isStandaloneSpan) {
+      sendSpanEnvelope(createSpanEnvelope([this]));
+      return;
+    }
+
+    const transactionEvent = this._convertSpanToTransaction();
+    if (transactionEvent) {
+      const scope = getCapturedScopesOnSpan(this).scope || getCurrentScope();
+      scope.captureEvent(transactionEvent);
     }
   }
 
@@ -266,8 +299,8 @@ export class SentrySpan implements Span {
       return undefined;
     }
 
-    // The transaction span itself should be filtered out
-    const finishedSpans = getSpanDescendants(this).filter(span => span !== this);
+    // The transaction span itself as well as any potential standalone spans should be filtered out
+    const finishedSpans = getSpanDescendants(this).filter(span => span !== this && !isStandaloneSpan(span));
 
     const spans = finishedSpans.map(span => spanToJSON(span)).filter(isFullFinishedSpan);
 
@@ -317,4 +350,23 @@ function isSpanTimeInput(value: undefined | SpanAttributes | SpanTimeInput): val
 // We want to filter out any incomplete SpanJSON objects
 function isFullFinishedSpan(input: Partial<SpanJSON>): input is SpanJSON {
   return !!input.start_timestamp && !!input.timestamp && !!input.span_id && !!input.trace_id;
+}
+
+/** `SentrySpan`s can be sent as a standalone span rather than belonging to a transaction */
+function isStandaloneSpan(span: Span): boolean {
+  return span instanceof SentrySpan && span.isStandaloneSpan();
+}
+
+function sendSpanEnvelope(envelope: SpanEnvelope): void {
+  const client = getClient();
+  if (!client) {
+    return;
+  }
+
+  const transport = client.getTransport();
+  if (transport) {
+    transport.send(envelope).then(null, reason => {
+      DEBUG_BUILD && logger.error('Error while sending span:', reason);
+    });
+  }
 }

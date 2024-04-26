@@ -55,6 +55,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
+          isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
           getCurrentScope().setPropagationContext(propagationContext);
           return startSpanManual(
             {

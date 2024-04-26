@@ -73,6 +73,10 @@ export function constructWebpackConfigFunction(
     // Add a loader which will inject code that sets global values
     addValueInjectionLoader(newConfig, userNextConfig, userSentryOptions, buildContext);
 
+    if (isServer) {
+      addOtelWarningIgnoreRule(newConfig);
+    }
+
     let pagesDirPath: string | undefined;
     const maybePagesDirPath = path.join(projectDir, 'pages');
     const maybeSrcPagesDirPath = path.join(projectDir, 'src', 'pages');
@@ -725,4 +729,13 @@ function getRequestAsyncStorageModuleLocation(
   }
 
   return undefined;
+}
+
+function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
+  const ignoreRule = { module: /@opentelemetry\/instrumentation/ };
+  if (newConfig.ignoreWarnings === undefined) {
+    newConfig.ignoreWarnings = [ignoreRule];
+  } else if (Array.isArray(newConfig.ignoreWarnings)) {
+    newConfig.ignoreWarnings.push(ignoreRule);
+  }
 }

@@ -31,33 +31,39 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Captures an exception event and sends it to Sentry.
    *
+   * Unlike `captureException` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined;
+  captureException(exception: any, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a message event and sends it to Sentry.
    *
+   * Unlike `captureMessage` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param message The message to send to Sentry.
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
    *
+   * Unlike `captureEvent` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined;
+  captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a session

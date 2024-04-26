@@ -57,4 +57,4 @@ export interface Integration {
  * An integration in function form.
  * This is expected to return an integration.
  */
-export type IntegrationFn = (...rest: any[]) => Integration;
+export type IntegrationFn<IntegrationType = Integration> = (...rest: any[]) => IntegrationType;

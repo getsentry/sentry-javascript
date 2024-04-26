@@ -250,6 +250,8 @@ function makeWrappedDocumentRequestFunction(remixVersion?: number) {
                 // eslint-disable-next-line @typescript-eslint/no-floating-promises
                 captureRemixServerException(err, 'documentRequest', request);
               }
+
+              throw err;
             },
           );
         },
@@ -292,6 +294,8 @@ function makeWrappedDataFunction(
               // eslint-disable-next-line @typescript-eslint/no-floating-promises
               captureRemixServerException(err, name, args.request);
             }
+
+            throw err;
           },
         );
       },
@@ -473,6 +477,7 @@ function wrapRequestHandler(origRequestHandler: RequestHandler, build: ServerBui
       const url = new URL(request.url);
       const [name, source] = getTransactionName(routes, url);
 
+      isolationScope.setTransactionName(name);
       isolationScope.setSDKProcessingMetadata({
         request: {
           ...normalizedRequest,
