@@ -371,7 +371,6 @@ To make sure these integrations work properly you'll have to change how you
 - [Svelte SDK](./MIGRATION.md#svelte-sdk)
 - [React SDK](./MIGRATION.md#react-sdk)
 
-
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
@@ -1006,15 +1005,21 @@ export default withSentryConfig(config);
 
 #### Updated error types to be `unknown` instead of `Error`.
 
-In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and `beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the lifecycle method the Sentry `ErrorBoundary` component uses.
+In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and
+`beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the
+lifecycle method the Sentry `ErrorBoundary` component uses.
 
 As per the [React docs on error boundaries](https://react.dev/reference/react/Component#componentdidcatch):
 
-> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed because JavaScript allows to throw any value, including strings or even `null`.
+> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed
+> because JavaScript allows to throw any value, including strings or even `null`.
 
-This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an instance of `Error`.
+This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an
+instance of `Error`.
 
-The Sentry SDK maintainers also went ahead and made a PR to update the [TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the React package - this will be released with React 20.
+The Sentry SDK maintainers also went ahead and made a PR to update the
+[TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the
+React package - this will be released with React 20.
 
 ### Gatsby SDK
 
