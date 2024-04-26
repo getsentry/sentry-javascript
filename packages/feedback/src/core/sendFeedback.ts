@@ -1,6 +1,6 @@
 import { captureFeedback } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
+import type { EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
 import type { Event } from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE } from '../constants';
@@ -10,7 +10,7 @@ import { FEEDBACK_API_SOURCE } from '../constants';
  */
 export const sendFeedback: SendFeedback = (
   options: SendFeedbackParams,
-  { includeReplay = true } = {},
+  hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
 ): Promise<string> => {
   if (!options.message) {
     throw new Error('Unable to submit feedback with empty message');
@@ -29,7 +29,7 @@ export const sendFeedback: SendFeedback = (
       url: getLocationHref(),
       ...options,
     },
-    { includeReplay },
+    hint,
   );
 
   // We want to wait for the feedback to be sent (or not)

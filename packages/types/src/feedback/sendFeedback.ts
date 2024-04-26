@@ -1,5 +1,4 @@
-import type { Attachment } from '../attachment';
-import type { Event } from '../event';
+import type { Event, EventHint } from '../event';
 import type { User } from '../user';
 
 /**
@@ -36,13 +35,12 @@ export interface SendFeedbackParams {
   message: string;
   name?: string;
   email?: string;
-  attachments?: Attachment[];
   url?: string;
   source?: string;
   associatedEventId?: string;
 }
 
-interface SendFeedbackOptions {
+interface SendFeedbackOptions extends EventHint {
   /**
    * Should include replay with the feedback?
    */

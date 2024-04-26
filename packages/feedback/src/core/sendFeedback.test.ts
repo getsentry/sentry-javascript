@@ -174,12 +174,6 @@ describe('sendFeedback', () => {
               trace: {
                 span_id: expect.any(String),
                 trace_id: expect.any(String),
-                data: {
-                  'sentry.origin': 'manual',
-                  'sentry.sample_rate': 1,
-                  'sentry.source': 'custom',
-                },
-                origin: 'manual',
               },
               feedback: {
                 contact_email: 're@example.org',
@@ -344,32 +338,35 @@ describe('sendFeedback', () => {
     const attachment1 = new Uint8Array([1, 2, 3, 4, 5]);
     const attachment2 = new Uint8Array([6, 7, 8, 9]);
 
-    const promise = sendFeedback({
-      name: 'doe',
-      email: 're@example.org',
-      message: 'mi',
-      attachments: [
-        {
-          data: attachment1,
-          filename: 'test-file.txt',
-        },
-        {
-          data: attachment2,
-          filename: 'test-file2.txt',
-        },
-      ],
-    });
+    const promise = sendFeedback(
+      {
+        name: 'doe',
+        email: 're@example.org',
+        message: 'mi',
+      },
+      {
+        attachments: [
+          {
+            data: attachment1,
+            filename: 'test-file.txt',
+          },
+          {
+            data: attachment2,
+            filename: 'test-file2.txt',
+          },
+        ],
+      },
+    );
 
     expect(promise).toBeInstanceOf(Promise);
 
     const eventId = await promise;
 
     expect(typeof eventId).toEqual('string');
-    expect(mockTransport).toHaveBeenCalledTimes(2);
+    expect(mockTransport).toHaveBeenCalledTimes(1);
 
-    const [feedbackEnvelope, attachmentEnvelope] = mockTransport.mock.calls;
+    const [feedbackEnvelope] = mockTransport.mock.calls;
 
-    // Feedback event is sent normally in one envelope
     expect(feedbackEnvelope[0]).toEqual([
       {
         event_id: eventId,
@@ -405,16 +402,6 @@ describe('sendFeedback', () => {
             type: 'feedback',
           },
         ],
-      ],
-    ]);
-
-    // Attachments are sent in separate envelope
-    expect(attachmentEnvelope[0]).toEqual([
-      {
-        event_id: eventId,
-        sent_at: expect.any(String),
-      },
-      [
         [
           {
             type: 'attachment',

@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope, Event } from '@sentry/types';
+import type { Event, SpanEnvelope } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {

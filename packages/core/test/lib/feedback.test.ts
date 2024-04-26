@@ -152,29 +152,33 @@ describe('captureFeedback', () => {
     const attachment1 = new Uint8Array([1, 2, 3, 4, 5]);
     const attachment2 = new Uint8Array([6, 7, 8, 9]);
 
-    const eventId = captureFeedback({
-      message: 'test',
-      attachments: [
-        {
-          data: attachment1,
-          filename: 'test-file.txt',
-        },
-        {
-          data: attachment2,
-          filename: 'test-file2.txt',
-        },
-      ],
-    });
+    const eventId = captureFeedback(
+      {
+        message: 'test',
+      },
+      {
+        attachments: [
+          {
+            data: attachment1,
+            filename: 'test-file.txt',
+          },
+          {
+            data: attachment2,
+            filename: 'test-file2.txt',
+          },
+        ],
+      },
+    );
 
     await client.flush();
 
     expect(typeof eventId).toBe('string');
 
-    expect(mockTransport).toHaveBeenCalledTimes(2);
+    expect(mockTransport).toHaveBeenCalledTimes(1);
 
-    const [feedbackEnvelope, attachmentEnvelope] = mockTransport.mock.calls;
+    const [feedbackEnvelope] = mockTransport.mock.calls;
 
-    // Feedback event is sent normally in one envelope
+    expect(feedbackEnvelope).toHaveLength(1);
     expect(feedbackEnvelope[0]).toEqual([
       {
         event_id: eventId,
@@ -206,16 +210,6 @@ describe('captureFeedback', () => {
             type: 'feedback',
           },
         ],
-      ],
-    ]);
-
-    // Attachments are sent in separate envelope
-    expect(attachmentEnvelope[0]).toEqual([
-      {
-        event_id: eventId,
-        sent_at: expect.any(String),
-      },
-      [
         [
           {
             type: 'attachment',
@@ -359,12 +353,6 @@ describe('captureFeedback', () => {
               trace: {
                 trace_id: traceId,
                 span_id: spanId,
-                data: {
-                  'sentry.origin': 'manual',
-                  'sentry.sample_rate': 1,
-                  'sentry.source': 'custom',
-                },
-                origin: 'manual',
               },
               feedback: {
                 message: 'test',
