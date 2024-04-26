@@ -1,16 +1,16 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/event-proxy-server';
 
-test('sends a pageload transaction', async ({ page }) => {
+test('sends a pageload transaction with component tracking init spans', async ({ page }) => {
   const transactionPromise = waitForTransaction('svelte-5', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
   await page.goto(`/`);
 
-  const rootSpan = await transactionPromise;
+  const pageloadTransaction = await transactionPromise;
 
-  expect(rootSpan).toMatchObject({
+  expect(pageloadTransaction).toMatchObject({
     contexts: {
       trace: {
         op: 'pageload',
@@ -22,4 +22,25 @@ test('sends a pageload transaction', async ({ page }) => {
       source: 'url',
     },
   });
+
+  expect(pageloadTransaction.spans).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        op: 'ui.svelte.init',
+        description: '<App>',
+        data: {
+          'sentry.op': 'ui.svelte.init',
+          'sentry.origin': 'auto.ui.svelte',
+        },
+      }),
+      expect.objectContaining({
+        op: 'ui.svelte.init',
+        description: '<Counter>',
+        data: {
+          'sentry.op': 'ui.svelte.init',
+          'sentry.origin': 'auto.ui.svelte',
+        },
+      }),
+    ]),
+  );
 });
