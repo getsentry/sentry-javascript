@@ -83,3 +83,12 @@ export { init } from './sdk';
 export { handleErrorWithSentry } from './handleError';
 export { wrapLoadWithSentry, wrapServerLoadWithSentry } from './load';
 export { sentryHandle } from './handle';
+
+/**
+ * Tracks the Svelte component's initialization and mounting operation as well as
+ * updates and records them as spans. These spans are only recorded on the client-side.
+ * Sever-side, during SSR, this function will not record any spans.
+ */
+export function trackComponent(_options?: unknown): void {
+  // no-op on the server side
+}
