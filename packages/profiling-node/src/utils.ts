@@ -24,7 +24,9 @@ import { isMainThread, threadId } from 'worker_threads';
 import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
 import type { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
-import type { RawChunkCpuProfile, RawThreadCpuProfile } from './types';
+import type { Profile, ProfileChunk, RawThreadCpuProfile, ThreadCpuProfile } from './types';
+import type { DebugImage } from './types';
+import type { SentryOptions } from '../../astro/build/types/integration/types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -187,7 +189,7 @@ function createProfilePayload(
  */
 function createProfileChunkPayload(
   client: Client,
-  cpuProfile: RawChunkCpuProfile,
+  cpuProfile: RawThreadCpuProfile,
   {
     release,
     environment,
@@ -218,14 +220,30 @@ function createProfileChunkPayload(
     profiler_id: profiler_id,
     timestamp: new Date(start_timestamp).toISOString(),
     platform: 'node',
-    version: CONTINUOUS_FORMAT_VERSION,
+    version: FORMAT_VERSION,
     release: release,
     environment: environment,
     measurements: cpuProfile.measurements,
+    runtime: {
+      name: 'node',
+      version: versions.node || '',
+    },
+    os: {
+      name: PLATFORM,
+      version: RELEASE,
+      build_number: VERSION,
+    },
+    device: {
+      locale: env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE'] || '',
+      model: MODEL,
+      manufacturer: TYPE,
+      architecture: ARCH,
+      is_emulator: false,
+    },
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
-    profile: enrichedThreadProfile as ContinuousThreadCpuProfile,
+    profile: enrichedThreadProfile,
   };
 
   return profile;
@@ -235,11 +253,10 @@ function createProfileChunkPayload(
  * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
  */
 export function createProfilingChunkEvent(
-  start_timestamp: number,
   client: Client,
-  options: { release?: string; environment?: string },
-  profile: RawChunkCpuProfile,
-  identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
+  profile: RawThreadCpuProfile,
+  options: SentryOptions,
+  identifiers: { trace_id: string | undefined;  chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
   if (!isValidProfileChunk(profile)) {
     return null;
@@ -248,7 +265,7 @@ export function createProfilingChunkEvent(
   return createProfileChunkPayload(client, profile, {
     release: options.release ?? '',
     environment: options.environment ?? '',
-    start_timestamp: start_timestamp,
+    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,
@@ -312,7 +329,7 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
  * @param profile
  * @returns
  */
-export function isValidProfileChunk(profile: RawChunkCpuProfile): profile is RawChunkCpuProfile {
+export function isValidProfileChunk(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile {
   if (profile.samples.length <= 1) {
     DEBUG_BUILD &&
       // Log a warning if the profile has less than 2 samples so users can know why
