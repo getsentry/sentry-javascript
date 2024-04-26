@@ -66,4 +66,69 @@ test.describe('client-specific performance events', () => {
     expect(navigationTxn2Event.contexts?.trace?.trace_id).not.toBe(navigationTxn3Event.contexts?.trace?.trace_id);
     expect(navigationTxn1Event.contexts?.trace?.trace_id).not.toBe(navigationTxn3Event.contexts?.trace?.trace_id);
   });
+
+  test('records manually added component tracking spans', async ({ page }) => {
+    const componentTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+      return txnEvent?.transaction === '/components';
+    });
+
+    await waitForInitialPageload(page);
+
+    await page.getByText('Component Tracking').click();
+
+    const componentTxnEvent = await componentTxnEventPromise;
+
+    expect(componentTxnEvent.spans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.init', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<components/+page>',
+          op: 'ui.svelte.init',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.init', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component1>',
+          op: 'ui.svelte.init',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.init', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component2>',
+          op: 'ui.svelte.init',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.init', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component3>',
+          op: 'ui.svelte.init',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<components/+page>',
+          op: 'ui.svelte.update',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component1>',
+          op: 'ui.svelte.update',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component2>',
+          op: 'ui.svelte.update',
+          origin: 'auto.ui.svelte',
+        }),
+        expect.objectContaining({
+          data: { 'sentry.op': 'ui.svelte.update', 'sentry.origin': 'auto.ui.svelte' },
+          description: '<Component3>',
+          op: 'ui.svelte.update',
+          origin: 'auto.ui.svelte',
+        }),
+      ]),
+    );
+  });
 });

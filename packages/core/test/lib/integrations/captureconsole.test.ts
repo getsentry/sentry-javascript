@@ -175,6 +175,8 @@ describe('CaptureConsole setup', () => {
     captureConsole.setup?.(mockClient);
 
     GLOBAL_OBJ.console.assert(1 + 1 === 2);
+
+    expect(captureMessage).toHaveBeenCalledTimes(0);
   });
 
   it('should capture exception when console logs an error object with level set to "error"', () => {
