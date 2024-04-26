@@ -4,23 +4,28 @@ import { waitForInitialPageload } from './utils';
 
 test.describe('client-specific performance events', () => {
   test('multiple navigations have distinct traces', async ({ page }) => {
-    const navigationTxn1EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    const navigationTxn1EventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.transaction === '/nav1' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
-    const navigationTxn2EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    const navigationTxn2EventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.transaction === '/' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
-    const navigationTxn3EventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    const navigationTxn3EventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.transaction === '/nav2' && txnEvent.contexts?.trace?.op === 'navigation';
     });
 
     await waitForInitialPageload(page);
 
-    const [navigationTxn1Event] = await Promise.all([navigationTxn1EventPromise, page.getByText('Nav 1').click()]);
-    const [navigationTxn2Event] = await Promise.all([navigationTxn2EventPromise, page.goBack()]);
-    const [navigationTxn3Event] = await Promise.all([navigationTxn3EventPromise, page.getByText('Nav 2').click()]);
+    await page.getByText('Nav 1').click();
+    const navigationTxn1Event = await navigationTxn1EventPromise;
+
+    await page.goBack();
+    const navigationTxn2Event = await navigationTxn2EventPromise;
+
+    await page.getByText('Nav 2').click();
+    const navigationTxn3Event = await navigationTxn3EventPromise;
 
     expect(navigationTxn1Event).toMatchObject({
       transaction: '/nav1',
@@ -68,7 +73,7 @@ test.describe('client-specific performance events', () => {
   });
 
   test('records manually added component tracking spans', async ({ page }) => {
-    const componentTxnEventPromise = waitForTransaction('sveltekit-2', txnEvent => {
+    const componentTxnEventPromise = waitForTransaction('sveltekit-2-svelte-5', txnEvent => {
       return txnEvent?.transaction === '/components';
     });
 

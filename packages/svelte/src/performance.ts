@@ -1,7 +1,6 @@
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
-import { current_component } from 'svelte/internal';
 
 import { startInactiveSpan } from '@sentry/core';
 import { DEFAULT_COMPONENT_NAME, UI_SVELTE_INIT, UI_SVELTE_UPDATE } from './constants';
@@ -17,7 +16,7 @@ const defaultTrackComponentOptions: {
 };
 
 /**
- * Tracks the Svelte component's intialization and mounting operation as well as
+ * Tracks the Svelte component's initialization and mounting operation as well as
  * updates and records them as spans.
  *
  * This function is injected automatically into your Svelte components' code
@@ -30,9 +29,7 @@ export function trackComponent(options?: TrackComponentOptions): void {
 
   const customComponentName = mergedOptions.componentName;
 
-  // current_component.ctor.name is likely to give us the component's name automatically
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const componentName = `<${customComponentName || current_component.constructor.name || DEFAULT_COMPONENT_NAME}>`;
+  const componentName = `<${customComponentName || DEFAULT_COMPONENT_NAME}>`;
 
   if (mergedOptions.trackInit) {
     recordInitSpan(componentName);
