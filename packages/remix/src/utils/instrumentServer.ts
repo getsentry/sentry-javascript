@@ -276,7 +276,7 @@ function makeWrappedDataFunction(
 
                   formData.forEach((value, key) => {
                     span.setAttribute(
-                      `action_form_data_${key}`,
+                      `remix.action_form_data.${key}`,
                       typeof value === 'string' ? value : '[non-string value]',
                     );
                   });
