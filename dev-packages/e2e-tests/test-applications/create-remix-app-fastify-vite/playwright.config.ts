@@ -4,7 +4,6 @@ import 'dotenv/config';
 
 const PORT = Number(process.env.PORT || '3030');
 
-
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -43,22 +42,22 @@ const config: PlaywrightTestConfig = {
 
   /* Configure projects for major browsers */
   projects: [
+    { name: "setup", testMatch: /global\.setup\.ts/, teardown: "teardown" },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
       },
+      dependencies: ["setup"]
     },
+    { name: "teardown", testMatch: /global\.teardown\.ts/},
   ],
 
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: `PORT=${PORT} npm run dev`,
+      command: `PORT=${PORT} pnpm dev:events`,
       port: PORT,
-      env: {
-
-      }
     },
   ],
 };

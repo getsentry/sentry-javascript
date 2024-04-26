@@ -1,28 +1,26 @@
 import { expect, test } from '@playwright/test';
 import { AxiosError, axios } from './axios';
-import { TransactionEvent } from '@sentry/types';
-import { inspect } from 'util';
+import { readEventsDir } from './utils';
+import path from "node:path";
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
-test('Sends two linked transactions (server & client) to Sentry', async ({ page }, testInfo) => {
-/*
-  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return (
-      transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
-      transactionEvent.tags?.['sentry_test'] === testTag
-    );
-  });
+interface Tag {
+  key: string,
+  value: unknown,
+}
 
-  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express-vite-dev', transactionEvent => {
-    return (
-      transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'pageload' &&
-      transactionEvent.tags?.['sentry_test'] === testTag
-    );
-  });
-*/
+test('Sends two linked transactions (server & client) to Sentry', async ({ page }, testInfo) => {
+  // this warm up turned out to be needed when using 'beforeSendTransaction' the trick (see
+  // the Sentry init setup in `entry.server.ts`); after this we can navigate to any route and
+  // be sure that the transaction events are being dumped to disk as expected;
+  //
+  // note, that to perform this "warp up" we could actually navigate to any other route including
+  // non-existant, but going to non-existant will pollute the console with something like
+  // ' Error: No route matches URL "/whatever"', which will _not_ prevent the test from passing
+  // but simply not very pleasant.
+  await page.goto("/navigate");
+
   // We will be utilizing `testId` provided by the test runner to correlate
   // this test instance with the events we are going to send to Sentry.
   // See `Sentry.setTag` in `app/routes/_index.tsx`.
@@ -32,28 +30,26 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 1;
     if (hasTransactions) return window.recordedTransactions
   });
-  const eventIds = await recordedTransactionsHandle.jsonValue();
-  if (!eventIds) throw new Error("Application didn't record any transaction event IDs.");
-  console.log(`Polling for transaction eventIds: ${JSON.stringify(eventIds)}`);
+  const clientEventIds = await recordedTransactionsHandle.jsonValue();
+  if (!clientEventIds) throw new Error("Application didn't record any transaction event IDs.");
+  console.log(`Polling for transaction eventIds: ${JSON.stringify(clientEventIds)}`);
 
   let pageLoadTransactionEvent = null;
-  let httpServerTransactionEvent = null;
 
   await Promise.all(
-    eventIds.map(async eventId => {
+    clientEventIds.map(async eventId => {
       await expect
         .poll(
           async () => {
             try {
-              const { data: transactionEvent, status } = await axios.get<TransactionEvent>(`/events/${eventId}/`);
-              const isFromThisTest = transactionEvent.tags?.["sentry_test"] === testInfo.testId;
-              console.log({testId: testInfo.testId, sentryTest: transactionEvent.tags?.["sentry_test"], eventTags: inspect(transactionEvent.tags, false, null)})
+              const { data: transactionEvent, status } = await axios.get(`/events/${eventId}/`);
+              // Ref: https://docs.sentry.io/api/events/list-a-projects-error-events/
+              const isFromThisTest = (transactionEvent.tags as Tag[]).find(({ key, value }) => {
+                return key === "sentry_test" && value === testInfo.testId;
+              });
               if (isFromThisTest) {
-
                 const op = transactionEvent.contexts?.trace?.op;
-                console.log(inspect({ transactionEvent, op }, true, null));
                 if (op === 'pageload') pageLoadTransactionEvent = transactionEvent;
-                if (op === 'http.server') httpServerTransactionEvent = transactionEvent;
               }
               return status;
             } catch (e) {
@@ -71,30 +67,71 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   );
 
   expect(pageLoadTransactionEvent).not.toBeNull();
+
+  let serverEventIds = null;
+  await expect.poll(async () => {
+    const files = await readEventsDir();
+    if (files.length !== 0) {
+      serverEventIds = files.map(f => path.basename(f, ".json"));
+      return true;
+    }
+    return false;
+  }).toBe(true)
+  expect(serverEventIds).not.toBeNull();
+
+  // we could have read the event details from the file (since we are
+  // dumping event without any mutations before sending it to Sentry),
+  // but let's following the practice in other test applications and
+  // also do some calls to Sentry to get back out server event
+  let httpServerTransactionEvent = null;
+
+  await Promise.all(
+    (serverEventIds as unknown as string[]).map(async eventId => {
+      await expect
+        .poll(
+          async () => {
+            try {
+              const { data: transactionEvent, status } = await axios.get(`/events/${eventId}/`);
+              // Ref: https://docs.sentry.io/api/events/list-a-projects-error-events/
+              const isFromThisTest = (transactionEvent.tags as Tag[]).find(({ key, value }) => {
+                return key === "sentry_test" && value === testInfo.testId;
+              });
+              if (isFromThisTest) {
+                const op = transactionEvent.contexts?.trace?.op;
+                if (op === 'http.server') httpServerTransactionEvent = transactionEvent;
+              }
+              return status;
+            } catch (e) {
+              const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
+              if (notThereJustYet) return 404;
+              throw e
+            }
+          },
+          {
+            timeout: EVENT_POLLING_TIMEOUT,
+          },
+        )
+        .toBe(200);
+    }),
+  );
+  // we successfully fetched "back" out event
   expect(httpServerTransactionEvent).not.toBeNull();
 
-  /*
-  const pageloadTransaction = await pageLoadTransactionPromise;
-  const httpServerTransaction = await httpServerTransactionPromise;
+  // the two events are both related to `routes/_index` page ...
+  const httpServerTransactionTag = (httpServerTransactionEvent!.tags as Tag[]).find(({ key }) => key === "transaction");
+  const pageLoadTransactionTag = (pageLoadTransactionEvent!.tags as Tag[]).find(({ key }) => key === "transaction");
+  expect(httpServerTransactionTag!.value).toBe('routes/_index');
+  expect(pageLoadTransactionTag!.value).toBe('routes/_index');
 
-  expect(pageloadTransaction).toBeDefined();
-  expect(httpServerTransaction).toBeDefined();
-
-  const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
-  const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
-
-  const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
-  const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
-  const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
-
-  expect(httpServerTransaction.transaction).toBe('routes/_index');
-  expect(pageloadTransaction.transaction).toBe('routes/_index');
-
+  // ... and they share the same trace id (i.e., they are the two transactions of the same trace)
+  const httpServerTraceId = httpServerTransactionEvent!.contexts?.trace?.trace_id;
   expect(httpServerTraceId).toBeDefined();
-  expect(httpServerSpanId).toBeDefined();
-
+  const pageLoadTraceId = pageLoadTransactionEvent!.contexts?.trace?.trace_id;
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
+
+  // page load span has got http server span as its _parent_
+  const httpServerSpanId = httpServerTransactionEvent!.contexts?.trace?.span_id;
+  expect(httpServerSpanId).toBeDefined();
+  const pageLoadParentSpanId = pageLoadTransactionEvent!.contexts?.trace?.parent_span_id;
   expect(pageLoadParentSpanId).toEqual(httpServerSpanId);
-  expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
-  */
 });
