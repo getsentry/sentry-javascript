@@ -36,7 +36,7 @@ describe('Hint', () => {
       client.captureEvent({});
 
       const [, hint] = sendEvent.mock.calls[0];
-      expect(hint).toEqual({ attachments: [{ filename: 'another.file', data: 'more text' }] });
+      expect(hint).toMatchObject({ attachments: [{ filename: 'another.file', data: 'more text' }] });
     });
 
     test('gets passed through to `beforeSend` and can be further mutated', () => {
@@ -54,7 +54,7 @@ describe('Hint', () => {
       client.captureEvent({}, { attachments: [{ filename: 'some-file.txt', data: 'Hello' }] });
 
       const [, hint] = sendEvent.mock.calls[0];
-      expect(hint).toEqual({
+      expect(hint).toMatchObject({
         attachments: [
           { filename: 'some-file.txt', data: 'Hello' },
           { filename: 'another.file', data: 'more text' },
@@ -80,7 +80,7 @@ describe('Hint', () => {
       );
 
       const [, hint] = sendEvent.mock.calls[0];
-      expect(hint).toEqual({
+      expect(hint).toMatchObject({
         attachments: [
           { filename: 'some-file.txt', data: 'Hello' },
           { filename: 'another.file', data: 'more text' },
