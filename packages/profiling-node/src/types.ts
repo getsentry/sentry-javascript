@@ -49,6 +49,7 @@ export interface RawThreadCpuProfile {
   profiler_logging_mode: 'eager' | 'lazy';
   measurements: Record<string, Measurement>;
 }
+
 export interface ThreadCpuProfile {
   stacks: ReadonlyArray<Stack>;
   samples: ReadonlyArray<Sample>;
@@ -68,9 +69,27 @@ export interface V8CpuProfilerBindings {
   stopProfiling(name: string): RawThreadCpuProfile | null;
 }
 
-export interface Profile {
-  event_id: string;
+interface BaseProfile {
+  timestamp: string;
   version: string;
+  release: string;
+  environment: string;
+  platform: string;
+  profile: ThreadCpuProfile;
+  debug_meta?: {
+    images: DebugImage[];
+  };
+  measurements: Record<string, Measurement>;
+}
+
+export interface Profile extends BaseProfile {
+  event_id: string;
+  transaction: {
+    name: string;
+    id: string;
+    trace_id: string;
+    active_thread_id: string;
+  };
   os: {
     name: string;
     version: string;
@@ -87,19 +106,9 @@ export interface Profile {
     manufacturer: string;
     model: string;
   };
-  timestamp: string;
-  release: string;
-  environment: string;
-  platform: string;
-  profile: ThreadCpuProfile;
-  debug_meta?: {
-    images: DebugImage[];
-  };
-  transaction: {
-    name: string;
-    id: string;
-    trace_id: string;
-    active_thread_id: string;
-  };
-  measurements: Record<string, Measurement>;
+}
+
+export interface ProfileChunk extends BaseProfile {
+  chunk_id: string;
+  profiler_id: string
 }

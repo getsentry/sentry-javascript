@@ -1,3 +1,4 @@
+/* eslint-disable max-lines */
 import * as os from 'os';
 import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
 import { env, versions } from 'process';
@@ -6,8 +7,9 @@ import { isMainThread, threadId } from 'worker_threads';
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import type { Profile, RawThreadCpuProfile, ThreadCpuProfile } from './types';
+import type { Profile, ProfileChunk, RawThreadCpuProfile, ThreadCpuProfile } from './types';
 import type { DebugImage } from './types';
+import type { SentryOptions } from '../../astro/build/types/integration/types';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -88,7 +90,6 @@ export function createProfilingEvent(client: Client, profile: RawThreadCpuProfil
  * @param {options}
  * @returns {Profile}
  */
-
 function createProfilePayload(
   client: Client,
   cpuProfile: RawThreadCpuProfile,
@@ -159,6 +160,97 @@ function createProfilePayload(
 }
 
 /**
+ * Create a profile chunk from raw thread profile
+ * @param {RawThreadCpuProfile} cpuProfile
+ * @param {options}
+ * @returns {Profile}
+ */
+function createProfileChunkPayload(
+  client: Client,
+  cpuProfile: RawThreadCpuProfile,
+  {
+    release,
+    environment,
+    start_timestamp,
+    trace_id,
+    profiler_id,
+    chunk_id,
+  }: {
+    release: string;
+    environment: string;
+    start_timestamp: number;
+    trace_id: string | undefined;
+    chunk_id: string;
+    profiler_id: string;
+  },
+): ProfileChunk {
+  // Log a warning if the profile has an invalid traceId (should be uuidv4).
+  // All profiles and transactions are rejected if this is the case and we want to
+  // warn users that this is happening if they enable debug flag
+  if (trace_id && trace_id.length !== 32) {
+    DEBUG_BUILD && logger.log(`[Profiling] Invalid traceId: ${trace_id} on profiled event`);
+  }
+
+  const enrichedThreadProfile = enrichWithThreadInformation(cpuProfile);
+
+  const profile: ProfileChunk = {
+    chunk_id: chunk_id,
+    profiler_id: profiler_id,
+    timestamp: new Date(start_timestamp).toISOString(),
+    platform: 'node',
+    version: FORMAT_VERSION,
+    release: release,
+    environment: environment,
+    measurements: cpuProfile.measurements,
+    runtime: {
+      name: 'node',
+      version: versions.node || '',
+    },
+    os: {
+      name: PLATFORM,
+      version: RELEASE,
+      build_number: VERSION,
+    },
+    device: {
+      locale: env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE'] || '',
+      model: MODEL,
+      manufacturer: TYPE,
+      architecture: ARCH,
+      is_emulator: false,
+    },
+    debug_meta: {
+      images: applyDebugMetadata(client, cpuProfile.resources),
+    },
+    profile: enrichedThreadProfile,
+  };
+
+  return profile;
+}
+
+/**
+ * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
+ */
+export function createProfilingChunkEvent(
+  client: Client,
+  profile: RawThreadCpuProfile,
+  options: SentryOptions,
+  identifiers: { trace_id: string | undefined;  chunk_id: string; profiler_id: string },
+): ProfileChunk | null {
+  if (!isValidProfileChunk(profile)) {
+    return null;
+  }
+
+  return createProfileChunkPayload(client, profile, {
+    release: options.release ?? '',
+    environment: options.environment ?? '',
+    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
+    trace_id: identifiers.trace_id ?? '',
+    chunk_id: identifiers.chunk_id,
+    profiler_id: identifiers.profiler_id,
+  });
+}
+
+/**
  * Checks the given sample rate to make sure it is valid type and value (a boolean, or a number between 0 and 1).
  * @param {unknown} rate
  * @returns {boolean}
@@ -204,6 +296,24 @@ export function isValidProfile(profile: RawThreadCpuProfile): profile is RawThre
   }
 
   if (!profile.profile_id) {
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * Checks if the profile chunk is valid and can be sent to Sentry.
+ * @param profile
+ * @returns
+ */
+export function isValidProfileChunk(profile: RawThreadCpuProfile): profile is RawThreadCpuProfile {
+  if (profile.samples.length <= 1) {
+    DEBUG_BUILD &&
+      // Log a warning if the profile has less than 2 samples so users can know why
+      // they are not seeing any profiling data and we cant avoid the back and forth
+      // of asking them to provide us with a dump of the profile data.
+      logger.log('[Profiling] Discarding profile chunk because it contains less than 2 samples');
     return false;
   }
 
