@@ -14,7 +14,7 @@ or `init.js` is not defined in a case folder.
 
 `subject.js` contains the logic that sets up the environment to be tested. It also can be defined locally and as a group
 fallback. Unlike `template.hbs` and `init.js`, it's not required to be defined for a group, as there may be cases that
-does not require a subject, instead the logic is injected using `injectScriptAndGetEvents` from `utils/helpers.ts`.
+does not require a subject.
 
 `test.ts` is required for each test case, which contains the assertions (and if required the script injection logic).
 For every case, any set of `init.js`, `template.hbs` and `subject.js` can be defined locally, and each one of them will
@@ -22,8 +22,8 @@ have precedence over the default definitions of the test group.
 
 To test page multi-page navigations, you can specify additional `page-*.html` (e.g. `page-0.html`, `page-1.html`) files.
 These will also be compiled and initialized with the same `init.js` and `subject.js` files that are applied to
-`template.hbs/html`. Note: `page-*.html` file lookup **doesn not** fall back to the parent directories, meaning that
-page files have to be directly in the `test.ts` directory.
+`template.hbs/html`. Note: `page-*.html` file lookup **does not** fall back to the parent directories, meaning that page
+files have to be directly in the `test.ts` directory.
 
 ```
 suites/
