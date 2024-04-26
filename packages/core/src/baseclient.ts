@@ -140,6 +140,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         options._metadata ? options._metadata.sdk : undefined,
       );
       this._transport = options.transport({
+        tunnel: this._options.tunnel,
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
