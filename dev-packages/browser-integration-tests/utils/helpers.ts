@@ -74,6 +74,13 @@ export const properEnvelopeRequestParser = <T = Event>(request: Request | null, 
   return properEnvelopeParser(request)[0][envelopeIndex] as T;
 };
 
+export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
+};
+
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
   // https://develop.sentry.dev/sdk/envelopes/
   const envelope = request?.postData() || '';

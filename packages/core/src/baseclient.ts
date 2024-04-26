@@ -40,6 +40,8 @@ import {
   isThenable,
   logger,
   makeDsn,
+  rejectedSyncPromise,
+  resolvedSyncPromise,
   uuid4,
 } from '@sentry/utils';
 
@@ -175,7 +177,12 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string {
+  public captureMessage(
+    message: ParameterizedString,
+    level?: SeverityLevel,
+    hint?: EventHint,
+    currentScope?: Scope,
+  ): string {
     const hintWithEventId = {
       event_id: uuid4(),
       ...hint,
@@ -187,7 +194,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       ? this.eventFromMessage(eventMessage, level, hintWithEventId)
       : this.eventFromException(message, hintWithEventId);
 
-    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, scope)));
+    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, currentScope)));
 
     return hintWithEventId.event_id;
   }
@@ -195,7 +202,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
+  public captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string {
     const eventId = uuid4();
 
     // ensure we haven't captured this very object before
@@ -212,7 +219,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
 
-    this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || scope));
+    this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || currentScope));
 
     return hintWithEventId.event_id;
   }
@@ -623,13 +630,13 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The original event.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
+   * @param currentScope A scope containing event metadata.
    * @returns A new event with more information.
    */
   protected _prepareEvent(
     event: Event,
     hint: EventHint,
-    scope?: Scope,
+    currentScope?: Scope,
     isolationScope = getIsolationScope(),
   ): Promise<Event | null> {
     const options = this.getOptions();
@@ -640,14 +647,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
-    return prepareEvent(options, event, hint, scope, this, isolationScope).then(evt => {
+    return prepareEvent(options, event, hint, currentScope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
       }
 
       const propagationContext = {
         ...isolationScope.getPropagationContext(),
-        ...(scope ? scope.getPropagationContext() : undefined),
+        ...(currentScope ? currentScope.getPropagationContext() : undefined),
       };
 
       const trace = evt.contexts && evt.contexts.trace;
@@ -710,10 +717,10 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
-   * @param scope A scope containing event metadata.
-   * @returns A Promise that resolves with the event or rejects in case event was/will not be send.
+   * @param currentScope A scope containing event metadata.
+   * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, scope?: Scope): Promise<Event> {
+  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): PromiseLike<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
@@ -741,7 +748,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanIsolationScope: Scope | undefined = sdkProcessingMetadata.capturedSpanIsolationScope;
 
-    return this._prepareEvent(event, hint, scope, capturedSpanIsolationScope)
+    return this._prepareEvent(event, hint, currentScope, capturedSpanIsolationScope)
       .then(prepared => {
         if (prepared === null) {
           this.recordDroppedEvent('event_processor', dataCategory, event);
@@ -762,7 +769,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
           throw new SentryError(`${beforeSendLabel} returned \`null\`, will not send event.`, 'log');
         }
 
-        const session = scope && scope.getSession();
+        const session = currentScope && currentScope.getSession();
         if (!isTransaction && session) {
           this._updateSessionFromEvent(session, processedEvent);
         }

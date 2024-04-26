@@ -1119,6 +1119,7 @@ Sentry.init({
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](./MIGRATION.md#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
+- [Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients](./MIGRATION.md#updated-expected-return-value-for-captureexception-capturemessage-and-captureevent-methods-on-clients)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
 - [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
@@ -1178,6 +1179,11 @@ for this option defaulted to `true`.
 
 Going forward, the default value for `exitEvenIfOtherHandlersAreRegistered` will be `false`, meaning that the SDK will
 not exit your process when you have registered other `onUncaughtException` handlers.
+
+#### Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients
+
+The `Client` interface now expects implementations to always return a string representing the generated event ID for the
+`captureException()`, `captureMessage()`, `captureEvent()` methods. Previously `undefined` was a valid return value.
 
 #### Removal of Client-Side health check transaction filters
 

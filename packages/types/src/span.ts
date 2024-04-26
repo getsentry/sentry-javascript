@@ -58,6 +58,8 @@ export interface SpanJSON {
   profile_id?: string;
   exclusive_time?: number;
   measurements?: Measurements;
+  is_segment?: boolean;
+  segment_id?: string;
 }
 
 // These are aligned with OpenTelemetry trace flags
@@ -187,6 +189,15 @@ export interface SentrySpanArguments {
    * Timestamp in seconds (epoch time) indicating when the span ended.
    */
   endTimestamp?: number | undefined;
+
+  /**
+   * Set to `true` if this span should be sent as a standalone segment span
+   * as opposed to a transaction.
+   *
+   * @experimental this option is currently experimental and should only be
+   * used within SDK code. It might be removed or changed in the future.
+   */
+  isStandalone?: boolean | undefined;
 }
 
 /**
