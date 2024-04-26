@@ -1,4 +1,4 @@
-import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, getActiveSpan } from '@sentry/browser';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/browser';
 import type { Span } from '@sentry/types';
 import { afterUpdate, beforeUpdate, onMount } from 'svelte';
 import { current_component } from 'svelte/internal';
@@ -59,13 +59,8 @@ function recordInitSpan(componentName: string): void {
 function recordUpdateSpans(componentName: string): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
-    // If there is no active span, we skip
-    const activeSpan = getActiveSpan();
-    if (!activeSpan) {
-      return;
-    }
-
     updateSpan = startInactiveSpan({
+      onlyIfParent: true,
       op: UI_SVELTE_UPDATE,
       name: componentName,
       attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
