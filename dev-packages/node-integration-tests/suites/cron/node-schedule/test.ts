@@ -4,7 +4,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('cron instrumentation', done => {
+test('node-schedule instrumentation', done => {
   createRunner(__dirname, 'scenario.ts')
     .expect({
       check_in: {

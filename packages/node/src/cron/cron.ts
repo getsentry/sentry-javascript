@@ -95,8 +95,8 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
       function monitoredTick(context: unknown, onComplete?: unknown): void | Promise<void> {
         return withMonitor(
           monitorSlug,
-          () => {
-            return onTick(context, onComplete);
+          async () => {
+            await onTick(context, onComplete);
           },
           {
             schedule: { type: 'crontab', value: cronString },
