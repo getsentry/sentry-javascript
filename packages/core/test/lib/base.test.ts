@@ -867,7 +867,7 @@ describe('BaseClient', () => {
       );
     });
 
-    test('normalization applies to Transaction and Span consistently', () => {
+    test('normalization applies to Transaction and Span consistently', async () => {
       expect.assertions(1);
 
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
@@ -917,6 +917,8 @@ describe('BaseClient', () => {
 
       client.captureEvent(transaction);
       const capturedEvent = TestClient.instance!.event!;
+
+      await client.flush();
 
       expect(capturedEvent).toEqual(normalizedTransaction);
     });
@@ -1664,10 +1666,8 @@ describe('BaseClient', () => {
 
       client.sendEvent(errorEvent);
       jest.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
+
+      await client.flush();
 
       expect(mockSend).toBeCalledTimes(1);
       expect(callback).toBeCalledTimes(1);
@@ -1682,24 +1682,31 @@ describe('BaseClient', () => {
         }),
       );
 
-      // @ts-expect-error Accessing private transport API
-      const mockSend = jest.spyOn(client._transport, 'send');
+      const sendCalled = new Promise<void>(resolve => {
+        // const originalSend = client._transport.send.bind(client._transport);
+        // @ts-expect-error Accessing private transport API
+        const sendSpy = jest.spyOn(client._transport, 'send').mockImplementationOnce((...args) => {
+          expect(sendSpy).toHaveBeenCalledTimes(1);
+          resolve();
+          // @ts-expect-error Accessing private transport API
+          return client._transport?.send(...args);
+        });
+      });
 
       const transactionEvent: Event = { type: 'transaction', event_id: 'tr1' };
 
-      const callback = jest.fn();
-      client.on('afterSendEvent', callback);
+      const afterSendHookCalled = new Promise<void>(resolve => {
+        const callback = jest.fn().mockImplementation(() => {
+          expect(callback).toBeCalledTimes(1);
+          expect(callback).toBeCalledWith(transactionEvent, {});
+          resolve();
+        });
+        client.on('afterSendEvent', callback);
+      });
 
       client.sendEvent(transactionEvent);
-      jest.runAllTimers();
-      // Wait for two ticks
-      // note that for whatever reason, await new Promise(resolve => setTimeout(resolve, 0)) causes the test to hang
-      await undefined;
-      await undefined;
 
-      expect(mockSend).toBeCalledTimes(1);
-      expect(callback).toBeCalledTimes(1);
-      expect(callback).toBeCalledWith(transactionEvent, {});
+      await Promise.all([sendCalled, afterSendHookCalled]);
     });
 
     it('still triggers `afterSendEvent` when transport.send rejects', async () => {

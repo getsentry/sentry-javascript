@@ -75,6 +75,9 @@ describe('PromiseBuffer', () => {
     } catch (_) {
       // no-empty
     }
+
+    await new Promise(resolve => process.nextTick(resolve));
+
     expect(buffer.$.length).toEqual(0);
   });
 

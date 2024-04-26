@@ -40,6 +40,7 @@ import {
   isThenable,
   logger,
   makeDsn,
+  uuid4,
 } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
@@ -148,76 +149,72 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
+    const eventId = uuid4();
+
     // ensure we haven't captured this very object before
     if (checkOrSetAlreadyCaught(exception)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
-      return;
+      return eventId;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    const hintWithEventId = {
+      event_id: eventId,
+      ...hint,
+    };
 
     this._process(
-      this.eventFromException(exception, hint)
-        .then(event => this._captureEvent(event, hint, scope))
-        .then(result => {
-          eventId = result;
-        }),
+      this.eventFromException(exception, hintWithEventId).then(event =>
+        this._captureEvent(event, hintWithEventId, scope),
+      ),
     );
 
-    return eventId;
+    return hintWithEventId.event_id;
   }
 
   /**
    * @inheritDoc
    */
-  public captureMessage(
-    message: ParameterizedString,
-    level?: SeverityLevel,
-    hint?: EventHint,
-    scope?: Scope,
-  ): string | undefined {
-    let eventId: string | undefined = hint && hint.event_id;
+  public captureMessage(message: ParameterizedString, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string {
+    const hintWithEventId = {
+      event_id: uuid4(),
+      ...hint,
+    };
 
     const eventMessage = isParameterizedString(message) ? message : String(message);
 
     const promisedEvent = isPrimitive(message)
-      ? this.eventFromMessage(eventMessage, level, hint)
-      : this.eventFromException(message, hint);
+      ? this.eventFromMessage(eventMessage, level, hintWithEventId)
+      : this.eventFromException(message, hintWithEventId);
 
-    this._process(
-      promisedEvent
-        .then(event => this._captureEvent(event, hint, scope))
-        .then(result => {
-          eventId = result;
-        }),
-    );
+    this._process(promisedEvent.then(event => this._captureEvent(event, hintWithEventId, scope)));
 
-    return eventId;
+    return hintWithEventId.event_id;
   }
 
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
+    const eventId = uuid4();
+
     // ensure we haven't captured this very object before
     if (hint && hint.originalException && checkOrSetAlreadyCaught(hint.originalException)) {
       DEBUG_BUILD && logger.log(ALREADY_SEEN_ERROR);
-      return;
+      return eventId;
     }
 
-    let eventId: string | undefined = hint && hint.event_id;
+    const hintWithEventId = {
+      event_id: eventId,
+      ...hint,
+    };
 
     const sdkProcessingMetadata = event.sdkProcessingMetadata || {};
     const capturedSpanScope: Scope | undefined = sdkProcessingMetadata.capturedSpanScope;
 
-    this._process(
-      this._captureEvent(event, hint, capturedSpanScope || scope).then(result => {
-        eventId = result;
-      }),
-    );
+    this._process(this._captureEvent(event, hintWithEventId, capturedSpanScope || scope));
 
-    return eventId;
+    return hintWithEventId.event_id;
   }
 
   /**

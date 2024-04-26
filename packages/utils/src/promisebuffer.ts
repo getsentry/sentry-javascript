@@ -51,9 +51,6 @@ export function makePromiseBuffer<T>(limit?: number): PromiseBuffer<T> {
     }
     void task
       .then(() => remove(task))
-      // Use `then(null, rejectionHandler)` rather than `catch(rejectionHandler)` so that we can use `Promise`
-      // rather than `Promise`. `Promise` doesn't have a `.catch` method, making its polyfill smaller. (ES5 didn't
-      // have promises, so TS has to polyfill when down-compiling.)
       .then(null, () =>
         remove(task).then(null, () => {
           // We have to add another catch here because `remove()` starts a new promise chain.

@@ -104,6 +104,7 @@ describe('isInstanceOf()', () => {
     }
     expect(isInstanceOf(new Error('wat'), Error)).toEqual(true);
     expect(isInstanceOf(new Date(), Date)).toEqual(true);
+    // @ts-expect-error Foo implicity has any type, doesn't have constructor
     expect(isInstanceOf(new Foo(), Foo)).toEqual(true);
 
     expect(isInstanceOf(new Error('wat'), Foo)).toEqual(false);

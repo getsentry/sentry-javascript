@@ -15,7 +15,7 @@ export function makeFetchTransport(
   let pendingBodySize = 0;
   let pendingCount = 0;
 
-  async function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
+  function makeRequest(request: TransportRequest): Promise<TransportMakeRequestResponse> {
     const requestSize = request.body.length;
     pendingBodySize += requestSize;
     pendingCount++;
