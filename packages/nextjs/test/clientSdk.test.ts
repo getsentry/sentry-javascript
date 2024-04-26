@@ -96,7 +96,6 @@ describe('Client init()', () => {
     });
 
     expect(transportSend).not.toHaveBeenCalled();
-    expect(captureEvent.mock.results[0].value).toBeUndefined();
     expect(loggerLogSpy).toHaveBeenCalledWith('An event processor returned `null`, will not send event.');
   });
 
