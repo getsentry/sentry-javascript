@@ -64,7 +64,7 @@ function consoleHandler(args: unknown[], level: string): void {
     });
 
     if (level === 'assert') {
-      if (args[0] === false) {
+      if (!args[0]) {
         const message = `Assertion failed: ${safeJoin(args.slice(1), ' ') || 'console.assert'}`;
         scope.setExtra('arguments', args.slice(1));
         captureMessage(message, captureContext);
