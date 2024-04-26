@@ -35,8 +35,8 @@ test('Sends form data with action error to Sentry', async ({ page }) => {
   expect(actionTransaction).toBeDefined();
   expect(actionTransaction.contexts.trace.op).toBe('http.server');
   expect(actionTransaction.spans[0].data).toMatchObject({
-    action_form_data_text: 'test',
-    action_form_data_file: 'file.txt',
+    'remix.action_form_data.text': 'test',
+    'remix.action_form_data.file': 'file.txt',
   });
 });
 
