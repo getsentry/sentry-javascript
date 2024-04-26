@@ -998,6 +998,7 @@ jobs:
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'create-remix-app-express',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
