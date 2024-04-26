@@ -1006,6 +1006,7 @@ jobs:
             'react-create-hash-router',
             'react-router-6-use-routes',
             'standard-frontend-react',
+            'svelte-5',
             'sveltekit',
             'sveltekit-2',
             'sveltekit-2-svelte-5',
