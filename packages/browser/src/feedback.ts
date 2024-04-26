@@ -5,7 +5,7 @@ import {
 } from '@sentry-internal/feedback';
 import { lazyLoadIntegration } from './utils/lazyLoadIntegration';
 
-// The full feedback widget, with everything pre-loaded
+/** Add a widget to capture user feedback to your application. */
 export const feedbackIntegration = buildFeedbackIntegration({
   lazyLoadIntegration,
   getModalIntegration: () => feedbackModalIntegration,
