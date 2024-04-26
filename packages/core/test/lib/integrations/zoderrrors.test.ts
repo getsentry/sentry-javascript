@@ -15,7 +15,6 @@ interface ZodIssue {
 class ZodError extends Error {
   issues: ZodIssue[] = [];
 
-  // Eslint disabled to match what exists in Zod
   // https://github.com/colinhacks/zod/blob/8910033b861c842df59919e7d45e7f51cf8b76a2/src/ZodError.ts#L199C1-L211C4
   constructor(issues: ZodIssue[]) {
     super();
