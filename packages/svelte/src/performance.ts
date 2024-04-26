@@ -59,13 +59,8 @@ function recordInitSpan(componentName: string): void {
 function recordUpdateSpans(componentName: string): void {
   let updateSpan: Span | undefined;
   beforeUpdate(() => {
-    // If there is no active span, we skip
-    const activeSpan = getActiveSpan();
-    if (!activeSpan) {
-      return;
-    }
-
     updateSpan = startInactiveSpan({
+      onlyIfParent: true,
       op: UI_SVELTE_UPDATE,
       name: componentName,
       attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.svelte' },
