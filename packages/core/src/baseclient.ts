@@ -40,8 +40,6 @@ import {
   isThenable,
   logger,
   makeDsn,
-  rejectedSyncPromise,
-  resolvedSyncPromise,
   uuid4,
 } from '@sentry/utils';
 
@@ -720,7 +718,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
    * @param currentScope A scope containing event metadata.
    * @returns A SyncPromise that resolves with the event or rejects in case event was/will not be send.
    */
-  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): PromiseLike<Event> {
+  protected _processEvent(event: Event, hint: EventHint, currentScope?: Scope): Promise<Event> {
     const options = this.getOptions();
     const { sampleRate } = options;
 
