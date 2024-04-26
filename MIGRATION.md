@@ -1234,8 +1234,6 @@ export class HeaderComponent {
 }
 ```
 
----
-
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
@@ -1370,6 +1368,19 @@ Instead of an `transactionContext` being passed to the `tracesSampler` callback,
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
 will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
 only be set later during the span lifecycle (and thus not be available during sampling).
+
+## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
+
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+```typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
