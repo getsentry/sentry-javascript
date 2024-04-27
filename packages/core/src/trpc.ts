@@ -55,7 +55,6 @@ export function trpcMiddleware(options: SentryTrpcMiddlewareOptions = {}) {
       {
         name: `trpc/${path}`,
         op: 'rpc.server',
-        forceTransaction: true,
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.rpc.trpc',

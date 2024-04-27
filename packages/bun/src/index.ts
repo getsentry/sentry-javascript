@@ -117,6 +117,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   trpcMiddleware,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 export {

@@ -1,6 +1,6 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { GraphQLInstrumentation } from '@opentelemetry/instrumentation-graphql';
 import { defineIntegration } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
@@ -9,16 +9,14 @@ const _graphqlIntegration = (() => {
   return {
     name: 'Graphql',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [
-          new GraphQLInstrumentation({
-            ignoreTrivialResolveSpans: true,
-            responseHook(span) {
-              addOriginToSpan(span, 'auto.graphql.otel.graphql');
-            },
-          }),
-        ],
-      });
+      addOpenTelemetryInstrumentation(
+        new GraphQLInstrumentation({
+          ignoreTrivialResolveSpans: true,
+          responseHook(span) {
+            addOriginToSpan(span, 'auto.graphql.otel.graphql');
+          },
+        }),
+      );
     },
   };
 }) satisfies IntegrationFn;

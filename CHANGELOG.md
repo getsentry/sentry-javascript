@@ -4,6 +4,32 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.3
+
+### Important Changes
+
+- **feat(opentelemetry): Add `addOpenTelemetryInstrumentation` (#11667)**
+
+A utility function `addOpenTelemetryInstrumentation` was added that allows for the registration of instrumentations that
+conform to the OpenTelemetry JS API without having to specify `@opentelemetry/instrumentation` as a dependency.
+
+- **ref(core): Don't start transaction for trpc middleware (#11697)**
+
+Going forward, the Sentry `trpcMiddleware` will only create spans. Previously it used to always create a transaction.
+This change was made to integrate more nicely with the HTTP instrumentation added in earlier versions to avoid creating
+unnecessary transactions.
+
+### Other Changes
+
+- feat(nextjs): Instrument outgoing http requests (#11685)
+- feat(opentelemetry): Remove setupGlobalHub (#11668)
+- fix: Missing ErrorEvent export are added to node, browser, bun, deno, vercel-edge sub-packages (#11649)
+- fix(nextjs): Do not sample next spans if they have remote parent (#11680)
+- fix(nextjs): Re-enable OTEL fetch instrumentation and disable Next.js fetch instrumentation (#11686)
+- fix(node): Ensure DSC on envelope header uses root span (#11683)
+- ref(browser): Streamline pageload span creation and scope handling (#11679)
+- ref(core): Directly use endSession (#11669)
+
 ## 8.0.0-beta.2
 
 ### Important Changes
