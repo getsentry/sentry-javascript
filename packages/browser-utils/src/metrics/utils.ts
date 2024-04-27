@@ -1,6 +1,7 @@
 import type { SentrySpan } from '@sentry/core';
 import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type { Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
+import { WINDOW } from './types';
 
 /**
  * Checks if a given value is a valid measurement value.
@@ -13,9 +14,6 @@ export function isMeasurementValue(value: unknown): value is number {
  * Helper function to start child on transactions. This function will make sure that the transaction will
  * use the start timestamp of the created child span if it is earlier than the transactions actual
  * start timestamp.
- *
- * Note: this will not be possible anymore in v8,
- * unless we do some special handling for browser here...
  */
 export function startAndEndSpan(
   parentSpan: Span,
@@ -44,4 +42,18 @@ export function startAndEndSpan(
 
     return span;
   });
+}
+
+/** Get the browser performance API. */
+export function getBrowserPerformanceAPI(): Performance | undefined {
+  // @ts-expect-error we want to make sure all of these are available, even if TS is sure they are
+  return WINDOW && WINDOW.addEventListener && WINDOW.performance;
+}
+
+/**
+ * Converts from milliseconds to seconds
+ * @param time time in ms
+ */
+export function msToSec(time: number): number {
+  return time / 1000;
 }

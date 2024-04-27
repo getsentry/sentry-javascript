@@ -177,12 +177,10 @@ The `Transaction` integration has been removed from `@sentry/integrations`. Ther
 #### @sentry/serverless
 
 `@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
-different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`. These new packages have smaller
-bundle size than `@sentry/serverless`, which should improve your serverless cold-start times.
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`.
 
-`@sentry/aws-serverless` and `@sentry/google-cloud-serverless` has also been changed to only emit CJS builds. The ESM
-build for the `@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be
-re-added at a later date.
+The `@sentry/google-cloud-serverless` package has also been changed to only emit CJS builds because it can only
+instrument CJS. ESM support will be re-added at a later date.
 
 In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
 directly import from the SDK instead.
@@ -875,8 +873,9 @@ Sentry.init({
 
 #### Breaking `sentrySvelteKit()` changes
 
-We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
-change, resolving uploaded source maps should work out of the box much more often than before
+We upgraded the `@sentry/vite-plugin` from version 0.x to 2.x. This package is internally used by the
+`@sentry/sveltekit` SDK. With this change, resolving uploaded source maps should work out of the box much more often
+than before
 ([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
 
 To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
@@ -1120,6 +1119,7 @@ Sentry.init({
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](./MIGRATION.md#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
+- [Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients](./MIGRATION.md#updated-expected-return-value-for-captureexception-capturemessage-and-captureevent-methods-on-clients)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
 - [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
@@ -1180,6 +1180,11 @@ for this option defaulted to `true`.
 Going forward, the default value for `exitEvenIfOtherHandlersAreRegistered` will be `false`, meaning that the SDK will
 not exit your process when you have registered other `onUncaughtException` handlers.
 
+#### Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients
+
+The `Client` interface now expects implementations to always return a string representing the generated event ID for the
+`captureException()`, `captureMessage()`, `captureEvent()` methods. Previously `undefined` was a valid return value.
+
 #### Removal of Client-Side health check transaction filters
 
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
@@ -1228,8 +1233,6 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
-
----
 
 # Deprecations in 7.x
 
@@ -1365,6 +1368,19 @@ Instead of an `transactionContext` being passed to the `tracesSampler` callback,
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
 will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
 only be set later during the span lifecycle (and thus not be available during sampling).
+
+## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
+
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+```typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 

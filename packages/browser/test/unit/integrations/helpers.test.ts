@@ -1,5 +1,4 @@
 import type { WrappedFunction } from '@sentry/types';
-import { spy } from 'sinon';
 
 import { wrap } from '../../../src/helpers';
 
@@ -57,12 +56,12 @@ describe('internal wrap()', () => {
 
   it('calls "before" function when invoking wrapped function', () => {
     const fn = (() => 1337) as WrappedFunction;
-    const before = spy();
+    const before = jest.fn();
 
     const wrapped = wrap(fn, {}, before);
     wrapped();
 
-    expect(before.called).toBe(true);
+    expect(before).toHaveBeenCalledTimes(1);
   });
 
   it('attaches metadata to original and wrapped functions', () => {
@@ -116,13 +115,12 @@ describe('internal wrap()', () => {
   });
 
   it('calls the original function', () => {
-    const fn = spy();
+    const fn = jest.fn();
 
     wrap(fn)(123, 'Rick');
 
-    expect(fn.called).toBe(true);
-    expect(fn.getCalls()[0].args[0]).toBe(123);
-    expect(fn.getCalls()[0].args[1]).toBe('Rick');
+    expect(fn).toHaveBeenCalledTimes(1);
+    expect(fn).toHaveBeenCalledWith(123, 'Rick');
   });
 
   it('preserves `this` context for all the calls', () => {

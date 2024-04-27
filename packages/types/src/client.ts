@@ -14,7 +14,7 @@ import type { Scope } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { Session, SessionAggregates } from './session';
 import type { SeverityLevel } from './severity';
-import type { Span } from './span';
+import type { Span, SpanAttributes, SpanContextData } from './span';
 import type { StartSpanOptions } from './startSpanOptions';
 import type { Transport, TransportMakeRequestResponse } from './transport';
 
@@ -31,33 +31,39 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   /**
    * Captures an exception event and sends it to Sentry.
    *
+   * Unlike `captureException` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param exception An exception-like object.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined;
+  captureException(exception: any, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a message event and sends it to Sentry.
    *
+   * Unlike `captureMessage` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param message The message to send to Sentry.
    * @param level Define the level of the message.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, scope?: Scope): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
    *
+   * Unlike `captureEvent` exported from every SDK, this method requires that you pass it the current scope.
+   *
    * @param event The event to send to Sentry.
    * @param hint May contain additional information about the original exception.
-   * @param scope An optional scope containing event metadata.
+   * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined;
+  captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a session
@@ -179,6 +185,23 @@ export interface Client<O extends ClientOptions = ClientOptions> {
   on(hook: 'spanStart', callback: (span: Span) => void): void;
 
   /**
+   * Register a callback before span sampling runs. Receives a `samplingDecision` object argument with a `decision`
+   * property that can be used to make a sampling decision that will be enforced, before any span sampling runs.
+   */
+  on(
+    hook: 'beforeSampling',
+    callback: (
+      samplingData: {
+        spanAttributes: SpanAttributes;
+        spanName: string;
+        parentSampled?: boolean;
+        parentContext?: SpanContextData;
+      },
+      samplingDecision: { decision: boolean },
+    ) => void,
+  ): void;
+
+  /**
    * Register a callback for whenever a span is ended.
    * Receives the span as argument.
    */
@@ -261,6 +284,18 @@ export interface Client<O extends ClientOptions = ClientOptions> {
 
   /** Fire a hook whener a span starts. */
   emit(hook: 'spanStart', span: Span): void;
+
+  /** A hook that is called every time before a span is sampled. */
+  emit(
+    hook: 'beforeSampling',
+    samplingData: {
+      spanAttributes: SpanAttributes;
+      spanName: string;
+      parentSampled?: boolean;
+      parentContext?: SpanContextData;
+    },
+    samplingDecision: { decision: boolean },
+  ): void;
 
   /** Fire a hook whener a span ends. */
   emit(hook: 'spanEnd', span: Span): void;

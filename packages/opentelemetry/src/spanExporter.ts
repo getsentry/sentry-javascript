@@ -143,7 +143,7 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
     transactionEvent.spans = spans;
 
     const measurements = timedEventsToMeasurements(span.events);
-    if (Object.keys(measurements).length) {
+    if (measurements) {
       transactionEvent.measurements = measurements;
     }
 
@@ -281,6 +281,7 @@ function createAndFinishSpanForOtelSpan(node: SpanNode, spans: SpanJSON[], remai
     op,
     origin,
     _metrics_summary: getMetricSummaryJsonForSpan(span as unknown as Span),
+    measurements: timedEventsToMeasurements(span.events),
   });
 
   spans.push(spanJSON);

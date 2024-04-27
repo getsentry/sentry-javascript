@@ -81,22 +81,18 @@ working on this during the v8 alpha/beta cycle.
 ### Using Custom OpenTelemetry Instrumentation
 
 While we include some vetted OpenTelemetry instrumentation out of the box, you can also add your own instrumentation on
-top of that. You can do that by installing an instrumentation package (as well as `@opentelemetry/instrumentation`) and
-setting it up like this:
+top of that. You can do that by installing an instrumentation package and setting it up like this:
 
 ```js
 const Sentry = require('@sentry/node');
 const { GenericPoolInstrumentation } = require('@opentelemetry/instrumentation-generic-pool');
-const { registerInstrumentations } = require('@opentelemetry/instrumentation');
 
 Sentry.init({
   dsn: '__DSN__',
 });
 
 // Afterwards, you can add additional instrumentation:
-registerInsturmentations({
-  instrumentations: [new GenericPoolInstrumentation()],
-});
+Sentry.addOpenTelemetryInstrumentation(new GenericPoolInstrumentation());
 ```
 
 ### Using a Custom OpenTelemetry Setup

@@ -551,6 +551,41 @@ describe('startSpan', () => {
 
     expect(result).toBe('aha');
   });
+
+  describe('[experimental] standalone spans', () => {
+    it('starts a standalone segment span if standalone is set', () => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone: true },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBe(true);
+      expect(spanJson.segment_id).toBe(spanJson.span_id);
+      expect(spanJson.segment_id).toMatch(/^[a-f0-9]{16}$/);
+    });
+
+    it.each([undefined, false])("doesn't set segment properties if standalone is falsy (%s)", standalone => {
+      const span = startSpan(
+        {
+          name: 'test span',
+          experimental: { standalone },
+        },
+        span => {
+          return span;
+        },
+      );
+
+      const spanJson = spanToJSON(span);
+      expect(spanJson.is_segment).toBeUndefined();
+      expect(spanJson.segment_id).toBeUndefined();
+    });
+  });
 });
 
 describe('startSpanManual', () => {

@@ -59,8 +59,8 @@ test('Should record exceptions and transactions for faulty route handlers', asyn
   expect(routehandlerTransaction.contexts?.trace?.origin).toBe('auto.function.nextjs');
 
   expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-error');
-  // TODO: Uncomment once we update the scope transaction name on the server side
-  // expect(routehandlerError.transaction).toBe('PUT /route-handlers/[param]/error');
+
+  expect(routehandlerError.transaction).toBe('PUT /route-handlers/[param]/error');
 });
 
 test.describe('Edge runtime', () => {
@@ -106,6 +106,8 @@ test.describe('Edge runtime', () => {
 
     expect(routehandlerError.exception?.values?.[0].value).toBe('route-handler-edge-error');
     expect(routehandlerError.contexts?.runtime?.name).toBe('vercel-edge');
+
+    expect(routehandlerError.transaction).toBe('DELETE /route-handlers/[param]/edge');
   });
 });
 

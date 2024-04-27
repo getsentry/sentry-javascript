@@ -26,4 +26,7 @@
   <li>
     <a href="/server-load-fetch">Route with nested fetch in server load</a>
   </li>
+  <li>
+    <a href="components">Component Tracking</a>
+  </li>
 </ul>

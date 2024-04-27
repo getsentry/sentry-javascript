@@ -2,6 +2,7 @@ import type {
   Attachment,
   AttachmentItem,
   DsnComponents,
+  DynamicSamplingContext,
   Event,
   EventEnvelope,
   EventItem,
@@ -11,6 +12,7 @@ import type {
   SessionAggregates,
   SessionEnvelope,
   SessionItem,
+  SpanEnvelope,
 } from '@sentry/types';
 import {
   createAttachmentEnvelopeItem,
@@ -19,6 +21,9 @@ import {
   dsnToString,
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
+import { createSpanEnvelopeItem } from '@sentry/utils';
+import { type SentrySpan, getDynamicSamplingContextFromSpan } from './tracing';
+import { spanToJSON } from './utils/spanUtils';
 
 /**
  * Apply SdkInfo (name, version, packages, integrations) to the corresponding event key.
@@ -116,4 +121,25 @@ export function createAttachmentEnvelope(
     attachmentItems.push(createAttachmentEnvelopeItem(attachment));
   }
   return createEnvelope<EventEnvelope>(envelopeHeaders, attachmentItems);
+}
+
+/**
+ * Create envelope from Span item.
+ */
+export function createSpanEnvelope(spans: SentrySpan[]): SpanEnvelope {
+  function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
+    return !!dsc.trace_id && !!dsc.public_key;
+  }
+
+  // For the moment we'll obtain the DSC from the first span in the array
+  // This might need to be changed if we permit sending multiple spans from
+  // different segments in one envelope
+  const dsc = getDynamicSamplingContextFromSpan(spans[0]);
+
+  const headers: SpanEnvelope[0] = {
+    sent_at: new Date().toISOString(),
+    ...(dscHasRequiredProps(dsc) && { trace: dsc }),
+  };
+  const items = spans.map(span => createSpanEnvelopeItem(spanToJSON(span)));
+  return createEnvelope<SpanEnvelope>(headers, items);
 }

@@ -4,7 +4,7 @@ export default [
   ...makeBundleConfigVariants(
     makeBaseBundleConfig({
       bundleType: 'addon',
-      entrypoints: ['src/index.bundle.ts'],
+      entrypoints: ['src/index.ts'],
       jsVersion: 'es6',
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback',

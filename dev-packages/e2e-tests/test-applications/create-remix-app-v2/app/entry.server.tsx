@@ -26,7 +26,18 @@ installGlobals();
 
 const ABORT_DELAY = 5_000;
 
-export const handleError = Sentry.wrapRemixHandleError;
+Sentry.init({
+  environment: 'qa', // dynamic sampling bias to keep transactions
+  dsn: process.env.E2E_TEST_DSN,
+  // Performance Monitoring
+  tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
+});
+
+const handleErrorImpl = () => {
+  Sentry.setTag('remix-test-tag', 'remix-test-value');
+};
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(handleErrorImpl);
 
 export default function handleRequest(
   request: Request,

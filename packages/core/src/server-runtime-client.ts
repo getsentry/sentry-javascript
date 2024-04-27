@@ -76,7 +76,7 @@ export class ServerRuntimeClient<
    * @inheritDoc
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public captureException(exception: any, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureException(exception: any, hint?: EventHint, scope?: Scope): string {
     // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used
@@ -96,7 +96,7 @@ export class ServerRuntimeClient<
   /**
    * @inheritDoc
    */
-  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string | undefined {
+  public captureEvent(event: Event, hint?: EventHint, scope?: Scope): string {
     // Check if the flag `autoSessionTracking` is enabled, and if `_sessionFlusher` exists because it is initialised only
     // when the `requestHandler` middleware is used, and hence the expectation is to have SessionAggregates payload
     // sent to the Server only when the `requestHandler` middleware is used

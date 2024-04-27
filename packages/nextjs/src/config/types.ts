@@ -418,6 +418,7 @@ export type WebpackConfigObject = {
   output: { filename: string; path: string };
   target: string;
   context: string;
+  ignoreWarnings?: { module?: RegExp }[]; // Note: The interface for `ignoreWarnings` is larger but we only need this. See https://webpack.js.org/configuration/other-options/#ignorewarnings
   resolve?: {
     modules?: string[];
     alias?: { [key: string]: string | boolean };

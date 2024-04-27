@@ -8,7 +8,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -61,7 +61,6 @@ export {
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-export { createSpanEnvelope } from './span';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';

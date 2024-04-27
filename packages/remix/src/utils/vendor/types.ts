@@ -62,7 +62,7 @@ export type RemixRequestState = {
 
 export type RemixRequest = Request &
   Record<symbol | string, RemixRequestState> & {
-    agent: Agent | ((parsedURL: URL) => Agent) | undefined;
+    agent?: Agent | ((parsedURL: URL) => Agent) | undefined;
   };
 
 export type AppLoadContext = Record<string, unknown> & {

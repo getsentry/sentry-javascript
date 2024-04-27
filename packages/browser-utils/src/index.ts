@@ -11,6 +11,7 @@ export {
   startTrackingInteractions,
   startTrackingLongTasks,
   startTrackingWebVitals,
+  startTrackingINP,
 } from './metrics/browserMetrics';
 
 export { addClickKeypressInstrumentationHandler } from './instrument/dom';

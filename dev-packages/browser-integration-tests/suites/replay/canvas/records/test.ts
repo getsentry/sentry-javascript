@@ -65,6 +65,8 @@ sentryTest('can record canvas', async ({ getLocalTestUrl, page, browserName }) =
                 },
                 0,
                 0,
+                150,
+                150,
               ],
               property: 'drawImage',
             },
