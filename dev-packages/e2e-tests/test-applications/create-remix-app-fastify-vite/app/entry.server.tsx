@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/remix';
 import fsp from 'node:fs/promises';
+import util from 'node:util';
 
 Sentry.init({
   tracesSampleRate: 1.0, // Capture 100% of the transactions, reduce in production!
@@ -8,10 +9,7 @@ Sentry.init({
   beforeSendTransaction: async e => {
     if (process.env.SNAPSHOT_SERVER_EVENTS) {
       // Snapshot events for inspections and e2e tests purposes.
-      // Note how we are giving those events a `.json` extension when dumping then.
-      // This is just for the sake of formatter support which make further visual
-      // inspection easier.
-      await fsp.writeFile(`tests/events/${e.event_id}.json`, JSON.stringify(e));
+      await fsp.writeFile(`tests/events/${e.event_id}.txt`, util.inspect(e, false, null));
     }
     return e;
   },

@@ -11,16 +11,6 @@ interface Tag {
 }
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }, testInfo) => {
-  // this warm up turned out to be needed when using 'beforeSendTransaction' the trick (see
-  // the Sentry init setup in `entry.server.ts`); after this we can navigate to any route and
-  // be sure that the transaction events are being dumped to disk as expected;
-  //
-  // note, that to perform this "warp up" we could actually navigate to any other route including
-  // non-existant, but going to non-existant will pollute the console with something like
-  // ' Error: No route matches URL "/whatever"', which will _not_ prevent the test from passing
-  // but simply not very pleasant.
-  await page.goto("/navigate");
-
   // We will be utilizing `testId` provided by the test runner to correlate
   // this test instance with the events we are going to send to Sentry.
   // See `Sentry.setTag` in `app/routes/_index.tsx`.
@@ -72,7 +62,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   await expect.poll(async () => {
     const files = await readEventsDir();
     if (files.length !== 0) {
-      serverEventIds = files.map(f => path.basename(f, ".json"));
+      serverEventIds = files.map(f => path.basename(f, ".txt"));
       return true;
     }
     return false;
