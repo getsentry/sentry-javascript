@@ -114,7 +114,7 @@ async function finishSentryProcessing(res: AugmentedResponse): Promise<void> {
 
 function startRequestHandlerTransactionWithRoutes(
   this: unknown,
-  handler: GenericRequestHandler,
+  handler: GenericRequestHandler<SupportedResponse>,
   framework: SupportedFramework,
   routes: ServerRoute[],
   req: SupportedRequest,
@@ -144,22 +144,20 @@ function startRequestHandlerTransactionWithRoutes(
 }
 
 export const wrapRequestHandler = <NextFn>(
-  handler: GenericRequestHandler,
+  handler: GenericRequestHandler<SupportedResponse>,
   framework: SupportedFramework,
   readyBuildOrGetBuildFn: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
-): GenericRequestHandler => {
+): GenericRequestHandler<SupportedResponse> => {
   let routes: ServerRoute[];
 
-  return async function (this: unknown, req: PolymorphicRequest, res: SupportedResponse, next: NextFn): Promise<void> {
+  return async function (this: unknown, req: PolymorphicRequest, res: SupportedResponse, next: NextFn): Promise<SupportedResponse | null> {
+    const isExpress = framework === SupportedFramework.Express;
+    const isFastify = framework === SupportedFramework.Fastify;
     await withIsolationScope(async isolationScope => {
-      if (framework === SupportedFramework.Express) {
-        // eslint-disable-next-line @typescript-eslint/unbound-method
-        (res as ExpressResponse).end = wrapEndMethod((res as ExpressResponse).end);
-      } else if (framework === SupportedFramework.Fastify) {
-        (res as FastifyReply).send = wrapEndMethod((res as FastifyReply).send);
-      } else {
-        throw new Error('Unreachable');
-      }
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      if (isExpress) (res as ExpressResponse).end = wrapEndMethod((res as ExpressResponse).end)
+      else if (isFastify) (res as FastifyReply).send = wrapEndMethod((res as FastifyReply).send)
+      else throw new Error('Unreachable');
 
       const request = extractRequestData(req);
 
@@ -190,18 +188,22 @@ export const wrapRequestHandler = <NextFn>(
       routes = createRoutes(build.routes);
       return startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
     });
+    // Fastify wants us to _return_ the "reply" instance
+    // in case we are sending a response ourselves, which
+    // we _are_ doing by means of`reply.send(data)`.
+    return isFastify ? res : null;
   };
 };
 
 export const prepareWrapCreateRequestHandler = (forFramework: SupportedFramework) =>
   function wrapCreateRequestHandler(
-    createRequestHandler: CreateGenericRequestHandler,
-  ): (this: unknown, options: CreateRequestHandlerOptions) => GenericRequestHandler {
-    return function (this: unknown, opts: CreateRequestHandlerOptions): GenericRequestHandler {
+    createRequestHandler: CreateGenericRequestHandler<SupportedResponse>,
+  ): (this: unknown, options: CreateRequestHandlerOptions) => GenericRequestHandler<SupportedResponse> {
+    return function (this: unknown, opts: CreateRequestHandlerOptions): GenericRequestHandler<SupportedResponse> {
       if (!opts.getLoadContext) opts['getLoadContext'] = () => ({});
       fill(opts, 'getLoadContext', wrapGetLoadContext(forFramework));
       const build = typeof opts.build === 'function' ? wrapBuildFn(opts.build) : instrumentBuild(opts.build, true);
-      const handler: GenericRequestHandler = createRequestHandler.call(this, { ...opts, build });
+      const handler: GenericRequestHandler<SupportedResponse> = createRequestHandler.call(this, { ...opts, build });
       return wrapRequestHandler(handler, forFramework, build);
     };
   };

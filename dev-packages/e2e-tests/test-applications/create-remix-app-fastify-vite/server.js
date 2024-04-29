@@ -1,13 +1,23 @@
-import { createRequestHandler } from '@remix-run/express';
-import { wrapExpressCreateRequestHandler } from '@sentry/remix';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { wrapFastifyCreateRequestHandler } from '@sentry/remix';
 import { installGlobals } from '@remix-run/node';
-import compression from 'compression';
-import express from 'express';
-import morgan from 'morgan';
+import { createRequestHandler } from '@mcansh/remix-fastify';
+import fastify from 'fastify';
+import compression from '@fastify/compress';
+import middie from '@fastify/middie';
+import multipart from '@fastify/multipart';
+import serveStatic from '@fastify/static';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = Number(process.env.PORT || '3000');
+const FASTIFY_LOG_LEVEL = process.env.FASTIFY_LOG_LEVEL || 'info';
 
 installGlobals();
 
-const withSentryCreateRequestHandler = wrapExpressCreateRequestHandler(createRequestHandler);
+const withSentryCreateRequestHandler = wrapFastifyCreateRequestHandler(createRequestHandler);
 
 const viteDevServer =
   process.env.NODE_ENV === 'production'
@@ -24,29 +34,48 @@ const remixHandler = withSentryCreateRequestHandler({
     : await import('./build/server/index.js'),
 });
 
-const app = express();
+const app = fastify({ logger: { level: FASTIFY_LOG_LEVEL } });
+await app.register(middie);
+await app.register(multipart);
+await app.register(compression, { global: true });
 
-app.use(compression());
-
-// http://expressjs.com/en/advanced/best-practice-security.html#at-a-minimum-disable-x-powered-by-header
-app.disable('x-powered-by');
-
-// handle asset requests
 if (viteDevServer) {
   app.use(viteDevServer.middlewares);
 } else {
-  // Vite fingerprints its assets so we can cache forever.
-  app.use('/assets', express.static('build/client/assets', { immutable: true, maxAge: '1y' }));
+  // options borrowed from:
+  // https://github.com/mcansh/remix-fastify/blob/main/examples/vite/server.js
+  // Remix fingerprints its assets so we can cache forever.
+  await app.register(serveStatic, {
+    root: path.join(__dirname, 'build', 'client', 'assets'),
+    prefix: '/assets',
+    wildcard: true,
+    decorateReply: false,
+    cacheControl: true,
+    dotfiles: 'allow',
+    etag: true,
+    maxAge: '1y',
+    immutable: true,
+    serveDotFiles: true,
+    lastModified: true,
+  });
+  await app.register(serveStatic, {
+    root: path.join(__dirname, 'build', 'client'),
+    prefix: '/',
+    wildcard: false,
+    cacheControl: true,
+    dotfiles: 'allow',
+    etag: true,
+    maxAge: '1h',
+    serveDotFiles: true,
+    lastModified: true,
+  });
 }
 
-// Everything else (like favicon.ico) is cached for an hour. You may want to be
-// more aggressive with this caching.
-app.use(express.static('build/client', { maxAge: '1h' }));
-
-app.use(morgan('tiny'));
-
-// handle SSR requests
 app.all('*', remixHandler);
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Express server listening at http://localhost:${port}`));
+app.listen({ port: PORT }, err => {
+  if (err) {
+    console.err(err);
+    process.exit(1);
+  }
+});

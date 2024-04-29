@@ -237,9 +237,9 @@ export interface AssetsManifest {
   version: string;
 }
 
-export type GenericRequestHandler = (req: any, res: any, next: any) => Promise<void>;
+export type GenericRequestHandler<R> = (req: any, res: R, next: any) => Promise<R | null>;
 
-export type CreateGenericRequestHandler = (this: unknown, options: any) => GenericRequestHandler;
+export type CreateGenericRequestHandler<R> = (this: unknown, options: any) => GenericRequestHandler<R>;
 
 export interface CreateRequestHandlerOptions {
   build: ServerBuild | (() => ServerBuild) | (() => Promise<ServerBuild>);

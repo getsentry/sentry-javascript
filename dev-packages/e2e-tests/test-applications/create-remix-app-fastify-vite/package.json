@@ -11,18 +11,21 @@
     "start": "cross-env NODE_ENV=production node ./server.js",
     "typecheck": "tsc",
     "test:build": "pnpm install && npx playwright install && pnpm build",
-    "test:assert": "pnpm playwright test"
+    "test:assert": "FASTIFY_LOG_LEVEL=warn pnpm playwright test"
   },
   "dependencies": {
     "@remix-run/express": "^2.8.1",
     "@remix-run/node": "^2.8.1",
     "@remix-run/react": "^2.8.1",
     "@sentry/remix": "latest || *",
-    "compression": "^1.7.4",
+    "fastify": "^4.26.2",
+    "@fastify/compress": "^7.0.0",
+    "@fastify/middie": "^8.3.0",
+    "@fastify/multipart": "^8.2.0",
+    "@fastify/static": "^7.0.1",
+    "@mcansh/remix-fastify": "^3.2.2",
     "dotenv": "^16.4.5",
-    "express": "^4.18.2",
     "isbot": "^4.1.0",
-    "morgan": "^1.10.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },

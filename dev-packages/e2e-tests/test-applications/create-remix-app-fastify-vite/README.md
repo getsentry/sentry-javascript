@@ -1,13 +1,14 @@
-# Welcome to Remix + Vite!
+# Welcome to Remix + Vite + Fastify + Sentry!
 
-📖 See the [Remix docs](https://remix.run/docs) and the [Remix Vite docs](https://remix.run/docs/en/main/future/vite) for details on supported features.
+📖 See the [Remix docs](https://remix.run/docs) and the [Remix Vite docs](https://remix.run/docs/en/main/future/vite)
+for details on supported features.
 
 ## Development
 
 Run the Express server with Vite dev middleware:
 
-```shellscript
-npm run dev
+```sh
+pnpm dev
 ```
 
 ## Deployment
@@ -15,20 +16,18 @@ npm run dev
 First, build your app for production:
 
 ```sh
-npm run build
+pnpm build
 ```
 
 Then run the app in production mode:
 
 ```sh
-npm start
+pnpm start
 ```
 
 Now you'll need to pick a host to deploy it to.
 
-### DIY
+## Sentry Events Inspection
 
-If you're familiar with deploying Express applications you should be right at home. Just make sure to deploy the output of `npm run build`
-
-- `build/server`
-- `build/client`
+After you have launched the app with `pnpm dev:events`, visit the index page and open your browser's network tab. You
+will find there an event sent to `Sentry` and correlated server event will be written to `tests/events` directory.

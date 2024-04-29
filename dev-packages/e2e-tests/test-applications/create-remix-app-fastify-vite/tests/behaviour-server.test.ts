@@ -55,7 +55,6 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
         .toBe(200);
     }),
   );
-
   expect(pageLoadTransactionEvent).not.toBeNull();
 
   let serverEventIds = null;
@@ -69,6 +68,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   }).toBe(true)
   expect(serverEventIds).not.toBeNull();
 
+  console.log(`Polling for server-side eventIds: ${JSON.stringify(serverEventIds)}`);
   // we could have read the event details from the file (since we are
   // dumping event without any mutations before sending it to Sentry),
   // but let's following the practice in other test applications and
