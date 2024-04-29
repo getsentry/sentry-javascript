@@ -1,13 +1,13 @@
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { AxiosError, axios } from './axios';
 import { readEventsDir } from './utils';
-import path from "node:path";
 
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 interface Tag {
-  key: string,
-  value: unknown,
+  key: string;
+  value: unknown;
 }
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }, testInfo) => {
@@ -18,7 +18,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 1;
-    if (hasTransactions) return window.recordedTransactions
+    if (hasTransactions) return window.recordedTransactions;
   });
   const clientEventIds = await recordedTransactionsHandle.jsonValue();
   if (!clientEventIds) throw new Error("Application didn't record any transaction event IDs.");
@@ -35,7 +35,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
               const { data: transactionEvent, status } = await axios.get(`/events/${eventId}/`);
               // Ref: https://docs.sentry.io/api/events/list-a-projects-error-events/
               const isFromThisTest = (transactionEvent.tags as Tag[]).find(({ key, value }) => {
-                return key === "sentry_test" && value === testInfo.testId;
+                return key === 'sentry_test' && value === testInfo.testId;
               });
               if (isFromThisTest) {
                 const op = transactionEvent.contexts?.trace?.op;
@@ -45,7 +45,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
             } catch (e) {
               const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
               if (notThereJustYet) return 404;
-              throw e
+              throw e;
             }
           },
           {
@@ -58,14 +58,16 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   expect(pageLoadTransactionEvent).not.toBeNull();
 
   let serverEventIds = null;
-  await expect.poll(async () => {
-    const files = await readEventsDir();
-    if (files.length !== 0) {
-      serverEventIds = files.map(f => path.basename(f, ".txt"));
-      return true;
-    }
-    return false;
-  }).toBe(true)
+  await expect
+    .poll(async () => {
+      const files = await readEventsDir();
+      if (files.length !== 0) {
+        serverEventIds = files.map(f => path.basename(f, '.txt'));
+        return true;
+      }
+      return false;
+    })
+    .toBe(true);
   expect(serverEventIds).not.toBeNull();
 
   console.log(`Polling for server-side eventIds: ${JSON.stringify(serverEventIds)}`);
@@ -84,7 +86,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
               const { data: transactionEvent, status } = await axios.get(`/events/${eventId}/`);
               // Ref: https://docs.sentry.io/api/events/list-a-projects-error-events/
               const isFromThisTest = (transactionEvent.tags as Tag[]).find(({ key, value }) => {
-                return key === "sentry_test" && value === testInfo.testId;
+                return key === 'sentry_test' && value === testInfo.testId;
               });
               if (isFromThisTest) {
                 const op = transactionEvent.contexts?.trace?.op;
@@ -94,7 +96,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
             } catch (e) {
               const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
               if (notThereJustYet) return 404;
-              throw e
+              throw e;
             }
           },
           {
@@ -108,8 +110,8 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   expect(httpServerTransactionEvent).not.toBeNull();
 
   // the two events are both related to `routes/_index` page ...
-  const httpServerTransactionTag = (httpServerTransactionEvent!.tags as Tag[]).find(({ key }) => key === "transaction");
-  const pageLoadTransactionTag = (pageLoadTransactionEvent!.tags as Tag[]).find(({ key }) => key === "transaction");
+  const httpServerTransactionTag = (httpServerTransactionEvent!.tags as Tag[]).find(({ key }) => key === 'transaction');
+  const pageLoadTransactionTag = (pageLoadTransactionEvent!.tags as Tag[]).find(({ key }) => key === 'transaction');
   expect(httpServerTransactionTag!.value).toBe('routes/_index');
   expect(pageLoadTransactionTag!.value).toBe('routes/_index');
 

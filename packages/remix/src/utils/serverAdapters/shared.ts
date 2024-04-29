@@ -149,13 +149,18 @@ export const wrapRequestHandler = <NextFn>(
 ): GenericRequestHandler => {
   let routes: ServerRoute[];
 
-  return async function (this: unknown, req: PolymorphicRequest, res: SupportedResponse, next: NextFn): Promise<FastifyReply | null> {
+  return async function (
+    this: unknown,
+    req: PolymorphicRequest,
+    res: SupportedResponse,
+    next: NextFn,
+  ): Promise<FastifyReply | null> {
     const isExpress = framework === SupportedFramework.Express;
     const isFastify = framework === SupportedFramework.Fastify;
     await withIsolationScope(async isolationScope => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
-      if (isExpress) (res as ExpressResponse).end = wrapEndMethod((res as ExpressResponse).end)
-      else if (isFastify) (res as FastifyReply).send = wrapEndMethod((res as FastifyReply).send)
+      if (isExpress) (res as ExpressResponse).end = wrapEndMethod((res as ExpressResponse).end);
+      else if (isFastify) (res as FastifyReply).send = wrapEndMethod((res as FastifyReply).send);
       else throw new Error('Unreachable');
 
       const request = extractRequestData(req);
@@ -195,7 +200,7 @@ export const wrapRequestHandler = <NextFn>(
     // Fastify wants us to _return_ the "reply" instance
     // in case we are sending a response ourselves, which
     // we _are_ doing by means of`reply.send(data)`.
-    return isFastify ? res as FastifyReply : null;
+    return isFastify ? (res as FastifyReply) : null;
   };
 };
 
@@ -207,7 +212,7 @@ export const prepareWrapCreateRequestHandler = (forFramework: SupportedFramework
       if (!('getLoadContext' in opts)) opts['getLoadContext'] = () => ({});
       fill(opts, 'getLoadContext', wrapGetLoadContext(forFramework));
       const build = typeof opts.build === 'function' ? wrapBuildFn(opts.build) : instrumentBuild(opts.build, true);
-      const handler: GenericRequestHandler= createRequestHandler.call(this, { ...opts, build });
+      const handler: GenericRequestHandler = createRequestHandler.call(this, { ...opts, build });
       return wrapRequestHandler(handler, forFramework, build);
     };
   };

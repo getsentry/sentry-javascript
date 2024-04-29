@@ -1,6 +1,6 @@
+import { MetaFunction } from '@remix-run/node';
 import { Link, useSearchParams } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
-import { MetaFunction } from '@remix-run/node';
 
 // we will then demonstrate in out e2e tests that `sentry-trace` and `babbage`
 // are inhereted and play nicely with route-level meta info

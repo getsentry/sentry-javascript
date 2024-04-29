@@ -42,15 +42,15 @@ const config: PlaywrightTestConfig = {
 
   /* Configure projects for major browsers */
   projects: [
-    { name: "setup", testMatch: /global\.setup\.ts/, teardown: "teardown" },
+    { name: 'setup', testMatch: /global\.setup\.ts/, teardown: 'teardown' },
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
       },
-      dependencies: ["setup"]
+      dependencies: ['setup'],
     },
-    { name: "teardown", testMatch: /global\.teardown\.ts/},
+    { name: 'teardown', testMatch: /global\.teardown\.ts/ },
   ],
 
   /* Run your local dev server before starting the tests */
@@ -58,8 +58,8 @@ const config: PlaywrightTestConfig = {
     {
       command: `PORT=${PORT} pnpm dev:events`,
       port: PORT,
-      stdout: "pipe",
-      stderr: "pipe",
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
   ],
 };

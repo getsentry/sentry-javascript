@@ -1,8 +1,8 @@
 import { RemixBrowser, useLocation, useMatches } from '@remix-run/react';
 import * as Sentry from '@sentry/remix';
-import type { ISentry } from 'types';
 import { StrictMode, startTransition, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
+import type { ISentry } from 'types';
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions

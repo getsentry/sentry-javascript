@@ -1,13 +1,13 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { wrapFastifyCreateRequestHandler } from '@sentry/remix';
-import { installGlobals } from '@remix-run/node';
-import { createRequestHandler } from '@mcansh/remix-fastify';
-import fastify from 'fastify';
 import compression from '@fastify/compress';
 import middie from '@fastify/middie';
 import multipart from '@fastify/multipart';
 import serveStatic from '@fastify/static';
+import { createRequestHandler } from '@mcansh/remix-fastify';
+import { installGlobals } from '@remix-run/node';
+import { wrapFastifyCreateRequestHandler } from '@sentry/remix';
+import fastify from 'fastify';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

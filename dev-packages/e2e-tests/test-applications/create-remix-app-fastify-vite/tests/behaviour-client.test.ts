@@ -23,7 +23,7 @@ test('Sends a client-side exception to Sentry', async ({ page }) => {
         } catch (e) {
           const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
           if (notThereJustYet) return 404;
-          throw e
+          throw e;
         }
       },
       {
@@ -38,7 +38,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
 
   const recordedTransactionsHandle = await page.waitForFunction(() => {
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 1;
-    if (hasTransactions) return window.recordedTransactions
+    if (hasTransactions) return window.recordedTransactions;
   });
   const eventIds = await recordedTransactionsHandle.jsonValue();
   if (!eventIds) throw new Error("Application didn't record any transaction event IDs.");
@@ -58,7 +58,7 @@ test('Sends a pageload transaction to Sentry', async ({ page }) => {
             } catch (e) {
               const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
               if (notThereJustYet) return 404;
-              throw e
+              throw e;
             }
           },
           {
@@ -84,7 +84,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
   // there sould be at least 2 transactions: page load + navigation
   const recordedTransactionsHandle = await page.waitForFunction(() => {
     const hasTransactions = Array.isArray(window.recordedTransactions) && window.recordedTransactions.length >= 2;
-    if (hasTransactions) return window.recordedTransactions
+    if (hasTransactions) return window.recordedTransactions;
   });
   const eventIds = await recordedTransactionsHandle.jsonValue();
   if (!eventIds) throw new Error("Application didn't record any transaction event IDs.");
@@ -107,7 +107,7 @@ test('Sends a navigation transaction to Sentry', async ({ page }) => {
               if (e instanceof AxiosError && e.response) {
                 const notThereJustYet = e instanceof AxiosError && e.response && e.response.status === 404;
                 if (notThereJustYet) return 404;
-                throw e
+                throw e;
               }
             }
           },
@@ -155,4 +155,3 @@ test('Renders `sentry-trace` and `baggage` meta tags for a sub-route', async ({ 
   expect(sentryTraceMetaTag).toBeTruthy();
   expect(baggageMetaTag).toBeTruthy();
 });
-
