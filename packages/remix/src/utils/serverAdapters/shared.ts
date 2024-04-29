@@ -114,7 +114,7 @@ async function finishSentryProcessing(res: AugmentedResponse): Promise<void> {
 
 function startRequestHandlerTransactionWithRoutes(
   this: unknown,
-  handler: GenericRequestHandler<SupportedResponse>,
+  handler: GenericRequestHandler,
   framework: SupportedFramework,
   routes: ServerRoute[],
   req: SupportedRequest,
@@ -144,13 +144,13 @@ function startRequestHandlerTransactionWithRoutes(
 }
 
 export const wrapRequestHandler = <NextFn>(
-  handler: GenericRequestHandler<SupportedResponse>,
+  handler: GenericRequestHandler,
   framework: SupportedFramework,
   readyBuildOrGetBuildFn: ServerBuild | (() => Promise<ServerBuild> | ServerBuild),
-): GenericRequestHandler<SupportedResponse> => {
+): GenericRequestHandler => {
   let routes: ServerRoute[];
 
-  return async function (this: unknown, req: PolymorphicRequest, res: SupportedResponse, next: NextFn): Promise<SupportedResponse | null> {
+  return async function (this: unknown, req: PolymorphicRequest, res: SupportedResponse, next: NextFn): Promise<FastifyReply | null> {
     const isExpress = framework === SupportedFramework.Express;
     const isFastify = framework === SupportedFramework.Fastify;
     await withIsolationScope(async isolationScope => {
@@ -191,19 +191,19 @@ export const wrapRequestHandler = <NextFn>(
     // Fastify wants us to _return_ the "reply" instance
     // in case we are sending a response ourselves, which
     // we _are_ doing by means of`reply.send(data)`.
-    return isFastify ? res : null;
+    return isFastify ? res as FastifyReply : null;
   };
 };
 
 export const prepareWrapCreateRequestHandler = (forFramework: SupportedFramework) =>
   function wrapCreateRequestHandler(
-    createRequestHandler: CreateGenericRequestHandler<SupportedResponse>,
-  ): (this: unknown, options: CreateRequestHandlerOptions) => GenericRequestHandler<SupportedResponse> {
-    return function (this: unknown, opts: CreateRequestHandlerOptions): GenericRequestHandler<SupportedResponse> {
-      if (!opts.getLoadContext) opts['getLoadContext'] = () => ({});
+    createRequestHandler: CreateGenericRequestHandler,
+  ): (this: unknown, options: CreateRequestHandlerOptions) => GenericRequestHandler {
+    return function (this: unknown, opts: CreateRequestHandlerOptions): GenericRequestHandler {
+      if (!('getLoadContext' in opts)) opts['getLoadContext'] = () => ({});
       fill(opts, 'getLoadContext', wrapGetLoadContext(forFramework));
       const build = typeof opts.build === 'function' ? wrapBuildFn(opts.build) : instrumentBuild(opts.build, true);
-      const handler: GenericRequestHandler<SupportedResponse> = createRequestHandler.call(this, { ...opts, build });
+      const handler: GenericRequestHandler= createRequestHandler.call(this, { ...opts, build });
       return wrapRequestHandler(handler, forFramework, build);
     };
   };
