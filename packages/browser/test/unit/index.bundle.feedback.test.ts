@@ -6,7 +6,8 @@ import * as FeedbackBundle from '../../src/index.bundle.feedback';
 describe('index.bundle.feedback', () => {
   it('has correct exports', () => {
     expect(FeedbackBundle.browserTracingIntegration).toBe(browserTracingIntegrationShim);
-    expect(FeedbackBundle.replayIntegration).toBe(replayIntegrationShim);
     expect(FeedbackBundle.feedbackAsyncIntegration).toBe(feedbackAsyncIntegration);
+    expect(FeedbackBundle.feedbackIntegration).toBe(feedbackAsyncIntegration);
+    expect(FeedbackBundle.replayIntegration).toBe(replayIntegrationShim);
   });
 });

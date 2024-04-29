@@ -6,7 +6,7 @@ import {
 import { lazyLoadIntegration } from './utils/lazyLoadIntegration';
 
 // The full feedback widget, with everything pre-loaded
-export const feedbackIntegration = buildFeedbackIntegration({
+export const feedbackSyncIntegration = buildFeedbackIntegration({
   lazyLoadIntegration,
   getModalIntegration: () => feedbackModalIntegration,
   getScreenshotIntegration: () => feedbackScreenshotIntegration,

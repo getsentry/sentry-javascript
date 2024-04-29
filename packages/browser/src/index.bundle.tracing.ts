@@ -22,4 +22,8 @@ export {
   startBrowserTracingPageLoadSpan,
 } from './tracing/browserTracingIntegration';
 
-export { feedbackIntegrationShim as feedbackAsyncIntegration, replayIntegrationShim as replayIntegration };
+export {
+  feedbackIntegrationShim as feedbackAsyncIntegration,
+  feedbackIntegrationShim as feedbackIntegration,
+  replayIntegrationShim as replayIntegration,
+};

@@ -7,4 +7,5 @@ export { replayIntegration } from '@sentry-internal/replay';
 export {
   browserTracingIntegrationShim as browserTracingIntegration,
   feedbackIntegrationShim as feedbackAsyncIntegration,
+  feedbackIntegrationShim as feedbackIntegration,
 };
