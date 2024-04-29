@@ -64,7 +64,7 @@ export const buildFeedbackIntegration = ({
     autoInject = true,
     showEmail = true,
     showName = true,
-    showScreenshot = false,
+    showScreenshot = true,
     useSentryUser = {
       email: 'email',
       name: 'username',
