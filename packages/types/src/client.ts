@@ -38,7 +38,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureException(exception: any, hint?: EventHint, currentScope?: Scope): string | undefined;
+  captureException(exception: any, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a message event and sends it to Sentry.
@@ -51,7 +51,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, currentScope?: Scope): string | undefined;
+  captureMessage(message: string, level?: SeverityLevel, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a manually created event and sends it to Sentry.
@@ -63,7 +63,7 @@ export interface Client<O extends ClientOptions = ClientOptions> {
    * @param currentScope An optional scope containing event metadata.
    * @returns The event id
    */
-  captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string | undefined;
+  captureEvent(event: Event, hint?: EventHint, currentScope?: Scope): string;
 
   /**
    * Captures a session
