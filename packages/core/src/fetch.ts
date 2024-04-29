@@ -72,21 +72,23 @@ export function instrumentFetchRequest(
   const fullUrl = getFullURL(url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
-  const span =
-    shouldCreateSpanResult && hasParent
-      ? startInactiveSpan({
-          name: `${method} ${url}`,
-          attributes: {
-            url,
-            type: 'fetch',
-            'http.method': method,
-            'http.url': fullUrl,
-            'server.address': host,
-            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-          },
-        })
-      : new SentryNonRecordingSpan();
+  const span = shouldCreateSpanResult
+    ? startInactiveSpan({
+        name: `${method} ${url}`,
+        attributes: {
+          url,
+          type: 'fetch',
+          'http.method': method,
+          'http.url': fullUrl,
+          'server.address': host,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+        },
+        experimental: {
+          standalone: !hasParent,
+        },
+      })
+    : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
@@ -105,11 +107,9 @@ export function instrumentFetchRequest(
       client,
       scope,
       options,
-      // In the following cases, we do not want to use the span as base for the trace headers,
-      // which means that the headers will be generated from the scope:
-      // - If tracing is disabled (TWP)
-      // - If the span has no parent span - which means we ran into `onlyIfParent` check
-      hasTracingEnabled() && hasParent ? span : undefined,
+      // If performance is disabled (TWP), we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope and the sampling decision is deferred
+      hasTracingEnabled() ? span : undefined,
     );
   }
 

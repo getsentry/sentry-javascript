@@ -45,11 +45,18 @@ interface BuilderOptions {
   getModalIntegration?: null | (() => IntegrationFn);
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
+
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
   getModalIntegration,
   getScreenshotIntegration,
-}: BuilderOptions): IntegrationFn => {
+}: BuilderOptions): IntegrationFn<
+  Integration & {
+    attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration): Unsubscribe;
+    createWidget(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    remove(): void;
+  }
+> => {
   const feedbackIntegration = (({
     // FeedbackGeneralConfiguration
     id = 'sentry-feedback',

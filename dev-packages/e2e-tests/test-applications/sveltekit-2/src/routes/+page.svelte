@@ -35,4 +35,7 @@
   <li>
     <a href="/nav2">Nav 2</a>
   </li>
+  <li>
+    <a href="components">Component Tracking</a>
+  </li>
 </ul>
