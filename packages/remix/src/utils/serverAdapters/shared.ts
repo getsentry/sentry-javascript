@@ -1,5 +1,5 @@
 import { flush, getClient, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
-import type { PolymorphicRequest, Span } from '@sentry/types';
+import type { PolymorphicRequest, Span, TransactionSource } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { createRoutes, getTransactionName, instrumentBuild, startRequestHandlerSpan } from '../instrumentServer';
@@ -112,17 +112,16 @@ async function finishSentryProcessing(res: AugmentedResponse): Promise<void> {
   }
 }
 
-function startRequestHandlerTransactionWithRoutes(
+function startRequestHandlerTransaction(
   this: unknown,
   handler: GenericRequestHandler,
   framework: SupportedFramework,
-  routes: ServerRoute[],
   req: SupportedRequest,
   res: SupportedResponse,
   next: unknown,
-  url: URL,
+  name: string,
+  source: TransactionSource,
 ): unknown {
-  const [name, source] = getTransactionName(routes, url);
   return startRequestHandlerSpan(
     {
       name,
@@ -160,7 +159,6 @@ export const wrapRequestHandler = <NextFn>(
       else throw new Error('Unreachable');
 
       const request = extractRequestData(req);
-
       const options = getClient()?.getOptions();
 
       isolationScope.setSDKProcessingMetadata({ request });
@@ -173,7 +171,9 @@ export const wrapRequestHandler = <NextFn>(
 
       if (typeof readyBuildOrGetBuildFn !== 'function') {
         routes = createRoutes(readyBuildOrGetBuildFn.routes);
-        return startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
+        const [name, source] = getTransactionName(routes, url);
+        isolationScope.setTransactionName(name);
+        return startRequestHandlerTransaction.call(this, handler, framework, req, res, next, name, source);
       }
 
       const build = readyBuildOrGetBuildFn();
@@ -181,12 +181,16 @@ export const wrapRequestHandler = <NextFn>(
       if (build instanceof Promise) {
         return build.then(resolved => {
           routes = createRoutes(resolved.routes);
-          startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
+          const [name, source] = getTransactionName(routes, url);
+          isolationScope.setTransactionName(name);
+          startRequestHandlerTransaction.call(this, handler, framework, req, res, next, name, source);
         });
       }
 
       routes = createRoutes(build.routes);
-      return startRequestHandlerTransactionWithRoutes.call(this, handler, framework, routes, req, res, next, url);
+      const [name, source] = getTransactionName(routes, url);
+      isolationScope.setTransactionName(name);
+      return startRequestHandlerTransaction.call(this, handler, framework, req, res, next, name, source);
     });
     // Fastify wants us to _return_ the "reply" instance
     // in case we are sending a response ourselves, which
