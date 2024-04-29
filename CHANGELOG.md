@@ -851,6 +851,116 @@ We have also removed or updated a variety of deprecated APIs.
 - ref: Remove usage of span tags (#10808)
 - ref: Remove user segment (#10575)
 
+## 7.112.2
+
+- fix(nextjs|sveltekit): Ensure we can pass `browserTracingIntegration` (#11765)
+
+## 7.112.1
+
+- fix(ember/v7): Do not create rendering spans without transaction (#11750)
+
+## 7.112.0
+
+### Important Changes
+
+- **feat: Export pluggable integrations from SDK packages (#11723)**
+
+Instead of installing `@sentry/integrations`, you can now import the pluggable integrations directly from your SDK
+package:
+
+```js
+// Before
+import * as Sentry fromv '@sentry/browser';
+import { dedupeIntegration } from '@sentry/integrations';
+
+Sentry.init({
+  integrations: [dedupeIntegration()],
+});
+
+// After
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  integrations: [Sentry.dedupeIntegration()],
+});
+```
+
+Note that only the functional integrations (e.g. `xxxIntegration()`) are re-exported.
+
+### Other Changes
+
+- feat(replay): Add "maxCanvasSize" option for replay canvases (#11732)
+- fix(serverless): [v7] Check if cloud event callback is a function (#11734)
+
+## 7.111.0
+
+- feat(core): Add `server.address` to browser `http.client` spans (#11663)
+- fix: Ensure next & sveltekit correctly handle `browserTracingIntegration` (#11647)
+- fix(browser): Don't assume window.document is available (#11598)
+
+## 7.110.1
+
+- fix(nextjs): Fix `tunnelRoute` matching logic for hybrid cloud (#11577)
+
+## 7.110.0
+
+### Important Changes
+
+- **feat(tracing): Add interactions sample rate to browser tracing integrations (#11382)**
+
+You can now use a `interactionsSampleRate` to control the sample rate of INP spans. `interactionsSampleRate` is applied
+on top of the global `tracesSampleRate`. Therefore if `interactionsSampleRate` is `0.5` and `tracesSampleRate` is `0.1`,
+then the actual sample rate for interactions is `0.05`.
+
+```js
+Sentry.init({
+  tracesSampleRate: 0.1,
+  integrations: [
+    Sentry.browserTracingIntegration({
+      interactionsSampleRate: 0.5,
+    }),
+  ],
+});
+```
+
+- **Deprecations**
+
+This release deprecates the `Hub` class, as well as the `addRequestDataToTransaction` method. The `trpcMiddleware`
+method is no longer on the `Handlers` export, but instead is a standalone export.
+
+Please see the detailed [Migration docs](./MIGRATION.md#deprecations-in-7x) on how to migrate to the new APIs.
+
+- feat: Deprecate and relocate `trpcMiddleware` (#11389)
+- feat(core): Deprecate `Hub` class (#11528)
+- feat(types): Deprecate `Hub` interface (#11530)
+- ref: Deprecate `addRequestDataToTransaction` (#11368)
+
+### Other Changes
+
+- feat(core): Update metric normalization (#11519)
+- feat(feedback): Customize feedback placeholder text color (#11521)
+- feat(remix): Skip span creation for `OPTIONS` and `HEAD` request. (#11485)
+- feat(utils): Add metric buckets rate limit (#11506)
+- fix(core): unref timer to not block node exit (#11483)
+- fix(metrics): Map `statsd` to `metric_bucket` (#11505)
+- fix(spans): Allow zero exclusive time for INP spans (#11408)
+- ref(feedback): Configure feedback fonts (#11520)
+
+## 7.109.0
+
+This release deprecates some exports from the `@sentry/replay` package. These exports have been moved to the browser SDK
+(or related framework SDKs like `@sentry/react`).
+
+- feat(feedback): Make "required" text for input elements configurable (#11287)
+- feat(node): Add scope to ANR events (#11267)
+- feat(replay): Bump `rrweb` to 2.12.0 (#11317)
+- fix(node): Local variables skipped after Promise (#11248)
+- fix(node): Skip capturing Hapi Boom error responses (#11324)
+- fix(web-vitals): Check for undefined navigation entry (#11312)
+- ref(replay): Deprecate `@sentry/replay` exports (#11242)
+
+Work in this release contributed by @soerface. Thank you for your contribution!
+
 ## 7.108.0
 
 This release fixes issues with Time to First Byte (TTFB) calculation in the SDK that was introduced with `7.95.0`. It

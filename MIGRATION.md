@@ -369,6 +369,7 @@ To make sure these integrations work properly you'll have to change how you
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
 - [Svelte SDK](./MIGRATION.md#svelte-sdk)
+- [React SDK](./MIGRATION.md#react-sdk)
 
 ### General
 
@@ -1000,6 +1001,26 @@ const config = {
 export default withSentryConfig(config);
 ```
 
+### React SDK
+
+#### Updated error types to be `unknown` instead of `Error`.
+
+In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and
+`beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the
+lifecycle method the Sentry `ErrorBoundary` component uses.
+
+As per the [React docs on error boundaries](https://react.dev/reference/react/Component#componentdidcatch):
+
+> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed
+> because JavaScript allows to throw any value, including strings or even `null`.
+
+This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an
+instance of `Error`.
+
+The Sentry SDK maintainers also went ahead and made a PR to update the
+[TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the
+React package - this will be released with React 20.
+
 ### Gatsby SDK
 
 #### Removal of Gatsby Initialization via plugin options
@@ -1234,8 +1255,6 @@ export class HeaderComponent {
 }
 ```
 
----
-
 # Deprecations in 7.x
 
 You can use the **Experimental** [@sentry/migr8](https://www.npmjs.com/package/@sentry/migr8) to automatically update
@@ -1370,6 +1389,19 @@ Instead of an `transactionContext` being passed to the `tracesSampler` callback,
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
 will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
 only be set later during the span lifecycle (and thus not be available during sampling).
+
+## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
+
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+```typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 

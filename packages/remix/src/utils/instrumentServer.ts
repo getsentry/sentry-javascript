@@ -89,9 +89,9 @@ async function extractResponseError(response: Response): Promise<unknown> {
  *
  * Should be used in `entry.server` like:
  *
- * export const handleError = Sentry.wrapRemixHandleError
+ * export const handleError = Sentry.sentryHandleError
  */
-export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs): void {
+export function sentryHandleError(err: unknown, { request }: DataFunctionArgs): void {
   // We are skipping thrown responses here as they are handled by
   // `captureRemixServerException` at loader / action level
   // We don't want to capture them twice.
@@ -105,6 +105,28 @@ export function wrapRemixHandleError(err: unknown, { request }: DataFunctionArgs
   captureRemixServerException(err, 'remix.server.handleError', request).then(null, e => {
     DEBUG_BUILD && logger.warn('Failed to capture Remix Server exception.', e);
   });
+}
+
+/**
+ * @deprecated Use `sentryHandleError` instead.
+ */
+export const wrapRemixHandleError = sentryHandleError;
+
+/**
+ * Sentry wrapper for Remix's `handleError` function.
+ * Remix Docs: https://remix.run/docs/en/main/file-conventions/entry.server#handleerror
+ */
+export function wrapHandleErrorWithSentry(
+  origHandleError: (err: unknown, args: { request: unknown }) => void,
+): (err: unknown, args: { request: unknown }) => void {
+  return function (this: unknown, err: unknown, args: { request: unknown }): void {
+    // This is expected to be void but just in case it changes in the future.
+    const res = origHandleError.call(this, err, args);
+
+    sentryHandleError(err, args as DataFunctionArgs);
+
+    return res;
+  };
 }
 
 /**
@@ -259,9 +281,37 @@ function makeWrappedDataFunction(
           name,
         },
       },
-      () => {
+      span => {
         return handleCallbackErrors(
-          () => origFn.call(this, args),
+          async () => {
+            if (span) {
+              const options = getClient()?.getOptions();
+
+              // We only capture form data for `action` functions, when `sendDefaultPii` is enabled.
+              if (name === 'action' && options?.sendDefaultPii) {
+                try {
+                  // We clone the request for Remix be able to read the FormData later.
+                  const clonedRequest = args.request.clone();
+
+                  // This only will return the last name of multiple file uploads in a single FormData entry.
+                  // We can switch to `unstable_parseMultipartFormData` when it's stable.
+                  // https://remix.run/docs/en/main/utils/parse-multipart-form-data#unstable_parsemultipartformdata
+                  const formData = await clonedRequest.formData();
+
+                  formData.forEach((value, key) => {
+                    span.setAttribute(
+                      `remix.action_form_data.${key}`,
+                      typeof value === 'string' ? value : '[non-string value]',
+                    );
+                  });
+                } catch (e) {
+                  DEBUG_BUILD && logger.warn('Failed to read FormData from request', e);
+                }
+              }
+            }
+
+            return origFn.call(this, args);
+          },
           err => {
             const isRemixV2 = FUTURE_FLAGS?.v2_errorBoundary || remixVersion === 2;
 
