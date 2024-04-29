@@ -9,7 +9,7 @@ function App() {
       fallback={({ error, componentStack, resetError }) => (
         <React.Fragment>
           <div>You have encountered an error</div>
-          <div>{error.toString()}</div>
+          <div>{`${error}`}</div>
           <div>{componentStack}</div>
           <button
             onClick={() => {
