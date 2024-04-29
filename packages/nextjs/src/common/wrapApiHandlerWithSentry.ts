@@ -6,7 +6,7 @@ import {
   startSpanManual,
   withIsolationScope,
 } from '@sentry/core';
-import { consoleSandbox, isString, logger, objectify, stripUrlQueryAndFragment } from '@sentry/utils';
+import { consoleSandbox, isString, logger, objectify } from '@sentry/utils';
 
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import type { AugmentedNextApiRequest, AugmentedNextApiResponse, NextApiHandler } from './types';
@@ -20,7 +20,7 @@ import { escapeNextjsTracing } from './utils/tracingUtils';
  *
  * @param apiHandler The handler exported from the user's API page route file, which may or may not already be
  * wrapped with `withSentry`
- * @param parameterizedRoute The page's route, passed in via the proxy loader
+ * @param parameterizedRoute The page's parameterized route.
  * @returns The wrapped handler
  */
 export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameterizedRoute: string): NextApiHandler {
@@ -62,30 +62,14 @@ export function wrapApiHandlerWithSentry(apiHandler: NextApiHandler, parameteriz
               baggage: req.headers?.baggage,
             },
             () => {
-              // prefer the parameterized route, if we have it (which we will if we've auto-wrapped the route handler)
-              let reqPath = parameterizedRoute;
-
-              // If not, fake it by just replacing parameter values with their names, hoping that none of them match either
-              // each other or any hard-coded parts of the path
-              if (!reqPath) {
-                const url = `${req.url}`;
-                // pull off query string, if any
-                reqPath = stripUrlQueryAndFragment(url);
-                // Replace with placeholder
-                if (req.query) {
-                  for (const [key, value] of Object.entries(req.query)) {
-                    reqPath = reqPath.replace(`${value}`, `[${key}]`);
-                  }
-                }
-              }
-
               const reqMethod = `${(req.method || 'GET').toUpperCase()} `;
 
               isolationScope.setSDKProcessingMetadata({ request: req });
+              isolationScope.setTransactionName(`${reqMethod}${parameterizedRoute}`);
 
               return startSpanManual(
                 {
-                  name: `${reqMethod}${reqPath}`,
+                  name: `${reqMethod}${parameterizedRoute}`,
                   op: 'http.server',
                   forceTransaction: true,
                   attributes: {

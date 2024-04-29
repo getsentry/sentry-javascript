@@ -11,6 +11,7 @@ describe('Error Server-side Props', () => {
     });
 
     expect(envelope[2]).toMatchObject({
+      transaction: `getServerSideProps (/withErrorServerSideProps)`,
       exception: {
         values: [
           {

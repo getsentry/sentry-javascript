@@ -52,6 +52,7 @@ test('Records exceptions happening in middleware', async ({ request }) => {
   // Assert that isolation scope works properly
   expect(errorEvent.tags?.['my-isolated-tag']).toBe(true);
   expect(errorEvent.tags?.['my-global-scope-isolated-tag']).not.toBeDefined();
+  expect(errorEvent.transaction).toBe('middleware');
 });
 
 test('Should trace outgoing fetch requests inside middleware and create breadcrumbs for it', async ({ request }) => {

@@ -28,6 +28,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
 
     assertSentryEvent(event, {
+      transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -70,6 +71,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
 
     assertSentryEvent(event, {
+      transaction: expect.stringMatching(/routes\/loader-throw-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -159,6 +161,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {

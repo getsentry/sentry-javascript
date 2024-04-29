@@ -1,10 +1,12 @@
 import { expect } from '@playwright/test';
+import type { SpanEnvelope } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
+  properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
@@ -190,7 +192,7 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
 });
 
 sentryTest(
-  'outgoing fetch request after <meta> tag pageload has pageload traceId in headers',
+  'outgoing fetch request after <meta> tag pageload has pageload traceId in headers and span envelope',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -230,9 +232,25 @@ sentryTest(
     });
 
     const requestPromise = page.waitForRequest('http://example.com/*');
+    const spanEnvelopePromise = getFirstSentryEnvelopeRequest<SpanEnvelope>(
+      page,
+      undefined,
+      properFullEnvelopeRequestParser,
+    );
     await page.locator('#fetchBtn').click();
-    const request = await requestPromise;
+    const [request, spanEnvelope] = await Promise.all([requestPromise, spanEnvelopePromise]);
     const headers = request.headers();
+
+    const spanEnvelopeTraceHeader = spanEnvelope[0].trace;
+    const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+    expect(spanEnvelopeTraceHeader).toEqual(pageloadTraceHeader);
+
+    expect(spanEnvelopeItem).toMatchObject({
+      parent_span_id: META_TAG_PARENT_SPAN_ID,
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: META_TAG_TRACE_ID,
+    });
 
     // sampling decision is propagated from meta tag's sentry-trace sampled flag
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
@@ -333,9 +351,25 @@ sentryTest(
     });
 
     const requestPromise = page.waitForRequest('http://example.com/*');
+    const spanEnvelopePromise = getFirstSentryEnvelopeRequest<SpanEnvelope>(
+      page,
+      undefined,
+      properFullEnvelopeRequestParser,
+    );
     await page.locator('#xhrBtn').click();
-    const request = await requestPromise;
+    const [request, spanEnvelope] = await Promise.all([requestPromise, spanEnvelopePromise]);
     const headers = request.headers();
+
+    const spanEnvelopeTraceHeader = spanEnvelope[0].trace;
+    const spanEnvelopeItem = spanEnvelope[1][0][1];
+
+    expect(spanEnvelopeTraceHeader).toEqual(pageloadTraceHeader);
+
+    expect(spanEnvelopeItem).toMatchObject({
+      parent_span_id: META_TAG_PARENT_SPAN_ID,
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      trace_id: META_TAG_TRACE_ID,
+    });
 
     // sampling decision is propagated from meta tag's sentry-trace sampled flag
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
