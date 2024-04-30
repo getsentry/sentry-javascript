@@ -27,6 +27,7 @@ import {
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
+import type { ActorComponent } from './components/Actor';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
@@ -45,11 +46,19 @@ interface BuilderOptions {
   getModalIntegration?: null | (() => IntegrationFn);
   getScreenshotIntegration?: null | (() => IntegrationFn);
 }
+
 export const buildFeedbackIntegration = ({
   lazyLoadIntegration,
   getModalIntegration,
   getScreenshotIntegration,
-}: BuilderOptions): IntegrationFn => {
+}: BuilderOptions): IntegrationFn<
+  Integration & {
+    attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration): Unsubscribe;
+    createForm(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createWidget(optionOverrides: OverrideFeedbackConfiguration): ActorComponent;
+    remove(): void;
+  }
+> => {
   const feedbackIntegration = (({
     // FeedbackGeneralConfiguration
     id = 'sentry-feedback',
@@ -191,7 +200,7 @@ export const buildFeedbackIntegration = ({
       });
     };
 
-    const attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
+    const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
       const mergedOptions = mergeOptions(_options, optionOverrides);
 
       const targetEl =
@@ -231,10 +240,11 @@ export const buildFeedbackIntegration = ({
       return unsubscribe;
     };
 
-    const autoInjectActor = (): void => {
+    const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const shadow = _createShadow(_options);
       const actor = Actor({ buttonLabel: _options.buttonLabel, shadow });
       const mergedOptions = mergeOptions(_options, {
+        ...optionOverrides,
         onFormOpen() {
           actor.removeFromDom();
         },
@@ -245,9 +255,8 @@ export const buildFeedbackIntegration = ({
           actor.appendToDom();
         },
       });
-      attachTo(actor.el, mergedOptions);
-
-      actor.appendToDom();
+      _attachTo(actor.el, mergedOptions);
+      return actor;
     };
 
     return {
@@ -257,7 +266,7 @@ export const buildFeedbackIntegration = ({
           return;
         }
 
-        autoInjectActor();
+        _createActor().appendToDom();
       },
 
       /**
@@ -265,12 +274,23 @@ export const buildFeedbackIntegration = ({
        *
        * The returned function can be used to remove the click listener
        */
-      attachTo,
+      attachTo: _attachTo,
 
       /**
-       * Creates a new widget. Accepts partial options to override any options passed to constructor.
+       * Creates a new widget which is composed of a Button which triggers a Dialog.
+       * Accepts partial options to override any options passed to constructor.
        */
-      async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
+      createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent {
+        const actor = _createActor(mergeOptions(_options, optionOverrides));
+        actor.appendToDom();
+        return actor;
+      },
+
+      /**
+       * Creates a new Form which you can
+       * Accepts partial options to override any options passed to constructor.
+       */
+      async createForm(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
         return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 

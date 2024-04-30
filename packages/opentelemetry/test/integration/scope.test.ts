@@ -93,7 +93,6 @@ describe('Integration | Scope', () => {
             tag3: 'val3',
             tag4: 'val4',
           },
-          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -132,7 +131,6 @@ describe('Integration | Scope', () => {
               tag4: 'val4',
             },
             timestamp: expect.any(Number),
-            transaction: 'outer',
             transaction_info: { source: 'custom' },
             type: 'transaction',
           }),
@@ -226,7 +224,6 @@ describe('Integration | Scope', () => {
             tag3: 'val3a',
             tag4: 'val4a',
           },
-          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -253,7 +250,6 @@ describe('Integration | Scope', () => {
             tag3: 'val3b',
             tag4: 'val4b',
           },
-          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -358,7 +354,6 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2',
           },
-          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),
@@ -385,7 +380,6 @@ describe('Integration | Scope', () => {
             isolationTag1: 'val1',
             isolationTag2: 'val2b',
           },
-          ...(enableTracing ? { transaction: 'outer' } : undefined),
         }),
         {
           event_id: expect.any(String),

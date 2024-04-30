@@ -5,7 +5,7 @@ import { getOwnConfig, isDevelopingApp, macroCondition } from '@embroider/macros
 import { startSpan } from '@sentry/browser';
 import type { BrowserOptions } from '@sentry/browser';
 import * as Sentry from '@sentry/browser';
-import { SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, applySdkMetadata } from '@sentry/core';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import Ember from 'ember';
 
@@ -75,9 +75,11 @@ export const instrumentRoutePerformance = <T extends RouteConstructor>(BaseRoute
       {
         attributes: {
           [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: source,
+          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.ui.ember',
         },
         op,
         name,
+        onlyIfParent: true,
       },
       () => {
         return fn(...args);

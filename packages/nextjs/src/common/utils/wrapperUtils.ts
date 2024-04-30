@@ -93,6 +93,7 @@ export function withTracedServerSideDataFetcher<F extends (...args: any[]) => Pr
     return escapeNextjsTracing(() => {
       const isolationScope = commonObjectToIsolationScope(req);
       return withIsolationScope(isolationScope, () => {
+        isolationScope.setTransactionName(`${options.dataFetchingMethodName} (${options.dataFetcherRouteName})`);
         isolationScope.setSDKProcessingMetadata({
           request: req,
         });

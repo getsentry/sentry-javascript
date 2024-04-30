@@ -49,7 +49,7 @@
     "magic-string": "^0.30.0"
   },
   "peerDependencies": {
-    "svelte": "3.x || 4.x"
+    "svelte": "3.x || 4.x || 5.x"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "1.4.0",

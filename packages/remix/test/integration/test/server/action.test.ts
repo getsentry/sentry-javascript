@@ -70,6 +70,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -117,6 +118,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -180,6 +182,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -228,6 +231,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -276,6 +280,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -324,6 +329,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -372,6 +378,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -420,6 +427,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -468,6 +476,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
+      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {
