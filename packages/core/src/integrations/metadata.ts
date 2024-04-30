@@ -11,7 +11,7 @@ function getAllModuleMetadata(exceptions: Exception[]): ModuleMetadata[] {
   return exceptions.reduce(
     (acc, exception) => {
       if (exception.stacktrace && exception.stacktrace.frames) {
-        acc.push(...exception.stacktrace.frames.map(frame => frame.module_metadata));
+        acc.push(...exception.stacktrace.frames.map(frame => frame.module_metadata).filter(metadata => !!metadata));
       }
       return acc;
     },
