@@ -24,8 +24,12 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
   const infoEvent = events.find(event => event.message === 'console info');
   const errorEvent = events.find(event => event.message === 'console error');
   const traceEvent = events.find(event => event.message === 'console trace');
-  const errorWithErrorEvent = events.find(event => !!event.exception);
-  const traceWithErrorEvent = events.find(event => event.message === 'Error: console trace with error object');
+  const errorWithErrorEvent = events.find(
+    event => event.exception && event.exception.values?.[0].value === 'console error with error object',
+  );
+  const traceWithErrorEvent = events.find(
+    event => event.exception && event.exception.values?.[0].value === 'console trace with error object',
+  );
 
   expect(logEvent).toEqual(
     expect.objectContaining({
@@ -109,5 +113,5 @@ sentryTest('it captures console messages correctly', async ({ getLocalTestUrl, p
       },
     }),
   );
-  expect(traceWithErrorEvent?.exception).toBeUndefined();
+  expect(traceWithErrorEvent?.exception?.values?.[0].value).toBe('console trace with error object');
 });
