@@ -55,7 +55,8 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          if(componentType === 'Page' || componentType === 'Layout'){
+          if (componentType && !isolationScope.getScopeData().transactionName) {
+            // only set name if not already set, otherwise it gets overwritten by subsequent calls
             isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
           }
 

@@ -59,7 +59,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          if(componentType === 'Page' || componentType === 'Layout') {
+          if (componentType && !isolationScope.getScopeData().transactionName) {
+            // only set name if not already set, otherwise it gets overwritten by subsequent calls
             isolationScope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
           }
           isolationScope.setSDKProcessingMetadata({
