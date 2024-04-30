@@ -50,7 +50,6 @@
     "@types/ember__utils": "^4.0.7",
     "@types/node": "18.18.0",
     "@types/rsvp": "^4.0.9",
-    "babel-eslint": "^10.1.0",
     "broccoli-asset-rev": "^3.0.0",
     "ember-auto-import": "^2.4.3",
     "ember-cli": "~4.8.0",
@@ -70,8 +69,7 @@
     "ember-source": "~4.8.0",
     "loader.js": "^4.7.0",
     "ts-node": "10.9.1",
-    "typescript": "^5.4.5",
-    "webpack": "^5.74.0"
+    "typescript": "^5.4.5"
   },
   "engines": {
     "node": "14.* || 16.* || >= 18"
