@@ -4,6 +4,50 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.5
+
+This beta release contains various bugfixes and improvements for the v8 beta cycle.
+
+### Important Changes
+
+- **feat(svelte): Add Svelte 5 support (#11807)**
+
+We now officially support Svelte 5.
+
+- **feat(browser): Send standalone fetch and XHR spans if there's no active parent span (#11783)**
+
+Starting with this version, spans for outgoing fetch/xhr requests will be captured even if no pageload/navigation span
+is ongoing. This means that you will be able to have a more complete trace, especially for web applications that make a
+lot of HTTP requests on longer lived pages.
+
+### Other Changes
+
+- feat(astro): Add `transactionName` to isolation scope for requests (#11786)
+- feat(browser): Create standalone INP spans via `startInactiveSpan` (#11788)
+- feat(core): Add `trace` envelope header to span envelope (#11699)
+- feat(core): Add options to start standalone (segment) spans via `start*Span` APIs (#11696)
+- feat(core): Set default scope for BaseClient methods (#11775)
+- feat(core): Wrap cron `withMonitor` callback in `withIsolationScope` (#11797)
+- feat(feedback): New feedback button design (#11641)
+- feat(nextjs): Add `transactionName` to isolation scope for Next.js server side features (#11782)
+- feat(nextjs): Mute webpack warnings about critical dependencies inside `@opentelemetry/instrumentation` (#11810)
+- feat(node): Upgrade @prisma/instrumentation to 5.13.0 (#11779)
+- feat(react): type error as unknown in ErrorBoundary (#11819)
+- feat(remix): Add `wrapHandleErrorWithSentry` (#10370)
+- feat(remix): Set `formData` as `action` span data. (#10836)
+- feat(remix): Update scope `transactionName` for Remix server features (#11784)
+- fix(angular): Call `showReportDialog` in root context (#11703)
+- fix(core): Capture only failed console.assert calls (#11799)
+- fix(ember): Ensure unnecessary spans are avoided (#11846)
+- fix(feedback): Clarify the difference between createWidget and create Form in the feedback public api (#11838)
+- fix(feedback): Fix feedback type (#11787)
+- fix(feedback): Vendor preact into bundle (#11845)
+- fix(remix): Rethrow `loader`, `action` and `documentRequest` errors (#11793)
+- ref: Always return an immediately generated event ID from `captureException()`, `captureMessage()`, and
+  `captureEvent()` (#11805)
+- ref(core): Remove transaction name extraction from `requestDataIntegration` (#11513)
+- ref(svelte): Use `onlyIfParent` for recording component update spans (#11809)
+
 ## 8.0.0-beta.4
 
 ### Important Changes
