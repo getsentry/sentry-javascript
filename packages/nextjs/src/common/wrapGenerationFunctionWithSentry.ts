@@ -59,7 +59,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          isolationScope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
+          if(componentType === 'Page' || componentType === 'Layout') {
+            isolationScope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
+          }
           isolationScope.setSDKProcessingMetadata({
             request: {
               headers: headers ? winterCGHeadersToDict(headers) : undefined,
