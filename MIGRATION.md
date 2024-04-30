@@ -369,6 +369,7 @@ To make sure these integrations work properly you'll have to change how you
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
 - [Svelte SDK](./MIGRATION.md#svelte-sdk)
+- [React SDK](./MIGRATION.md#react-sdk)
 
 ### General
 
@@ -958,11 +959,20 @@ replacement API.
 Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+- [Updated Ember Dependencies](./MIGRATION.md#updated-ember-dependencies)
 
 #### Removal of `InitSentryForEmber` export
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+#### Updated Ember Dependencies
+
+The following dependencies that the SDK uses have been bumped to a more recent version:
+
+- `ember-auto-import` is bumped to `^2.4.3`
+- `ember-cli-babel` is bumped to `^8.2.0`
+- `ember-cli-typescript` is bumped to `^5.3.0`
 
 ### Svelte SDK
 
@@ -999,6 +1009,26 @@ const config = {
 
 export default withSentryConfig(config);
 ```
+
+### React SDK
+
+#### Updated error types to be `unknown` instead of `Error`.
+
+In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and
+`beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the
+lifecycle method the Sentry `ErrorBoundary` component uses.
+
+As per the [React docs on error boundaries](https://react.dev/reference/react/Component#componentdidcatch):
+
+> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed
+> because JavaScript allows to throw any value, including strings or even `null`.
+
+This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an
+instance of `Error`.
+
+The Sentry SDK maintainers also went ahead and made a PR to update the
+[TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the
+React package - this will be released with React 20.
 
 ### Gatsby SDK
 
@@ -1119,6 +1149,7 @@ Sentry.init({
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](./MIGRATION.md#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
+- [Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients](./MIGRATION.md#updated-expected-return-value-for-captureexception-capturemessage-and-captureevent-methods-on-clients)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
 - [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
@@ -1179,6 +1210,11 @@ for this option defaulted to `true`.
 Going forward, the default value for `exitEvenIfOtherHandlersAreRegistered` will be `false`, meaning that the SDK will
 not exit your process when you have registered other `onUncaughtException` handlers.
 
+#### Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients
+
+The `Client` interface now expects implementations to always return a string representing the generated event ID for the
+`captureException()`, `captureMessage()`, `captureEvent()` methods. Previously `undefined` was a valid return value.
+
 #### Removal of Client-Side health check transaction filters
 
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
@@ -1227,8 +1263,6 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
-
----
 
 # Deprecations in 7.x
 
@@ -1364,6 +1398,19 @@ Instead of an `transactionContext` being passed to the `tracesSampler` callback,
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
 will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
 only be set later during the span lifecycle (and thus not be available during sampling).
+
+## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
+
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+```typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
