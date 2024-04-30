@@ -959,11 +959,20 @@ replacement API.
 Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+- [Updated Ember Dependencies](./MIGRATION.md#updated-ember-dependencies)
 
 #### Removal of `InitSentryForEmber` export
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+#### Updated Ember Dependencies
+
+The following dependencies that the SDK uses have been bumped to a more recent version:
+
+- `ember-auto-import` is bumped to `^2.4.3`
+- `ember-cli-babel` is bumped to `^8.2.0`
+- `ember-cli-typescript` is bumped to `^5.3.0`
 
 ### Svelte SDK
 
