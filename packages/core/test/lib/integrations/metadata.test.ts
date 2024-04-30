@@ -72,7 +72,7 @@ describe('ModuleMetadata integration', () => {
       enableSend: true,
       stackParser,
       integrations: [
-        moduleMetadataIntegration({ dropEvent: { ifNoStackFrameMetadataMatches: m => m.team === 'backend' } }),
+        moduleMetadataIntegration({ dropEvent: { ifNoStackFrameMetadataMatches: m => m?.team === 'backend' } }),
       ],
       transport: () =>
         createTransport({ recordDroppedEvent: () => undefined }, async req => {
@@ -107,7 +107,7 @@ describe('ModuleMetadata integration', () => {
           dropEvent: {
             ifNoStackFrameMetadataMatches: m => {
               callbackCalled = true;
-              return m.team === 'frontend';
+              return m?.team === 'frontend';
             },
           },
         }),

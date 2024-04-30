@@ -11,7 +11,7 @@ function getAllModuleMetadata(exceptions: Exception[]): ModuleMetadata[] {
   return exceptions.reduce(
     (acc, exception) => {
       if (exception.stacktrace && exception.stacktrace.frames) {
-        acc.push(...exception.stacktrace.frames.map(frame => frame.module_metadata).filter(metadata => !!metadata));
+        acc.push(...exception.stacktrace.frames.map(frame => frame.module_metadata));
       }
       return acc;
     },
@@ -24,7 +24,7 @@ interface Options {
     /**
      * Drop event if no stack frames have matching metadata
      */
-    ifNoStackFrameMetadataMatches?: (metadata: ModuleMetadata) => boolean;
+    ifNoStackFrameMetadataMatches?: (metadata: ModuleMetadata | undefined) => boolean;
   };
 }
 
