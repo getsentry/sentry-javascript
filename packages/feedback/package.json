@@ -44,7 +44,9 @@
   "dependencies": {
     "@sentry/core": "8.0.0-beta.4",
     "@sentry/types": "8.0.0-beta.4",
-    "@sentry/utils": "8.0.0-beta.4",
+    "@sentry/utils": "8.0.0-beta.4"
+  },
+  "devDependencies": {
     "preact": "^10.19.4"
   },
   "scripts": {
