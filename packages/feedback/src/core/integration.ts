@@ -27,7 +27,8 @@ import {
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
-import { Actor, ActorComponent } from './components/Actor';
+import type { ActorComponent } from './components/Actor';
+import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
 import type { OptionalFeedbackConfiguration, OverrideFeedbackConfiguration } from './types';
