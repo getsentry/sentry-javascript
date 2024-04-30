@@ -149,9 +149,12 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
     }
 
     async function flush(timeout: number | undefined): Promise<boolean> {
-      const allTransports = [...otherTransports.values(), fallbackTransport];
-      const results = await Promise.all(allTransports.map(transport => transport.flush(timeout)));
-      return results.every(r => r);
+      const promises = [await fallbackTransport.flush(timeout)];
+      for (const [, transport] of otherTransports) {
+        promises.push(await transport.flush(timeout));
+      }
+
+      return promises.every(r => r);
     }
 
     return {
