@@ -15,4 +15,12 @@ Router.map(function () {
   this.route('slow-loading-route', function () {
     this.route('index', { path: '/' });
   });
+
+  this.route('with-loading', function () {
+    this.route('index', { path: '/' });
+  });
+
+  this.route('with-error', function () {
+    this.route('index', { path: '/' });
+  });
 });

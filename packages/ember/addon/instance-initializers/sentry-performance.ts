@@ -155,6 +155,12 @@ export function _instrumentEmberRouter(
 
   routerService.on('routeWillChange', (transition: Transition) => {
     const { fromRoute, toRoute } = getTransitionInformation(transition, routerService);
+
+    // We want to ignore loading && error routes
+    if (transitionIsIntermediate(transition)) {
+      return;
+    }
+
     activeRootSpan?.end();
 
     activeRootSpan = startBrowserTracingNavigationSpan(client, {
@@ -180,8 +186,8 @@ export function _instrumentEmberRouter(
     });
   });
 
-  routerService.on('routeDidChange', () => {
-    if (!transitionSpan || !activeRootSpan) {
+  routerService.on('routeDidChange', transition => {
+    if (!transitionSpan || !activeRootSpan || transitionIsIntermediate(transition)) {
       return;
     }
     transitionSpan.end();
@@ -503,3 +509,18 @@ function _instrumentNavigation(
 export default {
   initialize,
 };
+
+function transitionIsIntermediate(transition: Transition): boolean {
+  //  We want to use ignore, as this may actually be defined on new versions
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore This actually exists on newer versions
+  const isIntermediate: boolean | undefined = transition.isIntermediate;
+
+  if (typeof isIntermediate === 'boolean') {
+    return isIntermediate;
+  }
+
+  // For versions without this, we look if the route is a `.loading` or `.error` route
+  // This is not perfect and may false-positive in some cases, but it's the best we can do
+  return transition.to?.localName === 'loading' || transition.to?.localName === 'error';
+}
