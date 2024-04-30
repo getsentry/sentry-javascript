@@ -5,7 +5,14 @@ export function createActorStyles(d: Document): HTMLStyleElement {
   const style = d.createElement('style');
   style.textContent = `
 .widget__actor {
-  line-height: 25px;
+  position: fixed;
+  left: var(--left);
+  right: var(--right);
+  bottom: var(--bottom);
+  top: var(--top);
+  z-index: var(--z-index);
+
+  line-height: 16px;
 
   display: flex;
   align-items: center;
@@ -16,7 +23,7 @@ export function createActorStyles(d: Document): HTMLStyleElement {
   font-family: inherit;
   font-size: var(--font-size);
   font-weight: 600;
-  padding: 12px 16px;
+  padding: 16px;
   text-decoration: none;
   z-index: 9000;
 
@@ -44,6 +51,12 @@ export function createActorStyles(d: Document): HTMLStyleElement {
 }
 
 .widget__actor__text {
+}
+
+@media (max-width: 600px) {
+  .widget__actor__text {
+    display: none;
+  }
 }
 
 .feedback-icon path {
