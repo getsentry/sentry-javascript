@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event, SpanEnvelope } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader} from '../../../../utils/helpers';
+import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
