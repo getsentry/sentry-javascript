@@ -9,6 +9,5 @@ describe('index.bundle.replay', () => {
     expect(ReplayBundle.feedbackAsyncIntegration).toBe(feedbackIntegrationShim);
     expect(ReplayBundle.feedbackIntegration).toBe(feedbackIntegrationShim);
     expect(ReplayBundle.replayIntegration).toBe(replayIntegration);
-
   });
 });
