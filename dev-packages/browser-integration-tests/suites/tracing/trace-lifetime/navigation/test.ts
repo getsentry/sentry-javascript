@@ -1,7 +1,7 @@
 import { expect } from '@playwright/test';
 import type { Event, SpanEnvelope } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import type { EventAndTraceHeader } from '../../../../utils/helpers';
+import { EventAndTraceHeader, shouldSkipFeedbackTest } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
@@ -460,7 +460,7 @@ sentryTest(
 sentryTest(
   'user feedback event after navigation has navigation traceId in headers',
   async ({ getLocalTestPath, page }) => {
-    if (shouldSkipTracingTest()) {
+    if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
       sentryTest.skip();
     }
 
