@@ -32,11 +32,7 @@ export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
 import { feedbackAsyncIntegration } from './feedbackAsync';
 import { feedbackSyncIntegration } from './feedbackSync';
-export {
-  feedbackAsyncIntegration,
-  feedbackSyncIntegration,
-  feedbackSyncIntegration as feedbackIntegration
-};
+export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export {
   getFeedback,
   sendFeedback,

@@ -22,9 +22,6 @@ export {
 } from './tracing/browserTracingIntegration';
 
 import { feedbackIntegrationShim } from '@sentry-internal/integration-shims';
-export {
-  feedbackIntegrationShim as feedbackAsyncIntegration,
-  feedbackIntegrationShim as feedbackIntegration,
-};
+export { feedbackIntegrationShim as feedbackAsyncIntegration, feedbackIntegrationShim as feedbackIntegration };
 
 export { replayIntegration } from '@sentry-internal/replay';

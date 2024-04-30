@@ -23,9 +23,6 @@ export {
 
 import { feedbackAsyncIntegration } from './feedbackAsync';
 export { getFeedback } from '@sentry-internal/feedback';
-export {
-  feedbackAsyncIntegration as feedbackAsyncIntegration,
-  feedbackAsyncIntegration as feedbackIntegration,
-};
+export { feedbackAsyncIntegration as feedbackAsyncIntegration, feedbackAsyncIntegration as feedbackIntegration };
 
 export { replayIntegration } from '@sentry-internal/replay';
