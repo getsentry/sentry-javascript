@@ -176,9 +176,10 @@ export const buildFeedbackIntegration = ({
     };
 
     const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
+      const screenshotRequired = options.showScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
-        showScreenshot && isScreenshotSupported()
+        screenshotRequired
           ? _findIntegration<FeedbackScreenshotIntegration>(
               'FeedbackScreenshot',
               getScreenshotIntegration,
@@ -186,15 +187,22 @@ export const buildFeedbackIntegration = ({
             )
           : undefined,
       ]);
-      if (!modalIntegration || (showScreenshot && !screenshotIntegration)) {
+      if (!modalIntegration) {
         // TODO: Let the end-user retry async loading
-        // Include more verbose logs so developers can understand the options (like preloading).
-        throw new Error('Missing feedback helper integration!');
+        DEBUG_BUILD &&
+          logger.error(
+            '[Feedback] Missing feedback modal integration. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
+          );
+        throw new Error('[Feedback] Missing feedback modal integration!');
+      }
+      if (screenshotRequired && !screenshotIntegration) {
+        DEBUG_BUILD &&
+          logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
       return modalIntegration.createDialog({
         options,
-        screenshotIntegration: showScreenshot ? screenshotIntegration : undefined,
+        screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
