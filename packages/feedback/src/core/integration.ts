@@ -187,10 +187,17 @@ export const buildFeedbackIntegration = ({
             )
           : undefined,
       ]);
-      if (!modalIntegration || (screenshotRequired && !screenshotIntegration)) {
+      if (!modalIntegration) {
         // TODO: Let the end-user retry async loading
-        // Include more verbose logs so developers can understand the options (like preloading).
-        throw new Error('Missing feedback helper integration!');
+        DEBUG_BUILD &&
+          logger.error(
+            '[Feedback] Missing feedback modal integration. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
+          );
+        throw new Error('[Feedback] Missing feedback modal integration!');
+      }
+      if (screenshotRequired && !screenshotIntegration) {
+        DEBUG_BUILD &&
+          logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
       return modalIntegration.createDialog({
