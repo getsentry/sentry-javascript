@@ -1352,7 +1352,7 @@ jobs:
             container: node:20-alpine3.17
             node: 20
           - os: ubuntu-20.04
-            container: node:22-alpine3.17
+            container: node:22-alpine3.18
             node: 22
 
             # arm64 glibc
@@ -1384,7 +1384,7 @@ jobs:
             node: 20
           - os: ubuntu-20.04
             arch: arm64
-            container: node:22-alpine3.17
+            container: node:22-alpine3.18
             node: 22
 
             # macos x64
