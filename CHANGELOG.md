@@ -4,6 +4,14 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.113.0
+
+- **feat(node): Support Node 22 (#11754)**
+
+This release adds support for Node 22! 🎉
+
+It also adds prebuilt-binaries for Node 22 to `@sentry/profiling-node`.
+
 ## 7.112.2
 
 - fix(nextjs|sveltekit): Ensure we can pass `browserTracingIntegration` (#11765)

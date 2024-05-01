@@ -6769,7 +6769,7 @@
   dependencies:
     "@types/unist" "^2"
 
-"@types/node-abi@^3.0.0":
+"@types/node-abi@^3.0.3":
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/@types/node-abi/-/node-abi-3.0.3.tgz#a8334d75fe45ccd4cdb2a6c1ae82540a7a76828c"
   integrity sha512-5oos6sivyXcDEuVC5oX3+wLwfgrGZu4NIOn826PGAjPCHsqp2zSPTGU7H1Tv+GZBOiDUY3nBXY1MdaofSEt4fw==
@@ -23205,10 +23205,10 @@ node-abi@^3.3.0:
   dependencies:
     semver "^7.3.5"
 
-node-abi@^3.52.0:
-  version "3.54.0"
-  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.54.0.tgz#f6386f7548817acac6434c6cba02999c9aebcc69"
-  integrity sha512-p7eGEiQil0YUV3ItH4/tBb781L5impVmmx2E9FRKF7d18XXzp4PGT2tdYMFY6wQqgxD0IwNZOiSJ0/K0fSi/OA==
+node-abi@^3.61.0:
+  version "3.61.0"
+  resolved "https://registry.yarnpkg.com/node-abi/-/node-abi-3.61.0.tgz#9248f8b8e35dbae2fafeecd6240c5a017ea23f3f"
+  integrity sha512-dYDO1rxzvMXjEMi37PBeFuYgwh3QZpsw/jt+qOmnRSwiV4z4c+OLoRlTa3V8ID4TrkSQpzCVc9OI2sstFaINfQ==
   dependencies:
     semver "^7.3.5"
 
