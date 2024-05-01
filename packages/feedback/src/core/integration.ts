@@ -176,9 +176,10 @@ export const buildFeedbackIntegration = ({
     };
 
     const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
+      const screenshotRequired = options.showScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
-        showScreenshot && isScreenshotSupported()
+        screenshotRequired
           ? _findIntegration<FeedbackScreenshotIntegration>(
               'FeedbackScreenshot',
               getScreenshotIntegration,
@@ -186,7 +187,7 @@ export const buildFeedbackIntegration = ({
             )
           : undefined,
       ]);
-      if (!modalIntegration || (showScreenshot && !screenshotIntegration)) {
+      if (!modalIntegration || (screenshotRequired && !screenshotIntegration)) {
         // TODO: Let the end-user retry async loading
         // Include more verbose logs so developers can understand the options (like preloading).
         throw new Error('Missing feedback helper integration!');
@@ -194,7 +195,7 @@ export const buildFeedbackIntegration = ({
 
       return modalIntegration.createDialog({
         options,
-        screenshotIntegration: showScreenshot ? screenshotIntegration : undefined,
+        screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
