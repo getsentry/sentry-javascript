@@ -127,10 +127,6 @@ export function createAttachmentEnvelope(
  * Create envelope from Span item.
  */
 export function createSpanEnvelope(spans: SentrySpan[]): SpanEnvelope {
-  function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
-    return !!dsc.trace_id && !!dsc.public_key;
-  }
-
   // For the moment we'll obtain the DSC from the first span in the array
   // This might need to be changed if we permit sending multiple spans from
   // different segments in one envelope
@@ -142,4 +138,8 @@ export function createSpanEnvelope(spans: SentrySpan[]): SpanEnvelope {
   };
   const items = spans.map(span => createSpanEnvelopeItem(spanToJSON(span)));
   return createEnvelope<SpanEnvelope>(headers, items);
+}
+
+function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
+  return !!dsc.trace_id && !!dsc.public_key;
 }

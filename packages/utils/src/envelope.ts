@@ -187,6 +187,11 @@ export function createSpanEnvelopeItem(spanJson: Partial<SpanJSON>): SpanItem {
     type: 'span',
   };
 
+  // ensure we have exclusive_time
+  if (typeof spanJson.exclusive_time === 'undefined' && spanJson.timestamp && spanJson.start_timestamp) {
+    spanJson.exclusive_time = spanJson.timestamp - spanJson.start_timestamp;
+  }
+
   return [spanHeaders, spanJson];
 }
 
