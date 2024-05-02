@@ -1,6 +1,6 @@
 {
   "include": ["env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["event-proxy-server.ts", "start-event-proxy.ts"],
+  "exclude": ["start-event-proxy.ts"],
   "compilerOptions": {
     "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "isolatedModules": true,

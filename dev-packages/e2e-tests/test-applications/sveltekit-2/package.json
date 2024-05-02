@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "^1.43.1",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "@sveltejs/adapter-auto": "^3.0.0",

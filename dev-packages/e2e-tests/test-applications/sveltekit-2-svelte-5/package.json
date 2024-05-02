@@ -19,7 +19,7 @@
         "@spotlightjs/spotlight": "2.0.0-alpha.1"
     },
     "devDependencies": {
-        "@playwright/test": "^1.36.2",
+        "@playwright/test": "^1.43.1",
         "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
         "@sentry/types": "latest || *",
         "@sentry/utils": "latest || *",
