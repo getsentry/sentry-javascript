@@ -52,7 +52,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(async (scope) => {
+          return withScope(async scope => {
             scope.setTransactionName(`${method} ${parameterizedRoute}`);
             scope.setPropagationContext(propagationContext);
             try {
