@@ -351,6 +351,7 @@ We now support the following integrations out of the box without extra configura
 - `mongooseIntegration`: Automatically instruments Mongoose
 - `mysqlIntegration`: Automatically instruments MySQL
 - `mysql2Integration`: Automatically instruments MySQL2
+- `redisIntegration`: Automatically instruments Redis (supported clients: ioredis)
 - `nestIntegration`: Automatically instruments Nest.js
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
