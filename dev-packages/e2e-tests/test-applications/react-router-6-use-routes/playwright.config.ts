@@ -1,6 +1,9 @@
 import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
+const reactPort = 3030;
+const eventProxyPort = 3031;
+
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
@@ -32,6 +35,8 @@ const config: PlaywrightTestConfig = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    baseURL: `http://localhost:${reactPort}`,
   },
 
   /* Configure projects for major browsers */
@@ -58,13 +63,20 @@ const config: PlaywrightTestConfig = {
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'pnpm start',
-    port: 3030,
-    env: {
-      PORT: '3030',
+
+  webServer: [
+    {
+      command: 'pnpm ts-node-script start-event-proxy.ts',
+      port: eventProxyPort,
     },
-  },
+    {
+      command: 'pnpm start',
+      port: reactPort,
+      env: {
+        PORT: `${reactPort}`,
+      },
+    },
+  ],
 };
 
 export default config;
