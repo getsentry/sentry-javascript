@@ -3,7 +3,6 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
-  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
@@ -56,7 +55,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          withScope(scope => {
+          return withScope(scope => {
             scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
             scope.setPropagationContext(propagationContext);
