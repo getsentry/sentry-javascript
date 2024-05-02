@@ -9,6 +9,7 @@ import {
   setHttpStatus,
   startSpan,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
@@ -51,57 +52,59 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
 
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
-        return withIsolationScope(isolationScope, async () => {
-          isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
-          getCurrentScope().setPropagationContext(propagationContext);
-          try {
-            return startSpan(
-              {
-                name: `${method} ${parameterizedRoute}`,
-                attributes: {
-                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
-                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-                },
-                forceTransaction: true,
-              },
-              async span => {
-                const response: Response = await handleCallbackErrors(
-                  () => originalFunction.apply(thisArg, args),
-                  error => {
-                    // Next.js throws errors when calling `redirect()`. We don't wanna report these.
-                    if (isRedirectNavigationError(error)) {
-                      // Don't do anything
-                    } else if (isNotFoundNavigationError(error) && span) {
-                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                    } else {
-                      captureException(error, {
-                        mechanism: {
-                          handled: false,
-                        },
-                      });
-                    }
+        return withIsolationScope(isolationScope, () => {
+          return withScope(async () => {
+            isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
+            getCurrentScope().setPropagationContext(propagationContext);
+            try {
+              return startSpan(
+                {
+                  name: `${method} ${parameterizedRoute}`,
+                  attributes: {
+                    [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.server',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                   },
-                );
+                  forceTransaction: true,
+                },
+                async span => {
+                  const response: Response = await handleCallbackErrors(
+                    () => originalFunction.apply(thisArg, args),
+                    error => {
+                      // Next.js throws errors when calling `redirect()`. We don't wanna report these.
+                      if (isRedirectNavigationError(error)) {
+                        // Don't do anything
+                      } else if (isNotFoundNavigationError(error) && span) {
+                        span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                      } else {
+                        captureException(error, {
+                          mechanism: {
+                            handled: false,
+                          },
+                        });
+                      }
+                    },
+                  );
 
-                try {
-                  if (span && response.status) {
-                    setHttpStatus(span, response.status);
+                  try {
+                    if (span && response.status) {
+                      setHttpStatus(span, response.status);
+                    }
+                  } catch {
+                    // best effort - response may be undefined?
                   }
-                } catch {
-                  // best effort - response may be undefined?
-                }
 
-                return response;
-              },
-            );
-          } finally {
-            if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-              // 1. Edge transport requires manual flushing
-              // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-              await flushQueue();
+                  return response;
+                },
+              );
+            } finally {
+              if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
+                // 1. Edge transport requires manual flushing
+                // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
+                await flushQueue();
+              }
             }
-          }
+          });
         });
       });
     },
