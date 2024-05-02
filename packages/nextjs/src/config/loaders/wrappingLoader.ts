@@ -6,7 +6,7 @@ import * as chalk from 'chalk';
 import type { RollupBuild, RollupError } from 'rollup';
 import { rollup } from 'rollup';
 
-import type { VercelCronsConfig } from '../../common/types';
+import type { ServerComponentContext, VercelCronsConfig } from '../../common/types';
 import type { LoaderThis } from './types';
 
 // Just a simple placeholder to make referencing module consistent
@@ -185,7 +185,7 @@ export default function wrappingLoader(
       .match(/\/?([^/]+)\.(?:js|ts|jsx|tsx)$/);
 
     if (componentTypeMatch && componentTypeMatch[1]) {
-      let componentType;
+      let componentType: ServerComponentContext['componentType'];
       switch (componentTypeMatch[1]) {
         case 'page':
           componentType = 'Page';
