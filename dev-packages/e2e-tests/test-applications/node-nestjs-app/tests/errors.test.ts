@@ -47,9 +47,12 @@ test('Sends exception to Sentry', async ({ baseURL }) => {
   });
 
   try {
-    axios.get(`${baseURL}/test-exception/123`);
-  } catch {
-    // this results in an error, but we don't care - we want to check the error event
+    await axios.get(`${baseURL}/test-exception/123`);
+    // Should never be reached!
+    expect(false).toBe(true);
+  } catch (error) {
+    expect(error).toBeInstanceOf(AxiosError);
+    expect(error.response?.status).toBe(500);
   }
 
   const errorEvent = await errorEventPromise;
