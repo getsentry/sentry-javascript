@@ -1008,6 +1008,7 @@ jobs:
             'nextjs-14',
             'react-create-hash-router',
             'react-router-6-use-routes',
+            'react-router-5',
             'standard-frontend-react',
             'svelte-5',
             'sveltekit',
