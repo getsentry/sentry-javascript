@@ -6,11 +6,19 @@
 
 ## 7.113.0
 
+### Important Changes
+
 - **feat(node): Support Node 22 (#11754)**
 
 This release adds support for Node 22! 🎉
 
 It also adds prebuilt-binaries for Node 22 to `@sentry/profiling-node`.
+
+### Other Changes
+
+- feat(feedback): [v7] New feedback button design (#11841)
+- feat(replay/v7): Upgrade rrweb packages to 2.15.0 (#11752)
+- fix(ember/v7): Ensure unnecessary spans are avoided (#11848)
 
 ## 7.112.2
 
