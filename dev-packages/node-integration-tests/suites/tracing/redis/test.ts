@@ -23,7 +23,7 @@ describe('redis auto instrumentation', () => {
           description: 'get test-key',
           op: 'db',
           data: expect.objectContaining({
-            'db.system': 'mysql',
+            'db.system': 'redis',
             'net.peer.name': 'localhost',
             'net.peer.port': 6379,
             'db.statement': 'get test-key',
