@@ -35,6 +35,8 @@ Sentry.init({
   // Always capture replays, so we can test this properly
   replaysSessionSampleRate: 1.0,
   replaysOnErrorSampleRate: 0.0,
+
+  tunnel: 'http://localhost:3031', // proxy server
 });
 
 Object.defineProperty(window, 'sentryReplayId', {
