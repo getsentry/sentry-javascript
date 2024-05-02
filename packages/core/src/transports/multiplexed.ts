@@ -7,7 +7,7 @@ import type {
   Transport,
   TransportMakeRequestResponse,
 } from '@sentry/types';
-import { dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
+import { createEnvelope, dsnFromString, forEachEnvelopeItem } from '@sentry/utils';
 
 import { getEnvelopeEndpointWithUrlEncodedAuth } from '../api';
 
@@ -57,6 +57,7 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
     const transport = createTransport(options);
 
     return {
+      ...transport,
       send: async (envelope: Envelope): Promise<void | TransportMakeRequestResponse> => {
         const event = eventFromEnvelope(envelope, ['event', 'transaction', 'profile', 'replay_event']);
 
@@ -65,9 +66,21 @@ function makeOverrideReleaseTransport<TO extends BaseTransportOptions>(
         }
         return transport.send(envelope);
       },
-      flush: timeout => transport.flush(timeout),
     };
   };
+}
+
+/** Overrides the DSN in the envelope header  */
+function overrideDsn(envelope: Envelope, dsn: string): Envelope {
+  return createEnvelope(
+    dsn
+      ? {
+          ...envelope[0],
+          dsn,
+        }
+      : envelope[0],
+    envelope[1],
+  );
 }
 
 /**
@@ -79,26 +92,31 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
 ): (options: TO) => Transport {
   return options => {
     const fallbackTransport = createTransport(options);
-    const otherTransports: Record<string, Transport> = {};
+    const otherTransports = new Map<string, Transport>();
 
-    function getTransport(dsn: string, release: string | undefined): Transport | undefined {
+    function getTransport(dsn: string, release: string | undefined): [string, Transport] | undefined {
       // We create a transport for every unique dsn/release combination as there may be code from multiple releases in
       // use at the same time
       const key = release ? `${dsn}:${release}` : dsn;
 
-      if (!otherTransports[key]) {
+      let transport = otherTransports.get(key);
+
+      if (!transport) {
         const validatedDsn = dsnFromString(dsn);
         if (!validatedDsn) {
           return undefined;
         }
-        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn);
 
-        otherTransports[key] = release
+        const url = getEnvelopeEndpointWithUrlEncodedAuth(validatedDsn, options.tunnel);
+
+        transport = release
           ? makeOverrideReleaseTransport(createTransport, release)({ ...options, url })
           : createTransport({ ...options, url });
+
+        otherTransports.set(key, transport);
       }
 
-      return otherTransports[key];
+      return [dsn, transport];
     }
 
     async function send(envelope: Envelope): Promise<void | TransportMakeRequestResponse> {
@@ -115,22 +133,28 @@ export function makeMultiplexedTransport<TO extends BaseTransportOptions>(
             return getTransport(result.dsn, result.release);
           }
         })
-        .filter((t): t is Transport => !!t);
+        .filter((t): t is [string, Transport] => !!t);
 
       // If we have no transports to send to, use the fallback transport
       if (transports.length === 0) {
-        transports.push(fallbackTransport);
+        // Don't override the DSN in the header for the fallback transport. '' is falsy
+        transports.push(['', fallbackTransport]);
       }
 
-      const results = await Promise.all(transports.map(transport => transport.send(envelope)));
+      const results = await Promise.all(
+        transports.map(([dsn, transport]) => transport.send(overrideDsn(envelope, dsn))),
+      );
 
       return results[0];
     }
 
     async function flush(timeout: number | undefined): Promise<boolean> {
-      const allTransports = [...Object.keys(otherTransports).map(dsn => otherTransports[dsn]), fallbackTransport];
-      const results = await Promise.all(allTransports.map(transport => transport.flush(timeout)));
-      return results.every(r => r);
+      const promises = [await fallbackTransport.flush(timeout)];
+      for (const [, transport] of otherTransports) {
+        promises.push(await transport.flush(timeout));
+      }
+
+      return promises.every(r => r);
     }
 
     return {
