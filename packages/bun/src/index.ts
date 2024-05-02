@@ -118,6 +118,7 @@ export {
   spanToTraceHeader,
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
+  zodErrorsIntegration,
 } from '@sentry/node';
 
 export {
