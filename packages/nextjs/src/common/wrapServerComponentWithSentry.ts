@@ -59,7 +59,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
           withScope(scope => {
             scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
-            getCurrentScope().setPropagationContext(propagationContext);
+            scope.setPropagationContext(propagationContext);
             return startSpanManual(
               {
                 op: 'function.nextjs',
