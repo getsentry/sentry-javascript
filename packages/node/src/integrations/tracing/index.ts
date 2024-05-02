@@ -12,6 +12,7 @@ import { mysqlIntegration } from './mysql';
 import { mysql2Integration } from './mysql2';
 import { nestIntegration } from './nest';
 import { postgresIntegration } from './postgres';
+import { redisIntegration } from './redis';
 
 /**
  * With OTEL, all performance integrations will be added, as OTEL only initializes them when the patched package is actually required.
@@ -25,6 +26,7 @@ export function getAutoPerformanceIntegrations(): Integration[] {
     mongooseIntegration(),
     mysqlIntegration(),
     mysql2Integration(),
+    redisIntegration(),
     postgresIntegration(),
     // For now, we do not include prisma by default because it has ESM issues
     // See https://github.com/prisma/prisma/issues/23410

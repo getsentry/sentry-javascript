@@ -20,8 +20,8 @@ const _redisIntegration = (() => {
 }) satisfies IntegrationFn;
 
 /**
- * Redis integration
+ * Redis integration for "ioredis"
  *
  * Capture tracing data for redis and ioredis.
  */
-export const experimental_redisIntegration = defineIntegration(_redisIntegration);
+export const redisIntegration = defineIntegration(_redisIntegration);
