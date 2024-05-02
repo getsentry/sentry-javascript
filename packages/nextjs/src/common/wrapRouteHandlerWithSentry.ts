@@ -4,7 +4,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
   SPAN_STATUS_ERROR,
   captureException,
-  getCurrentScope,
   handleCallbackErrors,
   setHttpStatus,
   startSpan,
@@ -53,9 +52,9 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          return withScope(async () => {
-            isolationScope.setTransactionName(`${method} ${parameterizedRoute}`);
-            getCurrentScope().setPropagationContext(propagationContext);
+          return withScope(async (scope) => {
+            scope.setTransactionName(`${method} ${parameterizedRoute}`);
+            scope.setPropagationContext(propagationContext);
             try {
               return startSpan(
                 {

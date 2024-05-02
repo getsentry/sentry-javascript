@@ -4,7 +4,6 @@ import {
   SPAN_STATUS_OK,
   captureException,
   getClient,
-  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
@@ -68,8 +67,8 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
               },
             });
 
-            getCurrentScope().setExtra('route_data', data);
-            getCurrentScope().setPropagationContext(propagationContext);
+            scope.setExtra('route_data', data);
+            scope.setPropagationContext(propagationContext);
 
             return startSpanManual(
               {
