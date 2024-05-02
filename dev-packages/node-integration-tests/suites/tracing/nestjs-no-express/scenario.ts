@@ -15,7 +15,7 @@ Sentry.init({
 });
 
 import { Controller, Get, Injectable, Module, Param } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 
 const port = 3470;
 
@@ -49,7 +49,8 @@ class AppModule {}
 
 async function init(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  Sentry.setupNestErrorHandler(app);
+  const { httpAdapter } = app.get(HttpAdapterHost);
+  Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
   await app.listen(port);
   sendPortToRunner(port);
 }
