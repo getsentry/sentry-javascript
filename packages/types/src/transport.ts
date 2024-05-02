@@ -15,6 +15,12 @@ export type TransportMakeRequestResponse = {
 };
 
 export interface InternalBaseTransportOptions {
+  /**
+   * @ignore
+   * Users should pass the tunnel property via the init/client options.
+   * This is only used by the SDK to pass the tunnel to the transport.
+   */
+  tunnel?: string;
   bufferSize?: number;
   recordDroppedEvent: Client['recordDroppedEvent'];
 }
