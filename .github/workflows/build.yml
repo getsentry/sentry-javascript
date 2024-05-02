@@ -989,6 +989,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        is_dependabot:
+          - ${{ github.actor == 'dependabot[bot]' }}
         test-application:
           [
             'angular-17',
@@ -1006,6 +1008,7 @@ jobs:
             'nextjs-14',
             'react-create-hash-router',
             'react-router-6-use-routes',
+            'react-router-5',
             'standard-frontend-react',
             'svelte-5',
             'sveltekit',
@@ -1042,6 +1045,10 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
+        exclude:
+          - is_dependabot: true
+            test-application: 'cloudflare-astro'
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
