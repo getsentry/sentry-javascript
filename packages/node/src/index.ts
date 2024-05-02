@@ -110,6 +110,7 @@ export {
   spanToJSON,
   spanToTraceHeader,
   trpcMiddleware,
+  zodErrorsIntegration,
 } from '@sentry/core';
 
 export type {
