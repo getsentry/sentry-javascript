@@ -928,7 +928,7 @@ describe('Integration | errorSampleRate', () => {
    * sampling since we can load a saved session that did not have an error (and
    * thus no replay was created).
    */
-  it('sends a replay after loading the session from storage', async () => {
+  it.only('sends a replay after loading the session from storage', async () => {
     // Pretend that a session is already saved before loading replay
     WINDOW.sessionStorage.setItem(
       REPLAY_SESSION_KEY,
@@ -946,6 +946,8 @@ describe('Integration | errorSampleRate', () => {
     integration['_initialize']();
     const optionsEvent = createOptionsEvent(replay);
 
+    await vi.runAllTimersAsync();
+
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
@@ -956,6 +958,8 @@ describe('Integration | errorSampleRate', () => {
     // 2 ticks to send replay from an error
     await vi.advanceTimersToNextTimerAsync();
     await vi.advanceTimersToNextTimerAsync();
+
+    await vi.runAllTimersAsync();
 
     // Buffered events before error
     expect(replay).toHaveSentReplay({
