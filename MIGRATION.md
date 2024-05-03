@@ -1721,7 +1721,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
-- `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
+- `span.getDynamicSamplingContext`: Use `spanToBaggageHeader(span)` utility function instead.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.

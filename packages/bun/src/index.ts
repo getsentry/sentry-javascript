@@ -118,6 +118,7 @@ export {
   initOpenTelemetry,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
   addOpenTelemetryInstrumentation,
   zodErrorsIntegration,

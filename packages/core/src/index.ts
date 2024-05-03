@@ -67,6 +67,7 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
 export {
   spanToTraceHeader,
+  spanToBaggageHeader,
   spanToJSON,
   spanIsSampled,
   spanToTraceContext,

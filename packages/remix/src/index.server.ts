@@ -99,6 +99,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
