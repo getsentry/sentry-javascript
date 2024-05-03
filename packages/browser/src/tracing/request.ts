@@ -7,7 +7,6 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SentryNonRecordingSpan,
-  getActiveSpan,
   getClient,
   getCurrentScope,
   getDynamicSamplingContextFromClient,
@@ -322,8 +321,6 @@ export function xhrCallback(
     return undefined;
   }
 
-  const hasParent = !!getActiveSpan();
-
   const fullUrl = getFullURL(sentryXhrData.url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
@@ -338,9 +335,6 @@ export function xhrCallback(
           'server.address': host,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.browser',
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-        },
-        experimental: {
-          standalone: !hasParent,
         },
       })
     : new SentryNonRecordingSpan();
