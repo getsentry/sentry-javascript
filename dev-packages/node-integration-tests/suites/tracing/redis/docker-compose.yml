@@ -1,0 +1,9 @@
+version: '3.9'
+
+services:
+  db:
+    image: redis:latest
+    restart: always
+    container_name: integration-tests-redis
+    ports:
+      - '6379:6379'

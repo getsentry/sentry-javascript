@@ -4,10 +4,10 @@ import {
   SPAN_STATUS_OK,
   captureException,
   getClient,
-  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
@@ -59,51 +59,53 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
         const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          isolationScope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
-          isolationScope.setSDKProcessingMetadata({
-            request: {
-              headers: headers ? winterCGHeadersToDict(headers) : undefined,
-            },
-          });
-
-          getCurrentScope().setExtra('route_data', data);
-          getCurrentScope().setPropagationContext(propagationContext);
-
-          return startSpanManual(
-            {
-              op: 'function.nextjs',
-              name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
-              forceTransaction: true,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
+          return withScope(scope => {
+            scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
+            isolationScope.setSDKProcessingMetadata({
+              request: {
+                headers: headers ? winterCGHeadersToDict(headers) : undefined,
               },
-            },
-            span => {
-              return handleCallbackErrors(
-                () => originalFunction.apply(thisArg, args),
-                err => {
-                  if (isNotFoundNavigationError(err)) {
-                    // We don't want to report "not-found"s
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                  } else if (isRedirectNavigationError(err)) {
-                    // We don't want to report redirects
-                    span.setStatus({ code: SPAN_STATUS_OK });
-                  } else {
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                    captureException(err, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
-                  }
+            });
+
+            scope.setExtra('route_data', data);
+            scope.setPropagationContext(propagationContext);
+
+            return startSpanManual(
+              {
+                op: 'function.nextjs',
+                name: `${componentType}.${generationFunctionIdentifier} (${componentRoute})`,
+                forceTransaction: true,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'route',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                 },
-                () => {
-                  span.end();
-                },
-              );
-            },
-          );
+              },
+              span => {
+                return handleCallbackErrors(
+                  () => originalFunction.apply(thisArg, args),
+                  err => {
+                    if (isNotFoundNavigationError(err)) {
+                      // We don't want to report "not-found"s
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                    } else if (isRedirectNavigationError(err)) {
+                      // We don't want to report redirects
+                      span.setStatus({ code: SPAN_STATUS_OK });
+                    } else {
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                      captureException(err, {
+                        mechanism: {
+                          handled: false,
+                        },
+                      });
+                    }
+                  },
+                  () => {
+                    span.end();
+                  },
+                );
+              },
+            );
+          });
         });
       });
     },

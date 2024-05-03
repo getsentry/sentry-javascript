@@ -17,6 +17,7 @@ export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
+export { redisIntegration } from './integrations/tracing/redis';
 export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
@@ -89,6 +90,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   captureConsoleIntegration,
   debugIntegration,
   dedupeIntegration,
@@ -108,7 +110,9 @@ export {
   getRootSpan,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
+  zodErrorsIntegration,
 } from '@sentry/core';
 
 export type {

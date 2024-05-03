@@ -11,6 +11,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   withMonitor,
   createTransport,
   getClient,
@@ -71,6 +72,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 

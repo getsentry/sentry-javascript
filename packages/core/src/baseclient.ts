@@ -35,6 +35,7 @@ import {
   addItemToEnvelope,
   checkOrSetAlreadyCaught,
   createAttachmentEnvelopeItem,
+  dropUndefinedKeys,
   isParameterizedString,
   isPlainObject,
   isPrimitive,
@@ -141,6 +142,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         options._metadata ? options._metadata.sdk : undefined,
       );
       this._transport = options.transport({
+        tunnel: this._options.tunnel,
         recordDroppedEvent: this.recordDroppedEvent.bind(this),
         ...options.transportOptions,
         url,
@@ -662,11 +664,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       if (!trace && propagationContext) {
         const { traceId: trace_id, spanId, parentSpanId, dsc } = propagationContext;
         evt.contexts = {
-          trace: {
+          trace: dropUndefinedKeys({
             trace_id,
             span_id: spanId,
             parent_span_id: parentSpanId,
-          },
+          }),
           ...evt.contexts,
         };
 

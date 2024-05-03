@@ -495,15 +495,39 @@ async function addSentryToClientEntryProperty(
 }
 
 /**
- * Searches for old `sentry.(server|edge).config.ts` files and warns if it finds any.
+ * Searches for old `sentry.(server|edge).config.ts` files and Next.js instrumentation hooks and warns if there are "old"
+ * config files and no signs of them inside the instrumentation hook.
  *
  * @param projectDir The root directory of the project, where config files would be located
  * @param platform Either "server" or "edge", so that we know which file to look for
  */
 function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' | 'edge'): void {
-  const possibilities = [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`];
+  const hasInstrumentationHookWithIndicationsOfSentry = [
+    ['src', 'instrumentation.ts'],
+    ['src', 'instrumentation.js'],
+    ['instrumentation.ts'],
+    ['instrumentation.js'],
+  ].some(potentialInstrumentationHookPathSegments => {
+    try {
+      const instrumentationHookContent = fs.readFileSync(
+        path.resolve(projectDir, ...potentialInstrumentationHookPathSegments),
+        { encoding: 'utf-8' },
+      );
 
-  for (const filename of possibilities) {
+      return (
+        instrumentationHookContent.includes('@sentry/') ||
+        instrumentationHookContent.match(/sentry\.(server|edge)\.config\.(ts|js)/)
+      );
+    } catch (e) {
+      return false;
+    }
+  });
+
+  if (hasInstrumentationHookWithIndicationsOfSentry) {
+    return;
+  }
+
+  for (const filename of [`sentry.${platform}.config.ts`, `sentry.${platform}.config.js`]) {
     if (fs.existsSync(path.resolve(projectDir, filename))) {
       // eslint-disable-next-line no-console
       console.warn(

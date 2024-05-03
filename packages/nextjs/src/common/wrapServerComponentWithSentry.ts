@@ -3,10 +3,10 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
-  getCurrentScope,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
+  withScope,
 } from '@sentry/core';
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 
@@ -55,47 +55,50 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
         const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
-          isolationScope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
-          getCurrentScope().setPropagationContext(propagationContext);
-          return startSpanManual(
-            {
-              op: 'function.nextjs',
-              name: `${componentType} Server Component (${componentRoute})`,
-              forceTransaction: true,
-              attributes: {
-                [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
-                [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
-              },
-            },
-            span => {
-              return handleCallbackErrors(
-                () => originalFunction.apply(thisArg, args),
-                error => {
-                  if (isNotFoundNavigationError(error)) {
-                    // We don't want to report "not-found"s
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
-                  } else if (isRedirectNavigationError(error)) {
-                    // We don't want to report redirects
-                    span.setStatus({ code: SPAN_STATUS_OK });
-                  } else {
-                    span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
-                    captureException(error, {
-                      mechanism: {
-                        handled: false,
-                      },
-                    });
-                  }
-                },
-                () => {
-                  span.end();
+          return withScope(scope => {
+            scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
 
-                  // flushQueue should not throw
-                  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                  flushQueue();
+            scope.setPropagationContext(propagationContext);
+            return startSpanManual(
+              {
+                op: 'function.nextjs',
+                name: `${componentType} Server Component (${componentRoute})`,
+                forceTransaction: true,
+                attributes: {
+                  [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'component',
+                  [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.function.nextjs',
                 },
-              );
-            },
-          );
+              },
+              span => {
+                return handleCallbackErrors(
+                  () => originalFunction.apply(thisArg, args),
+                  error => {
+                    if (isNotFoundNavigationError(error)) {
+                      // We don't want to report "not-found"s
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'not_found' });
+                    } else if (isRedirectNavigationError(error)) {
+                      // We don't want to report redirects
+                      span.setStatus({ code: SPAN_STATUS_OK });
+                    } else {
+                      span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' });
+                      captureException(error, {
+                        mechanism: {
+                          handled: false,
+                        },
+                      });
+                    }
+                  },
+                  () => {
+                    span.end();
+
+                    // flushQueue should not throw
+                    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+                    flushQueue();
+                  },
+                );
+              },
+            );
+          });
         });
       });
     },

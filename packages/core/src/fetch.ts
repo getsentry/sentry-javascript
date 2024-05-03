@@ -17,7 +17,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
+import { spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -67,8 +67,6 @@ export function instrumentFetchRequest(
 
   const { method, url } = handlerData.fetchData;
 
-  const hasParent = !!getActiveSpan();
-
   const fullUrl = getFullURL(url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
@@ -83,9 +81,6 @@ export function instrumentFetchRequest(
           'server.address': host,
           [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
           [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-        },
-        experimental: {
-          standalone: !hasParent,
         },
       })
     : new SentryNonRecordingSpan();

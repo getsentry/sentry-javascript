@@ -5,6 +5,8 @@ import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 interface MinimalNestJsExecutionContext {
+  getType: () => string;
+
   switchToHttp: () => {
     // minimal request object
     // according to official types, all properties are required but
@@ -17,8 +19,14 @@ interface MinimalNestJsExecutionContext {
     };
   };
 }
+
+interface NestJsErrorFilter {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  catch(exception: any, host: any): void;
+}
+
 interface MinimalNestJsApp {
-  useGlobalFilters: (arg0: { catch(exception: unknown): void }) => void;
+  useGlobalFilters: (arg0: NestJsErrorFilter) => void;
   useGlobalInterceptors: (interceptor: {
     intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => void }) => void;
   }) => void;
@@ -40,16 +48,10 @@ const _nestIntegration = (() => {
  */
 export const nestIntegration = defineIntegration(_nestIntegration);
 
-const SentryNestExceptionFilter = {
-  catch(exception: unknown) {
-    captureException(exception);
-  },
-};
-
 /**
  * Setup an error handler for Nest.
  */
-export function setupNestErrorHandler(app: MinimalNestJsApp): void {
+export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
   app.useGlobalInterceptors({
     intercept(context, next) {
       if (getIsolationScope() === getDefaultIsolationScope()) {
@@ -57,13 +59,30 @@ export function setupNestErrorHandler(app: MinimalNestJsApp): void {
         return next.handle();
       }
 
-      const req = context.switchToHttp().getRequest();
-      if (req.route) {
-        getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+      if (context.getType() === 'http') {
+        const req = context.switchToHttp().getRequest();
+        if (req.route) {
+          getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+        }
       }
+
       return next.handle();
     },
   });
 
-  app.useGlobalFilters(SentryNestExceptionFilter);
+  const wrappedFilter = new Proxy(baseFilter, {
+    get(target, prop, receiver) {
+      if (prop === 'catch') {
+        const originalCatch = Reflect.get(target, prop, receiver);
+
+        return (exception: unknown, host: unknown) => {
+          captureException(exception);
+          return originalCatch.apply(target, [exception, host]);
+        };
+      }
+      return Reflect.get(target, prop, receiver);
+    },
+  });
+
+  app.useGlobalFilters(wrappedFilter);
 }

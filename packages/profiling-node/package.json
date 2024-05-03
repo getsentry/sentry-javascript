@@ -82,11 +82,11 @@
     "@sentry/types": "8.0.0-beta.5",
     "@sentry/utils": "8.0.0-beta.5",
     "detect-libc": "^2.0.2",
-    "node-abi": "^3.52.0"
+    "node-abi": "^3.61.0"
   },
   "devDependencies": {
     "@types/node": "16.18.70",
-    "@types/node-abi": "^3.0.0",
+    "@types/node-abi": "^3.0.3",
     "clang-format": "^1.8.0",
     "cross-env": "^7.0.3",
     "node-gyp": "^9.4.1",

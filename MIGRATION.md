@@ -351,6 +351,7 @@ We now support the following integrations out of the box without extra configura
 - `mongooseIntegration`: Automatically instruments Mongoose
 - `mysqlIntegration`: Automatically instruments MySQL
 - `mysql2Integration`: Automatically instruments MySQL2
+- `redisIntegration`: Automatically instruments Redis (supported clients: ioredis)
 - `nestIntegration`: Automatically instruments Nest.js
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
@@ -832,6 +833,24 @@ The following is an example of how to initialize the serverside SDK in a Next.js
    }
    ```
 
+   If you need to import a Node.js specific integration (like for example `@sentry/profiling-node`), you will have to
+   import the package using a dynamic import to prevent Next.js from bundling Node.js APIs into bundles for other
+   runtime environments (like the Browser or the Edge runtime). You can do so as follows:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export async function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       const { nodeProfilingIntegration } = await import('@sentry/profiling-node');
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         integrations: [nodeProfilingIntegration()],
+       });
+     }
+   }
+   ```
+
    Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
@@ -959,11 +978,20 @@ replacement API.
 Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+- [Updated Ember Dependencies](./MIGRATION.md#updated-ember-dependencies)
 
 #### Removal of `InitSentryForEmber` export
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+#### Updated Ember Dependencies
+
+The following dependencies that the SDK uses have been bumped to a more recent version:
+
+- `ember-auto-import` is bumped to `^2.4.3`
+- `ember-cli-babel` is bumped to `^8.2.0`
+- `ember-cli-typescript` is bumped to `^5.3.0`
 
 ### Svelte SDK
 
@@ -1693,7 +1721,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
-- `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
+- `span.getDynamicSamplingContext`: Use `spanToBaggageHeader(span)` utility function instead.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
