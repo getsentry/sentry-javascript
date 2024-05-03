@@ -4,6 +4,30 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-beta.6
+
+This beta release contains various bugfixes and improvements for the v8 beta cycle.
+
+- feat: Add `tunnel` support to multiplexed transport (#11806)
+- feat: Export `spanToBaggageHeader` utility (#11881)
+- feat(browser): Disable standalone `http.client` spans (#11879)
+- feat(ember): Update ember dependencies (#11753)
+- feat(fedback): Convert CDN bundles to use async feedback for lower bundle sizes (#11791)
+- feat(feedback): Add `captureFeedback` method (#11428)
+- feat(feedback): Have screenshot by default (#11839)
+- feat(integrations): Add zod integration (#11144)
+- feat(ioredis): Add integration for `ioredis` (#11856)
+- feat(nextjs): Add transaction name to scope of server component (#11850)
+- feat(nextjs): Be smarter in warning about old ways of init configuration (#11882)
+- feat(nextjs): Set transaction names on scope for route handlers and generation functions (#11869)
+- feat(node): Support Node 22 (#11871)
+- fix(angular): Run tracing calls outside Angular (#11748)
+- fix(feedback): Be consistent about whether screenshot should and can render (#11859)
+- fix(nestjs): Ensure Nest.js interceptor works with non-http context (#11880)
+- fix(node): Fix nest.js error handler (#11874)
+- fix(react): Fix react router v4/v5 instrumentation (#11855)
+- ref: Add geo location types (#11847)
+
 ## 8.0.0-beta.5
 
 This beta release contains various bugfixes and improvements for the v8 beta cycle.
