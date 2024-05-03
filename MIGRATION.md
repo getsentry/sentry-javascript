@@ -833,6 +833,24 @@ The following is an example of how to initialize the serverside SDK in a Next.js
    }
    ```
 
+   If you need to import a Node.js specific integration (like for example `@sentry/profiling-node`), you will have to
+   import the package using a dynamic import to prevent Next.js from bundling Node.js APIs into bundles for other
+   runtime environments (like the Browser or the Edge runtime). You can do so as follows:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export async function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       const { nodeProfilingIntegration } = await import('@sentry/profiling-node');
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         integrations: [nodeProfilingIntegration()],
+       });
+     }
+   }
+   ```
+
    Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
