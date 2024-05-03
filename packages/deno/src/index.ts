@@ -78,6 +78,7 @@ export {
   endSession,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

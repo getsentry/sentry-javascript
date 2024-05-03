@@ -110,6 +110,7 @@ export {
   getRootSpan,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
   zodErrorsIntegration,
 } from '@sentry/core';
