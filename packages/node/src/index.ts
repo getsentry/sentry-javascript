@@ -90,6 +90,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   captureConsoleIntegration,
   debugIntegration,
   dedupeIntegration,

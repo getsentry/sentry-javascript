@@ -18,6 +18,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,

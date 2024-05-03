@@ -27,6 +27,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   close,
   createTransport,
   flush,

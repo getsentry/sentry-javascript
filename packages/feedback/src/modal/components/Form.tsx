@@ -112,17 +112,28 @@ export function Form({
         }
         const formData = new FormData(e.target);
         const attachment = await (screenshotInput && showScreenshotInput ? screenshotInput.value() : undefined);
+
         const data: FeedbackFormData = {
           name: retrieveStringValue(formData, 'name'),
           email: retrieveStringValue(formData, 'email'),
           message: retrieveStringValue(formData, 'message'),
           attachments: attachment ? [attachment] : undefined,
         };
+
         if (!hasAllRequiredFields(data)) {
           return;
         }
+
         try {
-          await onSubmit({ ...data, source: FEEDBACK_WIDGET_SOURCE });
+          await onSubmit(
+            {
+              name: data.name,
+              email: data.email,
+              message: data.message,
+              source: FEEDBACK_WIDGET_SOURCE,
+            },
+            { attachments: data.attachments },
+          );
           onSubmitSuccess(data);
         } catch (error) {
           DEBUG_BUILD && logger.error(error);

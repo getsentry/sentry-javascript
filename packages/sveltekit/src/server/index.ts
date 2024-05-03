@@ -11,6 +11,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   withMonitor,
   createTransport,
   getClient,

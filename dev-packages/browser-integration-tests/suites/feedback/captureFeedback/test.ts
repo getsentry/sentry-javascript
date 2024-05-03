@@ -53,6 +53,10 @@ sentryTest('should capture feedback', async ({ getLocalTestPath, page }) => {
         source: 'widget',
         url: expect.stringContaining('/dist/index.html'),
       },
+      trace: {
+        trace_id: expect.stringMatching(/\w{32}/),
+        span_id: expect.stringMatching(/\w{16}/),
+      },
     },
     level: 'info',
     timestamp: expect.any(Number),

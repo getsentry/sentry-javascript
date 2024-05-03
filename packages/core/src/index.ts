@@ -8,7 +8,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope, createSpanEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -99,6 +99,7 @@ export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

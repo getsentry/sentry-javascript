@@ -1,7 +1,8 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/types';
+import type { Event, SpanEnvelope } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
+import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
@@ -429,3 +430,41 @@ sentryTest(
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
 );
+
+sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestPath, page }) => {
+  if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestPath({ testDir: __dirname });
+
+  const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const pageloadTraceContext = pageloadEvent.contexts?.trace;
+
+  expect(pageloadTraceContext).toMatchObject({
+    op: 'pageload',
+    trace_id: META_TAG_TRACE_ID,
+    parent_span_id: META_TAG_PARENT_SPAN_ID,
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+
+  await page.getByText('Report a Bug').click();
+  expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
+  await page.locator('[name="name"]').fill('Jane Doe');
+  await page.locator('[name="email"]').fill('janedoe@example.org');
+  await page.locator('[name="message"]').fill('my example feedback');
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
+
+  const feedbackEvent = await feedbackEventPromise;
+  const feedbackTraceContext = feedbackEvent.contexts?.trace;
+
+  expect(feedbackEvent.type).toEqual('feedback');
+
+  expect(feedbackTraceContext).toMatchObject({
+    trace_id: META_TAG_TRACE_ID,
+    parent_span_id: META_TAG_PARENT_SPAN_ID,
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+});

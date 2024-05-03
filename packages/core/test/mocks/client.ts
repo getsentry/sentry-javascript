@@ -77,13 +77,14 @@ export class TestClient extends BaseClient<TestClientOptions> {
   public sendEvent(event: Event, hint?: EventHint): void {
     this.event = event;
 
-    // In real life, this will get deleted as part of envelope creation.
-    delete event.sdkProcessingMetadata;
-
     if (this._options.enableSend) {
       super.sendEvent(event, hint);
       return;
     }
+
+    // In real life, this will get deleted as part of envelope creation.
+    delete event.sdkProcessingMetadata;
+
     TestClient.sendEventCalled && TestClient.sendEventCalled(event);
   }
 

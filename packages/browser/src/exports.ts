@@ -88,6 +88,7 @@ export {
   init,
   onLoad,
   showReportDialog,
+  // eslint-disable-next-line deprecation/deprecation
   captureUserFeedback,
 } from './sdk';
 
