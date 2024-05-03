@@ -63,6 +63,10 @@ const BUNDLE_PATHS: Record<string, Record<string, string>> = {
     bundle: 'build/bundles/[INTEGRATION_NAME].js',
     bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
   },
+  feedback: {
+    bundle: 'build/bundles/[INTEGRATION_NAME].js',
+    bundle_min: 'build/bundles/[INTEGRATION_NAME].min.js',
+  },
   wasm: {
     cjs: 'build/npm/cjs/index.js',
     esm: 'build/npm/esm/index.js',
@@ -224,6 +228,24 @@ class SentryScenarioGenerationPlugin {
             .replace('_replay', '')
             .replace('_tracing', '')
             .replace('_feedback', '');
+
+          // For feedback bundle, make sure to add modal & screenshot integrations
+          if (bundleKey.includes('_feedback')) {
+            ['feedback-modal', 'feedback-screenshot'].forEach(integration => {
+              const fileName = `${integration}.bundle.js`;
+
+              // We add the files, but not a script tag - they are lazy-loaded
+              addStaticAssetSymlink(
+                this.localOutPath,
+                path.resolve(
+                  PACKAGES_DIR,
+                  'feedback',
+                  BUNDLE_PATHS['feedback'][integrationBundleKey].replace('[INTEGRATION_NAME]', integration),
+                ),
+                fileName,
+              );
+            });
+          }
 
           this.requiredIntegrations.forEach(integration => {
             const fileName = `${integration}.bundle.js`;
