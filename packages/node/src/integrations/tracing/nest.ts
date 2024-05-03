@@ -5,6 +5,8 @@ import type { IntegrationFn } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 interface MinimalNestJsExecutionContext {
+  getType: () => string;
+
   switchToHttp: () => {
     // minimal request object
     // according to official types, all properties are required but
@@ -57,10 +59,13 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
         return next.handle();
       }
 
-      const req = context.switchToHttp().getRequest();
-      if (req.route) {
-        getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+      if (context.getType() === 'http') {
+        const req = context.switchToHttp().getRequest();
+        if (req.route) {
+          getIsolationScope().setTransactionName(`${req.method?.toUpperCase() || 'GET'} ${req.route.path}`);
+        }
       }
+
       return next.handle();
     },
   });
