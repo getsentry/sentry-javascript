@@ -248,8 +248,10 @@ export function shouldSkipTracingTest(): boolean {
  * @returns `true` if we should skip the feedback test
  */
 export function shouldSkipFeedbackTest(): boolean {
+  // TODO(fn): For now we are skipping feedback tests in all bundles, until we have a proper way to test them.
+  // We need to make sure lazy loading works on release branches...
   const bundle = process.env.PW_BUNDLE as string | undefined;
-  return bundle != null && !bundle.includes('feedback') && !bundle.includes('esm') && !bundle.includes('cjs');
+  return !!bundle && bundle.startsWith('bundle');
 }
 
 /**
