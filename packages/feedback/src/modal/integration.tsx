@@ -2,8 +2,8 @@ import { getCurrentScope } from '@sentry/core';
 import type { CreateDialogProps, FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
+import { Dialog } from './components/Dialog';
 import { createDialogStyles } from './components/Dialog.css';
-import { DialogComponent } from './components/DialogContainer';
 
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
@@ -19,6 +19,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const el = DOCUMENT.createElement('div');
       const style = createDialogStyles();
 
+      let originalOverflow = '';
       const dialog = {
         get el() {
           return el;
@@ -36,9 +37,12 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         open() {
           renderContent(true);
           options.onFormOpen && options.onFormOpen();
+          originalOverflow = DOCUMENT.body.style.overflow;
+          DOCUMENT.body.style.overflow = 'hidden';
         },
         close() {
           renderContent(false);
+          DOCUMENT.body.style.overflow = originalOverflow;
         },
       };
 
@@ -46,9 +50,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
 
       const renderContent = (open: boolean): void => {
         render(
-          <DialogComponent
+          <Dialog
             screenshotInput={screenshotInput}
-            colorScheme={options.colorScheme}
             showBranding={options.showBranding}
             showName={options.showName || options.isNameRequired}
             showEmail={options.showEmail || options.isEmailRequired}

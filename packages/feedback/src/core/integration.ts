@@ -254,13 +254,13 @@ export const buildFeedbackIntegration = ({
       const mergedOptions = mergeOptions(_options, {
         ...optionOverrides,
         onFormOpen() {
-          actor.removeFromDom();
+          actor.hide();
         },
         onFormClose() {
-          actor.appendToDom();
+          actor.show();
         },
         onFormSubmitted() {
-          actor.appendToDom();
+          actor.show();
         },
       });
       _attachTo(actor.el, mergedOptions);
