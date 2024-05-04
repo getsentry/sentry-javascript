@@ -1,4 +1,4 @@
-import type * as http from 'http';
+import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { defineIntegration, getDefaultIsolationScope } from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';

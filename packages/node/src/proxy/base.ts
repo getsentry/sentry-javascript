@@ -29,10 +29,10 @@
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable @typescript-eslint/member-ordering */
 /* eslint-disable jsdoc/require-jsdoc */
-import * as http from 'http';
-import type * as net from 'net';
-import type { Duplex } from 'stream';
-import type * as tls from 'tls';
+import * as http from 'node:http';
+import type * as net from 'node:net';
+import type { Duplex } from 'node:stream';
+import type * as tls from 'node:tls';
 
 export * from './helpers';
 

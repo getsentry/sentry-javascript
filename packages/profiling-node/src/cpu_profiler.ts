@@ -1,9 +1,9 @@
-import { arch as _arch, platform as _platform } from 'os';
-import { join, resolve } from 'path';
+import { arch as _arch, platform as _platform } from 'node:os';
+import { join, resolve } from 'node:path';
+import { env, versions } from 'node:process';
+import { threadId } from 'node:worker_threads';
 import { familySync } from 'detect-libc';
 import { getAbi } from 'node-abi';
-import { env, versions } from 'process';
-import { threadId } from 'worker_threads';
 
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
