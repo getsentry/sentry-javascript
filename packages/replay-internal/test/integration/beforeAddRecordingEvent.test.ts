@@ -171,8 +171,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
       ]),
     );
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.runAllTimersAsync();
 
     expect(replay).not.toHaveLastSentReplay();
     expect(replay.isEnabled()).toBe(true);
