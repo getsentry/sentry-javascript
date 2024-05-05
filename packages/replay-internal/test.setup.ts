@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { Assertion, AsymmetricMatchersContaining, Mocked, MockedFunction } from 'vitest';
+import type { Mocked, MockedFunction } from 'vitest';
 import { printDiffOrStringify } from 'jest-matcher-utils';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -101,6 +101,7 @@ function checkCallForSentReplay(
     : (expected as SentReplayExpected);
 
   if (isObjectContaining) {
+    // eslint-disable-next-line no-console
     console.warn('`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher');
   }
 
@@ -242,18 +243,13 @@ expect.extend({
   toHaveLastSentReplay,
 });
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace vi {
-    interface AsymmetricMatchers {
-      toHaveSentReplay(expected?: SentReplayExpected): void;
-      toHaveLastSentReplay(expected?: SentReplayExpected): void;
-      toHaveSameSession(expected: undefined | Session): void;
-    }
-    interface Matchers<R> {
-      toHaveSentReplay(expected?: SentReplayExpected): R;
-      toHaveLastSentReplay(expected?: SentReplayExpected): R;
-      toHaveSameSession(expected: undefined | Session): R;
-    }
-  }
+interface CustomMatchers<R = unknown> {
+  toHaveSentReplay(expected?: SentReplayExpected): R;
+  toHaveLastSentReplay(expected?: SentReplayExpected): R;
+  toHaveSameSession(expected: undefined | Session): R;
+}
+
+declare module 'vitest' {
+  type Assertion<T = any> = CustomMatchers<T>;
+  type AsymmetricMatchersContaining = CustomMatchers;
 }

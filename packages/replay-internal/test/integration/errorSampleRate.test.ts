@@ -640,7 +640,6 @@ describe('Integration | errorSampleRate', () => {
 
     it('has correct timestamps when error occurs much later than initial pageload/checkout', async () => {
       const ELAPSED = BUFFER_CHECKOUT_TIME;
-      const TICK = 20;
       const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
       mockRecord._emitter(TEST_EVENT);
 

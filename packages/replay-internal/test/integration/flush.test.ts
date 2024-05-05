@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { MockedFunction, MockInstance } from 'vitest';
+import type { MockedFunction } from 'vitest';
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryUtils from '@sentry/utils';
@@ -8,7 +8,6 @@ import { DEFAULT_FLUSH_MIN_DELAY, MAX_REPLAY_DURATION, WINDOW } from '../../src/
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import type { EventBuffer } from '../../src/types';
-import * as AddMemoryEntry from '../../src/util/addMemoryEntry';
 import { createPerformanceEntries } from '../../src/util/createPerformanceEntries';
 import { createPerformanceSpans } from '../../src/util/createPerformanceSpans';
 import * as SendReplay from '../../src/util/sendReplay';
@@ -21,7 +20,6 @@ useFakeTimers();
 
 type MockSendReplay = MockedFunction<any>;
 type MockAddPerformanceEntries = MockedFunction<ReplayContainer['_addPerformanceEntries']>;
-type MockAddMemoryEntry = MockInstance;
 type MockEventBufferFinish = MockedFunction<EventBuffer['finish']>;
 type MockFlush = MockedFunction<ReplayContainer['_flush']>;
 type MockRunFlush = MockedFunction<ReplayContainer['_runFlush']>;
@@ -39,7 +37,6 @@ describe('Integration | flush', () => {
   let mockFlush: MockFlush;
   let mockRunFlush: MockRunFlush;
   let mockEventBufferFinish: MockEventBufferFinish;
-  let mockAddMemoryEntry: MockAddMemoryEntry;
   let mockAddPerformanceEntries: MockAddPerformanceEntries;
 
   beforeAll(async () => {
@@ -68,8 +65,6 @@ describe('Integration | flush', () => {
     mockAddPerformanceEntries.mockImplementation(async () => {
       return [];
     });
-
-    mockAddMemoryEntry = vi.spyOn(AddMemoryEntry, 'addMemoryEntry');
   });
 
   beforeEach(async () => {
