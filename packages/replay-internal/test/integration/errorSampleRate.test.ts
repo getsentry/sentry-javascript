@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
 import { captureException, getClient } from '@sentry/core';
+import { vi } from 'vitest';
 
 import {
   BUFFER_CHECKOUT_TIME,

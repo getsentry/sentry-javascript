@@ -2,11 +2,11 @@ import { vi } from 'vitest';
 
 import { EventType } from '@sentry-internal/rrweb';
 
+import { saveSession } from '../../src/session/saveSession';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { resetSdkMock } from '../mocks/resetSdkMock';
 import { useFakeTimers } from '../utils/use-fake-timers';
-import { saveSession } from '../../src/session/saveSession';
 
 useFakeTimers();
 

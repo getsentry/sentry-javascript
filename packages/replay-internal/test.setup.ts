@@ -1,6 +1,6 @@
+import { printDiffOrStringify } from 'jest-matcher-utils';
 import { vi } from 'vitest';
 import type { Mocked, MockedFunction } from 'vitest';
-import { printDiffOrStringify } from 'jest-matcher-utils';
 
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getClient } from '@sentry/core';

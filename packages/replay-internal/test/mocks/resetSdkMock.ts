@@ -1,5 +1,5 @@
-import { vi } from 'vitest';
 import { resetInstrumentationHandlers } from '@sentry/utils';
+import { vi } from 'vitest';
 
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';

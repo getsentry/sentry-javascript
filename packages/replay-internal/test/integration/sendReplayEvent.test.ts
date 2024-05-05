@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type { MockedFunction, MockInstance } from 'vitest';
+import type { MockInstance, MockedFunction } from 'vitest';
 
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';
