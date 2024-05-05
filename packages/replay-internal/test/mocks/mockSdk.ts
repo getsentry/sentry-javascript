@@ -5,7 +5,6 @@ import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import type { ReplayConfiguration } from '../../src/types';
 import type { TestClientOptions } from '../utils/TestClient';
-import { BASE_TIMESTAMP } from './../index';
 import { getDefaultClientOptions, init } from '../utils/TestClient';
 
 export interface MockSdkParams {
@@ -52,7 +51,6 @@ export async function mockSdk({ replayOptions, sentryOptions, autoStart = true }
 }> {
   const { Replay } = await import('../../src/integration');
 
-  vi.setSystemTime(new Date(BASE_TIMESTAMP));
   // Scope this to the test, instead of the module
   let _initialized = false;
   class TestReplayIntegration extends Replay {

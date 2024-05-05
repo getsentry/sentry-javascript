@@ -357,7 +357,7 @@ describe('Integration | session', () => {
 
     await vi.runAllTimersAsync();
 
-    expect(replay.session.id).not.toBe(initialSession.id);
+    expect(replay).not.toHaveSameSession(initialSession);
     expect(replay).not.toHaveLastSentReplay();
     expect(replay['_stopRecording']).toBeDefined();
 

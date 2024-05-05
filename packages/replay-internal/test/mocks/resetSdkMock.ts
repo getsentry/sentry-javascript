@@ -39,8 +39,6 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
 
   // XXX: This is needed to ensure `domHandler` is set
   await vi.runAllTimersAsync();
-  // vi.runAllTimers();
-  // await new Promise(process.nextTick);
   vi.setSystemTime(new Date(BASE_TIMESTAMP));
 
   return {

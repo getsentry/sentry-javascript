@@ -9,7 +9,9 @@ describe('Unit | coreHandlers | util | xhrUtils', () => {
 
     it('works with a Document', () => {
       const doc = document.implementation.createHTMLDocument();
-      doc.body.innerHTML = '<div>abc</div>';
+      const bodyEl = document.createElement('body');
+      bodyEl.innerHTML = '<div>abc</div>';
+      doc.body = bodyEl;
 
       const actual = _parseXhrResponse(doc, '');
       expect(actual).toEqual(['<body><div>abc</div></body>']);

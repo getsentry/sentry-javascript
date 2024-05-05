@@ -1,3 +1,6 @@
+import { vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+
 import { EventType } from '@sentry-internal/rrweb';
 
 import { BASE_TIMESTAMP } from '../..';
