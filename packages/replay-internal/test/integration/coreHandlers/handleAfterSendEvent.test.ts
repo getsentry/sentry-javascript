@@ -169,12 +169,12 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    // This is a bit flakey: handleAfterSendEvent calls
-    // `sendBufferedReplayOrFlush`, which flushes immediately but also
-    // calls `startRecording` which eventually triggers another flush after
-    // flush delay. I'm unable to get stable timer controls, so just
-    // testing the end result, which is that send gets called twice.
+    // handleAfterSendEvent calls `sendBufferedReplayOrFlush`, which
+    // flushes immediately but also calls `startRecording` which eventually
+    // triggers another flush after flush delay.
     await vi.runOnlyPendingTimersAsync();
+    expect(mockSend).toHaveBeenCalledTimes(1);
+
     await vi.runOnlyPendingTimersAsync();
     expect(mockSend).toHaveBeenCalledTimes(2);
 
