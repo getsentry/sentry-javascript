@@ -734,7 +734,7 @@ describe('Integration | errorSampleRate', () => {
       expect(replay.getSessionId()).not.toBe(sessionId);
     });
 
-    it.only('refreshes replay when session exceeds max length after latest captured error', async () => {
+    it('refreshes replay when session exceeds max length after latest captured error', async () => {
       const sessionId = replay.session?.id;
       vi.setSystemTime(BASE_TIMESTAMP);
 
@@ -826,6 +826,7 @@ describe('Integration | errorSampleRate', () => {
 
       // Now capture an error
       captureException(new Error('testing'));
+      await vi.advanceTimersToNextTimerAsync();
       await vi.advanceTimersToNextTimerAsync();
 
       expect(replay).toHaveLastSentReplay({
