@@ -82,8 +82,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
 
     // Does not affect error session
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
     expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
@@ -208,8 +207,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     // Send once for the regular session sending
     expect(mockSend).toHaveBeenCalledTimes(1);
@@ -244,8 +242,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     expect(mockSend).toHaveBeenCalledTimes(0);
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
@@ -277,8 +274,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
@@ -311,8 +307,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
@@ -345,8 +340,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     // Remains in buffer mode & without flushing
     expect(mockSend).toHaveBeenCalledTimes(0);
@@ -377,8 +371,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     replay['_isEnabled'] = false;
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     expect(mockSend).toHaveBeenCalledTimes(0);
   });
@@ -408,8 +401,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     handler(error1, { statusCode: 200 });
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     expect(beforeErrorSampling).toHaveBeenCalledTimes(1);
 
@@ -420,8 +412,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     handler(error2, { statusCode: 200 });
 
-    vi.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.advanceTimersToNextTimerAsync();
 
     expect(beforeErrorSampling).toHaveBeenCalledTimes(2);
 
