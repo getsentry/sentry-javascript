@@ -3,5 +3,5 @@
   "compilerOptions": {
     "module": "esnext"
   },
-  "include": ["src/**/*.ts", "./test.setup.ts", "./vitest.config.ts"]
+  "include": ["src/**/*.ts"]
 }
