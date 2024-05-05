@@ -53,8 +53,8 @@
     "clean": "rimraf build sentry-replay-*.tgz",
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
-    "test": "jest",
-    "test:watch": "jest --watch",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
     "yalc:publish": "ts-node ../../scripts/prepack.ts --bundles && yalc publish ./build/npm --push --sig"
   },
   "repository": {
@@ -73,7 +73,10 @@
     "@sentry-internal/rrweb": "2.15.0",
     "@sentry-internal/rrweb-snapshot": "2.15.0",
     "fflate": "^0.8.1",
-    "jsdom-worker": "^0.2.1"
+    "jest-matcher-utils": "^29.0.0",
+    "jsdom": "^24.0.0",
+    "jsdom-worker": "^0.2.1",
+    "vitest": "^1.5.3"
   },
   "dependencies": {
     "@sentry-internal/browser-utils": "8.0.0-beta.5",

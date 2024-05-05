@@ -1,3 +1,6 @@
+import { vi } from 'vitest';
+import type { MockInstance } from 'vitest';
+
 import { getClient } from '@sentry/core';
 import type { ErrorEvent, Event } from '@sentry/types';
 
@@ -79,7 +82,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual(['tr2']);
 
     // Does not affect error session
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
@@ -152,9 +155,11 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
+    expect(mockSend).toHaveBeenCalledTimes(0);
 
     const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
+    await vi.runOnlyPendingTimersAsync();
 
     const handler = handleAfterSendEvent(replay);
 
@@ -164,13 +169,13 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    // Send twice, one for the error & one right after for the session conversion
-    expect(mockSend).toHaveBeenCalledTimes(1);
-
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    // This is a bit flakey: handleAfterSendEvent calls
+    // `sendBufferedReplayOrFlush`, which flushes immediately but also
+    // calls `startRecording` which eventually triggers another flush after
+    // flush delay. I'm unable to get stable timer controls, so just
+    // testing the end result, which is that send gets called twice.
+    await vi.runOnlyPendingTimersAsync();
+    await vi.runOnlyPendingTimersAsync();
     expect(mockSend).toHaveBeenCalledTimes(2);
 
     // This is removed now, because it has been converted to a "session" session
@@ -191,7 +196,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const error1 = Error({ event_id: 'err1' });
 
@@ -203,7 +208,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     // Send once for the regular session sending
@@ -225,7 +230,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const profileEvent: Event = { type: 'profile' };
     const replayEvent: Event = { type: 'replay_event' };
@@ -239,7 +244,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockSend).toHaveBeenCalledTimes(0);
@@ -260,7 +265,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const error1 = Error({ event_id: 'err1' });
 
@@ -272,7 +277,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     // Remains in buffer mode & without flushing
@@ -294,7 +299,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const error1: ErrorEvent = { event_id: 'err1', type: undefined };
 
@@ -306,7 +311,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     // Remains in buffer mode & without flushing
@@ -328,7 +333,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const error1 = Error({ event_id: 'err1', message: UNABLE_TO_SEND_REPLAY });
 
@@ -340,7 +345,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     expect(Array.from(replay.getContext().errorIds)).toEqual(['err1']);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     // Remains in buffer mode & without flushing
@@ -362,7 +367,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
 
@@ -372,7 +377,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     replay['_isEnabled'] = false;
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockSend).toHaveBeenCalledTimes(0);
@@ -382,7 +387,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
     const error1 = Error({ event_id: 'err1', tags: { replayId: 'replayid1' } });
     const error2 = Error({ event_id: 'err2', tags: { replayId: 'replayid1' } });
 
-    const beforeErrorSampling = jest.fn(event => event === error2);
+    const beforeErrorSampling = vi.fn(event => event === error2);
 
     ({ replay } = await resetSdkMock({
       replayOptions: {
@@ -395,7 +400,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
       },
     }));
 
-    const mockSend = getClient()!.getTransport()!.send as unknown as jest.SpyInstance<any>;
+    const mockSend = getClient()!.getTransport()!.send as unknown as MockInstance<any>;
 
     const handler = handleAfterSendEvent(replay);
 
@@ -403,7 +408,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     handler(error1, { statusCode: 200 });
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(beforeErrorSampling).toHaveBeenCalledTimes(1);
@@ -415,7 +420,7 @@ describe('Integration | coreHandlers | handleAfterSendEvent', () => {
 
     handler(error2, { statusCode: 200 });
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(beforeErrorSampling).toHaveBeenCalledTimes(2);

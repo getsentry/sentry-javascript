@@ -1,3 +1,6 @@
+import { vi } from 'vitest';
+import type { MockedFunction, MockInstance } from 'vitest';
+
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryCore from '@sentry/core';
 import type { Transport } from '@sentry/types';
@@ -14,24 +17,19 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-async function advanceTimers(time: number) {
-  jest.advanceTimersByTime(time);
-  await new Promise(process.nextTick);
-}
-
-type MockTransportSend = jest.MockedFunction<Transport['send']>;
+type MockTransportSend = MockedFunction<Transport['send']>;
 
 describe('Integration | beforeAddRecordingEvent', () => {
   let replay: ReplayContainer;
   let integration: Replay;
   let mockTransportSend: MockTransportSend;
-  let mockSendReplayRequest: jest.SpyInstance<any>;
+  let mockSendReplayRequest: MockInstance<any>;
   let domHandler: DomHandler;
   const { record: mockRecord } = mockRrweb();
 
   beforeAll(async () => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
+    vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
       domHandler = handler;
     });
 
@@ -69,14 +67,14 @@ describe('Integration | beforeAddRecordingEvent', () => {
       },
     }));
 
-    mockSendReplayRequest = jest.spyOn(SendReplayRequest, 'sendReplayRequest');
+    mockSendReplayRequest = vi.spyOn(SendReplayRequest, 'sendReplayRequest');
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     mockTransportSend = SentryCore.getClient()?.getTransport()?.send as MockTransportSend;
   });
 
   beforeEach(() => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
     mockRecord.takeFullSnapshot.mockClear();
     mockTransportSend.mockClear();
 
@@ -90,9 +88,9 @@ describe('Integration | beforeAddRecordingEvent', () => {
   });
 
   afterEach(async () => {
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
     clearSession(replay);
   });
 
@@ -106,7 +104,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
       event: new Event('click'),
     });
 
-    await advanceTimers(5000);
+    await vi.runAllTimersAsync();
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -135,8 +133,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
 
     integration.start();
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.runAllTimersAsync();
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
       recordingData: JSON.stringify([{ data: { isCheckout: true }, timestamp: BASE_TIMESTAMP, type: 2 }]),
@@ -174,7 +171,7 @@ describe('Integration | beforeAddRecordingEvent', () => {
       ]),
     );
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(replay).not.toHaveLastSentReplay();

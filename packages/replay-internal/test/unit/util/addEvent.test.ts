@@ -1,5 +1,7 @@
 import 'jsdom-worker';
 
+import { vi } from 'vitest';
+
 import { BASE_TIMESTAMP } from '../..';
 import { MAX_REPLAY_DURATION, REPLAY_MAX_EVENT_BUFFER_SIZE, SESSION_IDLE_PAUSE_DURATION } from '../../../src/constants';
 import type { EventBufferProxy } from '../../../src/eventBuffer/EventBufferProxy';
@@ -12,7 +14,7 @@ useFakeTimers();
 
 describe('Unit | util | addEvent', () => {
   it('stops when encountering a compression error', async function () {
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     const replay = setupReplayContainer({
       options: {
@@ -20,10 +22,11 @@ describe('Unit | util | addEvent', () => {
       },
     });
 
+    await vi.runAllTimersAsync();
     await (replay.eventBuffer as EventBufferProxy).ensureWorkerIsLoaded();
 
     // @ts-expect-error Mock this private so it triggers an error
-    jest.spyOn(replay.eventBuffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
+    vi.spyOn(replay.eventBuffer._compression._worker, 'postMessage').mockImplementationOnce(() => {
       return Promise.reject('test worker error');
     });
 
@@ -33,13 +36,15 @@ describe('Unit | util | addEvent', () => {
   });
 
   it('stops when exceeding buffer size limit', async function () {
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
 
     const replay = setupReplayContainer({
       options: {
         useCompression: true,
       },
     });
+
+    await vi.runAllTimersAsync();
 
     const largeEvent = getTestEventIncremental({
       data: { a: 'a'.repeat(REPLAY_MAX_EVENT_BUFFER_SIZE / 3) },
@@ -60,7 +65,7 @@ describe('Unit | util | addEvent', () => {
 
   describe('shouldAddEvent', () => {
     beforeEach(() => {
-      jest.setSystemTime(BASE_TIMESTAMP);
+      vi.setSystemTime(BASE_TIMESTAMP);
     });
 
     it('returns true by default', () => {
