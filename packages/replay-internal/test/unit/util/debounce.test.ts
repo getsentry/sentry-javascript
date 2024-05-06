@@ -1,8 +1,12 @@
-import { debounce } from '../../../src/util/debounce';
 import { useFakeTimers } from '../../utils/use-fake-timers';
 
+useFakeTimers();
+
+import { vi } from 'vitest';
+
+import { debounce } from '../../../src/util/debounce';
+
 describe('Unit | util | debounce', () => {
-  useFakeTimers();
   it('delay the execution of the passed callback function by the passed minDelay', () => {
     const callback = vi.fn();
     const debouncedCallback = debounce(callback, 100);

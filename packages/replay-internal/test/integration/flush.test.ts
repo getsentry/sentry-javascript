@@ -1,6 +1,10 @@
 import { vi } from 'vitest';
 import type { MockedFunction } from 'vitest';
 
+import { useFakeTimers } from '../utils/use-fake-timers';
+
+useFakeTimers();
+
 import * as SentryBrowserUtils from '@sentry-internal/browser-utils';
 import * as SentryUtils from '@sentry/utils';
 
@@ -14,9 +18,6 @@ import * as SendReplay from '../../src/util/sendReplay';
 import { BASE_TIMESTAMP, mockRrweb, mockSdk } from '../index';
 import type { DomHandler } from '../types';
 import { getTestEventCheckout } from '../utils/getTestEvent';
-import { useFakeTimers } from '../utils/use-fake-timers';
-
-useFakeTimers();
 
 type MockSendReplay = MockedFunction<any>;
 type MockAddPerformanceEntries = MockedFunction<ReplayContainer['_addPerformanceEntries']>;
