@@ -18,7 +18,8 @@
     "types",
     "types-ts3.8",
     "scripts",
-    "register.mjs"
+    "import-hook.mjs",
+    "loader-hook.mjs"
   ],
   "main": "build/cjs/index.server.js",
   "module": "build/esm/index.server.js",
