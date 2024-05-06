@@ -4,6 +4,105 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-rc.0
+
+This is the first release candidate of Sentry JavaScript SDK v8.
+
+We also recommend, reading the detailed
+[migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in the docs.
+
+### Version Support
+
+The Sentry JavaScript SDK v8 now supports Node.js 14.8.0 or higher. This applies to @sentry/node and all of our
+node-based server-side sdks (@sentry/nextjs, @sentry/remix, etc.).
+
+The browser SDKs now require ES2018+ compatible browsers. New minimum browser versions:
+
+Chrome 63 Edge 79 Safari/iOS Safari 12 Firefox 58 Opera 50 Samsung Internet 8.2
+
+For more details, please see the
+[version support section in migration guide](https://github.com/getsentry/sentry-javascript/blob/8.0.0-beta.1/MIGRATION.md#1-version-support-changes).
+
+### Important Changes
+
+- **feat(svelte): Add Svelte 5 support (#11807)**:
+
+We now officially support Svelte 5.
+
+- **feat(node): Support Node 22 (#11871)**:
+
+We now officially support Node 22.
+
+- **fix(node): Fix nest.js error handler (#11874)**
+
+Errors in Nest.js were sent to Sentry, but the application itself was not working as expected anymore. Now you'll have
+to pass the Nest.js `BaseExceptionFilter` like this:
+
+```typescript
+import { BaseExceptionFilter, HttpAdapterHost } from '@nestjs/core';
+
+const { httpAdapter } = app.get(HttpAdapterHost);
+Sentry.setupNestErrorHandler(app, new BaseExceptionFilter(httpAdapter));
+```
+
+- **feat(browser): Send standalone fetch and XHR spans if there's no active parent span (#11783)**
+
+Starting with this version, spans for outgoing fetch/xhr requests will be captured even if no pageload/navigation span
+is ongoing. This means that you will be able to have a more complete trace, especially for web applications that make a
+lot of HTTP requests on longer-lived pages.
+
+- **feat(browser): Add INP support for v8 (#11650)**
+
+INP web vital support was now forward-ported to version 8. Recording of INP data is enabled by default.
+
+- **feat(core): Increase default transport buffer size from 30 to 64 (#11764)**
+
+The default limit of queued events to be sent was increased from 30 to 64 events. You may observe a higher memory
+footprint of the SDK. You can override this limit by setting the `transportOptions.bufferSize` option in
+`Sentry.init()`.
+
+- **feat(replay): Add "maxCanvasSize" option for replay canvases (#11617)**:
+
+A `maxCanvasSize` option was added to the `replayCanvasIntegration` to disallow capturing of canvases larger than a
+certain size. This value defaults to `1280` which will not capture canvases bigger than 1280x1280 pixels.
+
+- **feat(opentelemetry): Add `addOpenTelemetryInstrumentation` (#11667)**
+
+A utility function `addOpenTelemetryInstrumentation` was added that allows for the registration of instrumentations that
+conform to the OpenTelemetry JS API without having to specify `@opentelemetry/instrumentation` as a dependency.
+
+- **ref(core): Don't start transaction for trpc middleware (#11697)**
+
+Going forward, the Sentry `trpcMiddleware` will only create spans. Previously it used to always create a transaction.
+This change was made to integrate more nicely with the HTTP instrumentation added in earlier versions to avoid creating
+unnecessary transactions.
+
+- **feat(browser): Update `propagationContext` on `spanEnd` to keep trace consistent**
+
+To ensure consistency throughout a route's duration, we update the scope's propagation context when the initial page
+load or navigation span ends. This keeps span-specific attributes like the sampled decision and dynamic sampling context
+on the scope, even after the transaction has ended.
+
+- **fix(browser): Don't assume window.document is available (#11602)**
+
+We won't assume `window.document` is available in the browser SDKs anymore. This should prevent errors in environments
+where `window.document` is not available (such as web workers).
+
+### Package Removal
+
+The following packages will no longer be published:
+
+- [@sentry/hub](./MIGRATION.md#sentryhub)
+- [@sentry/tracing](./MIGRATION.md#sentrytracing)
+- [@sentry/integrations](./MIGRATION.md#sentryintegrations)
+- [@sentry/serverless](./MIGRATION.md#sentryserverless)
+- [@sentry/replay](./MIGRATION.md#sentryreplay)
+
+### Other Changes
+
+This release also includes numerous other features, fixes, and improvements. For a complete list, please refer to the
+individual beta release notes.
+
 ## 8.0.0-beta.6
 
 This beta release contains various bugfixes and improvements for the v8 beta cycle.
