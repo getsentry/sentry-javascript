@@ -1,2 +1,2 @@
 import { register } from 'module';
-register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+register('import-in-the-middle/hook.mjs', import.meta.url);
