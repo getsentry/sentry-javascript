@@ -52,17 +52,17 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
         }),
         expect.objectContaining({
           data: {
-            'db.statement': expect.any(String) /* expect.stringContaining(
+            'db.statement': expect.stringContaining(
               'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
-            ), */,
+            ),
             'otel.kind': 'INTERNAL',
             'sentry.origin': 'auto.db.otel.prisma',
             'db.system': 'prisma',
             'sentry.op': 'db',
           },
-          /* description: expect.stringContaining(
+          description: expect.stringContaining(
             'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
-          ), */
+          ),
           status: 'ok',
         }),
         expect.objectContaining({
