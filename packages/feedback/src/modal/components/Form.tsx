@@ -1,15 +1,11 @@
-import type {
-  FeedbackFormData,
-  FeedbackInternalOptions,
-  FeedbackScreenshotIntegration,
-  SendFeedback,
-} from '@sentry/types';
+import type { SendFeedback } from '@sentry/types';
 import { logger } from '@sentry/utils';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { JSX, VNode } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
+import type { FeedbackFormData, FeedbackInternalOptions, FeedbackScreenshotIntegration } from '../../types';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 

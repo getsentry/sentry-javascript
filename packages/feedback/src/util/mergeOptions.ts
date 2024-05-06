@@ -1,5 +1,5 @@
-import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
 import type { OptionalFeedbackConfiguration } from '../core/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '../types';
 
 /**
  * Quick and dirty deep merge for the Feedback integration options

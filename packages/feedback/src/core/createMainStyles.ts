@@ -1,5 +1,5 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../constants';
+import type { FeedbackInternalOptions } from '../types';
 
 function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
   return `

@@ -1,12 +1,5 @@
 import { getClient } from '@sentry/core';
-import type {
-  FeedbackDialog,
-  FeedbackInternalOptions,
-  FeedbackModalIntegration,
-  FeedbackScreenshotIntegration,
-  Integration,
-  IntegrationFn,
-} from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
   ACTOR_LABEL,
@@ -24,6 +17,12 @@ import {
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
 } from '../constants';
+import type {
+  FeedbackDialog,
+  FeedbackInternalOptions,
+  FeedbackModalIntegration,
+  FeedbackScreenshotIntegration,
+} from '../types';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
