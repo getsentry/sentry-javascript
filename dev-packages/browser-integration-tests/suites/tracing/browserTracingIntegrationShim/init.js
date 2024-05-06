@@ -7,6 +7,3 @@ Sentry.init({
   sampleRate: 1,
   integrations: [Sentry.browserTracingIntegration()],
 });
-
-// This should not fail
-Sentry.addTracingExtensions();
