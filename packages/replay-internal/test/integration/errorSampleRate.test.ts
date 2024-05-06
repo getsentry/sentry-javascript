@@ -946,8 +946,6 @@ describe('Integration | errorSampleRate', () => {
     integration['_initialize']();
     const optionsEvent = createOptionsEvent(replay);
 
-    await vi.runAllTimersAsync();
-
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
     mockRecord._emitter(TEST_EVENT);
 
@@ -958,8 +956,6 @@ describe('Integration | errorSampleRate', () => {
     // 2 ticks to send replay from an error
     await vi.advanceTimersToNextTimerAsync();
     await vi.advanceTimersToNextTimerAsync();
-
-    await vi.runAllTimersAsync();
 
     // Buffered events before error
     expect(replay).toHaveSentReplay({
