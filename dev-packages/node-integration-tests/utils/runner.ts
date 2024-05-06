@@ -159,6 +159,7 @@ export function createRunner(...paths: string[]) {
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   let expectError = false;
+  const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -335,12 +336,14 @@ export function createRunner(...paths: string[]) {
             child?.kill();
           });
 
-          if (ensureNoErrorOutput) {
-            child.stderr?.on('data', (data: Buffer) => {
-              const output = data.toString();
+          child.stderr?.on('data', (data: Buffer) => {
+            const output = data.toString();
+            logs.push(output.trim());
+
+            if (ensureNoErrorOutput) {
               complete(new Error(`Expected no error output but got: '${output}'`));
-            });
-          }
+            }
+          });
 
           child.on('close', () => {
             hasExited = true;
@@ -389,6 +392,8 @@ export function createRunner(...paths: string[]) {
             let splitIndex = -1;
             while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
               const line = buffer.subarray(0, splitIndex).toString();
+              logs.push(line.trim());
+
               buffer = Buffer.from(buffer.subarray(splitIndex + 1));
               // eslint-disable-next-line no-console
               if (process.env.DEBUG) console.log('line', line);
@@ -401,6 +406,9 @@ export function createRunner(...paths: string[]) {
       return {
         childHasExited: function (): boolean {
           return hasExited;
+        },
+        getLogs(): string[] {
+          return logs;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',
