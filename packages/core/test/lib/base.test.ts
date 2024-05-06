@@ -978,6 +978,38 @@ describe('BaseClient', () => {
       expect(TestClient.instance!.event!.transaction).toBe('/dogs/are/great');
     });
 
+    test('calls `beforeSendSpan` and uses original spans without any changes', () => {
+      expect.assertions(2);
+
+      const beforeSendSpan = jest.fn(span => span);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toEqual(transaction.spans);
+    });
+
     test('calls `beforeSend` and uses the modified event', () => {
       expect.assertions(2);
 
@@ -1008,6 +1040,45 @@ describe('BaseClient', () => {
 
       expect(beforeSendTransaction).toHaveBeenCalled();
       expect(TestClient.instance!.event!.transaction).toBe('/adopt/dont/shop');
+    });
+
+    test('calls `beforeSendSpan` and uses the modified spans', () => {
+      expect.assertions(3);
+
+      const beforeSendSpan = jest.fn(span => {
+        span.data = { version: 'bravo' };
+        return span;
+      });
+
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      for (const [idx, span] of capturedEvent.spans!.entries()) {
+        const originalSpan = transaction.spans![idx];
+        expect(span).toEqual({ ...originalSpan, data: { version: 'bravo' } });
+      }
     });
 
     test('calls `beforeSend` and discards the event', () => {

@@ -896,14 +896,20 @@ function processBeforeSend(
   event: Event,
   hint: EventHint,
 ): PromiseLike<Event | null> | Event | null {
-  const { beforeSend, beforeSendTransaction } = options;
+  const { beforeSend, beforeSendTransaction, beforeSendSpan } = options;
 
   if (isErrorEvent(event) && beforeSend) {
     return beforeSend(event, hint);
   }
 
-  if (isTransactionEvent(event) && beforeSendTransaction) {
-    return beforeSendTransaction(event, hint);
+  if (isTransactionEvent(event)) {
+    if (event.spans && beforeSendSpan) {
+      event.spans = event.spans.map(span => beforeSendSpan(span));
+    }
+
+    if (beforeSendTransaction) {
+      return beforeSendTransaction(event, hint);
+    }
   }
 
   return event;

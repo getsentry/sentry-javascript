@@ -259,7 +259,7 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this]));
+      sendSpanEnvelope(createSpanEnvelope([this], client));
       return;
     }
 

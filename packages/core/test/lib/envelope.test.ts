@@ -157,4 +157,71 @@ describe('createSpanEnvelope', () => {
       sent_at: expect.any(String),
     });
   });
+
+  it('calls `beforeSendSpan` and uses original span without any changes', () => {
+    const beforeSendSpan = jest.fn(span => span);
+    const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
+    const client = new TestClient(options);
+
+    const span = new SentrySpan({
+      name: 'test',
+      isStandalone: true,
+      startTimestamp: 1,
+      endTimestamp: 2,
+    });
+
+    const spanEnvelope = createSpanEnvelope([span], client);
+
+    expect(beforeSendSpan).toHaveBeenCalled();
+
+    const spanItem = spanEnvelope[1][0][1];
+    expect(spanItem).toEqual({
+      data: {
+        'sentry.origin': 'manual',
+      },
+      description: 'test',
+      is_segment: true,
+      origin: 'manual',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      segment_id: spanItem.segment_id,
+      start_timestamp: 1,
+      timestamp: 2,
+      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+  });
+
+  it('calls `beforeSendSpan` and uses the modified span', () => {
+    const beforeSendSpan = jest.fn(span => {
+      span.description = `mutated description: ${span.description}`;
+      return span;
+    });
+    const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
+    const client = new TestClient(options);
+
+    const span = new SentrySpan({
+      name: 'test',
+      isStandalone: true,
+      startTimestamp: 1,
+      endTimestamp: 2,
+    });
+
+    const spanEnvelope = createSpanEnvelope([span], client);
+
+    expect(beforeSendSpan).toHaveBeenCalled();
+
+    const spanItem = spanEnvelope[1][0][1];
+    expect(spanItem.description).toEqual({
+      data: {
+        'sentry.origin': 'manual',
+      },
+      description: 'mutated description: test',
+      is_segment: true,
+      origin: 'manual',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      segment_id: spanItem.segment_id,
+      start_timestamp: 1,
+      timestamp: 2,
+      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+  });
 });
