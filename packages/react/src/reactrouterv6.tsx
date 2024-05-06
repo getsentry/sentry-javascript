@@ -60,7 +60,7 @@ interface ReactRouterOptions {
 
 /**
  * A browser tracing integration that uses React Router v6 to instrument navigations.
- * Expects `history` (and optionally `routes` and `matchPath`) to be passed as options.
+ * Expects `useEffect`, `useLocation`, `useNavigationType`, `createRoutesFromChildren` and `matchRoutes` to be passed as options.
  */
 export function reactRouterV6BrowserTracingIntegration(
   options: Parameters<typeof browserTracingIntegration>[0] & ReactRouterOptions,
