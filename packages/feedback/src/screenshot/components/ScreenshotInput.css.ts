@@ -10,11 +10,6 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   const gray100 = '#302735';
 
   style.textContent = `
-.dialog__content:has(.editor) {
-  top: var(--bottom);
-  left: var(--right);
-}
-
 .editor {
   padding: 10px;
   padding-top: 65px;

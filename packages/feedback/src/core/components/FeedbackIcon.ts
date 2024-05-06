@@ -11,11 +11,10 @@ export function FeedbackIcon(): SVGElement {
   const createElementNS = <K extends keyof SVGElementTagNameMap>(tagName: K): SVGElementTagNameMap[K] =>
     WINDOW.document.createElementNS(XMLNS, tagName);
   const svg = setAttributesNS(createElementNS('svg'), {
-    class: 'feedback-icon',
     width: `${SIZE}`,
     height: `${SIZE}`,
     viewBox: `0 0 ${SIZE} ${SIZE}`,
-    fill: 'none',
+    fill: 'var(--foreground)',
   });
 
   const g = setAttributesNS(createElementNS('g'), {

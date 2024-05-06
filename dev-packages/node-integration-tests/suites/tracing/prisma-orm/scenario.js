@@ -1,6 +1,3 @@
-const { randomBytes } = require('crypto');
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
-const { PrismaClient } = require('@prisma/client');
 const Sentry = require('@sentry/node');
 const { loggingTransport } = require('@sentry-internal/node-integration-tests');
 
@@ -11,6 +8,9 @@ Sentry.init({
   transport: loggingTransport,
   integrations: [Sentry.prismaIntegration()],
 });
+
+const { randomBytes } = require('crypto');
+const { PrismaClient } = require('@prisma/client');
 
 // Stop the process from exiting before the transaction is sent
 setInterval(() => {}, 1000);
@@ -49,5 +49,4 @@ async function run() {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-floating-promises
 run();

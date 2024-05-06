@@ -311,12 +311,12 @@ sentryTest(
 
 sentryTest(
   'user feedback event after navigation has navigation traceId in headers',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     // ensure pageload transaction is finished
     await getFirstSentryEnvelopeRequest<Event>(page, url);
