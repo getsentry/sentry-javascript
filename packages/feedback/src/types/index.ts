@@ -1,5 +1,5 @@
 import type { Attachment, Integration, SendFeedback } from '@sentry/types';
-import type { VNode, h as HType } from 'preact';
+import type { VNode } from 'preact';
 
 export type { FeedbackFormData } from './form';
 
@@ -59,10 +59,7 @@ export interface FeedbackModalIntegration extends Integration {
 }
 
 export interface FeedbackScreenshotIntegration extends Integration {
-  createInput: (
-    h: HType,
-    dialog: FeedbackDialog,
-  ) => {
+  createInput: (dialog: FeedbackDialog) => {
     /**
      * The preact component
      */

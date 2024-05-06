@@ -1,4 +1,4 @@
-import type { Attachment } from '../attachment';
+import type { Attachment } from '@sentry/types';
 
 export type FeedbackFormData = {
   name: string;

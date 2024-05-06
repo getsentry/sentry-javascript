@@ -1,6 +1,6 @@
 /* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
-// biome-ignore lint: needed for preact
+// biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { CROP_COLOR, DOCUMENT, WINDOW } from '../../constants';
@@ -14,7 +14,6 @@ const CROP_BUTTON_OFFSET = CROP_BUTTON_SIZE + CROP_BUTTON_BORDER;
 const DPI = WINDOW.devicePixelRatio;
 
 interface FactoryParams {
-  h: typeof hType;
   imageBuffer: HTMLCanvasElement;
   dialog: FeedbackDialog;
 }
@@ -62,7 +61,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: FactoryParams): ComponentType<Props> {
+export function makeScreenshotEditorComponent({ imageBuffer, dialog }: FactoryParams): ComponentType<Props> {
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 

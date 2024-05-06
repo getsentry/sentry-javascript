@@ -47,7 +47,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
       };
 
-      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h, dialog);
+      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(dialog);
 
       const renderContent = (open: boolean): void => {
         render(
