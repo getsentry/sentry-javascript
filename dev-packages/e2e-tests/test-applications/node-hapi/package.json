@@ -1,5 +1,5 @@
 {
-  "name": "node-hapi-app",
+  "name": "node-hapi",
   "version": "1.0.0",
   "private": true,
   "scripts": {
