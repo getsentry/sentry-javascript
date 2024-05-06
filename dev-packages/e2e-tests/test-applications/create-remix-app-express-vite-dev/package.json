@@ -26,7 +26,7 @@
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "^1.43.1",
     "@remix-run/dev": "^2.7.2",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",

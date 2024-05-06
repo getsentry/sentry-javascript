@@ -13,7 +13,7 @@
     "test:assert": "pnpm test:prod && pnpm test:dev"
   },
   "dependencies": {
-    "@playwright/test": "^1.27.1",
+    "@playwright/test": "^1.43.1",
     "@sentry/nextjs": "latest || *",
     "@types/node": "18.11.17",
     "@types/react": "18.0.26",

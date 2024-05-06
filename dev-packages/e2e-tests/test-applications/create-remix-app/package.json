@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.36.2",
+    "@playwright/test": "^1.43.1",
     "@remix-run/dev": "^1.19.3",
     "@remix-run/eslint-config": "^1.19.3",
     "@types/react": "^18.0.35",

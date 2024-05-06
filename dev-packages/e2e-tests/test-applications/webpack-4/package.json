@@ -8,7 +8,7 @@
     "test:assert": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.42.1",
+    "@playwright/test": "^1.43.1",
     "@sentry/browser": "latest || *",
     "webpack": "^4.47.0",
     "terser-webpack-plugin": "^4.2.3",
