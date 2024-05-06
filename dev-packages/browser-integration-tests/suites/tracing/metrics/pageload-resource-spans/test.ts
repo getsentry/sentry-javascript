@@ -26,20 +26,26 @@ sentryTest('should add resource spans to pageload transaction', async ({ getLoca
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const resourceSpans = eventData.spans?.filter(({ op }) => op?.startsWith('resource'));
 
-  // Webkit 16.0 (which is linked to Playwright 1.27.1) consistently creates 2 consectutive spans for `css`,
-  // so we need to check for 3 or 4 spans.
-  if (browser.browserType().name() === 'webkit') {
-    expect(resourceSpans?.length).toBeGreaterThanOrEqual(5);
-  } else {
-    expect(resourceSpans?.length).toBe(5);
+  const scriptSpans = resourceSpans?.filter(({ op }) => op === 'resource.script');
+  const linkSpans = resourceSpans?.filter(({ op }) => op === 'resource.link');
+  const imgSpans = resourceSpans?.filter(({ op }) => op === 'resource.img');
+
+  expect(imgSpans).toHaveLength(1);
+  expect(linkSpans).toHaveLength(1);
+
+  const hasCdnBundle = (process.env.PW_BUNDLE || '').startsWith('bundle');
+
+  const expectedScripts = ['/init.bundle.js', '/subject.bundle.js', 'https://example.com/path/to/script.js'];
+  if (hasCdnBundle) {
+    expectedScripts.unshift('/cdn.bundle.js');
   }
 
-  ['resource.img', 'resource.script', 'resource.link'].forEach(op =>
-    expect(resourceSpans).toContainEqual(
-      expect.objectContaining({
-        op: op,
-        parent_span_id: eventData.contexts?.trace?.span_id,
-      }),
-    ),
-  );
+  expect(scriptSpans?.map(({ description }) => description).sort()).toEqual(expectedScripts);
+
+  const spanId = eventData.contexts?.trace?.span_id;
+
+  expect(spanId).toBeDefined();
+  expect(imgSpans?.[0].parent_span_id).toBe(spanId);
+  expect(linkSpans?.[0].parent_span_id).toBe(spanId);
+  expect(scriptSpans?.map(({ parent_span_id }) => parent_span_id)).toEqual(expectedScripts.map(() => spanId));
 });
