@@ -1,5 +1,4 @@
 import type { Attachment, IntegrationFn } from '@sentry/types';
-import type { h as hType } from 'preact';
 import { DOCUMENT } from '../constants';
 import type { FeedbackDialog, FeedbackScreenshotIntegration } from '../types';
 import { makeScreenshotEditorComponent } from './components/ScreenshotEditor';
