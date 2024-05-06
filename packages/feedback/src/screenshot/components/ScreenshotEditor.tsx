@@ -1,5 +1,5 @@
 /* eslint-disable max-lines */
-import type { ComponentType, VNode, h as hType } from 'preact';
+import type { ComponentType, VNode } from 'preact';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';

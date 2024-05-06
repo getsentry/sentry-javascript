@@ -1,6 +1,7 @@
 import { getCurrentScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
-import { h, render } from 'preact';
+// biome-ignore lint/nursery/noUnusedImports: reason
+import { h, render } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { DOCUMENT } from '../constants';
 import type { CreateDialogProps, FeedbackFormData, FeedbackModalIntegration } from '../types';
 import { Dialog } from './components/Dialog';
