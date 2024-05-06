@@ -1,10 +1,10 @@
 import { expect } from '@playwright/test';
 import { SDK_VERSION } from '@sentry/browser';
 
-import { sentryTest } from '../../../utils/fixtures';
+import { TEST_HOST, sentryTest } from '../../../utils/fixtures';
 import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture replays (@sentry-internal/replay export)', async ({ getLocalTestPath, page }) => {
+sentryTest('should capture replays (@sentry-internal/replay export)', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -20,7 +20,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const replayEvent0 = getReplayEvent(await reqPromise0);
@@ -34,7 +34,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
     timestamp: expect.any(Number),
     error_ids: [],
     trace_ids: [],
-    urls: [expect.stringContaining('/dist/index.html')],
+    urls: [`${TEST_HOST}/index.html`],
     replay_id: expect.stringMatching(/\w{32}/),
     replay_start_timestamp: expect.any(Number),
     segment_id: 0,
@@ -57,7 +57,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringContaining('/dist/index.html'),
+      url: `${TEST_HOST}/index.html`,
       headers: {
         'User-Agent': expect.stringContaining(''),
       },
@@ -94,7 +94,7 @@ sentryTest('should capture replays (@sentry-internal/replay export)', async ({ g
       name: 'sentry.javascript.browser',
     },
     request: {
-      url: expect.stringContaining('/dist/index.html'),
+      url: `${TEST_HOST}/index.html`,
       headers: {
         'User-Agent': expect.stringContaining(''),
       },

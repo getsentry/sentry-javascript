@@ -6,7 +6,7 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
 
 const MIN_DURATION = 2000;
 
-sentryTest('doest not send replay before min. duration', async ({ getLocalTestPath, page }) => {
+sentryTest('doest not send replay before min. duration', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -25,7 +25,7 @@ sentryTest('doest not send replay before min. duration', async ({ getLocalTestPa
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

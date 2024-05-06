@@ -3,12 +3,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { shouldSkipReplayTest } from '../../../utils/replayHelpers';
 
-sentryTest('exceptions within rrweb and re-thrown and annotated', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('exceptions within rrweb and re-thrown and annotated', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

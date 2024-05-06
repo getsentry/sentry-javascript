@@ -6,8 +6,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
 // there's no evidence that this actually happens, but it could, and our code correctly
 // handles it, so might as well prevent future regression on that score
-sentryTest('should capture a random Event with type unhandledrejection', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture a random Event with type unhandledrejection', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
 

@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures text request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -33,7 +33,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
@@ -90,7 +90,7 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures JSON request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -115,7 +115,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
@@ -172,7 +172,7 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
   ]);
 });
 
-sentryTest('captures non-text request body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures non-text request body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -197,7 +197,7 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
@@ -340,7 +340,7 @@ sentryTest('captures text request body when matching relative URL', async ({ get
   ]);
 });
 
-sentryTest('does not capture request body when URL does not match', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('does not capture request body when URL does not match', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -365,7 +365,7 @@ sentryTest('does not capture request body when URL does not match', async ({ get
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {

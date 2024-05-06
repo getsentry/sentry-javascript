@@ -5,12 +5,12 @@ import { shouldSkipTracingTest } from '../../../../../utils/helpers';
 
 sentryTest(
   'should attach `sentry-trace` and `baggage` header to request matching tracePropagationTargets',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const requests = (
       await Promise.all([

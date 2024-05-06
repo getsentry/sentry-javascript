@@ -5,7 +5,7 @@ import { shouldSkipTracingTest } from '../../../utils/helpers';
 
 sentryTest(
   'exports a shim browserTracingIntegration() integration for non-tracing bundles',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     // Skip in tracing tests
     if (!shouldSkipTracingTest()) {
       sentryTest.skip();
@@ -24,7 +24,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

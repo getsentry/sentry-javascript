@@ -14,7 +14,7 @@ import {
 
 sentryTest(
   'should stop recording when running into eventBuffer error',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     if (shouldSkipReplayTest()) {
       sentryTest.skip();
     }
@@ -25,7 +25,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await waitForReplayRequest(page);

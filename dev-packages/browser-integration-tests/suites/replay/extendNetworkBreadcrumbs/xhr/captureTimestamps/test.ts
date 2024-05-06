@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures correct timestamps', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -34,7 +34,7 @@ sentryTest('captures correct timestamps', async ({ getLocalTestPath, page, brows
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {

@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('handles empty/missing request headers', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -32,7 +32,7 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
@@ -81,7 +81,7 @@ sentryTest('handles empty/missing request headers', async ({ getLocalTestPath, p
   ]);
 });
 
-sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers as POJO', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -107,7 +107,7 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
@@ -170,7 +170,7 @@ sentryTest('captures request headers as POJO', async ({ getLocalTestPath, page, 
   ]);
 });
 
-sentryTest('captures request headers on Request', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers on Request', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -194,7 +194,7 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([
@@ -256,7 +256,7 @@ sentryTest('captures request headers on Request', async ({ getLocalTestPath, pag
   ]);
 });
 
-sentryTest('captures request headers as Headers instance', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures request headers as Headers instance', async ({ getLocalTestUrl, page, browserName }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -280,7 +280,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 
@@ -343,7 +343,7 @@ sentryTest('captures request headers as Headers instance', async ({ getLocalTest
   ]);
 });
 
-sentryTest('does not captures request headers if URL does not match', async ({ getLocalTestPath, page }) => {
+sentryTest('does not captures request headers if URL does not match', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -367,7 +367,7 @@ sentryTest('does not captures request headers if URL does not match', async ({ g
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.fetch');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   const [, request, { replayRecordingSnapshots }] = await Promise.all([

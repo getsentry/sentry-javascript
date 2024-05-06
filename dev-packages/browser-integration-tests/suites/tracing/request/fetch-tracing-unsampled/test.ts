@@ -3,12 +3,12 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../../utils/fixtures';
 import { shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should attach `sentry-trace` header to unsampled fetch requests', async ({ getLocalTestPath, page }) => {
+sentryTest('should attach `sentry-trace` header to unsampled fetch requests', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const requests = (
     await Promise.all([

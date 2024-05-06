@@ -10,7 +10,7 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-sentryTest('replay recording should be compressed by default', async ({ getLocalTestPath, page, forceFlushReplay }) => {
+sentryTest('replay recording should be compressed by default', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -25,7 +25,7 @@ sentryTest('replay recording should be compressed by default', async ({ getLocal
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await forceFlushReplay();

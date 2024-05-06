@@ -8,7 +8,7 @@ import {
   waitForReplayRequest,
 } from '../../../utils/replayHelpers';
 
-sentryTest('should have the correct default privacy settings', async ({ getLocalTestPath, page }) => {
+sentryTest('should have the correct default privacy settings', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -23,7 +23,7 @@ sentryTest('should have the correct default privacy settings', async ({ getLocal
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

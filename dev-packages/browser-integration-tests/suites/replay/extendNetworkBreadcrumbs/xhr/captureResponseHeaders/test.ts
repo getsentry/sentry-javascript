@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures response headers', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response headers', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -40,7 +40,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
@@ -100,7 +100,7 @@ sentryTest('captures response headers', async ({ getLocalTestPath, page, browser
 
 sentryTest(
   'does not capture response headers if URL does not match',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // These are a bit flaky on non-chromium browsers
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
@@ -132,7 +132,7 @@ sentryTest(
       return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await page.evaluate(() => {

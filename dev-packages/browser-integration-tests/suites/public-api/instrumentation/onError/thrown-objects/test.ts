@@ -4,13 +4,13 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../../utils/helpers';
 
-sentryTest('should catch thrown objects', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('should catch thrown objects', async ({ getLocalTestUrl, page, browserName }) => {
   if (browserName === 'webkit') {
     // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 

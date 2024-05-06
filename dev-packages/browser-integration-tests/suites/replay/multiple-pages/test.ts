@@ -30,7 +30,7 @@ well as the correct DOM snapshots and updates are recorded and sent.
 */
 sentryTest(
   'record page navigations and performance entries across multiple pages',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // We only test this against the NPM package and replay bundles
     // and only on chromium as most performance entries are only available in chromium
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
@@ -56,7 +56,7 @@ sentryTest(
     const reqPromise8 = waitForReplayRequest(page, 8);
     const reqPromise9 = waitForReplayRequest(page, 9);
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     const [req0] = await Promise.all([reqPromise0, page.goto(url)]);
     const replayEvent0 = getReplayEvent(req0);

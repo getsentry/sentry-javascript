@@ -10,12 +10,12 @@ import {
 
 sentryTest(
   'sends a transaction and a span envelope if a standalone span is created as a child of an ongoing span tree',
-  async ({ getLocalTestPath, page }) => {
+  async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     const envelopes = await getMultipleSentryEnvelopeRequests<Envelope>(
       page,
       2,

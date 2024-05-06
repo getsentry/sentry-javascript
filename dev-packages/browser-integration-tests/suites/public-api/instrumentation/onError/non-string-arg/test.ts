@@ -6,13 +6,13 @@ import { getFirstSentryEnvelopeRequest, runScriptInSandbox } from '../../../../.
 
 sentryTest(
   'should catch onerror calls with non-string first argument gracefully',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     if (browserName === 'webkit') {
       // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

@@ -4,8 +4,8 @@ import type { SessionContext } from '@sentry/types';
 import { sentryTest } from '../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest } from '../../../utils/helpers';
 
-sentryTest('should update session when an error is thrown.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should update session when an error is thrown.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
   const updatedSession = (
     await Promise.all([page.locator('#throw-error').click(), getFirstSentryEnvelopeRequest<SessionContext>(page)])
@@ -21,8 +21,8 @@ sentryTest('should update session when an error is thrown.', async ({ getLocalTe
   expect(pageloadSession.sid).toBe(updatedSession.sid);
 });
 
-sentryTest('should update session when an exception is captured.', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should update session when an exception is captured.', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const pageloadSession = await getFirstSentryEnvelopeRequest<SessionContext>(page, url);
   const updatedSession = (

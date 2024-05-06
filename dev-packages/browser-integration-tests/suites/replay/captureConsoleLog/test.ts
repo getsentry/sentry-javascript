@@ -3,7 +3,7 @@ import { expect } from '@playwright/test';
 import { sentryTest } from '../../../utils/fixtures';
 import { getCustomRecordingEvents, shouldSkipReplayTest, waitForReplayRequest } from '../../../utils/replayHelpers';
 
-sentryTest('should capture console messages in replay', async ({ getLocalTestPath, page, forceFlushReplay }) => {
+sentryTest('should capture console messages in replay', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -18,7 +18,7 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([page.goto(url), reqPromise0]);
 
@@ -54,7 +54,7 @@ sentryTest('should capture console messages in replay', async ({ getLocalTestPat
   );
 });
 
-sentryTest('should capture very large console logs', async ({ getLocalTestPath, page, forceFlushReplay }) => {
+sentryTest('should capture very large console logs', async ({ getLocalTestUrl, page, forceFlushReplay }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -69,7 +69,7 @@ sentryTest('should capture very large console logs', async ({ getLocalTestPath, 
 
   const reqPromise0 = waitForReplayRequest(page, 0);
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([page.goto(url), reqPromise0]);
 

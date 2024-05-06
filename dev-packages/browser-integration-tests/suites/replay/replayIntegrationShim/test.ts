@@ -4,7 +4,7 @@ import { sentryTest } from '../../../utils/fixtures';
 
 sentryTest(
   'exports a shim replayIntegration integration for non-replay bundles',
-  async ({ getLocalTestPath, page, forceFlushReplay }) => {
+  async ({ getLocalTestUrl, page, forceFlushReplay }) => {
     const bundle = process.env.PW_BUNDLE;
 
     if (!bundle || !bundle.startsWith('bundle_') || bundle.includes('replay')) {
@@ -24,7 +24,7 @@ sentryTest(
       });
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await forceFlushReplay();

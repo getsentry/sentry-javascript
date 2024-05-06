@@ -6,8 +6,8 @@ import { getFirstSentryEnvelopeRequest } from '../../../../../utils/helpers';
 
 sentryTest(
   'works with a Request (with body) & options passed in - handling used body',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.route('**/foo', route => {
       return route.fulfill({

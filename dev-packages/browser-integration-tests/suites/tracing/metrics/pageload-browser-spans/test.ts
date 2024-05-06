@@ -4,12 +4,12 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should add browser-related spans to pageload transaction', async ({ getLocalTestPath, page }) => {
+sentryTest('should add browser-related spans to pageload transaction', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const browserSpans = eventData.spans?.filter(({ op }) => op === 'browser');

@@ -10,7 +10,7 @@ import {
 
 sentryTest(
   'should capture an error within a sync startSpan callback',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     if (browserName === 'webkit') {
       // This test fails on Webkit as erros thrown from `runScriptInSandbox` are Script Errors and skipped by Sentry
       sentryTest.skip();
@@ -20,7 +20,7 @@ sentryTest(
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
 

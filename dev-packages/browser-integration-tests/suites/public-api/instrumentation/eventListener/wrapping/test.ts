@@ -4,8 +4,8 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'Event listener instrumentation should not wrap event listeners multiple times',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     const functionListenerStackHeights: number[] = [];

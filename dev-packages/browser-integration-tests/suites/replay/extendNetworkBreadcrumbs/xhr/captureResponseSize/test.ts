@@ -10,7 +10,7 @@ import {
 
 sentryTest(
   'captures response size from Content-Length header if available',
-  async ({ getLocalTestPath, page, browserName }) => {
+  async ({ getLocalTestUrl, page, browserName }) => {
     // These are a bit flaky on non-chromium browsers
     if (shouldSkipReplayTest() || browserName !== 'chromium') {
       sentryTest.skip();
@@ -38,7 +38,7 @@ sentryTest(
       return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
     });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
 
     await page.evaluate(() => {
@@ -104,7 +104,7 @@ sentryTest(
   },
 );
 
-sentryTest('captures response size without Content-Length header', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response size without Content-Length header', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -135,7 +135,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
@@ -200,7 +200,7 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   ]);
 });
 
-sentryTest('captures response size for non-string bodies', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures response size for non-string bodies', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -229,7 +229,7 @@ sentryTest('captures response size for non-string bodies', async ({ getLocalTest
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {

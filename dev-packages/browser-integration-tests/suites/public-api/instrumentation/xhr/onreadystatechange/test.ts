@@ -4,16 +4,28 @@ import { sentryTest } from '../../../../../utils/fixtures';
 
 sentryTest(
   'should not call XMLHttpRequest onreadystatechange more than once per state',
-  async ({ getLocalTestPath, page }) => {
-    const url = await getLocalTestPath({ testDir: __dirname });
+  async ({ getLocalTestUrl, page }) => {
+    const url = await getLocalTestUrl({ testDir: __dirname });
+
+    await page.route('http://example.com/', route => {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({}),
+      });
+    });
 
     await page.goto(url);
 
-    const calls = await page.evaluate(() => {
-      // @ts-expect-error window.calls defined in subject.js
-      return window.calls;
-    });
+    // Wait until XHR is done
+    await page.waitForFunction('window.calls["4"]');
 
-    expect(calls).toEqual({ '4': 1 });
+    const calls = await page.evaluate('window.calls');
+
+    expect(calls).toEqual({
+      '2': 1,
+      '3': 1,
+      '4': 1,
+    });
   },
 );

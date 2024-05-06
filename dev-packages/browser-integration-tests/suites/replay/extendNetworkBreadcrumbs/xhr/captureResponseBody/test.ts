@@ -8,7 +8,7 @@ import {
   shouldSkipReplayTest,
 } from '../../../../../utils/replayHelpers';
 
-sentryTest('captures text response body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures text response body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -37,7 +37,7 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
@@ -94,7 +94,7 @@ sentryTest('captures text response body', async ({ getLocalTestPath, page, brows
   ]);
 });
 
-sentryTest('captures JSON response body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures JSON response body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -123,7 +123,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
@@ -180,7 +180,7 @@ sentryTest('captures JSON response body', async ({ getLocalTestPath, page, brows
   ]);
 });
 
-sentryTest('captures JSON response body when responseType=json', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures JSON response body when responseType=json', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -209,7 +209,7 @@ sentryTest('captures JSON response body when responseType=json', async ({ getLoc
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   void page.evaluate(() => {
@@ -268,7 +268,7 @@ sentryTest('captures JSON response body when responseType=json', async ({ getLoc
   ]);
 });
 
-sentryTest('captures non-text response body', async ({ getLocalTestPath, page, browserName }) => {
+sentryTest('captures non-text response body', async ({ getLocalTestUrl, page, browserName }) => {
   // These are a bit flaky on non-chromium browsers
   if (shouldSkipReplayTest() || browserName !== 'chromium') {
     sentryTest.skip();
@@ -297,7 +297,7 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
     return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
   await page.evaluate(() => {
@@ -354,99 +354,96 @@ sentryTest('captures non-text response body', async ({ getLocalTestPath, page, b
   ]);
 });
 
-sentryTest(
-  'does not capture response body when URL does not match',
-  async ({ getLocalTestPath, page, browserName }) => {
-    // These are a bit flaky on non-chromium browsers
-    if (shouldSkipReplayTest() || browserName !== 'chromium') {
-      sentryTest.skip();
-    }
+sentryTest('does not capture response body when URL does not match', async ({ getLocalTestUrl, page, browserName }) => {
+  // These are a bit flaky on non-chromium browsers
+  if (shouldSkipReplayTest() || browserName !== 'chromium') {
+    sentryTest.skip();
+  }
 
-    await page.route('**/bar', route => {
-      return route.fulfill({
-        status: 200,
-        body: 'response body',
-        headers: {
-          'Content-Length': '',
-        },
-      });
+  await page.route('**/bar', route => {
+    return route.fulfill({
+      status: 200,
+      body: 'response body',
+      headers: {
+        'Content-Length': '',
+      },
     });
+  });
 
-    await page.route('https://dsn.ingest.sentry.io/**/*', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ id: 'test-id' }),
-      });
+  await page.route('https://dsn.ingest.sentry.io/**/*', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'test-id' }),
     });
+  });
 
-    const requestPromise = waitForErrorRequest(page);
-    const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
-      return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+  const requestPromise = waitForErrorRequest(page);
+  const replayRequestPromise = collectReplayRequests(page, recordingEvents => {
+    return getReplayPerformanceSpans(recordingEvents).some(span => span.op === 'resource.xhr');
+  });
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+  await page.goto(url);
+
+  void page.evaluate(() => {
+    /* eslint-disable */
+    const xhr = new XMLHttpRequest();
+
+    xhr.open('POST', 'http://localhost:7654/bar');
+    xhr.send();
+
+    xhr.addEventListener('readystatechange', function () {
+      if (xhr.readyState === 4) {
+        // @ts-expect-error Sentry is a global
+        setTimeout(() => Sentry.captureException('test error', 0));
+      }
     });
+    /* eslint-enable */
+  });
 
-    const url = await getLocalTestPath({ testDir: __dirname });
-    await page.goto(url);
+  const request = await requestPromise;
+  const eventData = envelopeRequestParser(request);
 
-    void page.evaluate(() => {
-      /* eslint-disable */
-      const xhr = new XMLHttpRequest();
+  expect(eventData.exception?.values).toHaveLength(1);
 
-      xhr.open('POST', 'http://localhost:7654/bar');
-      xhr.send();
+  expect(eventData?.breadcrumbs?.length).toBe(1);
+  expect(eventData!.breadcrumbs![0]).toEqual({
+    timestamp: expect.any(Number),
+    category: 'xhr',
+    type: 'http',
+    data: {
+      method: 'POST',
+      response_body_size: 13,
+      status_code: 200,
+      url: 'http://localhost:7654/bar',
+    },
+  });
 
-      xhr.addEventListener('readystatechange', function () {
-        if (xhr.readyState === 4) {
-          // @ts-expect-error Sentry is a global
-          setTimeout(() => Sentry.captureException('test error', 0));
-        }
-      });
-      /* eslint-enable */
-    });
-
-    const request = await requestPromise;
-    const eventData = envelopeRequestParser(request);
-
-    expect(eventData.exception?.values).toHaveLength(1);
-
-    expect(eventData?.breadcrumbs?.length).toBe(1);
-    expect(eventData!.breadcrumbs![0]).toEqual({
-      timestamp: expect.any(Number),
-      category: 'xhr',
-      type: 'http',
+  const { replayRecordingSnapshots } = await replayRequestPromise;
+  expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
+    {
       data: {
         method: 'POST',
-        response_body_size: 13,
-        status_code: 200,
-        url: 'http://localhost:7654/bar',
-      },
-    });
-
-    const { replayRecordingSnapshots } = await replayRequestPromise;
-    expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.xhr')).toEqual([
-      {
-        data: {
-          method: 'POST',
-          statusCode: 200,
-          request: {
-            headers: {},
-            _meta: {
-              warnings: ['URL_SKIPPED'],
-            },
-          },
-          response: {
-            size: 13,
-            headers: {},
-            _meta: {
-              warnings: ['URL_SKIPPED'],
-            },
+        statusCode: 200,
+        request: {
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
           },
         },
-        description: 'http://localhost:7654/bar',
-        endTimestamp: expect.any(Number),
-        op: 'resource.xhr',
-        startTimestamp: expect.any(Number),
+        response: {
+          size: 13,
+          headers: {},
+          _meta: {
+            warnings: ['URL_SKIPPED'],
+          },
+        },
       },
-    ]);
-  },
-);
+      description: 'http://localhost:7654/bar',
+      endTimestamp: expect.any(Number),
+      op: 'resource.xhr',
+      startTimestamp: expect.any(Number),
+    },
+  ]);
+});

@@ -12,8 +12,8 @@ sentryTest.beforeEach(async ({ browserName, page }) => {
   await page.setViewportSize({ width: 800, height: 1200 });
 });
 
-sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.05`);
 
   expect(eventData.measurements).toBeDefined();
@@ -26,8 +26,8 @@ sentryTest('should capture a "GOOD" CLS vital with its source(s).', async ({ get
   expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p#partial');
 });
 
-sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.21`);
 
   expect(eventData.measurements).toBeDefined();
@@ -40,8 +40,8 @@ sentryTest('should capture a "MEH" CLS vital with its source(s).', async ({ getL
   expect(eventData.contexts?.trace?.data?.['cls.source.1']).toBe('body > div#content > p');
 });
 
-sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ getLocalTestPath, page }) => {
-  const url = await getLocalTestPath({ testDir: __dirname });
+sentryTest('should capture a "POOR" CLS vital with its source(s).', async ({ getLocalTestUrl, page }) => {
+  const url = await getLocalTestUrl({ testDir: __dirname });
   const eventData = await getFirstSentryEnvelopeRequest<Event>(page, `${url}#0.35`);
 
   expect(eventData.measurements).toBeDefined();

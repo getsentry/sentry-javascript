@@ -12,7 +12,7 @@ import { getReplayEvent, shouldSkipReplayTest, waitForReplayRequest } from '../.
  * assert on the flush timestamps. Therefore we only assert that events were eventually
  * sent (i.e. flushed).
  */
-sentryTest('replay events are flushed after max flush delay was reached', async ({ getLocalTestPath, page }) => {
+sentryTest('replay events are flushed after max flush delay was reached', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -29,7 +29,7 @@ sentryTest('replay events are flushed after max flush delay was reached', async 
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   const replayEvent0 = getReplayEvent(await reqPromise0);

@@ -8,13 +8,13 @@ import {
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
-sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture interaction transaction. @firefox', async ({ browserName, getLocalTestUrl, page }) => {
   const supportedBrowsers = ['chromium', 'firefox'];
 
   if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
     sentryTest.skip();
   }
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   await getFirstSentryEnvelopeRequest<SentryEvent>(page);
@@ -47,14 +47,14 @@ sentryTest('should capture interaction transaction. @firefox', async ({ browserN
 
 sentryTest(
   'should create only one transaction per interaction @firefox',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
 
@@ -70,14 +70,14 @@ sentryTest(
 
 sentryTest(
   'should use the component name for a clicked element when it is available',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);
@@ -100,14 +100,14 @@ sentryTest(
 
 sentryTest(
   'should use the element name for a clicked element when no component name',
-  async ({ browserName, getLocalTestPath, page }) => {
+  async ({ browserName, getLocalTestUrl, page }) => {
     const supportedBrowsers = ['chromium', 'firefox'];
 
     if (shouldSkipTracingTest() || !supportedBrowsers.includes(browserName)) {
       sentryTest.skip();
     }
 
-    const url = await getLocalTestPath({ testDir: __dirname });
+    const url = await getLocalTestUrl({ testDir: __dirname });
 
     await page.goto(url);
     await getFirstSentryEnvelopeRequest<SentryEvent>(page);

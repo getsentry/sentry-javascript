@@ -4,13 +4,13 @@ import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
 
-sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestPath, page }) => {
+sentryTest('should capture a FID vital.', async ({ browserName, getLocalTestUrl, page }) => {
   // FID measurement is not generated on webkit
   if (shouldSkipTracingTest() || browserName === 'webkit') {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
   // To trigger FID

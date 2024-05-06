@@ -8,7 +8,7 @@ import {
   waitForReplayRunning,
 } from '../../../utils/replayHelpers';
 
-sentryTest('continues buffer session in session mode after error & reload', async ({ getLocalTestPath, page }) => {
+sentryTest('continues buffer session in session mode after error & reload', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipReplayTest()) {
     sentryTest.skip();
   }
@@ -23,7 +23,7 @@ sentryTest('continues buffer session in session mode after error & reload', asyn
     });
   });
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   await page.goto(url);
 
