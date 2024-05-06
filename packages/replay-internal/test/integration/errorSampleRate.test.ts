@@ -928,7 +928,7 @@ describe('Integration | errorSampleRate', () => {
    * sampling since we can load a saved session that did not have an error (and
    * thus no replay was created).
    */
-  it.only('sends a replay after loading the session from storage', async () => {
+  it('sends a replay after loading the session from storage', async () => {
     // Pretend that a session is already saved before loading replay
     WINDOW.sessionStorage.setItem(
       REPLAY_SESSION_KEY,
