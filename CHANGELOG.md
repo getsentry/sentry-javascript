@@ -12,18 +12,6 @@ considered stable.
 We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
 the docs.
 
-### Version Support
-
-The Sentry JavaScript SDK v8 now supports Node.js 14.8.0 or higher. This applies to @sentry/node and all of our
-node-based server-side sdks (@sentry/nextjs, @sentry/remix, etc.).
-
-The browser SDKs now require ES2018+ compatible browsers. New minimum browser versions:
-
-Chrome 63 Edge 79 Safari/iOS Safari 12 Firefox 58 Opera 50 Samsung Internet 8.2
-
-For more details, please see the
-[version support section in migration guide](https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#1-version-support-changes).
-
 ### Important Changes
 
 - **feat(node): Support hapi v21 & fix E2E test (#11906)**
@@ -32,13 +20,11 @@ We now support hapi v21 and added tests for it.
 
 - **feat(node): Warn if ESM mode is detected (#11914)**
 
-When running Sentry in ESM mode, you will get a warning about that. Consider transpiling your application to CJS
-(CommonJS) in your production build.
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
 
 ### Other Changes
 
-- dev: Upgrade to `jsdom@21.1.2` (#11900)
-- docs: fix typo in doc for `reactRouterV6BrowserTracingIntegration` (#11896)
 - feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
 - fix(node): Ensure prisma integration creates valid DB spans (#11908)
 - fix(node): Include loader hook files in package.json (#11911)
