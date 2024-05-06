@@ -1,10 +1,4 @@
 const Sentry = require('@sentry/node');
-const Hapi = require('@hapi/hapi');
-
-const server = Hapi.server({
-  port: 3030,
-  host: 'localhost',
-});
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
@@ -13,6 +7,13 @@ Sentry.init({
   debug: true,
   tunnel: `http://localhost:3031/`, // proxy server
   tracesSampleRate: 1,
+});
+
+const Hapi = require('@hapi/hapi');
+
+const server = Hapi.server({
+  port: 3030,
+  host: 'localhost',
 });
 
 const init = async () => {
@@ -28,6 +29,8 @@ const init = async () => {
     method: 'GET',
     path: '/test-param/{param}',
     handler: function (request, h) {
+      Sentry.setTag(`param-${request.params.param}`, 'yes');
+
       return { paramWas: request.params.param };
     },
   });

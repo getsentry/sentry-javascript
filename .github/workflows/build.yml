@@ -1017,7 +1017,7 @@ jobs:
             'generic-ts3.8',
             'node-fastify-app',
             # TODO(v8): Re-enable hapi tests
-            # 'node-hapi-app',
+            'node-hapi',
             'node-nestjs-app',
             'node-exports-test-app',
             'node-koa-app',
