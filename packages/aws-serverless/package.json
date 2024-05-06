@@ -13,7 +13,8 @@
     "cjs",
     "types",
     "types-ts3.8",
-    "register.mjs"
+    "import-hook.mjs",
+    "loader-hook.mjs"
   ],
   "main": "build/npm/cjs/index.js",
   "types": "build/npm/types/index.d.ts",

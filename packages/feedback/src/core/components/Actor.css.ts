@@ -8,34 +8,36 @@ export function createActorStyles(): HTMLStyleElement {
   style.textContent = `
 .widget__actor {
   position: fixed;
-  left: var(--left);
-  right: var(--right);
-  bottom: var(--bottom);
-  top: var(--top);
   z-index: var(--z-index);
-
-  line-height: 16px;
+  margin: 0;
+  inset: var(--actor-inset);
 
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 16px;
 
-
-  border-radius: var(--border-radius);
-  cursor: pointer;
   font-family: inherit;
   font-size: var(--font-size);
   font-weight: 600;
-  padding: 16px;
+  line-height: 16px;
   text-decoration: none;
-  z-index: 9000;
 
-  color: var(--foreground);
   background-color: var(--background);
+  border-radius: var(--border-radius);
   border: var(--border);
   box-shadow: var(--box-shadow);
+  color: var(--foreground);
+  cursor: pointer;
   opacity: 1;
-  transition: opacity 0.1s ease-in-out;
+  transition: transform 0.2s ease-in-out;
+  transform: translate(0, 0) scale(1);
+}
+.widget__actor[aria-hidden="true"] {
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transform: translate(0, 16px) scale(0.98);
 }
 
 .widget__actor:hover {
@@ -47,23 +49,10 @@ export function createActorStyles(): HTMLStyleElement {
   height: 16px;
 }
 
-.widget__actor--hidden {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
-
-.widget__actor__text {
-}
-
 @media (max-width: 600px) {
-  .widget__actor__text {
+  .widget__actor span {
     display: none;
   }
-}
-
-.feedback-icon path {
-  fill: var(--foreground);
 }
 `;
 

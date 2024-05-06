@@ -39,8 +39,12 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
 
-function getCjsOnlyIntegrations(isCjs = typeof require !== 'undefined'): Integration[] {
-  return isCjs ? [modulesIntegration()] : [];
+function isCjs(): boolean {
+  return typeof require !== 'undefined';
+}
+
+function getCjsOnlyIntegrations(): Integration[] {
+  return isCjs() ? [modulesIntegration()] : [];
 }
 
 /** Get the default integrations for the Node Experimental SDK. */
@@ -83,6 +87,16 @@ export function init(options: NodeOptions | undefined = {}): void {
         console.warn('[Sentry] Cannot initialize SDK with `debug` option using a non-debug bundle.');
       });
     }
+  }
+
+  if (!isCjs()) {
+    // We want to make sure users see this warning
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] You are using the Sentry SDK with an ESM build. This version of the SDK is not compatible with ESM. Please either build your application with CommonJS, or use v7 of the SDK.',
+      );
+    });
   }
 
   setOpenTelemetryContextAsyncContextStrategy();

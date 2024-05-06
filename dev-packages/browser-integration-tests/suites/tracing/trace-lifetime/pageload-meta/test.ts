@@ -297,12 +297,12 @@ sentryTest(
   },
 );
 
-sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestPath, page }) => {
+sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
 
   const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
   const pageloadTraceContext = pageloadEvent.contexts?.trace;
