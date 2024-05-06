@@ -18,6 +18,11 @@
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
     "@playwright/test": "^1.27.1"
   },
+  "pnpm": {
+    "overrides": {
+      "import-in-the-middle": "^1.7.4"
+    }
+  },
   "volta": {
     "extends": "../../package.json",
     "node": "18.19.1"
