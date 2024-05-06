@@ -222,15 +222,13 @@ export function Form({
             </label>
           ) : null}
         </div>
-        <div class="form__bottom">
-          <div class="btn-group">
-            <button class="btn btn--primary" type="submit">
-              {submitButtonLabel}
-            </button>
-            <button class="btn btn--default" type="button" onClick={onFormClose}>
-              {cancelButtonLabel}
-            </button>
-          </div>
+        <div class="btn-group">
+          <button class="btn btn--primary" type="submit">
+            {submitButtonLabel}
+          </button>
+          <button class="btn btn--default" type="button" onClick={onFormClose}>
+            {cancelButtonLabel}
+          </button>
         </div>
       </div>
     </form>

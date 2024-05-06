@@ -1,24 +1,23 @@
 import { DOCUMENT } from '../../constants';
 
-/**
- * Creates <style> element for widget dialog
- */
-export function createDialogStyles(): HTMLStyleElement {
-  const style = DOCUMENT.createElement('style');
-
-  style.textContent = `
+const DIALOG = `
 .dialog {
-  line-height: 25px;
-  background-color: rgba(0, 0, 0, 0.05);
-  border: none;
   position: fixed;
-  inset: 0;
-  z-index: 10000;
-  width: 100vw;
-  height: 100vh;
+  z-index: var(--z-index);
+  margin: 0;
+
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+
+  line-height: 1.75em;
+
+  background-color: rgba(0, 0, 0, 0.05);
+  border: none;
+  inset: 0;
   opacity: 1;
   transition: opacity 0.2s ease-in-out;
 }
@@ -34,50 +33,50 @@ export function createDialogStyles(): HTMLStyleElement {
 
 .dialog__content {
   position: fixed;
-  left: var(--left);
-  right: var(--right);
-  bottom: var(--bottom);
-  top: var(--top);
+  inset: var(--dialog-inset);
 
-  border: var(--border);
-  border-radius: var(--form-border-radius);
-  background-color: var(--background);
-  color: var(--foreground);
-
-  max-width: 100%;
-  max-height: calc(100% - 2rem);
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: var(--dialog-padding);
+  max-width: 100%;
+  max-height: calc(100% - (2 * var(--page-margin)) - (2 * var(--dialog-padding)));
+  overflow: auto;
+
+  background-color: var(--background);
+  border-radius: var(--form-border-radius);
+  border: var(--border);
   box-shadow: var(--box-shadow);
-  transition: transform 0.2s ease-in-out;
+  color: var(--foreground);
   transform: translate(0, 0) scale(1);
-
-  padding: 24px;
-}
-.dialog__content-fullscreen {
-  top: 16px;
-  left: 16px;
+  transition: transform 0.2s ease-in-out;
 }
 
+.dialog__content:has(.editor) {
+  inset: var(--page-margin);
+}
+@media (max-width: 600px) {
+  .dialog__content {
+    inset: var(--page-margin);
+  }
+}
+`;
+
+const DIALOG_HEADER = `
 .dialog__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 20px;
   font-weight: 600;
   margin: 0;
-
 }
 
 .brand-link {
   display: inline-flex;
 }
+`;
 
-.error {
-  color: var(--error);
-}
-
+const FORM = `
 .form {
   display: flex;
   overflow: auto;
@@ -92,10 +91,21 @@ export function createDialogStyles(): HTMLStyleElement {
   overflow: auto;
   flex-direction: column;
   justify-content: space-between;
-  gap: 16px;
-  flex-shrink: 0;
+  gap: 20px;
+  flex: 1 0 auto;
 }
 
+@media (max-width: 600px) {
+  .form__right {
+    width: auto;
+  }
+}
+
+.form__top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
 .form__error-container {
   color: var(--error);
@@ -109,11 +119,9 @@ export function createDialogStyles(): HTMLStyleElement {
 }
 
 .form__label__text {
-  display: grid;
+  display: flex;
   gap: 4px;
   align-items: center;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
 }
 
 .form__label__text--required {
@@ -147,10 +155,15 @@ export function createDialogStyles(): HTMLStyleElement {
   resize: vertical;
 }
 
+.error {
+  color: var(--error);
+}
+`;
+
+const BUTTON = `
 .btn-group {
   display: grid;
   gap: 8px;
-  margin-top: 8px;
 }
 
 .btn {
@@ -193,7 +206,9 @@ export function createDialogStyles(): HTMLStyleElement {
 .btn--default:focus-visible {
   outline: 1px auto var(--cancel-outline-focus);
 }
+`;
 
+const SUCCESS = `
 .success-message {
   position: fixed;
   left: var(--left);
@@ -220,11 +235,21 @@ export function createDialogStyles(): HTMLStyleElement {
 .success-icon {
   display: flex;
 }
-
-.success-icon path {
-  fill: var(--success);
-}
 `;
+
+/**
+ * Creates <style> element for widget dialog
+ */
+export function createDialogStyles(): HTMLStyleElement {
+  const style = DOCUMENT.createElement('style');
+
+  style.textContent = `
+    ${DIALOG}
+    ${DIALOG_HEADER}
+    ${FORM}
+    ${BUTTON}
+    ${SUCCESS}
+  `;
 
   return style;
 }
