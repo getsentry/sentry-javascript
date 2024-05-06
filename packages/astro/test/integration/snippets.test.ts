@@ -15,7 +15,7 @@ describe('buildClientSnippet', () => {
   it('returns a basic Sentry init call with default options', () => {
     const snippet = buildClientSnippet({});
     expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from \\"@sentry/astro\\";
+      "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
         dsn: import.meta.env.PUBLIC_SENTRY_DSN,
@@ -34,13 +34,13 @@ describe('buildClientSnippet', () => {
     const snippet = buildClientSnippet(allSdkOptions);
 
     expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from \\"@sentry/astro\\";
+      "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
-        dsn: \\"my-dsn\\",
+        dsn: "my-dsn",
         debug: true,
-        environment: \\"staging\\",
-        release: \\"1.0.0\\",
+        environment: "staging",
+        release: "1.0.0",
         tracesSampleRate: 0.3,
         sampleRate: 0.2,
         integrations: [Sentry.browserTracingIntegration(), Sentry.replayIntegration()],
@@ -53,7 +53,7 @@ describe('buildClientSnippet', () => {
   it('does not include browserTracingIntegration if tracesSampleRate is 0', () => {
     const snippet = buildClientSnippet({ tracesSampleRate: 0 });
     expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from \\"@sentry/astro\\";
+      "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
         dsn: import.meta.env.PUBLIC_SENTRY_DSN,
@@ -72,7 +72,7 @@ describe('buildClientSnippet', () => {
 it('does not include Replay if replay sample ratest are 0', () => {
   const snippet = buildClientSnippet({ replaysSessionSampleRate: 0, replaysOnErrorSampleRate: 0 });
   expect(snippet).toMatchInlineSnapshot(`
-    "import * as Sentry from \\"@sentry/astro\\";
+    "import * as Sentry from "@sentry/astro";
 
     Sentry.init({
       dsn: import.meta.env.PUBLIC_SENTRY_DSN,
@@ -91,7 +91,7 @@ describe('buildServerSnippet', () => {
   it('returns a basic Sentry init call with default options', () => {
     const snippet = buildServerSnippet({});
     expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from \\"@sentry/astro\\";
+      "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
         dsn: import.meta.env.PUBLIC_SENTRY_DSN,
@@ -107,13 +107,13 @@ describe('buildServerSnippet', () => {
     const snippet = buildServerSnippet(allSdkOptions);
 
     expect(snippet).toMatchInlineSnapshot(`
-      "import * as Sentry from \\"@sentry/astro\\";
+      "import * as Sentry from "@sentry/astro";
 
       Sentry.init({
-        dsn: \\"my-dsn\\",
+        dsn: "my-dsn",
         debug: true,
-        environment: \\"staging\\",
-        release: \\"1.0.0\\",
+        environment: "staging",
+        release: "1.0.0",
         tracesSampleRate: 0.3,
         sampleRate: 0.2,
       });"

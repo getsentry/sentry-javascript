@@ -40,7 +40,6 @@
     "ng-packagr": "^14.2.2",
     "rxjs": "7.8.1",
     "typescript": "4.6.4",
-    "vitest": "^1.4.0",
     "zone.js": "^0.12.0"
   },
   "scripts": {

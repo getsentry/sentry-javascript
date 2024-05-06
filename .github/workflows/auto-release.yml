@@ -25,7 +25,7 @@ jobs:
           # Parse version from head branch
           text: ${{ github.head_ref }}
           # match: preprare-release/xx.xx.xx
-          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta)\.\d+)?$'
+          regex: '^prepare-release\/(\d+\.\d+\.\d+)(?:-(alpha|beta|rc)\.\d+)?$'
 
       - name: Extract version
         id: get_version
