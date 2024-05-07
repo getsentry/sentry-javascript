@@ -513,7 +513,7 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('updates based on attributes for HTTP_METHOD for client', async () => {
+    it('updates based on attributes for deprecated HTTP_METHOD for client', async () => {
       const tracer = provider.getTracer('default');
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
@@ -533,7 +533,27 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('updates based on attributes for HTTP_METHOD for server', async () => {
+    it('updates based on attributes for HTTP_REQEUST_METHOD for client', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('/users/all', { kind: SpanKind.CLIENT }, child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute('http.request.method', 'GET');
+
+          child.end();
+
+          // eslint-disable-next-line deprecation/deprecation
+          expect(sentrySpan?.op).toBe('http.client');
+          expect(spanToJSON(sentrySpan!).op).toBe('http.client');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates based on attributes for deprecated HTTP_METHOD for server', async () => {
       const tracer = provider.getTracer('default');
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
@@ -553,14 +573,34 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('updates op/description based on attributes for HTTP_METHOD without HTTP_ROUTE', async () => {
+    it('updates based on attributes for HTTP_REQUEST_METHOD for server', async () => {
+      const tracer = provider.getTracer('default');
+
+      tracer.startActiveSpan('GET /users', parentOtelSpan => {
+        tracer.startActiveSpan('/users/all', { kind: SpanKind.SERVER }, child => {
+          const sentrySpan = getSpanForOtelSpan(child);
+
+          child.setAttribute('http.request.method', 'GET');
+
+          child.end();
+
+          // eslint-disable-next-line deprecation/deprecation
+          expect(sentrySpan?.op).toBe('http.server');
+          expect(spanToJSON(sentrySpan!).op).toBe('http.server');
+
+          parentOtelSpan.end();
+        });
+      });
+    });
+
+    it('updates op/description based on attributes for HTTP_REQUEST_METHOD without HTTP_ROUTE', async () => {
       const tracer = provider.getTracer('default');
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
         tracer.startActiveSpan('HTTP GET', child => {
           const sentrySpan = getSpanForOtelSpan(child);
 
-          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute('http.request.method', 'GET');
 
           child.end();
 
@@ -571,14 +611,14 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('updates based on attributes for HTTP_METHOD with HTTP_ROUTE', async () => {
+    it('updates based on attributes for HTTP_REQUEST_METHOD with HTTP_ROUTE', async () => {
       const tracer = provider.getTracer('default');
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
         tracer.startActiveSpan('HTTP GET', child => {
           const sentrySpan = getSpanForOtelSpan(child);
 
-          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute('http.request.method', 'GET');
           child.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/{id}');
           child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
           child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123');
@@ -604,14 +644,14 @@ describe('SentrySpanProcessor', () => {
       });
     });
 
-    it('updates based on attributes for HTTP_METHOD with HTTP_TARGET', async () => {
+    it('updates based on attributes for HTTP_REQUEST_METHOD with HTTP_TARGET', async () => {
       const tracer = provider.getTracer('default');
 
       tracer.startActiveSpan('GET /users', parentOtelSpan => {
         tracer.startActiveSpan('HTTP GET', child => {
           const sentrySpan = getSpanForOtelSpan(child);
 
-          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute('http.request.method', 'GET');
           child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
           child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123');
 
@@ -643,7 +683,7 @@ describe('SentrySpanProcessor', () => {
         tracer.startActiveSpan('HTTP GET', child => {
           const sentrySpan = getSpanForOtelSpan(child);
 
-          child.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+          child.setAttribute('http.request.method', 'GET');
           child.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
           child.setAttribute(SemanticAttributes.HTTP_URL, 'http://example.com/my/route/123?what=123#myHash');
 
@@ -676,7 +716,7 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('GET /users', otelSpan => {
         const sentrySpan = getSpanForOtelSpan(otelSpan);
 
-        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute('http.request.method', 'GET');
         otelSpan.setAttribute(SemanticAttributes.HTTP_TARGET, '/my/route/123');
 
         otelSpan.end();
@@ -692,7 +732,7 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('GET /', otelSpan => {
         const sentrySpan = getSpanForOtelSpan(otelSpan);
 
-        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute('http.request.method', 'GET');
         otelSpan.setAttribute(SemanticAttributes.HTTP_TARGET, '/');
 
         otelSpan.end();
@@ -708,7 +748,7 @@ describe('SentrySpanProcessor', () => {
       tracer.startActiveSpan('GET /users', otelSpan => {
         const sentrySpan = getSpanForOtelSpan(otelSpan);
 
-        otelSpan.setAttribute(SemanticAttributes.HTTP_METHOD, 'GET');
+        otelSpan.setAttribute('http.request.method', 'GET');
         otelSpan.setAttribute(SemanticAttributes.HTTP_ROUTE, '/my/route/:id');
 
         otelSpan.end();
