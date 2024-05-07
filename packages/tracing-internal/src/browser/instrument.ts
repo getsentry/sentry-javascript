@@ -208,12 +208,15 @@ function triggerHandlers(type: InstrumentHandlerType, data: unknown): void {
 }
 
 function instrumentCls(): StopListening {
-  return onCLS(metric => {
-    triggerHandlers('cls', {
-      metric,
-    });
-    _previousCls = metric;
-  });
+  return onCLS(
+    metric => {
+      triggerHandlers('cls', {
+        metric,
+      });
+      _previousCls = metric;
+    },
+    { reportAllChanges: true },
+  );
 }
 
 function instrumentFid(): void {
