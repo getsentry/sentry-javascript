@@ -210,7 +210,7 @@ describe('createSpanEnvelope', () => {
     expect(beforeSendSpan).toHaveBeenCalled();
 
     const spanItem = spanEnvelope[1][0][1];
-    expect(spanItem.description).toEqual({
+    expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
       },

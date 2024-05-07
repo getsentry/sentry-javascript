@@ -12,7 +12,6 @@ import type {
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
-  SpanItem,
   SpanJSON,
 } from '@sentry/types';
 import {
@@ -115,14 +114,11 @@ export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEn
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
   };
 
-  const beforeSend = client && client.getOptions().beforeSendSpan;
-  let items: SpanItem[];
-
-  if (beforeSend) {
-    items = spans.map(span => createSpanEnvelopeItem(beforeSend(spanToJSON(span) as SpanJSON)));
-  } else {
-    items = spans.map(span => createSpanEnvelopeItem(spanToJSON(span)));
-  }
+  const beforeSendSpan = client && client.getOptions().beforeSendSpan;
+  const convertToSpanJSON = beforeSendSpan
+    ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
+    : (span: SentrySpan) => spanToJSON(span);
+  const items = spans.map(span => createSpanEnvelopeItem(convertToSpanJSON(span)));
 
   return createEnvelope<SpanEnvelope>(headers, items);
 }
