@@ -24,7 +24,10 @@ export function parseOtelSpanDescription(otelSpan: OtelSpan): SpanDescription {
   const { attributes, name } = otelSpan;
 
   // if http.method exists, this is an http request span
-  const httpMethod = attributes[SemanticAttributes.HTTP_METHOD];
+  //
+  // TODO: Referencing `http.request.method` is a temporary workaround until the semantic
+  // conventions export an attribute key for it.
+  const httpMethod = attributes['http.request.method'] || attributes[SemanticAttributes.HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod(otelSpan, httpMethod);
   }
