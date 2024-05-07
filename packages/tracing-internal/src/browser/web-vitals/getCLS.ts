@@ -41,7 +41,10 @@ import type { CLSMetric, ReportCallback, StopListening } from './types';
  * hidden. As a result, the `callback` function might be called multiple times
  * during the same page load._
  */
-export const onCLS = (onReport: ReportCallback): StopListening | undefined => {
+export const onCLS = (
+  onReport: ReportCallback,
+  options: { reportAllChanges?: boolean } = {},
+): StopListening | undefined => {
   const metric = initMetric('CLS', 0);
   let report: ReturnType<typeof bindReporter>;
 
@@ -87,7 +90,7 @@ export const onCLS = (onReport: ReportCallback): StopListening | undefined => {
 
   const po = observe('layout-shift', handleEntries);
   if (po) {
-    report = bindReporter(onReport, metric);
+    report = bindReporter(onReport, metric, options.reportAllChanges);
 
     const stopListening = (): void => {
       handleEntries(po.takeRecords() as CLSMetric['entries']);

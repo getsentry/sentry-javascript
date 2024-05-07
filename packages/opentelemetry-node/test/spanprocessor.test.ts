@@ -629,7 +629,7 @@ describe('SentrySpanProcessor', () => {
 
           expect(description).toBe('GET /my/route/{id}');
           expect(data).toEqual({
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.route': '/my/route/{id}',
             'http.target': '/my/route/123',
             'http.url': 'http://example.com/my/route/123',
@@ -661,7 +661,7 @@ describe('SentrySpanProcessor', () => {
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.target': '/my/route/123',
             'http.url': 'http://example.com/my/route/123',
             'otel.kind': 'INTERNAL',
@@ -693,7 +693,7 @@ describe('SentrySpanProcessor', () => {
 
           expect(description).toBe('GET http://example.com/my/route/123');
           expect(data).toEqual({
-            'http.method': 'GET',
+            'http.request.method': 'GET',
             'http.target': '/my/route/123',
             'http.url': 'http://example.com/my/route/123?what=123#myHash',
             'otel.kind': 'INTERNAL',
