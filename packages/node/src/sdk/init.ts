@@ -102,7 +102,7 @@ export function init(options: NodeOptions | undefined = {}): void {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          '[Sentry] You are using the Sentry SDK in combination with an older version (pre 18.19.0 or pre 20.6.0) of Node.js in ESM mode. For the Sentry SDK to operate properly, please run your Node.js application with a `--experimental-loader=@sentry/node/loader` flag. For example: `node --experimental-loader=@sentry/node/loader your-app.js`',
+          '[Sentry] You are using the Sentry SDK in combination with an older version (pre 18.19.0 or pre 20.6.0) of Node.js in ESM mode. For the Sentry SDK to operate properly, please run your Node.js application with a `--loader=@sentry/node/loader` flag. For example: `node --loader=@sentry/node/loader your-app.js`',
         );
       });
     }
