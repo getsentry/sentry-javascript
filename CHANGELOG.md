@@ -4,6 +4,25 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.114.0
+
+### Important Changes
+
+- **fix(browser/v7): Continuously record CLS (#11935)**
+
+This release fixes a bug that caused the cumulative layout shift (CLS) web vital not to be reported in a majority of the
+cases where it should have been reported. With this change, the CLS web vital should now always be reported for
+pageloads with layout shift. If a pageload did not have layout shift, no CLS web vital should be reported.
+
+**Please note that upgrading the SDK to this version may cause data in your dashboards to drastically change.**
+
+### Other Changes
+
+- build(aws-lambda/v7): Turn off lambda layer publishing (#11875)
+- feat(v7): Add `tunnel` support to multiplexed transport (#11851)
+- fix(opentelemetry-node): support `HTTP_REQUEST_METHOD` attribute (#11929)
+- fix(react/v7): Fix react router v4/v5 span names (#11940)
+
 ## 7.113.0
 
 ### Important Changes
