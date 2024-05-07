@@ -1,5 +1,5 @@
-import type { Event, EventHint } from '../event';
-import type { User } from '../user';
+import type { Event, EventHint } from './event';
+import type { User } from './user';
 
 /**
  * Crash report feedback object
