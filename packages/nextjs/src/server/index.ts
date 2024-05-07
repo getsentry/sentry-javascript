@@ -86,6 +86,8 @@ export function init(options: NodeOptions): void {
     return;
   }
 
+  GLOBAL_OBJ._sentrySkipLoaderHookWarning = true;
+
   const customDefaultIntegrations = [
     ...getDefaultIntegrations(options).filter(
       integration =>

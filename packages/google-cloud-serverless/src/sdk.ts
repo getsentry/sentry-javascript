@@ -2,6 +2,7 @@ import type { NodeOptions } from '@sentry/node';
 import { SDK_VERSION, getDefaultIntegrations as getDefaultNodeIntegrations, init as initNode } from '@sentry/node';
 import type { Integration, Options, SdkMetadata } from '@sentry/types';
 
+import { GLOBAL_OBJ } from '@sentry/utils';
 import { googleCloudGrpcIntegration } from './integrations/google-cloud-grpc';
 import { googleCloudHttpIntegration } from './integrations/google-cloud-http';
 
