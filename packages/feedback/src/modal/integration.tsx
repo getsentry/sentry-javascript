@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { h, render } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -15,8 +15,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
       const userKey = options.useSentryUser;
-      const scope = getCurrentScope();
-      const user = scope && scope.getUser();
+      const user = getCurrentScope().getUser() || getIsolationScope().getUser() || getGlobalScope().getUser();
 
       const el = DOCUMENT.createElement('div');
       const style = createDialogStyles();
