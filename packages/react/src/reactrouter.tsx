@@ -263,12 +263,14 @@ function computeRootMatch(pathname: string): Match {
 export function withSentryRouting<P extends Record<string, any>, R extends React.ComponentType<P>>(Route: R): R {
   const componentDisplayName = (Route as any).displayName || (Route as any).name;
 
-  const activeRootSpan = getActiveRootSpan();
-
   const WrappedRoute: React.FC<P> = (props: P) => {
-    if (activeRootSpan && props && props.computedMatch && props.computedMatch.isExact) {
-      activeRootSpan.updateName(props.computedMatch.path);
-      activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+    if (props && props.computedMatch && props.computedMatch.isExact) {
+      const route = props.computedMatch.path;
+      const activeRootSpan = getActiveRootSpan();
+      if (activeRootSpan) {
+        activeRootSpan.updateName(route);
+        activeRootSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+      }
     }
 
     // @ts-expect-error Setting more specific React Component typing for `R` generic above
