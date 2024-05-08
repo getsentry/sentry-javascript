@@ -66,7 +66,7 @@ export const buildFeedbackIntegration = ({
     autoInject = true,
     showEmail = true,
     showName = true,
-    showScreenshot = true,
+    enableScreenshot = true,
     useSentryUser = {
       email: 'email',
       name: 'username',
@@ -108,7 +108,7 @@ export const buildFeedbackIntegration = ({
       isNameRequired,
       showEmail,
       showName,
-      showScreenshot,
+      enableScreenshot,
       useSentryUser,
 
       colorScheme,
@@ -176,7 +176,7 @@ export const buildFeedbackIntegration = ({
     };
 
     const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
-      const screenshotRequired = options.showScreenshot && isScreenshotSupported();
+      const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
         screenshotRequired

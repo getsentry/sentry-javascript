@@ -45,7 +45,7 @@ export interface FeedbackGeneralConfiguration {
    * Should the screen shots field be included?
    * Screen shots cannot be marked as required
    */
-  showScreenshot: boolean;
+  enableScreenshot: boolean;
 
   /**
    * Fill in email/name input fields with Sentry user context if it exists.
