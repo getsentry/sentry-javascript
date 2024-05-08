@@ -1,5 +1,8 @@
+import { vi } from 'vitest';
+
 import { EventType } from '@sentry-internal/rrweb';
 
+import { saveSession } from '../../src/session/saveSession';
 import type { RecordingEvent } from '../../src/types';
 import { addEvent } from '../../src/util/addEvent';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -7,23 +10,21 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
+vi.mock('../../src/session/saveSession', () => {
+  return {
+    saveSession: vi.fn(),
+  };
+});
+
 describe('Integration | autoSaveSession', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test.each([
     ['with stickySession=true', true, 1],
     ['with stickySession=false', false, 0],
   ])('%s', async (_: string, stickySession: boolean, addSummand: number) => {
-    const saveSessionSpy = jest.fn();
-
-    jest.mock('../../src/session/saveSession', () => {
-      return {
-        saveSession: saveSessionSpy,
-      };
-    });
-
     const { replay } = await resetSdkMock({
       replayOptions: {
         stickySession,
@@ -31,11 +32,11 @@ describe('Integration | autoSaveSession', () => {
     });
 
     // Initially called up to three times: once for start, then once for replay.updateSessionActivity & once for segmentId increase
-    expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 3);
+    expect(saveSession).toHaveBeenCalledTimes(addSummand * 3);
 
     replay['_updateSessionActivity']();
 
-    expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 4);
+    expect(saveSession).toHaveBeenCalledTimes(addSummand * 4);
 
     // In order for runFlush to actually do something, we need to add an event
     const event = {
@@ -48,8 +49,8 @@ describe('Integration | autoSaveSession', () => {
 
     addEvent(replay, event);
 
-    await replay['_runFlush']();
+    await Promise.all([replay['_runFlush'](), vi.runAllTimersAsync()]);
 
-    expect(saveSessionSpy).toHaveBeenCalledTimes(addSummand * 5);
+    expect(saveSession).toHaveBeenCalledTimes(addSummand * 5);
   });
 });

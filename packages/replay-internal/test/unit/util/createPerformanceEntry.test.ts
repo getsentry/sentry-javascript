@@ -1,8 +1,11 @@
-jest.useFakeTimers().setSystemTime(new Date('2023-01-01'));
+import { vi } from 'vitest';
 
-jest.mock('@sentry/utils', () => ({
-  ...jest.requireActual('@sentry/utils'),
-  browserPerformanceTimeOrigin: Date.now(),
+vi.useFakeTimers();
+vi.setSystemTime(new Date('2023-01-01'));
+
+vi.mock('@sentry/utils', async () => ({
+  ...(await vi.importActual('@sentry/utils')),
+  browserPerformanceTimeOrigin: new Date('2023-01-01').getTime(),
 }));
 
 import { WINDOW } from '../../../src/constants';
@@ -12,7 +15,7 @@ import { PerformanceEntryNavigation } from '../../fixtures/performanceEntry/navi
 describe('Unit | util | createPerformanceEntries', () => {
   beforeEach(function () {
     if (!WINDOW.performance.getEntriesByType) {
-      WINDOW.performance.getEntriesByType = jest.fn((type: string) => {
+      WINDOW.performance.getEntriesByType = vi.fn((type: string) => {
         if (type === 'navigation') {
           return [PerformanceEntryNavigation()];
         }
@@ -22,8 +25,8 @@ describe('Unit | util | createPerformanceEntries', () => {
   });
 
   afterAll(function () {
-    jest.clearAllMocks();
-    jest.useRealTimers();
+    vi.clearAllMocks();
+    vi.useRealTimers();
   });
 
   it('ignores sdks own requests', function () {

@@ -1,4 +1,7 @@
-import { TextEncoder } from 'util';
+import { printDiffOrStringify } from 'jest-matcher-utils';
+import { vi } from 'vitest';
+import type { Mocked, MockedFunction } from 'vitest';
+
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { getClient } from '@sentry/core';
 import type { ReplayRecordingData, Transport } from '@sentry/types';
@@ -6,12 +9,9 @@ import * as SentryUtils from '@sentry/utils';
 
 import type { ReplayContainer, Session } from './src/types';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(global as any).TextEncoder = TextEncoder;
+type MockTransport = MockedFunction<Transport['send']>;
 
-type MockTransport = jest.MockedFunction<Transport['send']>;
-
-jest.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
+vi.spyOn(SentryUtils, 'isBrowser').mockImplementation(() => true);
 
 type EnvelopeHeader = {
   event_id: string;
@@ -36,7 +36,7 @@ type SentReplayExpected = {
 };
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expected: undefined | Session) {
+const toHaveSameSession = function (received: Mocked<ReplayContainer>, expected: undefined | Session) {
   const pass = this.equals(received.session?.id, expected?.id) as boolean;
 
   const options = {
@@ -47,12 +47,12 @@ const toHaveSameSession = function (received: jest.Mocked<ReplayContainer>, expe
   return {
     pass,
     message: () =>
-      `${this.utils.matcherHint(
-        'toHaveSameSession',
-        undefined,
-        undefined,
-        options,
-      )}\n\n${this.utils.printDiffOrStringify(expected, received.session, 'Expected', 'Received')}`,
+      `${this.utils.matcherHint('toHaveSameSession', undefined, undefined, options)}\n\n${printDiffOrStringify(
+        expected,
+        received.session,
+        'Expected',
+        'Received',
+      )}`,
   };
 };
 
@@ -101,6 +101,7 @@ function checkCallForSentReplay(
     : (expected as SentReplayExpected);
 
   if (isObjectContaining) {
+    // eslint-disable-next-line no-console
     console.warn('`expect.objectContaining` is unnecessary when using the `toHaveSentReplay` matcher');
   }
 
@@ -152,7 +153,7 @@ function getReplayCalls(calls: any[][][]): any[][][] {
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const toHaveSentReplay = function (
-  _received: jest.Mocked<ReplayContainer>,
+  _received: Mocked<ReplayContainer>,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
   const { calls } = (getClient()?.getTransport()?.send as MockTransport).mock;
@@ -194,12 +195,7 @@ const toHaveSentReplay = function (
           : 'Expected Replay to have been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(({ key, expectedVal, actualVal }: Result) =>
-              this.utils.printDiffOrStringify(
-                expectedVal,
-                actualVal,
-                `Expected (key: ${key})`,
-                `Received (key: ${key})`,
-              ),
+              printDiffOrStringify(expectedVal, actualVal, `Expected (key: ${key})`, `Received (key: ${key})`),
             )
             .join('\n')}`,
   };
@@ -211,7 +207,7 @@ const toHaveSentReplay = function (
  */
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 const toHaveLastSentReplay = function (
-  _received: jest.Mocked<ReplayContainer>,
+  _received: Mocked<ReplayContainer>,
   expected?: SentReplayExpected | { sample: SentReplayExpected; inverse: boolean },
 ) {
   const { calls } = (getClient()?.getTransport()?.send as MockTransport).mock;
@@ -235,12 +231,7 @@ const toHaveLastSentReplay = function (
           : 'Expected Replay to have last been sent, but a request was not attempted'
         : `${this.utils.matcherHint('toHaveSentReplay', undefined, undefined, options)}\n\n${results
             .map(({ key, expectedVal, actualVal }: Result) =>
-              this.utils.printDiffOrStringify(
-                expectedVal,
-                actualVal,
-                `Expected (key: ${key})`,
-                `Received (key: ${key})`,
-              ),
+              printDiffOrStringify(expectedVal, actualVal, `Expected (key: ${key})`, `Received (key: ${key})`),
             )
             .join('\n')}`,
   };
@@ -252,18 +243,13 @@ expect.extend({
   toHaveLastSentReplay,
 });
 
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace jest {
-    interface AsymmetricMatchers {
-      toHaveSentReplay(expected?: SentReplayExpected): void;
-      toHaveLastSentReplay(expected?: SentReplayExpected): void;
-      toHaveSameSession(expected: undefined | Session): void;
-    }
-    interface Matchers<R> {
-      toHaveSentReplay(expected?: SentReplayExpected): R;
-      toHaveLastSentReplay(expected?: SentReplayExpected): R;
-      toHaveSameSession(expected: undefined | Session): R;
-    }
-  }
+interface CustomMatchers<R = unknown> {
+  toHaveSentReplay(expected?: SentReplayExpected): R;
+  toHaveLastSentReplay(expected?: SentReplayExpected): R;
+  toHaveSameSession(expected: undefined | Session): R;
+}
+
+declare module 'vitest' {
+  type Assertion<T = any> = CustomMatchers<T>;
+  type AsymmetricMatchersContaining = CustomMatchers;
 }

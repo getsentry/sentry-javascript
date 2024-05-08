@@ -1,11 +1,13 @@
+import { afterEach, beforeEach, describe, vi } from 'vitest';
+
 import { getPrivacyOptions } from '../../../src/util/getPrivacyOptions';
 
 describe('Unit | util | getPrivacyOptions', () => {
   beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('has correct default options', () => {
@@ -18,9 +20,9 @@ describe('Unit | util | getPrivacyOptions', () => {
         ignore: ['.custom-ignore'],
       }),
     ).toMatchInlineSnapshot(`
-      Object {
-        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href=\\"/\\"]",
-        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type=\\"file\\"]",
+      {
+        "blockSelector": ".custom-block,.sentry-block,[data-sentry-block],base[href="/"]",
+        "ignoreSelector": ".custom-ignore,.sentry-ignore,[data-sentry-ignore],input[type="file"]",
         "maskTextSelector": ".custom-mask,.sentry-mask,[data-sentry-mask]",
         "unblockSelector": ".custom-unblock",
         "unmaskTextSelector": ".custom-unmask",

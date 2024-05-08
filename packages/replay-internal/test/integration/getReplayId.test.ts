@@ -5,7 +5,7 @@ useFakeTimers();
 
 describe('Integration | getReplayId', () => {
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('works', async () => {

@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import { getClient, getCurrentScope } from '@sentry/core';
 import type { Event } from '@sentry/types';
 
@@ -15,7 +17,7 @@ describe('Integration | eventProcessors', () => {
   });
 
   afterEach(() => {
-    jest.resetAllMocks();
+    vi.resetAllMocks();
   });
 
   it('handles event processors properly', async () => {
@@ -29,17 +31,17 @@ describe('Integration | eventProcessors', () => {
 
     const client = getClient()!;
 
-    jest.runAllTimers();
-    const mockTransportSend = jest.spyOn(client.getTransport()!, 'send');
+    await vi.runAllTimersAsync();
+    const mockTransportSend = vi.spyOn(client.getTransport()!, 'send');
     mockTransportSend.mockReset();
 
-    const handler1 = jest.fn((event: Event): Event | null => {
+    const handler1 = vi.fn((event: Event): Event | null => {
       event.timestamp = MUTATED_TIMESTAMP;
 
       return event;
     });
 
-    const handler2 = jest.fn((): Event | null => {
+    const handler2 = vi.fn((): Event | null => {
       return null;
     });
 
@@ -48,8 +50,7 @@ describe('Integration | eventProcessors', () => {
     const TEST_EVENT = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     mockRecord._emitter(TEST_EVENT);
-    jest.runAllTimers();
-    jest.advanceTimersByTime(1);
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockTransportSend).toHaveBeenCalledTimes(1);
@@ -59,8 +60,7 @@ describe('Integration | eventProcessors', () => {
     const TEST_EVENT2 = getTestEventIncremental({ timestamp: BASE_TIMESTAMP });
 
     mockRecord._emitter(TEST_EVENT2);
-    jest.runAllTimers();
-    jest.advanceTimersByTime(1);
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockTransportSend).toHaveBeenCalledTimes(1);

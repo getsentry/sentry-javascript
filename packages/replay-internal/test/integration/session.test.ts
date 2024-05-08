@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import { getClient } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
@@ -24,11 +26,6 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 
 useFakeTimers();
 
-async function advanceTimers(time: number) {
-  jest.advanceTimersByTime(time);
-  await new Promise(process.nextTick);
-}
-
 const prevLocation = WINDOW.location;
 
 describe('Integration | session', () => {
@@ -43,16 +40,16 @@ describe('Integration | session', () => {
       },
     }));
 
-    const mockTransport = getClient()?.getTransport()?.send as jest.MockedFunction<Transport['send']>;
+    const mockTransport = getClient()?.getTransport()?.send as vi.MockedFunction<Transport['send']>;
     mockTransport?.mockClear();
+    await vi.runAllTimersAsync();
   });
 
   afterEach(async () => {
     replay.stop();
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    await vi.runAllTimersAsync();
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
 
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
@@ -72,7 +69,7 @@ describe('Integration | session', () => {
 
     const initialSession = { ...replay.session } as Session;
 
-    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
+    vi.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
     document.dispatchEvent(new Event('visibilitychange'));
 
@@ -83,7 +80,7 @@ describe('Integration | session', () => {
   it('does not create a new session when document becomes focused after [SESSION_IDLE_EXPIRE_DURATION]ms', () => {
     const initialSession = { ...replay.session } as Session;
 
-    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
+    vi.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION + 1);
 
     WINDOW.dispatchEvent(new Event('focus'));
 
@@ -105,7 +102,7 @@ describe('Integration | session', () => {
     expect(replay).toHaveSameSession(initialSession);
 
     // User comes back before `SESSION_IDLE_EXPIRE_DURATION` elapses
-    jest.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 1);
+    vi.advanceTimersByTime(SESSION_IDLE_EXPIRE_DURATION - 1);
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       get: function () {
@@ -126,7 +123,7 @@ describe('Integration | session', () => {
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(
       expect.objectContaining({
-        initialUrl: 'http://localhost/',
+        initialUrl: 'http://localhost:3000/',
         initialTimestamp: BASE_TIMESTAMP,
       }),
     );
@@ -137,7 +134,7 @@ describe('Integration | session', () => {
     });
 
     const ELAPSED = SESSION_IDLE_EXPIRE_DURATION + 1;
-    jest.advanceTimersByTime(ELAPSED);
+    vi.advanceTimersByTime(ELAPSED);
 
     // Session has become in an idle state
     //
@@ -203,10 +200,10 @@ describe('Integration | session', () => {
     // Replay does not send immediately because checkout was due to expired session
     expect(replay).not.toHaveLastSentReplay();
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
     await new Promise(process.nextTick);
 
-    const newTimestamp = BASE_TIMESTAMP + ELAPSED + 20;
+    const newTimestamp = BASE_TIMESTAMP + ELAPSED;
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -236,7 +233,7 @@ describe('Integration | session', () => {
     expect(initialSession?.id).toBeDefined();
     expect(replay.getContext()).toEqual(
       expect.objectContaining({
-        initialUrl: 'http://localhost/',
+        initialUrl: 'http://localhost:3000/',
         initialTimestamp: BASE_TIMESTAMP,
       }),
     );
@@ -247,7 +244,7 @@ describe('Integration | session', () => {
     });
 
     const ELAPSED = SESSION_IDLE_PAUSE_DURATION + 1;
-    jest.advanceTimersByTime(ELAPSED);
+    vi.advanceTimersByTime(ELAPSED);
 
     // Session has become in an idle state
     //
@@ -305,7 +302,7 @@ describe('Integration | session', () => {
     // Replay does not send immediately
     expect(replay).not.toHaveLastSentReplay();
 
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(replay).toHaveLastSentReplay();
   });
@@ -326,17 +323,15 @@ describe('Integration | session', () => {
   });
 
   it('creates a new session if current session exceeds MAX_REPLAY_DURATION', async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     const initialSession = { ...replay.session } as Session;
 
     expect(initialSession?.id).toBeDefined();
-    expect(replay.getContext()).toEqual(
-      expect.objectContaining({
-        initialUrl: 'http://localhost/',
-        initialTimestamp: BASE_TIMESTAMP,
-      }),
-    );
+    expect(replay.getContext()).toMatchObject({
+      initialUrl: 'http://localhost:3000/',
+      initialTimestamp: BASE_TIMESTAMP,
+    });
 
     const url = 'http://dummy/';
     Object.defineProperty(WINDOW, 'location', {
@@ -345,7 +340,7 @@ describe('Integration | session', () => {
 
     // Advanced past MAX_REPLAY_DURATION
     const ELAPSED = MAX_REPLAY_DURATION + 1;
-    jest.advanceTimersByTime(ELAPSED);
+    await vi.advanceTimersByTimeAsync(ELAPSED);
     // Update activity so as to not consider session to be idling
     replay['_updateUserActivity']();
     replay['_updateSessionActivity']();
@@ -360,8 +355,7 @@ describe('Integration | session', () => {
     const optionsEvent = createOptionsEvent(replay);
     const timestampAtRefresh = BASE_TIMESTAMP + ELAPSED;
 
-    jest.runAllTimers();
-    await new Promise(process.nextTick);
+    await vi.runAllTimersAsync();
 
     expect(replay).not.toHaveSameSession(initialSession);
     expect(replay).not.toHaveLastSentReplay();
@@ -373,17 +367,15 @@ describe('Integration | session', () => {
       event: new Event('click'),
     });
 
-    // 20 is for the process.nextTick
-    const newTimestamp = timestampAtRefresh + 20;
+    const newTimestamp = timestampAtRefresh;
 
     const NEW_TEST_EVENT = getTestEventIncremental({
       data: { name: 'test' },
-      timestamp: newTimestamp + DEFAULT_FLUSH_MIN_DELAY + 20,
+      timestamp: newTimestamp + DEFAULT_FLUSH_MIN_DELAY,
     });
     mockRecord._emitter(NEW_TEST_EVENT);
 
-    jest.runAllTimers();
-    await advanceTimers(DEFAULT_FLUSH_MIN_DELAY);
+    await vi.advanceTimersByTimeAsync(DEFAULT_FLUSH_MIN_DELAY);
 
     expect(replay).toHaveLastSentReplay({
       recordingPayloadHeader: { segment_id: 0 },
@@ -431,7 +423,7 @@ describe('Integration | session', () => {
 
     // Pretend 5 seconds have passed
     const ELAPSED = 5000;
-    await advanceTimers(ELAPSED);
+    await vi.advanceTimersByTimeAsync(ELAPSED);
 
     const TEST_EVENT = getTestEventCheckout({ timestamp: BASE_TIMESTAMP });
 
@@ -445,7 +437,7 @@ describe('Integration | session', () => {
 
     addEvent(replay, TEST_EVENT);
     WINDOW.dispatchEvent(new Event('blur'));
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
     expect(replay.session?.segmentId).toBe(2);
     expect(replay).toHaveLastSentReplay({

@@ -10,7 +10,7 @@ module.exports = {
       files: ['src/**/*.ts'],
     },
     {
-      files: ['jest.setup.ts', 'jest.config.ts'],
+      files: ['test.setup.ts', 'vitest.config.ts'],
       parserOptions: {
         project: ['tsconfig.test.json'],
       },
