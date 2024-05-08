@@ -84,7 +84,6 @@ export const buildFeedbackIntegration = ({
 
     // FeedbackTextConfiguration
     addScreenshotButtonLabel = ADD_SCREENSHOT_LABEL,
-    triggerLabel = TRIGGER_LABEL,
     cancelButtonLabel = CANCEL_BUTTON_LABEL,
     confirmButtonLabel = CONFIRM_BUTTON_LABEL,
     emailLabel = EMAIL_LABEL,
@@ -98,6 +97,7 @@ export const buildFeedbackIntegration = ({
     removeScreenshotButtonLabel = REMOVE_SCREENSHOT_LABEL,
     submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
+    triggerLabel = TRIGGER_LABEL,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -163,7 +163,7 @@ export const buildFeedbackIntegration = ({
         DOCUMENT.body.appendChild(host);
 
         _shadow = host.attachShadow({ mode: 'open' });
-        _shadow.appendChild(createMainStyles(options.colorScheme, options));
+        _shadow.appendChild(createMainStyles(options));
       }
       return _shadow as ShadowRoot;
     };

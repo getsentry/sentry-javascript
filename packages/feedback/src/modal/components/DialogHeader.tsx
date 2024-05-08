@@ -6,17 +6,16 @@ import { useMemo } from 'preact/hooks';
 import { SentryLogo } from './SentryLogo';
 
 export interface Props {
-  formTitle: FeedbackInternalOptions['formTitle'];
-  showBranding: FeedbackInternalOptions['showBranding'];
+  options: FeedbackInternalOptions;
 }
 
-export function DialogHeader({ formTitle, showBranding }: Props): VNode {
+export function DialogHeader({ options }: Props): VNode {
   const logoHtml = useMemo(() => ({ __html: SentryLogo().outerHTML }), []);
 
   return (
     <h2 class="dialog__header">
-      {formTitle}
-      {showBranding ? (
+      {options.formTitle}
+      {options.showBranding ? (
         <a
           class="brand-link"
           target="_blank"

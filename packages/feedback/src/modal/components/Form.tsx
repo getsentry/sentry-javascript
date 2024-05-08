@@ -13,25 +13,8 @@ import { FEEDBACK_WIDGET_SOURCE } from '../../constants';
 import { DEBUG_BUILD } from '../../util/debug-build';
 import { getMissingFields } from '../../util/validate';
 
-export interface Props
-  extends Pick<
-    FeedbackInternalOptions,
-    | 'addScreenshotButtonLabel'
-    | 'removeScreenshotButtonLabel'
-    | 'cancelButtonLabel'
-    | 'emailLabel'
-    | 'emailPlaceholder'
-    | 'isEmailRequired'
-    | 'isNameRequired'
-    | 'messageLabel'
-    | 'messagePlaceholder'
-    | 'nameLabel'
-    | 'namePlaceholder'
-    | 'showEmail'
-    | 'showName'
-    | 'submitButtonLabel'
-    | 'isRequiredLabel'
-  > {
+export interface Props extends Pick<FeedbackInternalOptions, 'showEmail' | 'showName'> {
+  options: FeedbackInternalOptions;
   defaultEmail: string;
   defaultName: string;
   onFormClose: () => void;
@@ -50,29 +33,33 @@ function retrieveStringValue(formData: FormData, key: string): string {
 }
 
 export function Form({
-  addScreenshotButtonLabel,
-  removeScreenshotButtonLabel,
-  cancelButtonLabel,
+  options,
   defaultEmail,
   defaultName,
-  emailLabel,
-  emailPlaceholder,
-  isEmailRequired,
-  isNameRequired,
-  messageLabel,
-  messagePlaceholder,
-  nameLabel,
-  namePlaceholder,
+
   onFormClose,
   onSubmit,
   onSubmitSuccess,
   onSubmitError,
   showEmail,
   showName,
-  submitButtonLabel,
-  isRequiredLabel,
   screenshotInput,
 }: Props): VNode {
+  const {
+    addScreenshotButtonLabel,
+    removeScreenshotButtonLabel,
+    cancelButtonLabel,
+    emailLabel,
+    emailPlaceholder,
+    isEmailRequired,
+    isNameRequired,
+    messageLabel,
+    messagePlaceholder,
+    nameLabel,
+    namePlaceholder,
+    submitButtonLabel,
+    isRequiredLabel,
+  } = options;
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
   const [error, setError] = useState<null | string>(null);
 
