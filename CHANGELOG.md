@@ -68,6 +68,23 @@ integrations out of the box.
 - [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
 - [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
 
+### Functional Integrations
+
+Integrations are now simple functions instead of classes. Class-based integrations
+[have been removed](./MIGRATION.md#removal-of-class-based-integrations):
+
+```javascript
+// old (v7)
+Sentry.init({
+  integrations: [new Sentry.BrowserTracing()],
+});
+
+// new (v8)
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration()],
+});
+```
+
 ### Package removal
 
 The following packages have been removed or replaced and will no longer be published:
