@@ -16,6 +16,8 @@ import { getMissingFields } from '../../util/validate';
 export interface Props
   extends Pick<
     FeedbackInternalOptions,
+    | 'addScreenshotButtonLabel'
+    | 'removeScreenshotButtonLabel'
     | 'cancelButtonLabel'
     | 'emailLabel'
     | 'emailPlaceholder'
@@ -28,7 +30,7 @@ export interface Props
     | 'showEmail'
     | 'showName'
     | 'submitButtonLabel'
-    | 'isRequiredText'
+    | 'isRequiredLabel'
   > {
   defaultEmail: string;
   defaultName: string;
@@ -48,6 +50,8 @@ function retrieveStringValue(formData: FormData, key: string): string {
 }
 
 export function Form({
+  addScreenshotButtonLabel,
+  removeScreenshotButtonLabel,
   cancelButtonLabel,
   defaultEmail,
   defaultName,
@@ -66,7 +70,7 @@ export function Form({
   showEmail,
   showName,
   submitButtonLabel,
-  isRequiredText,
+  isRequiredLabel,
   screenshotInput,
 }: Props): VNode {
   // TODO: set a ref on the form, and whenever an input changes call proceessForm() and setError()
@@ -159,7 +163,7 @@ export function Form({
 
           {showName ? (
             <label for="name" class="form__label">
-              <LabelText label={nameLabel} isRequiredText={isRequiredText} isRequired={isNameRequired} />
+              <LabelText label={nameLabel} isRequiredLabel={isRequiredLabel} isRequired={isNameRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultName}
@@ -176,7 +180,7 @@ export function Form({
 
           {showEmail ? (
             <label for="email" class="form__label">
-              <LabelText label={emailLabel} isRequiredText={isRequiredText} isRequired={isEmailRequired} />
+              <LabelText label={emailLabel} isRequiredLabel={isRequiredLabel} isRequired={isEmailRequired} />
               <input
                 class="form__input"
                 defaultValue={defaultEmail}
@@ -192,7 +196,7 @@ export function Form({
           )}
 
           <label for="message" class="form__label">
-            <LabelText label={messageLabel} isRequiredText={isRequiredText} isRequired />
+            <LabelText label={messageLabel} isRequiredLabel={isRequiredLabel} isRequired />
             <textarea
               autoFocus
               class="form__input form__input--textarea"
@@ -206,8 +210,6 @@ export function Form({
 
           {ScreenshotInputComponent ? (
             <label for="screenshot" class="form__label">
-              <span class="form__label__text">Screenshot</span>
-
               <button
                 class="btn btn--default"
                 type="button"
@@ -216,7 +218,7 @@ export function Form({
                   setShowScreenshotInput(prev => !prev);
                 }}
               >
-                {showScreenshotInput ? 'Remove' : 'Add'}
+                {showScreenshotInput ? removeScreenshotButtonLabel : addScreenshotButtonLabel}
               </button>
               {screenshotError ? <div class="form__error-container">{screenshotError.message}</div> : null}
             </label>
@@ -238,12 +240,12 @@ export function Form({
 function LabelText({
   label,
   isRequired,
-  isRequiredText,
-}: { label: string; isRequired: boolean; isRequiredText: string }): VNode {
+  isRequiredLabel,
+}: { label: string; isRequired: boolean; isRequiredLabel: string }): VNode {
   return (
     <span class="form__label__text">
       {label}
-      {isRequired && <span class="form__label__text--required">{isRequiredText}</span>}
+      {isRequired && <span class="form__label__text--required">{isRequiredLabel}</span>}
     </span>
   );
 }

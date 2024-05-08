@@ -62,7 +62,12 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: FactoryParams): ComponentType<Props> {
+export function makeScreenshotEditorComponent({
+  h,
+  imageBuffer,
+  dialog,
+  options,
+}: FactoryParams): ComponentType<Props> {
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
@@ -298,7 +303,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                 }}
                 class="btn btn--default"
               >
-                Cancel
+                {options.cancelButtonLabel}
               </button>
               <button
                 onClick={e => {
@@ -308,7 +313,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                 }}
                 class="btn btn--primary"
               >
-                Confirm
+                {options.confirmButtonLabel}
               </button>
             </div>
           </div>
