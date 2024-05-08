@@ -399,7 +399,7 @@ The following packages will no longer be published
 
 ### Initializing Server-side SDKs (Node, Bun, Next.js, SvelteKit, Astro, Remix):
 
-Initializing the SDKs on the server-side has been simplified. See more details in our migration docs about
+Initializing the SDKs on the server-side has been simplified. More details in our migration docs about
 [initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk).
 
 ### Performance Monitoring Changes
