@@ -21,9 +21,9 @@ test('Should record a transaction for a parameterless route', async ({ request }
   await expect(transactionEventPromise).resolves.toBeDefined();
 });
 
-test('Should record a transaction for route with aparameters', async ({ request }) => {
+test('Should record a transaction for route with parameters', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
-    return transactionEvent?.transaction === 'GET /test-transaction/:param';
+    return transactionEvent?.transaction === 'GET /test-transaction/1';
   });
 
   await request.get('/test-transaction/1');
