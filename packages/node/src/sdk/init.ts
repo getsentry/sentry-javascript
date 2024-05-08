@@ -97,7 +97,7 @@ export function init(options: NodeOptions | undefined = {}): void {
     const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
 
     // Register hook was added in v20.6.0 and v18.19.0
-    if (nodeMajor > 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
+    if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
       // We need to work around using import.meta.url directly because jest complains about it.
       const importMetaUrl =
         typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
