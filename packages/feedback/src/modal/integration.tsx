@@ -69,6 +69,8 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             defaultEmail={(userKey && user && user[userKey.email]) || ''}
             successMessageText={options.successMessageText}
             isRequiredLabel={options.isRequiredLabel}
+            addScreenshotButtonLabel={options.addScreenshotButtonLabel}
+            removeScreenshotButtonLabel={options.removeScreenshotButtonLabel}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose && options.onFormClose();

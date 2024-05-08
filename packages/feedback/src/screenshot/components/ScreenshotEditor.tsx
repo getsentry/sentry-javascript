@@ -1,4 +1,4 @@
-import type { FeedbackDialog } from '@sentry/types';
+import type { FeedbackDialog, FeedbackInternalOptions } from '@sentry/types';
 /* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
@@ -17,6 +17,7 @@ interface FactoryParams {
   h: typeof hType;
   imageBuffer: HTMLCanvasElement;
   dialog: FeedbackDialog;
+  options: FeedbackInternalOptions;
 }
 
 interface Props {
