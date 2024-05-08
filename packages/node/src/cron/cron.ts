@@ -1,4 +1,4 @@
-import { withMonitor } from '@sentry/core';
+import { captureException, withMonitor } from '@sentry/core';
 import { replaceCronNames } from './common';
 
 export type CronJobParams = {
@@ -92,11 +92,16 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
       const cronString = replaceCronNames(cronTime);
 
-      function monitoredTick(context: unknown, onComplete?: unknown): void | Promise<void> {
+      async function monitoredTick(context: unknown, onComplete?: unknown): Promise<void> {
         return withMonitor(
           monitorSlug,
-          () => {
-            return onTick(context, onComplete);
+          async () => {
+            try {
+              await onTick(context, onComplete);
+            } catch (e) {
+              captureException(e);
+              throw e;
+            }
           },
           {
             schedule: { type: 'crontab', value: cronString },
@@ -124,11 +129,16 @@ export function instrumentCron<T>(lib: T & CronJobConstructor, monitorSlug: stri
 
           const cronString = replaceCronNames(cronTime);
 
-          param.onTick = (context: unknown, onComplete?: unknown) => {
+          param.onTick = async (context: unknown, onComplete?: unknown) => {
             return withMonitor(
               monitorSlug,
-              () => {
-                return onTick(context, onComplete);
+              async () => {
+                try {
+                  await onTick(context, onComplete);
+                } catch (e) {
+                  captureException(e);
+                  throw e;
+                }
               },
               {
                 schedule: { type: 'crontab', value: cronString },

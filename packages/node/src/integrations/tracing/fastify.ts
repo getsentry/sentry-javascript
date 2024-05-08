@@ -1,7 +1,9 @@
+import { isWrapped } from '@opentelemetry/core';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
 import { captureException, defineIntegration, getIsolationScope } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { consoleSandbox } from '@sentry/utils';
 
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
@@ -81,4 +83,13 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
   );
 
   fastify.register(plugin);
+
+  if (!isWrapped(fastify.addHook)) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Fastify is not instrumented. This is likely because you required/imported fastify before calling `Sentry.init()`.',
+      );
+    });
+  }
 }

@@ -1,4 +1,4 @@
-import { getCurrentScope } from '@sentry/core';
+import { getCurrentScope, getGlobalScope, getIsolationScope } from '@sentry/core';
 import type { CreateDialogProps, FeedbackFormData, FeedbackModalIntegration, IntegrationFn } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
@@ -13,8 +13,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
       const userKey = options.useSentryUser;
-      const scope = getCurrentScope();
-      const user = scope && scope.getUser();
+      const user = getCurrentScope().getUser() || getIsolationScope().getUser() || getGlobalScope().getUser();
 
       const el = DOCUMENT.createElement('div');
       const style = createDialogStyles();

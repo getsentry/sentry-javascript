@@ -50,6 +50,8 @@
     "mongoose": "^5.13.22",
     "mysql": "^2.18.1",
     "mysql2": "^3.7.1",
+    "node-cron": "^3.0.3",
+    "node-schedule": "^2.1.1",
     "nock": "^13.1.0",
     "pg": "^8.7.3",
     "proxy": "^2.1.1",
@@ -58,6 +60,8 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
+    "@types/node-cron": "^3.0.11",
+    "@types/node-schedule": "^2.1.7",
     "globby": "11"
   },
   "config": {
