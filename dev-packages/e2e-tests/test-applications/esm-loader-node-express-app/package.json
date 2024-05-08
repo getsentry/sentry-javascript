@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node --import=@sentry/node/import src/app.mjs",
+    "start": "node --import ./src/instrument.mjs src/app.mjs",
     "clean": "npx rimraf node_modules,pnpm-lock.yaml",
     "test:build": "pnpm install",
     "test:assert": "playwright test"
