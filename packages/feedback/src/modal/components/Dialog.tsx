@@ -1,4 +1,4 @@
-import type { FeedbackFormData } from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
@@ -11,12 +11,13 @@ import { Form } from './Form';
 import { SuccessIcon } from './SuccessIcon';
 
 interface Props extends HeaderProps, FormProps {
-  successMessageText: string;
   onFormSubmitted: () => void;
   open: boolean;
+  options: FeedbackInternalOptions;
 }
 
-export function Dialog({ open, onFormSubmitted, successMessageText, ...props }: Props): VNode {
+export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
+  const options = props.options;
   const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
@@ -46,7 +47,7 @@ export function Dialog({ open, onFormSubmitted, successMessageText, ...props }: 
     <Fragment>
       {timeoutId ? (
         <div class="success-message" onClick={handleOnSuccessClick}>
-          {successMessageText}
+          {options.successMessageText}
           <span class="success-icon" dangerouslySetInnerHTML={successIconHtml} />
         </div>
       ) : (

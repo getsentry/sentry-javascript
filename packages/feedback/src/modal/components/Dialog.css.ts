@@ -1,3 +1,4 @@
+import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../../constants';
 
 const DIALOG = `
@@ -237,19 +238,64 @@ const SUCCESS = `
 }
 `;
 
+function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
+  return `
+  --submit-background: ${theme.submitBackground};
+  --submit-background-hover: ${theme.submitBackgroundHover};
+  --submit-border: ${theme.submitBorder};
+  --submit-outline-focus: ${theme.submitOutlineFocus};
+  --submit-foreground: ${theme.submitForeground};
+  --submit-foreground-hover: ${theme.submitForegroundHover};
+
+  --cancel-background: ${theme.cancelBackground};
+  --cancel-background-hover: ${theme.cancelBackgroundHover};
+  --cancel-border: ${theme.cancelBorder};
+  --cancel-outline-focus: ${theme.cancelOutlineFocus};
+  --cancel-foreground: ${theme.cancelForeground};
+  --cancel-foreground-hover: ${theme.cancelForegroundHover};
+
+  --input-background: ${theme.inputBackground};
+  --input-foreground: ${theme.inputForeground};
+  --input-border: ${theme.inputBorder};
+  --input-outline-focus: ${theme.inputOutlineFocus};
+
+  --form-border-radius: ${theme.formBorderRadius};
+  --form-content-border-radius: ${theme.formContentBorderRadius};
+  `;
+}
+
 /**
  * Creates <style> element for widget dialog
  */
-export function createDialogStyles(): HTMLStyleElement {
+export function createDialogStyles({ colorScheme, themeDark, themeLight }: FeedbackInternalOptions): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   style.textContent = `
-    ${DIALOG}
-    ${DIALOG_HEADER}
-    ${FORM}
-    ${BUTTON}
-    ${SUCCESS}
-  `;
+:host {
+  --dialog-inset: auto var(--page-margin) var(--page-margin) auto;
+  --dialog-padding: 24px;
+
+  ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
+}
+
+${
+  colorScheme === 'system'
+    ? `
+@media (prefers-color-scheme: dark) {
+  :host {
+    ${getThemedCssVariables(themeDark)}
+  }
+}`
+    : ''
+}
+}
+
+${DIALOG}
+${DIALOG_HEADER}
+${FORM}
+${BUTTON}
+${SUCCESS}
+`;
 
   return style;
 }
