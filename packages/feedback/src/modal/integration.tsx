@@ -45,7 +45,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
         },
       };
 
-      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h, dialog);
+      const screenshotInput = screenshotIntegration && screenshotIntegration.createInput(h, dialog, options);
 
       const renderContent = (open: boolean): void => {
         render(
@@ -68,7 +68,9 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
             defaultName={(userKey && user && user[userKey.name]) || ''}
             defaultEmail={(userKey && user && user[userKey.email]) || ''}
             successMessageText={options.successMessageText}
-            isRequiredText={options.isRequiredText}
+            isRequiredLabel={options.isRequiredLabel}
+            addScreenshotButtonLabel={options.addScreenshotButtonLabel}
+            removeScreenshotButtonLabel={options.removeScreenshotButtonLabel}
             onFormClose={() => {
               renderContent(false);
               options.onFormClose && options.onFormClose();
