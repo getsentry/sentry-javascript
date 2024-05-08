@@ -1,7 +1,7 @@
 import { applySdkMetadata, isInitialized } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import { init as nodeInit, setTag } from '@sentry/node';
-import { GLOBAL_OBJ, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
@@ -130,8 +130,6 @@ export function init(options: RemixOptions): void {
 
     return;
   }
-
-  GLOBAL_OBJ._sentrySkipLoaderHookWarning = true;
 
   instrumentServer();
 

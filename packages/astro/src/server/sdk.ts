@@ -1,7 +1,6 @@
 import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
 import { init as initNodeSdk, setTag } from '@sentry/node';
-import { GLOBAL_OBJ } from '@sentry/utils';
 
 /**
  *
@@ -12,8 +11,6 @@ export function init(options: NodeOptions): void {
     ...options,
   };
   applySdkMetadata(opts, 'astro', ['astro', 'node']);
-
-  GLOBAL_OBJ._sentrySkipLoaderHookWarning = true;
 
   initNodeSdk(opts);
 

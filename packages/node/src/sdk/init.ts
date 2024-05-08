@@ -96,13 +96,16 @@ export function init(options: NodeOptions | undefined = {}): void {
 
     // Register hook was added in v20.6.0 and v18.19.0
     if (nodeMajor > 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
-      // @ts-expect-error register is available in these versions & import.meta is allowed
-      moduleModule.register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
-    } else if (!GLOBAL_OBJ._sentrySkipLoaderHookWarning) {
+      if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
+        // @ts-expect-error register is available in these versions & import.meta is allowed
+        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+        GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+      }
+    } else {
       consoleSandbox(() => {
         // eslint-disable-next-line no-console
         console.warn(
-          '[Sentry] You are using the Sentry SDK in combination with an older version (pre 18.19.0 or pre 20.6.0) of Node.js in ESM mode. For the Sentry SDK to operate properly, please run your Node.js application with a `--loader=@sentry/node/loader` flag. For example: `node --loader=@sentry/node/loader your-app.js`',
+          '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
         );
       });
     }
