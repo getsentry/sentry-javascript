@@ -1,10 +1,40 @@
-import type { record as rrwebRecord } from '@sentry-internal/rrweb';
+import { vi } from 'vitest';
+import type { Mock, MockedFunction } from 'vitest';
+
+import { record } from '@sentry-internal/rrweb';
 
 import type { RecordingEvent, ReplayEventWithTime } from '../../src/types';
 import { ReplayEventTypeFullSnapshot, ReplayEventTypeIncrementalSnapshot } from '../../src/types';
 
+vi.mock('@sentry-internal/rrweb', async () => {
+  const mockRecordFn: Mock & Partial<RecordAdditionalProperties> = vi.fn(({ emit }) => {
+    mockRecordFn._emitter = emit;
+
+    emit(createCheckoutPayload());
+    return function stop() {
+      mockRecordFn._emitter = vi.fn();
+    };
+  });
+  mockRecordFn.takeFullSnapshot = vi.fn((isCheckout: boolean) => {
+    if (!mockRecordFn._emitter) {
+      return;
+    }
+
+    mockRecordFn._emitter(createCheckoutPayload(isCheckout), isCheckout);
+  });
+
+  const ActualRrweb = await vi.importActual('@sentry-internal/rrweb');
+
+  mockRecordFn.mirror = ActualRrweb.record.mirror;
+
+  return {
+    ...ActualRrweb,
+    record: mockRecordFn,
+  };
+});
+
 type RecordAdditionalProperties = {
-  takeFullSnapshot: jest.Mock;
+  takeFullSnapshot: Mock;
 
   // Below are not mocked
   addCustomEvent: () => void;
@@ -15,7 +45,7 @@ type RecordAdditionalProperties = {
   _emitter: (event: RecordingEvent, ...args: any[]) => void;
 };
 
-export type RecordMock = jest.MockedFunction<typeof rrwebRecord> & RecordAdditionalProperties;
+export type RecordMock = MockedFunction<typeof record> & RecordAdditionalProperties;
 
 function createCheckoutPayload(isCheckout: boolean = true): ReplayEventWithTime {
   return {
@@ -26,34 +56,7 @@ function createCheckoutPayload(isCheckout: boolean = true): ReplayEventWithTime 
 }
 
 export function mockRrweb(): { record: RecordMock } {
-  const mockRecordFn: jest.Mock & Partial<RecordAdditionalProperties> = jest.fn(({ emit }) => {
-    mockRecordFn._emitter = emit;
-
-    emit(createCheckoutPayload());
-    return function stop() {
-      mockRecordFn._emitter = jest.fn();
-    };
-  });
-  mockRecordFn.takeFullSnapshot = jest.fn((isCheckout: boolean) => {
-    if (!mockRecordFn._emitter) {
-      return;
-    }
-
-    mockRecordFn._emitter(createCheckoutPayload(isCheckout), isCheckout);
-  });
-
-  jest.mock('@sentry-internal/rrweb', () => {
-    const ActualRrweb = jest.requireActual('@sentry-internal/rrweb');
-
-    mockRecordFn.mirror = ActualRrweb.record.mirror;
-
-    return {
-      ...ActualRrweb,
-      record: mockRecordFn,
-    };
-  });
-
   return {
-    record: mockRecordFn as RecordMock,
+    record: record as RecordMock,
   };
 }

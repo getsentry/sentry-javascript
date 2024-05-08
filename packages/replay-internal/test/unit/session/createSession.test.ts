@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import * as Sentry from '@sentry/core';
 
 import type { Hub } from '@sentry/types';
@@ -5,23 +7,23 @@ import { WINDOW } from '../../../src/constants';
 import { createSession } from '../../../src/session/createSession';
 import { saveSession } from '../../../src/session/saveSession';
 
-jest.mock('./../../../src/session/saveSession');
+vi.mock('./../../../src/session/saveSession');
 
-jest.mock('@sentry/utils', () => {
+vi.mock('@sentry/utils', async () => {
   return {
-    ...(jest.requireActual('@sentry/utils') as { string: unknown }),
-    uuid4: jest.fn(() => 'test_session_id'),
+    ...((await vi.importActual('@sentry/utils')) as { string: unknown }),
+    uuid4: vi.fn(() => 'test_session_id'),
   };
 });
 
-type CaptureEventMockType = jest.MockedFunction<typeof Sentry.captureEvent>;
+type CaptureEventMockType = vi.MockedFunction<typeof Sentry.captureEvent>;
 
 describe('Unit | session | createSession', () => {
-  const captureEventMock: CaptureEventMockType = jest.fn();
+  const captureEventMock: CaptureEventMockType = vi.fn();
 
   beforeAll(() => {
     WINDOW.sessionStorage.clear();
-    jest.spyOn(Sentry, 'getCurrentHub').mockImplementation(() => {
+    vi.spyOn(Sentry, 'getCurrentHub').mockImplementation(() => {
       return {
         captureEvent: captureEventMock,
         // eslint-disable-next-line deprecation/deprecation

@@ -46,16 +46,28 @@ export function createMainStyles(
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
-  --bottom: 1rem;
-  --right: 1rem;
-  --top: auto;
-  --left: auto;
-  --z-index: 100000;
+  --z-index: ${themes.themeLight.zIndex};
   --font-family: ${themes.themeLight.fontFamily};
   --font-size: ${themes.themeLight.fontSize};
 
   font-family: var(--font-family);
   font-size: var(--font-size);
+
+  --page-margin: 16px;
+  --actor-inset: auto var(--page-margin) var(--page-margin) auto;
+
+  --dialog-inset: auto var(--page-margin) var(--page-margin) auto;
+  --dialog-padding: 24px;
+
+  .brand-link path {
+    fill: ${colorScheme === 'dark' ? '#fff' : '#362d59'};
+  }
+  @media (prefers-color-scheme: dark)
+  {
+    path: {
+      fill: '#fff';
+    }
+  }
 
   ${getThemedCssVariables(colorScheme === 'dark' ? themes.themeDark : themes.themeLight)}
 }

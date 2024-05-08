@@ -7,6 +7,7 @@ import type {
   EnvelopeItemType,
   Event,
   EventEnvelope,
+  SerializedCheckIn,
   SerializedSession,
   SessionAggregates,
 } from '@sentry/types';
@@ -34,6 +35,13 @@ export function assertSentryTransaction(actual: Event, expected: Partial<Event>)
     start_timestamp: expect.anything(),
     spans: expect.any(Array),
     type: 'transaction',
+    ...expected,
+  });
+}
+
+export function assertSentryCheckIn(actual: SerializedCheckIn, expected: Partial<SerializedCheckIn>): void {
+  expect(actual).toMatchObject({
+    check_in_id: expect.any(String),
     ...expected,
   });
 }
@@ -137,6 +145,9 @@ type Expected =
     }
   | {
       sessions: Partial<SessionAggregates> | ((event: SessionAggregates) => void);
+    }
+  | {
+      check_in: Partial<SerializedCheckIn> | ((event: SerializedCheckIn) => void);
     };
 
 type ExpectedEnvelopeHeader =
@@ -159,6 +170,7 @@ export function createRunner(...paths: string[]) {
   let dockerOptions: DockerOptions | undefined;
   let ensureNoErrorOutput = false;
   let expectError = false;
+  const logs: string[] = [];
 
   if (testPath.endsWith('.ts')) {
     flags.push('-r', 'ts-node/register');
@@ -299,6 +311,17 @@ export function createRunner(...paths: string[]) {
 
               expectCallbackCalled();
             }
+
+            if ('check_in' in expected) {
+              const checkIn = item[1] as SerializedCheckIn;
+              if (typeof expected.check_in === 'function') {
+                expected.check_in(checkIn);
+              } else {
+                assertSentryCheckIn(checkIn, expected.check_in);
+              }
+
+              expectCallbackCalled();
+            }
           } catch (e) {
             complete(e as Error);
           }
@@ -335,12 +358,14 @@ export function createRunner(...paths: string[]) {
             child?.kill();
           });
 
-          if (ensureNoErrorOutput) {
-            child.stderr?.on('data', (data: Buffer) => {
-              const output = data.toString();
+          child.stderr?.on('data', (data: Buffer) => {
+            const output = data.toString();
+            logs.push(output.trim());
+
+            if (ensureNoErrorOutput) {
               complete(new Error(`Expected no error output but got: '${output}'`));
-            });
-          }
+            }
+          });
 
           child.on('close', () => {
             hasExited = true;
@@ -389,6 +414,8 @@ export function createRunner(...paths: string[]) {
             let splitIndex = -1;
             while ((splitIndex = buffer.indexOf(0xa)) >= 0) {
               const line = buffer.subarray(0, splitIndex).toString();
+              logs.push(line.trim());
+
               buffer = Buffer.from(buffer.subarray(splitIndex + 1));
               // eslint-disable-next-line no-console
               if (process.env.DEBUG) console.log('line', line);
@@ -401,6 +428,9 @@ export function createRunner(...paths: string[]) {
       return {
         childHasExited: function (): boolean {
           return hasExited;
+        },
+        getLogs(): string[] {
+          return logs;
         },
         makeRequest: async function <T>(
           method: 'get' | 'post',

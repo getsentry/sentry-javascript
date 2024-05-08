@@ -10,18 +10,18 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 useFakeTimers();
 
 async function advanceTimers(time: number) {
-  jest.advanceTimersByTime(time);
+  vi.advanceTimersByTime(time);
   await new Promise(process.nextTick);
 }
 
-type MockTransportSend = jest.MockedFunction<Transport['send']>;
+type MockTransportSend = vi.MockedFunction<Transport['send']>;
 
 describe('Integration | rate-limiting behaviour', () => {
   let replay: ReplayContainer;
   let mockTransportSend: MockTransportSend;
 
   beforeEach(async () => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
 
     ({ replay } = await mockSdk({
       autoStart: false,
@@ -35,7 +35,7 @@ describe('Integration | rate-limiting behaviour', () => {
 
   afterEach(async () => {
     clearSession(replay);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     replay && replay.stop();
   });
@@ -61,7 +61,7 @@ describe('Integration | rate-limiting behaviour', () => {
       } as TransportMakeRequestResponse,
     ],
   ])('handles %s responses by stopping the replay', async (_name, { statusCode, headers }) => {
-    const mockStop = jest.spyOn(replay, 'stop');
+    const mockStop = vi.spyOn(replay, 'stop');
 
     mockTransportSend.mockImplementationOnce(() => {
       return Promise.resolve({ statusCode, headers });
@@ -93,7 +93,7 @@ describe('Integration | rate-limiting behaviour', () => {
       } as TransportMakeRequestResponse,
     ],
   ])('handles %s responses by not stopping', async (_name, { statusCode, headers }) => {
-    const mockStop = jest.spyOn(replay, 'stop');
+    const mockStop = vi.spyOn(replay, 'stop');
 
     mockTransportSend.mockImplementationOnce(() => {
       return Promise.resolve({ statusCode, headers });

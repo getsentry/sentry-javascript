@@ -20,10 +20,8 @@ export class TestClient extends BaseClient<TestClientOptions> {
       exception: {
         values: [
           {
-            /* eslint-disable @typescript-eslint/no-unsafe-member-access */
             type: exception.name,
             value: exception.message,
-            /* eslint-enable @typescript-eslint/no-unsafe-member-access */
           },
         ],
       },

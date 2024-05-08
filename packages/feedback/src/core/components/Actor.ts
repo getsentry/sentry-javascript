@@ -13,6 +13,10 @@ export interface ActorComponent {
   appendToDom: () => void;
 
   removeFromDom: () => void;
+
+  show: () => void;
+
+  hide: () => void;
 }
 
 /**
@@ -27,7 +31,6 @@ export function Actor({ buttonLabel, shadow }: ActorProps): ActorComponent {
   el.appendChild(FeedbackIcon());
   if (buttonLabel) {
     const label = DOCUMENT.createElement('span');
-    label.className = 'widget__actor__text';
     label.appendChild(DOCUMENT.createTextNode(buttonLabel));
     el.appendChild(label);
   }
@@ -43,6 +46,12 @@ export function Actor({ buttonLabel, shadow }: ActorProps): ActorComponent {
     removeFromDom(): void {
       shadow.removeChild(el);
       shadow.removeChild(style);
+    },
+    show(): void {
+      el.ariaHidden = 'false';
+    },
+    hide(): void {
+      el.ariaHidden = 'true';
     },
   };
 }
