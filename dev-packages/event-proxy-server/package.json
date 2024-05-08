@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "8.0.0-rc.1",
+  "version": "8.0.0-rc.2",
   "name": "@sentry-internal/event-proxy-server",
   "author": "Sentry",
   "license": "MIT",
@@ -40,8 +40,8 @@
     "clean": "rimraf -g ./node_modules ./build"
   },
   "devDependencies": {
-    "@sentry/types": "8.0.0-rc.1",
-    "@sentry/utils": "8.0.0-rc.1"
+    "@sentry/types": "8.0.0-rc.2",
+    "@sentry/utils": "8.0.0-rc.2"
   },
   "volta": {
     "extends": "../../package.json"
