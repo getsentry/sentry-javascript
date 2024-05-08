@@ -62,13 +62,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
   return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeScreenshotEditorComponent({
-  h,
-  imageBuffer,
-  dialog,
-  options,
-}: FactoryParams): ComponentType<Props> {
+export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: FactoryParams): ComponentType<Props> {
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
