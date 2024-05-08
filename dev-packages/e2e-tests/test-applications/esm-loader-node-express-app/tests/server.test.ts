@@ -13,7 +13,6 @@ test('Should record exceptions captured inside handlers', async ({ request }) =>
 
 test('Should record a transaction for a parameterless route', async ({ request }) => {
   const transactionEventPromise = waitForTransaction('esm-loader-node-express-app', transactionEvent => {
-    console.log('txn', transactionEvent.transaction);
     return transactionEvent?.transaction === 'GET /test-success';
   });
 
