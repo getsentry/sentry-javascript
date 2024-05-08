@@ -206,6 +206,7 @@ module.exports = [
       'zlib',
       'net',
       'tls',
+      'module',
     ],
     gzip: true,
     limit: '180 KB',
