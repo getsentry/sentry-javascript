@@ -184,7 +184,7 @@ export function Form({
                 name="email"
                 placeholder={emailPlaceholder}
                 required={isEmailRequired}
-                type="text"
+                type="email"
               ></input>
             </label>
           ) : (
