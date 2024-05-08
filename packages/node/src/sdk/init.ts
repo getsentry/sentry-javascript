@@ -73,6 +73,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   ];
 }
 
+declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
 /**
  * Initialize Sentry for Node.
  */
@@ -96,9 +98,13 @@ export function init(options: NodeOptions | undefined = {}): void {
 
     // Register hook was added in v20.6.0 and v18.19.0
     if (nodeMajor > 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
-      if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered) {
-        // @ts-expect-error register is available in these versions & import.meta is allowed
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', import.meta.url);
+      // We need to work around using import.meta.url directly because jest complains about it.
+      const importMetaUrl =
+        typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
+
+      if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
+        // @ts-expect-error register is available in these versions
+        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
         GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
       }
     } else {

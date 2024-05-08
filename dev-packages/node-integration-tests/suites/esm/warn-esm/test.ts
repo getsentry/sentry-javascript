@@ -5,7 +5,7 @@ afterAll(() => {
 });
 
 const esmWarning =
-  '[Sentry] You are using the Sentry SDK with an ESM build. This version of the SDK is not compatible with ESM. Please either build your application with CommonJS, or use v7 of the SDK.';
+  '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.';
 
 test('warns if using ESM', async () => {
   const runner = createRunner(__dirname, 'server.mjs').ignore('session', 'sessions', 'event').start();
