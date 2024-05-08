@@ -191,7 +191,7 @@ describe('Integration | coreHandlers | handleGlobalEvent', () => {
     expect(Array.from(replay.getContext().traceIds)).toEqual([]);
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);
 
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(Array.from(replay.getContext().errorIds)).toEqual([]);

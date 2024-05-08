@@ -118,6 +118,19 @@ export function makeDebugBuildStatementReplacePlugin() {
 }
 
 /**
+ * Because jest doesn't like `import.meta` statements but we still need it in the code base we instead use a magic
+ * string that we replace with import.meta.url in the build.
+ */
+export function makeImportMetaUrlReplacePlugin() {
+  return replace({
+    preventAssignment: false,
+    values: {
+      __IMPORT_META_URL_REPLACEMENT__: 'import.meta.url',
+    },
+  });
+}
+
+/**
  * Creates a plugin to replace build flags of rrweb with either a constant (if passed true/false) or with a safe statement that:
  * a) evaluates to `true`
  * b) can easily be modified by our users' bundlers to evaluate to false, facilitating the treeshaking of logger code.

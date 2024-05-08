@@ -5,7 +5,8 @@ import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 
-import { logger } from '@sentry/utils';
+import { isWrapped } from '@opentelemetry/core';
+import { consoleSandbox, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
@@ -117,6 +118,15 @@ export function expressErrorHandler(options?: {
  */
 export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
   app.use(expressErrorHandler());
+
+  if (!isWrapped(app.use)) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Express is not instrumented. This is likely because you required/imported express before calling `Sentry.init()`.',
+      );
+    });
+  }
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {

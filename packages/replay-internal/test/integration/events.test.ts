@@ -14,19 +14,19 @@ import { useFakeTimers } from '../utils/use-fake-timers';
 useFakeTimers();
 
 async function advanceTimers(time: number) {
-  jest.advanceTimersByTime(time);
+  vi.advanceTimersByTime(time);
   await new Promise(process.nextTick);
 }
 
 describe('Integration | events', () => {
   let replay: ReplayContainer;
   let mockRecord: RecordMock;
-  let mockTransportSend: jest.SpyInstance<any>;
+  let mockTransportSend: MockInstance<any>;
   const prevLocation = WINDOW.location;
 
   beforeAll(async () => {
-    jest.setSystemTime(new Date(BASE_TIMESTAMP));
-    jest.runAllTimers();
+    vi.setSystemTime(new Date(BASE_TIMESTAMP));
+    vi.runAllTimers();
   });
 
   beforeEach(async () => {
@@ -36,7 +36,7 @@ describe('Integration | events', () => {
       },
     }));
 
-    mockTransportSend = jest.spyOn(getClient()!.getTransport()!, 'send');
+    mockTransportSend = vi.spyOn(getClient()!.getTransport()!, 'send');
 
     // Create a new session and clear mocks because a segment (from initial
     // checkout) will have already been uploaded by the time the tests run
@@ -47,14 +47,14 @@ describe('Integration | events', () => {
   });
 
   afterEach(async () => {
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
     Object.defineProperty(WINDOW, 'location', {
       value: prevLocation,
       writable: true,
     });
     clearSession(replay);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRecord.takeFullSnapshot.mockClear();
     replay.stop();
   });
@@ -86,7 +86,7 @@ describe('Integration | events', () => {
     expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: BASE_TIMESTAMP / 1000,
-        urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+        urls: ['http://localhost:3000/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
       }),
     });
   });
@@ -129,7 +129,7 @@ describe('Integration | events', () => {
     expect(replay).toHaveLastSentReplay({
       replayEventPayload: expect.objectContaining({
         replay_start_timestamp: (BASE_TIMESTAMP - 10000) / 1000,
-        urls: ['http://localhost/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
+        urls: ['http://localhost:3000/'], // this doesn't truly test if we are capturing the right URL as we don't change URLs, but good enough
       }),
     });
   });
@@ -160,7 +160,7 @@ describe('Integration | events', () => {
     addEvent(replay, TEST_EVENT);
     // This event will trigger a flush
     WINDOW.dispatchEvent(new Event('blur'));
-    jest.runAllTimers();
+    vi.runAllTimers();
     await new Promise(process.nextTick);
 
     expect(mockTransportSend).toHaveBeenCalledTimes(1);

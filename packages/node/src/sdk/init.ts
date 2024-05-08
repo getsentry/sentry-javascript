@@ -14,6 +14,7 @@ import {
 import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
+  GLOBAL_OBJ,
   consoleSandbox,
   dropUndefinedKeys,
   logger,
@@ -25,6 +26,7 @@ import { consoleIntegration } from '../integrations/console';
 import { nodeContextIntegration } from '../integrations/context';
 import { contextLinesIntegration } from '../integrations/contextlines';
 
+import moduleModule from 'module';
 import { httpIntegration } from '../integrations/http';
 import { localVariablesIntegration } from '../integrations/local-variables';
 import { modulesIntegration } from '../integrations/modules';
@@ -71,6 +73,8 @@ export function getDefaultIntegrations(options: Options): Integration[] {
   ];
 }
 
+declare const __IMPORT_META_URL_REPLACEMENT__: string;
+
 /**
  * Initialize Sentry for Node.
  */
@@ -90,13 +94,27 @@ export function init(options: NodeOptions | undefined = {}): void {
   }
 
   if (!isCjs()) {
-    // We want to make sure users see this warning
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] You are using the Sentry SDK with an ESM build. This version of the SDK is not compatible with ESM. Please either build your application with CommonJS, or use v7 of the SDK.',
-      );
-    });
+    const [nodeMajor, nodeMinor] = process.versions.node.split('.').map(Number);
+
+    // Register hook was added in v20.6.0 and v18.19.0
+    if (nodeMajor >= 22 || (nodeMajor === 20 && nodeMinor >= 6) || (nodeMajor === 18 && nodeMinor >= 19)) {
+      // We need to work around using import.meta.url directly because jest complains about it.
+      const importMetaUrl =
+        typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
+
+      if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
+        // @ts-expect-error register is available in these versions
+        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+        GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+      }
+    } else {
+      consoleSandbox(() => {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] You are using Node.js in ESM mode ("import syntax"). The Sentry Node.js SDK is not compatible with ESM in Node.js versions before 18.19.0 or before 20.6.0. Please either build your application with CommonJS ("require() syntax"), or use version 7.x of the Sentry Node.js SDK.',
+        );
+      });
+    }
   }
 
   setOpenTelemetryContextAsyncContextStrategy();
