@@ -84,6 +84,8 @@ export const localVariablesAsyncIntegration = defineIntegration(((
   function startWorker(options: LocalVariablesWorkerArgs): void {
     const worker = new Worker(new URL(`data:application/javascript;base64,${base64WorkerScript}`), {
       workerData: options,
+      // We don't want any Node args to be passed to the worker
+      execArgv: [],
     });
 
     process.on('exit', () => {
