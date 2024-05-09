@@ -53,7 +53,7 @@ export const DEFAULT_THEME = {
     successForeground: '#2da98c',
     errorForeground: '#f55459',
     background: '#29232f',
-    border: '1.5px solid rgba(235, 230, 239, 0.15)',
+    border: '1.5px solid rgba(235, 230, 239, 0.5)',
     boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
     buttonBackgroundHover: '#352f3b',
