@@ -1285,7 +1285,7 @@ export class HeaderComponent {
 
 # Upgrading Sentry Feedback (beta, 7.x to 8.0)
 
-For details on upgrading Feedback in its beta phase, please view the
+For details on upgrading Feedback from the beta 7.x to the release 8.x version, please view the
 [dedicated Feedback MIGRATION docs](./docs/migration/feedback.md).
 
 ---
