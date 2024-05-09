@@ -4,6 +4,83 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-rc.2
+
+### Important Changes
+
+- **feat(node): Register ESM patching hooks in init for supported Node.js versions**
+
+This release includes adds support for ESM when `Sentry.init()` is called within a module imported via the `--import`
+Node.js flag:
+
+```sh
+node --import ./your-file-with-sentry-init.mjs your-app.mjs
+```
+
+Note that the SDK only supports ESM for node versions `18.19.0` and above, and `20.6.0` above.
+
+### Other Changes
+
+- deps(node): Bump `@opentelemetry/core` to `1.24.1` and `@opentelemetry/instrumentation` to `0.51.1` (#11941)
+- feat(connect): Warn if connect is not instrumented (#11936)
+- feat(express): Warn if express is not instrumented (#11930)
+- feat(fastify): Warn if fastify is not instrumented (#11917)
+- feat(hapi): Warn if hapi is not instrumented (#11937)
+- feat(koa): Warn if koa is not instrumented (#11931)
+- fix(browser): Continuously record CLS web vital (#11934)
+- fix(feedback): Pick user from any scope (#11928)
+- fix(node): Fix cron instrumentation and add tests (#11811)
+
+## 8.0.0-rc.1
+
+This release contains no changes and was done for technical purposes. This version is considered stable.
+
+For the sake of completeness this changelog entry includes the changes from the previous release candidate:
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
+## 8.0.0-rc.0
+
+This is the first release candidate of Sentry JavaScript SDK v8.
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
 ## 8.0.0-beta.6
 
 This beta release contains various bugfixes and improvements for the v8 beta cycle.

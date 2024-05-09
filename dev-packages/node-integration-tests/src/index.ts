@@ -13,7 +13,7 @@ export function loggingTransport(_options: BaseTransportOptions): Transport {
       return Promise.resolve({ statusCode: 200 });
     },
     flush(): PromiseLike<boolean> {
-      return Promise.resolve(true);
+      return new Promise(resolve => setTimeout(() => resolve(true), 1000));
     },
   };
 }

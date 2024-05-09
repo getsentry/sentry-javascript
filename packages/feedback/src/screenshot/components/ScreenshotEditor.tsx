@@ -1,4 +1,4 @@
-import type { FeedbackDialog } from '@sentry/types';
+import type { FeedbackDialog, FeedbackInternalOptions } from '@sentry/types';
 /* eslint-disable max-lines */
 import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
@@ -17,6 +17,7 @@ interface FactoryParams {
   h: typeof hType;
   imageBuffer: HTMLCanvasElement;
   dialog: FeedbackDialog;
+  options: FeedbackInternalOptions;
 }
 
 interface Props {
@@ -61,8 +62,7 @@ const getContainedSize = (img: HTMLCanvasElement): Box => {
   return { startX: x, startY: y, endX: width + x, endY: height + y };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: FactoryParams): ComponentType<Props> {
+export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: FactoryParams): ComponentType<Props> {
   return function ScreenshotEditor({ onError }: Props): VNode {
     const styles = useMemo(() => ({ __html: createScreenshotInputStyles().innerText }), []);
 
@@ -298,7 +298,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                 }}
                 class="btn btn--default"
               >
-                Cancel
+                {options.cancelButtonLabel}
               </button>
               <button
                 onClick={e => {
@@ -308,7 +308,7 @@ export function makeScreenshotEditorComponent({ h, imageBuffer, dialog }: Factor
                 }}
                 class="btn btn--primary"
               >
-                Confirm
+                {options.confirmButtonLabel}
               </button>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { createActorStyles } from './Actor.css';
 import { FeedbackIcon } from './FeedbackIcon';
 
 export interface ActorProps {
-  buttonLabel: string;
+  triggerLabel: string;
   shadow: ShadowRoot;
 }
 
@@ -13,22 +13,25 @@ export interface ActorComponent {
   appendToDom: () => void;
 
   removeFromDom: () => void;
+
+  show: () => void;
+
+  hide: () => void;
 }
 
 /**
  * The sentry-provided button to open the feedback modal
  */
-export function Actor({ buttonLabel, shadow }: ActorProps): ActorComponent {
+export function Actor({ triggerLabel, shadow }: ActorProps): ActorComponent {
   const el = DOCUMENT.createElement('button');
   el.type = 'button';
   el.className = 'widget__actor';
   el.ariaHidden = 'false';
-  el.ariaLabel = buttonLabel;
+  el.ariaLabel = triggerLabel;
   el.appendChild(FeedbackIcon());
-  if (buttonLabel) {
+  if (triggerLabel) {
     const label = DOCUMENT.createElement('span');
-    label.className = 'widget__actor__text';
-    label.appendChild(DOCUMENT.createTextNode(buttonLabel));
+    label.appendChild(DOCUMENT.createTextNode(triggerLabel));
     el.appendChild(label);
   }
 
@@ -43,6 +46,12 @@ export function Actor({ buttonLabel, shadow }: ActorProps): ActorComponent {
     removeFromDom(): void {
       shadow.removeChild(el);
       shadow.removeChild(style);
+    },
+    show(): void {
+      el.ariaHidden = 'false';
+    },
+    hide(): void {
+      el.ariaHidden = 'true';
     },
   };
 }
