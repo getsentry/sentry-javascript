@@ -6,6 +6,7 @@ const DIALOG = `
   position: fixed;
   z-index: var(--z-index);
   margin: 0;
+  inset: 0;
 
   display: flex;
   align-items: center;
@@ -23,6 +24,26 @@ const DIALOG = `
   transition: opacity 0.2s ease-in-out;
 }
 
+.dialog__position {
+  position: fixed;
+  z-index: var(--z-index);
+  inset: var(--dialog-inset);
+  padding: var(--page-margin);
+  display: flex;
+  max-height: calc(100vh - (2 * var(--page-margin)));
+}
+@media (max-width: 600px) {
+  .dialog__position {
+    inset: var(--page-margin);
+    padding: 0;
+  }
+}
+
+.dialog__position:has(.editor) {
+  inset: var(--page-margin);
+  padding: 0;
+}
+
 .dialog:not([open]) {
   opacity: 0;
   pointer-events: none;
@@ -33,33 +54,23 @@ const DIALOG = `
 }
 
 .dialog__content {
-  position: fixed;
-  inset: var(--dialog-inset);
-
   display: flex;
   flex-direction: column;
   gap: 16px;
   padding: var(--dialog-padding);
   max-width: 100%;
-  max-height: calc(100% - (2 * var(--page-margin)) - (2 * var(--dialog-padding)));
+  width: 100%;
+  max-height: 100%;
   overflow: auto;
 
-  background-color: var(--background);
-  border-radius: var(--form-border-radius);
+  background-color: var(--dialog-background);
+  border-radius: var(--dialog-border-radius);
   border: var(--border);
   box-shadow: var(--box-shadow);
   color: var(--foreground);
+  fill: var(--foreground);
   transform: translate(0, 0) scale(1);
   transition: transform 0.2s ease-in-out;
-}
-
-.dialog__content:has(.editor) {
-  inset: var(--page-margin);
-}
-@media (max-width: 600px) {
-  .dialog__content {
-    inset: var(--page-margin);
-  }
 }
 `;
 
@@ -74,6 +85,9 @@ const DIALOG_HEADER = `
 
 .brand-link {
   display: inline-flex;
+}
+.brand-link:focus-visible {
+  outline: 1px auto var(--input-outline-focus);
 }
 `;
 
@@ -109,7 +123,8 @@ const FORM = `
 }
 
 .form__error-container {
-  color: var(--error);
+  color: var(--error-foreground);
+  fill: var(--error-foreground);
 }
 
 .form__label {
@@ -135,8 +150,9 @@ const FORM = `
   background-color: var(--input-background);
   box-sizing: border-box;
   border: var(--input-border);
-  border-radius: var(--form-content-border-radius);
+  border-radius: var(--input-border-radius);
   color: var(--input-foreground);
+  fill: var(--input-foreground);
   font-size: var(--font-size);
   font-weight: 500;
   padding: 6px 12px;
@@ -157,7 +173,8 @@ const FORM = `
 }
 
 .error {
-  color: var(--error);
+  color: var(--error-foreground);
+  fill: var(--error-foreground);
 }
 `;
 
@@ -183,47 +200,55 @@ const BUTTON = `
 }
 
 .btn--primary {
-  background-color: var(--submit-background);
-  border-color: var(--submit-border);
   color: var(--submit-foreground);
+  fill: var(--submit-foreground);
+  background-color: var(--submit-background);
+  border: var(--submit-border);
+  border-radius: var(--input-border-radius);
+  font-weight: 500;
 }
 .btn--primary:hover {
-  background-color: var(--submit-background-hover);
   color: var(--submit-foreground-hover);
+  fill: var(--submit-foreground-hover);
+  background-color: var(--submit-background-hover);
 }
 .btn--primary:focus-visible {
   outline: 1px auto var(--submit-outline-focus);
 }
 
 .btn--default {
-  background-color: var(--cancel-background);
-  color: var(--cancel-foreground);
+  color: var(--button-foreground);
+  fill: var(--button-foreground);
+  background-color: var(--button-background);
+  border: var(--button-border);
+  border-radius: var(--input-border-radius);
   font-weight: 500;
 }
 .btn--default:hover {
-  background-color: var(--cancel-background-hover);
-  color: var(--cancel-foreground-hover);
+  color: var(--button-foreground-hover);
+  fill: var(--button-foreground-hover);
+  background-color: var(--button-background-hover);
 }
 .btn--default:focus-visible {
-  outline: 1px auto var(--cancel-outline-focus);
+  outline: 1px auto var(--button-outline-focus);
 }
 `;
 
 const SUCCESS = `
-.success-message {
+.success__position {
   position: fixed;
-  left: var(--left);
-  right: var(--right);
-  bottom: var(--bottom);
-  top: var(--top);
+  inset: var(--dialog-inset);
+  padding: var(--page-margin);
   z-index: var(--z-index);
-
-  background-color: var(--background);
+}
+.success__content {
+  background-color: var(--trigger-background);
   border: var(--border);
-  border-radius: var(--border-radius);
+  border-radius: var(--trigger-border-radius);
   box-shadow: var(--box-shadow);
   font-weight: 600;
-  color: var(--success);
+  color: var(--success-foreground);
+  fill: var(--success-foreground);
   padding: 12px 24px;
   line-height: 25px;
   display: grid;
@@ -233,34 +258,30 @@ const SUCCESS = `
   cursor: default;
 }
 
-.success-icon {
+.success__icon {
   display: flex;
 }
 `;
 
 function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
   return `
-  --submit-background: ${theme.submitBackground};
-  --submit-background-hover: ${theme.submitBackgroundHover};
-  --submit-border: ${theme.submitBorder};
-  --submit-outline-focus: ${theme.submitOutlineFocus};
-  --submit-foreground: ${theme.submitForeground};
-  --submit-foreground-hover: ${theme.submitForegroundHover};
-
-  --cancel-background: ${theme.cancelBackground};
-  --cancel-background-hover: ${theme.cancelBackgroundHover};
-  --cancel-border: ${theme.cancelBorder};
-  --cancel-outline-focus: ${theme.cancelOutlineFocus};
-  --cancel-foreground: ${theme.cancelForeground};
-  --cancel-foreground-hover: ${theme.cancelForegroundHover};
-
+  --input-border-radius: ${theme.inputBorderRadius};
   --input-background: ${theme.inputBackground};
+  --input-background-hover: ${theme.inputBackgroundHover};
+  --input-background-focus: ${theme.inputBackgroundFocus};
   --input-foreground: ${theme.inputForeground};
   --input-border: ${theme.inputBorder};
   --input-outline-focus: ${theme.inputOutlineFocus};
 
-  --form-border-radius: ${theme.formBorderRadius};
-  --form-content-border-radius: ${theme.formContentBorderRadius};
+  --submit-foreground: ${theme.submitForeground};
+  --submit-foreground-hover: ${theme.submitForegroundHover};
+  --submit-background: ${theme.submitBackground};
+  --submit-background-hover: ${theme.submitBackgroundHover};
+  --submit-border: ${theme.submitBorder};
+  --submit-outline-focus: ${theme.submitOutlineFocus};
+
+  --dialog-background: ${theme.dialogBackground};
+  --dialog-border-radius: ${theme.dialogBorderRadius};
   `;
 }
 
@@ -272,7 +293,7 @@ export function createDialogStyles({ colorScheme, themeDark, themeLight }: Feedb
 
   style.textContent = `
 :host {
-  --dialog-inset: auto var(--page-margin) var(--page-margin) auto;
+  --dialog-inset: var(--inset);
   --dialog-padding: 24px;
 
   ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
@@ -287,7 +308,6 @@ ${
   }
 }`
     : ''
-}
 }
 
 ${DIALOG}

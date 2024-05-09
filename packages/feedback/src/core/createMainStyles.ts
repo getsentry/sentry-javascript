@@ -3,14 +3,23 @@ import { DOCUMENT } from '../constants';
 
 function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
   return `
-  --background: ${theme.background};
-  --background-hover: ${theme.backgroundHover};
   --foreground: ${theme.foreground};
-  --error: ${theme.error};
-  --success: ${theme.success};
+  --success-foreground: ${theme.successForeground};
+  --error-foreground: ${theme.errorForeground};
+  --background: ${theme.background};
   --border: ${theme.border};
-  --border-radius: ${theme.borderRadius};
   --box-shadow: ${theme.boxShadow};
+
+  --button-foreground: ${theme.buttonForeground};
+  --button-foreground-hover: ${theme.buttonForegroundHover};
+  --button-background: ${theme.buttonBackground};
+  --button-background-hover: ${theme.buttonBackgroundHover};
+  --button-border: ${theme.buttonBorder};
+  --button-outline-focus: ${theme.buttonOutlineFocus};
+
+  --trigger-background: ${theme.triggerBackground};
+  --trigger-background-hover: ${theme.triggerBackgroundHover};
+  --trigger-border-radius: ${theme.triggerBorderRadius};
   `;
 }
 
@@ -21,25 +30,16 @@ export function createMainStyles({ colorScheme, themeDark, themeLight }: Feedbac
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
-  --z-index: ${themeLight.zIndex};
-  --font-family: ${themeLight.fontFamily};
-  --font-size: ${themeLight.fontSize};
+  --font-family: system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --font-size: 14px;
+  --z-index: 100000;
+
+  --page-margin: 16px;
+  --inset: auto 0 0 auto;
+  --actor-inset: var(--inset);
 
   font-family: var(--font-family);
   font-size: var(--font-size);
-
-  --page-margin: 16px;
-  --actor-inset: auto var(--page-margin) var(--page-margin) auto;
-
-  .brand-link path {
-    fill: ${colorScheme === 'dark' ? '#fff' : '#362d59'};
-  }
-  @media (prefers-color-scheme: dark)
-  {
-    path: {
-      fill: '#fff';
-    }
-  }
 
   ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
 }
