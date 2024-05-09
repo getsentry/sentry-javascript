@@ -1,11 +1,11 @@
 # End of Feedback Beta
 
-With the release of 8.0.0 Sentry Feedback is now out of Beta. This means that the usual stabilty guarantees apply.
+With the release of 8.0.0, Sentry Feedback is now out of Beta. This means that the usual stabilty guarantees apply.
 
 Feedback 8.0.0 requires server version 24.4.2 and above.
 
 Because of experimentation and rapid iteration, during the Beta period some bugs and problems came up which have since
-been fixed/improved, as well as API's which have been streamlined and chanaged.
+been fixed/improved, as well as API's which have been streamlined and changed.
 
 Below you can find a list of relevant feedback changes and issues that have been made from 7.x to 8.0.0.
 
@@ -16,9 +16,9 @@ existed in 7.x and a description of how they have changed in v8.
 
 | Method Name               | Replacement                                                    | Notes                                                                                                                                                                                                                |
 | ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `feedback.getWidget()`    | `const widget = feedback.createWidget(); widget.appendToDom()` | The SDK no longer maintains a stack of form instances. If you call `createWidget()` a new widget will be inserted into the DOM and a `ActorComponent` returned allowed you control over the lifecycle of the widget. |
+| `feedback.getWidget()`    | `const widget = feedback.createWidget(); widget.appendToDom()` | The SDK no longer maintains a stack of form instances. If you call `createWidget()` a new widget will be inserted into the DOM and an `ActorComponent` returned allows you control over the lifecycle of the widget. |
 | -                         | `const form = await feedback.createForm()`                     | A new method `createForm()`, used internally by `createWidget()` and `attachTo()`, returns a `Promise<FeedbackDialog>` so you can control showing and hiding of the feedback form directly.                          |
-| `feedback.attachTo()`     | `const unsubscribe = feedback.attachTo(myButtonElem)`          | The `attachTo()` method in will create an onClick event listener to your html element that calls appendToDom() and open(). It returns a callback to remove the event listener.                                       |
+| `feedback.attachTo()`     | `const unsubscribe = feedback.attachTo(myButtonElem)`          | The `attachTo()` method will create an onClick event listener to your html element that calls `appendToDom()` and `open()`. It returns a callback to remove the event listener.                                       |
 | `feedback.openDialog()`   | `widget.open()`                                                | Make the form inside the widget visible.                                                                                                                                                                             |
 | `feedback.closeDialog()`  | `widget.close()`                                               | Make the form inside the widget hidden in the page. Success/Error messages will still be rendered and will hide themselves if the form was recently submitted.                                                       |
 | `feedback.removeWidget()` | `widget.removeFromDom()`                                       | Remove the form and widget instance from the page. After calling this `widget.el.parentNode` will be set to null.                                                                                                    |
@@ -59,7 +59,7 @@ Sentry.init({
 });
 
 // Option 2: Get a reference from the SDK client
-const feedbackInstance = getClient()?.getIntegrationByName('Feedback');
+const feedbackInstance = getFeedback();
 ```
 
 Next, call `attachTo()`
@@ -103,7 +103,7 @@ function attachTo(button: HTMLElement) {
 }
 ```
 
-Alternativly you can call `createForm()` and control the form directly:
+Alternatively you can call `createForm()` and control the form directly:
 
 ```javascript
 const formPromise = feedbackInstance.createForm();
@@ -137,7 +137,7 @@ users.
 | Old Name      | New Name                | Default Value                  |
 | ------------- | ----------------------- | ------------------------------ |
 | `buttonLabel` | `triggerLabel`          | `"Report a bug"`               |
-| -             | `isRequiredLabel`       | `"(required)"`                 |
+| `isRequiredText`  | `isRequiredLabel`       | `"(required)"`                 |
 | -             | `addScreenshotLabel`    | `"Add a screenshot"`           |
 | -             | `removeScreenshotLabel` | `"Remove Screenshot"`          |
 | -             | `confirmButtonLabel`    | `"Confirm"`                    |
