@@ -1,44 +1,44 @@
-const LIGHT_BACKGROUND = '#ffffff';
 const INHERIT = 'inherit';
-const SUBMIT_COLOR = 'rgba(108, 95, 199, 1)';
+const PURPLE = 'rgba(88, 74, 192, 1)';
+const PURPLE_HOVER = 'rgba(108, 95, 199, 1)';
 
 export const LIGHT_THEME = {
-  fontFamily: "system-ui, 'Helvetica Neue', Arial, sans-serif",
-  fontSize: '14px',
-
   foreground: '#2b2233',
-  background: LIGHT_BACKGROUND,
-  success: '#268d75',
-  error: '#df3338',
-
-  zIndex: 100000,
+  successForeground: '#268d75',
+  errorForeground: '#df3338',
+  background: '#ffffff',
   border: '1.5px solid rgba(41, 35, 47, 0.13)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
-  backgroundHover: '#f6f6f7',
-  borderRadius: '25px',
+  inputForeground: INHERIT,
+  inputBackground: INHERIT,
+  inputBackgroundHover: INHERIT,
+  inputBackgroundFocus: INHERIT,
+  inputBorder: 'var(--border)',
+  inputBorderRadius: '6px',
+  inputOutlineFocus: PURPLE_HOVER,
 
-  formBorderRadius: '20px',
-  formContentBorderRadius: '6px',
+  buttonForeground: INHERIT,
+  buttonForegroundHover: INHERIT,
+  buttonBackground: 'var(--background)',
+  buttonBackgroundHover: '#f6f6f7',
+  buttonBorder: 'var(--border)',
+  buttonOutlineFocus: 'var(--input-outline-focus)',
 
-  submitForeground: LIGHT_BACKGROUND,
-  submitBackground: 'rgba(88, 74, 192, 1)',
-  submitForegroundHover: LIGHT_BACKGROUND,
-  submitBackgroundHover: SUBMIT_COLOR,
-  submitBorder: SUBMIT_COLOR,
+  submitForeground: '#ffffff',
+  submitForegroundHover: '#ffffff',
+  submitBackground: PURPLE,
+  submitBackgroundHover: PURPLE_HOVER,
+  submitBorder: PURPLE_HOVER,
+  submitBorderRadius: 'var(--button-border-radius)',
   submitOutlineFocus: '#29232f',
 
-  cancelForeground: 'var(--foreground)',
-  cancelBackground: 'transparent',
-  cancelForegroundHover: 'var(--foreground)',
-  cancelBackgroundHover: 'var(--background-hover)',
-  cancelBorder: 'var(--border)',
-  cancelOutlineFocus: 'var(--input-outline-focus)',
+  triggerBackground: 'var(--background)',
+  triggerBackgroundHover: 'var(--button-background-hover)',
+  triggerBorderRadius: '1.7em/50%',
 
-  inputBackground: INHERIT,
-  inputForeground: INHERIT,
-  inputBorder: 'var(--border)',
-  inputOutlineFocus: SUBMIT_COLOR,
+  dialogBackground: 'var(--background)',
+  dialogBorderRadius: '20px',
 };
 
 export const DEFAULT_THEME = {
@@ -46,12 +46,13 @@ export const DEFAULT_THEME = {
   dark: {
     ...LIGHT_THEME,
 
-    background: '#29232f',
-    backgroundHover: '#352f3b',
     foreground: '#ebe6ef',
-    border: '1.5px solid rgba(235, 230, 239, 0.15)',
+    successForeground: '#2da98c',
+    errorForeground: '#f55459',
+    background: '#29232f',
+    border: '1.5px solid rgba(235, 230, 239, 0.5)',
+    boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
-    success: '#2da98c',
-    error: '#f55459',
+    buttonBackgroundHover: '#352f3b',
   },
 };

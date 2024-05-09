@@ -46,21 +46,25 @@ export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
   return (
     <Fragment>
       {timeoutId ? (
-        <div class="success-message" onClick={handleOnSuccessClick}>
-          {options.successMessageText}
-          <span class="success-icon" dangerouslySetInnerHTML={successIconHtml} />
+        <div class="success__position" onClick={handleOnSuccessClick}>
+          <div class="success__content">
+            {options.successMessageText}
+            <span class="success__icon" dangerouslySetInnerHTML={successIconHtml} />
+          </div>
         </div>
       ) : (
-        <dialog class="dialog" onClick={props.onFormClose} open={open}>
-          <div
-            class="dialog__content"
-            onClick={e => {
-              // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
-              e.stopPropagation();
-            }}
-          >
-            <DialogHeader {...props} />
-            <Form {...props} onSubmitSuccess={onSubmitSuccess} />
+        <dialog class="dialog" onClick={options.onFormClose} open={open}>
+          <div class="dialog__position">
+            <div
+              class="dialog__content"
+              onClick={e => {
+                // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
+                e.stopPropagation();
+              }}
+            >
+              <DialogHeader options={options} />
+              <Form {...props} onSubmitSuccess={onSubmitSuccess} />
+            </div>
           </div>
         </dialog>
       )}

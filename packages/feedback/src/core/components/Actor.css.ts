@@ -9,7 +9,7 @@ export function createActorStyles(): HTMLStyleElement {
 .widget__actor {
   position: fixed;
   z-index: var(--z-index);
-  margin: 0;
+  margin: var(--page-margin);
   inset: var(--actor-inset);
 
   display: flex;
@@ -20,14 +20,15 @@ export function createActorStyles(): HTMLStyleElement {
   font-family: inherit;
   font-size: var(--font-size);
   font-weight: 600;
-  line-height: 16px;
+  line-height: 1.14em;
   text-decoration: none;
 
-  background-color: var(--background);
-  border-radius: var(--border-radius);
+  background-color: var(--trigger-background);
+  border-radius: var(--trigger-border-radius);
   border: var(--border);
   box-shadow: var(--box-shadow);
   color: var(--foreground);
+  fill: var(--foreground);
   cursor: pointer;
   opacity: 1;
   transition: transform 0.2s ease-in-out;
@@ -41,12 +42,12 @@ export function createActorStyles(): HTMLStyleElement {
 }
 
 .widget__actor:hover {
-  background-color: var(--background-hover);
+  background-color: var(--trigger-background-hover);
 }
 
 .widget__actor svg {
-  width: 16px;
-  height: 16px;
+  width: 1.14em;
+  height: 1.14em;
 }
 
 @media (max-width: 600px) {

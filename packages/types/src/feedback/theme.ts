@@ -1,40 +1,23 @@
 interface BaseStyles {
   /**
-   * Font family for widget
-   */
-  fontFamily: string;
-
-  /**
-   * Font size for widget
-   */
-  fontSize: string;
-
-  /**
    * Foreground color (i.e. text color)
    */
   foreground: string;
 
   /**
-   * Background color for actor and dialog
-   */
-  background: string;
-
-  /**
    * Success color
    */
-  success: string;
+  successForeground: string;
 
   /**
    * Error color
    */
-  error: string;
-}
+  errorForeground: string;
 
-interface ActorAndModal {
   /**
-   * z-index of the floating Actor or Modal
+   * Background color for actor and dialog
    */
-  zIndex: number;
+  background: string;
 
   /**
    * Border styling for actor and dialog
@@ -47,104 +30,26 @@ interface ActorAndModal {
   boxShadow: string;
 }
 
-interface ActorButton {
-  /**
-   * Background color on hover
-   */
-  backgroundHover: string;
-
-  /**
-   * Border radius styling for actor
-   */
-  borderRadius: string;
-}
-
-interface Modal {
-  /**
-   * Border radius for dialog
-   */
-  formBorderRadius: string;
-
-  /**
-   * Border radius for form inputs
-   */
-  formContentBorderRadius: string;
-}
-
-interface SubmitButton {
-  /**
-   * Foreground color for the submit button
-   */
-  submitForeground: string;
-
-  /**
-   * Background color for the submit button
-   */
-  submitBackground: string;
-
-  /**
-   * Foreground color for the submit button, in the hover state
-   */
-  submitForegroundHover: string;
-
-  /**
-   * Background color when hovering over the submit button
-   */
-  submitBackgroundHover: string;
-
-  /**
-   * Border style for the submit button
-   */
-  submitBorder: string;
-
-  /**
-   * Border style for the submit button, in the focued state
-   */
-  submitOutlineFocus: string;
-}
-
-interface CancelButton {
-  /**
-   * Foreground color for the cancel button
-   */
-  cancelForeground: string;
-
-  /**
-   * Background color for the cancel button
-   */
-  cancelBackground: string;
-
-  /**
-   * Foreground color for the cancel button, in the hover state
-   */
-  cancelForegroundHover: string;
-
-  /**
-   * Background color when hovering over the cancel button
-   */
-  cancelBackgroundHover: string;
-
-  /**
-   * Border style for the cancel button
-   */
-  cancelBorder: string;
-
-  /**
-   * Border style for the cancel button, in the focued state
-   */
-  cancelOutlineFocus: string;
-}
-
 interface Input {
+  /**
+   * Foreground color for form inputs
+   */
+  inputForeground: string;
+
   /**
    * Background color for form inputs
    */
   inputBackground: string;
 
   /**
-   * Foreground color for form inputs
+   * Background color for form inputs, in the hover state
    */
-  inputForeground: string;
+  inputBackgroundHover: string;
+
+  /**
+   * Background color for form inputs, in the focus state
+   */
+  inputBackgroundFocus: string;
 
   /**
    * Border styles for form inputs
@@ -152,16 +57,107 @@ interface Input {
   inputBorder: string;
 
   /**
+   * Border radius for form inputs
+   */
+  inputBorderRadius: string;
+
+  /**
    * Border styles for form inputs when focused
    */
   inputOutlineFocus: string;
 }
 
-export interface FeedbackTheme
-  extends BaseStyles,
-    ActorAndModal,
-    ActorButton,
-    Modal,
-    SubmitButton,
-    CancelButton,
-    Input {}
+interface Button {
+  /**
+   * Foreground color for buttons
+   */
+  buttonForeground: string;
+
+  /**
+   * Foreground color for buttons, in the hover state
+   */
+  buttonForegroundHover: string;
+
+  /**
+   * Background color for buttons
+   */
+  buttonBackground: string;
+
+  /**
+   * Background color when hovering over buttons
+   */
+  buttonBackgroundHover: string;
+
+  /**
+   * Border style for buttons
+   */
+  buttonBorder: string;
+
+  /**
+   * Border style for buttons, in the focued state
+   */
+  buttonOutlineFocus: string;
+}
+
+interface SubmitButton {
+  /**
+   * Foreground color for submit buttons
+   */
+  submitForeground: string;
+
+  /**
+   * Foreground color for submit buttons, in the hover state
+   */
+  submitForegroundHover: string;
+
+  /**
+   * Background color for submit buttons
+   */
+  submitBackground: string;
+
+  /**
+   * Background color when hovering over submit buttons
+   */
+  submitBackgroundHover: string;
+
+  /**
+   * Border style for submit buttons
+   */
+  submitBorder: string;
+
+  /**
+   * Border style for submit buttons, in the focued state
+   */
+  submitOutlineFocus: string;
+}
+
+interface Trigger {
+  /**
+   * Background color of the actor button
+   */
+  triggerBackground: string;
+
+  /**
+   * Background color on hover
+   */
+  triggerBackgroundHover: string;
+
+  /**
+   * Border radius styling for actor
+   */
+  triggerBorderRadius: string;
+}
+
+interface Dialog {
+  /**
+   * Background color of the open dialog
+   */
+  dialogBackground: string;
+
+  /**
+   * Border radius for dialog
+   */
+  dialogBorderRadius: string;
+}
+
+export interface FeedbackTheme extends BaseStyles, Input, Button, SubmitButton, Trigger, Dialog {}
