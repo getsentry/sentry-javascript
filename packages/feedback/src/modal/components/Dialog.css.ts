@@ -15,6 +15,8 @@ const DIALOG = `
   height: 100vh;
   width: 100vw;
 
+  color: var(--foreground);
+  fill: var(--foreground);
   line-height: 1.75em;
 
   background-color: rgba(0, 0, 0, 0.05);
@@ -67,8 +69,6 @@ const DIALOG = `
   border-radius: var(--dialog-border-radius);
   border: var(--border);
   box-shadow: var(--box-shadow);
-  color: var(--foreground);
-  fill: var(--foreground);
   transform: translate(0, 0) scale(1);
   transition: transform 0.2s ease-in-out;
 }

@@ -28,6 +28,7 @@ export function createActorStyles(): HTMLStyleElement {
   border: var(--border);
   box-shadow: var(--box-shadow);
   color: var(--foreground);
+  fill: var(--foreground);
   cursor: pointer;
   opacity: 1;
   transition: transform 0.2s ease-in-out;
