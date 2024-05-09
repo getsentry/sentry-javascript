@@ -10,9 +10,6 @@ export const LIGHT_THEME = {
   border: '1.5px solid rgba(41, 35, 47, 0.13)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
 
-  backgroundHover: '#f6f6f7',
-  borderRadius: '25px',
-
   inputForeground: INHERIT,
   inputBackground: INHERIT,
   inputBackgroundHover: INHERIT,
