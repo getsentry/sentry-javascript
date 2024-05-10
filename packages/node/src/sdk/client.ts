@@ -23,7 +23,9 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
 
     applySdkMetadata(clientOptions, 'node');
 
-    logger.log(`Initializing Sentry, pid: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`);
+    logger.log(
+      `Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`,
+    );
 
     super(clientOptions);
   }
