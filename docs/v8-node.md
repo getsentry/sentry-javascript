@@ -16,7 +16,8 @@ We support the following Node Frameworks out of the box:
 
 - [Express](#express)
 - [Fastify](#fastify)
-- Koa
+- [Connect](#connect)
+- [Koa](#koa)
 - Nest.js
 - Hapi
 
@@ -52,13 +53,36 @@ Sentry.init({
 const app = express();
 ```
 
+We recommend creating a file named `instrument.js` that imports and initializes Sentry.
+
 ```js
-// In v8, in order to ensure express is instrumented,
-// you have to initialize before you import:
+// In v8, create a separate file that initializes sentry.
+// Then pass the file to Node via --require or --import.
 const Sentry = require('@sentry/node');
 Sentry.init({
   // ...
 });
+```
+
+Adjust the Node.js call for your application to use the [--require](https://nodejs.org/api/cli.html#-r---require-module)
+or [--import](https://nodejs.org/api/cli.html#--importmodule) parameter and point it at `instrument.js`. Using
+`--require` or `--import` is the easiest way to guarantee that Sentry is imported and initialized before any other
+modules in your application
+
+```bash
+# If you are using CommonJS (CJS)
+node --require ./instrument.js app.js
+
+# If you are using ECMAScript Modules (ESM)
+# Note: This is only available for Node v18.19.0 onwards.
+node --import ./instrument.mjs app.mjs
+```
+
+**Alternatively**, if you cannot run node with `--require` or `--import`, add a top level import of `instrument.js` in
+your application.
+
+```js
+require('./instrument.js');
 
 const express = require('express');
 const app = express();
@@ -75,8 +99,11 @@ See [New Performance APIs](./v8-new-performance-apis.md) for details.
 
 ### ESM Support
 
-For now, ESM support is only experimental. For the time being we only fully support CJS-based Node application - we are
-working on this during the v8 alpha/beta cycle.
+Instrumentation works out of the box for CommonJS (CJS) applications based on require() calls. This means that as long
+as your application is either natively in CJS, or compiled at build time to CJS, everything will work without any
+further setup.
+
+ECMAScript Modules (ESM) are only supported for Node v18.19.0 onwards.
 
 ### Using Custom OpenTelemetry Instrumentation
 
@@ -153,12 +180,6 @@ your Express app.
 
 ```js
 const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: '__DSN__',
-  tracesSampleRate: 1,
-});
-
 const express = require('express');
 const app = express();
 
@@ -177,12 +198,6 @@ your Fastify app.
 
 ```js
 const Sentry = require('@sentry/node');
-
-Sentry.init({
-  dsn: '__DSN__',
-  tracesSampleRate: 1,
-});
-
 const { fastify } = require('fastify');
 const app = fastify();
 Sentry.setupFastifyErrorHandler(app);
@@ -190,4 +205,41 @@ Sentry.setupFastifyErrorHandler(app);
 // add routes etc. here
 
 app.listen();
+```
+
+## Connect
+
+The following shows how you can setup Connect instrumentation in v8. This will capture performance data & errors for
+your Fastify app.
+
+```js
+const connect = require('connect');
+const Sentry = require('@sentry/node');
+const app = connect();
+
+Sentry.setupConnectErrorHandler(app);
+
+// Add your routes, etc.
+
+app.listen(3030);
+```
+
+## Koa
+
+The following shows how you can setup Koa instrumentation in v8. This will capture performance data & errors for your
+Fastify app.
+
+```js
+const Koa = require('koa');
+const Router = require('@koa/router');
+const Sentry = require('@sentry/node');
+
+const router = new Router();
+const app = new Koa();
+
+Sentry.setupKoaErrorHandler(app);
+
+// Add your routes, etc.
+
+app.listen(3030);
 ```
