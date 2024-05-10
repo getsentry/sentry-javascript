@@ -15,7 +15,6 @@ import { escapeNextjsTracing } from './utils/tracingUtils';
 
 interface Options {
   formData?: FormData;
-  // TODO(v8): Whenever we decide to drop support for Next.js <= 12 we can automatically pick up the headers becauase "next/headers" will be resolvable.
   headers?: Headers;
   recordResponse?: boolean;
 }
