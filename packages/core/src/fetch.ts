@@ -17,7 +17,7 @@ import {
 } from './tracing';
 import { SentryNonRecordingSpan } from './tracing/sentryNonRecordingSpan';
 import { hasTracingEnabled } from './utils/hasTracingEnabled';
-import { spanToTraceHeader } from './utils/spanUtils';
+import { getActiveSpan, spanToTraceHeader } from './utils/spanUtils';
 
 type PolymorphicRequestHeaders =
   | Record<string, string | undefined>
@@ -70,20 +70,23 @@ export function instrumentFetchRequest(
   const fullUrl = getFullURL(url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
 
-  const span = shouldCreateSpanResult
-    ? startInactiveSpan({
-        name: `${method} ${url}`,
-        attributes: {
-          url,
-          type: 'fetch',
-          'http.method': method,
-          'http.url': fullUrl,
-          'server.address': host,
-          [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
-          [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
-        },
-      })
-    : new SentryNonRecordingSpan();
+  const hasParent = !!getActiveSpan();
+
+  const span =
+    shouldCreateSpanResult && hasParent
+      ? startInactiveSpan({
+          name: `${method} ${url}`,
+          attributes: {
+            url,
+            type: 'fetch',
+            'http.method': method,
+            'http.url': fullUrl,
+            'server.address': host,
+            [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: spanOrigin,
+            [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'http.client',
+          },
+        })
+      : new SentryNonRecordingSpan();
 
   handlerData.fetchData.__span = span.spanContext().spanId;
   spans[span.spanContext().spanId] = span;
@@ -102,9 +105,10 @@ export function instrumentFetchRequest(
       client,
       scope,
       options,
-      // If performance is disabled (TWP), we do not want to use the span as base for the trace headers,
+      // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
+      // we do not want to use the span as base for the trace headers,
       // which means that the headers will be generated from the scope and the sampling decision is deferred
-      hasTracingEnabled() ? span : undefined,
+      hasTracingEnabled() && hasParent ? span : undefined,
     );
   }
 

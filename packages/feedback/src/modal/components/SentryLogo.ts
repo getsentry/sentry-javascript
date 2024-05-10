@@ -13,7 +13,7 @@ export function SentryLogo(): SVGElement {
     width: '32',
     height: '30',
     viewBox: '0 0 72 66',
-    fill: 'none',
+    fill: 'inherit',
   });
 
   const path = setAttributesNS(createElementNS('path'), {

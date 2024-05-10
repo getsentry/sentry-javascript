@@ -1,7 +1,7 @@
 {
   "name": "@sentry-internal/size-limit-gh-action",
   "description": "An internal Github Action to compare the current size of a PR against the one on develop.",
-  "version": "8.0.0-rc.1",
+  "version": "8.0.0-rc.2",
   "license": "MIT",
   "engines": {
     "node": ">=18"

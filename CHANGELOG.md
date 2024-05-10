@@ -4,6 +4,33 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-rc.2
+
+### Important Changes
+
+- **feat(node): Register ESM patching hooks in init for supported Node.js versions**
+
+This release includes adds support for ESM when `Sentry.init()` is called within a module imported via the `--import`
+Node.js flag:
+
+```sh
+node --import ./your-file-with-sentry-init.mjs your-app.mjs
+```
+
+Note that the SDK only supports ESM for node versions `18.19.0` and above, and `20.6.0` above.
+
+### Other Changes
+
+- deps(node): Bump `@opentelemetry/core` to `1.24.1` and `@opentelemetry/instrumentation` to `0.51.1` (#11941)
+- feat(connect): Warn if connect is not instrumented (#11936)
+- feat(express): Warn if express is not instrumented (#11930)
+- feat(fastify): Warn if fastify is not instrumented (#11917)
+- feat(hapi): Warn if hapi is not instrumented (#11937)
+- feat(koa): Warn if koa is not instrumented (#11931)
+- fix(browser): Continuously record CLS web vital (#11934)
+- fix(feedback): Pick user from any scope (#11928)
+- fix(node): Fix cron instrumentation and add tests (#11811)
+
 ## 8.0.0-rc.1
 
 This release contains no changes and was done for technical purposes. This version is considered stable.
