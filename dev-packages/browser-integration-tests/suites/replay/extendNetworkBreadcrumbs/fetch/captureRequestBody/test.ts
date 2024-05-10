@@ -42,10 +42,12 @@ sentryTest('captures text request body', async ({ getLocalTestPath, page, browse
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: 'input body',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -122,10 +124,12 @@ sentryTest('captures JSON request body', async ({ getLocalTestPath, page, browse
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: '{"foo":"bar"}',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -206,10 +210,12 @@ sentryTest('captures non-text request body', async ({ getLocalTestPath, page, br
     fetch('http://localhost:7654/foo', {
       method: 'POST',
       body: body,
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -286,10 +292,12 @@ sentryTest('captures text request body when matching relative URL', async ({ get
     fetch('/foo', {
       method: 'POST',
       body: 'input body',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 
@@ -364,10 +372,12 @@ sentryTest('does not capture request body when URL does not match', async ({ get
     fetch('http://localhost:7654/bar', {
       method: 'POST',
       body: 'input body',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
+    })
+      .then(res => res.text())
+      .then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
     /* eslint-enable */
   });
 

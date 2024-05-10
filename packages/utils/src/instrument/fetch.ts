@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { HandlerDataFetch } from '@sentry/types';
 
+import { DEBUG_BUILD } from '../debug-build';
+import { logger } from '../logger';
 import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
 import { GLOBAL_OBJ } from '../worldwide';
@@ -47,14 +49,59 @@ function instrumentFetch(): void {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       return originalFetch.apply(GLOBAL_OBJ, args).then(
         (response: Response) => {
-          const finishedHandlerData: HandlerDataFetch = {
-            ...handlerData,
-            endTimestamp: Date.now(),
-            response,
-          };
+          // We need to immediately clone the response, so that if the user reads the body before we call the handlers,
+          // we cannot clone the response inside the handlers since it would throw. The Replay integration for instance
+          // needs to clone the response body inside a handler to collect response size and breadcrumbs.
+          // If the cloning fails for whatever reason, we still pass the original response because it could be used for
+          // status.
+          let responseForHandlers = response;
+          let clonedResponseForResolving;
+          try {
+            responseForHandlers = response.clone();
+            clonedResponseForResolving = response.clone();
+          } catch (e) {
+            // noop
+            DEBUG_BUILD && logger.warn('Failed to clone response body.');
+          }
 
-          triggerHandlers('fetch', finishedHandlerData);
-          return response;
+          if (clonedResponseForResolving && clonedResponseForResolving.body) {
+            const responseReader = clonedResponseForResolving.body.getReader();
+
+            // eslint-disable-next-line no-inner-declarations
+            function consumeChunks({ done }: { done: boolean }): Promise<void> {
+              if (!done) {
+                return responseReader.read().then(consumeChunks);
+              } else {
+                return Promise.resolve();
+              }
+            }
+
+            responseReader
+              .read()
+              .then(consumeChunks)
+              .then(() => {
+                triggerHandlers('fetch', {
+                  ...handlerData,
+                  endTimestamp: Date.now(),
+                  response: responseForHandlers,
+                });
+              })
+              .catch(() => {
+                // noop
+              });
+          } else {
+            triggerHandlers('fetch', {
+              ...handlerData,
+              endTimestamp: Date.now(),
+              response: responseForHandlers,
+            });
+          }
+
+          return new Promise(resolve => {
+            setTimeout(() => {
+              resolve(response);
+            }, 0);
+          });
         },
         (error: Error) => {
           const erroredHandlerData: HandlerDataFetch = {
