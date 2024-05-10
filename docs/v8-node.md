@@ -56,8 +56,8 @@ const app = express();
 We recommend creating a file named `instrument.js` that imports and initializes Sentry.
 
 ```js
-// In v8, we create a file that only initializes sentry.
-// The file is then passed to Node via --require or --import.
+// In v8, create a separate file that initializes sentry.
+// Then pass the file to Node via --require or --import.
 const Sentry = require('@sentry/node');
 Sentry.init({
   // ...
@@ -100,8 +100,7 @@ See [New Performance APIs](./v8-new-performance-apis.md) for details.
 ### ESM Support
 
 Instrumentation works out of the box for CommonJS (CJS) applications based on require() calls. This means that as long
-as your application is either natively in CJS, or compiled at build time to CJS (which is the case for most TypeScript
-apps, for example), everything will work without any further setup.
+as your application is either natively in CJS, or compiled at build time to CJS, everything will work without any further setup.
 
 ECMAScript Modules (ESM) are only supported for Node v18.19.0 onwards.
 
