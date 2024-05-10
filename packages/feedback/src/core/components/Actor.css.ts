@@ -23,12 +23,12 @@ export function createActorStyles(): HTMLStyleElement {
   line-height: 1.14em;
   text-decoration: none;
 
-  background-color: var(--trigger-background);
-  border-radius: var(--trigger-border-radius);
-  border: var(--border);
-  box-shadow: var(--box-shadow);
-  color: var(--foreground);
-  fill: var(--foreground);
+  background: var(--actor-background, var(--background));
+  border-radius: var(--actor-border-radius, 1.7em/50%);
+  border: var(--actor-border, var(--border));
+  box-shadow: var(--actor-box-shadow, var(--box-shadow));
+  color: var(--actor-color, var(--foreground));
+  fill: var(--actor-color, var(--foreground));
   cursor: pointer;
   opacity: 1;
   transition: transform 0.2s ease-in-out;
@@ -42,7 +42,8 @@ export function createActorStyles(): HTMLStyleElement {
 }
 
 .widget__actor:hover {
-  background-color: var(--trigger-background-hover);
+  background: var(--actor-hover-background, var(--background));
+  filter: var(--interactive-filter);
 }
 
 .widget__actor svg {

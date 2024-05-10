@@ -22,7 +22,7 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
       const user = getCurrentScope().getUser() || getIsolationScope().getUser() || getGlobalScope().getUser();
 
       const el = DOCUMENT.createElement('div');
-      const style = createDialogStyles(options);
+      const style = createDialogStyles();
 
       let originalOverflow = '';
       const dialog: FeedbackDialog = {

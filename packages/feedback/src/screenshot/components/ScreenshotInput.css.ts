@@ -1,4 +1,4 @@
-import { CROP_COLOR, DOCUMENT } from '../../constants';
+import { DOCUMENT } from '../../constants';
 
 /**
  * Creates <style> element for widget dialog
@@ -48,8 +48,8 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
 .editor__crop-btn-group {
   padding: 8px;
   gap: 8px;
-  border-radius: var(--form-content-border-radius);
-  background-color: var(--background);
+  border-radius: var(--menu-border-radius, 6px);
+  background: var(--button-primary-background, var(--background));
   width: 175px;
   position: absolute;
 }
@@ -59,7 +59,7 @@ export function createScreenshotInputStyles(): HTMLStyleElement {
   height: 30px;
   position: absolute;
   background: none;
-  border: 3px solid ${CROP_COLOR};
+  border: 3px solid #ffffff;
 }
 
 .editor__crop-corner--top-left {

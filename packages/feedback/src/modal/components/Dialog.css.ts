@@ -1,4 +1,3 @@
-import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../../constants';
 
 const DIALOG = `
@@ -15,8 +14,8 @@ const DIALOG = `
   height: 100vh;
   width: 100vw;
 
-  color: var(--foreground);
-  fill: var(--foreground);
+  color: var(--dialog-color, var(--foreground));
+  fill: var(--dialog-color, var(--foreground));
   line-height: 1.75em;
 
   background-color: rgba(0, 0, 0, 0.05);
@@ -59,16 +58,16 @@ const DIALOG = `
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: var(--dialog-padding);
+  padding: var(--dialog-padding, 24px);
   max-width: 100%;
   width: 100%;
   max-height: 100%;
   overflow: auto;
 
-  background-color: var(--dialog-background);
-  border-radius: var(--dialog-border-radius);
-  border: var(--border);
-  box-shadow: var(--box-shadow);
+  background: var(--dialog--background, var(--background));
+  border-radius: var(--dialog-border-radius, 20px);
+  border: var(--dialog-border, var(--border));
+  box-shadow: var(--dialog-box-shadow, var(--box-shadow));
   transform: translate(0, 0) scale(1);
   transition: transform 0.2s ease-in-out;
 }
@@ -79,7 +78,7 @@ const DIALOG_HEADER = `
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-weight: 600;
+  font-weight: var(--dialog-header-weight, 600);
   margin: 0;
 }
 
@@ -87,7 +86,7 @@ const DIALOG_HEADER = `
   display: inline-flex;
 }
 .brand-link:focus-visible {
-  outline: 1px auto var(--input-outline-focus);
+  outline: var(--outline);
 }
 `;
 
@@ -101,7 +100,7 @@ const FORM = `
 }
 
 .form__right {
-  width: 272px;
+  width: var(--form-width, 272px);
   display: flex;
   overflow: auto;
   flex-direction: column;
@@ -147,24 +146,26 @@ const FORM = `
 .form__input {
   font-family: inherit;
   line-height: inherit;
-  background-color: var(--input-background);
+  background: transparent;
   box-sizing: border-box;
-  border: var(--input-border);
-  border-radius: var(--input-border-radius);
-  color: var(--input-foreground);
-  fill: var(--input-foreground);
-  font-size: var(--font-size);
-  font-weight: 500;
+  border: var(--input-border, var(--border));
+  border-radius: var(--input-border-radius, 6px);
+  color: var(--input-color, inherit);
+  fill: var(--input-color, inherit);
+  font-size: var(--input-font-size, inherit);
+  font-weight: var(--input-font-weight, 500);
   padding: 6px 12px;
 }
 
 .form__input::placeholder {
-  color: var(--input-foreground);
+  color: inherit;
   opacity: 0.65;
+  color: var(--input-placeholder-color, inherit);
+  filter: var(--interactive-filter);
 }
 
 .form__input:focus-visible {
-  outline: 1px auto var(--input-outline-focus);
+  outline: var(--input-focus-outline, var(--outline));
 }
 
 .form__input--textarea {
@@ -173,8 +174,8 @@ const FORM = `
 }
 
 .error {
-  color: var(--error-foreground);
-  fill: var(--error-foreground);
+  color: var(--error-color);
+  fill: var(--error-color);
 }
 `;
 
@@ -186,13 +187,13 @@ const BUTTON = `
 
 .btn {
   line-height: inherit;
-  border: var(--cancel-border);
-  border-radius: var(--form-content-border-radius);
+  border: var(--button-border, var(--border));
+  border-radius: var(--button-border-radius, 6px);
   cursor: pointer;
   font-family: inherit;
-  font-size: var(--font-size);
-  font-weight: 600;
-  padding: 6px 16px;
+  font-size: var(--button-font-size, inherit);
+  font-weight: var(--button-font-weight, 600);
+  padding: var(--button-padding, 6px 16px);
 }
 .btn[disabled] {
   opacity: 0.6;
@@ -200,37 +201,43 @@ const BUTTON = `
 }
 
 .btn--primary {
-  color: var(--submit-foreground);
-  fill: var(--submit-foreground);
-  background-color: var(--submit-background);
-  border: var(--submit-border);
-  border-radius: var(--input-border-radius);
-  font-weight: 500;
+  color: var(--button-primary-color, var(--accent-foreground));
+  fill: var(--button-primary-color, var(--accent-foreground));
+  background: var(--button-primary-background, var(--accent-background));
+  border: var(--button-primary-border, var(--border));
+  border-radius: var(--button-primary-border-radius, 6px);
+  font-weight: var(--button-primary-font-weight, 500);
 }
 .btn--primary:hover {
-  color: var(--submit-foreground-hover);
-  fill: var(--submit-foreground-hover);
-  background-color: var(--submit-background-hover);
+  color: var(--button-primary-hover-color, var(--accent-foreground));
+  fill: var(--button-primary-hover-color, var(--accent-foreground));
+  background: var(--button-primary-hover-background, var(--accent-background));
+  filter: var(--interactive-filter);
 }
 .btn--primary:focus-visible {
-  outline: 1px auto var(--submit-outline-focus);
+  background: var(--button-primary-hover-background, var(--accent-background));
+  filter: var(--interactive-filter);
+  outline: var(--button-primary-focus-outline, var(--outline));
 }
 
 .btn--default {
-  color: var(--button-foreground);
-  fill: var(--button-foreground);
-  background-color: var(--button-background);
-  border: var(--button-border);
-  border-radius: var(--input-border-radius);
-  font-weight: 500;
+  color: var(--button-color, var(--foreground));
+  fill: var(--button-color, var(--foreground));
+  background: var(--button-background, var(--background));
+  border: var(--button-border, var(--border));
+  border-radius: var(--button-border-radius, 6px);
+  font-weight: var(--button-font-weight, 500);
 }
 .btn--default:hover {
-  color: var(--button-foreground-hover);
-  fill: var(--button-foreground-hover);
-  background-color: var(--button-background-hover);
+  color: var(--button-color, var(--foreground));
+  fill: var(--button-color, var(--foreground));
+  background: var(--button-hover-background, var(--background));
+  filter: var(--interactive-filter);
 }
 .btn--default:focus-visible {
-  outline: 1px auto var(--button-outline-focus);
+  background: var(--button-hover-background, var(--background));
+  filter: var(--interactive-filter);
+  outline: var(--button-focus-outline, var(--outline));
 }
 `;
 
@@ -242,15 +249,16 @@ const SUCCESS = `
   z-index: var(--z-index);
 }
 .success__content {
-  background-color: var(--trigger-background);
-  border: var(--border);
-  border-radius: var(--trigger-border-radius);
-  box-shadow: var(--box-shadow);
-  font-weight: 600;
-  color: var(--success-foreground);
-  fill: var(--success-foreground);
+  background: var(--success-background, var(--background));
+  border: var(--success-border, var(--border));
+  border-radius: var(--success-border-radius, 1.7em/50%);
+  box-shadow: var(--success-box-shadow, var(--box-shadow));
+  font-weight: var(--success-font-weight, 600);
+  color: var(--success-color);
+  fill: var(--success-color);
   padding: 12px 24px;
-  line-height: 25px;
+  line-height: 1.75em;
+
   display: grid;
   align-items: center;
   grid-auto-flow: column;
@@ -263,51 +271,15 @@ const SUCCESS = `
 }
 `;
 
-function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
-  return `
-  --input-border-radius: ${theme.inputBorderRadius};
-  --input-background: ${theme.inputBackground};
-  --input-background-hover: ${theme.inputBackgroundHover};
-  --input-background-focus: ${theme.inputBackgroundFocus};
-  --input-foreground: ${theme.inputForeground};
-  --input-border: ${theme.inputBorder};
-  --input-outline-focus: ${theme.inputOutlineFocus};
-
-  --submit-foreground: ${theme.submitForeground};
-  --submit-foreground-hover: ${theme.submitForegroundHover};
-  --submit-background: ${theme.submitBackground};
-  --submit-background-hover: ${theme.submitBackgroundHover};
-  --submit-border: ${theme.submitBorder};
-  --submit-outline-focus: ${theme.submitOutlineFocus};
-
-  --dialog-background: ${theme.dialogBackground};
-  --dialog-border-radius: ${theme.dialogBorderRadius};
-  `;
-}
-
 /**
  * Creates <style> element for widget dialog
  */
-export function createDialogStyles({ colorScheme, themeDark, themeLight }: FeedbackInternalOptions): HTMLStyleElement {
+export function createDialogStyles(): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
 
   style.textContent = `
 :host {
   --dialog-inset: var(--inset);
-  --dialog-padding: 24px;
-
-  ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
-}
-
-${
-  colorScheme === 'system'
-    ? `
-@media (prefers-color-scheme: dark) {
-  :host {
-    ${getThemedCssVariables(themeDark)}
-  }
-}`
-    : ''
 }
 
 ${DIALOG}
