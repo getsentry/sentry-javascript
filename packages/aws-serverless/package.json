@@ -11,6 +11,7 @@
   },
   "files": [
     "cjs",
+    "esm",
     "types",
     "types-ts3.8",
     "import-hook.mjs",
