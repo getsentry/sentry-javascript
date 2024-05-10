@@ -64,7 +64,7 @@ const DIALOG = `
   max-height: 100%;
   overflow: auto;
 
-  background: var(--dialog--background, var(--background));
+  background: var(--dialog-background, var(--background));
   border-radius: var(--dialog-border-radius, 20px);
   border: var(--dialog-border, var(--border));
   box-shadow: var(--dialog-box-shadow, var(--box-shadow));

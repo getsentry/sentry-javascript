@@ -31,7 +31,7 @@ const DEFAULT_DARK: InternalTheme = {
   border: '1.5px solid rgba(41, 35, 47, 0.5)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   outline: '1px auto var(--accent-background)',
-  interactiveFilter: 'brightness(105%)',
+  interactiveFilter: 'brightness(150%)',
 };
 
 function getThemedCssVariables(theme: InternalTheme): string {
