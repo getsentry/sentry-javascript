@@ -1,6 +1,5 @@
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
 
-import { getActiveSpan } from '@sentry/core';
 import { addHandler, fill, isString, maybeInstrument, triggerHandlers } from '@sentry/utils';
 import { WINDOW } from '../metrics/types';
 
