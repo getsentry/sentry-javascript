@@ -4,6 +4,8 @@ import { trace } from '@opentelemetry/api';
 import type { BasicTracerProvider } from '@opentelemetry/sdk-trace-base';
 import type { ServerRuntimeClientOptions } from '@sentry/core';
 import { SDK_VERSION, ServerRuntimeClient, applySdkMetadata } from '@sentry/core';
+import { logger } from '@sentry/utils';
+import { isMainThread, threadId } from 'worker_threads';
 import type { NodeClientOptions } from '../types';
 
 /** A client for using Sentry with Node & OpenTelemetry. */
@@ -20,6 +22,10 @@ export class NodeClient extends ServerRuntimeClient<NodeClientOptions> {
     };
 
     applySdkMetadata(clientOptions, 'node');
+
+    logger.log(
+      `Initializing Sentry: process: ${process.pid}, thread: ${isMainThread ? 'main' : `worker-${threadId}`}.`,
+    );
 
     super(clientOptions);
   }
