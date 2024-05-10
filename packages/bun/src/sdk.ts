@@ -13,6 +13,8 @@ import {
   modulesIntegration,
   nativeNodeFetchintegration,
   nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
 } from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
@@ -32,9 +34,9 @@ export const defaultIntegrations = [
   consoleIntegration(),
   httpIntegration(),
   nativeNodeFetchintegration(),
-  // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
-  // new NodeIntegrations.OnUncaughtException(),
-  // new NodeIntegrations.OnUnhandledRejection(),
+  // Global Handlers
+  onUncaughtExceptionIntegration(),
+  onUnhandledRejectionIntegration(),
   // Event Info
   contextLinesIntegration(),
   // new NodeIntegrations.LocalVariables(), # does't work with Bun
