@@ -55,6 +55,8 @@ const config: PlaywrightTestConfig = {
     {
       command: 'pnpm ts-node-script start-event-proxy.mjs',
       port: eventProxyPort,
+      stdout: 'pipe',
+      stderr: 'pipe',
     },
     {
       command: 'pnpm start',
