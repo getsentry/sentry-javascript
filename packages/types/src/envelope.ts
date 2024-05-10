@@ -88,8 +88,7 @@ export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;
 export type SessionItem =
-  // TODO(v8): Only allow serialized session here (as opposed to Session or SerializedSesison)
-  | BaseEnvelopeItem<SessionItemHeaders, Session | SerializedSession>
+  | BaseEnvelopeItem<SessionItemHeaders, SerializedSession>
   | BaseEnvelopeItem<SessionAggregatesItemHeaders, SessionAggregates>;
 export type ClientReportItem = BaseEnvelopeItem<ClientReportItemHeaders, ClientReport>;
 export type CheckInItem = BaseEnvelopeItem<CheckInItemHeaders, SerializedCheckIn>;
