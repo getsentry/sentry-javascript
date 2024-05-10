@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-rc.3
+
+### Important Changes
+
+- **feat(bun): Add Bun Global Unhandled Handlers (#11960)**
+
+The Bun SDK will now capture global unhandled errors.
+
+### Other Changes
+
+- feat(node): Log process and thread info on initialisation (#11972)
+- fix(aws-serverless): Include ESM artifacts in package (#11973)
+- fix(browser): Only start `http.client` spans if there is an active parent span (#11974)
+- fix(feedback): Improve CSS theme variable names and layout (#11964)
+- fix(node): Ensure `execArgv` are not sent to worker threads (#11963)
+- ref(feedback): Simplify feedback function params (#11957)
+
 ## 8.0.0-rc.2
 
 ### Important Changes
