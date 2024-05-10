@@ -69,6 +69,7 @@ export interface FeedbackScreenshotIntegration extends Integration {
   createInput: (
     h: HType,
     dialog: FeedbackDialog,
+    options: FeedbackInternalOptions,
   ) => {
     /**
      * The preact component

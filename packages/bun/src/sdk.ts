@@ -12,6 +12,8 @@ import {
   modulesIntegration,
   nativeNodeFetchIntegration,
   nodeContextIntegration,
+  onUncaughtExceptionIntegration,
+  onUnhandledRejectionIntegration,
 } from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
@@ -33,9 +35,9 @@ export function getDefaultIntegrations(_options: Options): Integration[] {
     consoleIntegration(),
     httpIntegration(),
     nativeNodeFetchIntegration(),
-    // Global Handlers # TODO (waiting for https://github.com/oven-sh/bun/issues/5091)
-    // new NodeIntegrations.OnUncaughtException(),
-    // new NodeIntegrations.OnUnhandledRejection(),
+    // Global Handlers
+    onUncaughtExceptionIntegration(),
+    onUnhandledRejectionIntegration(),
     // Event Info
     contextLinesIntegration(),
     nodeContextIntegration(),

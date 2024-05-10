@@ -45,7 +45,7 @@ export interface FeedbackGeneralConfiguration {
    * Should the screen shots field be included?
    * Screen shots cannot be marked as required
    */
-  showScreenshot: boolean;
+  enableScreenshot: boolean;
 
   /**
    * Fill in email/name input fields with Sentry user context if it exists.
@@ -84,7 +84,7 @@ export interface FeedbackTextConfiguration {
   /**
    * The label for the Feedback widget button that opens the dialog
    */
-  buttonLabel: string;
+  triggerLabel: string;
 
   /**
    * The label for the Feedback form cancel button that closes dialog
@@ -95,6 +95,11 @@ export interface FeedbackTextConfiguration {
    * The label for the Feedback form submit button that sends feedback
    */
   submitButtonLabel: string;
+
+  /**
+   * The label for the Screenshot editor cancel buttons
+   */
+  confirmButtonLabel: string;
 
   /**
    * The title of the Feedback form
@@ -139,7 +144,17 @@ export interface FeedbackTextConfiguration {
   /**
    * Text which indicates that a field is required
    */
-  isRequiredText: string;
+  isRequiredLabel: string;
+
+  /**
+   * The label for the button that adds a screeshot and renders the image editor
+   */
+  addScreenshotButtonLabel: string;
+
+  /**
+   * The label for the button that removes a screenshot and hides the image editor
+   */
+  removeScreenshotButtonLabel: string;
 }
 
 /**

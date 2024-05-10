@@ -15,7 +15,7 @@ export function SuccessIcon(): SVGElement {
     width: `${WIDTH}`,
     height: `${HEIGHT}`,
     viewBox: `0 0 ${WIDTH} ${HEIGHT}`,
-    fill: 'var(--success)',
+    fill: 'inherit',
   });
 
   const g = setAttributesNS(createElementNS('g'), {

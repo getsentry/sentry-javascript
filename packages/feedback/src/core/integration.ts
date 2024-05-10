@@ -9,20 +9,23 @@ import type {
 } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
-  ACTOR_LABEL,
+  ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
+  CONFIRM_BUTTON_LABEL,
   DEFAULT_THEME,
   DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
-  IS_REQUIRED_TEXT,
+  IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
   NAME_PLACEHOLDER,
+  REMOVE_SCREENSHOT_LABEL,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
+  TRIGGER_LABEL,
 } from '../constants';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
@@ -66,7 +69,7 @@ export const buildFeedbackIntegration = ({
     autoInject = true,
     showEmail = true,
     showName = true,
-    showScreenshot = true,
+    enableScreenshot = true,
     useSentryUser = {
       email: 'email',
       name: 'username',
@@ -80,18 +83,21 @@ export const buildFeedbackIntegration = ({
     themeDark,
 
     // FeedbackTextConfiguration
-    buttonLabel = ACTOR_LABEL,
+    addScreenshotButtonLabel = ADD_SCREENSHOT_LABEL,
     cancelButtonLabel = CANCEL_BUTTON_LABEL,
-    submitButtonLabel = SUBMIT_BUTTON_LABEL,
-    formTitle = FORM_TITLE,
+    confirmButtonLabel = CONFIRM_BUTTON_LABEL,
     emailLabel = EMAIL_LABEL,
     emailPlaceholder = EMAIL_PLACEHOLDER,
+    formTitle = FORM_TITLE,
+    isRequiredLabel = IS_REQUIRED_LABEL,
     messageLabel = MESSAGE_LABEL,
     messagePlaceholder = MESSAGE_PLACEHOLDER,
     nameLabel = NAME_LABEL,
     namePlaceholder = NAME_PLACEHOLDER,
+    removeScreenshotButtonLabel = REMOVE_SCREENSHOT_LABEL,
+    submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
-    isRequiredText = IS_REQUIRED_TEXT,
+    triggerLabel = TRIGGER_LABEL,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -108,7 +114,7 @@ export const buildFeedbackIntegration = ({
       isNameRequired,
       showEmail,
       showName,
-      showScreenshot,
+      enableScreenshot,
       useSentryUser,
 
       colorScheme,
@@ -121,9 +127,10 @@ export const buildFeedbackIntegration = ({
         ...themeLight,
       },
 
-      buttonLabel,
+      triggerLabel,
       cancelButtonLabel,
       submitButtonLabel,
+      confirmButtonLabel,
       formTitle,
       emailLabel,
       emailPlaceholder,
@@ -132,7 +139,9 @@ export const buildFeedbackIntegration = ({
       nameLabel,
       namePlaceholder,
       successMessageText,
-      isRequiredText,
+      isRequiredLabel,
+      addScreenshotButtonLabel,
+      removeScreenshotButtonLabel,
 
       onFormClose,
       onFormOpen,
@@ -154,7 +163,7 @@ export const buildFeedbackIntegration = ({
         DOCUMENT.body.appendChild(host);
 
         _shadow = host.attachShadow({ mode: 'open' });
-        _shadow.appendChild(createMainStyles(options.colorScheme, options));
+        _shadow.appendChild(createMainStyles(options));
       }
       return _shadow as ShadowRoot;
     };
@@ -176,7 +185,7 @@ export const buildFeedbackIntegration = ({
     };
 
     const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
-      const screenshotRequired = options.showScreenshot && isScreenshotSupported();
+      const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
         screenshotRequired
@@ -250,7 +259,7 @@ export const buildFeedbackIntegration = ({
 
     const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const shadow = _createShadow(_options);
-      const actor = Actor({ buttonLabel: _options.buttonLabel, shadow });
+      const actor = Actor({ triggerLabel: _options.triggerLabel, shadow });
       const mergedOptions = mergeOptions(_options, {
         ...optionOverrides,
         onFormOpen() {

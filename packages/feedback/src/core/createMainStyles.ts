@@ -3,73 +3,45 @@ import { DOCUMENT } from '../constants';
 
 function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
   return `
-  --background: ${theme.background};
-  --background-hover: ${theme.backgroundHover};
   --foreground: ${theme.foreground};
-  --error: ${theme.error};
-  --success: ${theme.success};
+  --success-foreground: ${theme.successForeground};
+  --error-foreground: ${theme.errorForeground};
+  --background: ${theme.background};
   --border: ${theme.border};
-  --border-radius: ${theme.borderRadius};
   --box-shadow: ${theme.boxShadow};
 
-  --submit-background: ${theme.submitBackground};
-  --submit-background-hover: ${theme.submitBackgroundHover};
-  --submit-border: ${theme.submitBorder};
-  --submit-outline-focus: ${theme.submitOutlineFocus};
-  --submit-foreground: ${theme.submitForeground};
-  --submit-foreground-hover: ${theme.submitForegroundHover};
+  --button-foreground: ${theme.buttonForeground};
+  --button-foreground-hover: ${theme.buttonForegroundHover};
+  --button-background: ${theme.buttonBackground};
+  --button-background-hover: ${theme.buttonBackgroundHover};
+  --button-border: ${theme.buttonBorder};
+  --button-outline-focus: ${theme.buttonOutlineFocus};
 
-  --cancel-background: ${theme.cancelBackground};
-  --cancel-background-hover: ${theme.cancelBackgroundHover};
-  --cancel-border: ${theme.cancelBorder};
-  --cancel-outline-focus: ${theme.cancelOutlineFocus};
-  --cancel-foreground: ${theme.cancelForeground};
-  --cancel-foreground-hover: ${theme.cancelForegroundHover};
-
-  --input-background: ${theme.inputBackground};
-  --input-foreground: ${theme.inputForeground};
-  --input-border: ${theme.inputBorder};
-  --input-outline-focus: ${theme.inputOutlineFocus};
-
-  --form-border-radius: ${theme.formBorderRadius};
-  --form-content-border-radius: ${theme.formContentBorderRadius};
+  --trigger-background: ${theme.triggerBackground};
+  --trigger-background-hover: ${theme.triggerBackgroundHover};
+  --trigger-border-radius: ${theme.triggerBorderRadius};
   `;
 }
 
 /**
  * Creates <style> element for widget actor (button that opens the dialog)
  */
-export function createMainStyles(
-  colorScheme: 'system' | 'dark' | 'light',
-  themes: Pick<FeedbackInternalOptions, 'themeLight' | 'themeDark'>,
-): HTMLStyleElement {
+export function createMainStyles({ colorScheme, themeDark, themeLight }: FeedbackInternalOptions): HTMLStyleElement {
   const style = DOCUMENT.createElement('style');
   style.textContent = `
 :host {
-  --z-index: ${themes.themeLight.zIndex};
-  --font-family: ${themes.themeLight.fontFamily};
-  --font-size: ${themes.themeLight.fontSize};
+  --font-family: system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --font-size: 14px;
+  --z-index: 100000;
+
+  --page-margin: 16px;
+  --inset: auto 0 0 auto;
+  --actor-inset: var(--inset);
 
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  --page-margin: 16px;
-  --actor-inset: auto var(--page-margin) var(--page-margin) auto;
-
-  --dialog-inset: auto var(--page-margin) var(--page-margin) auto;
-  --dialog-padding: 24px;
-
-  .brand-link path {
-    fill: ${colorScheme === 'dark' ? '#fff' : '#362d59'};
-  }
-  @media (prefers-color-scheme: dark)
-  {
-    path: {
-      fill: '#fff';
-    }
-  }
-
-  ${getThemedCssVariables(colorScheme === 'dark' ? themes.themeDark : themes.themeLight)}
+  ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
 }
 
 ${
@@ -77,12 +49,13 @@ ${
     ? `
 @media (prefers-color-scheme: dark) {
   :host {
-    ${getThemedCssVariables(themes.themeDark)}
+    ${getThemedCssVariables(themeDark)}
   }
 }`
     : ''
 }
-}`;
+}
+`;
 
   return style;
 }

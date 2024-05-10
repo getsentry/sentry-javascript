@@ -1,4 +1,4 @@
-import type { FeedbackFormData } from '@sentry/types';
+import type { FeedbackFormData, FeedbackInternalOptions } from '@sentry/types';
 // biome-ignore lint/nursery/noUnusedImports: reason
 import { Fragment, h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
@@ -11,12 +11,13 @@ import { Form } from './Form';
 import { SuccessIcon } from './SuccessIcon';
 
 interface Props extends HeaderProps, FormProps {
-  successMessageText: string;
   onFormSubmitted: () => void;
   open: boolean;
+  options: FeedbackInternalOptions;
 }
 
-export function Dialog({ open, onFormSubmitted, successMessageText, ...props }: Props): VNode {
+export function Dialog({ open, onFormSubmitted, ...props }: Props): VNode {
+  const options = props.options;
   const successIconHtml = useMemo(() => ({ __html: SuccessIcon().outerHTML }), []);
 
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
@@ -45,21 +46,25 @@ export function Dialog({ open, onFormSubmitted, successMessageText, ...props }: 
   return (
     <Fragment>
       {timeoutId ? (
-        <div class="success-message" onClick={handleOnSuccessClick}>
-          {successMessageText}
-          <span class="success-icon" dangerouslySetInnerHTML={successIconHtml} />
+        <div class="success__position" onClick={handleOnSuccessClick}>
+          <div class="success__content">
+            {options.successMessageText}
+            <span class="success__icon" dangerouslySetInnerHTML={successIconHtml} />
+          </div>
         </div>
       ) : (
-        <dialog class="dialog" onClick={props.onFormClose} open={open}>
-          <div
-            class="dialog__content"
-            onClick={e => {
-              // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
-              e.stopPropagation();
-            }}
-          >
-            <DialogHeader {...props} />
-            <Form {...props} onSubmitSuccess={onSubmitSuccess} />
+        <dialog class="dialog" onClick={options.onFormClose} open={open}>
+          <div class="dialog__position">
+            <div
+              class="dialog__content"
+              onClick={e => {
+                // Stop event propagation so clicks on content modal do not propagate to dialog (which will close dialog)
+                e.stopPropagation();
+              }}
+            >
+              <DialogHeader options={options} />
+              <Form {...props} onSubmitSuccess={onSubmitSuccess} />
+            </div>
           </div>
         </dialog>
       )}
