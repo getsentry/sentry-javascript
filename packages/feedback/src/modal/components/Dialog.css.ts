@@ -158,7 +158,6 @@ const FORM = `
 }
 
 .form__input::placeholder {
-  color: inherit;
   opacity: 0.65;
   color: var(--input-placeholder-color, inherit);
   filter: var(--interactive-filter);
