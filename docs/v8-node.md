@@ -100,7 +100,8 @@ See [New Performance APIs](./v8-new-performance-apis.md) for details.
 ### ESM Support
 
 Instrumentation works out of the box for CommonJS (CJS) applications based on require() calls. This means that as long
-as your application is either natively in CJS, or compiled at build time to CJS, everything will work without any further setup.
+as your application is either natively in CJS, or compiled at build time to CJS, everything will work without any
+further setup.
 
 ECMAScript Modules (ESM) are only supported for Node v18.19.0 onwards.
 
