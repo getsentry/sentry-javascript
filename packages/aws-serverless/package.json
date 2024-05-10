@@ -33,12 +33,12 @@
     },
     "./import": {
       "import": {
-        "default": "./build/import-hook.mjs"
+        "default": "./import-hook.mjs"
       }
     },
     "./loader": {
       "import": {
-        "default": "./build/loader-hook.mjs"
+        "default": "./loader-hook.mjs"
       }
     }
   },
