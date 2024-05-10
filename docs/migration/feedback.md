@@ -21,7 +21,7 @@ existed in 7.x and a description of how they have changed in v8.
 | `feedback.openDialog()`                                       | `widget.open()`                                                | Make the form inside the widget visible.                                                                                                                                                                             |
 | `feedback.closeDialog()`                                      | `widget.close()`                                               | Make the form inside the widget hidden in the page. Success/Error messages will still be rendered and will hide themselves if the form was recently submitted.                                                       |
 | `feedback.removeWidget()`                                     | `widget.removeFromDom()`                                       | Remove the form and widget instance from the page. After calling this `widget.el.parentNode` will be set to null.                                                                                                    |
-| `feedback.attachTo()`                                         | `const unsubscribe = feedback.attachTo(myButtonElem)`          | The `attachTo()` method in will create an onClick event listener to your html element that calls appendToDom() and open(). It returns a callback to remove the event listener.                                       |
+| `feedback.attachTo()`                                         | `const unsubscribe = feedback.attachTo(myButtonElem)`          | The `attachTo()` method will create an onClick event listener to your html element that calls `appendToDom()` and `open()`. It returns a callback to remove the event listener.                                       |
 | -                                                             | `const form = await feedback.createForm()`                     | A new method `createForm()`, used internally by `createWidget()` and `attachTo()`, returns a `Promise<FeedbackDialog>` so you can control showing and hiding of the feedback form directly.                          |
 
 ### API Examples
@@ -43,7 +43,7 @@ Sentry.init({
 });
 ```
 
-`autoInject: true,` is the default value.
+`autoInject: true` is the default value.
 
 #### Attaching feedback to your own button
 
