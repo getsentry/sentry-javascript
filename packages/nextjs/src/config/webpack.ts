@@ -305,35 +305,6 @@ export function constructWebpackConfigFunction(
       }
     }
 
-    // TODO(v8): Remove this logic since we are deprecating es5.
-    // The SDK uses syntax (ES6 and ES6+ features like object spread) which isn't supported by older browsers. For users
-    // who want to support such browsers, `transpileClientSDK` allows them to force the SDK code to go through the same
-    // transpilation that their code goes through. We don't turn this on by default because it increases bundle size
-    // fairly massively.
-    if (!isServer && userSentryOptions?.transpileClientSDK) {
-      // Find all loaders which apply transpilation to user code
-      const transpilationRules = findTranspilationRules(newConfig.module?.rules, projectDir);
-
-      // For each matching rule, wrap its `exclude` function so that it won't exclude SDK files, even though they're in
-      // `node_modules` (which is otherwise excluded)
-      transpilationRules.forEach(rule => {
-        // All matching rules will necessarily have an `exclude` property, but this keeps TS happy
-        if (rule.exclude && typeof rule.exclude === 'function') {
-          const origExclude = rule.exclude;
-
-          const newExclude = (filepath: string): boolean => {
-            if (filepath.includes('@sentry')) {
-              // `false` in this case means "don't exclude it"
-              return false;
-            }
-            return origExclude(filepath);
-          };
-
-          rule.exclude = newExclude;
-        }
-      });
-    }
-
     if (!isServer) {
       // Tell webpack to inject the client config files (containing the client-side `Sentry.init()` call) into the appropriate output
       // bundles. Store a separate reference to the original `entry` value to avoid an infinite loop. (If we don't do
