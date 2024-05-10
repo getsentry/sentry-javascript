@@ -13,7 +13,7 @@ import {
   nativeNodeFetchIntegration,
   nodeContextIntegration,
   onUncaughtExceptionIntegration,
-  onUnhandledRejectionIntegration
+  onUnhandledRejectionIntegration,
 } from '@sentry/node';
 import type { Integration, Options } from '@sentry/types';
 
