@@ -2,7 +2,6 @@ import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../constants';
 
 const PURPLE = 'rgba(88, 74, 192, 1)';
-const PURPLE_HOVER = 'rgba(108, 95, 199, 1)';
 
 interface InternalTheme extends NonNullable<FeedbackInternalOptions['themeLight']> {
   border: string;
