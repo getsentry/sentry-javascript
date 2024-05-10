@@ -20,7 +20,7 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
+**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.19+ for our ESM package. This applies
 to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
 longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
