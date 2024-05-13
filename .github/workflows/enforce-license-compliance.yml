@@ -1,4 +1,4 @@
-name: Enforce License Compliance
+name: "CI: Enforce License Compliance"
 
 on:
   push:

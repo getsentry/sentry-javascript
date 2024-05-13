@@ -1,4 +1,4 @@
-name: 'Build & Test'
+name: 'CI: Build & Test'
 on:
   push:
     branches:
@@ -6,6 +6,8 @@ on:
       - master
       - release/**
   pull_request:
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
     inputs:
       commit:
@@ -507,7 +509,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -567,7 +569,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 22]
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -766,40 +768,6 @@ jobs:
           name: playwright-traces
           path: dev-packages/browser-integration-tests/test-results
 
-  job_browser_integration_tests:
-    name: Browser (${{ matrix.browser }}) Tests
-    needs: [job_get_metadata, job_build]
-    if: needs.job_get_metadata.outputs.changed_browser == 'true' || github.event_name != 'pull_request'
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        browser:
-          - ChromeHeadless
-          - FirefoxHeadless
-          - WebkitHeadless
-    steps:
-      - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Restore caches
-        uses: ./.github/actions/restore-cache
-        env:
-          DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
-      - name: Run integration tests
-        env:
-          KARMA_BROWSER: ${{ matrix.browser }}
-        run: |
-          cd packages/browser
-          [[ $KARMA_BROWSER == WebkitHeadless ]] && yarn run playwright install-deps webkit
-          yarn test:integration
-
   job_browser_build_tests:
     name: Browser Build Tests
     needs: [job_get_metadata, job_build]
@@ -864,12 +832,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [14, 16, 18, 20, 21]
+        node: [14, 16, 18, 20, 22]
         typescript:
           - false
         include:
           # Only check typescript for latest version (to streamline CI)
-          - node: 20
+          - node: 22
             typescript: '3.8'
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
@@ -906,7 +874,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [18, 20, 21]
+        node: [18, 20, 22]
         remix: [1, 2]
         # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
         include:
@@ -940,12 +908,10 @@ jobs:
     # We want to run this if:
     # - The build job was successful, not skipped
     # - AND if the profiling node bindings were either successful or skipped
-    # AND if this is not a PR from a fork or dependabot
     if: |
       always() && needs.job_build.result == 'success' &&
       (needs.job_compile_bindings_profiling_node.result == 'success' || needs.job_compile_bindings_profiling_node.result == 'skipped') &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     needs: [job_get_metadata, job_build, job_compile_bindings_profiling_node]
     runs-on: ubuntu-20.04-large-js
     timeout-minutes: 15
@@ -1003,13 +969,11 @@ jobs:
   job_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
       always() && needs.job_e2e_prepare.result == 'success' &&
-      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]'
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     needs: [job_get_metadata, job_build, job_e2e_prepare]
     runs-on: ubuntu-20.04
     timeout-minutes: 10
@@ -1025,15 +989,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        is_dependabot:
+          - ${{ github.actor == 'dependabot[bot]' }}
         test-application:
           [
             'angular-17',
             'cloudflare-astro',
-            'node-express-app',
+            'node-express',
             'create-react-app',
             'create-next-app',
             'create-remix-app',
             'create-remix-app-v2',
+            'create-remix-app-express',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
@@ -1041,17 +1008,19 @@ jobs:
             'nextjs-14',
             'react-create-hash-router',
             'react-router-6-use-routes',
+            'react-router-5',
             'standard-frontend-react',
+            'svelte-5',
             'sveltekit',
             'sveltekit-2',
+            'sveltekit-2-svelte-5',
             'generic-ts3.8',
-            'node-fastify-app',
-            # TODO(v8): Re-enable hapi tests
-            # 'node-hapi-app',
-            'node-nestjs-app',
+            'node-fastify',
+            'node-hapi',
+            'node-nestjs',
             'node-exports-test-app',
-            'node-koa-app',
-            'node-connect-app',
+            'node-koa',
+            'node-connect',
             'vue-3',
             'webpack-4',
             'webpack-5'
@@ -1075,6 +1044,10 @@ jobs:
           - test-application: 'nextjs-app-dir'
             build-command: 'test:build-13'
             label: 'nextjs-app-dir (next@13)'
+        exclude:
+          - is_dependabot: true
+            test-application: 'cloudflare-astro'
+
     steps:
       - name: Check out current commit (${{ needs.job_get_metadata.outputs.commit_label }})
         uses: actions/checkout@v4
@@ -1139,14 +1112,14 @@ jobs:
   job_profiling_e2e_tests:
     name: E2E ${{ matrix.label || matrix.test-application }} Test
     # We only run E2E tests for non-fork PRs because the E2E tests require secrets to work and they can't be accessed from forks
-    # Dependabot PRs sadly also don't have access to secrets, so we skip them as well
+    # Dependabot specifically also has access to secrets
     # We need to add the `always()` check here because the previous step has this as well :(
     # See: https://github.com/actions/runner/issues/2205
     if:
       # Only run profiling e2e tests if profiling node bindings have changed
       always() && needs.job_e2e_prepare.result == 'success' &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
-      github.actor != 'dependabot[bot]' && (
+     (
         (needs.job_get_metadata.outputs.changed_profiling_node_bindings == 'true') ||
         (needs.job_get_metadata.outputs.is_release == 'true') ||
         (github.event_name != 'pull_request')
@@ -1238,7 +1211,6 @@ jobs:
         job_nextjs_integration_test,
         job_node_integration_tests,
         job_browser_playwright_tests,
-        job_browser_integration_tests,
         job_browser_loader_tests,
         job_remix_integration_tests,
         job_e2e_tests,
@@ -1321,6 +1293,8 @@ jobs:
             node: 18
           - os: ubuntu-20.04
             node: 20
+          - os: ubuntu-20.04
+            node: 22
 
             # x64 musl
           - os: ubuntu-20.04
@@ -1332,6 +1306,9 @@ jobs:
           - os: ubuntu-20.04
             container: node:20-alpine3.17
             node: 20
+          - os: ubuntu-20.04
+            container: node:22-alpine3.18
+            node: 22
 
             # arm64 glibc
           - os: ubuntu-20.04
@@ -1343,6 +1320,9 @@ jobs:
           - os: ubuntu-20.04
             arch: arm64
             node: 20
+          - os: ubuntu-20.04
+            arch: arm64
+            node: 22
 
             # arm64 musl
           - os: ubuntu-20.04
@@ -1357,6 +1337,10 @@ jobs:
             arch: arm64
             container: node:20-alpine3.17
             node: 20
+          - os: ubuntu-20.04
+            arch: arm64
+            container: node:22-alpine3.18
+            node: 22
 
             # macos x64
           - os: macos-11
@@ -1368,35 +1352,42 @@ jobs:
           - os: macos-11
             node: 20
             arch: x64
+          - os: macos-11
+            node: 22
+            arch: x64
 
             # macos arm64
           - os: macos-12
             arch: arm64
             node: 16
             target_platform: darwin
-
           - os: macos-12
             arch: arm64
             node: 18
             target_platform: darwin
-
           - os: macos-12
             arch: arm64
             node: 20
+            target_platform: darwin
+          - os: macos-12
+            arch: arm64
+            node: 22
             target_platform: darwin
 
             # windows x64
           - os: windows-2022
             node: 16
             arch: x64
-
           - os: windows-2022
             node: 18
             arch: x64
-
           - os: windows-2022
             node: 20
             arch: x64
+          - os: windows-2022
+            node: 22
+            arch: x64
+
     steps:
       - name: Setup (alpine)
         if: contains(matrix.container, 'alpine')

@@ -4,6 +4,238 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0-rc.3
+
+### Important Changes
+
+- **feat(bun): Add Bun Global Unhandled Handlers (#11960)**
+
+The Bun SDK will now capture global unhandled errors.
+
+### Other Changes
+
+- feat(node): Log process and thread info on initialisation (#11972)
+- fix(aws-serverless): Include ESM artifacts in package (#11973)
+- fix(browser): Only start `http.client` spans if there is an active parent span (#11974)
+- fix(feedback): Improve CSS theme variable names and layout (#11964)
+- fix(node): Ensure `execArgv` are not sent to worker threads (#11963)
+- ref(feedback): Simplify feedback function params (#11957)
+
+## 8.0.0-rc.2
+
+### Important Changes
+
+- **feat(node): Register ESM patching hooks in init for supported Node.js versions**
+
+This release includes adds support for ESM when `Sentry.init()` is called within a module imported via the `--import`
+Node.js flag:
+
+```sh
+node --import ./your-file-with-sentry-init.mjs your-app.mjs
+```
+
+Note that the SDK only supports ESM for node versions `18.19.0` and above, and `20.6.0` above.
+
+### Other Changes
+
+- deps(node): Bump `@opentelemetry/core` to `1.24.1` and `@opentelemetry/instrumentation` to `0.51.1` (#11941)
+- feat(connect): Warn if connect is not instrumented (#11936)
+- feat(express): Warn if express is not instrumented (#11930)
+- feat(fastify): Warn if fastify is not instrumented (#11917)
+- feat(hapi): Warn if hapi is not instrumented (#11937)
+- feat(koa): Warn if koa is not instrumented (#11931)
+- fix(browser): Continuously record CLS web vital (#11934)
+- fix(feedback): Pick user from any scope (#11928)
+- fix(node): Fix cron instrumentation and add tests (#11811)
+
+## 8.0.0-rc.1
+
+This release contains no changes and was done for technical purposes. This version is considered stable.
+
+For the sake of completeness this changelog entry includes the changes from the previous release candidate:
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
+## 8.0.0-rc.0
+
+This is the first release candidate of Sentry JavaScript SDK v8.
+
+We recommend to read the detailed [migration guide](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/) in
+the docs.
+
+### Important Changes
+
+- **feat(node): Support hapi v21 & fix E2E test (#11906)**
+
+We now support hapi v21 and added tests for it.
+
+- **feat(node): Warn if ESM mode is detected (#11914)**
+
+When running Sentry in ESM mode, we will now warn you that this is not supported as of now. We are working on ensuring
+support with ESM builds.
+
+### Other Changes
+
+- feat(feedback): Iterate on css for better scrolling & resizing when browser is small (#11893)
+- fix(node): Ensure prisma integration creates valid DB spans (#11908)
+- fix(node): Include loader hook files in package.json (#11911)
+
+## 8.0.0-beta.6
+
+This beta release contains various bugfixes and improvements for the v8 beta cycle.
+
+- feat: Add `tunnel` support to multiplexed transport (#11806)
+- feat: Export `spanToBaggageHeader` utility (#11881)
+- feat(browser): Disable standalone `http.client` spans (#11879)
+- feat(ember): Update ember dependencies (#11753)
+- feat(fedback): Convert CDN bundles to use async feedback for lower bundle sizes (#11791)
+- feat(feedback): Add `captureFeedback` method (#11428)
+- feat(feedback): Have screenshot by default (#11839)
+- feat(integrations): Add zod integration (#11144)
+- feat(ioredis): Add integration for `ioredis` (#11856)
+- feat(nextjs): Add transaction name to scope of server component (#11850)
+- feat(nextjs): Be smarter in warning about old ways of init configuration (#11882)
+- feat(nextjs): Set transaction names on scope for route handlers and generation functions (#11869)
+- feat(node): Support Node 22 (#11871)
+- fix(angular): Run tracing calls outside Angular (#11748)
+- fix(feedback): Be consistent about whether screenshot should and can render (#11859)
+- fix(nestjs): Ensure Nest.js interceptor works with non-http context (#11880)
+- fix(node): Fix nest.js error handler (#11874)
+- fix(react): Fix react router v4/v5 instrumentation (#11855)
+- ref: Add geo location types (#11847)
+
+## 8.0.0-beta.5
+
+This beta release contains various bugfixes and improvements for the v8 beta cycle.
+
+### Important Changes
+
+- **feat(svelte): Add Svelte 5 support (#11807)**
+
+We now officially support Svelte 5.
+
+- **feat(browser): Send standalone fetch and XHR spans if there's no active parent span (#11783)**
+
+Starting with this version, spans for outgoing fetch/xhr requests will be captured even if no pageload/navigation span
+is ongoing. This means that you will be able to have a more complete trace, especially for web applications that make a
+lot of HTTP requests on longer lived pages.
+
+### Other Changes
+
+- feat(astro): Add `transactionName` to isolation scope for requests (#11786)
+- feat(browser): Create standalone INP spans via `startInactiveSpan` (#11788)
+- feat(core): Add `trace` envelope header to span envelope (#11699)
+- feat(core): Add options to start standalone (segment) spans via `start*Span` APIs (#11696)
+- feat(core): Set default scope for BaseClient methods (#11775)
+- feat(core): Wrap cron `withMonitor` callback in `withIsolationScope` (#11797)
+- feat(feedback): New feedback button design (#11641)
+- feat(nextjs): Add `transactionName` to isolation scope for Next.js server side features (#11782)
+- feat(nextjs): Mute webpack warnings about critical dependencies inside `@opentelemetry/instrumentation` (#11810)
+- feat(node): Upgrade @prisma/instrumentation to 5.13.0 (#11779)
+- feat(react): type error as unknown in ErrorBoundary (#11819)
+- feat(remix): Add `wrapHandleErrorWithSentry` (#10370)
+- feat(remix): Set `formData` as `action` span data. (#10836)
+- feat(remix): Update scope `transactionName` for Remix server features (#11784)
+- fix(angular): Call `showReportDialog` in root context (#11703)
+- fix(core): Capture only failed console.assert calls (#11799)
+- fix(ember): Ensure unnecessary spans are avoided (#11846)
+- fix(feedback): Clarify the difference between createWidget and create Form in the feedback public api (#11838)
+- fix(feedback): Fix feedback type (#11787)
+- fix(feedback): Vendor preact into bundle (#11845)
+- fix(remix): Rethrow `loader`, `action` and `documentRequest` errors (#11793)
+- ref: Always return an immediately generated event ID from `captureException()`, `captureMessage()`, and
+  `captureEvent()` (#11805)
+- ref(core): Remove transaction name extraction from `requestDataIntegration` (#11513)
+- ref(svelte): Use `onlyIfParent` for recording component update spans (#11809)
+
+## 8.0.0-beta.4
+
+### Important Changes
+
+- **feat(browser): Add INP support for v8 (#11650)**
+
+INP web vital support was now forward-ported to version 8. Recording of INP data is enabled by default.
+
+- **feat(core): Increase default transport buffer size from 30 to 64 (#11764)**
+
+The default limit of queued events to be sent was increased from 30 to 64 events. You may observe a higher memory
+footprint of the SDK. You can override this limit by setting the `transportOptions.bufferSize` option in
+`Sentry.init()`.
+
+- **feat(replay): Add "maxCanvasSize" option for replay canvases (#11617)**
+
+A `maxCanvasSize` option was added to the `replayCanvasIntegration` to disallow capturing of canvases larger than a
+certain size. This value defaults to `1280` which will not capture canvases bigger than 1280x1280 pixels.
+
+### Other Changes
+
+- deps: Downgrade `@opentelemetry/instrumentation-http` to `0.48.0` (#11745)
+- deps(nextjs): Remove unnecessary and faulty `@opentelemetry/api` dependency from Next.js package (#11717)
+- feat(aws): Add OTEL based integrations (#11548)
+- feat(core): Ensure trace context only includes relevant data (#11713)
+- feat(deps): Bump @opentelemetry/instrumentation-fastify from 0.33.0 to 0.35.0 (#11690)
+- feat(deps): Bump @opentelemetry/instrumentation-graphql from 0.37.0 to 0.39.0 (#11692)
+- feat(deps): Bump @opentelemetry/instrumentation-http from 0.48.0 to 0.50.0 (#11725)
+- feat(deps): Bump @opentelemetry/instrumentation-mongoose from 0.35.0 to 0.37.0 (#11693)
+- feat(deps): Bump @opentelemetry/instrumentation-mysql2 from 0.35.0 to 0.37.0 (#11726)
+- feat(deps): Bump @opentelemetry/instrumentation-nestjs-core from 0.34.0 to 0.36.0 (#11727)
+- feat(deps): Bump @opentelemetry/sdk-metrics from 1.21.0 to 1.23.0 (#11695)
+- feat(deps): Bump @prisma/instrumentation from 5.9.0 to 5.12.1 (#11724)
+- feat(feedback): Create async bundles and code to resolve helper integrations (#11621)
+- feat(nextjs): Sample out low-quality spans on older Next.js versions (#11722)
+- feat(opentelemetry): Support new http method attribute (#11756)
+- feat(opentelemetry): Use rest args for addOpenTelemetryInstrumentation (#11721)
+- feat(replay): Upgrade rrweb packages to 2.15.0 (#11736)
+- fix(browser): Ensure `lazyLoadIntegration` works in NPM mode (#11673)
+- fix(browser): Set custom sentry source correctly (#11735)
+- fix(ember): Do not create rendering spans without transaction (#11749)
+- fix(serverless): Check if cloud event callback is a function (#9044) (#11701)
+- ref(nextjs): Remove unnecessary logic to filter symbolification/sentry spans (#11714)
+
+## 8.0.0-beta.3
+
+### Important Changes
+
+- **feat(opentelemetry): Add `addOpenTelemetryInstrumentation` (#11667)**
+
+A utility function `addOpenTelemetryInstrumentation` was added that allows for the registration of instrumentations that
+conform to the OpenTelemetry JS API without having to specify `@opentelemetry/instrumentation` as a dependency.
+
+- **ref(core): Don't start transaction for trpc middleware (#11697)**
+
+Going forward, the Sentry `trpcMiddleware` will only create spans. Previously it used to always create a transaction.
+This change was made to integrate more nicely with the HTTP instrumentation added in earlier versions to avoid creating
+unnecessary transactions.
+
+### Other Changes
+
+- feat(nextjs): Instrument outgoing http requests (#11685)
+- feat(opentelemetry): Remove setupGlobalHub (#11668)
+- fix: Missing ErrorEvent export are added to node, browser, bun, deno, vercel-edge sub-packages (#11649)
+- fix(nextjs): Do not sample next spans if they have remote parent (#11680)
+- fix(nextjs): Re-enable OTEL fetch instrumentation and disable Next.js fetch instrumentation (#11686)
+- fix(node): Ensure DSC on envelope header uses root span (#11683)
+- ref(browser): Streamline pageload span creation and scope handling (#11679)
+- ref(core): Directly use endSession (#11669)
+
 ## 8.0.0-beta.2
 
 ### Important Changes
@@ -780,6 +1012,116 @@ We have also removed or updated a variety of deprecated APIs.
 - ref: Remove deprecated `showReportDialog` APIs (#10609)
 - ref: Remove usage of span tags (#10808)
 - ref: Remove user segment (#10575)
+
+## 7.112.2
+
+- fix(nextjs|sveltekit): Ensure we can pass `browserTracingIntegration` (#11765)
+
+## 7.112.1
+
+- fix(ember/v7): Do not create rendering spans without transaction (#11750)
+
+## 7.112.0
+
+### Important Changes
+
+- **feat: Export pluggable integrations from SDK packages (#11723)**
+
+Instead of installing `@sentry/integrations`, you can now import the pluggable integrations directly from your SDK
+package:
+
+```js
+// Before
+import * as Sentry fromv '@sentry/browser';
+import { dedupeIntegration } from '@sentry/integrations';
+
+Sentry.init({
+  integrations: [dedupeIntegration()],
+});
+
+// After
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  integrations: [Sentry.dedupeIntegration()],
+});
+```
+
+Note that only the functional integrations (e.g. `xxxIntegration()`) are re-exported.
+
+### Other Changes
+
+- feat(replay): Add "maxCanvasSize" option for replay canvases (#11732)
+- fix(serverless): [v7] Check if cloud event callback is a function (#11734)
+
+## 7.111.0
+
+- feat(core): Add `server.address` to browser `http.client` spans (#11663)
+- fix: Ensure next & sveltekit correctly handle `browserTracingIntegration` (#11647)
+- fix(browser): Don't assume window.document is available (#11598)
+
+## 7.110.1
+
+- fix(nextjs): Fix `tunnelRoute` matching logic for hybrid cloud (#11577)
+
+## 7.110.0
+
+### Important Changes
+
+- **feat(tracing): Add interactions sample rate to browser tracing integrations (#11382)**
+
+You can now use a `interactionsSampleRate` to control the sample rate of INP spans. `interactionsSampleRate` is applied
+on top of the global `tracesSampleRate`. Therefore if `interactionsSampleRate` is `0.5` and `tracesSampleRate` is `0.1`,
+then the actual sample rate for interactions is `0.05`.
+
+```js
+Sentry.init({
+  tracesSampleRate: 0.1,
+  integrations: [
+    Sentry.browserTracingIntegration({
+      interactionsSampleRate: 0.5,
+    }),
+  ],
+});
+```
+
+- **Deprecations**
+
+This release deprecates the `Hub` class, as well as the `addRequestDataToTransaction` method. The `trpcMiddleware`
+method is no longer on the `Handlers` export, but instead is a standalone export.
+
+Please see the detailed [Migration docs](./MIGRATION.md#deprecations-in-7x) on how to migrate to the new APIs.
+
+- feat: Deprecate and relocate `trpcMiddleware` (#11389)
+- feat(core): Deprecate `Hub` class (#11528)
+- feat(types): Deprecate `Hub` interface (#11530)
+- ref: Deprecate `addRequestDataToTransaction` (#11368)
+
+### Other Changes
+
+- feat(core): Update metric normalization (#11519)
+- feat(feedback): Customize feedback placeholder text color (#11521)
+- feat(remix): Skip span creation for `OPTIONS` and `HEAD` request. (#11485)
+- feat(utils): Add metric buckets rate limit (#11506)
+- fix(core): unref timer to not block node exit (#11483)
+- fix(metrics): Map `statsd` to `metric_bucket` (#11505)
+- fix(spans): Allow zero exclusive time for INP spans (#11408)
+- ref(feedback): Configure feedback fonts (#11520)
+
+## 7.109.0
+
+This release deprecates some exports from the `@sentry/replay` package. These exports have been moved to the browser SDK
+(or related framework SDKs like `@sentry/react`).
+
+- feat(feedback): Make "required" text for input elements configurable (#11287)
+- feat(node): Add scope to ANR events (#11267)
+- feat(replay): Bump `rrweb` to 2.12.0 (#11317)
+- fix(node): Local variables skipped after Promise (#11248)
+- fix(node): Skip capturing Hapi Boom error responses (#11324)
+- fix(web-vitals): Check for undefined navigation entry (#11312)
+- ref(replay): Deprecate `@sentry/replay` exports (#11242)
+
+Work in this release contributed by @soerface. Thank you for your contribution!
 
 ## 7.108.0
 

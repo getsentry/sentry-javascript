@@ -1,16 +1,22 @@
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
+
+interface ReplayCanvasIntegration extends Integration {
+  snapshot: (canvasElement?: HTMLCanvasElement) => Promise<void>;
+}
 
 interface ReplayCanvasOptions {
   enableManualSnapshot?: boolean;
+  maxCanvasSize?: [width: number, height: number];
   quality: 'low' | 'medium' | 'high';
 }
 
 type GetCanvasManager = (options: CanvasManagerOptions) => CanvasManagerInterface;
 export interface ReplayCanvasIntegrationOptions {
   enableManualSnapshot?: boolean;
+  maxCanvasSize?: number;
   recordCanvas: true;
   getCanvasManager: GetCanvasManager;
   sampling: {
@@ -53,12 +59,18 @@ const CANVAS_QUALITY = {
 };
 
 const INTEGRATION_NAME = 'ReplayCanvas';
+const DEFAULT_MAX_CANVAS_SIZE = 1280;
 
 /** Exported only for type safe tests. */
 export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> = {}) => {
+  const [maxCanvasWidth, maxCanvasHeight] = options.maxCanvasSize || [];
   const _canvasOptions = {
     quality: options.quality || 'medium',
     enableManualSnapshot: options.enableManualSnapshot,
+    maxCanvasSize: [
+      maxCanvasWidth ? Math.min(maxCanvasWidth, DEFAULT_MAX_CANVAS_SIZE) : DEFAULT_MAX_CANVAS_SIZE,
+      maxCanvasHeight ? Math.min(maxCanvasHeight, DEFAULT_MAX_CANVAS_SIZE) : DEFAULT_MAX_CANVAS_SIZE,
+    ] as [number, number],
   };
 
   let canvasManagerResolve: (value: CanvasManager) => void;
@@ -67,15 +79,16 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
   return {
     name: INTEGRATION_NAME,
     getOptions(): ReplayCanvasIntegrationOptions {
-      const { quality, enableManualSnapshot } = _canvasOptions;
+      const { quality, enableManualSnapshot, maxCanvasSize } = _canvasOptions;
 
       return {
         enableManualSnapshot,
         recordCanvas: true,
-        getCanvasManager: (options: CanvasManagerOptions) => {
+        getCanvasManager: (getCanvasManagerOptions: CanvasManagerOptions) => {
           const manager = new CanvasManager({
-            ...options,
+            ...getCanvasManagerOptions,
             enableManualSnapshot,
+            maxCanvasSize,
             errorHandler: (err: unknown) => {
               try {
                 if (typeof err === 'object') {
@@ -98,9 +111,11 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
       canvasManager.snapshot(canvasElement);
     },
   };
-}) satisfies IntegrationFn;
+}) satisfies IntegrationFn<ReplayCanvasIntegration>;
 
 /**
  * Add this in addition to `replayIntegration()` to enable canvas recording.
  */
-export const replayCanvasIntegration = defineIntegration(_replayCanvasIntegration);
+export const replayCanvasIntegration = defineIntegration(
+  _replayCanvasIntegration,
+) as IntegrationFn<ReplayCanvasIntegration>;

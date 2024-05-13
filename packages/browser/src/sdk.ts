@@ -295,10 +295,13 @@ function startSessionTracking(): void {
 
 /**
  * Captures user feedback and sends it to Sentry.
+ *
+ * @deprecated Use `captureFeedback` instead.
  */
 export function captureUserFeedback(feedback: UserFeedback): void {
   const client = getClient<BrowserClient>();
   if (client) {
+    // eslint-disable-next-line deprecation/deprecation
     client.captureUserFeedback(feedback);
   }
 }

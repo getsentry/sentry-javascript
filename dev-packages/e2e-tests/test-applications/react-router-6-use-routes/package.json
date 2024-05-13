@@ -47,7 +47,9 @@
     ]
   },
   "devDependencies": {
-    "@playwright/test": "1.26.1",
+    "@playwright/test": "^1.43.1",
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "ts-node": "^10.9.2",
     "axios": "1.6.0",
     "serve": "14.0.1"
   },

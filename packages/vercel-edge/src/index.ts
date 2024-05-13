@@ -27,6 +27,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   close,
   createTransport,
   flush,
@@ -64,6 +65,7 @@ export {
   inboundFiltersIntegration,
   linkedErrorsIntegration,
   requestDataIntegration,
+  zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -71,6 +73,7 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
 
 export { VercelEdgeClient } from './client';

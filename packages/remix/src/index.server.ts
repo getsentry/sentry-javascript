@@ -18,6 +18,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,
@@ -86,6 +87,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
@@ -97,12 +99,20 @@ export {
   trpcMiddleware,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 // Keeping the `*` exports for backwards compatibility and types
 export * from '@sentry/node';
 
-export { captureRemixServerException, wrapRemixHandleError } from './utils/instrumentServer';
+export {
+  captureRemixServerException,
+  // eslint-disable-next-line deprecation/deprecation
+  wrapRemixHandleError,
+  sentryHandleError,
+  wrapHandleErrorWithSentry,
+} from './utils/instrumentServer';
 export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';

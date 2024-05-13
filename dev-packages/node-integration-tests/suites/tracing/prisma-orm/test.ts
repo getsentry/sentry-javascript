@@ -7,100 +7,104 @@ conditionalTest({ min: 16 })('Prisma ORM Tests', () => {
       transaction: 'Test Transaction',
       spans: expect.arrayContaining([
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             method: 'create',
             model: 'User',
             name: 'User.create',
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:client:operation',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:client:serialize',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:client:connect',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:engine',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'db.type': 'postgres',
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:engine:connection',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'db.statement': expect.stringContaining(
               'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
             ),
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
-          description: 'prisma:engine:db_query',
+            'sentry.origin': 'auto.db.otel.prisma',
+            'db.system': 'prisma',
+            'sentry.op': 'db',
+          },
+          description: expect.stringContaining(
+            'INSERT INTO "public"."User" ("createdAt","email","name") VALUES ($1,$2,$3) RETURNING "public"."User"."id", "public"."User"."createdAt", "public"."User"."email", "public"."User"."name" /* traceparent',
+          ),
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:engine:serialize',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:engine:response_json_serialization',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             method: 'findMany',
             model: 'User',
             name: 'User.findMany',
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:client:operation',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:client:serialize',
           status: 'ok',
         }),
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: {
             'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          }),
+            'sentry.origin': 'auto.db.otel.prisma',
+          },
           description: 'prisma:engine',
           status: 'ok',
         }),

@@ -57,6 +57,7 @@ export {
   endSession,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
 
 export {
@@ -88,6 +89,7 @@ export {
   init,
   onLoad,
   showReportDialog,
+  // eslint-disable-next-line deprecation/deprecation
   captureUserFeedback,
 } from './sdk';
 

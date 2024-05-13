@@ -8,7 +8,7 @@ describe('getInitialProps', () => {
     const envelopes = await env.getMultipleEnvelopeRequest({
       url,
       envelopeType: 'transaction',
-      count: 2, // We will receive 2 transactions - one from Next.js instrumentation and one from our SDK
+      count: 1,
     });
 
     const sentryTransactionEnvelope = envelopes.find(envelope => {

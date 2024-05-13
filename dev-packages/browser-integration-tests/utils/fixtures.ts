@@ -3,6 +3,7 @@ import path from 'path';
 /* eslint-disable no-empty-pattern */
 import { test as base } from '@playwright/test';
 
+import { SDK_VERSION } from '@sentry/browser';
 import { generatePage } from './generatePage';
 
 export const TEST_HOST = 'http://sentry-test.io';
@@ -61,6 +62,17 @@ const sentryTest = base.extend<TestFixtures>({
           const file = route.request().url().split('/').pop();
           const filePath = path.resolve(testDir, `./dist/${file}`);
 
+          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+        });
+
+        // Ensure feedback can be lazy loaded
+        await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-modal.min.js`, route => {
+          const filePath = path.resolve(testDir, './dist/feedback-modal.bundle.js');
+          return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
+        });
+
+        await page.route(`https://browser.sentry-cdn.com/${SDK_VERSION}/feedback-screenshot.min.js`, route => {
+          const filePath = path.resolve(testDir, './dist/feedback-screenshot.bundle.js');
           return fs.existsSync(filePath) ? route.fulfill({ path: filePath }) : route.continue();
         });
       }

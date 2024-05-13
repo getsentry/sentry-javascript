@@ -12,6 +12,7 @@ import type {
 import {
   addNonEnumerableProperty,
   dropUndefinedKeys,
+  dynamicSamplingContextToSentryBaggageHeader,
   generateSentryTraceHeader,
   timestampInSeconds,
 } from '@sentry/utils';
@@ -21,6 +22,7 @@ import { getCurrentScope } from '../currentScopes';
 import { getMetricSummaryJsonForSpan, updateMetricSummaryOnSpan } from '../metrics/metric-summary';
 import type { MetricType } from '../metrics/types';
 import { SEMANTIC_ATTRIBUTE_SENTRY_OP, SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '../semanticAttributes';
+import { getDynamicSamplingContextFromSpan } from '../tracing';
 import type { SentrySpan } from '../tracing/sentrySpan';
 import { SPAN_STATUS_OK, SPAN_STATUS_UNSET } from '../tracing/spanstatus';
 import { _getSpanForScope } from './spanOnScope';
@@ -31,20 +33,32 @@ export const TRACE_FLAG_SAMPLED = 0x1;
 
 /**
  * Convert a span to a trace context, which can be sent as the `trace` context in an event.
+ * By default, this will only include trace_id, span_id & parent_span_id.
+ * If `includeAllData` is true, it will also include data, op, status & origin.
  */
-export function spanToTraceContext(span: Span): TraceContext {
+export function spanToTransactionTraceContext(span: Span): TraceContext {
   const { spanId: span_id, traceId: trace_id } = span.spanContext();
   const { data, op, parent_span_id, status, origin } = spanToJSON(span);
 
   return dropUndefinedKeys({
-    data,
-    op,
     parent_span_id,
     span_id,
-    status,
     trace_id,
+    data,
+    op,
+    status,
     origin,
   });
+}
+
+/**
+ * Convert a span to a trace context, which can be sent as the `trace` context in a non-transaction event.
+ */
+export function spanToTraceContext(span: Span): TraceContext {
+  const { spanId: span_id, traceId: trace_id } = span.spanContext();
+  const { parent_span_id } = spanToJSON(span);
+
+  return dropUndefinedKeys({ parent_span_id, span_id, trace_id });
 }
 
 /**
@@ -54,6 +68,14 @@ export function spanToTraceHeader(span: Span): string {
   const { traceId, spanId } = span.spanContext();
   const sampled = spanIsSampled(span);
   return generateSentryTraceHeader(traceId, spanId, sampled);
+}
+
+/**
+ * Convert a Span to a baggage header.
+ */
+export function spanToBaggageHeader(span: Span): string | undefined {
+  const dsc = getDynamicSamplingContextFromSpan(span);
+  return dynamicSamplingContextToSentryBaggageHeader(dsc);
 }
 
 /**

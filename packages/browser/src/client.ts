@@ -91,6 +91,8 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
 
   /**
    * Sends user feedback to Sentry.
+   *
+   * @deprecated Use `captureFeedback` instead.
    */
   public captureUserFeedback(feedback: UserFeedback): void {
     if (!this._isEnabled()) {

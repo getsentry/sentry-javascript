@@ -14,7 +14,7 @@ const cases: [number, number, boolean][] = [
 ];
 
 describe('Unit | util | isSampled', () => {
-  const mockRandom = jest.spyOn(Math, 'random');
+  const mockRandom = vi.spyOn(Math, 'random');
 
   test.each(cases)(
     'given sample rate of %p and RNG returns %p, result should be %p',

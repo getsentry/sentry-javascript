@@ -41,9 +41,22 @@ describe('parseSpanDescription', () => {
       },
     ],
     [
-      'works with http method',
+      'works with deprecated http method',
       {
         [SEMATTRS_HTTP_METHOD]: 'GET',
+      },
+      'test name',
+      SpanKind.CLIENT,
+      {
+        description: 'test name',
+        op: 'http.client',
+        source: 'custom',
+      },
+    ],
+    [
+      'works with http method',
+      {
+        'http.request.method': 'GET',
       },
       'test name',
       SpanKind.CLIENT,

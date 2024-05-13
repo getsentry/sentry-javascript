@@ -41,7 +41,11 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
     });
 
     proxyRequest.addListener('error', err => {
-      throw err;
+      // eslint-disable-next-line no-console
+      console.log('[event-proxy-server] Warn: Receiving proxy request errored!', err);
+      proxyResponse.writeHead(500);
+      proxyResponse.write('{}', 'utf-8');
+      proxyResponse.end();
     });
 
     proxyRequest.addListener('end', () => {
@@ -53,7 +57,16 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
       const envelopeHeader: EnvelopeItem[0] = JSON.parse(proxyRequestBody.split('\n')[0]);
 
       if (!envelopeHeader.dsn) {
-        throw new Error('[event-proxy-server] No dsn on envelope header. Please set tunnel option.');
+        // eslint-disable-next-line no-console
+        console.log(
+          '[event-proxy-server] Warn: No dsn on envelope header. Maybe a client-report was received. Proxy request body:',
+          proxyRequestBody,
+        );
+
+        proxyResponse.writeHead(200);
+        proxyResponse.write('{}', 'utf-8');
+        proxyResponse.end();
+        return;
       }
 
       const { origin, pathname, host } = new URL(envelopeHeader.dsn as string);
@@ -91,7 +104,11 @@ export async function startEventProxyServer(options: EventProxyServerOptions): P
           });
 
           sentryResponse.addListener('error', err => {
-            throw err;
+            // eslint-disable-next-line no-console
+            console.log('[event-proxy-server] Warn: Proxying to Sentry returned an error!', err);
+            proxyResponse.writeHead(500);
+            proxyResponse.write('{}', 'utf-8');
+            proxyResponse.end();
           });
 
           proxyResponse.writeHead(sentryResponse.statusCode || 500, sentryResponse.headers);

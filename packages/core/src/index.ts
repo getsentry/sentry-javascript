@@ -8,7 +8,7 @@ export type { IntegrationIndex } from './integration';
 
 export * from './tracing';
 export * from './semanticAttributes';
-export { createEventEnvelope, createSessionEnvelope, createAttachmentEnvelope } from './envelope';
+export { createEventEnvelope, createSessionEnvelope, createSpanEnvelope } from './envelope';
 export {
   captureCheckIn,
   withMonitor,
@@ -61,13 +61,13 @@ export {
 export { applyScopeDataToEvent, mergeScopeData } from './utils/applyScopeDataToEvent';
 export { prepareEvent } from './utils/prepareEvent';
 export { createCheckInEnvelope } from './checkin';
-export { createSpanEnvelope } from './span';
 export { hasTracingEnabled } from './utils/hasTracingEnabled';
 export { isSentryRequestUrl } from './utils/isSentryRequestUrl';
 export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
 export {
   spanToTraceHeader,
+  spanToBaggageHeader,
   spanToJSON,
   spanIsSampled,
   spanToTraceContext,
@@ -92,6 +92,7 @@ export { dedupeIntegration } from './integrations/dedupe';
 export { extraErrorDataIntegration } from './integrations/extraerrordata';
 export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
+export { zodErrorsIntegration } from './integrations/zoderrors';
 export { metrics } from './metrics/exports';
 export type { MetricData } from './metrics/exports';
 export { metricsDefault } from './metrics/exports-default';
@@ -99,6 +100,7 @@ export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
 export { addTracingHeadersToFetchRequest, instrumentFetchRequest } from './fetch';
 export { trpcMiddleware } from './trpc';
+export { captureFeedback } from './feedback';
 
 // eslint-disable-next-line deprecation/deprecation
 export { getCurrentHubShim, getCurrentHub } from './getCurrentHubShim';

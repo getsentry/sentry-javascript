@@ -23,7 +23,11 @@ export function setMeasurement(name: string, value: number, unit: MeasurementUni
 /**
  * Convert timed events to measurements.
  */
-export function timedEventsToMeasurements(events: TimedEvent[]): Measurements {
+export function timedEventsToMeasurements(events: TimedEvent[]): Measurements | undefined {
+  if (!events || events.length === 0) {
+    return undefined;
+  }
+
   const measurements: Measurements = {};
   events.forEach(event => {
     const attributes = event.attributes || {};

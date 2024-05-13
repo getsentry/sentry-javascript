@@ -8,56 +8,53 @@ export function createActorStyles(): HTMLStyleElement {
   style.textContent = `
 .widget__actor {
   position: fixed;
-  left: var(--left);
-  right: var(--right);
-  bottom: var(--bottom);
-  top: var(--top);
   z-index: var(--z-index);
-
-  line-height: 25px;
+  margin: var(--page-margin);
+  inset: var(--actor-inset);
 
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 16px;
 
-
-  border-radius: var(--border-radius);
-  cursor: pointer;
   font-family: inherit;
   font-size: var(--font-size);
   font-weight: 600;
-  padding: 12px 16px;
+  line-height: 1.14em;
   text-decoration: none;
-  z-index: 9000;
 
-  color: var(--foreground);
-  background-color: var(--background);
-  border: var(--border);
-  box-shadow: var(--box-shadow);
+  background: var(--actor-background, var(--background));
+  border-radius: var(--actor-border-radius, 1.7em/50%);
+  border: var(--actor-border, var(--border));
+  box-shadow: var(--actor-box-shadow, var(--box-shadow));
+  color: var(--actor-color, var(--foreground));
+  fill: var(--actor-color, var(--foreground));
+  cursor: pointer;
   opacity: 1;
-  transition: opacity 0.1s ease-in-out;
+  transition: transform 0.2s ease-in-out;
+  transform: translate(0, 0) scale(1);
 }
-
-.widget__actor:hover {
-  background-color: var(--background-hover);
-}
-
-.widget__actor svg {
-  width: 16px;
-  height: 16px;
-}
-
-.widget__actor--hidden {
+.widget__actor[aria-hidden="true"] {
   opacity: 0;
   pointer-events: none;
   visibility: hidden;
+  transform: translate(0, 16px) scale(0.98);
 }
 
-.widget__actor__text {
+.widget__actor:hover {
+  background: var(--actor-hover-background, var(--background));
+  filter: var(--interactive-filter);
 }
 
-.feedback-icon path {
-  fill: var(--foreground);
+.widget__actor svg {
+  width: 1.14em;
+  height: 1.14em;
+}
+
+@media (max-width: 600px) {
+  .widget__actor span {
+    display: none;
+  }
 }
 `;
 

@@ -6,6 +6,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   startSession,
   captureSession,
   endSession,
@@ -85,6 +86,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
@@ -95,7 +97,10 @@ export {
   initOpenTelemetry,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
+  addOpenTelemetryInstrumentation,
+  zodErrorsIntegration,
 } from '@sentry/node';
 
 export {

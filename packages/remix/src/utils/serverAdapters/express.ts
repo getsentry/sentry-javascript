@@ -1,6 +1,6 @@
 import { getClient, hasTracingEnabled, setHttpStatus, withIsolationScope } from '@sentry/core';
 import { flush } from '@sentry/node';
-import type { Span } from '@sentry/types';
+import type { Span, TransactionSource } from '@sentry/types';
 import { extractRequestData, fill, isString, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -53,33 +53,35 @@ function wrapExpressRequestHandler(
           return resolvedBuild.then(resolved => {
             routes = createRoutes(resolved.routes);
 
-            startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
+            const [name, source] = getTransactionName(routes, url);
+            isolationScope.setTransactionName(name);
+
+            startRequestHandlerTransaction.call(this, origRequestHandler, req, res, next, name, source);
           });
         } else {
           routes = createRoutes(resolvedBuild.routes);
-
-          return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
         }
       } else {
         routes = createRoutes(build.routes);
       }
 
-      return startRequestHandlerTransactionWithRoutes.call(this, origRequestHandler, routes, req, res, next, url);
+      const [name, source] = getTransactionName(routes, url);
+      isolationScope.setTransactionName(name);
+
+      return startRequestHandlerTransaction.call(this, origRequestHandler, req, res, next, name, source);
     });
   };
 }
 
-function startRequestHandlerTransactionWithRoutes(
+function startRequestHandlerTransaction(
   this: unknown,
   origRequestHandler: ExpressRequestHandler,
-  routes: ServerRoute[],
   req: ExpressRequest,
   res: ExpressResponse,
   next: ExpressNextFunction,
-  url: URL,
+  name: string,
+  source: TransactionSource,
 ): unknown {
-  const [name, source] = getTransactionName(routes, url);
-
   return startRequestHandlerSpan(
     {
       name,
@@ -202,7 +204,11 @@ async function finishSentryProcessing(res: AugmentedExpressResponse): Promise<vo
     // transaction closes, and make sure to wait until that's done before flushing events
     await new Promise<void>(resolve => {
       setImmediate(() => {
-        span.end();
+        // Double checking whether the span is not already finished,
+        // OpenTelemetry gives error if we try to end a finished span
+        if (span.isRecording()) {
+          span.end();
+        }
         resolve();
       });
     });

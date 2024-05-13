@@ -1,5 +1,12 @@
 import type { Page, Request } from '@playwright/test';
-import type { EnvelopeItem, EnvelopeItemType, Event, EventEnvelopeHeaders } from '@sentry/types';
+import type {
+  Envelope,
+  EnvelopeItem,
+  EnvelopeItemType,
+  Event,
+  EventEnvelope,
+  EventEnvelopeHeaders,
+} from '@sentry/types';
 import { parseEnvelope } from '@sentry/utils';
 
 export const envelopeUrlRegex = /\.sentry\.io\/api\/\d+\/envelope\//;
@@ -39,8 +46,39 @@ export const properEnvelopeParser = (request: Request | null): EnvelopeItem[] =>
   return items;
 };
 
+export type EventAndTraceHeader = [Event, EventEnvelopeHeaders['trace']];
+
+/**
+ * Returns the first event item and `trace` envelope header from an envelope.
+ * This is particularly helpful if you want to test dynamic sampling and trace propagation-related cases.
+ */
+export const eventAndTraceHeaderRequestParser = (request: Request | null): EventAndTraceHeader => {
+  const envelope = properFullEnvelopeParser<EventEnvelope>(request);
+  return getEventAndTraceHeader(envelope);
+};
+
+const properFullEnvelopeParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
+};
+
+function getEventAndTraceHeader(envelope: EventEnvelope): EventAndTraceHeader {
+  const event = envelope[1][0][1] as Event;
+  const trace = envelope[0].trace;
+  return [event, trace];
+}
+
 export const properEnvelopeRequestParser = <T = Event>(request: Request | null, envelopeIndex = 1): T => {
   return properEnvelopeParser(request)[0][envelopeIndex] as T;
+};
+
+export const properFullEnvelopeRequestParser = <T extends Envelope>(request: Request | null): T => {
+  // https://develop.sentry.dev/sdk/envelopes/
+  const envelope = request?.postData() || '';
+
+  return parseEnvelope(envelope) as T;
 };
 
 export const envelopeHeaderRequestParser = (request: Request | null): EventEnvelopeHeaders => {
@@ -107,14 +145,27 @@ export const countEnvelopes = async (
 };
 
 /**
- * Run script at the given path inside the test environment.
+ * Run script inside the test environment.
+ * This is useful for throwing errors in the test environment.
+ *
+ * Errors thrown from this function are not guaranteed to be captured by Sentry, especially in Webkit.
  *
  * @param {Page} page
- * @param {string} path
+ * @param {{ path?: string; content?: string }} impl
  * @return {*}  {Promise<void>}
  */
-async function runScriptInSandbox(page: Page, path: string): Promise<void> {
-  await page.addScriptTag({ path });
+async function runScriptInSandbox(
+  page: Page,
+  impl: {
+    path?: string;
+    content?: string;
+  },
+): Promise<void> {
+  try {
+    await page.addScriptTag({ path: impl.path, content: impl.content });
+  } catch (e) {
+    // no-op
+  }
 }
 
 /**
@@ -301,27 +352,4 @@ async function getFirstSentryEnvelopeRequest<T>(
   return (await getMultipleSentryEnvelopeRequests<T>(page, 1, { url }, requestParser))[0];
 }
 
-/**
- * Manually inject a script into the page of given URL.
- * This function is useful to create more complex test subjects that can't be achieved by pre-built pages.
- * The given script should be vanilla browser JavaScript
- *
- * @param {Page} page
- * @param {string} url
- * @param {string} scriptPath
- * @return {*}  {Promise<Array<Event>>}
- */
-async function injectScriptAndGetEvents(page: Page, url: string, scriptPath: string): Promise<Array<Event>> {
-  await page.goto(url);
-  await runScriptInSandbox(page, scriptPath);
-
-  return getSentryEvents(page);
-}
-
-export {
-  runScriptInSandbox,
-  getMultipleSentryEnvelopeRequests,
-  getFirstSentryEnvelopeRequest,
-  getSentryEvents,
-  injectScriptAndGetEvents,
-};
+export { runScriptInSandbox, getMultipleSentryEnvelopeRequests, getFirstSentryEnvelopeRequest, getSentryEvents };

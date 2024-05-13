@@ -335,12 +335,6 @@ export type SentryBuildOptions = {
   hideSourceMaps?: boolean;
 
   /**
-   * Instructs webpack to apply the same transpilation rules to the SDK code as apply to user code. Helpful when
-   * targeting older browsers which don't support ES6 (or ES6+ features like object spread).
-   */
-  transpileClientSDK?: boolean;
-
-  /**
    * Include Next.js-internal code and code from dependencies when uploading source maps.
    *
    * Note: Enabling this option can lead to longer build times.
@@ -418,6 +412,7 @@ export type WebpackConfigObject = {
   output: { filename: string; path: string };
   target: string;
   context: string;
+  ignoreWarnings?: { module?: RegExp }[]; // Note: The interface for `ignoreWarnings` is larger but we only need this. See https://webpack.js.org/configuration/other-options/#ignorewarnings
   resolve?: {
     modules?: string[];
     alias?: { [key: string]: string | boolean };

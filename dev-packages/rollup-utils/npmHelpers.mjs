@@ -1,3 +1,5 @@
+// @ts-check
+
 /**
  * Rollup config docs: https://rollupjs.org/guide/en/#big-list-of-options
  */
@@ -14,6 +16,7 @@ import {
   makeCleanupPlugin,
   makeDebugBuildStatementReplacePlugin,
   makeExtractPolyfillsPlugin,
+  makeImportMetaUrlReplacePlugin,
   makeNodeResolvePlugin,
   makeRrwebBuildPlugin,
   makeSetSDKSourcePlugin,
@@ -39,6 +42,7 @@ export function makeBaseNPMConfig(options = {}) {
   const nodeResolvePlugin = makeNodeResolvePlugin();
   const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills, ...sucrase });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
+  const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();
   const extractPolyfillsPlugin = makeExtractPolyfillsPlugin();
   const setSdkSourcePlugin = makeSetSDKSourcePlugin('npm');
@@ -105,6 +109,7 @@ export function makeBaseNPMConfig(options = {}) {
       setSdkSourcePlugin,
       sucrasePlugin,
       debugBuildStatementReplacePlugin,
+      importMetaUrlReplacePlugin,
       rrwebBuildPlugin,
       cleanupPlugin,
     ],

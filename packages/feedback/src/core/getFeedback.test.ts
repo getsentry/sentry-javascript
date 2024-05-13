@@ -1,6 +1,6 @@
 import { getCurrentScope } from '@sentry/core';
 import { getFeedback } from './getFeedback';
-import { feedbackIntegration } from './integration';
+import { buildFeedbackIntegration } from './integration';
 import { mockSdk } from './mockSdk';
 
 describe('getFeedback', () => {
@@ -25,16 +25,24 @@ describe('getFeedback', () => {
   });
 
   it('works with a client with Feedback', () => {
-    const feedback = feedbackIntegration();
+    const feedbackIntegration = buildFeedbackIntegration({
+      lazyLoadIntegration: jest.fn(),
+    });
 
+    const configuredIntegration = feedbackIntegration({});
     mockSdk({
       sentryOptions: {
-        integrations: [feedback],
+        integrations: [configuredIntegration],
       },
     });
 
     const actual = getFeedback();
     expect(actual).toBeDefined();
-    expect(actual === feedback).toBe(true);
+    expect(actual === configuredIntegration).toBe(true);
+
+    // has correct type
+    expect(typeof actual?.attachTo).toBe('function');
+    expect(typeof actual?.createWidget).toBe('function');
+    expect(typeof actual?.remove).toBe('function');
   });
 });

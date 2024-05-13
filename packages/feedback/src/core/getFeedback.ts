@@ -1,10 +1,12 @@
 import { getClient } from '@sentry/core';
-import type { feedbackIntegration } from './integration';
+import type { buildFeedbackIntegration } from './integration';
+
+type FeedbackIntegration = ReturnType<typeof buildFeedbackIntegration>;
 
 /**
  * This is a small utility to get a type-safe instance of the Feedback integration.
  */
-export function getFeedback(): ReturnType<typeof feedbackIntegration> | undefined {
+export function getFeedback(): ReturnType<FeedbackIntegration> | undefined {
   const client = getClient();
-  return client && client.getIntegrationByName<ReturnType<typeof feedbackIntegration>>('Feedback');
+  return client && client.getIntegrationByName<ReturnType<FeedbackIntegration>>('Feedback');
 }

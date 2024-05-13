@@ -10,6 +10,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  captureFeedback,
 } from '@sentry/core';
 
 export {
@@ -30,10 +31,10 @@ export type {
 
 export { replayCanvasIntegration } from '@sentry-internal/replay-canvas';
 
+import { feedbackAsyncIntegration } from './feedbackAsync';
+import { feedbackSyncIntegration } from './feedbackSync';
+export { feedbackAsyncIntegration, feedbackSyncIntegration, feedbackSyncIntegration as feedbackIntegration };
 export {
-  feedbackIntegration,
-  feedbackModalIntegration,
-  feedbackScreenshotIntegration,
   getFeedback,
   sendFeedback,
 } from '@sentry-internal/feedback';
@@ -64,6 +65,7 @@ export {
   setHttpStatus,
   makeMultiplexedTransport,
   moduleMetadataIntegration,
+  zodErrorsIntegration,
 } from '@sentry/core';
 export type { Span } from '@sentry/types';
 export { makeBrowserOfflineTransport } from './transports/offline';

@@ -14,6 +14,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   withMonitor,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -80,6 +81,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,
@@ -87,6 +89,7 @@ export {
   hapiIntegration,
   setupHapiErrorHandler,
   spotlightIntegration,
+  addOpenTelemetryInstrumentation,
 } from '@sentry/node';
 
 // We can still leave this for the carrier init and type exports

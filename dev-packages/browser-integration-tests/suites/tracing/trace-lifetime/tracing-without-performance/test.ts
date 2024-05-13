@@ -1,48 +1,84 @@
 import { expect } from '@playwright/test';
-import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, shouldSkipTracingTest } from '../../../../utils/helpers';
+import type { EventAndTraceHeader } from '../../../../utils/helpers';
+import {
+  eventAndTraceHeaderRequestParser,
+  getFirstSentryEnvelopeRequest,
+  shouldSkipTracingTest,
+} from '../../../../utils/helpers';
 
 const META_TAG_TRACE_ID = '12345678901234567890123456789012';
 const META_TAG_PARENT_SPAN_ID = '1234567890123456';
 const META_TAG_BAGGAGE =
   'sentry-trace_id=12345678901234567890123456789012,sentry-public_key=public,sentry-release=1.0.0,sentry-environment=prod';
 
-sentryTest('error has new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('error has new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
   await page.goto(url);
 
-  const errorEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+  const errorEventPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.locator('#errorBtn').click();
-  const errorEvent = await errorEventPromise;
+  const [errorEvent, errorTraceHeader] = await errorEventPromise;
 
+  expect(errorEvent.type).toEqual(undefined);
   expect(errorEvent.contexts?.trace).toEqual({
     trace_id: META_TAG_TRACE_ID,
     parent_span_id: META_TAG_PARENT_SPAN_ID,
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
 
-  const errorEventPromise2 = getFirstSentryEnvelopeRequest<Event>(page, `${url}#navigation`);
+  expect(errorTraceHeader).toEqual({
+    environment: 'prod',
+    public_key: 'public',
+    release: '1.0.0',
+    trace_id: META_TAG_TRACE_ID,
+  });
+
+  const errorEventPromise2 = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    `${url}#navigation`,
+    eventAndTraceHeaderRequestParser,
+  );
   await page.locator('#errorBtn').click();
-  const errorEvent2 = await errorEventPromise2;
+  const [errorEvent2, errorTraceHeader2] = await errorEventPromise2;
 
   expect(errorEvent2.contexts?.trace).toEqual({
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
+
+  expect(errorTraceHeader2).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    trace_id: errorEvent2.contexts?.trace?.trace_id,
+  });
+
   expect(errorEvent2.contexts?.trace?.trace_id).not.toBe(META_TAG_TRACE_ID);
 });
 
-sentryTest('outgoing fetch requests have new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('outgoing fetch requests have new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await page.route('http://example.com/**', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   await page.goto(url);
 
   const requestPromise = page.waitForRequest('http://example.com/*');
@@ -70,12 +106,21 @@ sentryTest('outgoing fetch requests have new traceId after navigation', async ({
   expect(headers2['baggage']).not.toContain(`sentry-trace_id=${META_TAG_TRACE_ID}`);
 });
 
-sentryTest('outgoing XHR requests have new traceId after navigation', async ({ getLocalTestPath, page }) => {
+sentryTest('outgoing XHR requests have new traceId after navigation', async ({ getLocalTestUrl, page }) => {
   if (shouldSkipTracingTest()) {
     sentryTest.skip();
   }
 
-  const url = await getLocalTestPath({ testDir: __dirname });
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  await page.route('http://example.com/**', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   await page.goto(url);
 
   const requestPromise = page.waitForRequest('http://example.com/*');

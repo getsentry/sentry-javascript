@@ -1,4 +1,4 @@
-import { click, visit } from '@ember/test-helpers';
+import { click, find, visit } from '@ember/test-helpers';
 import { setupApplicationTest } from 'ember-qunit';
 import { module, test } from 'qunit';
 
@@ -53,6 +53,47 @@ module('Acceptance | Sentry Performance', function (hooks) {
       attributes: {
         fromRoute: 'tracing',
         toRoute: 'slow-loading-route.index',
+      },
+    });
+  });
+
+  test('Test page with loading state', async function (assert) {
+    await visit('/with-loading');
+
+    assertSentryTransactionCount(assert, 1);
+    assertSentryTransactions(assert, 0, {
+      spans: [
+        'ui.ember.transition | route:undefined -> route:with-loading.index',
+        'ui.ember.route.before_model | with-loading.index',
+        'ui.ember.route.model | with-loading.index',
+        'ui.ember.route.after_model | with-loading.index',
+        'ui.ember.route.setup_controller | with-loading.index',
+      ],
+      transaction: 'route:with-loading.index',
+      attributes: {
+        fromRoute: undefined,
+        toRoute: 'with-loading.index',
+      },
+    });
+  });
+
+  test('Test page with error state', async function (assert) {
+    await visit('/with-error');
+
+    // Ensure we are on error page
+    assert.ok(find('#test-page-load-error'));
+
+    assertSentryTransactionCount(assert, 1);
+    assertSentryTransactions(assert, 0, {
+      spans: [
+        'ui.ember.transition | route:undefined -> route:with-error.index',
+        'ui.ember.route.before_model | with-error.index',
+        'ui.ember.route.model | with-error.index',
+      ],
+      transaction: 'route:with-error.index',
+      attributes: {
+        fromRoute: undefined,
+        toRoute: 'with-error.index',
       },
     });
   });

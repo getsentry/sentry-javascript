@@ -10,7 +10,6 @@ export default [
       // packages with bundles have a different build directory structure
       hasBundles: true,
     }),
-    { emitEsm: false },
   ),
   ...makeOtelLoaders('./build', 'sentry-node'),
 ];

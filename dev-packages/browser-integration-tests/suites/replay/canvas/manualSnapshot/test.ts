@@ -63,6 +63,8 @@ sentryTest('can manually snapshot canvas', async ({ getLocalTestUrl, page, brows
                 },
                 0,
                 0,
+                150,
+                150,
               ],
               property: 'drawImage',
             },

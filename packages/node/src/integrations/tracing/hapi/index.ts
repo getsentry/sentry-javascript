@@ -1,4 +1,4 @@
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
+import { isWrapped } from '@opentelemetry/core';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
@@ -10,8 +10,9 @@ import {
   getIsolationScope,
   getRootSpan,
 } from '@sentry/core';
+import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { consoleSandbox, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
@@ -19,9 +20,7 @@ const _hapiIntegration = (() => {
   return {
     name: 'Hapi',
     setupOnce() {
-      registerInstrumentations({
-        instrumentations: [new HapiInstrumentation()],
-      });
+      addOpenTelemetryInstrumentation(new HapiInstrumentation());
     },
   };
 }) satisfies IntegrationFn;
@@ -94,4 +93,14 @@ export const hapiErrorPlugin = {
  */
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  if (!isWrapped(server.register)) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Hapi is not instrumented. This is likely because you required/imported hapi before calling `Sentry.init()`.',
+      );
+    });
+  }
 }

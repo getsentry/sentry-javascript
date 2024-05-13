@@ -17,7 +17,7 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
     const setupController = sinon.spy();
 
     class DummyRoute extends Route {
-      public beforeModel(...args: unknown[]): unknown {
+      public beforeModel(...args: unknown[]): ReturnType<Route['beforeModel']> {
         return beforeModel.call(this, ...args);
       }
 
@@ -25,7 +25,7 @@ module('Unit | Utility | instrument-route-performance', function (hooks) {
         return model.call(this, ...args);
       }
 
-      public afterModel(...args: unknown[]): unknown {
+      public afterModel(...args: unknown[]): ReturnType<Route['afterModel']> {
         return afterModel.call(this, ...args);
       }
 

@@ -1,4 +1,4 @@
-name: Prepare Release
+name: "Action: Prepare Release"
 on:
   workflow_dispatch:
     inputs:

@@ -35,7 +35,10 @@ export function parseSpanDescription(span: AbstractSpan): SpanDescription {
   const name = spanHasName(span) ? span.name : '<unknown>';
 
   // if http.method exists, this is an http request span
-  const httpMethod = attributes[SEMATTRS_HTTP_METHOD];
+  //
+  // TODO: Referencing `http.request.method` is a temporary workaround until the semantic
+  // conventions export an attribute key for it.
+  const httpMethod = attributes['http.request.method'] || attributes[SEMATTRS_HTTP_METHOD];
   if (httpMethod) {
     return descriptionForHttpMethod({ attributes, name, kind: getSpanKind(span) }, httpMethod);
   }

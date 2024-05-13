@@ -20,9 +20,9 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
-to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
-longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now officially support Node 14.18+ for our CJS package, and Node 18.19.1+ for our ESM package. This
+applies to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We
+no longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -177,12 +177,10 @@ The `Transaction` integration has been removed from `@sentry/integrations`. Ther
 #### @sentry/serverless
 
 `@sentry/serverless` has been removed and will no longer be published. The serverless package has been split into two
-different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`. These new packages have smaller
-bundle size than `@sentry/serverless`, which should improve your serverless cold-start times.
+different packages, `@sentry/aws-serverless` and `@sentry/google-cloud-serverless`.
 
-`@sentry/aws-serverless` and `@sentry/google-cloud-serverless` has also been changed to only emit CJS builds. The ESM
-build for the `@sentry/serverless` package was always broken and we decided to remove it entirely. ESM support will be
-re-added at a later date.
+The `@sentry/google-cloud-serverless` package has also been changed to only emit CJS builds because it can only
+instrument CJS. ESM support will be re-added at a later date.
 
 In `@sentry/serverless` you had to use a namespace import to initialize the SDK. This has been removed so that you can
 directly import from the SDK instead.
@@ -353,6 +351,7 @@ We now support the following integrations out of the box without extra configura
 - `mongooseIntegration`: Automatically instruments Mongoose
 - `mysqlIntegration`: Automatically instruments MySQL
 - `mysql2Integration`: Automatically instruments MySQL2
+- `redisIntegration`: Automatically instruments Redis (supported clients: ioredis)
 - `nestIntegration`: Automatically instruments Nest.js
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
@@ -371,6 +370,7 @@ To make sure these integrations work properly you'll have to change how you
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
 - [Svelte SDK](./MIGRATION.md#svelte-sdk)
+- [React SDK](./MIGRATION.md#react-sdk)
 
 ### General
 
@@ -833,6 +833,24 @@ The following is an example of how to initialize the serverside SDK in a Next.js
    }
    ```
 
+   If you need to import a Node.js specific integration (like for example `@sentry/profiling-node`), you will have to
+   import the package using a dynamic import to prevent Next.js from bundling Node.js APIs into bundles for other
+   runtime environments (like the Browser or the Edge runtime). You can do so as follows:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export async function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       const { nodeProfilingIntegration } = await import('@sentry/profiling-node');
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         integrations: [nodeProfilingIntegration()],
+       });
+     }
+   }
+   ```
+
    Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
@@ -847,6 +865,12 @@ the bundler that Next.js will be using instead of Webpack. The SDK in its previo
 in order to inject the `sentry.(server|edge).config.ts` files into the server-side code. Because this will not be
 possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them -
 hopefully reducing bugs and jank.
+
+#### Removal of `transpileClientSDK`
+
+Since we are dropping support for Internet Explorer 11 and other other older browser versions, we are also removing the
+`transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions, please configure
+Webpack and Next.js to down-compile the SDK.
 
 ### Astro SDK
 
@@ -875,8 +899,9 @@ Sentry.init({
 
 #### Breaking `sentrySvelteKit()` changes
 
-We upgraded the `@sentry/vite-plugin` which is a dependency of the SvelteKit SDK from version 0.x to 2.x. With this
-change, resolving uploaded source maps should work out of the box much more often than before
+We upgraded the `@sentry/vite-plugin` from version 0.x to 2.x. This package is internally used by the
+`@sentry/sveltekit` SDK. With this change, resolving uploaded source maps should work out of the box much more often
+than before
 ([more information](https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/artifact-bundles/)).
 
 To allow future upgrades of the Vite plugin without breaking stable and public APIs in `sentrySvelteKit`, we modified
@@ -959,11 +984,20 @@ replacement API.
 Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+- [Updated Ember Dependencies](./MIGRATION.md#updated-ember-dependencies)
 
 #### Removal of `InitSentryForEmber` export
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+#### Updated Ember Dependencies
+
+The following dependencies that the SDK uses have been bumped to a more recent version:
+
+- `ember-auto-import` is bumped to `^2.4.3`
+- `ember-cli-babel` is bumped to `^8.2.0`
+- `ember-cli-typescript` is bumped to `^5.3.0`
 
 ### Svelte SDK
 
@@ -1000,6 +1034,26 @@ const config = {
 
 export default withSentryConfig(config);
 ```
+
+### React SDK
+
+#### Updated error types to be `unknown` instead of `Error`.
+
+In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and
+`beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the
+lifecycle method the Sentry `ErrorBoundary` component uses.
+
+As per the [React docs on error boundaries](https://react.dev/reference/react/Component#componentdidcatch):
+
+> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed
+> because JavaScript allows to throw any value, including strings or even `null`.
+
+This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an
+instance of `Error`.
+
+The Sentry SDK maintainers also went ahead and made a PR to update the
+[TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the
+React package - this will be released with React 20.
 
 ### Gatsby SDK
 
@@ -1120,6 +1174,7 @@ Sentry.init({
 - [Updated behaviour of `transactionContext` passed to `tracesSampler`](./MIGRATION.md#transactioncontext-no-longer-passed-to-tracessampler)
 - [Updated behaviour of `getClient()`](./MIGRATION.md#getclient-always-returns-a-client)
 - [Updated behaviour of the SDK in combination with `onUncaughtException` handlers in Node.js](./MIGRATION.md#behaviour-in-combination-with-onuncaughtexception-handlers-in-node.js)
+- [Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients](./MIGRATION.md#updated-expected-return-value-for-captureexception-capturemessage-and-captureevent-methods-on-clients)
 - [Removal of Client-Side health check transaction filters](./MIGRATION.md#removal-of-client-side-health-check-transaction-filters)
 - [Change of Replay default options (`unblock` and `unmask`)](./MIGRATION.md#change-of-replay-default-options-unblock-and-unmask)
 - [Angular Tracing Decorator renaming](./MIGRATION.md#angular-tracing-decorator-renaming)
@@ -1180,6 +1235,11 @@ for this option defaulted to `true`.
 Going forward, the default value for `exitEvenIfOtherHandlersAreRegistered` will be `false`, meaning that the SDK will
 not exit your process when you have registered other `onUncaughtException` handlers.
 
+#### Updated expected return value for `captureException()`, `captureMessage()` and `captureEvent` methods on Clients
+
+The `Client` interface now expects implementations to always return a string representing the generated event ID for the
+`captureException()`, `captureMessage()`, `captureEvent()` methods. Previously `undefined` was a valid return value.
+
 #### Removal of Client-Side health check transaction filters
 
 The SDK no longer filters out health check transactions by default. Instead, they are sent to Sentry but still dropped
@@ -1228,6 +1288,11 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
+
+# Upgrading Sentry Feedback (beta, 7.x to 8.0)
+
+For details on upgrading Feedback from the beta 7.x to the release 8.x version, please view the
+[dedicated Feedback MIGRATION docs](./docs/migration/feedback.md).
 
 ---
 
@@ -1365,6 +1430,19 @@ Instead of an `transactionContext` being passed to the `tracesSampler` callback,
 `name` and `attributes` going forward. You can use these to make your sampling decisions, while `transactionContext`
 will be removed in v8. Note that the `attributes` are only the attributes at span creation time, and some attributes may
 only be set later during the span lifecycle (and thus not be available during sampling).
+
+## Deprecate `wrapRemixHandleError` in Remix SDK (since v7.100.0)
+
+This release deprecates `wrapRemixHandleError` in favor of using `sentryHandleError` from `@sentry/remix`. It can be
+used as below:
+
+```typescript
+// entry.server.ts
+
+export const handleError = Sentry.wrapHandleErrorWithSentry(() => {
+  // Custom handleError implementation
+});
+```
 
 ## Deprecate using `getClient()` to check if the SDK was initialized
 
@@ -1656,7 +1734,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
-- `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
+- `span.getDynamicSamplingContext`: Use `spanToBaggageHeader(span)` utility function instead.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.

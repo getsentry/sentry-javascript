@@ -16,6 +16,9 @@ sentryTest('Instrumentation should capture errors in setTimeout', async ({ getLo
     mechanism: {
       type: 'instrument',
       handled: false,
+      data: {
+        function: 'setTimeout',
+      },
     },
     stacktrace: {
       frames: expect.any(Array),

@@ -1,6 +1,7 @@
 import type {
   BaseTransportOptions,
   ClientReport,
+  Envelope,
   EventEnvelope,
   EventItem,
   TransactionEvent,
@@ -47,7 +48,7 @@ const CLIENT_REPORT_ENVELOPE = createClientReportEnvelope(
   123456,
 );
 
-type Assertion = (url: string, release: string | undefined, body: string | Uint8Array) => void;
+type Assertion = (url: string, release: string | undefined, body: Envelope) => void;
 
 const createTestTransport = (...assertions: Assertion[]): ((options: BaseTransportOptions) => Transport) => {
   return (options: BaseTransportOptions) =>
@@ -60,7 +61,7 @@ const createTestTransport = (...assertions: Assertion[]): ((options: BaseTranspo
 
         const event = eventFromEnvelope(parseEnvelope(request.body), ['event']);
 
-        assertion(options.url, event?.release, request.body);
+        assertion(options.url, event?.release, parseEnvelope(request.body));
         resolve({ statusCode: 200 });
       });
     });
@@ -105,11 +106,12 @@ describe('makeMultiplexedTransport', () => {
   });
 
   it('DSN can be overridden via match callback', async () => {
-    expect.assertions(1);
+    expect.assertions(2);
 
     const makeTransport = makeMultiplexedTransport(
-      createTestTransport(url => {
+      createTestTransport((url, _, env) => {
         expect(url).toBe(DSN2_URL);
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [DSN2],
     );
@@ -119,17 +121,34 @@ describe('makeMultiplexedTransport', () => {
   });
 
   it('DSN and release can be overridden via match callback', async () => {
-    expect.assertions(2);
+    expect.assertions(3);
 
     const makeTransport = makeMultiplexedTransport(
-      createTestTransport((url, release) => {
+      createTestTransport((url, release, env) => {
         expect(url).toBe(DSN2_URL);
         expect(release).toBe('something@1.0.0');
+        expect(env[0].dsn).toBe(DSN2);
       }),
       () => [{ dsn: DSN2, release: 'something@1.0.0' }],
     );
 
     const transport = makeTransport({ url: DSN1_URL, ...transportOptions });
+    await transport.send(ERROR_ENVELOPE);
+  });
+
+  it('URL can be overridden by tunnel option', async () => {
+    expect.assertions(3);
+
+    const makeTransport = makeMultiplexedTransport(
+      createTestTransport((url, release, env) => {
+        expect(url).toBe('http://google.com');
+        expect(release).toBe('something@1.0.0');
+        expect(env[0].dsn).toBe(DSN2);
+      }),
+      () => [{ dsn: DSN2, release: 'something@1.0.0' }],
+    );
+
+    const transport = makeTransport({ url: DSN1_URL, ...transportOptions, tunnel: 'http://google.com' });
     await transport.send(ERROR_ENVELOPE);
   });
 

@@ -322,10 +322,10 @@ export function xhrCallback(
     return undefined;
   }
 
-  const hasParent = !!getActiveSpan();
-
   const fullUrl = getFullURL(sentryXhrData.url);
   const host = fullUrl ? parseUrl(fullUrl).host : undefined;
+
+  const hasParent = !!getActiveSpan();
 
   const span =
     shouldCreateSpanResult && hasParent
@@ -352,10 +352,9 @@ export function xhrCallback(
     addTracingHeadersToXhrRequest(
       xhr,
       client,
-      // In the following cases, we do not want to use the span as base for the trace headers,
-      // which means that the headers will be generated from the scope:
-      // - If tracing is disabled (TWP)
-      // - If the span has no parent span - which means we ran into `onlyIfParent` check
+      // If performance is disabled (TWP) or there's no active root span (pageload/navigation/interaction),
+      // we do not want to use the span as base for the trace headers,
+      // which means that the headers will be generated from the scope and the sampling decision is deferred
       hasTracingEnabled() && hasParent ? span : undefined,
     );
   }

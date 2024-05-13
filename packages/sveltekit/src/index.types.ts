@@ -52,3 +52,5 @@ export declare function flush(timeout?: number | undefined): PromiseLike<boolean
 export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;
+
+export declare function trackComponent(options: clientSdk.TrackingOptions): ReturnType<typeof clientSdk.trackComponent>;

@@ -11,6 +11,8 @@ import type {
   EventEnvelopeHeaders,
   SdkInfo,
   SdkMetadata,
+  SpanItem,
+  SpanJSON,
 } from '@sentry/types';
 
 import { dsnToString } from './dsn';
@@ -175,6 +177,17 @@ export function parseEnvelope(env: string | Uint8Array): Envelope {
   }
 
   return [envelopeHeader, items];
+}
+
+/**
+ * Creates envelope item for a single span
+ */
+export function createSpanEnvelopeItem(spanJson: Partial<SpanJSON>): SpanItem {
+  const spanHeaders: SpanItem[0] = {
+    type: 'span',
+  };
+
+  return [spanHeaders, spanJson];
 }
 
 /**

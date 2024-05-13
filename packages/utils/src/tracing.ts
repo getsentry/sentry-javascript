@@ -44,7 +44,8 @@ export function extractTraceparentData(traceparent?: string): TraceparentData | 
 }
 
 /**
- * Create a propagation context from incoming headers.
+ * Create a propagation context from incoming headers or
+ * creates a minimal new one if the headers are undefined.
  */
 export function propagationContextFromHeaders(
   sentryTrace: string | undefined,

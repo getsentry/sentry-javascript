@@ -16,6 +16,14 @@ sentryTest('window.open() is considered for slow click', async ({ getLocalTestUr
     });
   });
 
+  await page.route('http://example.com/', route => {
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({}),
+    });
+  });
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   await Promise.all([waitForReplayRequest(page, 0), page.goto(url)]);
