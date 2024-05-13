@@ -192,10 +192,6 @@ function validateOpenTelemetrySetup(): void {
 }
 
 function getClientOptions(options: NodeOptions): NodeClientOptions {
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations(options);
-  }
-
   const release = getRelease(options.release);
 
   const autoSessionTracking =
@@ -218,6 +214,13 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     autoSessionTracking,
     tracesSampleRate,
   });
+
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrations({
+      ...options,
+      ...overwriteOptions,
+    });
+  }
 
   const clientOptions: NodeClientOptions = {
     ...baseOptions,
