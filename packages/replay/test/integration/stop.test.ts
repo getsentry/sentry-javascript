@@ -1,7 +1,7 @@
 import * as SentryUtils from '@sentry/utils';
 
-import type { replayIntegration } from '../../src/integration';
 import { WINDOW } from '../../src/constants';
+import type { replayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { clearSession } from '../../src/session/clearSession';
 import { addEvent } from '../../src/util/addEvent';
