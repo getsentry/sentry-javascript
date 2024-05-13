@@ -7,7 +7,7 @@ import type { FeedbackEvent, UserFeedback } from './feedback';
 import type { Profile } from './profiling';
 import type { ReplayEvent, ReplayRecordingData } from './replay';
 import type { SdkInfo } from './sdkinfo';
-import type { SerializedSession, Session, SessionAggregates } from './session';
+import type { SerializedSession, SessionAggregates } from './session';
 import type { SpanJSON } from './span';
 
 // Based on: https://develop.sentry.dev/sdk/envelopes/
