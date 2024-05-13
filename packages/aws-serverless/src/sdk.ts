@@ -63,8 +63,8 @@ export interface WrapperOptions {
 /**
  * Get the default integrations for the AWSLambda SDK.
  */
- // NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
- // If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
+// NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
+// If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
 export function getDefaultIntegrations(_options: Options): Integration[] {
   return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
 }
