@@ -99,7 +99,23 @@ The following packages have been removed or replaced and will no longer be publi
 
 ### Changes since `8.0.0-rc.3`
 
-TODO add if any are noteworthy
+- **feat(nextjs): Remove `transpileClientSDK` (#11978)**
+
+  As we are dropping support for Internet Explorer 11 and other other older browser versions wih version `8.0.0`, we are
+  also removing the `transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions,
+  please configure Webpack and Next.js to down-compile the SDK.
+
+- **feat(serverless): Do not include performance integrations by default (#11998)**
+
+  To keep Lambda bundle size reasonable, the SDK no longer ships with all performance (database) integrations by
+  default. Add the Sentry integrations of the databases and other tools you're using manually to your `Sentry.init` call
+  by following
+  [this guide](https://docs.sentry.io/platforms/javascript/configuration/integrations/#modifying-default-integrations).
+  Note that this change does not apply if you use the SDK with the Sentry AWS Lambda layer.
+
+- feat(feedback): Simplify public css configuration for feedback (#11985)
+- fix(feedback): Check for empty user (#11993)
+- fix(replay): Fix type for `replayCanvasIntegration` (#11995)
 
 ## 8.0.0-rc.3
 
