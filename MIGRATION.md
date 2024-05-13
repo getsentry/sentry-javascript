@@ -866,6 +866,12 @@ in order to inject the `sentry.(server|edge).config.ts` files into the server-si
 possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them -
 hopefully reducing bugs and jank.
 
+#### Removal of `transpileClientSDK`
+
+Since we are dropping support for Internet Explorer 11 and other other older browser versions, we are also removing the
+`transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions, please configure
+Webpack and Next.js to down-compile the SDK.
+
 ### Astro SDK
 
 - [Removal of `trackHeaders` option for Astro middleware](./MIGRATION.md#removal-of-trackheaders-option-for-astro-middleware)
