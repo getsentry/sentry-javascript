@@ -49,8 +49,10 @@ function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
 }
 
-/** Get the default integrations for the Node Experimental SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
+/**
+ * Get default integrations, excluding performance.
+ */
+export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
   return [
     // Common
     inboundFiltersIntegration(),
@@ -69,6 +71,13 @@ export function getDefaultIntegrations(options: Options): Integration[] {
     localVariablesIntegration(),
     nodeContextIntegration(),
     ...getCjsOnlyIntegrations(),
+  ];
+}
+
+/** Get the default integrations for the Node SDK. */
+export function getDefaultIntegrations(options: Options): Integration[] {
+  return [
+    ...getDefaultIntegrationsWithoutPerformance(),
     ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
   ];
 }

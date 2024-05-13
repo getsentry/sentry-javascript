@@ -10,7 +10,7 @@ import {
   continueTrace,
   flush,
   getCurrentScope,
-  getDefaultIntegrations as getNodeDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
   init as initNode,
   startSpanManual,
   withScope,
@@ -61,8 +61,8 @@ export interface WrapperOptions {
 }
 
 /** Get the default integrations for the AWSLambda SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
-  return [...getNodeDefaultIntegrations(options), awsIntegration(), awsLambdaIntegration()];
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
 }
 
 /**
