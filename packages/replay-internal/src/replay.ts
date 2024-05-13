@@ -28,6 +28,7 @@ import { clearSession } from './session/clearSession';
 import { loadOrCreateSession } from './session/loadOrCreateSession';
 import { saveSession } from './session/saveSession';
 import { shouldRefreshSession } from './session/shouldRefreshSession';
+
 import type {
   AddEventResult,
   AddUpdateCallback,
@@ -294,6 +295,12 @@ export class ReplayContainer implements ReplayContainerInterface {
     }
 
     logInfoNextTick('[Replay] Starting replay in session mode', this._options._experiments.traceInternals);
+
+    // Required as user activity is initially set in
+    // constructor, so if `start()` is called after
+    // session idle expiration, a replay will not be
+    // created due to an idle timeout.
+    this._updateUserActivity();
 
     const session = loadOrCreateSession(
       {
