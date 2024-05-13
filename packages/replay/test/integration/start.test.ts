@@ -2,7 +2,7 @@ import { getClient } from '@sentry/core';
 import type { Transport } from '@sentry/types';
 
 import { DEFAULT_FLUSH_MIN_DELAY, SESSION_IDLE_EXPIRE_DURATION } from '../../src/constants';
-import type { Replay } from '../../src/integration';
+import type { replayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
 import { BASE_TIMESTAMP } from '../index';
 import { resetSdkMock } from '../mocks/resetSdkMock';
@@ -12,7 +12,7 @@ useFakeTimers();
 
 describe('Integration | start', () => {
   let replay: ReplayContainer;
-  let integration: Replay;
+  let integration: ReturnType<typeof replayIntegration>;
 
   beforeEach(async () => {
     ({ replay, integration } = await resetSdkMock({
