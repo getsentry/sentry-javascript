@@ -41,6 +41,14 @@
       "import": {
         "default": "./build/loader-hook.mjs"
       }
+    },
+    "./init":{
+      "import": {
+        "default": "./build/esm/init.js"
+      },
+      "require": {
+        "default": "./build/cjs/init.js"
+      }
     }
   },
   "typesVersions": {
