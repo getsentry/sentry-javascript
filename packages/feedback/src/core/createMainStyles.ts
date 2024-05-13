@@ -1,25 +1,50 @@
 import type { FeedbackInternalOptions } from '@sentry/types';
 import { DOCUMENT } from '../constants';
 
-function getThemedCssVariables(theme: FeedbackInternalOptions['themeLight']): string {
+const PURPLE = 'rgba(88, 74, 192, 1)';
+
+interface InternalTheme extends NonNullable<FeedbackInternalOptions['themeLight']> {
+  border: string;
+  interactiveFilter: string;
+}
+
+const DEFAULT_LIGHT: InternalTheme = {
+  foreground: '#2b2233',
+  background: '#ffffff',
+  accentForeground: 'white',
+  accentBackground: PURPLE,
+  successColor: '#268d75',
+  errorColor: '#df3338',
+  border: '1.5px solid rgba(41, 35, 47, 0.13)',
+  boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
+  outline: '1px auto var(--accent-background)',
+  interactiveFilter: 'brightness(95%)',
+};
+const DEFAULT_DARK: InternalTheme = {
+  foreground: '#ebe6ef',
+  background: '#29232f',
+  accentForeground: 'white',
+  accentBackground: PURPLE,
+  successColor: '#2da98c',
+  errorColor: '#f55459',
+  border: '1.5px solid rgba(41, 35, 47, 0.5)',
+  boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
+  outline: '1px auto var(--accent-background)',
+  interactiveFilter: 'brightness(150%)',
+};
+
+function getThemedCssVariables(theme: InternalTheme): string {
   return `
   --foreground: ${theme.foreground};
-  --success-foreground: ${theme.successForeground};
-  --error-foreground: ${theme.errorForeground};
   --background: ${theme.background};
+  --accent-foreground: ${theme.accentForeground};
+  --accent-background: ${theme.accentBackground};
+  --success-color: ${theme.successColor};
+  --error-color: ${theme.errorColor};
   --border: ${theme.border};
   --box-shadow: ${theme.boxShadow};
-
-  --button-foreground: ${theme.buttonForeground};
-  --button-foreground-hover: ${theme.buttonForegroundHover};
-  --button-background: ${theme.buttonBackground};
-  --button-background-hover: ${theme.buttonBackgroundHover};
-  --button-border: ${theme.buttonBorder};
-  --button-outline-focus: ${theme.buttonOutlineFocus};
-
-  --trigger-background: ${theme.triggerBackground};
-  --trigger-background-hover: ${theme.triggerBackgroundHover};
-  --trigger-border-radius: ${theme.triggerBorderRadius};
+  --outline: ${theme.outline};
+  --interactive-filter: ${theme.interactiveFilter};
   `;
 }
 
@@ -41,7 +66,9 @@ export function createMainStyles({ colorScheme, themeDark, themeLight }: Feedbac
   font-family: var(--font-family);
   font-size: var(--font-size);
 
-  ${getThemedCssVariables(colorScheme === 'dark' ? themeDark : themeLight)}
+  ${getThemedCssVariables(
+    colorScheme === 'dark' ? { ...DEFAULT_DARK, ...themeDark } : { ...DEFAULT_LIGHT, ...themeLight },
+  )}
 }
 
 ${
@@ -49,7 +76,7 @@ ${
     ? `
 @media (prefers-color-scheme: dark) {
   :host {
-    ${getThemedCssVariables(themeDark)}
+    ${getThemedCssVariables({ ...DEFAULT_DARK, ...themeDark })}
   }
 }`
     : ''

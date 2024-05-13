@@ -10,7 +10,7 @@ import {
   continueTrace,
   flush,
   getCurrentScope,
-  getDefaultIntegrations as getNodeDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
   init as initNode,
   startSpanManual,
   withScope,
@@ -60,9 +60,13 @@ export interface WrapperOptions {
   startTrace: boolean;
 }
 
-/** Get the default integrations for the AWSLambda SDK. */
-export function getDefaultIntegrations(options: Options): Integration[] {
-  return [...getNodeDefaultIntegrations(options), awsIntegration(), awsLambdaIntegration()];
+/**
+ * Get the default integrations for the AWSLambda SDK.
+ */
+// NOTE: in awslambda-auto.ts, we also call the original `getDefaultIntegrations` from `@sentry/node` to load performance integrations.
+// If at some point we need to filter a node integration out for good, we need to make sure to also filter it out there.
+export function getDefaultIntegrations(_options: Options): Integration[] {
+  return [...getDefaultIntegrationsWithoutPerformance(), awsIntegration(), awsLambdaIntegration()];
 }
 
 /**

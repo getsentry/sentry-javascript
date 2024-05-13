@@ -1,7 +1,11 @@
 import type { CanvasManagerInterface, CanvasManagerOptions } from '@sentry-internal/replay';
 import { CanvasManager } from '@sentry-internal/rrweb';
 import { defineIntegration } from '@sentry/core';
-import type { IntegrationFn } from '@sentry/types';
+import type { Integration, IntegrationFn } from '@sentry/types';
+
+interface ReplayCanvasIntegration extends Integration {
+  snapshot: (canvasElement?: HTMLCanvasElement) => Promise<void>;
+}
 
 interface ReplayCanvasOptions {
   enableManualSnapshot?: boolean;
@@ -107,9 +111,11 @@ export const _replayCanvasIntegration = ((options: Partial<ReplayCanvasOptions> 
       canvasManager.snapshot(canvasElement);
     },
   };
-}) satisfies IntegrationFn;
+}) satisfies IntegrationFn<ReplayCanvasIntegration>;
 
 /**
  * Add this in addition to `replayIntegration()` to enable canvas recording.
  */
-export const replayCanvasIntegration = defineIntegration(_replayCanvasIntegration);
+export const replayCanvasIntegration = defineIntegration(
+  _replayCanvasIntegration,
+) as IntegrationFn<ReplayCanvasIntegration>;

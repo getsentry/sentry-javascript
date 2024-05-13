@@ -5,11 +5,25 @@ import type {
   FeedbackFormData,
   FeedbackModalIntegration,
   IntegrationFn,
+  User,
 } from '@sentry/types';
 import { h, render } from 'preact';
 import { DOCUMENT } from '../constants';
 import { Dialog } from './components/Dialog';
 import { createDialogStyles } from './components/Dialog.css';
+
+function getUser(): User | undefined {
+  const currentUser = getCurrentScope().getUser();
+  const isolationUser = getIsolationScope().getUser();
+  const globalUser = getGlobalScope().getUser();
+  if (currentUser && Object.keys(currentUser).length) {
+    return currentUser;
+  }
+  if (isolationUser && Object.keys(isolationUser).length) {
+    return isolationUser;
+  }
+  return globalUser;
+}
 
 export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
   return {
@@ -19,10 +33,10 @@ export const feedbackModalIntegration = ((): FeedbackModalIntegration => {
     createDialog: ({ options, screenshotIntegration, sendFeedback, shadow }: CreateDialogProps) => {
       const shadowRoot = shadow as unknown as ShadowRoot;
       const userKey = options.useSentryUser;
-      const user = getCurrentScope().getUser() || getIsolationScope().getUser() || getGlobalScope().getUser();
+      const user = getUser();
 
       const el = DOCUMENT.createElement('div');
-      const style = createDialogStyles(options);
+      const style = createDialogStyles();
 
       let originalOverflow = '';
       const dialog: FeedbackDialog = {
