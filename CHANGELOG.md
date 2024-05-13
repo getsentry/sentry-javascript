@@ -55,14 +55,14 @@ For more details, please see the
 
 ### Initializing Server-side SDKs (Node, Bun, Deno, Serverless):
 
-Initializing the SDKs on the server-side has been simplified a lot. However, the SDK now needs to be imported and
+In v8, we support many more node-based packages than before. In order to ensure auto-instrumentation works, the SDK now needs to be imported and
 initialized before any other import in your code. We recommend creating a new file to initialize the SDK and specifying
 it via the `--require` (CJS) or `--import` (ESM) Node CLI argument. See more details in our migration docs about
 [initializing the SDK in v8](https://docs.sentry.io/platforms/javascript/guides/node/migration/v7-to-v8/#updated-sdk-initialization).
 
 ### Performance Monitoring Changes
 
-The API around performance monitoring and tracing has been vastly improved, and we've added support for more
+The API around performance monitoring and tracing has been streamlined, and we've added support for more
 integrations out of the box.
 
 - [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
