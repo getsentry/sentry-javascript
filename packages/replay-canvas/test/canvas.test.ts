@@ -1,5 +1,5 @@
 import { CanvasManager } from '@sentry-internal/rrweb';
-import { _replayCanvasIntegration } from '../src/canvas';
+import { _replayCanvasIntegration, replayCanvasIntegration } from '../src/canvas';
 
 jest.mock('@sentry-internal/rrweb');
 
@@ -85,4 +85,16 @@ it('enforces a max canvas size', () => {
       maxCanvasSize: [1280, 1280],
     }),
   );
+});
+
+it('has correct types', () => {
+  const rc = replayCanvasIntegration();
+
+  expect(typeof rc.snapshot).toBe('function');
+  const res = rc.snapshot();
+  expect(res).toBeInstanceOf(Promise);
+
+  // Function signature is correctly typed
+  const res2 = rc.snapshot(document.createElement('canvas'));
+  expect(res2).toBeInstanceOf(Promise);
 });
