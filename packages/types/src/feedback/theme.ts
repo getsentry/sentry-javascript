@@ -1,163 +1,42 @@
-interface BaseStyles {
+// interface BaseStyles {
+export interface FeedbackTheme {
   /**
    * Foreground color (i.e. text color)
    */
-  foreground: string;
+  foreground?: string;
+
+  /**
+   * Background color for surfaces
+   */
+  background?: string;
+
+  /**
+   * Foreground color for accented elements
+   */
+  accentForeground?: string;
+
+  /**
+   * Background color for accented elements
+   */
+  accentBackground?: string;
 
   /**
    * Success color
    */
-  successForeground: string;
+  successColor?: string;
 
   /**
    * Error color
    */
-  errorForeground: string;
+  errorColor?: string;
 
   /**
-   * Background color for actor and dialog
+   * Box shadow for floating elements
    */
-  background: string;
+  boxShadow?: string;
 
   /**
-   * Border styling for actor and dialog
+   * Styles for focused interactive components
    */
-  border: string;
-
-  /**
-   * Box shadow for actor and dialog
-   */
-  boxShadow: string;
+  outline?: string;
 }
-
-interface Input {
-  /**
-   * Foreground color for form inputs
-   */
-  inputForeground: string;
-
-  /**
-   * Background color for form inputs
-   */
-  inputBackground: string;
-
-  /**
-   * Background color for form inputs, in the hover state
-   */
-  inputBackgroundHover: string;
-
-  /**
-   * Background color for form inputs, in the focus state
-   */
-  inputBackgroundFocus: string;
-
-  /**
-   * Border styles for form inputs
-   */
-  inputBorder: string;
-
-  /**
-   * Border radius for form inputs
-   */
-  inputBorderRadius: string;
-
-  /**
-   * Border styles for form inputs when focused
-   */
-  inputOutlineFocus: string;
-}
-
-interface Button {
-  /**
-   * Foreground color for buttons
-   */
-  buttonForeground: string;
-
-  /**
-   * Foreground color for buttons, in the hover state
-   */
-  buttonForegroundHover: string;
-
-  /**
-   * Background color for buttons
-   */
-  buttonBackground: string;
-
-  /**
-   * Background color when hovering over buttons
-   */
-  buttonBackgroundHover: string;
-
-  /**
-   * Border style for buttons
-   */
-  buttonBorder: string;
-
-  /**
-   * Border style for buttons, in the focued state
-   */
-  buttonOutlineFocus: string;
-}
-
-interface SubmitButton {
-  /**
-   * Foreground color for submit buttons
-   */
-  submitForeground: string;
-
-  /**
-   * Foreground color for submit buttons, in the hover state
-   */
-  submitForegroundHover: string;
-
-  /**
-   * Background color for submit buttons
-   */
-  submitBackground: string;
-
-  /**
-   * Background color when hovering over submit buttons
-   */
-  submitBackgroundHover: string;
-
-  /**
-   * Border style for submit buttons
-   */
-  submitBorder: string;
-
-  /**
-   * Border style for submit buttons, in the focued state
-   */
-  submitOutlineFocus: string;
-}
-
-interface Trigger {
-  /**
-   * Background color of the actor button
-   */
-  triggerBackground: string;
-
-  /**
-   * Background color on hover
-   */
-  triggerBackgroundHover: string;
-
-  /**
-   * Border radius styling for actor
-   */
-  triggerBorderRadius: string;
-}
-
-interface Dialog {
-  /**
-   * Background color of the open dialog
-   */
-  dialogBackground: string;
-
-  /**
-   * Border radius for dialog
-   */
-  dialogBorderRadius: string;
-}
-
-export interface FeedbackTheme extends BaseStyles, Input, Button, SubmitButton, Trigger, Dialog {}
