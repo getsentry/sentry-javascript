@@ -40,6 +40,16 @@
       "import": {
         "default": "./build/loader-hook.mjs"
       }
+    },
+    "./awslambda-auto": {
+      "import": {
+        "default": "./build/npm/cjs/awslambda-auto.js"
+      }
+    },
+    "./dist/awslambda-auto": {
+      "require": {
+        "default": "./build/npm/cjs/awslambda-auto.js"
+      }
     }
   },
   "typesVersions": {
