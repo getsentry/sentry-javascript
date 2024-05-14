@@ -14,7 +14,7 @@ import { runOutsideAngular } from './zone';
 export interface ErrorHandlerOptions {
   logErrors?: boolean;
   showDialog?: boolean;
-  dialogOptions?: Omit<ReportDialogOptions, 'eventId'>;
+  dialogOptions?: ReportDialogOptions;
   /**
    * Custom implementation of error extraction from the raw value captured by the Angular.
    * @param error Value captured by Angular's ErrorHandler provider
