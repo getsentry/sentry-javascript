@@ -89,6 +89,12 @@ jobs:
           - test-application: 'standard-frontend-react'
             build-command: 'test:build-canary'
             label: 'standard-frontend-react (canary)'
+          - test-application: 'ember-classic'
+            build-command: 'test:build-latest'
+            label: 'ember-classic (latest)'
+          - test-application: 'ember-embroider'
+            build-command: 'test:build-latest'
+            label: 'ember-embroider (latest)'
 
     steps:
       - name: Check out current commit
@@ -142,47 +148,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TITLE: ${{ matrix.label }} Test Failed
-        with:
-          filename: .github/CANARY_FAILURE_TEMPLATE.md
-          update_existing: true
-
-  job_ember_canary_test:
-    name: Ember Canary Tests
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
-    steps:
-      - name: 'Check out current commit'
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.HEAD_COMMIT }}
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: 'package.json'
-      - name: Install dependencies
-        run: yarn install --ignore-engines --frozen-lockfile
-
-      - name: Build dependencies
-        run: |
-          yarn lerna run build:types --scope=@sentry/ember --include-dependencies
-          yarn lerna run build:transpile --scope=@sentry/ember --include-dependencies
-
-      - name: Run Ember tests
-        run: |
-          cd packages/ember
-          yarn ember try:one ${{ matrix.scenario }} --skip-cleanup=true
-
-      - name: Create Issue
-        if: failure() && github.event_name == 'schedule'
-        uses: JasonEtco/create-an-issue@1b14a70e4d8dc185e5cc76d3bec9eab20257b2c5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RUN_LINK: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: Ember Canary ${{ matrix.scenario }} Test Failed
         with:
           filename: .github/CANARY_FAILURE_TEMPLATE.md
           update_existing: true
