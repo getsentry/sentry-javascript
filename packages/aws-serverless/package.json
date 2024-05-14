@@ -42,7 +42,7 @@
       }
     },
     "./awslambda-auto": {
-      "import": {
+      "require": {
         "default": "./build/npm/cjs/awslambda-auto.js"
       }
     },
