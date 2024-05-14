@@ -20,9 +20,9 @@ stable release of `8.x` comes out).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
-to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
-longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now officially support Node 14.18+ for our CJS package, and Node 18.19.1+ for our ESM package. This
+applies to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We
+no longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -866,6 +866,12 @@ in order to inject the `sentry.(server|edge).config.ts` files into the server-si
 possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them -
 hopefully reducing bugs and jank.
 
+#### Removal of `transpileClientSDK`
+
+Since we are dropping support for Internet Explorer 11 and other other older browser versions, we are also removing the
+`transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions, please configure
+Webpack and Next.js to down-compile the SDK.
+
 ### Astro SDK
 
 - [Removal of `trackHeaders` option for Astro middleware](./MIGRATION.md#removal-of-trackheaders-option-for-astro-middleware)
@@ -1282,6 +1288,13 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
+
+# Upgrading Sentry Feedback (beta, 7.x to 8.0)
+
+For details on upgrading Feedback from the beta 7.x to the release 8.x version, please view the
+[dedicated Feedback MIGRATION docs](./docs/migration/feedback.md).
+
+---
 
 # Deprecations in 7.x
 

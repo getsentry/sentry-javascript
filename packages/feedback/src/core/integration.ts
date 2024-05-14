@@ -12,7 +12,6 @@ import {
   ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
   CONFIRM_BUTTON_LABEL,
-  DEFAULT_THEME,
   DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
@@ -79,8 +78,8 @@ export const buildFeedbackIntegration = ({
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
-    themeLight,
-    themeDark,
+    themeLight = {},
+    themeDark = {},
 
     // FeedbackTextConfiguration
     addScreenshotButtonLabel = ADD_SCREENSHOT_LABEL,
@@ -118,14 +117,8 @@ export const buildFeedbackIntegration = ({
       useSentryUser,
 
       colorScheme,
-      themeDark: {
-        ...DEFAULT_THEME.dark,
-        ...themeDark,
-      },
-      themeLight: {
-        ...DEFAULT_THEME.light,
-        ...themeLight,
-      },
+      themeDark,
+      themeLight,
 
       triggerLabel,
       cancelButtonLabel,

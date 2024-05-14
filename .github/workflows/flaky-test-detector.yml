@@ -79,8 +79,17 @@ jobs:
             browser_integration: dev-packages/browser-integration-tests/suites/**/test.ts
 
       - name: Detect flaky tests
+        id: test
         run: yarn test:detect-flaky
         working-directory: dev-packages/browser-integration-tests
         env:
           CHANGED_TEST_PATHS: ${{ steps.changed.outputs.browser_integration_files }}
           TEST_RUN_COUNT: 'AUTO'
+
+      - name: Artifacts upload
+        uses: actions/upload-artifact@v4
+        if: failure() && steps.test.outcome == 'failure'
+        with:
+          name: playwright-test-results
+          path: test-results
+          retention-days: 5

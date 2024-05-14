@@ -4,7 +4,7 @@ import type { ComponentType, VNode, h as hType } from 'preact';
 // biome-ignore lint: needed for preact
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useCallback, useEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { CROP_COLOR, DOCUMENT, WINDOW } from '../../constants';
+import { DOCUMENT, WINDOW } from '../../constants';
 import { createScreenshotInputStyles } from './ScreenshotInput.css';
 import { useTakeScreenshot } from './useTakeScreenshot';
 
@@ -122,7 +122,7 @@ export function makeScreenshotEditorComponent({ imageBuffer, dialog, options }: 
       ctx.clearRect(croppingBox.x, croppingBox.y, croppingBox.width, croppingBox.height);
 
       // draw selection border
-      ctx.strokeStyle = CROP_COLOR;
+      ctx.strokeStyle = '#ffffff';
       ctx.lineWidth = 3;
       ctx.strokeRect(croppingBox.x + 1, croppingBox.y + 1, croppingBox.width - 2, croppingBox.height - 2);
       ctx.strokeStyle = '#000000';

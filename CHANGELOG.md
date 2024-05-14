@@ -4,6 +4,137 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.0.0
+
+The Sentry JS SDK team is proud to announce the release of version `8.0.0` of Sentry's JavaScript SDKs - it's been a
+long time coming! Thanks to everyone for your patience and a special shout out to the brave souls testing preview builds
+and reporting issues - we appreciate your support!
+
+---
+
+### How to Upgrade to Version 8:
+
+We recommend reading the
+[migration guide docs](https://docs.sentry.io/platforms/javascript/migration/v7-to-v8/#migration-codemod) to find out
+how to address any breaking changes in your code for your specific platform or framework.
+
+To automate upgrading to v8 as much as possible, use our migration codemod `@sentry/migr8`:
+
+```sh
+npx @sentry/migr8@latest
+```
+
+All deprecations from the v7 cycle, with the exception of `getCurrentHub()`, have been removed and can no longer be used
+in v8. If you have an advanced Sentry SDK setup, we additionally recommend reading the
+[in-depth migration guide](./MIGRATION.md) in our repo which highlights all changes with additional details and
+information.
+
+The rest of this changelog highlights the most important (breaking) changes and links to more detailed information.
+
+### Version Support
+
+With v8, we dropped support for several old runtimes and browsers
+
+**Node SDKs:** The Sentry JavaScript SDK v8 now supports **Node.js 14.8.0 or higher**. This applies to `@sentry/node`
+and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/remix`, etc.). Furthermore, version 8 now ships
+with full support for ESM-based node apps using **Node.js 18.19.0 or higher**.
+
+**Browser SDKs:** The browser SDKs now require
+[**ES2018+**](https://caniuse.com/?feats=mdn-javascript_builtins_regexp_dotall,js-regexp-lookbehind,mdn-javascript_builtins_regexp_named_capture_groups,mdn-javascript_builtins_regexp_property_escapes,mdn-javascript_builtins_symbol_asynciterator,mdn-javascript_functions_method_definitions_async_generator_methods,mdn-javascript_grammar_template_literals_template_literal_revision,mdn-javascript_operators_destructuring_rest_in_objects,mdn-javascript_operators_destructuring_rest_in_arrays,promise-finally)
+compatible browsers. New minimum browser versions:
+
+- Chrome 63
+- Edge 79
+- Safari/iOS Safari 12
+- Firefox 58
+- Opera 50
+- Samsung Internet 8.2
+
+For more details, please see the
+[version support section in our migration guide](./MIGRATION.md#1-version-support-changes).
+
+### Initializing Server-side SDKs (Node, Bun, Deno, Serverless):
+
+In v8, we support a lot more node-based packages than before. In order to ensure auto-instrumentation works, the SDK now
+needs to be imported and initialized before any other import in your code.
+
+We recommend creating a new file (e.g. `instrumentation.js`) to import and initialize the SDK. Then, import the file on
+top of your entry file or detailed instructions, check our updated SDK setup docs
+[initializing the SDK in v8](https://docs.sentry.io/platforms/javascript/guides/node/).
+
+### Performance Monitoring Changes
+
+The API around performance monitoring and tracing has been streamlined, and we've added support for more integrations
+out of the box.
+
+- [Performance Monitoring API](./MIGRATION.md#performance-monitoring-api)
+- [Performance Monitoring Integrations](./MIGRATION.md#performance-monitoring-integrations)
+
+### Functional Integrations
+
+Integrations are now simple functions instead of classes. Class-based integrations
+[have been removed](./MIGRATION.md#removal-of-class-based-integrations):
+
+```javascript
+// old (v7)
+Sentry.init({
+  integrations: [new Sentry.BrowserTracing()],
+});
+
+// new (v8)
+Sentry.init({
+  integrations: [Sentry.browserTracingIntegration()],
+});
+```
+
+### Package removal
+
+The following packages have been removed or replaced and will no longer be published:
+
+- [`@sentry/hub`](./MIGRATION.md#sentryhub)
+- [`@sentry/tracing`](./MIGRATION.md#sentrytracing)
+- [`@sentry/integrations`](./MIGRATION.md#sentryintegrations)
+- [`@sentry/serverless`](./MIGRATION.md#sentryserverless)
+- [`@sentry/replay`](./MIGRATION.md#sentryreplay)
+
+### Changes since `8.0.0-rc.3`
+
+- **feat(nextjs): Remove `transpileClientSDK` (#11978)**
+
+  As we are dropping support for Internet Explorer 11 and other other older browser versions wih version `8.0.0`, we are
+  also removing the `transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions,
+  please configure Webpack and Next.js to down-compile the SDK.
+
+- **feat(serverless): Do not include performance integrations by default (#11998)**
+
+  To keep Lambda bundle size reasonable, the SDK no longer ships with all performance (database) integrations by
+  default. Add the Sentry integrations of the databases and other tools you're using manually to your `Sentry.init` call
+  by following
+  [this guide](https://docs.sentry.io/platforms/javascript/configuration/integrations/#modifying-default-integrations).
+  Note that this change does not apply if you use the SDK with the Sentry AWS Lambda layer.
+
+- feat(feedback): Simplify public css configuration for feedback (#11985)
+- fix(feedback): Check for empty user (#11993)
+- fix(replay): Fix type for `replayCanvasIntegration` (#11995)
+- fix(replay): Fix user activity not being updated in `start()` (#12001)
+
+## 8.0.0-rc.3
+
+### Important Changes
+
+- **feat(bun): Add Bun Global Unhandled Handlers (#11960)**
+
+The Bun SDK will now capture global unhandled errors.
+
+### Other Changes
+
+- feat(node): Log process and thread info on initialisation (#11972)
+- fix(aws-serverless): Include ESM artifacts in package (#11973)
+- fix(browser): Only start `http.client` spans if there is an active parent span (#11974)
+- fix(feedback): Improve CSS theme variable names and layout (#11964)
+- fix(node): Ensure `execArgv` are not sent to worker threads (#11963)
+- ref(feedback): Simplify feedback function params (#11957)
+
 ## 8.0.0-rc.2
 
 ### Important Changes
@@ -287,7 +418,7 @@ The following packages will no longer be published
 
 ### Initializing Server-side SDKs (Node, Bun, Next.js, SvelteKit, Astro, Remix):
 
-Initializing the SDKs on the server-side has been simplified. See more details in our migration docs about
+Initializing the SDKs on the server-side has been simplified. More details in our migration docs about
 [initializing the SDK in v8](./MIGRATION.md/#initializing-the-node-sdk).
 
 ### Performance Monitoring Changes
