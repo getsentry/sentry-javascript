@@ -30,6 +30,7 @@ export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
+  initWithoutPerformance,
 } from './sdk/init';
 export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';

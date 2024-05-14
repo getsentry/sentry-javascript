@@ -88,7 +88,28 @@ declare const __IMPORT_META_URL_REPLACEMENT__: string;
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): void {
+  return _init(options, getDefaultIntegrations);
+}
+
+/**
+ * Initialize Sentry for Node, without performance instrumentation.
+ */
+export function initWithoutPerformance(options: NodeOptions | undefined = {}): void {
+  return _init(options, getDefaultIntegrationsWithoutPerformance);
+}
+
+/**
+ * Initialize Sentry for Node, without performance instrumentation.
+ */
+function _init(
+  options: NodeOptions | undefined = {},
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): void {
   const clientOptions = getClientOptions(options);
+
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
+  }
 
   if (clientOptions.debug === true) {
     if (DEBUG_BUILD) {
@@ -214,13 +235,6 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     autoSessionTracking,
     tracesSampleRate,
   });
-
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations({
-      ...options,
-      ...overwriteOptions,
-    });
-  }
 
   const clientOptions: NodeClientOptions = {
     ...baseOptions,
