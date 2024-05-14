@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",

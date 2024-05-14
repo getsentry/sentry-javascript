@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml,dist",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",

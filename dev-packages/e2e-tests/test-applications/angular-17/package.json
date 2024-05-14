@@ -11,7 +11,7 @@
     "test": "playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf .angular,node_modules,pnpm-lock.yaml,dist"
+    "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
   },
   "private": true,
   "dependencies": {
