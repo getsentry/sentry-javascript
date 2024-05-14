@@ -84,6 +84,14 @@ export function reactRouterV6BrowserTracingIntegration(
 
   return {
     ...integration,
+    setup() {
+      _useEffect = useEffect;
+      _useLocation = useLocation;
+      _useNavigationType = useNavigationType;
+      _matchRoutes = matchRoutes;
+      _createRoutesFromChildren = createRoutesFromChildren;
+      _stripBasename = stripBasename || false;
+    },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
@@ -98,13 +106,6 @@ export function reactRouterV6BrowserTracingIntegration(
           },
         });
       }
-
-      _useEffect = useEffect;
-      _useLocation = useLocation;
-      _useNavigationType = useNavigationType;
-      _matchRoutes = matchRoutes;
-      _createRoutesFromChildren = createRoutesFromChildren;
-      _stripBasename = stripBasename || false;
 
       if (instrumentNavigation) {
         CLIENTS_WITH_INSTRUMENT_NAVIGATION.push(client);
