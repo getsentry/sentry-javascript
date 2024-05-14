@@ -211,8 +211,8 @@ module.exports = [
     gzip: true,
     limit: '180 KB',
   },
-   // AWS SDK (ESM)
-   {
+  // AWS SDK (ESM)
+  {
     name: '@sentry/aws-serverless',
     path: 'packages/aws-serverless/build/npm/esm/index.js',
     import: createImport('init'),
