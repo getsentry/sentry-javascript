@@ -56,6 +56,7 @@ export {
   addBreadcrumb,
   isInitialized,
   getGlobalScope,
+  lastEventId,
   close,
   createTransport,
   flush,

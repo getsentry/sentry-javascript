@@ -121,6 +121,14 @@ export function setUser(user: User | null): void {
 }
 
 /**
+ * The last event id of the isolation scope.
+ * @returns The last event id of the isolation scope.
+ */
+export function lastEventId(): string | undefined {
+  return getIsolationScope().lastEventId();
+}
+
+/**
  * Create a cron monitor check in and send it to Sentry.
  *
  * @param checkIn An object that describes a check in.

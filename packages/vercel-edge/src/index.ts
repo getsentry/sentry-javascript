@@ -30,6 +30,7 @@ export {
   captureFeedback,
   close,
   createTransport,
+  lastEventId,
   flush,
   getClient,
   isInitialized,

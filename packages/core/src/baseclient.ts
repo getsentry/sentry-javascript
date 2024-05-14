@@ -650,6 +650,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
     this.emit('preprocessEvent', event, hint);
 
+    const eventId = event.event_id || hint.event_id;
+    if (eventId) {
+      isolationScope.setLastEventId(eventId);
+    }
+
     return prepareEvent(options, event, hint, currentScope, this, isolationScope).then(evt => {
       if (evt === null) {
         return evt;
