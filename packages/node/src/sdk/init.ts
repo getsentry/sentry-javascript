@@ -88,7 +88,24 @@ declare const __IMPORT_META_URL_REPLACEMENT__: string;
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): void {
-  const clientOptions = getClientOptions(options);
+  return _init(options, getDefaultIntegrations);
+}
+
+/**
+ * Initialize Sentry for Node, without any integrations added by default.
+ */
+export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): void {
+  return _init(options, () => []);
+}
+
+/**
+ * Initialize Sentry for Node, without performance instrumentation.
+ */
+function _init(
+  options: NodeOptions | undefined = {},
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): void {
+  const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
 
   if (clientOptions.debug === true) {
     if (DEBUG_BUILD) {
@@ -191,7 +208,10 @@ function validateOpenTelemetrySetup(): void {
   }
 }
 
-function getClientOptions(options: NodeOptions): NodeClientOptions {
+function getClientOptions(
+  options: NodeOptions,
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): NodeClientOptions {
   const release = getRelease(options.release);
 
   const autoSessionTracking =
@@ -215,17 +235,18 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     tracesSampleRate,
   });
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations({
-      ...options,
-      ...overwriteOptions,
-    });
-  }
-
-  const clientOptions: NodeClientOptions = {
+  const mergedOptions = {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
+  };
+
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
+  }
+
+  const clientOptions: NodeClientOptions = {
+    ...mergedOptions,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       defaultIntegrations: options.defaultIntegrations,
