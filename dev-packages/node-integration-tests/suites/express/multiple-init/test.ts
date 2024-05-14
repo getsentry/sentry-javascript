@@ -4,7 +4,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('allows to call init multiple times xxx', done => {
+test('allows to call init multiple times', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .ignore('session', 'sessions')
     .expect({
