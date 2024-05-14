@@ -1,7 +1,15 @@
 import type { Client, Envelope, ErrorEvent, Event, TransactionEvent } from '@sentry/types';
 import { SentryError, SyncPromise, dsnToString, logger } from '@sentry/utils';
 
-import { Scope, addBreadcrumb, getCurrentScope, getIsolationScope, makeSession, setCurrentClient } from '../../src';
+import {
+  Scope,
+  addBreadcrumb,
+  getCurrentScope,
+  getIsolationScope,
+  lastEventId,
+  makeSession,
+  setCurrentClient,
+} from '../../src';
 import * as integrationModule from '../../src/integration';
 import { TestClient, getDefaultTestClientOptions } from '../mocks/client';
 import { AdHocIntegration, TestIntegration } from '../mocks/integration';
@@ -226,7 +234,6 @@ describe('BaseClient', () => {
       const client = new TestClient(options);
 
       client.captureException(new Error('test exception'));
-
       expect(TestClient.instance!.event).toEqual(
         expect.objectContaining({
           environment: 'production',
@@ -242,6 +249,14 @@ describe('BaseClient', () => {
           timestamp: 2020,
         }),
       );
+    });
+
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureException(new Error('test exception'));
+      expect(eventId).toEqual(lastEventId());
     });
 
     test('allows for providing explicit scope', () => {
@@ -343,6 +358,14 @@ describe('BaseClient', () => {
       );
     });
 
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureMessage('test message');
+      expect(eventId).toEqual(lastEventId());
+    });
+
     test('should call `eventFromException` if input to `captureMessage` is not a primitive', () => {
       const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
       const client = new TestClient(options);
@@ -442,6 +465,14 @@ describe('BaseClient', () => {
           timestamp: 2020,
         }),
       );
+    });
+
+    test('sets the correct lastEventId', () => {
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN });
+      const client = new TestClient(options);
+
+      const eventId = client.captureEvent({ message: 'message' }, undefined);
+      expect(eventId).toEqual(lastEventId());
     });
 
     test('does not overwrite existing timestamp', () => {

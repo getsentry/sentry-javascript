@@ -15,6 +15,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  lastEventId,
   close,
   flush,
   setContext,

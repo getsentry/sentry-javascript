@@ -36,6 +36,7 @@ export {
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,
