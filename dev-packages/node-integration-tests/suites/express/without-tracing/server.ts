@@ -18,7 +18,7 @@ app.get('/test/isolationScope/:id', (req, res) => {
   const id = req.params.id;
   Sentry.setTag('isolation-scope', 'tag');
   Sentry.setTag(`isolation-scope-${id}`, id);
-  Sentry.setTag(`isolation-scope-transactionName`, `${Sentry.getIsolationScope().getScopeData().transactionName}`);
+  Sentry.setTag('isolation-scope-transactionName', `${Sentry.getIsolationScope().getScopeData().transactionName}`);
 
   Sentry.captureException(new Error('This is an exception'));
 
