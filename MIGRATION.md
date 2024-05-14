@@ -616,6 +616,13 @@ addEventProcessor(event => {
 The Sentry tRPC middleware got moved from `Sentry.Handlers.trpcMiddleware()` to `Sentry.trpcMiddleware()`. Functionally
 they are the same:
 
+#### Removal of `Sentry.Handlers.requestHandler()`, `Sentry.Handlers.tracingHandler()` and `Sentry.Handlers.errorHandler()`
+
+For Express and Connect you previously had to use `Sentry.Handlers.requestHandler()`,
+`Sentry.Handlers.tracingHandler()`, and `Sentry.Handlers.errorHandler()` to add Sentry instrumentation to your app. In
+8.x, you only need to use the framework specific error handler (e.g `Sentry.setupExpressErrorHandler(app)`), you can
+remove all other handlers.
+
 ```js
 // v7
 import * as Sentry from '@sentry/node';
