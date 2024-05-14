@@ -375,7 +375,7 @@ To make sure these integrations work properly you'll have to change how you
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
-`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
+`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`, `getActiveTransaction`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
@@ -389,7 +389,6 @@ Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `t
 - [Removal of `Span` class export from SDK packages](./MIGRATION.md#removal-of-span-class-export-from-sdk-packages)
 - [Removal of `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode`](./MIGRATION.md#removal-of-spanstatusfromhttpcode-in-favour-of-getspanstatusfromhttpcode)
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
-- [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
 - [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
 - [Remove `addGlobalEventProcessor` in favor of `addEventProcessor`](./MIGRATION.md#remove-addglobaleventprocessor-in-favor-of-addeventprocessor)
 
@@ -567,10 +566,6 @@ Sentry.getGlobalScope().addEventProcessor(event => {
   return event;
 });
 ```
-
-#### Removal of `lastEventId()` method
-
-The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
 
 #### Removal of `void` from transport return types
 
@@ -1569,7 +1564,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | captureException()     | `Sentry.captureException()`                                                          |
 | captureMessage()       | `Sentry.captureMessage()`                                                            |
 | captureEvent()         | `Sentry.captureEvent()`                                                              |
-| lastEventId()          | REMOVED - Use event processors or beforeSend instead                                 |
+| lastEventId()          | `Sentry.lastEventId()`                                                               |
 | addBreadcrumb()        | `Sentry.addBreadcrumb()`                                                             |
 | setUser()              | `Sentry.setUser()`                                                                   |
 | setTags()              | `Sentry.setTags()`                                                                   |
@@ -1690,35 +1685,6 @@ app.get('/your-route', req => {
 });
 ```
 
-## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
-
-`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend`
-callback.
-
-```js
-// Before
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = Sentry.lastEventId();
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-
-// After
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
-
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -1785,25 +1751,6 @@ Instead, import this directly from `@sentry/utils`.
 
 Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles
 scope propagation for you.
-
-## Deprecate `lastEventId()`
-
-Instead, if you need the ID of a recently captured event, we recommend using `beforeSend` instead:
-
-```ts
-import * as Sentry from '@sentry/browser';
-
-Sentry.init({
-  dsn: '__DSN__',
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
 
 ## Deprecate `timestampWithMs` export - #7878
 
