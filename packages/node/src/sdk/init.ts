@@ -92,10 +92,10 @@ export function init(options: NodeOptions | undefined = {}): void {
 }
 
 /**
- * Initialize Sentry for Node, without performance instrumentation.
+ * Initialize Sentry for Node, without any integrations added by default.
  */
-export function initWithoutPerformance(options: NodeOptions | undefined = {}): void {
-  return _init(options, getDefaultIntegrationsWithoutPerformance);
+export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): void {
+  return _init(options, () => []);
 }
 
 /**
@@ -105,11 +105,7 @@ function _init(
   options: NodeOptions | undefined = {},
   getDefaultIntegrationsImpl: (options: Options) => Integration[],
 ): void {
-  const clientOptions = getClientOptions(options);
-
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrationsImpl(options);
-  }
+  const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
 
   if (clientOptions.debug === true) {
     if (DEBUG_BUILD) {
@@ -212,7 +208,10 @@ function validateOpenTelemetrySetup(): void {
   }
 }
 
-function getClientOptions(options: NodeOptions): NodeClientOptions {
+function getClientOptions(
+  options: NodeOptions,
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): NodeClientOptions {
   const release = getRelease(options.release);
 
   const autoSessionTracking =
@@ -236,10 +235,18 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     tracesSampleRate,
   });
 
-  const clientOptions: NodeClientOptions = {
+  const mergedOptions = {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
+  };
+
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
+  }
+
+  const clientOptions: NodeClientOptions = {
+    ...mergedOptions,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       defaultIntegrations: options.defaultIntegrations,

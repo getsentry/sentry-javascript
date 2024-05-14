@@ -11,7 +11,7 @@ import {
   flush,
   getCurrentScope,
   getDefaultIntegrationsWithoutPerformance,
-  initWithoutPerformance,
+  initWithoutDefaultIntegrations,
   startSpanManual,
   withScope,
 } from '@sentry/node';
@@ -93,7 +93,7 @@ export function init(options: NodeOptions = {}): void {
     version: SDK_VERSION,
   };
 
-  initWithoutPerformance(opts);
+  initWithoutDefaultIntegrations(opts);
 }
 
 /** */
