@@ -4,7 +4,7 @@ afterAll(() => {
   cleanupChildProcesses();
 });
 
-test('correctly applies isolation scope even without tracing', async () => {
+test('correctly applies isolation scope even without tracing', done => {
   const runner = createRunner(__dirname, 'server.ts')
     .ignore('session', 'sessions')
     .expect({
@@ -43,8 +43,7 @@ test('correctly applies isolation scope even without tracing', async () => {
         },
       },
     })
-    .start();
+    .start(done);
 
-  await runner.makeRequest('get', '/test/isolationScope/1');
-  await runner.makeRequest('get', '/test/isolationScope/2');
+  runner.makeRequest('get', '/test/isolationScope/1').then(() => runner.makeRequest('get', '/test/isolationScope/2'));
 });
