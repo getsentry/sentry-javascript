@@ -15,8 +15,8 @@ dependencies on OpenTelemetry. Below we will outline the steps you need to take 
 Before updating to `8.x` of the SDK, we recommend upgrading to the latest version of `7.x`. You can then follow
 [these steps](./MIGRATION.md#deprecations-in-7x) remove deprecated methods in `7.x` before upgrading to `8.x`.
 
-The v8 version of the JavaScript SDK requires a self-hosted version of Sentry TBD or higher (Will be chosen once first
-stable release of `8.x` comes out).
+The v8 version of the JavaScript SDK requires a self-hosted version of Sentry 24.4.2 (for user feedback screenshots) or
+higher. Lower versions may continue to work, but may not support all features (e.g. the new user feedback APIs).
 
 ## 1. Version Support changes:
 
