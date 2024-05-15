@@ -99,10 +99,8 @@ export function withIsolationScope<T>(callback: (isolationScope: Scope) => T): T
 
 /**
  * Get the ID of the last sent error event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
  */
 export function lastEventId(): string | undefined {
-  // eslint-disable-next-line deprecation/deprecation
   return getCurrentScope().lastEventId();
 }
 

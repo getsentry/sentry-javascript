@@ -44,7 +44,6 @@ export {
   getCurrentScope,
   // eslint-disable-next-line deprecation/deprecation
   Hub,
-  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   // eslint-disable-next-line deprecation/deprecation
   // eslint-disable-next-line deprecation/deprecation

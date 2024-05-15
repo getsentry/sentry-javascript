@@ -387,7 +387,6 @@ export async function close(timeout?: number): Promise<boolean> {
  * This is the getter for lastEventId.
  *
  * @returns The last event id of a captured event.
- * @deprecated This function will be removed in the next major version of the Sentry SDK.
  */
 export function lastEventId(): string | undefined {
   // eslint-disable-next-line deprecation/deprecation

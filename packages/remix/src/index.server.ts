@@ -65,7 +65,6 @@ export {
   defaultIntegrations,
   getDefaultIntegrations,
   defaultStackParser,
-  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   flush,
   close,
