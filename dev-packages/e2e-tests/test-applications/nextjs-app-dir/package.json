@@ -41,7 +41,8 @@
     "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
-    "@sentry/vercel-edge": "latest || *"
+    "@sentry/vercel-edge": "latest || *",
+    "ts-node": "10.9.1"
   },
   "volta": {
     "extends": "../../package.json"
