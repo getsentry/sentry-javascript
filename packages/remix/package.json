@@ -31,7 +31,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "dependencies": {
     "@remix-run/router": "1.x",

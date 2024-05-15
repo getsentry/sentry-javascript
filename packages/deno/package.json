@@ -9,7 +9,8 @@
   "module": "build/index.mjs",
   "types": "build/index.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "files": [
     "index.mjs",
