@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "dev": "ng serve",
-    "proxy": "ts-node-script start-event-proxy.ts",
+    "proxy": "node start-event-proxy.mjs",
     "preview": "http-server dist/angular-17/browser --port 8080",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",

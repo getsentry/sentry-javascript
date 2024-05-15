@@ -75,3 +75,5 @@ const config: PlaywrightTestConfig = {
 };
 
 export default config;
+
+`node --require @sentry/node/require my-app.js`;
