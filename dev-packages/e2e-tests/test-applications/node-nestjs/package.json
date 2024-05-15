@@ -9,7 +9,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test": "playwright test",
     "test:build": "pnpm install",
     "test:assert": "pnpm test"

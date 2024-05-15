@@ -7,7 +7,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "proxy": "node start-event-proxy.mjs",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "test:prod": "TEST_ENV=production playwright test",

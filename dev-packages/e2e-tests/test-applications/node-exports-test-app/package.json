@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "pnpm build && bun run ./dist/consistentExports.js",
     "test": " bun run ./dist/consistentExports.js",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml,dist",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml dist",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },

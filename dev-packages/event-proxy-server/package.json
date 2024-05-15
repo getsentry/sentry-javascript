@@ -34,6 +34,7 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "build": "run-s build:transpile build:types",
+    "build:tarball": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
