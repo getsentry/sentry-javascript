@@ -104,17 +104,6 @@ export interface BrowserTracingOptions {
   enableInp: boolean;
 
   /**
-   * Sample rate to determine interaction (INP) span sampling.
-   *
-   * The `interactionsSampleRate` is applied on top of the global `tracesSampleRate`.
-   * For example, a tracesSampleRate of 0.1 and interactionsSampleRate of 0.5 will result in a 0.05 sample rate
-   * for interactions.
-   *
-   * Default: 1
-   */
-  interactionsSampleRate: number;
-
-  /**
    * Flag to disable patching all together for fetch requests.
    *
    * Default: true
@@ -166,7 +155,6 @@ const DEFAULT_BROWSER_TRACING_OPTIONS: BrowserTracingOptions = {
   markBackgroundSpan: true,
   enableLongTask: true,
   enableInp: true,
-  interactionsSampleRate: 1,
   _experiments: {},
   ...defaultRequestInstrumentationOptions,
 };
@@ -185,7 +173,6 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
 
   const {
     enableInp,
-    interactionsSampleRate,
     enableLongTask,
     _experiments: { enableInteractions },
     beforeStartSpan,
@@ -207,14 +194,7 @@ export const browserTracingIntegration = ((_options: Partial<BrowserTracingOptio
   const _collectWebVitals = startTrackingWebVitals();
 
   if (enableInp) {
-    const isValidInteractionsSampleRate = interactionsSampleRate >= 0 && interactionsSampleRate <= 1;
-    if (isValidInteractionsSampleRate) {
-      DEBUG_BUILD &&
-        logger.warn(
-          `[Tracing] \`interactionsSampleRate\` must be between 0 and 1. Got: ${interactionsSampleRate}. Setting to 100%`,
-        );
-    }
-    startTrackingINP(isValidInteractionsSampleRate ? interactionsSampleRate : 1);
+    startTrackingINP();
   }
 
   if (enableLongTask) {

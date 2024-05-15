@@ -17,10 +17,10 @@ import { getBrowserPerformanceAPI, msToSec } from './utils';
 /**
  * Start tracking INP webvital events.
  */
-export function startTrackingINP(interactionsSampleRate: number): () => void {
+export function startTrackingINP(): () => void {
   const performance = getBrowserPerformanceAPI();
   if (performance && browserPerformanceTimeOrigin) {
-    const inpCallback = _trackINP(interactionsSampleRate);
+    const inpCallback = _trackINP();
 
     return (): void => {
       inpCallback();
@@ -60,16 +60,8 @@ const INP_ENTRY_MAP: Record<string, 'click' | 'hover' | 'drag' | 'press'> = {
 };
 
 /** Starts tracking the Interaction to Next Paint on the current page. */
-function _trackINP(interactionsSampleRate: number): () => void {
+function _trackINP(): () => void {
   return addInpInstrumentationHandler(({ metric }) => {
-    // As specified in the `interactionsSampleRate` option, the sampling decision shall be based on
-    // `tracesSampleRate` x `interactionsSampleRate`
-    // This is the same as sampling here first on `interactionsSampleRate` and later again on `tracesSampleRate`
-    // (which is done in `startInactiveSpan`). Doing it this way is easier and more bundle-size efficient.
-    if (Math.random() > interactionsSampleRate) {
-      return;
-    }
-
     const client = getClient();
     if (!client || metric.value == undefined) {
       return;

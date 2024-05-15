@@ -36,8 +36,6 @@ import {
 } from '../../../src/tracing/browserTracingIntegration';
 import { getDefaultBrowserClientOptions } from '../helper/browser-client-options';
 
-import * as browserUtils from '@sentry-internal/browser-utils';
-
 // We're setting up JSDom here because the Next.js routing instrumentations requires a few things to be present on pageload:
 // 1. Access to window.document API for `window.document.getElementById`
 // 2. Access to window.location API for `window.location.pathname`
@@ -998,28 +996,6 @@ describe('browserTracingIntegration', () => {
       expect(spans).toHaveLength(2);
       expect(spans[1]).toBe(idleSpan);
     });
-  });
-
-  describe('INP - interactionsSampleRate', () => {
-    const startTrackingInpSpy = jest.spyOn(browserUtils, 'startTrackingINP');
-
-    it('sets interactionsSampleRate to 1 by default', () => {
-      browserTracingIntegration();
-      expect(startTrackingInpSpy).toHaveBeenCalledWith(1);
-    });
-
-    it.each([0, 0.5, 1])('passes on user-defined interactionsSampleRate', interactionsSampleRate => {
-      browserTracingIntegration({ interactionsSampleRate });
-      expect(startTrackingInpSpy).toHaveBeenCalledWith(interactionsSampleRate);
-    });
-
-    it.each([-1, 1.1, NaN, Infinity])(
-      'falls back to 100% when receiving an invalid interactionsSampleRate',
-      interactionsSampleRate => {
-        browserTracingIntegration({ interactionsSampleRate });
-        expect(startTrackingInpSpy).toHaveBeenCalledWith(1);
-      },
-    );
   });
 
   // TODO(lforst): I cannot manage to get this test to pass.
