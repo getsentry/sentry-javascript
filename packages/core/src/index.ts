@@ -25,6 +25,7 @@ export {
   setTags,
   setUser,
   isInitialized,
+  isEnabled,
   startSession,
   endSession,
   captureSession,

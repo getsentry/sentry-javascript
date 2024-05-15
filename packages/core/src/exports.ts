@@ -242,6 +242,12 @@ export function isInitialized(): boolean {
   return !!getClient();
 }
 
+/** If the SDK is initialized & enabled. */
+export function isEnabled(): boolean {
+  const client = getClient();
+  return !!client && client.getOptions().enabled !== false && !!client.getTransport();
+}
+
 /**
  * Add an event processor.
  * This will be added to the current isolation scope, ensuring any event that is processed in the current execution

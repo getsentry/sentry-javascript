@@ -1,6 +1,6 @@
 import { isWrapped } from '@opentelemetry/core';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
-import { captureException, defineIntegration, getIsolationScope } from '@sentry/core';
+import { captureException, defineIntegration, getIsolationScope, isEnabled } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
@@ -84,7 +84,7 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
 
   fastify.register(plugin);
 
-  if (!isWrapped(fastify.addHook)) {
+  if (!isWrapped(fastify.addHook) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
