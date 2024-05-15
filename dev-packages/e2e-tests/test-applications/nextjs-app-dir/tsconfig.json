@@ -21,5 +21,10 @@
     "incremental": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "next.config.js", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "playwright.config.ts"]
+  "exclude": ["node_modules", "playwright.config.ts"],
+  "ts-node": {
+    "compilerOptions": {
+      "module": "CommonJS"
+    }
+  }
 }
