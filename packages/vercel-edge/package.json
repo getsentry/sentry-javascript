@@ -26,7 +26,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "dependencies": {
     "@sentry-internal/tracing": "7.114.0",

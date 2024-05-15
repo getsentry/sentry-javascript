@@ -8,7 +8,8 @@
   "license": "MIT",
   "private": false,
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "files": [
     "tsconfig.json"

@@ -10,7 +10,8 @@
     "ember-addon"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "directories": {
     "doc": "doc",

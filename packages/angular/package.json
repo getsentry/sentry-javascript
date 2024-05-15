@@ -12,7 +12,8 @@
   "main": "build/bundles/sentry-angular.umd.js",
   "module": "build/fesm2015/sentry-angular.js",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "peerDependencies": {
     "@angular/common": ">= 10.x <= 15.x",

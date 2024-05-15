@@ -21,7 +21,8 @@
     }
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "v7"
   },
   "dependencies": {
     "@rollup/plugin-commonjs": "24.0.0",
