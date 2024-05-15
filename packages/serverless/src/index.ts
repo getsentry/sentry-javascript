@@ -66,7 +66,6 @@ export {
   flush,
   getSentryRelease,
   init,
-  // eslint-disable-next-line deprecation/deprecation
   lastEventId,
   DEFAULT_USER_INCLUDES,
   addRequestDataToEvent,

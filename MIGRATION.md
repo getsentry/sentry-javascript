@@ -256,7 +256,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | captureException()     | `Sentry.captureException()`                                                          |
 | captureMessage()       | `Sentry.captureMessage()`                                                            |
 | captureEvent()         | `Sentry.captureEvent()`                                                              |
-| lastEventId()          | REMOVED - Use event processors or beforeSend instead                                 |
+| lastEventId()          | `Sentry.lastEventId()`                                                               |
 | addBreadcrumb()        | `Sentry.addBreadcrumb()`                                                             |
 | setUser()              | `Sentry.setUser()`                                                                   |
 | setTags()              | `Sentry.setTags()`                                                                   |
@@ -381,36 +381,6 @@ app.get('/your-route', req => {
 });
 ```
 
-## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
-
-`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend`
-callback.
-
-```js
-// Before
-
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = Sentry.lastEventId();
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-
-// After
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
-
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -477,25 +447,6 @@ Instead, import this directly from `@sentry/utils`.
 
 Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles
 scope propagation for you.
-
-## Deprecate `lastEventId()`
-
-Instead, if you need the ID of a recently captured event, we recommend using `beforeSend` instead:
-
-```ts
-import * as Sentry from '@sentry/browser';
-
-Sentry.init({
-  dsn: '__DSN__',
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
 
 ## Deprecate `timestampWithMs` export - #7878
 
@@ -621,7 +572,7 @@ This is no longer used.
 
 ## Deprecate @sentry/hub (since 7.15.0) - #5823
 
-This release deprecates `@sentry/hub` and all of it's exports. All of the `@sentry/hub` exports have moved to
+This release deprecates `@sentry/hub` and all of its exports. All of the `@sentry/hub` exports have moved to
 `@sentry/core`. `@sentry/hub` will be removed in the next major release.
 
 # Upgrading Sentry Replay (beta, 7.24.0)
