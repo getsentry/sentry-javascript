@@ -14,7 +14,7 @@ app.get('/test-success', function (req, res) {
 });
 
 app.get('/test-params/:param', function (req, res) {
-  const {param} = req.params;
+  const { param } = req.params;
   Sentry.setTag(`param-${param}`, 'yes');
   Sentry.captureException(new Error(`Error for param ${param}`));
 
