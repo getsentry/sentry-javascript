@@ -9,6 +9,7 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
+  isEnabled,
 } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
@@ -95,7 +96,7 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (!isWrapped(server.register)) {
+  if (!isWrapped(server.register) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(
