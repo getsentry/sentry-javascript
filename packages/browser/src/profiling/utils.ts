@@ -12,7 +12,14 @@ import type {
   StackParser,
   ThreadCpuProfile,
 } from '@sentry/types';
-import { GLOBAL_OBJ, browserPerformanceTimeOrigin, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
+import {
+  GLOBAL_OBJ,
+  browserPerformanceTimeOrigin,
+  forEachEnvelopeItem,
+  logger,
+  timestampInSeconds,
+  uuid4,
+} from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 import { WINDOW } from '../helpers';
@@ -152,8 +159,8 @@ export function createProfilePayload(
     ? start_timestamp
     : typeof event.start_timestamp === 'number'
       ? event.start_timestamp * 1000
-      : Date.now();
-  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : Date.now();
+      : timestampInSeconds() * 1000;
+  const transactionEndMs = typeof event.timestamp === 'number' ? event.timestamp * 1000 : timestampInSeconds() * 1000;
 
   const profile: Profile = {
     event_id: profile_id,

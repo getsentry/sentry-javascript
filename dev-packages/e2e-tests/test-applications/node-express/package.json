@@ -6,7 +6,7 @@
     "build": "tsc",
     "start": "node dist/app.js",
     "test": "playwright test",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && pnpm build",
     "test:assert": "pnpm test"
   },
@@ -24,8 +24,7 @@
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.27.1",
-    "ts-node": "10.9.1"
+    "@playwright/test": "^1.27.1"
   },
   "volta": {
     "extends": "../../package.json"

@@ -6,6 +6,7 @@ import {
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  isEnabled,
   spanToJSON,
 } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
@@ -50,7 +51,7 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
     }
   });
 
-  if (!isWrapped(app.use)) {
+  if (!isWrapped(app.use) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(

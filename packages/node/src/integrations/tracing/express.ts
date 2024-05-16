@@ -1,6 +1,6 @@
 import type * as http from 'http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { defineIntegration, getDefaultIsolationScope } from '@sentry/core';
+import { defineIntegration, getDefaultIsolationScope, isEnabled } from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
@@ -119,7 +119,7 @@ export function expressErrorHandler(options?: {
 export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
   app.use(expressErrorHandler());
 
-  if (!isWrapped(app.use)) {
+  if (!isWrapped(app.use) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(

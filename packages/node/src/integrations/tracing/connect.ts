@@ -1,6 +1,6 @@
 import { isWrapped } from '@opentelemetry/core';
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
-import { captureException, defineIntegration } from '@sentry/core';
+import { captureException, defineIntegration, isEnabled } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
@@ -30,7 +30,7 @@ function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
 export const setupConnectErrorHandler = (app: ConnectApp): void => {
   app.use(connectErrorMiddleware);
 
-  if (!isWrapped(app.use)) {
+  if (!isWrapped(app.use) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
       console.warn(

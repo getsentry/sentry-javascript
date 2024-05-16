@@ -4,14 +4,14 @@
   "scripts": {
     "ng": "ng",
     "dev": "ng serve",
-    "proxy": "ts-node-script start-event-proxy.ts",
+    "proxy": "node start-event-proxy.mjs",
     "preview": "http-server dist/angular-17/browser --port 8080",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "playwright test",
-    "clean": "npx rimraf .angular,node_modules,pnpm-lock.yaml,dist"
+    "clean": "npx rimraf .angular node_modules pnpm-lock.yaml dist"
   },
   "private": true,
   "dependencies": {
@@ -42,7 +42,6 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
-    "ts-node": "10.9.1",
     "typescript": "~5.3.2",
     "wait-port": "1.0.4"
   },

@@ -1003,7 +1003,8 @@ jobs:
             'create-remix-app-express',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
-            # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
+            'node-express-esm-loader',
+            'node-express-esm-without-loader',
             'nextjs-app-dir',
             'nextjs-14',
             'react-create-hash-router',

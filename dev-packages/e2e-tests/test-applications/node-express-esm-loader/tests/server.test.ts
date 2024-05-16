@@ -1,0 +1,117 @@
+import { expect, test } from '@playwright/test';
+import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
+
+test('Should record exceptions captured inside handlers', async ({ request }) => {
+  const errorEventPromise = waitForError('node-express-esm-loader', errorEvent => {
+    return !!errorEvent?.exception?.values?.[0]?.value?.includes('This is an error');
+  });
+
+  await request.get('/test-error');
+
+  await expect(errorEventPromise).resolves.toBeDefined();
+});
+
+test('Should record a transaction for a parameterless route', async ({ request }) => {
+  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
+    return transactionEvent?.transaction === 'GET /test-success';
+  });
+
+  await request.get('/test-success');
+
+  await expect(transactionEventPromise).resolves.toBeDefined();
+});
+
+test('Should record a transaction for route with parameters', async ({ request }) => {
+  const transactionEventPromise = waitForTransaction('node-express-esm-loader', transactionEvent => {
+    return transactionEvent.contexts?.trace?.data?.['http.target'] === '/test-transaction/1';
+  });
+
+  await request.get('/test-transaction/1');
+
+  const transactionEvent = await transactionEventPromise;
+
+  expect(transactionEvent).toBeDefined();
+  expect(transactionEvent.transaction).toEqual('GET /test-transaction/:param');
+  expect(transactionEvent.contexts?.trace?.data).toEqual(
+    expect.objectContaining({
+      'http.flavor': '1.1',
+      'http.host': 'localhost:3030',
+      'http.method': 'GET',
+      'http.response.status_code': 200,
+      'http.route': '/test-transaction/:param',
+      'http.scheme': 'http',
+      'http.status_code': 200,
+      'http.status_text': 'OK',
+      'http.target': '/test-transaction/1',
+      'http.url': 'http://localhost:3030/test-transaction/1',
+      'http.user_agent': expect.any(String),
+      'net.host.ip': expect.any(String),
+      'net.host.name': 'localhost',
+      'net.host.port': 3030,
+      'net.peer.ip': expect.any(String),
+      'net.peer.port': expect.any(Number),
+      'net.transport': 'ip_tcp',
+      'otel.kind': 'SERVER',
+      'sentry.op': 'http.server',
+      'sentry.origin': 'auto.http.otel.http',
+      'sentry.sample_rate': 1,
+      'sentry.source': 'route',
+      url: 'http://localhost:3030/test-transaction/1',
+    }),
+  );
+
+  const spans = transactionEvent.spans || [];
+  expect(spans).toContainEqual({
+    data: {
+      'express.name': 'query',
+      'express.type': 'middleware',
+      'http.route': '/',
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'auto.http.otel.express',
+    },
+    description: 'middleware - query',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'express.name': 'expressInit',
+      'express.type': 'middleware',
+      'http.route': '/',
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'auto.http.otel.express',
+    },
+    description: 'middleware - expressInit',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'express.name': '/test-transaction/:param',
+      'express.type': 'request_handler',
+      'http.route': '/test-transaction/:param',
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'auto.http.otel.express',
+    },
+    description: 'request handler - /test-transaction/:param',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+});
