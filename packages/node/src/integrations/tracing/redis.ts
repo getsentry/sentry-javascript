@@ -24,7 +24,7 @@ function shouldConsiderForCache(
   return (redisCommand === 'get' || redisCommand === 'set') && typeof key === 'string' && keyHasPrefix(key, prefixes);
 }
 
-function calculateCacheItemSize(response: unknown): number {
+function calculateCacheItemSize(response: unknown): number | undefined {
   try {
     if (Buffer.isBuffer(response)) return response.byteLength;
     else if (typeof response === 'string') return response.length;
@@ -32,7 +32,7 @@ function calculateCacheItemSize(response: unknown): number {
     else if (response === null || response === undefined) return 0;
     return JSON.stringify(response).length;
   } catch (e) {
-    return 0;
+    return undefined;
   }
 }
 
@@ -56,19 +56,21 @@ const _redisIntegration = ((options?: RedisOptions) => {
 
             const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
             const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
-            span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
+            if (networkPeerPort && networkPeerAddress) {
+              span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
+            }
 
             const cacheItemSize = calculateCacheItemSize(response);
-            span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+            if (cacheItemSize) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
 
             if (typeof key === 'string') {
               switch (redisCommand) {
                 case 'get':
                   span.setAttributes({
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item',
+                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item', // todo: will be changed to cache.get
                     [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                    [SEMANTIC_ATTRIBUTE_CACHE_HIT]: cacheItemSize > 0,
                   });
+                  if (cacheItemSize !== undefined) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
                   break;
                 case 'set':
                   span.setAttributes({
