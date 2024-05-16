@@ -29,7 +29,6 @@ test('Isolates requests', async ({ request }) => {
   expect(errorEvent1.tags).toEqual({ 'param-1': 'yes' });
   expect(errorEvent2.tags).toEqual({ 'param-2': 'yes' });
 
-  // Transaction is not set, since we have no expressIntegration by default
-  expect(errorEvent1.transaction).toBeUndefined();
-  expect(errorEvent2.transaction).toBeUndefined();
+  expect(errorEvent1.transaction).toBe('GET /test-params/1');
+  expect(errorEvent2.transaction).toBe('GET /test-params/2');
 });

@@ -12,7 +12,6 @@ import {
   getIsolationScope,
   isSentryRequestUrl,
   setCapturedScopesOnSpan,
-  spanToJSON,
 } from '@sentry/core';
 import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
@@ -121,13 +120,9 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
             // attempt to update the scope's `transactionName` based on the request URL
             // Ideally, framework instrumentations coming after the HttpInstrumentation
             // update the transactionName once we get a parameterized route.
-            const attributes = spanToJSON(span).data;
-            if (!attributes) {
-              return;
-            }
+            const httpMethod = (req.method || 'GET').toUpperCase();
+            const httpTarget = stripUrlQueryAndFragment(req.url || '/');
 
-            const httpMethod = String(attributes['http.method']).toUpperCase() || 'GET';
-            const httpTarget = stripUrlQueryAndFragment(String(attributes['http.target'])) || '/';
             const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
 
             isolationScope.setTransactionName(bestEffortTransactionName);

@@ -9,12 +9,11 @@ test('correctly applies isolation scope even without tracing', done => {
     .ignore('session', 'sessions')
     .expect({
       event: {
+        transaction: 'GET /test/isolationScope/1',
         tags: {
           global: 'tag',
           'isolation-scope': 'tag',
           'isolation-scope-1': '1',
-          // We can't properly test non-existance of fields here, so we cast this to a string to test it here
-          'isolation-scope-transactionName': 'undefined',
         },
         // Request is correctly set
         request: {
@@ -27,12 +26,11 @@ test('correctly applies isolation scope even without tracing', done => {
     })
     .expect({
       event: {
+        transaction: 'GET /test/isolationScope/2',
         tags: {
           global: 'tag',
           'isolation-scope': 'tag',
           'isolation-scope-2': '2',
-          // We can't properly test non-existance of fields here, so we cast this to a string to test it here
-          'isolation-scope-transactionName': 'undefined',
         },
         // Request is correctly set
         request: {
