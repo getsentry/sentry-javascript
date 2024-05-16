@@ -28,7 +28,7 @@ interface NestJsErrorFilter {
 interface MinimalNestJsApp {
   useGlobalFilters: (arg0: NestJsErrorFilter) => void;
   useGlobalInterceptors: (interceptor: {
-    intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => void }) => void;
+    intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => any }) => any;
   }) => void;
 }
 

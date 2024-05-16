@@ -4,6 +4,11 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.2.1
+
+- fix(aws-serverless): Fix build of lambda layer (#12083)
+- fix(nestjs): Broaden nest.js type (#12076)
+
 ## 8.2.0
 
 - feat(redis-cache): Create cache-span with prefixed keys (get/set commands) (#12070)
