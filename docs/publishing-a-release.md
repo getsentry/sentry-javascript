@@ -7,7 +7,7 @@ _These steps are only relevant to Sentry employees when preparing and publishing
 
 1. Run `yarn changelog` on the `develop` branch and determine what version will be released (we use
    [semver](https://semver.org))
-2. Create a branch `prepare-release/VERSION`, eg. `prepare-release/7.37.0`, off develop
+2. Create a branch `prepare-release/VERSION`, eg. `prepare-release/8.1.0`, off develop
 3. Update [`CHANGELOG.md`](https://github.com/getsentry/sentry-javascript/edit/master/CHANGELOG.md) to add an entry for
    the next release number and a list of changes since the last release. (See details below.)
 4. Open a PR with the title `meta(changelog): Update changelog for VERSION` against `master` branch.
