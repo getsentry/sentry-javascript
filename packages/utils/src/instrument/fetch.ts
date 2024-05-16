@@ -3,6 +3,7 @@ import type { HandlerDataFetch } from '@sentry/types';
 
 import { fill } from '../object';
 import { supportsNativeFetch } from '../supports';
+import { timestampInSeconds } from '../time';
 import { GLOBAL_OBJ } from '../worldwide';
 import { addHandler, maybeInstrument, triggerHandlers } from './handlers';
 
@@ -37,7 +38,7 @@ function instrumentFetch(): void {
           method,
           url,
         },
-        startTimestamp: Date.now(),
+        startTimestamp: timestampInSeconds() * 1000,
       };
 
       triggerHandlers('fetch', {
@@ -49,7 +50,7 @@ function instrumentFetch(): void {
         (response: Response) => {
           const finishedHandlerData: HandlerDataFetch = {
             ...handlerData,
-            endTimestamp: Date.now(),
+            endTimestamp: timestampInSeconds() * 1000,
             response,
           };
 
@@ -59,7 +60,7 @@ function instrumentFetch(): void {
         (error: Error) => {
           const erroredHandlerData: HandlerDataFetch = {
             ...handlerData,
-            endTimestamp: Date.now(),
+            endTimestamp: timestampInSeconds() * 1000,
             error,
           };
 
