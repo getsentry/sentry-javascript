@@ -34,7 +34,7 @@ const DEFAULT_MAX_BREADCRUMBS = 100;
 /**
  * Holds additional event information.
  */
-export class Scope implements ScopeInterface {
+class ScopeClass implements ScopeInterface {
   /** Flag if notifying is happening. */
   protected _notifyingListeners: boolean;
 
@@ -116,8 +116,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public clone(): Scope {
-    const newScope = new Scope();
+  public clone(): ScopeClass {
+    const newScope = new ScopeClass();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
@@ -586,6 +586,20 @@ export class Scope implements ScopeInterface {
     }
   }
 }
+
+// NOTE: By exporting this here as const & type, instead of doing `export class`,
+// We can get the correct class when importing from `@sentry/core`, but the original type (from `@sentry/types`)
+// This is helpful for interop, e.g. when doing `import type { Scope } from '@sentry/node';` (which re-exports this)
+
+/**
+ * Holds additional event information.
+ */
+export const Scope = ScopeClass;
+
+/**
+ * Holds additional event information.
+ */
+export type Scope = ScopeInterface;
 
 function generatePropagationContext(): PropagationContext {
   return {
