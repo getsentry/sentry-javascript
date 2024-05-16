@@ -17,6 +17,8 @@ import type {
   Integration,
   Outcome,
   ParameterizedString,
+  RemoteConfigInterface,
+  RemoteConfigStorage,
   SdkMetadata,
   Session,
   SessionAggregates,
@@ -48,13 +50,14 @@ import {
   uuid4,
 } from '@sentry/utils';
 
-import { getEnvelopeEndpointWithUrlEncodedAuth } from './api';
+import { getEnvelopeEndpointWithUrlEncodedAuth, getRemoteConfigEndpoint } from './api';
 import { getIsolationScope } from './currentScopes';
 import { DEBUG_BUILD } from './debug-build';
 import { createEventEnvelope, createSessionEnvelope } from './envelope';
 import type { IntegrationIndex } from './integration';
 import { afterSetupIntegrations } from './integration';
 import { setupIntegration, setupIntegrations } from './integration';
+import { remoteConfig } from './remoteconfig';
 import type { Scope } from './scope';
 import { updateSession } from './session';
 import { getDynamicSamplingContextFromClient } from './tracing/dynamicSamplingContext';
@@ -117,6 +120,9 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   // eslint-disable-next-line @typescript-eslint/ban-types
   private _hooks: Record<string, Function[]>;
 
+  /** Optional remote config */
+  public readonly config?: ReturnType<typeof remoteConfig>;
+
   /**
    * Initializes this client instance.
    *
@@ -148,6 +154,31 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
         ...options.transportOptions,
         url,
       });
+
+      // TODO: if blockForRemoteConfig is set, client should be disabled, events
+      // should be queued before we sample (e.g. in baseclient._captureEvent check
+      // if enabled, otherwise queue?). baseclient._processEvent is where
+      // sampleRate is used. then set client as ready after remote config is loaded and flush queue
+      // TODO: create/pass transport
+
+      const storage = this._createRemoteStorage();
+      // Only initialize remote config if storage is implemented
+      if (storage) {
+        const transport = options.transport({
+          tunnel: options.tunnel,
+          recordDroppedEvent: this.recordDroppedEvent.bind(this),
+          ...options.transportOptions,
+          url: getRemoteConfigEndpoint(
+            this._dsn,
+            options.tunnel,
+            options._metadata ? options._metadata.sdk : undefined,
+          ),
+        });
+        this.config = remoteConfig({
+          transport,
+          storage,
+        });
+      }
     }
   }
 
@@ -309,6 +340,46 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
 
   /** @inheritdoc */
   public init(): void {
+    if (this.config) {
+      const remoteConfigFetchPromise = this.config.fetchAndApply();
+      // TODO calling _setupIntegrations async will break the world
+      // const { blockForRemoteConfig } = this._options;
+      // If `blockForRemoteConfig` is configured and there is no cached config, then
+      // if (this.config.getSource() === 'DEFAULT' && blockForRemoteConfig && blockForRemoteConfig.timeout > 0) {
+      //   new Promise(resolve => {
+      //     setTimeout(resolve, blockForRemoteConfig.timeout);
+      //     remoteConfigFetchPromise.then(resolve);
+      //   })
+      //     .then(() => this.finishInit())
+      //     .catch(() => {
+      //       // TODO: Error handling
+      //     });
+      //
+      //   return;
+      // }
+    }
+
+    this.finishInit();
+  }
+
+  public finishInit(): void {
+    // TODO these keys need to be configurable
+    if (this.config) {
+      const config = this.config.getInternal({
+        sampleRate: this._options.sampleRate,
+        tracesSampleRate: this._options.tracesSampleRate,
+        // replaysSessionSampleRate: options.replaysSessionSampleRate,
+        // replaysOnErrorSampleRate: options.replatsOnErrorSampleRate,
+      });
+      this._options.sampleRate = config.sampleRate;
+      this._options.tracesSampleRate = config.tracesSampleRate;
+      // const configKeys = Object.keys(config);
+      // const configKeysLength = configKeys.length;
+      // for (let i = 0; i < configKeysLength; i++) {
+      //   this._options[configKeys[i]] = config[configKeys[i]];
+      // }
+    }
+
     if (this._isEnabled()) {
       this._setupIntegrations();
     }
@@ -846,6 +917,11 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       };
     });
   }
+
+  /**
+   * Creates a storage interface to be used for Remote Configuration
+   */
+  protected _createRemoteStorage(): RemoteConfigStorage | void {}
 
   /**
    * @inheritDoc
