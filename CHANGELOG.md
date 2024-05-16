@@ -4,6 +4,12 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.115.0
+
+- feat(v7): Add support for global onUnhandled Error/Promise for Bun (#11959)
+- fix(replay/v7): Fix user activity not being updated in `start()` (#12003)
+- ref(api): Remove `lastEventId` deprecation warnings (#12042)
+
 ## 7.114.0
 
 ### Important Changes
