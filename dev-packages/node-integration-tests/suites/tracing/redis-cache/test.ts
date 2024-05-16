@@ -76,7 +76,7 @@ describe('redis auto instrumentation', () => {
           data: expect.objectContaining({
             'db.statement': 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
-            'cache.key': 'ioredis-cache:test-key',
+            'cache.key': 'ioredis-cache:unavailable-data',
             'network.peer.address': 'localhost',
             'network.peer.port': 6379,
           }),
