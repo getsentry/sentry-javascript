@@ -97,12 +97,12 @@ export class SentrySpan implements Span {
 
     this._events = [];
 
+    this._isStandaloneSpan = spanContext.isStandalone;
+
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
       this._onSpanEnded();
     }
-
-    this._isStandaloneSpan = spanContext.isStandalone;
   }
 
   /** @inheritdoc */
@@ -259,7 +259,14 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this], client));
+      const spanEnvelope = createSpanEnvelope([this], client);
+      if (spanEnvelope) {
+        sendSpanEnvelope(spanEnvelope);
+      } else {
+        if (client) {
+          client.recordDroppedEvent('before_send', 'span');
+        }
+      }
       return;
     }
 

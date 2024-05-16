@@ -1119,6 +1119,38 @@ describe('BaseClient', () => {
       expect(loggerWarnSpy).toBeCalledWith('before send for type `transaction` returned `null`, will not send event.');
     });
 
+    test('calls `beforeSendSpan` and discards the span', () => {
+      expect.assertions(2);
+
+      const beforeSendSpan = jest.fn(() => null);
+      const options = getDefaultTestClientOptions({ dsn: PUBLIC_DSN, beforeSendSpan });
+      const client = new TestClient(options);
+
+      const transaction: Event = {
+        transaction: '/cats/are/great',
+        type: 'transaction',
+        spans: [
+          {
+            description: 'first span',
+            span_id: '9e15bf99fbe4bc80',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+          {
+            description: 'second span',
+            span_id: 'aa554c1f506b0783',
+            start_timestamp: 1591603196.637835,
+            trace_id: '86f39e84263a4de99c326acab3bfe3bd',
+          },
+        ],
+      };
+      client.captureEvent(transaction);
+
+      expect(beforeSendSpan).toHaveBeenCalledTimes(2);
+      const capturedEvent = TestClient.instance!.event!;
+      expect(capturedEvent.spans).toHaveLength(0);
+    });
+
     test('calls `beforeSend` and logs info about invalid return value', () => {
       const invalidValues = [undefined, false, true, [], 1];
       expect.assertions(invalidValues.length * 3);

@@ -24,6 +24,7 @@ import type {
   Span,
   SpanAttributes,
   SpanContextData,
+  SpanJSON,
   StartSpanOptions,
   TransactionEvent,
   Transport,
@@ -904,7 +905,14 @@ function processBeforeSend(
 
   if (isTransactionEvent(event)) {
     if (event.spans && beforeSendSpan) {
-      event.spans = event.spans.map(span => beforeSendSpan(span));
+      const processedSpans: SpanJSON[] = [];
+      for (const span of event.spans) {
+        const processedSpan = beforeSendSpan(span);
+        if (processedSpan) {
+          processedSpans.push(processedSpan);
+        }
+      }
+      event.spans = processedSpans;
     }
 
     if (beforeSendTransaction) {

@@ -12,6 +12,7 @@ import type {
   SessionEnvelope,
   SessionItem,
   SpanEnvelope,
+  SpanItem,
   SpanJSON,
 } from '@sentry/types';
 import {
@@ -98,8 +99,9 @@ export function createEventEnvelope(
  * Create envelope from Span item.
  *
  * Takes an optional client and runs spans through `beforeSendSpan` if available.
+ * @returns A SpanEnvelope or null if all spans have been dropped
  */
-export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEnvelope {
+export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEnvelope | null {
   function dscHasRequiredProps(dsc: Partial<DynamicSamplingContext>): dsc is DynamicSamplingContext {
     return !!dsc.trace_id && !!dsc.public_key;
   }
@@ -118,7 +120,14 @@ export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEn
   const convertToSpanJSON = beforeSendSpan
     ? (span: SentrySpan) => beforeSendSpan(spanToJSON(span) as SpanJSON)
     : (span: SentrySpan) => spanToJSON(span);
-  const items = spans.map(span => createSpanEnvelopeItem(convertToSpanJSON(span)));
 
-  return createEnvelope<SpanEnvelope>(headers, items);
+  const items: SpanItem[] = [];
+  for (const span of spans) {
+    const spanJson = convertToSpanJSON(span);
+    if (spanJson) {
+      items.push(createSpanEnvelopeItem(spanJson));
+    }
+  }
+
+  return items.length > 0 ? createEnvelope<SpanEnvelope>(headers, items) : null;
 }

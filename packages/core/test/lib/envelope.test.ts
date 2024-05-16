@@ -109,7 +109,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([span]);
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope![1][0][1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -131,7 +131,7 @@ describe('createSpanEnvelope', () => {
       new SentrySpan({ name: 'test', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' } }),
     ]);
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
+    const spanEnvelopeHeaders = spanEnvelope![0];
     expect(spanEnvelopeHeaders).toEqual({
       sent_at: expect.any(String),
       trace: {
@@ -152,7 +152,7 @@ describe('createSpanEnvelope', () => {
 
     const spanEnvelope = createSpanEnvelope([new SentrySpan()]);
 
-    const spanEnvelopeHeaders = spanEnvelope[0];
+    const spanEnvelopeHeaders = spanEnvelope![0];
     expect(spanEnvelopeHeaders).toEqual({
       sent_at: expect.any(String),
     });
@@ -174,7 +174,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope![1][0][1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -209,7 +209,7 @@ describe('createSpanEnvelope', () => {
 
     expect(beforeSendSpan).toHaveBeenCalled();
 
-    const spanItem = spanEnvelope[1][0][1];
+    const spanItem = spanEnvelope![1][0][1];
     expect(spanItem).toEqual({
       data: {
         'sentry.origin': 'manual',
@@ -223,5 +223,23 @@ describe('createSpanEnvelope', () => {
       timestamp: 2,
       trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
     });
+  });
+
+  it('calls `beforeSendSpan` and discards the envelope', () => {
+    const beforeSendSpan = jest.fn(() => null);
+    const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
+    const client = new TestClient(options);
+
+    const span = new SentrySpan({
+      name: 'test',
+      isStandalone: true,
+      startTimestamp: 1,
+      endTimestamp: 2,
+    });
+
+    const spanEnvelope = createSpanEnvelope([span], client);
+
+    expect(beforeSendSpan).toHaveBeenCalled();
+    expect(spanEnvelope).toBeNull();
   });
 });
