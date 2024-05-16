@@ -654,8 +654,8 @@ removed in v8, due to the option being redundant and in favour of bundle size mi
 
 It's important to note that this sample rate only ever was applied when collecting INP (Interaction To Next Paint)
 values. You most likely don't need to replace this option. Furthermore, INP values are already sampled by the
-`tracesSampleRate` SDK option, like any regular span. At the time of writing, INP value collection does not deplete your
-span or transaction quota.
+[`tracesSampleRate` SDK option](https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sampler), like
+any regular span. At the time of writing, INP value collection does not deplete your span or transaction quota.
 
 If you used `interactionsSampleRate` before, and still want to reduce INP value collection, we recommend using the
 `tracesSampler` SDK option instead:
