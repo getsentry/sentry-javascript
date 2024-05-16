@@ -54,6 +54,8 @@ const _redisIntegration = ((options?: RedisOptions) => {
               return;
             }
 
+            // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
+            // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
             const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
             const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
             if (networkPeerPort && networkPeerAddress) {

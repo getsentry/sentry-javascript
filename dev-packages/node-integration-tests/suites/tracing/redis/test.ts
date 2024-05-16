@@ -7,7 +7,7 @@ describe('redis auto instrumentation', () => {
 
   test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', done => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',

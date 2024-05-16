@@ -7,7 +7,7 @@ describe('redis auto instrumentation', () => {
 
   test('should not add cache spans when key is not prefixed', done => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
