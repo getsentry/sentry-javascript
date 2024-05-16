@@ -4,6 +4,21 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.1.0
+
+This release mainly fixes a couple of bugs from the initial [8.0.0 release](#800). In addition to the changes below, we
+updated some initially missed points in our migration guides and documentation.
+
+- feat(aws-serverless): Fix tree-shaking for aws-serverless package (#12017)
+- feat(node): Bump opentelemetry instrumentation to latest version (#12028)
+- feat(scope): Bring back `lastEventId` on isolation scope (#11951) (#12022)
+- fix(aws-serverless): Export `awslambda-auto`
+- fix(node): Do not warn for missing instrumentation if SDK is disabled (#12041)
+- fix(react): Set dependency-injected functions as early as possible (#12019)
+- fix(react): Warn and fall back gracefully if dependency injected functions are not available (#12026)
+- ref(core): Streamline `parseSampleRate` utility function (#12024)
+- ref(feedback): Make `eventId` optional and use `lastEventId` in report dialog (#12029)
+
 ## 8.0.0
 
 The Sentry JS SDK team is proud to announce the release of version `8.0.0` of Sentry's JavaScript SDKs - it's been a
