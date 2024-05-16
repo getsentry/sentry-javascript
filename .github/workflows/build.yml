@@ -1004,6 +1004,7 @@ jobs:
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'node-express-esm-loader',
+            'node-express-esm-without-loader',
             'nextjs-app-dir',
             'nextjs-14',
             'react-create-hash-router',

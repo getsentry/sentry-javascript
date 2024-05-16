@@ -4,6 +4,18 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.2.0
+
+- feat(redis-cache): Create cache-span with prefixed keys (get/set commands) (#12070)
+- feat(core): Add `beforeSendSpan` hook (#11886)
+- feat(browser): Improve idle span handling (#12065)
+- fix(node): Set transactionName for unsampled spans in httpIntegration (#12071)
+- fix(core): Export Scope interface as `Scope` (#12067)
+- fix(core): Avoid looking up client for `hasTracingEnabled()` if possible (#12066)
+- fix(browser): Use consistent timestamps (#12063)
+- fix(node): Fix check for performance integrations (#12043)
+- ref(sveltekit): Warn to delete source maps if Sentry plugin enabled source maps generation (#12072)
+
 ## 8.1.0
 
 This release mainly fixes a couple of bugs from the initial [8.0.0 release](#800). In addition to the changes below, we

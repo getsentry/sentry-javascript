@@ -78,8 +78,21 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
-    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    // We only add performance integrations if tracing is enabled
+    // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
+    // This means that generally request isolation will work (because that is done by httpIntegration)
+    // But `transactionName` will not be set automatically
+    ...(shouldAddPerformanceIntegrations(options) ? getAutoPerformanceIntegrations() : []),
   ];
+}
+
+function shouldAddPerformanceIntegrations(options: Options): boolean {
+  if (!hasTracingEnabled(options)) {
+    return false;
+  }
+
+  // We want to ensure `tracesSampleRate` is not just undefined/null here
+  return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
