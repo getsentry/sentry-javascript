@@ -647,6 +647,38 @@ The `BrowserTracing` integration, together with the custom routing instrumentati
 Instead, you should use `Sentry.browserTracingIntegration()`. See examples
 [below](./MIGRATION.md#deprecated-browsertracing-integration)
 
+#### Removal of `interactionsSampleRate` in `browserTracingIntegration` options
+
+The `interactionsSampleRate` option that could be passed to `browserTracingIntegration` or `new BrowserTracing()` was
+removed in v8, due to the option being redundant and in favour of bundle size minimization.
+
+It's important to note that this sample rate only ever was applied when collecting INP (Interaction To Next Paint)
+values. You most likely don't need to replace this option. Furthermore, INP values are already sampled by the
+[`tracesSampleRate` SDK option](https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sampler), like
+any regular span. At the time of writing, INP value collection does not deplete your span or transaction quota.
+
+If you used `interactionsSampleRate` before, and still want to reduce INP value collection, we recommend using the
+`tracesSampler` SDK option instead:
+
+```javascript
+// v7
+Sentry.init({
+  integrations: [new BrowserTracing({ interactionsSampleRate: 0.1 })],
+});
+```
+
+```javascript
+// v8 - please read the text above, you most likely don't need this :)
+Sentry.init({
+  tracesSampler: (ctx) => {
+    if (ctx.attributes?['sentry.op']?.startsWith('ui.interaction')) {
+      return 0.1;
+    }
+    return 0.5;
+  }
+})
+```
+
 #### Removal of the `Offline` integration
 
 The `Offline` integration has been removed in favor of the
