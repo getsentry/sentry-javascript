@@ -341,7 +341,7 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public init(): void {
     if (this.config) {
-      const remoteConfigFetchPromise = this.config.fetchAndApply();
+      const remoteConfigFetchPromise = this.config.fetch();
       // TODO calling _setupIntegrations async will break the world
       // const { blockForRemoteConfig } = this._options;
       // If `blockForRemoteConfig` is configured and there is no cached config, then

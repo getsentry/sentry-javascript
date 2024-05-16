@@ -2,24 +2,11 @@ import type {
   RemoteOverrideableConfig,
   RemoteConfigOptions,
   RemoteConfigPayload,
-  RemoteConfigPayloadOptions,
   RemoteConfigInterface,
   RemoteConfigSource,
 } from '@sentry/types';
 
 const DEFAULT_CONFIG_NAME = '__default';
-const INTERNAL_OPTIONS_NAME = '__internal';
-
-// function createConfig(name: string, value: any, storage: RemoteConfigStorage) {
-//   let _activeConfig: any;
-//   let _pendingConfig: any;
-//   let _lastFetch: Date | null;
-//   let _lastUpdate: Date | null;
-//   const cachedValue = storage.get(name);
-//   const _source = cachedValue ? Source.CACHE : Source.DEFAULT;
-//
-//   return {};
-// }
 
 /**
  * Remote Configuration is an integration that fetches configuration from a remote server.
@@ -40,7 +27,7 @@ export function remoteConfig({
   function initConfig() {
     const cachedValue = storage.get(_defaultConfigName);
     if (cachedValue) {
-      _activeConfig = cachedValue;
+      _activeConfig = JSON.parse(cachedValue);
       _source = 'CACHED';
     }
   }
@@ -67,6 +54,9 @@ export function remoteConfig({
           resp.response.json().then((data: RemoteConfigPayload) => {
             _pendingConfig = data;
             _hasUpdate = true;
+
+            storage.set(_defaultConfigName, JSON.stringify(data));
+            storage.set(`${defaultConfigName}_lastFetch`, _lastFetch);
             // _state = "SUCCESS";
             resolve();
           });
@@ -80,22 +70,6 @@ export function remoteConfig({
       //   reject(err);
       // });
     });
-    try {
-      // transport send
-      // const data = response.json();
-      // if (data && data.options) {
-      //   const { user_options: userOptions, ...internalOptions } = data.options;
-      //
-      //   _pendingConfig.set(_defaultConfigName, userOptions);
-      //   _pendingConfig.set(INTERNAL_OPTIONS_NAME, internalOptions);
-      // }
-      // _hasUpdate = true;
-    } catch (err) {
-      // handle error
-      //
-    } finally {
-      _lastFetch = new Date();
-    }
   }
 
   /**
