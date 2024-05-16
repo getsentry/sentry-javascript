@@ -35,6 +35,15 @@ export function getEnvelopeEndpointWithUrlEncodedAuth(dsn: DsnComponents, tunnel
   return tunnel ? tunnel : `${_getIngestEndpoint(dsn)}?${_encodedAuth(dsn, sdkInfo)}`;
 }
 
+/**
+ * Returns the remote configuration endpoint URL with auth in the query string.
+ *
+ * TODO: tunnel
+ */
+export function getRemoteConfigEndpoint(dsn: DsnComponents, tunnel?: string, sdkInfo?: SdkInfo): string {
+  return tunnel ? tunnel : `${getBaseApiEndpoint(dsn)}${dsn.projectId}/features/?${_encodedAuth(dsn, sdkInfo)}`;
+}
+
 /** Returns the url to the report dialog endpoint. */
 export function getReportDialogEndpoint(
   dsnLike: DsnLike,

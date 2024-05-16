@@ -51,6 +51,7 @@ export function makeFetchTransport(
         pendingBodySize -= requestSize;
         pendingCount--;
         return {
+          response,
           statusCode: response.status,
           headers: {
             'x-sentry-rate-limits': response.headers.get('X-Sentry-Rate-Limits'),

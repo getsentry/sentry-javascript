@@ -172,3 +172,12 @@ export type {
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';
+export type {
+  RemoteConfigOptions,
+  RemoteConfigInterface,
+  RemoteConfigSource,
+  RemoteConfigStorage,
+  RemoteConfigPayload,
+  RemoteConfigPayloadOptions,
+  RemoteOverrideableConfig,
+} from './remoteconfig';
