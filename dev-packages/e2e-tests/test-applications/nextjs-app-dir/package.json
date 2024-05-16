@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "next build > .tmp_build_stdout 2> .tmp_build_stderr || (cat .tmp_build_stdout && cat .tmp_build_stderr && exit 1)",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:prod": "TEST_ENV=production playwright test",
     "test:dev": "TEST_ENV=development playwright test",
     "test:build": "pnpm install && npx playwright install && pnpm build",
@@ -25,7 +25,6 @@
     "react-dom": "18.2.0",
     "typescript": "4.9.5",
     "wait-port": "1.0.4",
-    "ts-node": "10.9.1",
     "@playwright/test": "^1.27.1"
   },
   "devDependencies": {
@@ -42,7 +41,8 @@
     "@sentry-internal/replay": "latest || *",
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
-    "@sentry/vercel-edge": "latest || *"
+    "@sentry/vercel-edge": "latest || *",
+    "ts-node": "10.9.1"
   },
   "volta": {
     "extends": "../../package.json"

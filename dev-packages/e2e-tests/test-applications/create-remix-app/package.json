@@ -6,7 +6,7 @@
     "dev": "remix dev",
     "start": "remix-serve build",
     "typecheck": "tsc",
-    "clean": "npx rimraf node_modules,pnpm-lock.yaml",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",
     "test:assert": "pnpm playwright test"
   },
@@ -30,8 +30,7 @@
     "@sentry/types": "latest || *",
     "@sentry/utils": "latest || *",
     "eslint": "^8.38.0",
-    "typescript": "^5.0.4",
-    "ts-node": "10.9.1"
+    "typescript": "^5.0.4"
   },
   "volta": {
     "extends": "../../package.json"

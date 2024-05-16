@@ -6,6 +6,7 @@ import {
   getIntegrationsToSetup,
   getReportDialogEndpoint,
   initAndBind,
+  lastEventId,
   startSession,
 } from '@sentry/core';
 import type { DsnLike, Integration, Options, UserFeedback } from '@sentry/types';
@@ -168,7 +169,7 @@ export function init(browserOptions: BrowserOptions = {}): void {
 export interface ReportDialogOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
-  eventId: string;
+  eventId?: string;
   dsn?: DsnLike;
   user?: {
     email?: string;
@@ -197,7 +198,7 @@ export interface ReportDialogOptions {
  *
  * @param options Everything is optional, we try to fetch all info need from the global scope.
  */
-export function showReportDialog(options: ReportDialogOptions): void {
+export function showReportDialog(options: ReportDialogOptions = {}): void {
   // doesn't work without a document (React Native)
   if (!WINDOW.document) {
     DEBUG_BUILD && logger.error('Global document not defined in showReportDialog call');
@@ -218,6 +219,13 @@ export function showReportDialog(options: ReportDialogOptions): void {
       ...scope.getUser(),
       ...options.user,
     };
+  }
+
+  if (!options.eventId) {
+    const eventId = lastEventId();
+    if (eventId) {
+      options.eventId = eventId;
+    }
   }
 
   const script = WINDOW.document.createElement('script');

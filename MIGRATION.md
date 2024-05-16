@@ -15,8 +15,8 @@ dependencies on OpenTelemetry. Below we will outline the steps you need to take 
 Before updating to `8.x` of the SDK, we recommend upgrading to the latest version of `7.x`. You can then follow
 [these steps](./MIGRATION.md#deprecations-in-7x) remove deprecated methods in `7.x` before upgrading to `8.x`.
 
-The v8 version of the JavaScript SDK requires a self-hosted version of Sentry TBD or higher (Will be chosen once first
-stable release of `8.x` comes out).
+The v8 version of the JavaScript SDK requires a self-hosted version of Sentry 24.4.2 (for user feedback screenshots) or
+higher. Lower versions may continue to work, but may not support all features (e.g. the new user feedback APIs).
 
 ## 1. Version Support changes:
 
@@ -375,7 +375,7 @@ To make sure these integrations work properly you'll have to change how you
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
-`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
+`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`, `getActiveTransaction`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
@@ -389,7 +389,6 @@ Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `t
 - [Removal of `Span` class export from SDK packages](./MIGRATION.md#removal-of-span-class-export-from-sdk-packages)
 - [Removal of `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode`](./MIGRATION.md#removal-of-spanstatusfromhttpcode-in-favour-of-getspanstatusfromhttpcode)
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
-- [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
 - [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
 - [Remove `addGlobalEventProcessor` in favor of `addEventProcessor`](./MIGRATION.md#remove-addglobaleventprocessor-in-favor-of-addeventprocessor)
 
@@ -568,10 +567,6 @@ Sentry.getGlobalScope().addEventProcessor(event => {
 });
 ```
 
-#### Removal of `lastEventId()` method
-
-The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
-
 #### Removal of `void` from transport return types
 
 The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in
@@ -615,6 +610,13 @@ addEventProcessor(event => {
 
 The Sentry tRPC middleware got moved from `Sentry.Handlers.trpcMiddleware()` to `Sentry.trpcMiddleware()`. Functionally
 they are the same:
+
+#### Removal of `Sentry.Handlers.requestHandler()`, `Sentry.Handlers.tracingHandler()` and `Sentry.Handlers.errorHandler()`
+
+For Express and Connect you previously had to use `Sentry.Handlers.requestHandler()`,
+`Sentry.Handlers.tracingHandler()`, and `Sentry.Handlers.errorHandler()` to add Sentry instrumentation to your app. In
+8.x, you only need to use the framework specific error handler (e.g `Sentry.setupExpressErrorHandler(app)`), you can
+remove all other handlers.
 
 ```js
 // v7
@@ -1569,7 +1571,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | captureException()     | `Sentry.captureException()`                                                          |
 | captureMessage()       | `Sentry.captureMessage()`                                                            |
 | captureEvent()         | `Sentry.captureEvent()`                                                              |
-| lastEventId()          | REMOVED - Use event processors or beforeSend instead                                 |
+| lastEventId()          | `Sentry.lastEventId()`                                                               |
 | addBreadcrumb()        | `Sentry.addBreadcrumb()`                                                             |
 | setUser()              | `Sentry.setUser()`                                                                   |
 | setTags()              | `Sentry.setTags()`                                                                   |
@@ -1690,35 +1692,6 @@ app.get('/your-route', req => {
 });
 ```
 
-## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
-
-`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend`
-callback.
-
-```js
-// Before
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = Sentry.lastEventId();
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-
-// After
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
-
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -1785,25 +1758,6 @@ Instead, import this directly from `@sentry/utils`.
 
 Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles
 scope propagation for you.
-
-## Deprecate `lastEventId()`
-
-Instead, if you need the ID of a recently captured event, we recommend using `beforeSend` instead:
-
-```ts
-import * as Sentry from '@sentry/browser';
-
-Sentry.init({
-  dsn: '__DSN__',
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
 
 ## Deprecate `timestampWithMs` export - #7878
 

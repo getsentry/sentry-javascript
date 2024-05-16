@@ -55,6 +55,7 @@ export {
   makeNodeTransport,
   NodeClient,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,

@@ -211,6 +211,33 @@ module.exports = [
     gzip: true,
     limit: '180 KB',
   },
+  // AWS SDK (ESM)
+  {
+    name: '@sentry/aws-serverless',
+    path: 'packages/aws-serverless/build/npm/esm/index.js',
+    import: createImport('init'),
+    ignore: [
+      'node:http',
+      'node:https',
+      'node:diagnostics_channel',
+      'async_hooks',
+      'child_process',
+      'perf_hooks',
+      'fs',
+      'os',
+      'path',
+      'inspector',
+      'worker_threads',
+      'http',
+      'stream',
+      'zlib',
+      'net',
+      'tls',
+      'module',
+    ],
+    gzip: true,
+    limit: '140 KB',
+  },
 ];
 
 function createImport(...args) {

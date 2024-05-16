@@ -1,4 +1,4 @@
-const { startEventProxyServer } = require('@sentry-internal/event-proxy-server');
+import { startEventProxyServer } from '@sentry-internal/event-proxy-server';
 
 startEventProxyServer({
   port: 3031,

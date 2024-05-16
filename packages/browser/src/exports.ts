@@ -28,6 +28,7 @@ export {
   captureMessage,
   close,
   createTransport,
+  lastEventId,
   flush,
   // eslint-disable-next-line deprecation/deprecation
   getCurrentHub,

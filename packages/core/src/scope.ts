@@ -94,6 +94,9 @@ export class Scope implements ScopeInterface {
   /** The client on this scope */
   protected _client?: Client;
 
+  /** Contains the last event id of a captured event.  */
+  protected _lastEventId?: string;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -130,6 +133,7 @@ export class Scope implements ScopeInterface {
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
+    newScope._lastEventId = this._lastEventId;
 
     _setSpanForScope(newScope, _getSpanForScope(this));
 
@@ -146,8 +150,22 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setLastEventId(lastEventId: string | undefined): void {
+    this._lastEventId = lastEventId;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public getClient<C extends Client>(): C | undefined {
     return this._client as C | undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public lastEventId(): string | undefined {
+    return this._lastEventId;
   }
 
   /**

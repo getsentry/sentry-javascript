@@ -4,6 +4,7 @@ import {
   getIsolationScope,
   getReportDialogEndpoint,
   inboundFiltersIntegration,
+  lastEventId,
 } from '@sentry/core';
 import * as utils from '@sentry/utils';
 
@@ -94,7 +95,7 @@ describe('SentryBrowser', () => {
         getCurrentScope().setUser(EX_USER);
         setCurrentClient(client);
 
-        showReportDialog({ eventId: 'foobar' });
+        showReportDialog();
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -103,12 +104,37 @@ describe('SentryBrowser', () => {
         );
       });
 
+      it('uses `lastEventId` from isolation scope', async () => {
+        setCurrentClient(client);
+        const eventId = captureException(new Error('Some error'));
+        await flush(2000);
+
+        showReportDialog();
+
+        expect(eventId).toEqual(lastEventId());
+        expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
+        expect(getReportDialogEndpoint).toHaveBeenCalledWith(expect.any(Object), expect.objectContaining({ eventId }));
+      });
+
+      it('uses the passed in `eventId` over `lastEventId`', async () => {
+        setCurrentClient(client);
+        captureException(new Error('Some error'));
+        await flush(2000);
+
+        showReportDialog({ eventId: 'foobar' });
+        expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
+        expect(getReportDialogEndpoint).toHaveBeenCalledWith(
+          expect.any(Object),
+          expect.objectContaining({ eventId: 'foobar' }),
+        );
+      });
+
       it('prioritizes options user over scope user', () => {
         getCurrentScope().setUser(EX_USER);
         setCurrentClient(client);
 
         const DIALOG_OPTION_USER = { email: 'option@example.com' };
-        showReportDialog({ eventId: 'foobar', user: DIALOG_OPTION_USER });
+        showReportDialog({ user: DIALOG_OPTION_USER });
 
         expect(getReportDialogEndpoint).toHaveBeenCalledTimes(1);
         expect(getReportDialogEndpoint).toHaveBeenCalledWith(
@@ -142,7 +168,7 @@ describe('SentryBrowser', () => {
       it('should call `onClose` when receiving `__sentry_reportdialog_closed__` MessageEvent', async () => {
         const onClose = jest.fn();
 
-        showReportDialog({ eventId: 'foobar', onClose });
+        showReportDialog({ onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -157,7 +183,7 @@ describe('SentryBrowser', () => {
           throw new Error();
         });
 
-        showReportDialog({ eventId: 'foobar', onClose });
+        showReportDialog({ onClose });
 
         await waitForPostMessage('__sentry_reportdialog_closed__');
         expect(onClose).toHaveBeenCalledTimes(1);
@@ -170,7 +196,7 @@ describe('SentryBrowser', () => {
       it('should not call `onClose` for other MessageEvents', async () => {
         const onClose = jest.fn();
 
-        showReportDialog({ eventId: 'foobar', onClose });
+        showReportDialog({ onClose });
 
         await waitForPostMessage('some_message');
         expect(onClose).not.toHaveBeenCalled();
