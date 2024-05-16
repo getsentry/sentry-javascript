@@ -1,15 +1,16 @@
 import type { IntegrationFn } from '@sentry/types';
+import { timestampInSeconds } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 const INTEGRATION_NAME = 'SessionTiming';
 
 const _sessionTimingIntegration = (() => {
-  const startTime = Date.now();
+  const startTime = timestampInSeconds() * 1000;
 
   return {
     name: INTEGRATION_NAME,
     processEvent(event) {
-      const now = Date.now();
+      const now = timestampInSeconds() * 1000;
 
       return {
         ...event,
