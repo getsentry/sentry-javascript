@@ -42,7 +42,7 @@ describe('redis auto instrumentation', () => {
 
   test('should create cache spans for prefixed keys', done => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: expect.arrayContaining([
         // SET
         expect.objectContaining({
