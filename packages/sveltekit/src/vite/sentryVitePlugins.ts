@@ -239,6 +239,10 @@ export async function sentrySvelteKit(options: SentrySvelteKitPluginOptions = {}
       };
     }
 
+    if (!sentryVitePluginsOptions.sourcemaps?.filesToDeleteAfterUpload) {
+      console.warn('');
+    }
+
     const sentryVitePlugins = await makeCustomSentryVitePlugins(sentryVitePluginsOptions);
 
     sentryPlugins.push(...sentryVitePlugins);
