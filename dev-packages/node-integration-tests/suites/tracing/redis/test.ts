@@ -7,12 +7,13 @@ describe('redis auto instrumentation', () => {
 
   test('should auto-instrument `ioredis` package when using redis.set() and redis.get()', done => {
     const EXPECTED_TRANSACTION = {
-      transaction: 'Test Transaction',
+      transaction: 'Test Span',
       spans: expect.arrayContaining([
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
           op: 'db',
           data: expect.objectContaining({
+            'sentry.op': 'db',
             'db.system': 'redis',
             'net.peer.name': 'localhost',
             'net.peer.port': 6379,
@@ -23,6 +24,7 @@ describe('redis auto instrumentation', () => {
           description: 'get test-key',
           op: 'db',
           data: expect.objectContaining({
+            'sentry.op': 'db',
             'db.system': 'redis',
             'net.peer.name': 'localhost',
             'net.peer.port': 6379,

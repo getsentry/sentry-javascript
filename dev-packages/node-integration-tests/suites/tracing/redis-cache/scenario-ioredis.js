@@ -6,6 +6,7 @@ Sentry.init({
   release: '1.0',
   tracesSampleRate: 1.0,
   transport: loggingTransport,
+  integrations: [Sentry.redisIntegration({ cachePrefixes: ['ioredis-cache:'] })],
 });
 
 // Stop the process from exiting before the transaction is sent
@@ -24,8 +25,11 @@ async function run() {
     async () => {
       try {
         await redis.set('test-key', 'test-value');
+        await redis.set('ioredis-cache:test-key', 'test-value');
 
         await redis.get('test-key');
+        await redis.get('ioredis-cache:test-key');
+        await redis.get('ioredis-cache:unavailable-data');
       } finally {
         await redis.disconnect();
       }
