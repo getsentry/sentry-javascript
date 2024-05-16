@@ -240,7 +240,7 @@ export function startIdleSpan(startSpanOptions: StartSpanOptions, options: Parti
     }
 
     const attributes: SpanAttributes = spanJSON.data || {};
-    if (spanJSON.op === 'ui.action.click' && !attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
+    if (!attributes[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]) {
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, _finishReason);
     }
 
