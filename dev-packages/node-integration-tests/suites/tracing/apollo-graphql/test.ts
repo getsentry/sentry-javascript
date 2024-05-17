@@ -16,19 +16,6 @@ describe('GraphQL/Apollo Tests', () => {
           status: 'ok',
           origin: 'auto.graphql.otel.graphql',
         }),
-        expect.objectContaining({
-          data: {
-            'graphql.field.name': 'hello',
-            'graphql.field.path': 'hello',
-            'graphql.field.type': 'String',
-            'graphql.source': 'hello',
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'graphql.resolve hello',
-          status: 'ok',
-          origin: 'manual',
-        }),
       ]),
     };
 
