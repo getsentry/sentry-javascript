@@ -4,6 +4,13 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 7.116.0
+
+- build(craft): Publish lambda layer under its own name for v7 (#12098) (#12099)
+
+This release publishes a new AWS Lambda layer under the name `SentryNodeServerlessSDKv7` that users still running v7 can
+use instead of pinning themselves to `SentryNodeServerlessSDK:235`.
+
 ## 7.115.0
 
 - feat(v7): Add support for global onUnhandled Error/Promise for Bun (#11959)
