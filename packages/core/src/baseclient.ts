@@ -341,7 +341,8 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
   /** @inheritdoc */
   public init(): void {
     if (this.config) {
-      const remoteConfigFetchPromise = this.config.fetch();
+      this.config.fetch();
+      // const remoteConfigFetchPromise = this.config.fetchAndApply();
       // TODO calling _setupIntegrations async will break the world
       // const { blockForRemoteConfig } = this._options;
       // If `blockForRemoteConfig` is configured and there is no cached config, then
@@ -357,27 +358,14 @@ export abstract class BaseClient<O extends ClientOptions> implements Client<O> {
       //
       //   return;
       // }
-    }
 
-    this.finishInit();
-  }
-
-  public finishInit(): void {
-    // TODO these keys need to be configurable
-    if (this.config) {
+      // TODO these keys need to be configurable
       const config = this.config.getInternal({
         sampleRate: this._options.sampleRate,
         tracesSampleRate: this._options.tracesSampleRate,
-        // replaysSessionSampleRate: options.replaysSessionSampleRate,
-        // replaysOnErrorSampleRate: options.replatsOnErrorSampleRate,
       });
       this._options.sampleRate = config.sampleRate;
       this._options.tracesSampleRate = config.tracesSampleRate;
-      // const configKeys = Object.keys(config);
-      // const configKeysLength = configKeys.length;
-      // for (let i = 0; i < configKeysLength; i++) {
-      //   this._options[configKeys[i]] = config[configKeys[i]];
-      // }
     }
 
     if (this._isEnabled()) {
