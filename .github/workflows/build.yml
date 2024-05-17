@@ -912,10 +912,8 @@ jobs:
       matrix:
         node: [18, 20, 22]
         remix: [1, 2]
-        # Remix v2 only supports Node 18+, so run Node 14, 16 tests separately
+        # Remix v2 only supports Node 18+, so run 16 tests separately
         include:
-          - node: 14
-            remix: 1
           - node: 16
             remix: 1
     steps:
