@@ -12,6 +12,9 @@ const config: PlaywrightTestConfig = {
   // Note that 3 is a random number selected to work well with our CI setup
   workers: process.env.CI ? 3 : undefined,
   webServer: {
+    env: {
+      NODE_OPTIONS: '--require ./instrument.server.cjs',
+    },
     command: '(cd test/integration/ && yarn build && yarn start)',
     port: 3000,
   },

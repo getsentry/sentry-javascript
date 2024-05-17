@@ -1,35 +1,49 @@
+import { describe, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
-jest.spyOn(console, 'error').mockImplementation();
-
-// Repeat tests for each adapter
-describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', adapter => {
+describe('Remix API Actions', () => {
   it('correctly instruments a parameterized Remix API action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/123123`;
-    const envelope = await env.getEnvelopeRequest({ url, method: 'post', envelopeType: 'transaction' });
-    const transaction = envelope[2];
+    const envelopes = await env.getMultipleEnvelopeRequest({
+      url,
+      method: 'post',
+      envelopeType: 'transaction',
+      count: 1,
+    });
+    const transaction = envelopes[0][2];
 
     assertSentryTransaction(transaction, {
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
       spans: [
         {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-          op: 'function.remix.action',
+          data: {
+            'code.function': 'action',
+            'sentry.op': 'http',
+            'otel.kind': 'INTERNAL',
+            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+            'match.params.id': '123123',
+          },
         },
         {
-          description: 'root',
-          op: 'function.remix.loader',
+          data: {
+            'code.function': 'loader',
+            'sentry.op': 'http',
+            'otel.kind': 'INTERNAL',
+            'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+            'match.params.id': '123123',
+          },
         },
         {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-          op: 'function.remix.loader',
-        },
-        {
-          description: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
-          op: 'function.remix.document_request',
+          data: {
+            'code.function': 'loader',
+            'sentry.op': 'http',
+            'otel.kind': 'INTERNAL',
+            'match.route.id': 'root',
+            'match.params.id': '123123',
+          },
         },
       ],
       request: {
@@ -45,7 +59,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('reports an error thrown from the action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -70,7 +84,6 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -91,7 +104,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('includes request data in transaction and error events', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -105,7 +118,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     const [event] = envelopes.filter(envelope => envelope[1].type === 'event');
 
     assertSentryTransaction(transaction[2], {
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
       request: {
         method: 'POST',
         url,
@@ -118,7 +131,6 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -140,7 +152,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles an error-throwing redirection target', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-2`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -156,33 +168,30 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'ok',
           data: {
-            method: 'POST',
             'http.response.status_code': 302,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
     });
 
     assertSentryTransaction(transaction_2[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'GET',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `GET action-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -203,7 +212,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with `statusText`', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-3`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -219,19 +228,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -252,7 +259,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response without `statusText`', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-4`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -268,19 +275,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -301,7 +306,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with string body', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-5`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -317,19 +322,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -350,7 +353,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles a thrown `json()` error response with an empty object', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/action-json-response/-6`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -366,19 +369,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/action-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `POST action-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/action-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -399,7 +400,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles thrown string (primitive) from an action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/server-side-unexpected-errors/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -415,19 +416,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      transaction: `POST server-side-unexpected-errors/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -448,7 +447,7 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
   });
 
   it('handles thrown object from an action', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/server-side-unexpected-errors/-2`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -464,19 +463,17 @@ describe.each(['builtin', 'express'])('Remix API Actions with adapter = %s', ada
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'POST',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/server-side-unexpected-errors${useV2 ? '.' : '/'}$id`,
+      transaction: `POST server-side-unexpected-errors/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/server-side-unexpected-errors(\/|\.)\$id/),
       exception: {
         values: [
           {

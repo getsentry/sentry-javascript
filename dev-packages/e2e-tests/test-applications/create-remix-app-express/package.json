@@ -6,7 +6,7 @@
     "build": "remix vite:build",
     "dev": "node ./server.mjs",
     "lint": "eslint --ignore-path .gitignore --cache --cache-location ./node_modules/.cache/eslint .",
-    "start": "cross-env NODE_ENV=production node ./server.mjs",
+    "start": "cross-env NODE_ENV=production node --require='./instrument.cjs' ./server.mjs",
     "typecheck": "tsc",
     "clean": "npx rimraf node_modules pnpm-lock.yaml",
     "test:build": "pnpm install && npx playwright install && pnpm build",

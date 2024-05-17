@@ -1,7 +1,6 @@
 import * as http from 'http';
 import { AddressInfo } from 'net';
 import { createRequestHandler } from '@remix-run/express';
-import { wrapExpressCreateRequestHandler } from '@sentry/remix';
 import express from 'express';
 import { TestEnv } from '../../../../../../../dev-packages/node-integration-tests/utils';
 
@@ -12,15 +11,12 @@ export class RemixTestEnv extends TestEnv {
     super(server, url);
   }
 
-  public static async init(adapter: string = 'builtin'): Promise<RemixTestEnv> {
-    const requestHandlerFactory =
-      adapter === 'express' ? wrapExpressCreateRequestHandler(createRequestHandler) : createRequestHandler;
-
+  public static async init(): Promise<RemixTestEnv> {
     let serverPort;
     const server = await new Promise<http.Server>(resolve => {
       const app = express();
 
-      app.all('*', requestHandlerFactory({ build: require('../../../build') }));
+      app.all('*', createRequestHandler({ build: require('../../../build') }));
 
       const server = app.listen(0, () => {
         serverPort = (server.address() as AddressInfo).port;

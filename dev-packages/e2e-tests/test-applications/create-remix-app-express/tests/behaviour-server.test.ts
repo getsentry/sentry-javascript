@@ -27,17 +27,34 @@ test('Sends form data with action error to Sentry', async ({ page }) => {
   await page.locator('button[type=submit]').click();
 
   const formdataActionTransaction = waitForTransaction('create-remix-app-express', transactionEvent => {
-    return transactionEvent?.spans?.some(span => span.op === 'function.remix.action');
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'action');
   });
 
-  const actionTransaction = await formdataActionTransaction;
+  const actionSpan = (await formdataActionTransaction).spans.find(
+    span => span.data && span.data['code.function'] === 'action',
+  );
 
-  expect(actionTransaction).toBeDefined();
-  expect(actionTransaction.contexts.trace.op).toBe('http.server');
-  expect(actionTransaction.spans[0].data).toMatchObject({
-    'remix.action_form_data.text': 'test',
-    'remix.action_form_data.file': 'file.txt',
+  expect(actionSpan).toBeDefined();
+  expect(actionSpan.op).toBe('http');
+  expect(actionSpan.data).toMatchObject({
+    'formData.text': 'test',
+    'formData.file': 'file.txt',
   });
+});
+
+test('Sends a loader span to Sentry', async ({ page }) => {
+  const loaderTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
+    return transactionEvent?.spans?.some(span => span.data && span.data['code.function'] === 'loader');
+  });
+
+  await page.goto('/');
+
+  const loaderSpan = (await loaderTransactionPromise).spans.find(
+    span => span.data && span.data['code.function'] === 'loader',
+  );
+
+  expect(loaderSpan).toBeDefined();
+  expect(loaderSpan.op).toBe('http');
 });
 
 test('Sends two linked transactions (server & client) to Sentry', async ({ page }) => {
@@ -47,7 +64,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
     return (
       transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'http.server' &&
+      transactionEvent.contexts?.trace?.op === 'http' &&
       transactionEvent.tags?.['sentry_test'] === testTag
     );
   });
@@ -70,18 +87,21 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
 
   const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
   const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
+  const loaderSpanId = httpServerTransaction.spans.find(
+    span => span.data && span.data['code.function'] === 'loader',
+  )?.span_id;
 
   const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
   const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
   const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
 
-  expect(httpServerTransaction.transaction).toBe('routes/_index');
+  expect(httpServerTransaction.transaction).toBe('GET http://localhost:3030/');
   expect(pageloadTransaction.transaction).toBe('routes/_index');
 
   expect(httpServerTraceId).toBeDefined();
   expect(httpServerSpanId).toBeDefined();
 
   expect(pageLoadTraceId).toEqual(httpServerTraceId);
-  expect(pageLoadParentSpanId).toEqual(httpServerSpanId);
+  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });

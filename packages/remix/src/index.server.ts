@@ -1,10 +1,17 @@
-import { applySdkMetadata, isInitialized } from '@sentry/core';
+import { applySdkMetadata } from '@sentry/core';
 import type { NodeOptions } from '@sentry/node';
-import { init as nodeInit, setTag } from '@sentry/node';
+import {
+  getDefaultIntegrations as getDefaultNodeIntegrations,
+  init as nodeInit,
+  isInitialized,
+  setTag,
+} from '@sentry/node';
+import type { Integration } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './utils/debug-build';
 import { instrumentServer } from './utils/instrumentServer';
+import { remixIntegration } from './utils/integrations/opentelemetry';
 import type { RemixOptions } from './utils/remixOptions';
 
 // We need to explicitly export @sentry/node as they end up under `default` in ESM builds
@@ -41,7 +48,6 @@ export {
   withScope,
   withIsolationScope,
   makeNodeTransport,
-  getDefaultIntegrations,
   defaultStackParser,
   lastEventId,
   flush,
@@ -119,9 +125,20 @@ export { ErrorBoundary, withErrorBoundary } from '@sentry/react';
 export { withSentry } from './client/performance';
 export { captureRemixErrorBoundaryError } from './client/errors';
 export { browserTracingIntegration } from './client/browserTracingIntegration';
-export { wrapExpressCreateRequestHandler } from './utils/serverAdapters/express';
 
 export type { SentryMetaArgs } from './utils/types';
+
+/**
+ * Returns the default Remix integrations.
+ *
+ * @param options The options for the SDK.
+ */
+export function getDefaultIntegrations(options: RemixOptions): Integration[] {
+  return [
+    ...getDefaultNodeIntegrations(options).filter(integration => integration.name !== 'Http'),
+    remixIntegration(options),
+  ];
+}
 
 /** Initializes Sentry Remix SDK on Node. */
 export function init(options: RemixOptions): void {
@@ -133,9 +150,11 @@ export function init(options: RemixOptions): void {
     return;
   }
 
-  instrumentServer();
+  options.defaultIntegrations = getDefaultIntegrations(options as NodeOptions);
 
   nodeInit(options as NodeOptions);
+
+  instrumentServer();
 
   setTag('runtime', 'node');
 }

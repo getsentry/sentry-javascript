@@ -5,7 +5,9 @@ export default function Index() {
   const [searchParams] = useSearchParams();
 
   if (searchParams.get('tag')) {
-    Sentry.setTag('sentry_test', searchParams.get('tag'));
+    Sentry.setTags({
+      sentry_test: searchParams.get('tag'),
+    });
   }
 
   return (

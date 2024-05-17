@@ -3,8 +3,8 @@
   "sideEffects": false,
   "scripts": {
     "build": "remix build",
-    "dev": "remix dev",
-    "start": "remix-serve build"
+    "dev": "NODE_OPTIONS='--require ./instrument.server.cjs' remix dev",
+    "start": "NODE_OPTIONS='--require ./instrument.server.cjs' && remix-serve ./build/index.js"
   },
   "dependencies": {
     "@remix-run/express": "1.17.0",

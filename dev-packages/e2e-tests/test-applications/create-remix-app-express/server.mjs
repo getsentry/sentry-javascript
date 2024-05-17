@@ -1,13 +1,10 @@
 import { createRequestHandler } from '@remix-run/express';
 import { installGlobals } from '@remix-run/node';
-import { wrapExpressCreateRequestHandler } from '@sentry/remix';
 import compression from 'compression';
 import express from 'express';
 import morgan from 'morgan';
 
 installGlobals();
-
-const sentryCreateRequestHandler = wrapExpressCreateRequestHandler(createRequestHandler);
 
 const viteDevServer =
   process.env.NODE_ENV === 'production'
@@ -42,7 +39,7 @@ app.use(morgan('tiny'));
 // handle SSR requests
 app.all(
   '*',
-  sentryCreateRequestHandler({
+  createRequestHandler({
     build: viteDevServer
       ? () => viteDevServer.ssrLoadModule('virtual:remix/server-build')
       : await import('./build/server/index.js'),

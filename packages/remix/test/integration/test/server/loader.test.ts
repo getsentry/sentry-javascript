@@ -1,14 +1,12 @@
 import { Event } from '@sentry/types';
+import { describe, expect, it } from 'vitest';
 import { RemixTestEnv, assertSentryEvent, assertSentryTransaction } from './utils/helpers';
 
 const useV2 = process.env.REMIX_VERSION === '2';
 
-jest.spyOn(console, 'error').mockImplementation();
-
-// Repeat tests for each adapter
-describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', adapter => {
+describe('Remix API Loaders', () => {
   it('reports an error thrown from the loader', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-json-response/-2`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({ url, count: 2, envelopeType: ['transaction', 'event'] });
@@ -28,7 +26,6 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
 
     assertSentryEvent(event, {
-      transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -49,7 +46,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('reports a thrown error response the loader', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-throw-response/-1`;
 
     // We also wait for the transaction, even though we don't care about it for this test
@@ -71,7 +68,6 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     });
 
     assertSentryEvent(event, {
-      transaction: expect.stringMatching(/routes\/loader-throw-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -92,35 +88,39 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('correctly instruments a parameterized Remix API loader', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-json-response/123123`;
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `GET loader-json-response/:id`,
       transaction_info: {
         source: 'route',
       },
       spans: [
         {
-          description: 'root',
-          op: 'function.remix.loader',
+          data: {
+            'code.function': 'loader',
+            'otel.kind': 'INTERNAL',
+            'sentry.op': 'http',
+          },
+          origin: 'manual',
         },
         {
-          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
-          op: 'function.remix.loader',
-        },
-        {
-          description: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
-          op: 'function.remix.document_request',
+          data: {
+            'code.function': 'loader',
+            'otel.kind': 'INTERNAL',
+            'sentry.op': 'http',
+          },
+          origin: 'manual',
         },
       ],
     });
   });
 
   it('handles an error-throwing redirection target', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-json-response/-1`;
 
     const envelopes = await env.getMultipleEnvelopeRequest({
@@ -135,33 +135,30 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'ok',
           data: {
-            method: 'GET',
             'http.response.status_code': 302,
           },
         },
       },
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `GET loader-json-response/:id`,
     });
 
     assertSentryTransaction(transaction_2[2], {
       contexts: {
         trace: {
-          op: 'http.server',
+          op: 'http',
           status: 'internal_error',
           data: {
-            method: 'GET',
             'http.response.status_code': 500,
           },
         },
       },
-      transaction: `routes/loader-json-response${useV2 ? '.' : '/'}$id`,
+      transaction: `GET loader-json-response/:id`,
     });
 
     assertSentryEvent(event[2], {
-      transaction: expect.stringMatching(/routes\/loader-json-response(\/|\.)\$id/),
       exception: {
         values: [
           {
@@ -182,7 +179,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('makes sure scope does not bleed between requests', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
 
     const envelopes = await Promise.all([
       env.getEnvelopeRequest({ url: `${env.url}/scope-bleed/1`, endServer: false, envelopeType: 'transaction' }),
@@ -205,7 +202,7 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('continues transaction from sentry-trace header and baggage', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-json-response/3`;
 
     // send sentry-trace and baggage headers to loader
@@ -232,50 +229,39 @@ describe.each(['builtin', 'express'])('Remix API Loaders with adapter = %s', ada
   });
 
   it('correctly instruments a deferred loader', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/loader-defer-response/123123`;
     const envelope = await env.getEnvelopeRequest({ url, envelopeType: 'transaction' });
     const transaction = envelope[2];
 
     assertSentryTransaction(transaction, {
-      transaction: useV2 ? 'routes/loader-defer-response.$id' : 'routes/loader-defer-response/$id',
+      transaction: 'GET loader-defer-response/:id',
       transaction_info: {
         source: 'route',
       },
-      spans: useV2
-        ? [
-            {
-              description: 'root',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response.$id',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response.$id',
-              op: 'function.remix.document_request',
-            },
-          ]
-        : [
-            {
-              description: 'root',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response/$id',
-              op: 'function.remix.loader',
-            },
-            {
-              description: 'routes/loader-defer-response/$id',
-              op: 'function.remix.document_request',
-            },
-          ],
+      spans: [
+        {
+          data: {
+            'code.function': 'loader',
+            'sentry.op': 'http',
+            'otel.kind': 'INTERNAL',
+            'match.route.id': `routes/loader-defer-response${useV2 ? '.' : '/'}$id`,
+          },
+        },
+        {
+          data: {
+            'code.function': 'loader',
+            'sentry.op': 'http',
+            'otel.kind': 'INTERNAL',
+            'match.route.id': 'root',
+          },
+        },
+      ],
     });
   });
 
   it('does not capture thrown redirect responses', async () => {
-    const env = await RemixTestEnv.init(adapter);
+    const env = await RemixTestEnv.init();
     const url = `${env.url}/throw-redirect`;
 
     const envelopesCount = await env.countEnvelopes({
