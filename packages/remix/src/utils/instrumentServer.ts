@@ -17,7 +17,6 @@ import {
   fill,
   isNodeEnv,
   isPrimitive,
-  isThenable,
   loadModule,
   logger,
   objectify,
@@ -416,25 +415,27 @@ function instrumentBuildCallback(build: ServerBuild): ServerBuild {
  */
 export function instrumentBuild(
   build: ServerBuild | (() => ServerBuild | Promise<ServerBuild>),
-): ServerBuild | Promise<ServerBuild> {
+): ServerBuild | (() => ServerBuild | Promise<ServerBuild>) {
   if (typeof build === 'function') {
-    const resolvedBuild = build();
+    return function () {
+      const resolvedBuild = build();
 
-    if (isThenable(resolvedBuild)) {
-      return resolvedBuild.then(build => {
-        FUTURE_FLAGS = getFutureFlagsServer(build);
+      if (resolvedBuild instanceof Promise) {
+        return resolvedBuild.then(build => {
+          FUTURE_FLAGS = getFutureFlagsServer(build);
 
-        return instrumentBuildCallback(build);
-      });
-    } else {
-      FUTURE_FLAGS = getFutureFlagsServer(resolvedBuild);
+          return instrumentBuildCallback(build);
+        });
+      } else {
+        FUTURE_FLAGS = getFutureFlagsServer(resolvedBuild);
 
-      return instrumentBuildCallback(resolvedBuild);
-    }
+        return instrumentBuildCallback(resolvedBuild);
+      }
+    };
   } else {
-    FUTURE_FLAGS = getFutureFlagsServer(build as ServerBuild);
+    FUTURE_FLAGS = getFutureFlagsServer(build);
 
-    return instrumentBuildCallback(build as ServerBuild);
+    return instrumentBuildCallback(build);
   }
 }
 
