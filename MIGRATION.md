@@ -1323,6 +1323,14 @@ export class HeaderComponent {
 }
 ```
 
+## 6. Build Changes
+
+We now provide a proper ESM output of the SDK. There have also been some other build changes under the hood. One side
+effect of this is that importing Sentry as a default import does not work anymore. Note that this was never supported
+(even on v7) and this was never intended to work (and also not documented anywhere). However, it seems that for some
+configuration combinations, it was still possible to do `import Sentry from '@sentry/browser'`. This is not possible
+anymore in v8. Please use `import * as Sentry from '@sentry/browser'` instead.
+
 # Upgrading Sentry Feedback (beta, 7.x to 8.0)
 
 For details on upgrading Feedback from the beta 7.x to the release 8.x version, please view the
