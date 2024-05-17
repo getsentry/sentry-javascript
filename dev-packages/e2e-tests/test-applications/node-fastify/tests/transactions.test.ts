@@ -55,70 +55,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      spans: [
-        {
-          data: {
-            'plugin.name': 'fastify -> sentry-fastify-error-handler',
-            'fastify.type': 'middleware',
-            'hook.name': 'onRequest',
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'middleware - fastify -> sentry-fastify-error-handler',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'plugin.name': 'fastify -> sentry-fastify-error-handler',
-            'fastify.type': 'request_handler',
-            'http.route': '/test-transaction',
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'auto.http.otel.fastify',
-          },
-          description: 'request handler - fastify -> sentry-fastify-error-handler',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'auto.http.otel.fastify',
-        },
-        {
-          data: {
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'test-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'child-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'manual',
-        },
-      ],
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {
@@ -126,6 +62,78 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       },
     }),
   );
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans).toContainEqual({
+    data: {
+      'plugin.name': 'fastify -> sentry-fastify-error-handler',
+      'fastify.type': 'middleware',
+      'hook.name': 'onRequest',
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'auto.http.otel.fastify',
+      'sentry.op': 'middleware.fastify',
+    },
+    description: 'sentry-fastify-error-handler',
+    op: 'middleware.fastify',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+    origin: 'auto.http.otel.fastify',
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'plugin.name': 'fastify -> sentry-fastify-error-handler',
+      'fastify.type': 'request_handler',
+      'http.route': '/test-transaction',
+      'otel.kind': 'INTERNAL',
+      'sentry.op': 'request_handler.fastify',
+      'sentry.origin': 'auto.http.otel.fastify',
+    },
+    description: 'sentry-fastify-error-handler',
+    op: 'request_handler.fastify',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+    origin: 'auto.http.otel.fastify',
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'manual',
+    },
+    description: 'test-span',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+    origin: 'manual',
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'otel.kind': 'INTERNAL',
+      'sentry.origin': 'manual',
+    },
+    description: 'child-span',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+    origin: 'manual',
+  });
 
   await expect
     .poll(
