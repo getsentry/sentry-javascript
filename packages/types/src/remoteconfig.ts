@@ -34,6 +34,9 @@ export interface RemoteConfigInterface {
    */
   getInternal: (config: RemoteOverrideableConfig) => RemoteOverrideableConfig;
 
+  /**
+   * Returns the source type of the active configuration
+   */
   getSource: () => RemoteConfigSource;
 }
 

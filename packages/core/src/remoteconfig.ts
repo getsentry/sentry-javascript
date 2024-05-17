@@ -9,32 +9,43 @@ import type {
 const DEFAULT_CONFIG_NAME = '__default';
 
 /**
- * Remote Configuration is an integration that fetches configuration from a remote server.
+ * Remote Configuration fetches configuration from a remote server.
  */
 export function remoteConfig({
   defaultConfigName = DEFAULT_CONFIG_NAME,
   storage,
   transport,
 }: RemoteConfigOptions): RemoteConfigInterface {
-  const _defaultConfigName = defaultConfigName;
   let _activeConfig: RemoteConfigPayload | undefined;
   let _pendingConfig: RemoteConfigPayload | undefined;
   let _lastFetch: Date | undefined;
   let _lastUpdate: Date | undefined;
   let _source: RemoteConfigSource = 'DEFAULT';
   let _hasUpdate: boolean = false;
+  let _state: RemoteConfigState = 'INITIALIZING';
 
-  function initConfig() {
-    const cachedValue = storage.get(_defaultConfigName);
+  console.log('remoteConfig!!');
+
+  function _initConfig() {
+    // Use cached configuration if it exists
+    const cachedValue = storage.get(defaultConfigName);
     if (cachedValue) {
       _activeConfig = JSON.parse(cachedValue);
       _source = 'CACHED';
+      _state = 'INITIALIZED';
     }
   }
 
-  initConfig();
+  /**
+   * Checks if the current cached configuration is expired
+   */
+  function _checkCacheExpired() {
+    const lastFetched = storage.get(`${defaultConfigName}_lastFetch`);
+  }
 
-  function _internalFetch(): Promise<void> {
+  _initConfig();
+
+  function _fetch(): Promise<void> {
     return new Promise((resolve, reject) => {
       // TODO
       transport
@@ -52,11 +63,12 @@ export function remoteConfig({
           // not cached...get body and send pending
           // @ts-expect-error resp.response not typed
           resp.response.json().then((data: RemoteConfigPayload) => {
+            _lastFetch = new Date();
             _pendingConfig = data;
             _hasUpdate = true;
 
-            storage.set(_defaultConfigName, JSON.stringify(data));
-            storage.set(`${defaultConfigName}_lastFetch`, _lastFetch);
+            storage.set(defaultConfigName, JSON.stringify(data));
+            storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
             // _state = "SUCCESS";
             resolve();
           });
@@ -92,7 +104,7 @@ export function remoteConfig({
    * Async function to fetch and apply configuration.
    */
   async function fetchAndApply(): Promise<void> {
-    await _internalFetch();
+    await _fetch();
     applyUpdate();
   }
 
@@ -100,13 +112,14 @@ export function remoteConfig({
    * Fetch configuration, but does *not* apply. Call `applyConfig` to use fetched configuration.
    */
   function fetch(): void {
-    void _internalFetch();
+    void _fetch();
   }
 
   function getSource(): 'DEFAULT' | 'CACHED' | 'REMOTE' {
     return _source;
   }
 
+  /** @inheritDoc */
   function getInternal(config: RemoteOverrideableConfig): RemoteOverrideableConfig {
     // XXX: This is temporary, ideally we can return `_activeConfig.options ||
     // config`, but we are special casing `options.user_config` for UI
@@ -117,10 +130,7 @@ export function remoteConfig({
     };
   }
 
-  /**
-   * Returns current configuration. Can be from user-supplied defaults, local
-   * cache, or remote configuration.
-   */
+  /** @inheritdoc */
   function get<T>(defaultConfig: T): T {
     return (_activeConfig && (_activeConfig.options.user_config as T)) || defaultConfig;
   }
