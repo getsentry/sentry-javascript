@@ -144,24 +144,23 @@ targets:
     id: '@sentry/node-experimental'
     includeNames: /^sentry-node-experimental-\d.*\.tgz$/
 
-  # NOTE: Lambda layer releasing was turned off for v7, because AWS lambda versioning is linear, meaning the version number is always increased by 1 for each release.
-  # Since this would make it impossible for us to communicate to people which layer version corresponds to which SDK version,
-  # we will simply not publish lambda layers for v7 any longer. The latest released lambda layer for v7 was 235.
+  # NOTE: We publish the v7 layer under its own name so people on v7 can still get patches
+  # whenever we release a new v7 version—otherwise we would overwrite the current major lambda layer.
 
   # AWS Lambda Layer target
-  # - name: aws-lambda-layer
-  #   includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
-  #   layerName: SentryNodeServerlessSDK
-  #   compatibleRuntimes:
-  #     - name: node
-  #       versions:
-  #         - nodejs10.x
-  #         - nodejs12.x
-  #         - nodejs14.x
-  #         - nodejs16.x
-  #         - nodejs18.x
-  #         - nodejs20.x
-  #   license: MIT
+  - name: aws-lambda-layer
+    includeNames: /^sentry-node-serverless-\d+.\d+.\d+(-(beta|alpha)\.\d+)?\.zip$/
+    layerName: SentryNodeServerlessSDKv7
+    compatibleRuntimes:
+      - name: node
+        versions:
+          - nodejs10.x
+          - nodejs12.x
+          - nodejs14.x
+          - nodejs16.x
+          - nodejs18.x
+          - nodejs20.x
+    license: MIT
 
   # CDN Bundle Target
   - name: gcs
