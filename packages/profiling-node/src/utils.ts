@@ -224,22 +224,6 @@ function createProfileChunkPayload(
     release: release,
     environment: environment,
     measurements: cpuProfile.measurements,
-    runtime: {
-      name: 'node',
-      version: versions.node || '',
-    },
-    os: {
-      name: PLATFORM,
-      version: RELEASE,
-      build_number: VERSION,
-    },
-    device: {
-      locale: env['LC_ALL'] || env['LC_MESSAGES'] || env['LANG'] || env['LANGUAGE'] || '',
-      model: MODEL,
-      manufacturer: TYPE,
-      architecture: ARCH,
-      is_emulator: false,
-    },
     debug_meta: {
       images: applyDebugMetadata(client, cpuProfile.resources),
     },
@@ -253,10 +237,11 @@ function createProfileChunkPayload(
  * Creates a profiling chunk envelope item, if the profile does not pass validation, returns null.
  */
 export function createProfilingChunkEvent(
+  start_timestamp: number,
   client: Client,
-  profile: RawThreadCpuProfile,
   options: SentryOptions,
-  identifiers: { trace_id: string | undefined;  chunk_id: string; profiler_id: string },
+  profile: RawThreadCpuProfile,
+  identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
   if (!isValidProfileChunk(profile)) {
     return null;
@@ -265,7 +250,7 @@ export function createProfilingChunkEvent(
   return createProfileChunkPayload(client, profile, {
     release: options.release ?? '',
     environment: options.environment ?? '',
-    start_timestamp: event.start_timestamp ? event.start_timestamp * 1000 : Date.now(),
+    start_timestamp: start_timestamp,
     trace_id: identifiers.trace_id ?? '',
     chunk_id: identifiers.chunk_id,
     profiler_id: identifiers.profiler_id,

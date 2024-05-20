@@ -1,8 +1,8 @@
 import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
+import type { Integration, IntegrationFn, Span } from '@sentry/types';
 
-import { logger, uuid4 } from '@sentry/utils';
+import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
 import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
@@ -10,7 +10,12 @@ import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
 import type { Profile, ProfileChunk, RawThreadCpuProfile } from './types';
 
-import { addProfilesToEnvelope, createProfilingChunkEvent, createProfilingEvent, findProfiledTransactionsFromEnvelope } from './utils';
+import {
+  addProfilesToEnvelope,
+  createProfilingChunkEvent,
+  createProfilingEvent,
+  findProfiledTransactionsFromEnvelope,
+} from './utils';
 
 const CHUNK_INTERVAL_MS = 5000;
 const PROFILE_MAP = new LRUMap<string, RawThreadCpuProfile>(50);
@@ -434,75 +439,173 @@ function setupAutomatedSpanProfiling(client: NodeClient): void {
   });
 }
 
-/**
- * Instruments the client to automatically invoke the profiler on span start and stop events.
- * @param client
- */
-const CHUNK_INTERVAL_MS = 5000;
-function setupContinuousProfiling(client: NodeClient): void {
-  const profiler_id = uuid4();
-  let chunk_id: string | undefined
+class ContinuousProfiler {
+  private _profilerId = uuid4();
+  private _client: NodeClient | undefined = undefined;
 
-  const clientOptions = client.getOptions();
-  // get trace id
+  private _chunkId: string | undefined = undefined;
+  private _chunkTimer: NodeJS.Timeout | undefined = undefined;
+  private _chunkIntervalMS = 5000;
+  private _chunkStartTimestampMS: number | undefined = undefined;
+  private _chunkStartTraceID: string | undefined = undefined;
 
-  function start_profile_chunk(): void {
-    if (chunk_id) {
-      DEBUG_BUILD && logger.log(`[Profiling] Chunk with chunk_id ${chunk_id} is still running, new chunk cannot be started.`);
+  /**
+   * Called when the profiler is attached to the client (continuous mode is enabled). If of the profiler
+   * methods called before the profiler is initialized will result in a noop action with debug logs.
+   * @param client
+   */
+  public initialize(client: NodeClient): void {
+    this._client = client;
+  }
+
+  /**
+   * Recursively schedules chunk profiling to start and stop at a set interval.
+   * Once the user calls stop(), the current chunk will be stopped and flushed to Sentry and no new chunks will
+   * will be started. To restart continuous mode after calling stop(), the user must call start() again.
+   * @returns void
+   */
+  public start(): void {
+    if (!this._client) {
+      // The client is not attached to the profiler in the event that users did not pass the profilerMode: "continuous"
+      // to the SDK init. In this case, calling start() and stop() is a noop action. The reason this exists is because
+      // it makes the types easier to work with and avoids users having to do null checks.
+      DEBUG_BUILD && logger.log('[Profiling] Profiler was never attached to the client.');
+      return;
+    }
+    if (this._chunkId || this._chunkTimer) {
+      DEBUG_BUILD &&
+        logger.log(`[Profiling] Chunk with chunk_id ${this._chunkId} is still running, new chunk cannot be started.`);
+      return;
+    }
+    const scope = getCurrentScope();
+    const isolationScope = getIsolationScope();
+
+    // Extract the trace_id from the current scope and assign start_timestamp as well as the new chunk_id.
+    this._chunkId = uuid4();
+    this._chunkStartTraceID = {
+      ...isolationScope.getPropagationContext(),
+      ...scope.getPropagationContext(),
+    }.traceId;
+    this._chunkStartTimestampMS = timestampInSeconds();
+
+    CpuProfilerBindings.startProfiling(this._chunkId);
+    DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${this._chunkId}`);
+
+    this._chunkTimer = global.setTimeout(() => {
+      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
+      this.stop();
+      DEBUG_BUILD && logger.log('[Profiling] Starting new profiling chunk.');
+      setImmediate(this.start.bind(this));
+    }, this._chunkIntervalMS);
+
+    // Unref timeout so it doesn't keep the process alive.
+    this._chunkTimer.unref();
+  }
+
+  /**
+   * Stops the current chunk and flushes the profile to Sentry.
+   * @returns void
+   */
+  public stop(): void{
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+      return;
+    }
+    if (!this._chunkId) {
+      DEBUG_BUILD &&
+        logger.log(`[Profiling] Failed to collect profile for: ${this._chunkId}, the chunk_id is missing.`);
+      return;
+    }
+    if (this._chunkTimer) {
+      global.clearTimeout(this._chunkTimer);
+    }
+    DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${this._chunkId}`);
+
+    const profile = CpuProfilerBindings.stopProfiling(this._chunkId);
+    if (!profile || !this._chunkStartTimestampMS) {
+      DEBUG_BUILD && logger.log(`[Profiling] _chunkiledStartTraceID to collect profile for: ${this._chunkId}`);
+      return;
+    }
+    if (profile) {
+      DEBUG_BUILD && logger.log(`[Profiling] Sending profile chunk ${this._chunkId}.`);
+    }
+
+    DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${this._chunkId} sent to Sentry.`);
+    const chunk = createProfilingChunkEvent(
+      this._chunkStartTimestampMS,
+      this._client,
+      this._client.getOptions(),
+      profile,
+      {
+        chunk_id: this._chunkId,
+        trace_id: this._chunkStartTraceID,
+        profiler_id: this._profilerId,
+      },
+    );
+
+    if (!chunk) {
+      DEBUG_BUILD && logger.log(`[Profiling] Failed to create profile chunk for: ${this._chunkId}`);
+      this._reset();
       return;
     }
 
-    chunk_id = uuid4();
-    CpuProfilerBindings.startProfiling(chunk_id);
-    DEBUG_BUILD && logger.log(`[Profiling] starting profiling chunk: ${chunk_id}`);
-
-    const timeout = global.setTimeout(() => {
-      if (!chunk_id) {
-        DEBUG_BUILD && logger.log(`[Profiling] Failed to collect profile for: ${chunk_id}, the chunk_id is missing.`);
-        return;
-      }
-      DEBUG_BUILD && logger.log(`[Profiling] Stopping profiling chunk: ${chunk_id}`);
-      const profile = CpuProfilerBindings.stopProfiling(chunk_id);
-      if (profile) {
-        DEBUG_BUILD && logger.log(`[Profiling] Sending profile chunk ${chunk_id}.`);
-      }
-
-      // @TODO Send profile to sentry
-      DEBUG_BUILD && logger.log(`[Profiling] Profile chunk ${chunk_id} sent to Sentry.`);
-
-      const chunk = createProfilingChunkEvent(client, profile);
-
-      // Depending on the profile and stack sizes, stopping the profile and converting
-      // the format may negatively impact the performance of the application. To avoid
-      // blocking for too long, enqueue the next chunk start inside the next macrotask.
-      // clear current chunk
-      chunk_id = undefined;
-      setImmediate(start_profile_chunk);
-    }, CHUNK_INTERVAL_MS);
-
-    // Unref timeout so it doesn't keep the process alive.
-    timeout.unref();
+    this._flush(chunk);
+    // Depending on the profile and stack sizes, stopping the profile and converting
+    // the format may negatively impact the performance of the application. To avoid
+    // blocking for too long, enqueue the next chunk start inside the next macrotask.
+    // clear current chunk
+    this._reset();
   }
 
-  start_profile_chunk();
+  private _flush(chunk: ProfileChunk): void {
+    if (!this._client) {
+      DEBUG_BUILD &&
+        logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
+      return;
+    }
+
+    console.log('Send chunk', chunk)
+  }
+
+  /**
+   * Resets the current chunk state.
+   */
+  private _reset(): void {
+    this._chunkId = undefined;
+    this._chunkTimer = undefined;
+    this._chunkStartTimestampMS = undefined;
+    this._chunkStartTraceID = undefined;
+  }
+}
+
+interface ProfilingIntegration extends Integration {
+  profiler: ContinuousProfiler;
 }
 
 /** Exported only for tests. */
 export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
-  if (DEBUG_BUILD && ![16, 18, 20, 22].includes(NODE_MAJOR)) {
-    logger.warn(
-      `[Profiling] You are using a Node.js version that does not have prebuilt binaries (${NODE_VERSION}).`,
-      'The @sentry/profiling-node package only has prebuilt support for the following LTS versions of Node.js: 16, 18, 20, 22.',
-      'To use the @sentry/profiling-node package with this version of Node.js, you will need to compile the native addon from source.',
-      'See: https://github.com/getsentry/sentry-javascript/tree/develop/packages/profiling-node#building-the-package-from-source',
-    );
-  }
-
   return {
     name: 'ProfilingIntegration',
-    _profiler: new ContinuousProfiler(),
+    profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
-      setupAutomatedSpanProfiling(client);
+      const options = client.getOptions();
+      switch (options.profilerMode) {
+        case 'continuous': {
+          this.profiler.initialize(client);
+          break;
+        }
+        // Default to span profiling when no mode profiler mode is set
+        case 'span':
+        case undefined: {
+          setupAutomatedSpanProfiling(client);
+          break;
+        }
+        default: {
+          DEBUG_BUILD &&
+            logger.warn(`[Profiling] Unknown profiler mode: ${options.profilerMode}, profiler was not initialized`);
+        }
+      }
     },
   };
 }) satisfies IntegrationFn;
