@@ -105,3 +105,52 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   expect(pageLoadParentSpanId).toEqual(loaderSpanId);
   expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
 });
+
+test('Propagates trace when ErrorBoundary is triggered', async ({ page }) => {
+  // We use this to identify the transactions
+  const testTag = uuid4();
+
+  const httpServerTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
+    return (
+      transactionEvent.type === 'transaction' &&
+      transactionEvent.contexts?.trace?.op === 'http' &&
+      transactionEvent.tags?.['sentry_test'] === testTag
+    );
+  });
+
+  const pageLoadTransactionPromise = waitForTransaction('create-remix-app-express', transactionEvent => {
+    return (
+      transactionEvent.type === 'transaction' &&
+      transactionEvent.contexts?.trace?.op === 'pageload' &&
+      transactionEvent.tags?.['sentry_test'] === testTag
+    );
+  });
+
+  page.goto(`/client-error?tag=${testTag}`);
+
+  const pageloadTransaction = await pageLoadTransactionPromise;
+  const httpServerTransaction = await httpServerTransactionPromise;
+
+  expect(pageloadTransaction).toBeDefined();
+  expect(httpServerTransaction).toBeDefined();
+
+  const httpServerTraceId = httpServerTransaction.contexts?.trace?.trace_id;
+  const httpServerSpanId = httpServerTransaction.contexts?.trace?.span_id;
+  const loaderSpanId = httpServerTransaction.spans.find(
+    span => span.data && span.data['code.function'] === 'loader',
+  )?.span_id;
+
+  const pageLoadTraceId = pageloadTransaction.contexts?.trace?.trace_id;
+  const pageLoadSpanId = pageloadTransaction.contexts?.trace?.span_id;
+  const pageLoadParentSpanId = pageloadTransaction.contexts?.trace?.parent_span_id;
+
+  expect(httpServerTransaction.transaction).toBe('GET client-error');
+  expect(pageloadTransaction.transaction).toBe('routes/client-error');
+
+  expect(httpServerTraceId).toBeDefined();
+  expect(httpServerSpanId).toBeDefined();
+
+  expect(pageLoadTraceId).toEqual(httpServerTraceId);
+  expect(pageLoadParentSpanId).toEqual(loaderSpanId);
+  expect(pageLoadSpanId).not.toEqual(httpServerSpanId);
+});
