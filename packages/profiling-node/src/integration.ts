@@ -307,15 +307,18 @@ export const _nodeProfilingIntegration = ((): ProfilingIntegration => {
     name: 'ProfilingIntegration',
     profiler: new ContinuousProfiler(),
     setup(client: NodeClient) {
+      DEBUG_BUILD && logger.log('[Profiling] Profiling integration setup.');
       const options = client.getOptions();
       switch (options.profilerMode) {
         case 'continuous': {
+          DEBUG_BUILD && logger.log('[Profiling] Continuous profiler mode enabled.');
           this.profiler.initialize(client);
           break;
         }
         // Default to span profiling when no mode profiler mode is set
         case 'span':
         case undefined: {
+          DEBUG_BUILD && logger.log('[Profiling] Span profiler mode enabled.');
           setupAutomatedSpanProfiling(client);
           break;
         }
