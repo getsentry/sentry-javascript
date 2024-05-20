@@ -35,7 +35,7 @@ describe('ProfilingIntegration', () => {
       getTransport: () => transport,
     } as unknown as NodeClient;
 
-    integration.setup(client);
+    integration?.setup?.(client);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(transport.send).not.toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe('ProfilingIntegration', () => {
 
     const spy = jest.spyOn(client, 'on');
 
-    integration.setup(client);
+    integration?.setup?.(client);
 
     expect(spy).toHaveBeenCalledTimes(3);
     expect(spy).toHaveBeenCalledWith('spanStart', expect.any(Function));
