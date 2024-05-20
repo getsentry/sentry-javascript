@@ -1,7 +1,9 @@
 import { timestampInSeconds } from '@sentry/utils';
+import { setCurrentClient } from '../../../src';
 import { SentrySpan } from '../../../src/tracing/sentrySpan';
 import { SPAN_STATUS_ERROR } from '../../../src/tracing/spanstatus';
 import { TRACE_FLAG_NONE, TRACE_FLAG_SAMPLED, spanToJSON } from '../../../src/utils/spanUtils';
+import { TestClient, getDefaultTestClientOptions } from '../../mocks/client';
 
 describe('SentrySpan', () => {
   describe('name', () => {
@@ -87,6 +89,57 @@ describe('SentrySpan', () => {
       expect(spanToJSON(span).timestamp).toBeUndefined();
       span.end();
       expect(spanToJSON(span).timestamp).toBeGreaterThan(1);
+    });
+
+    test('sends the span if `beforeSendSpan` does not modify the span ', () => {
+      const beforeSendSpan = jest.fn(span => span);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+
+      // @ts-expect-error Accessing private transport API
+      const mockSend = jest.spyOn(client._transport, 'send');
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+      expect(mockSend).toHaveBeenCalled();
+    });
+
+    test('does not send the span if `beforeSendSpan` drops the span', () => {
+      const beforeSendSpan = jest.fn(() => null);
+      const client = new TestClient(
+        getDefaultTestClientOptions({
+          dsn: 'https://username@domain/123',
+          enableSend: true,
+          beforeSendSpan,
+        }),
+      );
+      setCurrentClient(client);
+
+      const recordDroppedEventSpy = jest.spyOn(client, 'recordDroppedEvent');
+      // @ts-expect-error Accessing private transport API
+      const mockSend = jest.spyOn(client._transport, 'send');
+      const span = new SentrySpan({
+        name: 'test',
+        isStandalone: true,
+        startTimestamp: 1,
+        endTimestamp: 2,
+        sampled: true,
+      });
+      span.end();
+
+      expect(mockSend).not.toHaveBeenCalled();
+      expect(recordDroppedEventSpy).toHaveBeenCalledWith('before_send', 'span');
     });
   });
 

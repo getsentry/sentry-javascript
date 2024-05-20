@@ -55,7 +55,9 @@ async function run(): Promise<void> {
     console.log('Cleaning test-applications...');
     console.log('');
 
-    registrySetup();
+    if (!process.env.SKIP_REGISTRY) {
+      registrySetup();
+    }
 
     await asyncExec('pnpm clean:test-applications', { env, cwd: __dirname });
 

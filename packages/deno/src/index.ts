@@ -26,9 +26,11 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   close,
   createTransport,
   continueTrace,
+  lastEventId,
   flush,
   getClient,
   isInitialized,
@@ -67,6 +69,7 @@ export {
   extraErrorDataIntegration,
   rewriteFramesIntegration,
   sessionTimingIntegration,
+  zodErrorsIntegration,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SEMANTIC_ATTRIBUTE_SENTRY_SOURCE,
@@ -76,6 +79,7 @@ export {
   endSession,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
 } from '@sentry/core';
 
 export { DenoClient } from './client';

@@ -3,21 +3,19 @@ import type { FeedbackInternalOptions } from '@sentry/types';
 import { h } from 'preact'; // eslint-disable-line @typescript-eslint/no-unused-vars
 import type { VNode } from 'preact';
 import { useMemo } from 'preact/hooks';
-import type { Props as LogoProps } from './SentryLogo';
 import { SentryLogo } from './SentryLogo';
 
-export interface Props extends LogoProps {
-  formTitle: FeedbackInternalOptions['formTitle'];
-  showBranding: FeedbackInternalOptions['showBranding'];
+export interface Props {
+  options: FeedbackInternalOptions;
 }
 
-export function DialogHeader({ colorScheme, formTitle, showBranding }: Props): VNode {
-  const logoHtml = useMemo(() => ({ __html: SentryLogo({ colorScheme }).outerHTML }), [colorScheme]);
+export function DialogHeader({ options }: Props): VNode {
+  const logoHtml = useMemo(() => ({ __html: SentryLogo().outerHTML }), []);
 
   return (
     <h2 class="dialog__header">
-      {formTitle}
-      {showBranding ? (
+      {options.formTitle}
+      {options.showBranding ? (
         <a
           class="brand-link"
           target="_blank"

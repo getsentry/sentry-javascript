@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "8.0.0-beta.4",
+  "version": "8.2.1",
   "name": "@sentry-internal/event-proxy-server",
   "author": "Sentry",
   "license": "MIT",
@@ -34,14 +34,15 @@
     "fix": "eslint . --format stylish --fix",
     "lint": "eslint . --format stylish",
     "build": "run-s build:transpile build:types",
+    "build:tarball": "run-s build:transpile build:types",
     "build:dev": "yarn build",
     "build:transpile": "rollup -c rollup.npm.config.mjs",
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rimraf -g ./node_modules ./build"
   },
   "devDependencies": {
-    "@sentry/types": "8.0.0-beta.4",
-    "@sentry/utils": "8.0.0-beta.4"
+    "@sentry/types": "8.2.1",
+    "@sentry/utils": "8.2.1"
   },
   "volta": {
     "extends": "../../package.json"

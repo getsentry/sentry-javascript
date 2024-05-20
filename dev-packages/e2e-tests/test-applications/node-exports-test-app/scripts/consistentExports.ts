@@ -16,6 +16,8 @@ const NODE_EXPORTS_IGNORE = [
   '__esModule',
   // Only required from the Node package
   'setNodeAsyncContextStrategy',
+  'getDefaultIntegrationsWithoutPerformance',
+  'initWithoutDefaultIntegrations',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));

@@ -97,12 +97,12 @@ export class SentrySpan implements Span {
 
     this._events = [];
 
+    this._isStandaloneSpan = spanContext.isStandalone;
+
     // If the span is already ended, ensure we finalize the span immediately
     if (this._endTime) {
       this._onSpanEnded();
     }
-
-    this._isStandaloneSpan = spanContext.isStandalone;
   }
 
   /** @inheritdoc */
@@ -259,7 +259,7 @@ export class SentrySpan implements Span {
 
     // if this is a standalone span, we send it immediately
     if (this._isStandaloneSpan) {
-      sendSpanEnvelope(createSpanEnvelope([this]));
+      sendSpanEnvelope(createSpanEnvelope([this], client));
       return;
     }
 
@@ -357,9 +357,21 @@ function isStandaloneSpan(span: Span): boolean {
   return span instanceof SentrySpan && span.isStandaloneSpan();
 }
 
+/**
+ * Sends a `SpanEnvelope`.
+ *
+ * Note: If the envelope's spans are dropped, e.g. via `beforeSendSpan`,
+ * the envelope will not be sent either.
+ */
 function sendSpanEnvelope(envelope: SpanEnvelope): void {
   const client = getClient();
   if (!client) {
+    return;
+  }
+
+  const spanItems = envelope[1];
+  if (!spanItems || spanItems.length === 0) {
+    client.recordDroppedEvent('before_send', 'span');
     return;
   }
 

@@ -9,24 +9,27 @@ import type {
 } from '@sentry/types';
 import { isBrowser, logger } from '@sentry/utils';
 import {
-  ACTOR_LABEL,
+  ADD_SCREENSHOT_LABEL,
   CANCEL_BUTTON_LABEL,
-  DEFAULT_THEME,
+  CONFIRM_BUTTON_LABEL,
   DOCUMENT,
   EMAIL_LABEL,
   EMAIL_PLACEHOLDER,
   FORM_TITLE,
-  IS_REQUIRED_TEXT,
+  IS_REQUIRED_LABEL,
   MESSAGE_LABEL,
   MESSAGE_PLACEHOLDER,
   NAME_LABEL,
   NAME_PLACEHOLDER,
+  REMOVE_SCREENSHOT_LABEL,
   SUBMIT_BUTTON_LABEL,
   SUCCESS_MESSAGE_TEXT,
+  TRIGGER_LABEL,
 } from '../constants';
 import { DEBUG_BUILD } from '../util/debug-build';
 import { isScreenshotSupported } from '../util/isScreenshotSupported';
 import { mergeOptions } from '../util/mergeOptions';
+import type { ActorComponent } from './components/Actor';
 import { Actor } from './components/Actor';
 import { createMainStyles } from './createMainStyles';
 import { sendFeedback } from './sendFeedback';
@@ -53,7 +56,8 @@ export const buildFeedbackIntegration = ({
 }: BuilderOptions): IntegrationFn<
   Integration & {
     attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration): Unsubscribe;
-    createWidget(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createForm(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createWidget(optionOverrides: OverrideFeedbackConfiguration): ActorComponent;
     remove(): void;
   }
 > => {
@@ -64,7 +68,7 @@ export const buildFeedbackIntegration = ({
     autoInject = true,
     showEmail = true,
     showName = true,
-    showScreenshot = false,
+    enableScreenshot = true,
     useSentryUser = {
       email: 'email',
       name: 'username',
@@ -74,22 +78,25 @@ export const buildFeedbackIntegration = ({
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
-    themeLight,
-    themeDark,
+    themeLight = {},
+    themeDark = {},
 
     // FeedbackTextConfiguration
-    buttonLabel = ACTOR_LABEL,
+    addScreenshotButtonLabel = ADD_SCREENSHOT_LABEL,
     cancelButtonLabel = CANCEL_BUTTON_LABEL,
-    submitButtonLabel = SUBMIT_BUTTON_LABEL,
-    formTitle = FORM_TITLE,
+    confirmButtonLabel = CONFIRM_BUTTON_LABEL,
     emailLabel = EMAIL_LABEL,
     emailPlaceholder = EMAIL_PLACEHOLDER,
+    formTitle = FORM_TITLE,
+    isRequiredLabel = IS_REQUIRED_LABEL,
     messageLabel = MESSAGE_LABEL,
     messagePlaceholder = MESSAGE_PLACEHOLDER,
     nameLabel = NAME_LABEL,
     namePlaceholder = NAME_PLACEHOLDER,
+    removeScreenshotButtonLabel = REMOVE_SCREENSHOT_LABEL,
+    submitButtonLabel = SUBMIT_BUTTON_LABEL,
     successMessageText = SUCCESS_MESSAGE_TEXT,
-    isRequiredText = IS_REQUIRED_TEXT,
+    triggerLabel = TRIGGER_LABEL,
 
     // FeedbackCallbacks
     onFormOpen,
@@ -106,22 +113,17 @@ export const buildFeedbackIntegration = ({
       isNameRequired,
       showEmail,
       showName,
-      showScreenshot,
+      enableScreenshot,
       useSentryUser,
 
       colorScheme,
-      themeDark: {
-        ...DEFAULT_THEME.dark,
-        ...themeDark,
-      },
-      themeLight: {
-        ...DEFAULT_THEME.light,
-        ...themeLight,
-      },
+      themeDark,
+      themeLight,
 
-      buttonLabel,
+      triggerLabel,
       cancelButtonLabel,
       submitButtonLabel,
+      confirmButtonLabel,
       formTitle,
       emailLabel,
       emailPlaceholder,
@@ -130,7 +132,9 @@ export const buildFeedbackIntegration = ({
       nameLabel,
       namePlaceholder,
       successMessageText,
-      isRequiredText,
+      isRequiredLabel,
+      addScreenshotButtonLabel,
+      removeScreenshotButtonLabel,
 
       onFormClose,
       onFormOpen,
@@ -152,7 +156,7 @@ export const buildFeedbackIntegration = ({
         DOCUMENT.body.appendChild(host);
 
         _shadow = host.attachShadow({ mode: 'open' });
-        _shadow.appendChild(createMainStyles(options.colorScheme, options));
+        _shadow.appendChild(createMainStyles(options));
       }
       return _shadow as ShadowRoot;
     };
@@ -174,9 +178,10 @@ export const buildFeedbackIntegration = ({
     };
 
     const _loadAndRenderDialog = async (options: FeedbackInternalOptions): Promise<FeedbackDialog> => {
+      const screenshotRequired = options.enableScreenshot && isScreenshotSupported();
       const [modalIntegration, screenshotIntegration] = await Promise.all([
         _findIntegration<FeedbackModalIntegration>('FeedbackModal', getModalIntegration, 'feedbackModalIntegration'),
-        showScreenshot && isScreenshotSupported()
+        screenshotRequired
           ? _findIntegration<FeedbackScreenshotIntegration>(
               'FeedbackScreenshot',
               getScreenshotIntegration,
@@ -184,21 +189,28 @@ export const buildFeedbackIntegration = ({
             )
           : undefined,
       ]);
-      if (!modalIntegration || (showScreenshot && !screenshotIntegration)) {
+      if (!modalIntegration) {
         // TODO: Let the end-user retry async loading
-        // Include more verbose logs so developers can understand the options (like preloading).
-        throw new Error('Missing feedback helper integration!');
+        DEBUG_BUILD &&
+          logger.error(
+            '[Feedback] Missing feedback modal integration. Try using `feedbackSyncIntegration` in your `Sentry.init`.',
+          );
+        throw new Error('[Feedback] Missing feedback modal integration!');
+      }
+      if (screenshotRequired && !screenshotIntegration) {
+        DEBUG_BUILD &&
+          logger.error('[Feedback] Missing feedback screenshot integration. Proceeding without screenshots.');
       }
 
       return modalIntegration.createDialog({
         options,
-        screenshotIntegration: showScreenshot ? screenshotIntegration : undefined,
+        screenshotIntegration: screenshotRequired ? screenshotIntegration : undefined,
         sendFeedback,
         shadow: _createShadow(options),
       });
     };
 
-    const attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
+    const _attachTo = (el: Element | string, optionOverrides: OverrideFeedbackConfiguration = {}): Unsubscribe => {
       const mergedOptions = mergeOptions(_options, optionOverrides);
 
       const targetEl =
@@ -238,23 +250,23 @@ export const buildFeedbackIntegration = ({
       return unsubscribe;
     };
 
-    const autoInjectActor = (): void => {
+    const _createActor = (optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent => {
       const shadow = _createShadow(_options);
-      const actor = Actor({ buttonLabel: _options.buttonLabel, shadow });
+      const actor = Actor({ triggerLabel: _options.triggerLabel, shadow });
       const mergedOptions = mergeOptions(_options, {
+        ...optionOverrides,
         onFormOpen() {
-          actor.removeFromDom();
+          actor.hide();
         },
         onFormClose() {
-          actor.appendToDom();
+          actor.show();
         },
         onFormSubmitted() {
-          actor.appendToDom();
+          actor.show();
         },
       });
-      attachTo(actor.el, mergedOptions);
-
-      actor.appendToDom();
+      _attachTo(actor.el, mergedOptions);
+      return actor;
     };
 
     return {
@@ -264,7 +276,7 @@ export const buildFeedbackIntegration = ({
           return;
         }
 
-        autoInjectActor();
+        _createActor().appendToDom();
       },
 
       /**
@@ -272,12 +284,23 @@ export const buildFeedbackIntegration = ({
        *
        * The returned function can be used to remove the click listener
        */
-      attachTo,
+      attachTo: _attachTo,
 
       /**
-       * Creates a new widget. Accepts partial options to override any options passed to constructor.
+       * Creates a new widget which is composed of a Button which triggers a Dialog.
+       * Accepts partial options to override any options passed to constructor.
        */
-      async createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
+      createWidget(optionOverrides: OverrideFeedbackConfiguration = {}): ActorComponent {
+        const actor = _createActor(mergeOptions(_options, optionOverrides));
+        actor.appendToDom();
+        return actor;
+      },
+
+      /**
+       * Creates a new Form which you can
+       * Accepts partial options to override any options passed to constructor.
+       */
+      async createForm(optionOverrides: OverrideFeedbackConfiguration = {}): Promise<FeedbackDialog> {
         return _loadAndRenderDialog(mergeOptions(_options, optionOverrides));
       },
 

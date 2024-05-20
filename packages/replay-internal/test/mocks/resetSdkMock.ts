@@ -1,4 +1,5 @@
 import { resetInstrumentationHandlers } from '@sentry/utils';
+import { vi } from 'vitest';
 
 import type { Replay as ReplayIntegration } from '../../src/integration';
 import type { ReplayContainer } from '../../src/replay';
@@ -16,15 +17,15 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
 }> {
   let domHandler: DomHandler;
 
-  jest.setSystemTime(new Date(BASE_TIMESTAMP));
-  jest.clearAllMocks();
-  jest.resetModules();
+  vi.setSystemTime(new Date(BASE_TIMESTAMP));
+  vi.clearAllMocks();
+  vi.resetModules();
 
   // Clear all handlers that have been registered
   resetInstrumentationHandlers();
 
   const SentryBrowserUtils = await import('@sentry-internal/browser-utils');
-  jest.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
+  vi.spyOn(SentryBrowserUtils, 'addClickKeypressInstrumentationHandler').mockImplementation(handler => {
     domHandler = handler;
   });
   const { mockRrweb } = await import('./mockRrweb');
@@ -37,9 +38,8 @@ export async function resetSdkMock({ replayOptions, sentryOptions, autoStart }: 
   });
 
   // XXX: This is needed to ensure `domHandler` is set
-  jest.runAllTimers();
-  await new Promise(process.nextTick);
-  jest.setSystemTime(new Date(BASE_TIMESTAMP));
+  await vi.runAllTimersAsync();
+  vi.setSystemTime(new Date(BASE_TIMESTAMP));
 
   return {
     // @ts-expect-error use before assign

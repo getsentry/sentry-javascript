@@ -144,6 +144,32 @@ describe('createSpanEnvelope', () => {
     });
   });
 
+  it('adds `dsn` envelope header if tunnel is enabled', () => {
+    const options = getDefaultTestClientOptions({ dsn: 'https://username@domain/123', tunnel: 'http://tunnel' });
+    const client = new TestClient(options);
+
+    const spanEnvelope = createSpanEnvelope(
+      [new SentrySpan({ name: 'test', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' } })],
+      client,
+    );
+
+    const spanEnvelopeHeaders = spanEnvelope[0];
+    expect(spanEnvelopeHeaders.dsn).toEqual('https://username@domain/123');
+  });
+
+  it('does not add `dsn` envelope header if tunnel is not enabled', () => {
+    const options = getDefaultTestClientOptions({ dsn: 'https://username@domain/123' });
+    const client = new TestClient(options);
+
+    const spanEnvelope = createSpanEnvelope(
+      [new SentrySpan({ name: 'test', attributes: { [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'custom' } })],
+      client,
+    );
+
+    const spanEnvelopeHeaders = spanEnvelope[0];
+    expect(spanEnvelopeHeaders.dsn).toBeUndefined();
+  });
+
   it("doesn't add a `trace` envelope header if there's no public key", () => {
     const options = getDefaultTestClientOptions({ tracesSampleRate: 1, dsn: 'https://domain/123' });
     client = new TestClient(options);
@@ -155,6 +181,73 @@ describe('createSpanEnvelope', () => {
     const spanEnvelopeHeaders = spanEnvelope[0];
     expect(spanEnvelopeHeaders).toEqual({
       sent_at: expect.any(String),
+    });
+  });
+
+  it('calls `beforeSendSpan` and uses original span without any changes', () => {
+    const beforeSendSpan = jest.fn(span => span);
+    const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
+    const client = new TestClient(options);
+
+    const span = new SentrySpan({
+      name: 'test',
+      isStandalone: true,
+      startTimestamp: 1,
+      endTimestamp: 2,
+    });
+
+    const spanEnvelope = createSpanEnvelope([span], client);
+
+    expect(beforeSendSpan).toHaveBeenCalled();
+
+    const spanItem = spanEnvelope[1][0][1];
+    expect(spanItem).toEqual({
+      data: {
+        'sentry.origin': 'manual',
+      },
+      description: 'test',
+      is_segment: true,
+      origin: 'manual',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      segment_id: spanItem.segment_id,
+      start_timestamp: 1,
+      timestamp: 2,
+      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+  });
+
+  it('calls `beforeSendSpan` and uses the modified span', () => {
+    const beforeSendSpan = jest.fn(span => {
+      span.description = `mutated description: ${span.description}`;
+      return span;
+    });
+    const options = getDefaultTestClientOptions({ dsn: 'https://domain/123', beforeSendSpan });
+    const client = new TestClient(options);
+
+    const span = new SentrySpan({
+      name: 'test',
+      isStandalone: true,
+      startTimestamp: 1,
+      endTimestamp: 2,
+    });
+
+    const spanEnvelope = createSpanEnvelope([span], client);
+
+    expect(beforeSendSpan).toHaveBeenCalled();
+
+    const spanItem = spanEnvelope[1][0][1];
+    expect(spanItem).toEqual({
+      data: {
+        'sentry.origin': 'manual',
+      },
+      description: 'mutated description: test',
+      is_segment: true,
+      origin: 'manual',
+      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+      segment_id: spanItem.segment_id,
+      start_timestamp: 1,
+      timestamp: 2,
+      trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
     });
   });
 });

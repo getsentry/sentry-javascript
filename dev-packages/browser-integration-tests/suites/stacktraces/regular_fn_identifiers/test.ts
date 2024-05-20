@@ -31,7 +31,8 @@ sentryTest(
         { function: '?' },
         { function: 'qux' },
         { function: 'qux/<' },
-        { function: 'qux/</<' },
+        // The function name below was 'qux/</<' on the Firefox versions < 124
+        { function: 'qux/<' },
         { function: 'foo' },
         { function: 'bar' },
         { function: 'baz' },

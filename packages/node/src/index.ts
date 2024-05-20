@@ -17,6 +17,7 @@ export { mongoIntegration } from './integrations/tracing/mongo';
 export { mongooseIntegration } from './integrations/tracing/mongoose';
 export { mysqlIntegration } from './integrations/tracing/mysql';
 export { mysql2Integration } from './integrations/tracing/mysql2';
+export { redisIntegration } from './integrations/tracing/redis';
 export { nestIntegration, setupNestErrorHandler } from './integrations/tracing/nest';
 export { postgresIntegration } from './integrations/tracing/postgres';
 export { prismaIntegration } from './integrations/tracing/prisma';
@@ -25,7 +26,12 @@ export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
-export { init, getDefaultIntegrations } from './sdk/init';
+export {
+  init,
+  getDefaultIntegrations,
+  getDefaultIntegrationsWithoutPerformance,
+  initWithoutDefaultIntegrations,
+} from './sdk/init';
 export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
@@ -51,6 +57,7 @@ export {
   addBreadcrumb,
   isInitialized,
   getGlobalScope,
+  lastEventId,
   close,
   createTransport,
   flush,
@@ -89,6 +96,7 @@ export {
   captureException,
   captureEvent,
   captureMessage,
+  captureFeedback,
   captureConsoleIntegration,
   debugIntegration,
   dedupeIntegration,
@@ -108,7 +116,9 @@ export {
   getRootSpan,
   spanToJSON,
   spanToTraceHeader,
+  spanToBaggageHeader,
   trpcMiddleware,
+  zodErrorsIntegration,
 } from '@sentry/core';
 
 export type {

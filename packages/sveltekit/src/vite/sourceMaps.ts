@@ -103,8 +103,18 @@ export async function makeCustomSentryVitePlugins(options?: CustomSentryVitePlug
 
     // Modify the config to generate source maps
     config: config => {
-      // eslint-disable-next-line no-console
-      debug && console.log('[Source Maps Plugin] Enabeling source map generation');
+      const sourceMapsPreviouslyEnabled = !config.build?.sourcemap;
+      if (debug && sourceMapsPreviouslyEnabled) {
+        // eslint-disable-next-line no-console
+        console.log('[Source Maps Plugin] Enabeling source map generation');
+        if (!mergedOptions.sourcemaps?.filesToDeleteAfterUpload) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[Source Maps Plugin] We recommend setting the \`sourceMapsUploadOptions.sourcemaps.filesToDeleteAfterUpload\` option to clean up source maps after uploading.
+[Source Maps Plugin] Otherwise, source maps might be deployed to production, depending on your configuration`,
+          );
+        }
+      }
       return {
         ...config,
         build: {

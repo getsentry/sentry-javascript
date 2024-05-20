@@ -15,7 +15,7 @@ export function isAtLeastReact17(version: string): boolean {
 export const UNKNOWN_COMPONENT = 'unknown';
 
 export type FallbackRender = (errorData: {
-  error: Error;
+  error: unknown;
   componentStack: string;
   eventId: string;
   resetError(): void;
@@ -29,7 +29,7 @@ export type ErrorBoundaryProps = {
    * Options to be passed into the Sentry report dialog.
    * No-op if {@link showDialog} is false.
    */
-  dialogOptions?: Omit<ReportDialogOptions, 'eventId'> | undefined;
+  dialogOptions?: ReportDialogOptions | undefined;
   /**
    * A fallback component that gets rendered when the error boundary encounters an error.
    *
@@ -40,15 +40,15 @@ export type ErrorBoundaryProps = {
    */
   fallback?: React.ReactElement | FallbackRender | undefined;
   /** Called when the error boundary encounters an error */
-  onError?: ((error: Error, componentStack: string, eventId: string) => void) | undefined;
+  onError?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
   onMount?: (() => void) | undefined;
   /** Called if resetError() is called from the fallback render props function  */
-  onReset?: ((error: Error | null, componentStack: string | null, eventId: string | null) => void) | undefined;
+  onReset?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
   /** Called on componentWillUnmount() */
-  onUnmount?: ((error: Error | null, componentStack: string | null, eventId: string | null) => void) | undefined;
+  onUnmount?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
   /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
-  beforeCapture?: ((scope: Scope, error: Error | null, componentStack: string | null) => void) | undefined;
+  beforeCapture?: ((scope: Scope, error: unknown, componentStack: string | undefined) => void) | undefined;
 };
 
 type ErrorBoundaryState =
@@ -59,7 +59,7 @@ type ErrorBoundaryState =
     }
   | {
       componentStack: React.ErrorInfo['componentStack'];
-      error: Error;
+      error: unknown;
       eventId: string;
     };
 
@@ -118,7 +118,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
-  public componentDidCatch(error: Error & { cause?: Error }, { componentStack }: React.ErrorInfo): void {
+  public componentDidCatch(error: unknown, { componentStack }: React.ErrorInfo): void {
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
     withScope(scope => {
       // If on React version >= 17, create stack trace from componentStack param and links
@@ -200,9 +200,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       if (typeof fallback === 'function') {
         element = React.createElement(fallback, {
           error: state.error,
-          componentStack: state.componentStack,
+          componentStack: state.componentStack as string,
           resetError: this.resetErrorBoundary,
-          eventId: state.eventId,
+          eventId: state.eventId as string,
         });
       } else {
         element = fallback;

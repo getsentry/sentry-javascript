@@ -1,3 +1,4 @@
+import { isWrapped } from '@opentelemetry/core';
 import { KoaInstrumentation } from '@opentelemetry/instrumentation-koa';
 import { SEMATTRS_HTTP_ROUTE } from '@opentelemetry/semantic-conventions';
 import {
@@ -5,11 +6,12 @@ import {
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  isEnabled,
   spanToJSON,
 } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import { consoleSandbox, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 
 const _koaIntegration = (() => {
@@ -48,4 +50,13 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
       captureException(error);
     }
   });
+
+  if (!isWrapped(app.use) && isEnabled()) {
+    consoleSandbox(() => {
+      // eslint-disable-next-line no-console
+      console.warn(
+        '[Sentry] Koa is not instrumented. This is likely because you required/imported koa before calling `Sentry.init()`.',
+      );
+    });
+  }
 };

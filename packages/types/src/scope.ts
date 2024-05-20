@@ -60,6 +60,18 @@ export interface Scope {
   getClient<C extends Client>(): C | undefined;
 
   /**
+   * Sets the last event id on the scope.
+   * @param lastEventId The last event id of a captured event.
+   */
+  setLastEventId(lastEventId: string | undefined): void;
+
+  /**
+   * This is the getter for lastEventId.
+   * @returns The last event id of a captured event.
+   */
+  lastEventId(): string | undefined;
+
+  /**
    * Add internal on change listener. Used for sub SDKs that need to store the scope.
    * @hidden
    */

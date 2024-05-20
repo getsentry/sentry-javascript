@@ -14,6 +14,7 @@ export {
   captureEvent,
   captureMessage,
   captureCheckIn,
+  captureFeedback,
   withMonitor,
   createTransport,
   // eslint-disable-next-line deprecation/deprecation
@@ -39,6 +40,7 @@ export {
   makeNodeTransport,
   getDefaultIntegrations,
   defaultStackParser,
+  lastEventId,
   flush,
   close,
   getSentryRelease,
@@ -80,6 +82,7 @@ export {
   mongooseIntegration,
   mysqlIntegration,
   mysql2Integration,
+  redisIntegration,
   nestIntegration,
   setupNestErrorHandler,
   postgresIntegration,

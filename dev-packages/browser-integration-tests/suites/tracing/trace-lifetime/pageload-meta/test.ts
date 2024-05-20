@@ -1,12 +1,12 @@
 import { expect } from '@playwright/test';
-import type { SpanEnvelope } from '@sentry/types';
+import type { Event } from '@sentry/types';
 import { sentryTest } from '../../../../utils/fixtures';
 import type { EventAndTraceHeader } from '../../../../utils/helpers';
+import { shouldSkipFeedbackTest } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
   getMultipleSentryEnvelopeRequests,
-  properFullEnvelopeRequestParser,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
@@ -192,73 +192,6 @@ sentryTest('error during <meta> tag pageload has pageload traceId', async ({ get
 });
 
 sentryTest(
-  'outgoing fetch request after <meta> tag pageload has pageload traceId in headers and span envelope',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
-
-    const url = await getLocalTestUrl({ testDir: __dirname });
-
-    await page.route('http://example.com/**', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({}),
-      });
-    });
-
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    expect(pageloadEvent.type).toEqual('transaction');
-    expect(pageloadEvent?.contexts?.trace).toMatchObject({
-      op: 'pageload',
-      trace_id: META_TAG_TRACE_ID,
-      parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-    });
-
-    expect(pageloadTraceHeader).toEqual({
-      environment: 'prod',
-      release: '1.0.0',
-      sample_rate: '0.2',
-      sampled: 'true',
-      transaction: 'my-transaction',
-      public_key: 'public',
-      trace_id: META_TAG_TRACE_ID,
-    });
-
-    const requestPromise = page.waitForRequest('http://example.com/*');
-    const spanEnvelopePromise = getFirstSentryEnvelopeRequest<SpanEnvelope>(
-      page,
-      undefined,
-      properFullEnvelopeRequestParser,
-    );
-    await page.locator('#fetchBtn').click();
-    const [request, spanEnvelope] = await Promise.all([requestPromise, spanEnvelopePromise]);
-    const headers = request.headers();
-
-    const spanEnvelopeTraceHeader = spanEnvelope[0].trace;
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
-
-    expect(spanEnvelopeTraceHeader).toEqual(pageloadTraceHeader);
-
-    expect(spanEnvelopeItem).toMatchObject({
-      parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      trace_id: META_TAG_TRACE_ID,
-    });
-
-    // sampling decision is propagated from meta tag's sentry-trace sampled flag
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
-    expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
-  },
-);
-
-sentryTest(
   'outgoing fetch request during <meta> tag pageload has pageload traceId in headers',
   async ({ getLocalTestUrl, page }) => {
     if (shouldSkipTracingTest()) {
@@ -304,72 +237,6 @@ sentryTest(
     });
 
     const headers = request.headers();
-
-    // sampling decision is propagated from meta tag's sentry-trace sampled flag
-    expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
-    expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
-  },
-);
-
-sentryTest(
-  'outgoing XHR request after <meta> tag pageload has pageload traceId in headers',
-  async ({ getLocalTestUrl, page }) => {
-    if (shouldSkipTracingTest()) {
-      sentryTest.skip();
-    }
-
-    await page.route('http://example.com/**', route => {
-      return route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({}),
-      });
-    });
-
-    const url = await getLocalTestUrl({ testDir: __dirname });
-
-    const [pageloadEvent, pageloadTraceHeader] = await getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      url,
-      eventAndTraceHeaderRequestParser,
-    );
-    expect(pageloadEvent.type).toEqual('transaction');
-    expect(pageloadEvent?.contexts?.trace).toMatchObject({
-      op: 'pageload',
-      trace_id: META_TAG_TRACE_ID,
-      parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-    });
-    expect(pageloadTraceHeader).toEqual({
-      environment: 'prod',
-      release: '1.0.0',
-      sample_rate: '0.2',
-      sampled: 'true',
-      transaction: 'my-transaction',
-      public_key: 'public',
-      trace_id: META_TAG_TRACE_ID,
-    });
-
-    const requestPromise = page.waitForRequest('http://example.com/*');
-    const spanEnvelopePromise = getFirstSentryEnvelopeRequest<SpanEnvelope>(
-      page,
-      undefined,
-      properFullEnvelopeRequestParser,
-    );
-    await page.locator('#xhrBtn').click();
-    const [request, spanEnvelope] = await Promise.all([requestPromise, spanEnvelopePromise]);
-    const headers = request.headers();
-
-    const spanEnvelopeTraceHeader = spanEnvelope[0].trace;
-    const spanEnvelopeItem = spanEnvelope[1][0][1];
-
-    expect(spanEnvelopeTraceHeader).toEqual(pageloadTraceHeader);
-
-    expect(spanEnvelopeItem).toMatchObject({
-      parent_span_id: META_TAG_PARENT_SPAN_ID,
-      span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
-      trace_id: META_TAG_TRACE_ID,
-    });
 
     // sampling decision is propagated from meta tag's sentry-trace sampled flag
     expect(headers['sentry-trace']).toMatch(new RegExp(`^${META_TAG_TRACE_ID}-[0-9a-f]{16}-1$`));
@@ -429,3 +296,41 @@ sentryTest(
     expect(headers['baggage']).toBe(META_TAG_BAGGAGE);
   },
 );
+
+sentryTest('user feedback event after pageload has pageload traceId in headers', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipTracingTest() || shouldSkipFeedbackTest()) {
+    sentryTest.skip();
+  }
+
+  const url = await getLocalTestUrl({ testDir: __dirname });
+
+  const pageloadEvent = await getFirstSentryEnvelopeRequest<Event>(page, url);
+  const pageloadTraceContext = pageloadEvent.contexts?.trace;
+
+  expect(pageloadTraceContext).toMatchObject({
+    op: 'pageload',
+    trace_id: META_TAG_TRACE_ID,
+    parent_span_id: META_TAG_PARENT_SPAN_ID,
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  const feedbackEventPromise = getFirstSentryEnvelopeRequest<Event>(page);
+
+  await page.getByText('Report a Bug').click();
+  expect(await page.locator(':visible:text-is("Report a Bug")').count()).toEqual(1);
+  await page.locator('[name="name"]').fill('Jane Doe');
+  await page.locator('[name="email"]').fill('janedoe@example.org');
+  await page.locator('[name="message"]').fill('my example feedback');
+  await page.locator('[data-sentry-feedback] .btn--primary').click();
+
+  const feedbackEvent = await feedbackEventPromise;
+  const feedbackTraceContext = feedbackEvent.contexts?.trace;
+
+  expect(feedbackEvent.type).toEqual('feedback');
+
+  expect(feedbackTraceContext).toMatchObject({
+    trace_id: META_TAG_TRACE_ID,
+    parent_span_id: META_TAG_PARENT_SPAN_ID,
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+});

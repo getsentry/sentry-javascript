@@ -3,11 +3,11 @@ import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcr
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
   beforeEach(function () {
-    jest.setSystemTime(BASE_TIMESTAMP);
+    vi.setSystemTime(BASE_TIMESTAMP);
   });
 
   it('handles circular references', async () => {

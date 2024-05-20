@@ -230,6 +230,81 @@ describe('startIdleSpan', () => {
     );
   });
 
+  it('Ensures idle span cannot exceed finalTimeout', () => {
+    const transactions: Event[] = [];
+    const beforeSendTransaction = jest.fn(event => {
+      transactions.push(event);
+      return null;
+    });
+    const options = getDefaultTestClientOptions({
+      dsn,
+      tracesSampleRate: 1,
+      beforeSendTransaction,
+    });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    // We want to accomodate a bit of drift there, so we ensure this starts earlier...
+    const finalTimeout = 99_999;
+    const baseTimeInSeconds = Math.floor(Date.now() / 1000) - 9999;
+
+    const idleSpan = startIdleSpan({ name: 'idle span', startTime: baseTimeInSeconds }, { finalTimeout: finalTimeout });
+    expect(idleSpan).toBeDefined();
+
+    // regular child - should be kept
+    const regularSpan = startInactiveSpan({
+      name: 'regular span',
+      startTime: baseTimeInSeconds + 2,
+    });
+    regularSpan.end(baseTimeInSeconds + 4);
+
+    // very late ending span
+    const discardedSpan = startInactiveSpan({ name: 'discarded span', startTime: baseTimeInSeconds + 99 });
+    discardedSpan.end(baseTimeInSeconds + finalTimeout + 100);
+
+    // Should be cancelled - will not finish
+    const cancelledSpan = startInactiveSpan({
+      name: 'cancelled span',
+      startTime: baseTimeInSeconds + 4,
+    });
+
+    jest.runOnlyPendingTimers();
+
+    expect(regularSpan.isRecording()).toBe(false);
+    expect(idleSpan.isRecording()).toBe(false);
+    expect(discardedSpan.isRecording()).toBe(false);
+    expect(cancelledSpan.isRecording()).toBe(false);
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    const transaction = transactions[0];
+
+    // End time is based on idle time etc.
+    const idleSpanEndTime = transaction.timestamp!;
+    expect(idleSpanEndTime).toEqual(baseTimeInSeconds + finalTimeout / 1000);
+
+    expect(transaction.spans).toHaveLength(2);
+    expect(transaction.spans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'regular span',
+          timestamp: baseTimeInSeconds + 4,
+          start_timestamp: baseTimeInSeconds + 2,
+        }),
+      ]),
+    );
+    expect(transaction.spans).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          description: 'cancelled span',
+          timestamp: idleSpanEndTime,
+          start_timestamp: baseTimeInSeconds + 4,
+          status: 'cancelled',
+        }),
+      ]),
+    );
+  });
+
   it('emits span hooks', () => {
     const client = getClient()!;
 
@@ -274,6 +349,27 @@ describe('startIdleSpan', () => {
     expect(recordDroppedEventSpy).toHaveBeenCalledWith('sample_rate', 'transaction');
   });
 
+  it('sets finish reason when span is ended manually', () => {
+    let transaction: Event | undefined;
+    const beforeSendTransaction = jest.fn(event => {
+      transaction = event;
+      return null;
+    });
+    const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, beforeSendTransaction });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    const span = startIdleSpan({ name: 'foo' });
+    span.end();
+    jest.runOnlyPendingTimers();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
+      'externalFinish',
+    );
+  });
+
   it('sets finish reason when span ends', () => {
     let transaction: Event | undefined;
     const beforeSendTransaction = jest.fn(event => {
@@ -285,14 +381,64 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // This is only set when op === 'ui.action.click'
-    startIdleSpan({ name: 'foo', op: 'ui.action.click' });
+    startIdleSpan({ name: 'foo' });
     startSpan({ name: 'inner' }, () => {});
     jest.runOnlyPendingTimers();
 
     expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
     expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
       'idleTimeout',
+    );
+  });
+
+  it('sets finish reason when span ends via expired heartbeat timeout', () => {
+    let transaction: Event | undefined;
+    const beforeSendTransaction = jest.fn(event => {
+      transaction = event;
+      return null;
+    });
+    const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, beforeSendTransaction });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startIdleSpan({ name: 'foo' });
+    startSpanManual({ name: 'inner' }, () => {});
+    jest.runOnlyPendingTimers();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
+      'heartbeatFailed',
+    );
+  });
+
+  it('sets finish reason when span ends via final timeout', () => {
+    let transaction: Event | undefined;
+    const beforeSendTransaction = jest.fn(event => {
+      transaction = event;
+      return null;
+    });
+    const options = getDefaultTestClientOptions({ dsn, tracesSampleRate: 1, beforeSendTransaction });
+    const client = new TestClient(options);
+    setCurrentClient(client);
+    client.init();
+
+    startIdleSpan({ name: 'foo' }, { finalTimeout: TRACING_DEFAULTS.childSpanTimeout * 2 });
+
+    const span1 = startInactiveSpan({ name: 'inner' });
+    jest.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1);
+    span1.end();
+
+    const span2 = startInactiveSpan({ name: 'inner2' });
+    jest.advanceTimersByTime(TRACING_DEFAULTS.childSpanTimeout - 1);
+    span2.end();
+
+    startInactiveSpan({ name: 'inner3' });
+    jest.runOnlyPendingTimers();
+
+    expect(beforeSendTransaction).toHaveBeenCalledTimes(1);
+    expect(transaction?.contexts?.trace?.data?.[SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON]).toEqual(
+      'finalTimeout',
     );
   });
 
@@ -307,8 +453,7 @@ describe('startIdleSpan', () => {
     setCurrentClient(client);
     client.init();
 
-    // This is only set when op === 'ui.action.click'
-    const span = startIdleSpan({ name: 'foo', op: 'ui.action.click' });
+    const span = startIdleSpan({ name: 'foo' });
     span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_IDLE_SPAN_FINISH_REASON, 'custom reason');
     startSpan({ name: 'inner' }, () => {});
     jest.runOnlyPendingTimers();
@@ -496,7 +641,7 @@ describe('startIdleSpan', () => {
 
   describe('trim end timestamp', () => {
     it('trims end to highest child span end', () => {
-      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 });
+      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 }, { finalTimeout: 99_999_999 });
       expect(idleSpan).toBeDefined();
 
       const span1 = startInactiveSpan({ name: 'span1', startTime: 1001 });
@@ -515,8 +660,28 @@ describe('startIdleSpan', () => {
       expect(spanToJSON(idleSpan!).timestamp).toBe(1100);
     });
 
+    it('trims end to final timeout', () => {
+      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 }, { finalTimeout: 30_000 });
+      expect(idleSpan).toBeDefined();
+
+      const span1 = startInactiveSpan({ name: 'span1', startTime: 1001 });
+      span1?.end(1005);
+
+      const span2 = startInactiveSpan({ name: 'span2', startTime: 1002 });
+      span2?.end(1100);
+
+      const span3 = startInactiveSpan({ name: 'span1', startTime: 1050 });
+      span3?.end(1060);
+
+      expect(getActiveSpan()).toBe(idleSpan);
+
+      jest.runAllTimers();
+
+      expect(spanToJSON(idleSpan!).timestamp).toBe(1030);
+    });
+
     it('keeps lower span endTime than highest child span end', () => {
-      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 });
+      const idleSpan = startIdleSpan({ name: 'foo', startTime: 1000 }, { finalTimeout: 99_999_999 });
       expect(idleSpan).toBeDefined();
 
       const span1 = startInactiveSpan({ name: 'span1', startTime: 999_999_999 });

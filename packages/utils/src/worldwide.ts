@@ -66,6 +66,7 @@ export interface InternalGlobal {
    * Keys are `error.stack` strings, values are the metadata.
    */
   _sentryModuleMetadata?: Record<string, any>;
+  _sentryEsmLoaderHookRegistered?: boolean;
 }
 
 /** Get's the global object for the current JavaScript runtime */

@@ -34,7 +34,7 @@ const DEFAULT_MAX_BREADCRUMBS = 100;
 /**
  * Holds additional event information.
  */
-export class Scope implements ScopeInterface {
+class ScopeClass implements ScopeInterface {
   /** Flag if notifying is happening. */
   protected _notifyingListeners: boolean;
 
@@ -94,6 +94,9 @@ export class Scope implements ScopeInterface {
   /** The client on this scope */
   protected _client?: Client;
 
+  /** Contains the last event id of a captured event.  */
+  protected _lastEventId?: string;
+
   // NOTE: Any field which gets added here should get added not only to the constructor but also to the `clone` method.
 
   public constructor() {
@@ -113,8 +116,8 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
-  public clone(): Scope {
-    const newScope = new Scope();
+  public clone(): ScopeClass {
+    const newScope = new ScopeClass();
     newScope._breadcrumbs = [...this._breadcrumbs];
     newScope._tags = { ...this._tags };
     newScope._extra = { ...this._extra };
@@ -130,6 +133,7 @@ export class Scope implements ScopeInterface {
     newScope._sdkProcessingMetadata = { ...this._sdkProcessingMetadata };
     newScope._propagationContext = { ...this._propagationContext };
     newScope._client = this._client;
+    newScope._lastEventId = this._lastEventId;
 
     _setSpanForScope(newScope, _getSpanForScope(this));
 
@@ -146,8 +150,22 @@ export class Scope implements ScopeInterface {
   /**
    * @inheritDoc
    */
+  public setLastEventId(lastEventId: string | undefined): void {
+    this._lastEventId = lastEventId;
+  }
+
+  /**
+   * @inheritDoc
+   */
   public getClient<C extends Client>(): C | undefined {
     return this._client as C | undefined;
+  }
+
+  /**
+   * @inheritDoc
+   */
+  public lastEventId(): string | undefined {
+    return this._lastEventId;
   }
 
   /**
@@ -568,6 +586,20 @@ export class Scope implements ScopeInterface {
     }
   }
 }
+
+// NOTE: By exporting this here as const & type, instead of doing `export class`,
+// We can get the correct class when importing from `@sentry/core`, but the original type (from `@sentry/types`)
+// This is helpful for interop, e.g. when doing `import type { Scope } from '@sentry/node';` (which re-exports this)
+
+/**
+ * Holds additional event information.
+ */
+export const Scope = ScopeClass;
+
+/**
+ * Holds additional event information.
+ */
+export type Scope = ScopeInterface;
 
 function generatePropagationContext(): PropagationContext {
   return {

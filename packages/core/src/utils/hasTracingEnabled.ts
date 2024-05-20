@@ -16,7 +16,11 @@ export function hasTracingEnabled(
     return false;
   }
 
-  const client = getClient();
-  const options = maybeOptions || (client && client.getOptions());
+  const options = maybeOptions || getClientOptions();
   return !!options && (options.enableTracing || 'tracesSampleRate' in options || 'tracesSampler' in options);
+}
+
+function getClientOptions(): Options | undefined {
+  const client = getClient();
+  return client && client.getOptions();
 }

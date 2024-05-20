@@ -7,4 +7,11 @@ export interface User {
   ip_address?: string;
   email?: string;
   username?: string;
+  geo?: GeoLocation;
+}
+
+export interface GeoLocation {
+  country_code?: string;
+  region?: string;
+  city?: string;
 }

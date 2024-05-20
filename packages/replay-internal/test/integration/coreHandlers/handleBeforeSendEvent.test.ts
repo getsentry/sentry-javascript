@@ -1,3 +1,5 @@
+import { vi } from 'vitest';
+
 import { handleBeforeSendEvent } from '../../../src/coreHandlers/handleBeforeSendEvent';
 import type { ReplayContainer } from '../../../src/replay';
 import { Error } from '../../fixtures/error';
@@ -24,7 +26,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     }));
 
     const handler = handleBeforeSendEvent(replay);
-    const addBreadcrumbSpy = jest.spyOn(replay, 'throttledAddEvent');
+    const addBreadcrumbSpy = vi.spyOn(replay, 'throttledAddEvent');
 
     const error = Error();
     error.exception.values[0].value =
@@ -58,7 +60,7 @@ describe('Integration | coreHandlers | handleBeforeSendEvent', () => {
     }));
 
     const handler = handleBeforeSendEvent(replay);
-    const addBreadcrumbSpy = jest.spyOn(replay, 'throttledAddEvent');
+    const addBreadcrumbSpy = vi.spyOn(replay, 'throttledAddEvent');
 
     const error = Error();
     error.exception.values[0].value = 'https://reactjs.org/docs/error-decoder.html?invariant=423';

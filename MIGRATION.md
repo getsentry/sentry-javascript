@@ -15,14 +15,14 @@ dependencies on OpenTelemetry. Below we will outline the steps you need to take 
 Before updating to `8.x` of the SDK, we recommend upgrading to the latest version of `7.x`. You can then follow
 [these steps](./MIGRATION.md#deprecations-in-7x) remove deprecated methods in `7.x` before upgrading to `8.x`.
 
-The v8 version of the JavaScript SDK requires a self-hosted version of Sentry TBD or higher (Will be chosen once first
-stable release of `8.x` comes out).
+The v8 version of the JavaScript SDK requires a self-hosted version of Sentry 24.4.2 (for user feedback screenshots) or
+higher. Lower versions may continue to work, but may not support all features (e.g. the new user feedback APIs).
 
 ## 1. Version Support changes:
 
-**Node.js**: We now official support Node 14.18+ for our CJS package, and Node 18.8+ for our ESM package. This applies
-to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We no
-longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
+**Node.js**: We now officially support Node 14.18+ for our CJS package, and Node 18.19.1+ for our ESM package. This
+applies to `@sentry/node` and all of our node-based server-side sdks (`@sentry/nextjs`, `@sentry/serverless`, etc.). We
+no longer test against Node 8, 10, or 12 and cannot guarantee that the SDK will work as expected on these versions.
 
 **Browser**: Our browser SDKs (`@sentry/browser`, `@sentry/react`, `@sentry/vue`, etc.) now require ES2018+ compatible
 browsers. This means that we no longer support IE11 (end of an era). This also means that the Browser SDK requires the
@@ -351,6 +351,7 @@ We now support the following integrations out of the box without extra configura
 - `mongooseIntegration`: Automatically instruments Mongoose
 - `mysqlIntegration`: Automatically instruments MySQL
 - `mysql2Integration`: Automatically instruments MySQL2
+- `redisIntegration`: Automatically instruments Redis (supported clients: ioredis)
 - `nestIntegration`: Automatically instruments Nest.js
 - `postgresIntegration`: Automatically instruments PostgreSQL
 - `prismaIntegration`: Automatically instruments Prisma
@@ -369,11 +370,12 @@ To make sure these integrations work properly you'll have to change how you
 - [AWS Serverless SDK](./MIGRATION.md#aws-serverless-sdk)
 - [Ember SDK](./MIGRATION.md#ember-sdk)
 - [Svelte SDK](./MIGRATION.md#svelte-sdk)
+- [React SDK](./MIGRATION.md#react-sdk)
 
 ### General
 
 Removed top-level exports: `tracingOrigins`, `MetricsAggregator`, `metricsAggregatorIntegration`, `Severity`,
-`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `lastEventId`, `pushScope`, `popScope`,
+`Sentry.configureScope`, `Span`, `spanStatusfromHttpCode`, `makeMain`, `pushScope`, `popScope`,
 `addGlobalEventProcessor`, `timestampWithMs`, `addExtensionMethods`, `addGlobalEventProcessor`, `getActiveTransaction`
 
 Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `tracingContextFromHeaders`, `walk`
@@ -387,7 +389,6 @@ Removed `@sentry/utils` exports: `timestampWithMs`, `addOrUpdateIntegration`, `t
 - [Removal of `Span` class export from SDK packages](./MIGRATION.md#removal-of-span-class-export-from-sdk-packages)
 - [Removal of `spanStatusfromHttpCode` in favour of `getSpanStatusFromHttpCode`](./MIGRATION.md#removal-of-spanstatusfromhttpcode-in-favour-of-getspanstatusfromhttpcode)
 - [Removal of `addGlobalEventProcessor` in favour of `addEventProcessor`](./MIGRATION.md#removal-of-addglobaleventprocessor-in-favour-of-addeventprocessor)
-- [Removal of `lastEventId()` method](./MIGRATION.md#deprecate-lasteventid)
 - [Remove `void` from transport return types](./MIGRATION.md#remove-void-from-transport-return-types)
 - [Remove `addGlobalEventProcessor` in favor of `addEventProcessor`](./MIGRATION.md#remove-addglobaleventprocessor-in-favor-of-addeventprocessor)
 
@@ -566,10 +567,6 @@ Sentry.getGlobalScope().addEventProcessor(event => {
 });
 ```
 
-#### Removal of `lastEventId()` method
-
-The `lastEventId` function has been removed. See [below](./MIGRATION.md#deprecate-lasteventid) for more details.
-
 #### Removal of `void` from transport return types
 
 The `send` method on the `Transport` interface now always requires a `TransportMakeRequestResponse` to be returned in
@@ -614,6 +611,13 @@ addEventProcessor(event => {
 The Sentry tRPC middleware got moved from `Sentry.Handlers.trpcMiddleware()` to `Sentry.trpcMiddleware()`. Functionally
 they are the same:
 
+#### Removal of `Sentry.Handlers.requestHandler()`, `Sentry.Handlers.tracingHandler()` and `Sentry.Handlers.errorHandler()`
+
+For Express and Connect you previously had to use `Sentry.Handlers.requestHandler()`,
+`Sentry.Handlers.tracingHandler()`, and `Sentry.Handlers.errorHandler()` to add Sentry instrumentation to your app. In
+8.x, you only need to use the framework specific error handler (e.g `Sentry.setupExpressErrorHandler(app)`), you can
+remove all other handlers.
+
 ```js
 // v7
 import * as Sentry from '@sentry/node';
@@ -642,6 +646,38 @@ Removed top-level exports: `Offline`, `makeXHRTransport`, `BrowserTracing`, `wra
 The `BrowserTracing` integration, together with the custom routing instrumentations passed to it, are deprecated in v8.
 Instead, you should use `Sentry.browserTracingIntegration()`. See examples
 [below](./MIGRATION.md#deprecated-browsertracing-integration)
+
+#### Removal of `interactionsSampleRate` in `browserTracingIntegration` options
+
+The `interactionsSampleRate` option that could be passed to `browserTracingIntegration` or `new BrowserTracing()` was
+removed in v8, due to the option being redundant and in favour of bundle size minimization.
+
+It's important to note that this sample rate only ever was applied when collecting INP (Interaction To Next Paint)
+values. You most likely don't need to replace this option. Furthermore, INP values are already sampled by the
+[`tracesSampleRate` SDK option](https://docs.sentry.io/platforms/javascript/configuration/options/#traces-sampler), like
+any regular span. At the time of writing, INP value collection does not deplete your span or transaction quota.
+
+If you used `interactionsSampleRate` before, and still want to reduce INP value collection, we recommend using the
+`tracesSampler` SDK option instead:
+
+```javascript
+// v7
+Sentry.init({
+  integrations: [new BrowserTracing({ interactionsSampleRate: 0.1 })],
+});
+```
+
+```javascript
+// v8 - please read the text above, you most likely don't need this :)
+Sentry.init({
+  tracesSampler: (ctx) => {
+    if (ctx.attributes?['sentry.op']?.startsWith('ui.interaction')) {
+      return 0.1;
+    }
+    return 0.5;
+  }
+})
+```
 
 #### Removal of the `Offline` integration
 
@@ -831,6 +867,24 @@ The following is an example of how to initialize the serverside SDK in a Next.js
    }
    ```
 
+   If you need to import a Node.js specific integration (like for example `@sentry/profiling-node`), you will have to
+   import the package using a dynamic import to prevent Next.js from bundling Node.js APIs into bundles for other
+   runtime environments (like the Browser or the Edge runtime). You can do so as follows:
+
+   ```ts
+   import * as Sentry from '@sentry/nextjs';
+
+   export async function register() {
+     if (process.env.NEXT_RUNTIME === 'nodejs') {
+       const { nodeProfilingIntegration } = await import('@sentry/profiling-node');
+       Sentry.init({
+         dsn: 'YOUR_DSN',
+         integrations: [nodeProfilingIntegration()],
+       });
+     }
+   }
+   ```
+
    Note that you can initialize the SDK differently depending on which server runtime is being used.
 
 If you are using a
@@ -845,6 +899,12 @@ the bundler that Next.js will be using instead of Webpack. The SDK in its previo
 in order to inject the `sentry.(server|edge).config.ts` files into the server-side code. Because this will not be
 possible in the future, we are doing ourselves a favor and doing things the way Next.js intends us to do them -
 hopefully reducing bugs and jank.
+
+#### Removal of `transpileClientSDK`
+
+Since we are dropping support for Internet Explorer 11 and other other older browser versions, we are also removing the
+`transpileClientSDK` option from the Next.js SDK. If you need to support these browser versions, please configure
+Webpack and Next.js to down-compile the SDK.
 
 ### Astro SDK
 
@@ -958,11 +1018,20 @@ replacement API.
 Removed top-level exports: `InitSentryForEmber`, `StartTransactionFunction`
 
 - [Removal of `InitSentryForEmber` export](./MIGRATION.md#removal-of-initsentryforember-export)
+- [Updated Ember Dependencies](./MIGRATION.md#updated-ember-dependencies)
 
 #### Removal of `InitSentryForEmber` export
 
 The `InitSentryForEmber` export has been removed. Instead, you should use the `Sentry.init` method to initialize the
 SDK.
+
+#### Updated Ember Dependencies
+
+The following dependencies that the SDK uses have been bumped to a more recent version:
+
+- `ember-auto-import` is bumped to `^2.4.3`
+- `ember-cli-babel` is bumped to `^8.2.0`
+- `ember-cli-typescript` is bumped to `^5.3.0`
 
 ### Svelte SDK
 
@@ -999,6 +1068,26 @@ const config = {
 
 export default withSentryConfig(config);
 ```
+
+### React SDK
+
+#### Updated error types to be `unknown` instead of `Error`.
+
+In v8, we are changing the `ErrorBoundary` error types returned from `onError`, `onReset`, `onUnmount`, and
+`beforeCapture`. to be `unknown` instead of `Error`. This more accurately matches behaviour of `componentDidCatch`, the
+lifecycle method the Sentry `ErrorBoundary` component uses.
+
+As per the [React docs on error boundaries](https://react.dev/reference/react/Component#componentdidcatch):
+
+> error: The `error` that was thrown. In practice, it will usually be an instance of `Error` but this is not guaranteed
+> because JavaScript allows to throw any value, including strings or even `null`.
+
+This means you will have to use `instanceof Error` or similar to explicitly make sure that the error thrown was an
+instance of `Error`.
+
+The Sentry SDK maintainers also went ahead and made a PR to update the
+[TypeScript definitions of `componentDidCatch`](https://github.com/DefinitelyTyped/DefinitelyTyped/pull/69434) for the
+React package - this will be released with React 20.
 
 ### Gatsby SDK
 
@@ -1233,6 +1322,21 @@ export class HeaderComponent {
   ngOnChanges(changes: SimpleChanges) {}
 }
 ```
+
+## 6. Build Changes
+
+We now provide a proper ESM output of the SDK. There have also been some other build changes under the hood. One side
+effect of this is that importing Sentry as a default import does not work anymore. Note that this was never supported
+(even on v7) and this was never intended to work (and also not documented anywhere). However, it seems that for some
+configuration combinations, it was still possible to do `import Sentry from '@sentry/browser'`. This is not possible
+anymore in v8. Please use `import * as Sentry from '@sentry/browser'` instead.
+
+# Upgrading Sentry Feedback (beta, 7.x to 8.0)
+
+For details on upgrading Feedback from the beta 7.x to the release 8.x version, please view the
+[dedicated Feedback MIGRATION docs](./docs/migration/feedback.md).
+
+---
 
 # Deprecations in 7.x
 
@@ -1507,7 +1611,7 @@ If you are using the `Hub` right now, see the following table on how to migrate 
 | captureException()     | `Sentry.captureException()`                                                          |
 | captureMessage()       | `Sentry.captureMessage()`                                                            |
 | captureEvent()         | `Sentry.captureEvent()`                                                              |
-| lastEventId()          | REMOVED - Use event processors or beforeSend instead                                 |
+| lastEventId()          | `Sentry.lastEventId()`                                                               |
 | addBreadcrumb()        | `Sentry.addBreadcrumb()`                                                             |
 | setUser()              | `Sentry.setUser()`                                                                   |
 | setTags()              | `Sentry.setTags()`                                                                   |
@@ -1628,35 +1732,6 @@ app.get('/your-route', req => {
 });
 ```
 
-## Deprecate `Sentry.lastEventId()` and `hub.lastEventId()`
-
-`Sentry.lastEventId()` sometimes causes race conditions, so we are deprecating it in favour of the `beforeSend`
-callback.
-
-```js
-// Before
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = Sentry.lastEventId();
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-
-// After
-Sentry.init({
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
-
 ## Deprecated fields on `Span` and `Transaction`
 
 In v8, the Span class is heavily reworked. The following properties & methods are thus deprecated:
@@ -1672,7 +1747,7 @@ In v8, the Span class is heavily reworked. The following properties & methods ar
 - `span.traceId`: Use `span.spanContext().traceId` instead.
 - `span.name`: Use `spanToJSON(span).description` instead.
 - `span.description`: Use `spanToJSON(span).description` instead.
-- `span.getDynamicSamplingContext`: Use `getDynamicSamplingContextFromSpan` utility function instead.
+- `span.getDynamicSamplingContext`: Use `spanToBaggageHeader(span)` utility function instead.
 - `span.tags`: Set tags on the surrounding scope instead, or use attributes.
 - `span.data`: Use `spanToJSON(span).data` instead.
 - `span.setTag()`: Use `span.setAttribute()` instead or set tags on the surrounding scope.
@@ -1723,25 +1798,6 @@ Instead, import this directly from `@sentry/utils`.
 
 Generally, in most cases you should probably use `continueTrace` instead, which abstracts this away from you and handles
 scope propagation for you.
-
-## Deprecate `lastEventId()`
-
-Instead, if you need the ID of a recently captured event, we recommend using `beforeSend` instead:
-
-```ts
-import * as Sentry from '@sentry/browser';
-
-Sentry.init({
-  dsn: '__DSN__',
-  beforeSend(event, hint) {
-    const lastCapturedEventId = event.event_id;
-
-    // Do something with `lastCapturedEventId` here
-
-    return event;
-  },
-});
-```
 
 ## Deprecate `timestampWithMs` export - #7878
 
