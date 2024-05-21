@@ -56,10 +56,20 @@ export function wrapAppGetInitialPropsWithSentry(origAppGetInitialProps: AppGetI
         }
 
         if (requestSpan) {
-          appGetInitialProps.pageProps._sentryTraceData = spanToTraceHeader(requestSpan);
+          const sentryTrace = spanToTraceHeader(requestSpan);
+
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (sentryTrace) {
+            appGetInitialProps.pageProps._sentryTraceData = sentryTrace;
+          }
+
           const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
-          appGetInitialProps.pageProps._sentryBaggage =
-            dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (baggage) {
+            appGetInitialProps.pageProps._sentryBaggage = baggage;
+          }
         }
 
         return appGetInitialProps;
