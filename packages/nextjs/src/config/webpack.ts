@@ -420,7 +420,7 @@ function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' |
 
       return (
         instrumentationHookContent.includes('@sentry/') ||
-        instrumentationHookContent.match(/sentry\.(server|edge)\.config\.(ts|js)/)
+        instrumentationHookContent.match(/sentry\.(server|edge)\.config(\.(ts|js))?/)
       );
     } catch (e) {
       return false;

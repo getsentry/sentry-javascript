@@ -1,4 +1,4 @@
-import type { RequestOptions } from 'http';
+import type { RequestOptions } from 'node:http';
 
 /** Build a full URL from request options. */
 export function getRequestUrl(requestOptions: RequestOptions): string {

@@ -1,4 +1,3 @@
-import type { PlaywrightTestConfig } from '@playwright/test';
 import { devices } from '@playwright/test';
 
 const connectPort = 3030;
@@ -7,7 +6,7 @@ const eventProxyPort = 3031;
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
-const config: PlaywrightTestConfig = {
+const config = {
   testDir: './tests',
   /* Maximum time one test can run for. */
   timeout: 150_000,
