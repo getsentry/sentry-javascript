@@ -1,4 +1,3 @@
-import { isWrapped } from '@opentelemetry/core';
 import { FastifyInstrumentation } from '@opentelemetry/instrumentation-fastify';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
@@ -7,14 +6,11 @@ import {
   defineIntegration,
   getClient,
   getIsolationScope,
-  hasTracingEnabled,
-  isEnabled,
   spanToJSON,
 } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { consoleSandbox } from '@sentry/utils';
-import { isCjs } from '../../sdk/init';
+import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 // We inline the types we care about here
 interface Fastify {
@@ -103,23 +99,7 @@ export function setupFastifyErrorHandler(fastify: Fastify): void {
     });
   }
 
-  if (!isWrapped(fastify.addHook) && isEnabled() && hasTracingEnabled()) {
-    consoleSandbox(() => {
-      consoleSandbox(() => {
-        if (isCjs()) {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry] Fastify is not instrumented. This is likely because you required/imported fastify before calling `Sentry.init()`.',
-          );
-        } else {
-          // eslint-disable-next-line no-console
-          console.warn(
-            '[Sentry] Fastify is not instrumented. Please make sure to initialize Sentry in a separate file that you `--import` when running node, see: https://docs.sentry.io/platforms/javascript/guides/fastify/install/esm/',
-          );
-        }
-      });
-    });
-  }
+  ensureIsWrapped(fastify.addHook, 'fastify');
 }
 
 function addFastifySpanAttributes(span: Span): void {

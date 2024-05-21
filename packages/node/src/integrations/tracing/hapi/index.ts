@@ -1,4 +1,3 @@
-import { isWrapped } from '@opentelemetry/core';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
@@ -12,15 +11,13 @@ import {
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
-  hasTracingEnabled,
-  isEnabled,
   spanToJSON,
 } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
-import { isCjs } from '../../../sdk/init';
+import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
 const _hapiIntegration = (() => {
@@ -112,21 +109,7 @@ export async function setupHapiErrorHandler(server: Server): Promise<void> {
   }
 
   // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (!isWrapped(server.register) && isEnabled() && hasTracingEnabled()) {
-    consoleSandbox(() => {
-      if (isCjs()) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[Sentry] Hapi is not instrumented. This is likely because you required/imported hapi before calling `Sentry.init()`.',
-        );
-      } else {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[Sentry] Hapi is not instrumented. Please make sure to initialize Sentry in a separate file that you `--import` when running node, see: https://docs.sentry.io/platforms/javascript/guides/hapi/install/esm/',
-        );
-      }
-    });
-  }
+  ensureIsWrapped(server.register, 'hapi');
 }
 
 function addHapiSpanAttributes(span: Span): void {
