@@ -1,5 +1,6 @@
+import type {ThreadCpuProfile} from '@sentry/types';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
-import type { RawThreadCpuProfile, ThreadCpuProfile } from '../src/types';
+import type { RawThreadCpuProfile } from '../src/types';
 
 // Required because we test a hypothetical long profile
 // and we cannot use advance timers as the c++ relies on
