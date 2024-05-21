@@ -1,14 +1,13 @@
 /* eslint-disable max-lines */
 import * as os from 'os';
-import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
+import type { Client, Context, Envelope, Event, StackFrame, StackParser, Profile, ProfileChunk, ProfileChunkEnvelope, DebugImage, ThreadCpuProfile } from '@sentry/types';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 
 import { DEBUG_BUILD } from './debug-build';
-import type { Profile, ProfileChunk, RawThreadCpuProfile, ThreadCpuProfile } from './types';
-import type { DebugImage } from './types';
+import type { RawThreadCpuProfile } from './types';
 import type { SentryOptions } from '../../astro/build/types/integration/types';
 
 // We require the file because if we import it, it will be included in the bundle.
@@ -355,6 +354,14 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
   });
 
   return events;
+}
+
+/**
+ * Creates a standalone profile_chunk envelope.
+ */
+export function makeProfileChunkEnvelope(
+  chunk: ProfileChunk,
+): ProfileChunkEnvelope {
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();

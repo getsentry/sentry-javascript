@@ -34,7 +34,29 @@ export interface ThreadCpuProfile {
   queue_metadata?: Record<string, { label: string }>;
 }
 
-export interface Profile {
+interface BaseProfile {
+  timestamp: string;
+  version: string;
+  release: string;
+  environment: string;
+  platform: string;
+  profile: ThreadCpuProfile;
+  debug_meta?: {
+    images: DebugImage[];
+  };
+  measurements?: Record<
+    string,
+    {
+      unit: MeasurementUnit;
+      values: {
+        elapsed_since_start_ns: number;
+        value: number;
+      }[];
+    }
+  >;
+}
+
+export interface Profile extends BaseProfile {
   event_id: string;
   version: string;
   os: {
@@ -86,3 +108,9 @@ export interface Profile {
     }
   >;
 }
+
+export interface ProfileChunk extends BaseProfile {
+  chunk_id: string;
+  profiler_id: string
+}
+
