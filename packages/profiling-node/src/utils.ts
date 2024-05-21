@@ -3,27 +3,27 @@ import * as os from 'os';
 import type {
   Client,
   Context,
+  DebugImage,
+  DsnComponents,
   Envelope,
   Event,
-  StackFrame,
-  StackParser,
+  EventEnvelopeHeaders,
   Profile,
   ProfileChunk,
   ProfileChunkEnvelope,
-  DebugImage,
-  ThreadCpuProfile,
   SdkInfo,
-  DsnComponents,
-  EventEnvelopeHeaders,
+  StackFrame,
+  StackParser,
+  ThreadCpuProfile,
 } from '@sentry/types';
-import { GLOBAL_OBJ, forEachEnvelopeItem, logger, createEnvelope, dsnToString, uuid4 } from '@sentry/utils';
+import { GLOBAL_OBJ, createEnvelope, dsnToString, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
 
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
+import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
 import { DEBUG_BUILD } from './debug-build';
 import type { RawThreadCpuProfile } from './types';
-import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.

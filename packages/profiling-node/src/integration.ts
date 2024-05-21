@@ -1,6 +1,6 @@
 import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Integration, IntegrationFn, Span, Profile, ProfileChunk } from '@sentry/types';
+import type { Integration, IntegrationFn, Profile, ProfileChunk, Span } from '@sentry/types';
 
 import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -475,7 +475,9 @@ class ContinuousProfiler {
     }
     if (this._chunkId || this._chunkTimer) {
       DEBUG_BUILD &&
-        logger.log(`[Profiling] Chunk with chunk_id ${this._chunkId} is still running, current chunk will be stopped a new chunk will be started.`);
+        logger.log(
+          `[Profiling] Chunk with chunk_id ${this._chunkId} is still running, current chunk will be stopped a new chunk will be started.`,
+        );
       this.stop();
     }
 
@@ -577,7 +579,7 @@ class ContinuousProfiler {
     const metadata = this._client.getSdkMetadata();
     const tunnel = this._client.getOptions().tunnel;
 
-    const envelope = makeProfileChunkEnvelope(chunk, metadata?.sdk, tunnel, dsn)
+    const envelope = makeProfileChunkEnvelope(chunk, metadata?.sdk, tunnel, dsn);
     transport.send(envelope).then(null, reason => {
       DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
     });
