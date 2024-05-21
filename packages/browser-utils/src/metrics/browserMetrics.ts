@@ -6,7 +6,7 @@ import { browserPerformanceTimeOrigin, getComponentName, htmlTreeAsString, logge
 
 import { spanToJSON } from '@sentry/core';
 import { DEBUG_BUILD } from '../debug-build';
-import { WINDOW } from './../types';
+import { WINDOW } from '../types';
 import {
   addClsInstrumentationHandler,
   addFidInstrumentationHandler,
