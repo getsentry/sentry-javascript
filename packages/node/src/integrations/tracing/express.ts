@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
   defineIntegration,
   getDefaultIsolationScope,
+  hasTracingEnabled,
   isEnabled,
   spanToJSON,
 } from '@sentry/core';
@@ -15,6 +16,7 @@ import { isWrapped } from '@opentelemetry/core';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
+import { isCjs } from '../../sdk/init';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
 
 const _expressIntegration = (() => {
@@ -139,12 +141,21 @@ export function expressErrorHandler(options?: {
 export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
   app.use(expressErrorHandler());
 
-  if (!isWrapped(app.use) && isEnabled()) {
+  if (!isWrapped(app.use) && isEnabled() && hasTracingEnabled()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Express is not instrumented. This is likely because you required/imported express before calling `Sentry.init()`.',
-      );
+      consoleSandbox(() => {
+        if (isCjs()) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Sentry] Express is not instrumented. This is likely because you required/imported express before calling `Sentry.init()`.',
+          );
+        } else {
+          // eslint-disable-next-line no-console
+          console.warn(
+            '[Sentry] Express is not instrumented. Please make sure to initialize Sentry in a separate file that you `--import` when running node, see: https://docs.sentry.io/platforms/javascript/guides/express/install/esm/.',
+          );
+        }
+      });
     });
   }
 }

@@ -41,7 +41,8 @@ import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
 
-function isCjs(): boolean {
+/** Detect CommonJS. */
+export function isCjs(): boolean {
   return typeof require !== 'undefined';
 }
 

@@ -8,6 +8,7 @@ import {
   defineIntegration,
   getDefaultIsolationScope,
   getIsolationScope,
+  hasTracingEnabled,
   isEnabled,
   spanToJSON,
 } from '@sentry/core';
@@ -15,6 +16,7 @@ import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
+import { isCjs } from '../../sdk/init';
 
 function addKoaSpanAttributes(span: Span): void {
   span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.http.otel.koa');
@@ -76,12 +78,19 @@ export const setupKoaErrorHandler = (app: { use: (arg0: (ctx: any, next: any) =>
     }
   });
 
-  if (!isWrapped(app.use) && isEnabled()) {
+  if (!isWrapped(app.use) && isEnabled() && hasTracingEnabled()) {
     consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Koa is not instrumented. This is likely because you required/imported koa before calling `Sentry.init()`.',
-      );
+      if (isCjs()) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] Koa is not instrumented. This is likely because you required/imported koa before calling `Sentry.init()`.',
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[Sentry] Koa is not instrumented. Please make sure to initialize Sentry in a separate file that you `--import` when running node, see: https://docs.sentry.io/platforms/javascript/guides/koa/install/esm/',
+        );
+      }
     });
   }
 };
