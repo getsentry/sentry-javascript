@@ -1,16 +1,12 @@
 import type { ReportDialogOptions } from '@sentry/browser';
-import { captureException, getClient, showReportDialog, withScope } from '@sentry/browser';
+import { getClient, showReportDialog, withScope } from '@sentry/browser';
 import type { Scope } from '@sentry/types';
-import { isError, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import hoistNonReactStatics from 'hoist-non-react-statics';
 import * as React from 'react';
 
 import { DEBUG_BUILD } from './debug-build';
-
-export function isAtLeastReact17(version: string): boolean {
-  const major = version.match(/^([^.]+)/);
-  return major !== null && parseInt(major[0]) >= 17;
-}
+import { captureReactException } from './error';
 
 export const UNKNOWN_COMPONENT = 'unknown';
 
@@ -69,25 +65,6 @@ const INITIAL_STATE = {
   eventId: null,
 };
 
-function setCause(error: Error & { cause?: Error }, cause: Error): void {
-  const seenErrors = new WeakMap<Error, boolean>();
-
-  function recurse(error: Error & { cause?: Error }, cause: Error): void {
-    // If we've already seen the error, there is a recursive loop somewhere in the error's
-    // cause chain. Let's just bail out then to prevent a stack overflow.
-    if (seenErrors.has(error)) {
-      return;
-    }
-    if (error.cause) {
-      seenErrors.set(error, true);
-      return recurse(error.cause, cause);
-    }
-    error.cause = cause;
-  }
-
-  recurse(error, cause);
-}
-
 /**
  * A ErrorBoundary component that logs errors to Sentry.
  * NOTE: If you are a Sentry user, and you are seeing this stack frame, it means the
@@ -118,38 +95,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     }
   }
 
-  public componentDidCatch(error: unknown, { componentStack }: React.ErrorInfo): void {
+  public componentDidCatch(error: unknown, errorInfo: React.ErrorInfo): void {
+    const { componentStack } = errorInfo;
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
     withScope(scope => {
-      // If on React version >= 17, create stack trace from componentStack param and links
-      // to to the original error using `error.cause` otherwise relies on error param for stacktrace.
-      // Linking errors requires the `LinkedErrors` integration be enabled.
-      // See: https://reactjs.org/blog/2020/08/10/react-v17-rc.html#native-component-stacks
-      //
-      // Although `componentDidCatch` is typed to accept an `Error` object, it can also be invoked
-      // with non-error objects. This is why we need to check if the error is an error-like object.
-      // See: https://github.com/getsentry/sentry-javascript/issues/6167
-      if (isAtLeastReact17(React.version) && isError(error)) {
-        const errorBoundaryError = new Error(error.message);
-        errorBoundaryError.name = `React ErrorBoundary ${error.name}`;
-        errorBoundaryError.stack = componentStack;
-
-        // Using the `LinkedErrors` integration to link the errors together.
-        setCause(error, errorBoundaryError);
-      }
-
       if (beforeCapture) {
         beforeCapture(scope, error, componentStack);
       }
 
-      const eventId = captureException(error, {
-        captureContext: {
-          contexts: { react: { componentStack } },
-        },
-        // If users provide a fallback component we can assume they are handling the error.
-        // Therefore, we set the mechanism depending on the presence of the fallback prop.
-        mechanism: { handled: !!this.props.fallback },
-      });
+      const eventId = captureReactException(error, errorInfo, { mechanism: { handled: !!this.props.fallback }})
 
       if (onError) {
         onError(error, componentStack, eventId);

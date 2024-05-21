@@ -1,6 +1,7 @@
 export * from '@sentry/browser';
 
 export { init } from './sdk';
+export { captureReactException } from './error';
 export { Profiler, withProfiler, useProfiler } from './profiler';
 export type { ErrorBoundaryProps, FallbackRender } from './errorboundary';
 export { ErrorBoundary, withErrorBoundary } from './errorboundary';
