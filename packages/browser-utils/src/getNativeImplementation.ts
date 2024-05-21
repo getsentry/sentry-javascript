@@ -16,6 +16,14 @@ interface CacheableImplementations {
 const cachedImplementations: Partial<CacheableImplementations> = {};
 
 /**
+ * isNative checks if the given function is a native implementation
+ */
+// eslint-disable-next-line @typescript-eslint/ban-types
+function isNative(func: Function): boolean {
+  return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
+}
+
+/**
  * Get the native implementation of a browser function.
  *
  * This can be used to ensure we get an unwrapped version of a function, in cases where a wrapped function can lead to problems.
@@ -32,8 +40,14 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
     return cached;
   }
 
-  const document = WINDOW.document;
   let impl = WINDOW[name] as CacheableImplementations[T];
+
+  // Fast path to avoid DOM I/O
+  if (isNative(impl)) {
+    return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
+  }
+
+  const document = WINDOW.document;
   // eslint-disable-next-line deprecation/deprecation
   if (document && typeof document.createElement === 'function') {
     try {
@@ -62,8 +76,7 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
 
 /** Clear a cached implementation. */
 export function clearCachedImplementation(name: keyof CacheableImplementations): void {
-  // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-  delete cachedImplementations[name];
+  cachedImplementations[name] = undefined;
 }
 
 /**
