@@ -1,6 +1,6 @@
 import { defineIntegration, getCurrentScope, getIsolationScope, getRootSpan, spanToJSON } from '@sentry/core';
 import type { NodeClient } from '@sentry/node';
-import type { Integration, IntegrationFn, Span } from '@sentry/types';
+import type { Integration, IntegrationFn, Span, Profile, ProfileChunk } from '@sentry/types';
 
 import { logger, timestampInSeconds, uuid4 } from '@sentry/utils';
 
@@ -8,13 +8,14 @@ import { CpuProfilerBindings } from './cpu_profiler';
 import { DEBUG_BUILD } from './debug-build';
 import { NODE_MAJOR, NODE_VERSION } from './nodeVersion';
 import { MAX_PROFILE_DURATION_MS, maybeProfileSpan, stopSpanProfile } from './spanProfileUtils';
-import type { Profile, ProfileChunk, RawThreadCpuProfile } from './types';
+import type { RawThreadCpuProfile } from './types';
 
 import {
   addProfilesToEnvelope,
   createProfilingChunkEvent,
   createProfilingEvent,
   findProfiledTransactionsFromEnvelope,
+  makeProfileChunkEnvelope,
 } from './utils';
 
 const CHUNK_INTERVAL_MS = 5000;
@@ -565,7 +566,15 @@ class ContinuousProfiler {
       return;
     }
 
-    console.log('Send chunk', chunk)
+    const transport = this._client.getTransport();
+    if (!transport) {
+      DEBUG_BUILD && logger.log('[Profiling] No transport available to send profile chunk.');
+      return;
+    }
+
+    transport.send(makeProfileChunkEnvelope(chunk)).then(null, reason => {
+      DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
+    });
   }
 
   /**

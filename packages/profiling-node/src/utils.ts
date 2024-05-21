@@ -1,31 +1,13 @@
 /* eslint-disable max-lines */
 import * as os from 'os';
-import type {
-  Client,
-  Context,
-  DebugImage,
-  DsnComponents,
-  Envelope,
-  Event,
-  EventEnvelopeHeaders,
-  Profile,
-  ProfileChunk,
-  ProfileChunkEnvelope,
-  SdkInfo,
-  StackFrame,
-  StackParser,
-  ThreadCpuProfile,
-} from '@sentry/types';
-import { GLOBAL_OBJ, createEnvelope, dsnToString, forEachEnvelopeItem, logger, uuid4 } from '@sentry/utils';
-
+import type { Client, Context, Envelope, Event, StackFrame, StackParser, Profile, ProfileChunk, ProfileChunkEnvelope, DebugImage, ThreadCpuProfile } from '@sentry/types';
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
 import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
 import type { ContinuousThreadCpuProfile } from '../../types/src/profiling';
 import { DEBUG_BUILD } from './debug-build';
-import type { Profile, ProfileChunk, RawThreadCpuProfile, ThreadCpuProfile } from './types';
-import type { DebugImage } from './types';
+import type { RawThreadCpuProfile } from './types';
 import type { SentryOptions } from '../../astro/build/types/integration/types';
 
 // We require the file because if we import it, it will be included in the bundle.
@@ -380,38 +362,11 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 /**
- * Creates event envelope headers for a profile chunk. This is separate from createEventEnvelopeHeaders util
- * as the profile chunk does not conform to the sentry event type
- */
-export function createEventEnvelopeHeaders(
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn?: DsnComponents,
-): EventEnvelopeHeaders {
-  return {
-    event_id: uuid4(),
-    sent_at: new Date().toISOString(),
-    ...(sdkInfo && { sdk: sdkInfo }),
-    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
-  };
-}
-
-/**
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
   chunk: ProfileChunk,
-  sdkInfo: SdkInfo | undefined,
-  tunnel: string | undefined,
-  dsn?: DsnComponents,
 ): ProfileChunkEnvelope {
-  const profileChunkHeader: ProfileChunkItem[0] = {
-    type: 'profile_chunk',
-  };
-
-  return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [
-    [profileChunkHeader, chunk],
-  ]);
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();

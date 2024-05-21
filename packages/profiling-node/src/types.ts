@@ -6,12 +6,6 @@ interface Sample {
   elapsed_since_start_ns: string;
 }
 
-interface ChunkSample {
-  stack_id: number;
-  thread_id: string;
-  timestamp: number;
-}
-
 type Frame = {
   function: string;
   file: string;
@@ -38,20 +32,12 @@ export interface ProfiledEvent extends Event {
 interface BaseProfile {
   profile_id?: string;
   stacks: number[][];
+  samples: Sample[];
   frames: Frame[];
   resources: string[];
   profiler_logging_mode: 'eager' | 'lazy';
   measurements: Record<string, Measurement>;
 }
-
-export interface ThreadCpuProfile {
-  stacks: ReadonlyArray<Stack>;
-  samples: ReadonlyArray<Sample>;
-  frames: ReadonlyArray<Frame>;
-  thread_metadata: Record<string, { name?: string; priority?: number }>;
-  queue_metadata?: Record<string, { label: string }>;
-}
-
 export interface PrivateV8CpuProfilerBindings {
   startProfiling(name: string): void;
 
@@ -79,47 +65,5 @@ export enum ProfileFormat {
 
 export interface V8CpuProfilerBindings {
   startProfiling(name: string): void;
-
-interface BaseProfile {
-  timestamp: string;
-  version: string;
-  release: string;
-  environment: string;
-  platform: string;
-  profile: ThreadCpuProfile;
-  debug_meta?: {
-    images: DebugImage[];
-  };
-  measurements: Record<string, Measurement>;
-}
-
-export interface Profile extends BaseProfile {
-  event_id: string;
-  transaction: {
-    name: string;
-    id: string;
-    trace_id: string;
-    active_thread_id: string;
-  };
-  os: {
-    name: string;
-    version: string;
-    build_number: string;
-  };
-  runtime: {
-    name: string;
-    version: string;
-  };
-  device: {
-    architecture: string;
-    is_emulator: boolean;
-    locale: string;
-    manufacturer: string;
-    model: string;
-  };
-}
-
-export interface ProfileChunk extends BaseProfile {
-  chunk_id: string;
-  profiler_id: string
+  stopProfiling(name: string): RawThreadCpuProfile | null;
 }
