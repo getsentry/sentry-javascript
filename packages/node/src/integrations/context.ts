@@ -22,7 +22,7 @@ export const readDirAsync = promisify(readdir);
 // Process enhanced with methods from Node 18, 20, 22 as @types/node
 // is on `14.18.0` to match minimum version requirements of the SDK
 interface ProcessWithCurrentValues extends NodeJS.Process {
-  availableMemory(): number;
+  availableMemory?(): number;
 }
 
 const INTEGRATION_NAME = 'Context';
@@ -127,7 +127,7 @@ function _updateContext(contexts: Contexts): Contexts {
   }
 
   if (contexts?.app?.free_memory && typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory();
+    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
     if (freeMemory != null) {
       contexts.app.free_memory = freeMemory;
     }
@@ -208,7 +208,7 @@ export function getAppContext(): AppContext {
   const appContext: AppContext = { app_start_time, app_memory };
 
   if (typeof (process as ProcessWithCurrentValues).availableMemory === 'function') {
-    const freeMemory = (process as ProcessWithCurrentValues).availableMemory();
+    const freeMemory = (process as ProcessWithCurrentValues).availableMemory?.();
     if (freeMemory != null) {
       appContext.free_memory = freeMemory;
     }
