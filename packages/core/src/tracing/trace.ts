@@ -1,11 +1,12 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { propagationContextFromHeaders, uuid4 } from '@sentry/utils';
+import { logger, propagationContextFromHeaders, uuid4 } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
 
 import { getClient, getCurrentScope, getIsolationScope, withScope } from '../currentScopes';
 
 import { getAsyncContextStrategy } from '../asyncContext';
+import { DEBUG_BUILD } from '../debug-build';
 import { SEMANTIC_ATTRIBUTE_SENTRY_SAMPLE_RATE, SEMANTIC_ATTRIBUTE_SENTRY_SOURCE } from '../semanticAttributes';
 import { handleCallbackErrors } from '../utils/handleCallbackErrors';
 import { hasTracingEnabled } from '../utils/hasTracingEnabled';
@@ -226,8 +227,9 @@ export function suppressTracing<T>(callback: () => T): T {
  *            or page will automatically create a new trace.
  */
 export function startNewTrace(): void {
-  getCurrentScope().setPropagationContext(generatePropagationContext());
   getIsolationScope().setPropagationContext(generatePropagationContext());
+  getCurrentScope().setPropagationContext(generatePropagationContext());
+  DEBUG_BUILD && logger.info(`Starting a new trace with id ${getCurrentScope().getPropagationContext().traceId}`);
 }
 
 function createChildOrRootSpan({
