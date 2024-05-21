@@ -30,6 +30,7 @@ export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
+  initWithoutDefaultIntegrations,
 } from './sdk/init';
 export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
@@ -56,6 +57,7 @@ export {
   addBreadcrumb,
   isInitialized,
   getGlobalScope,
+  lastEventId,
   close,
   createTransport,
   flush,

@@ -27,7 +27,7 @@ const DEFAULT_DARK: InternalTheme = {
   accentBackground: PURPLE,
   successColor: '#2da98c',
   errorColor: '#f55459',
-  border: '1.5px solid rgba(41, 35, 47, 0.5)',
+  border: '1.5px solid rgba(235, 230, 239, 0.15)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   outline: '1px auto var(--accent-background)',
   interactiveFilter: 'brightness(150%)',
@@ -65,6 +65,8 @@ export function createMainStyles({ colorScheme, themeDark, themeLight }: Feedbac
 
   font-family: var(--font-family);
   font-size: var(--font-size);
+
+  ${colorScheme !== 'system' ? 'color-scheme: only light;' : ''}
 
   ${getThemedCssVariables(
     colorScheme === 'dark' ? { ...DEFAULT_DARK, ...themeDark } : { ...DEFAULT_LIGHT, ...themeLight },

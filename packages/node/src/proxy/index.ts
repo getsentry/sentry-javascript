@@ -28,10 +28,10 @@
 
 /* eslint-disable @typescript-eslint/explicit-member-accessibility */
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import type * as http from 'http';
-import type { OutgoingHttpHeaders } from 'http';
-import * as net from 'net';
-import * as tls from 'tls';
+import type * as http from 'node:http';
+import type { OutgoingHttpHeaders } from 'node:http';
+import * as net from 'node:net';
+import * as tls from 'node:tls';
 import { logger } from '@sentry/utils';
 import { Agent } from './base';
 import type { AgentConnectOpts } from './base';

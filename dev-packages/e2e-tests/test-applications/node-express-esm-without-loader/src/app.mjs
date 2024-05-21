@@ -1,13 +1,7 @@
+import './instrument.mjs';
+
+// Below other imports
 import * as Sentry from '@sentry/node';
-
-Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.E2E_TEST_DSN,
-  debug: true,
-  tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1,
-});
-
 import express from 'express';
 
 const app = express();
@@ -19,7 +13,11 @@ app.get('/test-success', function (req, res) {
   }, 100);
 });
 
-app.get('/test-transaction/:param', function (req, res) {
+app.get('/test-params/:param', function (req, res) {
+  const { param } = req.params;
+  Sentry.setTag(`param-${param}`, 'yes');
+  Sentry.captureException(new Error(`Error for param ${param}`));
+
   setTimeout(() => {
     res.status(200).end();
   }, 100);
@@ -36,7 +34,6 @@ app.get('/test-error', function (req, res) {
 
 Sentry.setupExpressErrorHandler(app);
 
-// @ts-ignore
 app.use(function onError(err, req, res, next) {
   // The error id is attached to `res.sentry` to be returned
   // and optionally displayed to the user for support.

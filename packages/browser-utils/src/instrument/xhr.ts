@@ -1,6 +1,6 @@
 import type { HandlerDataXhr, SentryWrappedXMLHttpRequest, WrappedFunction } from '@sentry/types';
 
-import { addHandler, fill, isString, maybeInstrument, triggerHandlers } from '@sentry/utils';
+import { addHandler, fill, isString, maybeInstrument, timestampInSeconds, triggerHandlers } from '@sentry/utils';
 import { WINDOW } from '../metrics/types';
 
 export const SENTRY_XHR_DATA_KEY = '__sentry_xhr_v3__';
@@ -31,7 +31,7 @@ export function instrumentXHR(): void {
 
   fill(xhrproto, 'open', function (originalOpen: () => void): () => void {
     return function (this: XMLHttpRequest & SentryWrappedXMLHttpRequest, ...args: unknown[]): void {
-      const startTimestamp = Date.now();
+      const startTimestamp = timestampInSeconds() * 1000;
 
       // open() should always be called with two or more arguments
       // But to be on the safe side, we actually validate this and bail out if we don't have a method & url
@@ -71,7 +71,7 @@ export function instrumentXHR(): void {
           }
 
           const handlerData: HandlerDataXhr = {
-            endTimestamp: Date.now(),
+            endTimestamp: timestampInSeconds() * 1000,
             startTimestamp,
             xhr: this,
           };
@@ -124,7 +124,7 @@ export function instrumentXHR(): void {
       }
 
       const handlerData: HandlerDataXhr = {
-        startTimestamp: Date.now(),
+        startTimestamp: timestampInSeconds() * 1000,
         xhr: this,
       };
       triggerHandlers('xhr', handlerData);

@@ -1,0 +1,24 @@
+{
+  "name": "node-express-esm-without-loader",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node src/app.mjs",
+    "clean": "npx rimraf node_modules pnpm-lock.yaml",
+    "test:build": "pnpm install",
+    "test:assert": "playwright test"
+  },
+  "dependencies": {
+    "@sentry/node": "latest || *",
+    "@sentry/opentelemetry": "latest || *",
+    "express": "4.19.2"
+  },
+  "devDependencies": {
+    "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
+    "@playwright/test": "^1.27.1"
+  },
+  "volta": {
+    "extends": "../../package.json",
+    "node": "18.19.1"
+  }
+}

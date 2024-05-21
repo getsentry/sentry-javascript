@@ -78,8 +78,21 @@ export function getDefaultIntegrationsWithoutPerformance(): Integration[] {
 export function getDefaultIntegrations(options: Options): Integration[] {
   return [
     ...getDefaultIntegrationsWithoutPerformance(),
-    ...(hasTracingEnabled(options) ? getAutoPerformanceIntegrations() : []),
+    // We only add performance integrations if tracing is enabled
+    // Note that this means that without tracing enabled, e.g. `expressIntegration()` will not be added
+    // This means that generally request isolation will work (because that is done by httpIntegration)
+    // But `transactionName` will not be set automatically
+    ...(shouldAddPerformanceIntegrations(options) ? getAutoPerformanceIntegrations() : []),
   ];
+}
+
+function shouldAddPerformanceIntegrations(options: Options): boolean {
+  if (!hasTracingEnabled(options)) {
+    return false;
+  }
+
+  // We want to ensure `tracesSampleRate` is not just undefined/null here
+  return options.enableTracing || options.tracesSampleRate != null || 'tracesSampler' in options;
 }
 
 declare const __IMPORT_META_URL_REPLACEMENT__: string;
@@ -88,7 +101,24 @@ declare const __IMPORT_META_URL_REPLACEMENT__: string;
  * Initialize Sentry for Node.
  */
 export function init(options: NodeOptions | undefined = {}): void {
-  const clientOptions = getClientOptions(options);
+  return _init(options, getDefaultIntegrations);
+}
+
+/**
+ * Initialize Sentry for Node, without any integrations added by default.
+ */
+export function initWithoutDefaultIntegrations(options: NodeOptions | undefined = {}): void {
+  return _init(options, () => []);
+}
+
+/**
+ * Initialize Sentry for Node, without performance instrumentation.
+ */
+function _init(
+  options: NodeOptions | undefined = {},
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): void {
+  const clientOptions = getClientOptions(options, getDefaultIntegrationsImpl);
 
   if (clientOptions.debug === true) {
     if (DEBUG_BUILD) {
@@ -112,9 +142,13 @@ export function init(options: NodeOptions | undefined = {}): void {
         typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
 
       if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
-        // @ts-expect-error register is available in these versions
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
-        GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        try {
+          // @ts-expect-error register is available in these versions
+          moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+          GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        } catch (error) {
+          logger.warn('Failed to register ESM hook', error);
+        }
       }
     } else {
       consoleSandbox(() => {
@@ -138,6 +172,8 @@ export function init(options: NodeOptions | undefined = {}): void {
   if (isEnabled(client)) {
     client.init();
   }
+
+  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
   if (options.autoSessionTracking) {
     startSessionTracking();
@@ -191,7 +227,10 @@ function validateOpenTelemetrySetup(): void {
   }
 }
 
-function getClientOptions(options: NodeOptions): NodeClientOptions {
+function getClientOptions(
+  options: NodeOptions,
+  getDefaultIntegrationsImpl: (options: Options) => Integration[],
+): NodeClientOptions {
   const release = getRelease(options.release);
 
   const autoSessionTracking =
@@ -215,17 +254,18 @@ function getClientOptions(options: NodeOptions): NodeClientOptions {
     tracesSampleRate,
   });
 
-  if (options.defaultIntegrations === undefined) {
-    options.defaultIntegrations = getDefaultIntegrations({
-      ...options,
-      ...overwriteOptions,
-    });
-  }
-
-  const clientOptions: NodeClientOptions = {
+  const mergedOptions = {
     ...baseOptions,
     ...options,
     ...overwriteOptions,
+  };
+
+  if (options.defaultIntegrations === undefined) {
+    options.defaultIntegrations = getDefaultIntegrationsImpl(mergedOptions);
+  }
+
+  const clientOptions: NodeClientOptions = {
+    ...mergedOptions,
     stackParser: stackParserFromStackParserOptions(options.stackParser || defaultStackParser),
     integrations: getIntegrationsToSetup({
       defaultIntegrations: options.defaultIntegrations,

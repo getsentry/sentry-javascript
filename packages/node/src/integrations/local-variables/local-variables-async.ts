@@ -1,7 +1,7 @@
+import { Worker } from 'node:worker_threads';
 import { defineIntegration } from '@sentry/core';
 import type { Event, Exception, IntegrationFn } from '@sentry/types';
 import { LRUMap, logger } from '@sentry/utils';
-import { Worker } from 'worker_threads';
 
 import type { NodeClient } from '../../sdk/client';
 import type { FrameVariables, LocalVariablesIntegrationOptions, LocalVariablesWorkerArgs } from './common';

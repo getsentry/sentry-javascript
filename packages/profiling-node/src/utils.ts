@@ -1,7 +1,7 @@
-import * as os from 'os';
+import * as os from 'node:os';
+import { env, versions } from 'node:process';
+import { isMainThread, threadId } from 'node:worker_threads';
 import type { Client, Context, Envelope, Event, StackFrame, StackParser } from '@sentry/types';
-import { env, versions } from 'process';
-import { isMainThread, threadId } from 'worker_threads';
 
 import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
 

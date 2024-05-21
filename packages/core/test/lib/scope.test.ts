@@ -985,4 +985,15 @@ describe('withIsolationScope()', () => {
       done();
     });
   });
+
+  it('Scope type is equal to Scope from @sentry/types', () => {
+    // We pass the Scope _class_ here to the callback,
+    // Which actually is typed as using the Scope from @sentry/types
+    // This should not TS-error, as we export the type from core as well
+    const scope = withScope((scope: Scope) => {
+      return scope;
+    });
+
+    expect(scope).toBeDefined();
+  });
 });

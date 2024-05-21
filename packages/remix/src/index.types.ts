@@ -30,5 +30,6 @@ export declare const continueTrace: typeof clientSdk.continueTrace;
 
 export const close = runtime === 'client' ? clientSdk.close : serverSdk.close;
 export const flush = runtime === 'client' ? clientSdk.flush : serverSdk.flush;
+export const lastEventId = runtime === 'client' ? clientSdk.lastEventId : serverSdk.lastEventId;
 
 export declare const metrics: typeof clientSdk.metrics & typeof serverSdk.metrics;

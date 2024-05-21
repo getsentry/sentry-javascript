@@ -53,7 +53,7 @@ const config: PlaywrightTestConfig = {
   /* Run your local dev server before starting the tests */
   webServer: [
     {
-      command: 'pnpm ts-node --project="tsconfig.event-proxy-server.json" ./start-event-proxy.ts',
+      command: 'node start-event-proxy.mjs',
       port: eventProxyPort,
     },
     {
