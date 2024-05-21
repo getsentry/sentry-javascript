@@ -55,9 +55,9 @@ export const buildFeedbackIntegration = ({
   getScreenshotIntegration,
 }: BuilderOptions): IntegrationFn<
   Integration & {
-    attachTo(el: Element | string, optionOverrides: OverrideFeedbackConfiguration): Unsubscribe;
-    createForm(optionOverrides: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
-    createWidget(optionOverrides: OverrideFeedbackConfiguration): ActorComponent;
+    attachTo(el: Element | string, optionOverrides?: OverrideFeedbackConfiguration): Unsubscribe;
+    createForm(optionOverrides?: OverrideFeedbackConfiguration): Promise<FeedbackDialog>;
+    createWidget(optionOverrides?: OverrideFeedbackConfiguration): ActorComponent;
     remove(): void;
   }
 > => {
