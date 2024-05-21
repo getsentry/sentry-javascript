@@ -44,11 +44,11 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
           const url = request.origin;
           return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
         },
-        onRequest: ({ span }: { span: Span }) => {
+        onRequest: ({ span, request }: { span: Span; request: unknown }) => {
           _updateSpan(span);
 
           if (_breadcrumbs) {
-            _addRequestBreadcrumb(span);
+            _addRequestBreadcrumb(span, request);
           }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -80,17 +80,23 @@ function _updateSpan(span: Span): void {
 }
 
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(span: Span): void {
+function _addRequestBreadcrumb(span: Span, request: unknown): void {
   if (getSpanKind(span) !== SpanKind.CLIENT) {
     return;
   }
 
   const data = getRequestSpanData(span);
-  addBreadcrumb({
-    category: 'http',
-    data: {
-      ...data,
+  addBreadcrumb(
+    {
+      category: 'http',
+      data: {
+        ...data,
+      },
+      type: 'http',
     },
-    type: 'http',
-  });
+    {
+      event: 'response',
+      request,
+    },
+  );
 }
