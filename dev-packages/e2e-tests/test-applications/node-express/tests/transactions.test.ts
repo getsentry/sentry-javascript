@@ -8,7 +8,7 @@ const sentryTestProject = process.env.E2E_TEST_SENTRY_TEST_PROJECT;
 const EVENT_POLLING_TIMEOUT = 90_000;
 
 test('Sends an API route transaction', async ({ baseURL }) => {
-  const pageloadTransactionEventPromise = waitForTransaction('node-nestjs', transactionEvent => {
+  const pageloadTransactionEventPromise = waitForTransaction('node-express', transactionEvent => {
     return (
       transactionEvent?.contexts?.trace?.op === 'http.server' &&
       transactionEvent?.transaction === 'GET /test-transaction'
@@ -55,73 +55,6 @@ test('Sends an API route transaction', async ({ baseURL }) => {
 
   expect(transactionEvent).toEqual(
     expect.objectContaining({
-      spans: expect.arrayContaining([
-        {
-          data: {
-            'express.name': '/test-transaction',
-            'express.type': 'request_handler',
-            'http.route': '/test-transaction',
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'auto.http.otel.express',
-            'sentry.op': 'request_handler.express',
-          },
-          op: 'request_handler.express',
-          description: '/test-transaction',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'auto.http.otel.express',
-        },
-        {
-          data: {
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'test-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'manual',
-        },
-        {
-          data: {
-            'otel.kind': 'INTERNAL',
-            'sentry.origin': 'manual',
-          },
-          description: 'child-span',
-          parent_span_id: expect.any(String),
-          span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          status: 'ok',
-          timestamp: expect.any(Number),
-          trace_id: expect.any(String),
-          origin: 'manual',
-        },
-        {
-          span_id: expect.any(String),
-          trace_id: expect.any(String),
-          data: {
-            'sentry.origin': 'manual',
-            component: '@nestjs/core',
-            'nestjs.version': expect.any(String),
-            'nestjs.type': 'handler',
-            'nestjs.callback': 'testTransaction',
-            'otel.kind': 'INTERNAL',
-          },
-          description: 'testTransaction',
-          parent_span_id: expect.any(String),
-          start_timestamp: expect.any(Number),
-          timestamp: expect.any(Number),
-          status: 'ok',
-          origin: 'manual',
-        },
-      ]),
       transaction: 'GET /test-transaction',
       type: 'transaction',
       transaction_info: {
@@ -129,6 +62,68 @@ test('Sends an API route transaction', async ({ baseURL }) => {
       },
     }),
   );
+
+  const spans = transactionEvent.spans || [];
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'middleware.express',
+      'http.route': '/',
+      'express.name': 'query',
+      'express.type': 'middleware',
+      'otel.kind': 'INTERNAL',
+    },
+    description: 'query',
+    op: 'middleware.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'middleware.express',
+      'http.route': '/',
+      'express.name': 'expressInit',
+      'express.type': 'middleware',
+      'otel.kind': 'INTERNAL',
+    },
+    description: 'expressInit',
+    op: 'middleware.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
+
+  expect(spans).toContainEqual({
+    data: {
+      'sentry.origin': 'auto.http.otel.express',
+      'sentry.op': 'request_handler.express',
+      'http.route': '/test-transaction',
+      'express.name': '/test-transaction',
+      'express.type': 'request_handler',
+      'otel.kind': 'INTERNAL',
+    },
+    description: '/test-transaction',
+    op: 'request_handler.express',
+    origin: 'auto.http.otel.express',
+    parent_span_id: expect.any(String),
+    span_id: expect.any(String),
+    start_timestamp: expect.any(Number),
+    status: 'ok',
+    timestamp: expect.any(Number),
+    trace_id: expect.any(String),
+  });
 
   await expect
     .poll(

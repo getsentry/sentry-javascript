@@ -29,7 +29,17 @@ describe('express tracing experimental', () => {
                   'express.name': 'corsMiddleware',
                   'express.type': 'middleware',
                 }),
-                description: 'middleware - corsMiddleware',
+                description: 'corsMiddleware',
+                op: 'middleware.express',
+                origin: 'auto.http.otel.express',
+              }),
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  'express.name': '/test/express',
+                  'express.type': 'request_handler',
+                }),
+                description: '/test/express',
+                op: 'request_handler.express',
                 origin: 'auto.http.otel.express',
               }),
             ]),
