@@ -13,12 +13,13 @@ import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/ut
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import {
   commonObjectToIsolationScope,
   commonObjectToPropagationContext,
   escapeNextjsTracing,
 } from './utils/tracingUtils';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
  * Wraps an `app` directory server component with Sentry error instrumentation.
@@ -90,10 +91,7 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
                   },
                   () => {
                     span.end();
-
-                    // flushQueue should not throw
-                    // eslint-disable-next-line @typescript-eslint/no-floating-promises
-                    flushQueue();
+                    vercelWaitUntil(flushSafelyWithTimeout());
                   },
                 );
               },
