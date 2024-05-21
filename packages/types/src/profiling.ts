@@ -111,6 +111,5 @@ export interface Profile extends BaseProfile {
 
 export interface ProfileChunk extends BaseProfile {
   chunk_id: string;
-  profiler_id: string
+  profiler_id: string;
 }
-
