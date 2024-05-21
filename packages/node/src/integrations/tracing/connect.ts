@@ -40,7 +40,7 @@ export const setupConnectErrorHandler = (app: ConnectApp): void => {
 
   // Sadly, ConnectInstrumentation has no requestHook, so we need to add the attributes here
   // We register this hook in this method, because if we register it in the integration `setup`,
-  // it would always run even for users that are not even using fastify
+  // it would always run even for users that are not even using connect
   const client = getClient();
   if (client) {
     client.on('spanStart', span => {
