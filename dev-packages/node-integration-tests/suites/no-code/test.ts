@@ -10,7 +10,7 @@ const EVENT = {
       },
     ],
   },
-}
+};
 
 describe('no-code init', () => {
   afterAll(() => {
