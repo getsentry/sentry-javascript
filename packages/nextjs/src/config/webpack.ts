@@ -660,10 +660,14 @@ function getRequestAsyncStorageModuleLocation(
 }
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
-  const ignoreRule = { module: /@opentelemetry\/instrumentation/ };
+  const ignoreRules = [
+    { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
+    { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
+  ];
+
   if (newConfig.ignoreWarnings === undefined) {
-    newConfig.ignoreWarnings = [ignoreRule];
+    newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
-    newConfig.ignoreWarnings.push(ignoreRule);
+    newConfig.ignoreWarnings.push(...ignoreRules);
   }
 }
