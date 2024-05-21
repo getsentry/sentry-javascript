@@ -368,7 +368,7 @@ describe('automated span instrumentation', () => {
 
 describe('continuous profiling', () => {
   beforeEach(() => {
-    jest.useRealTimers();
+    jest.useFakeTimers();
     // We will mock the carrier as if it has been initialized by the SDK, else everything is short circuited
     getMainCarrier().__SENTRY__ = {};
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
@@ -384,6 +384,7 @@ describe('continuous profiling', () => {
 
     jest.clearAllMocks();
     jest.restoreAllMocks();
+    jest.runAllTimers()
     delete getMainCarrier().__SENTRY__;
   });
 
@@ -437,24 +438,6 @@ describe('continuous profiling', () => {
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('stops a continuous profile after interval', async () => {
-    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
-    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
-
-    const [client] = makeContinuousProfilingClient();
-    Sentry.setCurrentClient(client);
-    client.init();
-
-    expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
-    const integration = client.getIntegrationByName('ProfilingIntegration');
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.start();
-
-    await wait(5001);
-    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-  });
-
   it('restarts a new chunk after previous', async () => {
     const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
     const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
@@ -469,9 +452,27 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    await wait(5100);
+    jest.advanceTimersByTime(5001)
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops a continuous profile after interval', async () => {
+    const startProfilingSpy = jest.spyOn(CpuProfilerBindings, 'startProfiling');
+    const stopProfilingSpy = jest.spyOn(CpuProfilerBindings, 'stopProfiling');
+
+    const [client] = makeContinuousProfilingClient();
+    Sentry.setCurrentClient(client);
+    client.init();
+
+    expect(startProfilingSpy).not.toHaveBeenCalledTimes(1);
+    const integration = client.getIntegrationByName('ProfilingIntegration');
+
+    // @ts-expect-error type of integration isnt narrowed to profiling integration
+    integration.profiler.start();
+
+    jest.advanceTimersByTime(5001)
+    expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
   it('manullly stopping a chunk doesnt restart the profiler', async () => {
@@ -488,13 +489,13 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    await wait(1000);
+    jest.advanceTimersByTime(1000)
 
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.stop();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
-    await wait(1000);
+    jest.advanceTimersByTime(1000)
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -510,9 +511,32 @@ describe('continuous profiling', () => {
   });
 
   it('sends as profile_chunk envelope type', async () => {
+    jest.spyOn(CpuProfilerBindings, 'stopProfiling').mockImplementation(() => {
+      return {
+        samples: [
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+          {
+            stack_id: 0,
+            thread_id: '0',
+            elapsed_since_start_ns: '10',
+          },
+        ],
+        measurements: {},
+        stacks: [[0]],
+        frames: [],
+        resources: [],
+        profiler_logging_mode: 'lazy',
+      };
+    });
+
     const [client, transport] = makeContinuousProfilingClient();
     Sentry.setCurrentClient(client);
     client.init();
+
 
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
@@ -520,10 +544,12 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    await wait(1000);
+    jest.advanceTimersByTime(1000)
 
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.stop();
+
+    jest.advanceTimersByTime(1000)
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0].type).toBe('profile_chunk');
   });
