@@ -1,4 +1,4 @@
-import type * as http from 'http';
+import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import {
   SEMANTIC_ATTRIBUTE_SENTRY_OP,

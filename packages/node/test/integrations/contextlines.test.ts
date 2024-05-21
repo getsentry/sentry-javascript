@@ -1,4 +1,4 @@
-import { promises } from 'fs';
+import { promises } from 'node:fs';
 import type { StackFrame } from '@sentry/types';
 import { parseStackFrames } from '@sentry/utils';
 
@@ -6,8 +6,8 @@ import { _contextLinesIntegration, resetFileContentCache } from '../../src/integ
 import { defaultStackParser } from '../../src/sdk/api';
 import { getError } from '../helpers/error';
 
-jest.mock('fs', () => {
-  const actual = jest.requireActual('fs');
+jest.mock('node:fs', () => {
+  const actual = jest.requireActual('node:fs');
   return {
     ...actual,
     promises: {

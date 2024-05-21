@@ -1,4 +1,4 @@
-import * as util from 'util';
+import * as util from 'node:util';
 import { addBreadcrumb, defineIntegration, getClient } from '@sentry/core';
 import type { IntegrationFn } from '@sentry/types';
 import { addConsoleInstrumentationHandler, severityLevelFromString } from '@sentry/utils';
