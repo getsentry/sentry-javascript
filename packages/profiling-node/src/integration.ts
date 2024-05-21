@@ -475,9 +475,10 @@ class ContinuousProfiler {
     }
     if (this._chunkId || this._chunkTimer) {
       DEBUG_BUILD &&
-        logger.log(`[Profiling] Chunk with chunk_id ${this._chunkId} is still running, new chunk cannot be started.`);
-      return;
+        logger.log(`[Profiling] Chunk with chunk_id ${this._chunkId} is still running, current chunk will be stopped a new chunk will be started.`);
+      this.stop();
     }
+
     const scope = getCurrentScope();
     const isolationScope = getIsolationScope();
 
