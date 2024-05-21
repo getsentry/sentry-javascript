@@ -45,10 +45,20 @@ export function wrapGetInitialPropsWithSentry(origGetInitialProps: GetInitialPro
         const requestSpan = getSpanFromRequest(req) ?? (activeSpan ? getRootSpan(activeSpan) : undefined);
 
         if (requestSpan) {
-          initialProps._sentryTraceData = spanToTraceHeader(requestSpan);
+          const sentryTrace = spanToTraceHeader(requestSpan);
+
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (sentryTrace) {
+            initialProps._sentryTraceData = sentryTrace;
+          }
 
           const dynamicSamplingContext = getDynamicSamplingContextFromSpan(requestSpan);
-          initialProps._sentryBaggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+          const baggage = dynamicSamplingContextToSentryBaggageHeader(dynamicSamplingContext);
+
+          // The Next.js serializer throws on undefined values so we need to guard for it (#12102)
+          if (baggage) {
+            initialProps._sentryBaggage = baggage;
+          }
         }
 
         return initialProps;
