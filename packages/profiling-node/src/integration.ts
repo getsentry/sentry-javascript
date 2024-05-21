@@ -225,7 +225,7 @@ class ContinuousProfiler {
    * Stops the current chunk and flushes the profile to Sentry.
    * @returns void
    */
-  public stop(): void{
+  public stop(): void {
     if (!this._client) {
       DEBUG_BUILD &&
         logger.log('[Profiling] Failed to collect profile, sentry client was never attached to the profiler.');
@@ -290,7 +290,11 @@ class ContinuousProfiler {
       return;
     }
 
-    transport.send(makeProfileChunkEnvelope(chunk)).then(null, reason => {
+    const dsn = this._client.getDsn();
+    const metadata = this._client.getSdkMetadata();
+    const tunnel = this._client.getOptions().tunnel;
+
+    transport.send(makeProfileChunkEnvelope(chunk, metadata?.sdk, tunnel, dsn)).then(null, reason => {
       DEBUG_BUILD && logger.error('Error while sending profile chunk envelope:', reason);
     });
   }

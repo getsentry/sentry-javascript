@@ -36,6 +36,7 @@ export type EnvelopeItemType =
   | 'attachment'
   | 'event'
   | 'profile'
+  | 'profile_chunk'
   | 'replay_event'
   | 'replay_recording'
   | 'check_in'
@@ -130,4 +131,5 @@ export type Envelope =
   | CheckInEnvelope
   | StatsdEnvelope
   | SpanEnvelope;
+
 export type EnvelopeItem = Envelope[1][number];

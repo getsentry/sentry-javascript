@@ -1,14 +1,29 @@
 /* eslint-disable max-lines */
 import * as os from 'os';
-import type { Client, Context, Envelope, Event, StackFrame, StackParser, Profile, ProfileChunk, ProfileChunkEnvelope, DebugImage, ThreadCpuProfile } from '@sentry/types';
+import type {
+  Client,
+  Context,
+  Envelope,
+  Event,
+  StackFrame,
+  StackParser,
+  Profile,
+  ProfileChunk,
+  ProfileChunkEnvelope,
+  DebugImage,
+  ThreadCpuProfile,
+  SdkInfo,
+  DsnComponents,
+  EventEnvelopeHeaders,
+} from '@sentry/types';
+import { GLOBAL_OBJ, forEachEnvelopeItem, logger, createEnvelope, dsnToString, uuid4 } from '@sentry/utils';
+
 import { env, versions } from 'process';
 import { isMainThread, threadId } from 'worker_threads';
 
-import { GLOBAL_OBJ, forEachEnvelopeItem, logger } from '@sentry/utils';
-
 import { DEBUG_BUILD } from './debug-build';
 import type { RawThreadCpuProfile } from './types';
-import type { SentryOptions } from '../../astro/build/types/integration/types';
+import type { ProfileChunkItem } from '@sentry/types/build/types/envelope';
 
 // We require the file because if we import it, it will be included in the bundle.
 // I guess tsc does not check file contents when it's imported.
@@ -216,7 +231,7 @@ function createProfileChunkPayload(
 export function createProfilingChunkEvent(
   start_timestamp: number,
   client: Client,
-  options: SentryOptions,
+  options: { release?: string; environment?: string },
   profile: RawThreadCpuProfile,
   identifiers: { trace_id: string | undefined; chunk_id: string; profiler_id: string },
 ): ProfileChunk | null {
@@ -357,11 +372,38 @@ export function findProfiledTransactionsFromEnvelope(envelope: Envelope): Event[
 }
 
 /**
+ * Creates event envelope headers for a profile chunk. This is separate from createEventEnvelopeHeaders util
+ * as the profile chunk does not conform to the sentry event type
+ */
+export function createEventEnvelopeHeaders(
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn?: DsnComponents,
+): EventEnvelopeHeaders {
+  return {
+    event_id: uuid4(),
+    sent_at: new Date().toISOString(),
+    ...(sdkInfo && { sdk: sdkInfo }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
+  };
+}
+
+/**
  * Creates a standalone profile_chunk envelope.
  */
 export function makeProfileChunkEnvelope(
   chunk: ProfileChunk,
+  sdkInfo: SdkInfo | undefined,
+  tunnel: string | undefined,
+  dsn?: DsnComponents,
 ): ProfileChunkEnvelope {
+  const profileChunkHeader: ProfileChunkItem[0] = {
+    type: 'profile_chunk',
+  };
+
+  return createEnvelope<ProfileChunkEnvelope>(createEventEnvelopeHeaders(sdkInfo, tunnel, dsn), [
+    [profileChunkHeader, chunk],
+  ]);
 }
 
 const debugIdStackParserCache = new WeakMap<StackParser, Map<string, StackFrame[]>>();
