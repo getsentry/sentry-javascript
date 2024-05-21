@@ -47,34 +47,64 @@ sentryTest('should create a new trace if `startNewTrace` is called', async ({ ge
     trace_id: pageloadTraceContext?.trace_id,
   });
 
-  const customTransactionPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+  const newTraceTransactionPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
     page,
     undefined,
     eventAndTraceHeaderRequestParser,
   );
 
-  await page.locator('#fetchBtn').click();
+  await page.locator('#newTrace').click();
 
-  const [customTransactionEvent, customTransactionTraceHeaders] = await customTransactionPromise;
+  const [newTraceTransactionEvent, newTraceTransactionTraceHeaders] = await newTraceTransactionPromise;
 
-  expect(customTransactionEvent.type).toEqual('transaction');
-  expect(customTransactionEvent.transaction).toEqual('fetch click');
+  expect(newTraceTransactionEvent.type).toEqual('transaction');
+  expect(newTraceTransactionEvent.transaction).toEqual('new-trace');
 
-  const customTransactionTraceContext = customTransactionEvent.contexts?.trace;
-  expect(customTransactionTraceContext).toMatchObject({
+  const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
+  expect(newTraceTransactionTraceContext).toMatchObject({
     op: 'ui.interaction.click',
     trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
     span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
   });
 
-  expect(customTransactionTraceHeaders).toEqual({
+  expect(newTraceTransactionTraceHeaders).toEqual({
     environment: 'production',
     public_key: 'public',
     sample_rate: '1',
     sampled: 'true',
-    trace_id: customTransactionTraceContext?.trace_id,
-    transaction: 'fetch click',
+    trace_id: newTraceTransactionTraceContext?.trace_id,
+    transaction: 'new-trace',
   });
 
-  expect(customTransactionTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
+  const oldTraceTransactionPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    page,
+    undefined,
+    eventAndTraceHeaderRequestParser,
+  );
+  await page.locator('#oldTrace').click();
+
+  const [oldTraceTransactionEvent, oldTraceTransactionTraceHeaders] = await oldTraceTransactionPromise;
+
+  expect(oldTraceTransactionEvent.type).toEqual('transaction');
+  expect(oldTraceTransactionEvent.transaction).toEqual('old-trace');
+
+  const oldTraceTransactionEventTraceContext = oldTraceTransactionEvent.contexts?.trace;
+  expect(oldTraceTransactionEventTraceContext).toMatchObject({
+    op: 'ui.interaction.click',
+    trace_id: expect.stringMatching(/^[0-9a-f]{32}$/),
+    span_id: expect.stringMatching(/^[0-9a-f]{16}$/),
+  });
+
+  expect(oldTraceTransactionTraceHeaders).toEqual({
+    environment: 'production',
+    public_key: 'public',
+    sample_rate: '1',
+    sampled: 'true',
+    trace_id: oldTraceTransactionTraceHeaders?.trace_id,
+    // transaction: 'old-trace', <-- this is not in the DSC because the DSC is continued from the pageload transaction
+    // which does not have a `transaction` field because its source is URL.
+  });
+
+  expect(oldTraceTransactionEventTraceContext?.trace_id).toEqual(pageloadTraceContext?.trace_id);
+  expect(newTraceTransactionTraceContext?.trace_id).not.toEqual(pageloadTraceContext?.trace_id);
 });

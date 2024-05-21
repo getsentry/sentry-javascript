@@ -1,4 +1,4 @@
-import { generatePropagationContext } from '../../../src/tracing/propagationContext';
+import { generatePropagationContext } from '../src/propagationContext';
 
 describe('generatePropagationContext', () => {
   it('generates a new minimal propagation context', () => {

@@ -28,6 +28,7 @@ import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from 
 import type { Span } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
+  generatePropagationContext,
   getDomElement,
   logger,
   propagationContextFromHeaders,
@@ -413,7 +414,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  startNewTrace();
+  getIsolationScope().setPropagationContext(generatePropagationContext());
+  getCurrentScope().setPropagationContext(generatePropagationContext());
 
   client.emit('startNavigationSpan', spanOptions);
 

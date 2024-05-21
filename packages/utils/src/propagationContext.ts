@@ -1,8 +1,8 @@
 import type { PropagationContext } from '@sentry/types';
-import { uuid4 } from '@sentry/utils';
+import { uuid4 } from './misc';
 
 /**
- * Generates a new minimal propagation context
+ * Returns a new minimal propagation context
  */
 export function generatePropagationContext(): PropagationContext {
   return {

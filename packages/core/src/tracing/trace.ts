@@ -1,5 +1,5 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { logger, propagationContextFromHeaders, uuid4 } from '@sentry/utils';
+import { generatePropagationContext, logger, propagationContextFromHeaders } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
 
@@ -14,7 +14,6 @@ import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
-import { generatePropagationContext } from './propagationContext';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
@@ -215,22 +214,27 @@ export function suppressTracing<T>(callback: () => T): T {
 }
 
 /**
- * Starts a new trace by creating a new trace id. Spans started after this function is called
- * will be part of the new trace instead of a potentially previous existing trace.
+ * Starts a new trace for the duration of the provided callback. Spans started within the
+ * callback will be part of the new trace instead of a potentially previously started trace.
  *
- * Important: Only use this function if you want to override the default trace lifetime SDK.
- * Please also note that as soon as you call this function, a previously distributed can no longer be
- * continued. Instead, the newly created trace will also be the root of a new distributed trace.
+ * Important: Only use this function if you want to override the default trace lifetime and
+ * propagation mechanism of the SDK for the duration and scope of the provided callback.
+ * The newly created trace will also be the root of a new distributed trace, for example if
+ * you make http requests within the callback.
+ * This function might be useful if the operation you want to instrument should not be part
+ * of a potentially ongoing trace.
  *
  * Default behavior:
  * - Server-side: A new trace is started for each incoming request.
  * - Browser: A new trace is started for each page our route. Navigating to a new route
  *            or page will automatically create a new trace.
  */
-export function startNewTrace(): void {
-  getIsolationScope().setPropagationContext(generatePropagationContext());
-  getCurrentScope().setPropagationContext(generatePropagationContext());
-  DEBUG_BUILD && logger.info(`Starting a new trace with id ${getCurrentScope().getPropagationContext().traceId}`);
+export function startNewTrace<T>(callback: () => T): T {
+  return withScope(scope => {
+    scope.setPropagationContext(generatePropagationContext());
+    DEBUG_BUILD && logger.info(`Starting a new trace with id ${scope.getPropagationContext().traceId}`);
+    return withActiveSpan(null, callback);
+  });
 }
 
 function createChildOrRootSpan({

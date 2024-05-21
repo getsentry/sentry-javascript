@@ -21,10 +21,9 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
-import { generatePropagationContext } from './tracing/propagationContext';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
 
 /**
