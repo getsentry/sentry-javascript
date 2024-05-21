@@ -1598,18 +1598,25 @@ describe('startNewTrace', () => {
     getIsolationScope().clear();
   });
 
-  it('resets the propagation context on current scope and isolation scope', () => {
-    const oldIsolationScopeItraceId = getIsolationScope().getPropagationContext().traceId;
+  it('creates a new propagation context on the current scope', () => {
     const oldCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
 
-    startNewTrace();
+    startNewTrace(() => {
+      const newCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
 
-    const newIsolationScopeItraceId = getIsolationScope().getPropagationContext().traceId;
-    const newCurrentScopeItraceId = getCurrentScope().getPropagationContext().traceId;
+      expect(newCurrentScopeItraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newCurrentScopeItraceId).not.toEqual(oldCurrentScopeItraceId);
+    });
+  });
 
-    expect(newIsolationScopeItraceId).toMatch(/^[a-f0-9]{32}$/);
-    expect(newCurrentScopeItraceId).toMatch(/^[a-f0-9]{32}$/);
-    expect(newIsolationScopeItraceId).not.toBe(oldIsolationScopeItraceId);
-    expect(newCurrentScopeItraceId).not.toBe(oldCurrentScopeItraceId);
+  it('keeps the propagation context on the isolation scope as-is', () => {
+    const oldIsolationScopeTraceId = getIsolationScope().getPropagationContext().traceId;
+
+    startNewTrace(() => {
+      const newIsolationScopeTraceId = getIsolationScope().getPropagationContext().traceId;
+
+      expect(newIsolationScopeTraceId).toMatch(/^[a-f0-9]{32}$/);
+      expect(newIsolationScopeTraceId).toEqual(oldIsolationScopeTraceId);
+    });
   });
 });
