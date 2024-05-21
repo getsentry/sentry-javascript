@@ -1,8 +1,16 @@
 import { isWrapped } from '@opentelemetry/core';
 import { ConnectInstrumentation } from '@opentelemetry/instrumentation-connect';
-import { captureException, defineIntegration, isEnabled } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  captureException,
+  defineIntegration,
+  getClient,
+  isEnabled,
+  spanToJSON,
+} from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn, Span } from '@sentry/types';
 import { consoleSandbox } from '@sentry/utils';
 
 type ConnectApp = {
@@ -30,6 +38,16 @@ function connectErrorMiddleware(err: any, req: any, res: any, next: any): void {
 export const setupConnectErrorHandler = (app: ConnectApp): void => {
   app.use(connectErrorMiddleware);
 
+  // Sadly, ConnectInstrumentation has no requestHook, so we need to add the attributes here
+  // We register this hook in this method, because if we register it in the integration `setup`,
+  // it would always run even for users that are not even using fastify
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', span => {
+      addConnectSpanAttributes(span);
+    });
+  }
+
   if (!isWrapped(app.use) && isEnabled()) {
     consoleSandbox(() => {
       // eslint-disable-next-line no-console
@@ -39,3 +57,26 @@ export const setupConnectErrorHandler = (app: ConnectApp): void => {
     });
   }
 };
+
+function addConnectSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data || {};
+
+  // this is one of: middleware, request_handler
+  const type = attributes['connect.type'];
+
+  // If this is already set, or we have no connect span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.connect',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.connect`,
+  });
+
+  // Also update the name, we don't need to "middleware - " prefix
+  const name = attributes['connect.name'];
+  if (typeof name === 'string') {
+    span.updateName(name);
+  }
+}
