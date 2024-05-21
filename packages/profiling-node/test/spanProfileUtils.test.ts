@@ -374,6 +374,14 @@ describe('continuous profiling', () => {
     GLOBAL_OBJ._sentryDebugIds = undefined as any;
   });
   afterEach(() => {
+    const client = Sentry.getClient();
+    const integration = client?.getIntegrationByName('ProfilingIntegration');
+
+    if (integration) {
+      // @ts-expect-error type of integration isnt narrowed to profiling integration
+      integration.profiler.stop();
+    }
+
     jest.clearAllMocks();
     jest.restoreAllMocks();
     delete getMainCarrier().__SENTRY__;
@@ -408,9 +416,6 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
   });
 
   it('multiple calls to start abort previous profile', () => {
@@ -430,9 +435,6 @@ describe('continuous profiling', () => {
     integration.profiler.start();
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
   });
 
   it('stops a continuous profile after interval', async () => {
@@ -451,9 +453,6 @@ describe('continuous profiling', () => {
 
     await wait(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
   });
 
   it('restarts a new chunk after previous', async () => {
@@ -473,9 +472,6 @@ describe('continuous profiling', () => {
     await wait(5100);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
-
-    // @ts-expect-error type of integration isnt narrowed to profiling integration
-    integration.profiler.stop();
   });
 
   it('manullly stopping a chunk doesnt restart the profiler', async () => {
