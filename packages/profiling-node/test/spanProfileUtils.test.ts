@@ -384,7 +384,7 @@ describe('continuous profiling', () => {
 
     jest.clearAllMocks();
     jest.restoreAllMocks();
-    jest.runAllTimers()
+    jest.runAllTimers();
     delete getMainCarrier().__SENTRY__;
   });
 
@@ -452,7 +452,7 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    jest.advanceTimersByTime(5001)
+    jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
     expect(startProfilingSpy).toHaveBeenCalledTimes(2);
   });
@@ -471,7 +471,7 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    jest.advanceTimersByTime(5001)
+    jest.advanceTimersByTime(5001);
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -489,13 +489,13 @@ describe('continuous profiling', () => {
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    jest.advanceTimersByTime(1000)
+    jest.advanceTimersByTime(1000);
 
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.stop();
     expect(stopProfilingSpy).toHaveBeenCalledTimes(1);
 
-    jest.advanceTimersByTime(1000)
+    jest.advanceTimersByTime(1000);
     expect(startProfilingSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -537,19 +537,18 @@ describe('continuous profiling', () => {
     Sentry.setCurrentClient(client);
     client.init();
 
-
     const transportSpy = jest.spyOn(transport, 'send').mockReturnValue(Promise.resolve({}));
 
     const integration = client.getIntegrationByName('ProfilingIntegration');
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.start();
 
-    jest.advanceTimersByTime(1000)
+    jest.advanceTimersByTime(1000);
 
     // @ts-expect-error type of integration isnt narrowed to profiling integration
     integration.profiler.stop();
 
-    jest.advanceTimersByTime(1000)
+    jest.advanceTimersByTime(1000);
 
     expect(transportSpy.mock.calls?.[0]?.[0]?.[1]?.[0]?.[0].type).toBe('profile_chunk');
   });
