@@ -1,16 +1,26 @@
 import type { Span } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import { addBreadcrumb, defineIntegration } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import { getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
-import { logger } from '@sentry/utils';
+import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
+import { getSanitizedUrlString, logger, parseUrl } from '@sentry/utils';
 import { DEBUG_BUILD } from '../debug-build';
 import { NODE_MAJOR } from '../nodeVersion';
 
 import type { FetchInstrumentation } from 'opentelemetry-instrumentation-fetch-node';
 
 import { addOriginToSpan } from '../utils/addOriginToSpan';
+
+interface FetchRequest {
+  method: string;
+  origin: string;
+  path: string;
+  headers: string | string[];
+}
+
+interface FetchResponse {
+  headers: Buffer[];
+  statusCode: number;
+}
 
 interface NodeFetchOptions {
   /**
@@ -39,17 +49,26 @@ const _nativeNodeFetchIntegration = ((options: NodeFetchOptions = {}) => {
 
     try {
       const pkg = await import('opentelemetry-instrumentation-fetch-node');
-      return new pkg.FetchInstrumentation({
+      const { FetchInstrumentation } = pkg;
+
+      class SentryNodeFetchInstrumentation extends FetchInstrumentation {
+        // We extend this method so we have access to request _and_ response for the breadcrumb
+        public onHeaders({ request, response }: { request: FetchRequest; response: FetchResponse }): void {
+          if (_breadcrumbs) {
+            _addRequestBreadcrumb(request, response);
+          }
+
+          return super.onHeaders({ request, response });
+        }
+      }
+
+      return new SentryNodeFetchInstrumentation({
         ignoreRequestHook: (request: { origin?: string }) => {
           const url = request.origin;
           return _ignoreOutgoingRequests && url && _ignoreOutgoingRequests(url);
         },
-        onRequest: ({ span, request }: { span: Span; request: unknown }) => {
+        onRequest: ({ span }: { span: Span }) => {
           _updateSpan(span);
-
-          if (_breadcrumbs) {
-            _addRequestBreadcrumb(span, request);
-          }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
@@ -80,16 +99,14 @@ function _updateSpan(span: Span): void {
 }
 
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(span: Span, request: unknown): void {
-  if (getSpanKind(span) !== SpanKind.CLIENT) {
-    return;
-  }
+function _addRequestBreadcrumb(request: FetchRequest, response: FetchResponse): void {
+  const data = getBreadcrumbData(request);
 
-  const data = getRequestSpanData(span);
   addBreadcrumb(
     {
       category: 'http',
       data: {
+        status_code: response.statusCode,
         ...data,
       },
       type: 'http',
@@ -97,6 +114,30 @@ function _addRequestBreadcrumb(span: Span, request: unknown): void {
     {
       event: 'response',
       request,
+      response,
     },
   );
+}
+
+function getBreadcrumbData(request: FetchRequest): Partial<SanitizedRequestData> {
+  try {
+    const url = new URL(request.path, request.origin);
+    const parsedUrl = parseUrl(url.toString());
+
+    const data: Partial<SanitizedRequestData> = {
+      url: getSanitizedUrlString(parsedUrl),
+      'http.method': request.method || 'GET',
+    };
+
+    if (parsedUrl.search) {
+      data['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      data['http.fragment'] = parsedUrl.hash;
+    }
+
+    return data;
+  } catch {
+    return {};
+  }
 }
