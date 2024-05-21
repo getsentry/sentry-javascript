@@ -169,6 +169,8 @@ function _init(
     client.init();
   }
 
+  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
+
   if (options.autoSessionTracking) {
     startSessionTracking();
   }
