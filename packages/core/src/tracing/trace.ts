@@ -1,5 +1,5 @@
 import type { ClientOptions, Scope, SentrySpanArguments, Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { propagationContextFromHeaders } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4 } from '@sentry/utils';
 import type { AsyncContextStrategy } from '../asyncContext/types';
 import { getMainCarrier } from '../carrier';
 
@@ -212,6 +212,24 @@ export function suppressTracing<T>(callback: () => T): T {
   });
 }
 
+/**
+ * Starts a new trace by creating a new trace id. Spans started after this function is called
+ * will be part of the new trace instead of a potentially previous existing trace.
+ *
+ * Important: Only use this function if you want to override the default trace lifetime SDK.
+ * Please also note that as soon as you call this function, a previously distributed can no longer be
+ * continued. Instead, the newly created trace will also be the root of a new distributed trace.
+ *
+ * Default behavior:
+ * - Server-side: A new trace is started for each incoming request.
+ * - Browser: A new trace is started for each page our route. Navigating to a new route
+ *            or page will automatically create a new trace.
+ */
+export function startNewTrace(): void {
+  getCurrentScope().setPropagationContext(generatePropagationContext());
+  getIsolationScope().setPropagationContext(generatePropagationContext());
+}
+
 function createChildOrRootSpan({
   parentSpan,
   spanContext,
@@ -393,4 +411,11 @@ function getParentSpan(scope: Scope): SentrySpan | undefined {
   }
 
   return span;
+}
+
+function generatePropagationContext(): { traceId: string; spanId: string } {
+  return {
+    traceId: uuid4(),
+    spanId: uuid4().substring(16),
+  };
 }
