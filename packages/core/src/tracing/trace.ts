@@ -14,6 +14,7 @@ import { _getSpanForScope, _setSpanForScope } from '../utils/spanOnScope';
 import { addChildSpanToSpan, getRootSpan, spanIsSampled, spanTimeInputToSeconds, spanToJSON } from '../utils/spanUtils';
 import { freezeDscOnSpan, getDynamicSamplingContextFromSpan } from './dynamicSamplingContext';
 import { logSpanStart } from './logSpans';
+import { generatePropagationContext } from './propagationContext';
 import { sampleSpan } from './sampling';
 import { SentryNonRecordingSpan } from './sentryNonRecordingSpan';
 import { SentrySpan } from './sentrySpan';
@@ -413,11 +414,4 @@ function getParentSpan(scope: Scope): SentrySpan | undefined {
   }
 
   return span;
-}
-
-function generatePropagationContext(): { traceId: string; spanId: string } {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }

@@ -22,6 +22,7 @@ import {
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
+  startNewTrace,
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
@@ -412,8 +413,7 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getCurrentScope().setPropagationContext(generatePropagationContext());
-  getIsolationScope().setPropagationContext(generatePropagationContext());
+  startNewTrace();
 
   client.emit('startNavigationSpan', spanOptions);
 
@@ -486,11 +486,4 @@ function registerInteractionListener(
   if (WINDOW.document) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
-}
-
-function generatePropagationContext(): { traceId: string; spanId: string } {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }
