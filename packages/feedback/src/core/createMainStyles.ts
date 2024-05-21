@@ -27,7 +27,7 @@ const DEFAULT_DARK: InternalTheme = {
   accentBackground: PURPLE,
   successColor: '#2da98c',
   errorColor: '#f55459',
-  border: '1.5px solid rgba(180, 180, 180, 0.25)',
+  border: '1.5px solid rgba(235, 230, 239, 0.15)',
   boxShadow: '0px 4px 24px 0px rgba(43, 34, 51, 0.12)',
   outline: '1px auto var(--accent-background)',
   interactiveFilter: 'brightness(150%)',
