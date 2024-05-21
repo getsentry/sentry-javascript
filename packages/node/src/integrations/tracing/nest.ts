@@ -1,7 +1,16 @@
 import { NestInstrumentation } from '@opentelemetry/instrumentation-nestjs-core';
-import { captureException, defineIntegration, getDefaultIsolationScope, getIsolationScope } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
+  captureException,
+  defineIntegration,
+  getClient,
+  getDefaultIsolationScope,
+  getIsolationScope,
+  spanToJSON,
+} from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 
 interface MinimalNestJsExecutionContext {
@@ -52,6 +61,16 @@ export const nestIntegration = defineIntegration(_nestIntegration);
  * Setup an error handler for Nest.
  */
 export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsErrorFilter): void {
+  // Sadly, NestInstrumentation has no requestHook, so we need to add the attributes here
+  // We register this hook in this method, because if we register it in the integration `setup`,
+  // it would always run even for users that are not even using Nest.js
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', span => {
+      addNestSpanAttributes(span);
+    });
+  }
+
   app.useGlobalInterceptors({
     intercept(context, next) {
       if (getIsolationScope() === getDefaultIsolationScope()) {
@@ -85,4 +104,21 @@ export function setupNestErrorHandler(app: MinimalNestJsApp, baseFilter: NestJsE
   });
 
   app.useGlobalFilters(wrappedFilter);
+}
+
+function addNestSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data || {};
+
+  // this is one of: app_creation, request_context, handler
+  const type = attributes['nestjs.type'];
+
+  // If this is already set, or we have no nest.js span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.nestjs',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.nestjs`,
+  });
 }
