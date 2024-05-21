@@ -1,4 +1,4 @@
-import type {ThreadCpuProfile} from '@sentry/types';
+import type { ThreadCpuProfile } from '@sentry/types';
 import { CpuProfilerBindings, PrivateCpuProfilerBindings } from '../src/cpu_profiler';
 import type { RawThreadCpuProfile } from '../src/types';
 
