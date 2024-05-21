@@ -1,7 +1,7 @@
 import * as http from 'node:http';
 import * as https from 'node:https';
-import { Readable } from 'stream';
-import { createGzip } from 'zlib';
+import { Readable } from 'node:stream';
+import { createGzip } from 'node:zlib';
 import { createTransport, suppressTracing } from '@sentry/core';
 import type {
   BaseTransportOptions,

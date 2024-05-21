@@ -1,6 +1,12 @@
-import type * as http from 'http';
+import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { defineIntegration, getDefaultIsolationScope, isEnabled } from '@sentry/core';
+import {
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  defineIntegration,
+  getDefaultIsolationScope,
+  isEnabled,
+  spanToJSON,
+} from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
@@ -19,6 +25,20 @@ const _expressIntegration = (() => {
         new ExpressInstrumentation({
           requestHook(span) {
             addOriginToSpan(span, 'auto.http.otel.express');
+
+            const attributes = spanToJSON(span).data || {};
+            // this is one of: middleware, request_handler, router
+            const type = attributes['express.type'];
+
+            if (type) {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+            }
+
+            // Also update the name, we don't need to "middleware - " prefix
+            const name = attributes['express.name'];
+            if (typeof name === 'string') {
+              span.updateName(name);
+            }
           },
           spanNameHook(info, defaultName) {
             if (getIsolationScope() === getDefaultIsolationScope()) {

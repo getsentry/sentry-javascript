@@ -142,9 +142,13 @@ function _init(
         typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
 
       if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
-        // @ts-expect-error register is available in these versions
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
-        GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        try {
+          // @ts-expect-error register is available in these versions
+          moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+          GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        } catch (error) {
+          logger.warn('Failed to register ESM hook', error);
+        }
       }
     } else {
       consoleSandbox(() => {
@@ -168,6 +172,8 @@ function _init(
   if (isEnabled(client)) {
     client.init();
   }
+
+  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
   if (options.autoSessionTracking) {
     startSessionTracking();

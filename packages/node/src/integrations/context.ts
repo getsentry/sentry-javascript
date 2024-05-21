@@ -1,8 +1,8 @@
-import { execFile } from 'child_process';
-import { readFile, readdir } from 'fs';
-import * as os from 'os';
-import { join } from 'path';
-import { promisify } from 'util';
+import { execFile } from 'node:child_process';
+import { readFile, readdir } from 'node:fs';
+import * as os from 'node:os';
+import { join } from 'node:path';
+import { promisify } from 'node:util';
 import { defineIntegration } from '@sentry/core';
 import type {
   AppContext,
