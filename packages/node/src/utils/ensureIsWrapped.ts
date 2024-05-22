@@ -1,7 +1,7 @@
 import { isWrapped } from '@opentelemetry/core';
 import { hasTracingEnabled, isEnabled } from '@sentry/core';
 import { consoleSandbox } from '@sentry/utils';
-import { isCjs } from '../sdk/init';
+import { isCjs } from './commonjs';
 
 /**
  * Checks and warns if a framework isn't wrapped by opentelemetry.

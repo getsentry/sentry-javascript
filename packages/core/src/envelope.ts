@@ -22,7 +22,8 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
 import { createSpanEnvelopeItem } from '@sentry/utils';
-import { type SentrySpan, getDynamicSamplingContextFromSpan } from './tracing';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import { spanToJSON } from './utils/spanUtils';
 
 /**

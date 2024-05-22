@@ -1,12 +1,12 @@
 import type { Breadcrumb, BreadcrumbHint } from './breadcrumb';
 import type { ErrorEvent, EventHint, TransactionEvent } from './event';
 import type { Integration } from './integration';
+import type { SamplingContext } from './samplingcontext';
 import type { CaptureContext } from './scope';
 import type { SdkMetadata } from './sdkmetadata';
 import type { SpanJSON } from './span';
 import type { StackLineParser, StackParser } from './stacktrace';
 import type { TracePropagationTargets } from './tracing';
-import type { SamplingContext } from './transaction';
 import type { BaseTransportOptions, Transport } from './transport';
 
 export interface ClientOptions<TO extends BaseTransportOptions = BaseTransportOptions> {
