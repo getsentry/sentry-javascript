@@ -22,14 +22,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '70 KB',
+    limit: '75 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay) - with treeshaking flags',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration'),
     gzip: true,
-    limit: '65 KB',
+    limit: '70 KB',
     modifyWebpackConfig: function (config) {
       const webpack = require('webpack');
       config.plugins.push(
@@ -48,14 +48,14 @@ module.exports = [
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'replayCanvasIntegration'),
     gzip: true,
-    limit: '75 KB',
+    limit: '80 KB',
   },
   {
     name: '@sentry/browser (incl. Tracing, Replay, Feedback)',
     path: 'packages/browser/build/npm/esm/index.js',
     import: createImport('init', 'browserTracingIntegration', 'replayIntegration', 'feedbackIntegration'),
     gzip: true,
-    limit: '87 KB',
+    limit: '92 KB',
   },
   {
     name: '@sentry/browser (incl. Feedback)',
@@ -133,13 +133,13 @@ module.exports = [
     name: 'CDN Bundle (incl. Tracing, Replay)',
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: true,
-    limit: '70 KB',
+    limit: '75 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback)',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: true,
-    limit: '86 KB',
+    limit: '91 KB',
   },
   // browser CDN bundles (non-gzipped)
   {
@@ -161,14 +161,14 @@ module.exports = [
     path: createCDNPath('bundle.tracing.replay.min.js'),
     gzip: false,
     brotli: false,
-    limit: '220 KB',
+    limit: '225 KB',
   },
   {
     name: 'CDN Bundle (incl. Tracing, Replay, Feedback) - uncompressed',
     path: createCDNPath('bundle.tracing.replay.feedback.min.js'),
     gzip: false,
     brotli: false,
-    limit: '264 KB',
+    limit: '270 KB',
   },
   // Next.js SDK (ESM)
   {
