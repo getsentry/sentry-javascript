@@ -16,7 +16,7 @@ import type { Thread } from './thread';
 import type { TransactionSource } from './transaction';
 import type { User } from './user';
 
-/** JSDoc */
+/** An event to be sent to Sentry. */
 export interface Event {
   event_id?: string;
   message?: string;

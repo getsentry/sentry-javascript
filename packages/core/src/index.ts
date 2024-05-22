@@ -38,9 +38,11 @@ export {
   withScope,
   withIsolationScope,
   getClient,
+} from './currentScopes';
+export {
   getDefaultCurrentScope,
   getDefaultIsolationScope,
-} from './currentScopes';
+} from './defaultScopes';
 export { setAsyncContextStrategy } from './asyncContext';
 export { getMainCarrier } from './carrier';
 export { makeSession, closeSession, updateSession } from './session';
@@ -69,7 +71,6 @@ export { handleCallbackErrors } from './utils/handleCallbackErrors';
 export { parameterize } from './utils/parameterize';
 export {
   spanToTraceHeader,
-  spanToBaggageHeader,
   spanToJSON,
   spanIsSampled,
   spanToTraceContext,
