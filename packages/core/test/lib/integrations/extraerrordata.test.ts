@@ -31,6 +31,27 @@ describe('ExtraErrorData()', () => {
     });
   });
 
+  it('should use maxValueLength to truncate extra data', () => {
+    const error = new TypeError('foo') as ExtendedError;
+    error.baz = 42;
+    error.foo = 'a'.repeat(300);
+
+    const enhancedEvent = extraErrorData.processEvent?.(
+      event,
+      {
+        originalException: error,
+      },
+      {} as any,
+    ) as SentryEvent;
+
+    expect(enhancedEvent.contexts).toEqual({
+      TypeError: {
+        baz: 42,
+        foo: 'a'.repeat(250),
+      },
+    });
+  });
+
   it('doesnt choke on linked errors and stringify names instead', () => {
     const error = new TypeError('foo') as ExtendedError;
     error.cause = new SyntaxError('bar');

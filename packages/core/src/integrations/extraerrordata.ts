@@ -1,5 +1,5 @@
 import type { Contexts, Event, EventHint, ExtendedError, IntegrationFn } from '@sentry/types';
-import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize } from '@sentry/utils';
+import { addNonEnumerableProperty, isError, isPlainObject, logger, normalize, truncate } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -27,8 +27,9 @@ const _extraErrorDataIntegration = ((options: Partial<ExtraErrorDataOptions> = {
   const { depth = 3, captureErrorCause = true } = options;
   return {
     name: INTEGRATION_NAME,
-    processEvent(event, hint) {
-      return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause);
+    processEvent(event, hint, client) {
+      const { maxValueLength = 250 } = client.getOptions();
+      return _enhanceEventWithErrorData(event, hint, depth, captureErrorCause, maxValueLength);
     },
   };
 }) satisfies IntegrationFn;
@@ -40,13 +41,14 @@ function _enhanceEventWithErrorData(
   hint: EventHint = {},
   depth: number,
   captureErrorCause: boolean,
+  maxValueLength: number,
 ): Event {
   if (!hint.originalException || !isError(hint.originalException)) {
     return event;
   }
   const exceptionName = (hint.originalException as ExtendedError).name || hint.originalException.constructor.name;
 
-  const errorData = _extractErrorData(hint.originalException as ExtendedError, captureErrorCause);
+  const errorData = _extractErrorData(hint.originalException as ExtendedError, captureErrorCause, maxValueLength);
 
   if (errorData) {
     const contexts: Contexts = {
@@ -74,7 +76,11 @@ function _enhanceEventWithErrorData(
 /**
  * Extract extra information from the Error object
  */
-function _extractErrorData(error: ExtendedError, captureErrorCause: boolean): Record<string, unknown> | null {
+function _extractErrorData(
+  error: ExtendedError,
+  captureErrorCause: boolean,
+  maxValueLength: number,
+): Record<string, unknown> | null {
   // We are trying to enhance already existing event, so no harm done if it won't succeed
   try {
     const nativeKeys = [
@@ -97,7 +103,7 @@ function _extractErrorData(error: ExtendedError, captureErrorCause: boolean): Re
         continue;
       }
       const value = error[key];
-      extraErrorInfo[key] = isError(value) ? value.toString() : value;
+      extraErrorInfo[key] = truncate(isError(value) ? value.toString() : value, maxValueLength);
     }
 
     // Error.cause is a standard property that is non enumerable, we therefore need to access it separately.
