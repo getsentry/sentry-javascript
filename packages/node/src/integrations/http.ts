@@ -1,6 +1,5 @@
-import type { ClientRequest, IncomingMessage, ServerResponse } from 'node:http';
+import type { ClientRequest, ServerResponse } from 'node:http';
 import type { Span } from '@opentelemetry/api';
-import { SpanKind } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 
@@ -13,10 +12,10 @@ import {
   isSentryRequestUrl,
   setCapturedScopesOnSpan,
 } from '@sentry/core';
-import { getClient, getRequestSpanData, getSpanKind } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
+import { getClient } from '@sentry/opentelemetry';
+import type { IntegrationFn, SanitizedRequestData } from '@sentry/types';
 
-import { stripUrlQueryAndFragment } from '@sentry/utils';
+import { getSanitizedUrlString, parseUrl, stripUrlQueryAndFragment } from '@sentry/utils';
 import type { NodeClient } from '../sdk/client';
 import { setIsolationScope } from '../sdk/scope';
 import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module';
@@ -127,16 +126,21 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 
             isolationScope.setTransactionName(bestEffortTransactionName);
           },
-          responseHook: (span, res) => {
-            if (_breadcrumbs) {
-              _addRequestBreadcrumb(span, res);
-            }
-
+          responseHook: () => {
             const client = getClient<NodeClient>();
             if (client && client.getOptions().autoSessionTracking) {
               setImmediate(() => {
                 client['_captureRequestSession']();
               });
+            }
+          },
+          applyCustomAttributesOnSpan: (
+            _span: Span,
+            request: ClientRequest | HTTPModuleRequestIncomingMessage,
+            response: HTTPModuleRequestIncomingMessage | ServerResponse,
+          ) => {
+            if (_breadcrumbs) {
+              _addRequestBreadcrumb(request, response);
             }
           },
         }),
@@ -152,12 +156,16 @@ const _httpIntegration = ((options: HttpOptions = {}) => {
 export const httpIntegration = defineIntegration(_httpIntegration);
 
 /** Add a breadcrumb for outgoing requests. */
-function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMessage | ServerResponse): void {
-  if (getSpanKind(span) !== SpanKind.CLIENT) {
+function _addRequestBreadcrumb(
+  request: ClientRequest | HTTPModuleRequestIncomingMessage,
+  response: HTTPModuleRequestIncomingMessage | ServerResponse,
+): void {
+  // Only generate breadcrumbs for outgoing requests
+  if (!_isClientRequest(request)) {
     return;
   }
 
-  const data = getRequestSpanData(span);
+  const data = getBreadcrumbData(request);
   addBreadcrumb(
     {
       category: 'http',
@@ -169,12 +177,35 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
     },
     {
       event: 'response',
-      // TODO FN: Do we need access to `request` here?
-      // If we do, we'll have to use the `applyCustomAttributesOnSpan` hook instead,
-      // but this has worse context semantics than request/responseHook.
+      request,
       response,
     },
   );
+}
+
+function getBreadcrumbData(request: ClientRequest): Partial<SanitizedRequestData> {
+  try {
+    // `request.host` does not contain the port, but the host header does
+    const host = request.getHeader('host') || request.host;
+    const url = new URL(request.path, `${request.protocol}//${host}`);
+    const parsedUrl = parseUrl(url.toString());
+
+    const data: Partial<SanitizedRequestData> = {
+      url: getSanitizedUrlString(parsedUrl),
+      'http.method': request.method || 'GET',
+    };
+
+    if (parsedUrl.search) {
+      data['http.query'] = parsedUrl.search;
+    }
+    if (parsedUrl.hash) {
+      data['http.fragment'] = parsedUrl.hash;
+    }
+
+    return data;
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -182,6 +213,6 @@ function _addRequestBreadcrumb(span: Span, response: HTTPModuleRequestIncomingMe
  * and it's an outgoing request.
  * Checking for properties instead of using `instanceOf` to avoid importing the request classes.
  */
-function _isClientRequest(req: ClientRequest | IncomingMessage): req is ClientRequest {
+function _isClientRequest(req: ClientRequest | HTTPModuleRequestIncomingMessage): req is ClientRequest {
   return 'outputData' in req && 'outputSize' in req && !('client' in req) && !('statusCode' in req);
 }
