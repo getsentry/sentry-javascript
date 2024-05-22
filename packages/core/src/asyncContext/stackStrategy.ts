@@ -105,6 +105,16 @@ export class AsyncContextStack {
   }
 
   /**
+   * Only here for compatibility with <v8 versions
+   * @deprecated DO NOT use this function
+   * @hidden
+   * @internal
+   */
+  public isOlderThan(_version: number): boolean {
+    return false;
+  }
+
+  /**
    * Push a scope to the stack.
    */
   private _pushScope(): ScopeInterface {
