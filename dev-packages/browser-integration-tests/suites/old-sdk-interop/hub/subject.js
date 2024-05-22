@@ -1,3 +1,4 @@
+console.log(window.__SENTRY__);
 /**
  * Simulate an old pre v8 SDK obtaining the hub from the global sentry carrier
  * and checking for the hub version.

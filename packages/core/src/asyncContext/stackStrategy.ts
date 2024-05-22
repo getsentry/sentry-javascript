@@ -1,9 +1,10 @@
 import type { Client, Scope as ScopeInterface } from '@sentry/types';
-import { isThenable } from '@sentry/utils';
+import { getGlobalSingleton, isThenable } from '@sentry/utils';
 import { getDefaultCurrentScope, getDefaultIsolationScope } from '../defaultScopes';
 import { Scope } from '../scope';
 
-import { getMainCarrier, getSentryCarrier } from './../carrier';
+import { getMainCarrier, getSentryCarrier } from '../carrier';
+import { getCurrentHubShim } from '../getCurrentHubShim';
 import type { AsyncContextStrategy } from './types';
 
 interface Layer {
@@ -105,16 +106,6 @@ export class AsyncContextStack {
   }
 
   /**
-   * Only here for compatibility with <v8 versions
-   * @deprecated DO NOT use this function
-   * @hidden
-   * @internal
-   */
-  public isOlderThan(_version: number): boolean {
-    return false;
-  }
-
-  /**
    * Push a scope to the stack.
    */
   private _pushScope(): ScopeInterface {
@@ -141,20 +132,17 @@ export class AsyncContextStack {
  * This will be removed during the v8 cycle and is only here to make migration easier.
  */
 function getAsyncContextStack(): AsyncContextStack {
-  const registry = getMainCarrier();
-
-  // For now we continue to keep this as `hub` on the ACS,
-  // as e.g. the Loader Script relies on this.
-  // Eventually we may change this if/when we update the loader to not require this field anymore
-  // Related, we also write to `hub` in {@link ./../sdk.ts registerClientOnGlobalHub}
-  const sentry = getSentryCarrier(registry) as { hub?: AsyncContextStack };
-
-  if (sentry.hub) {
-    return sentry.hub;
+  // eslint-disable-next-line deprecation/deprecation
+  const sentry = getSentryCarrier(getMainCarrier()) as { hub?: AsyncContextStack };
+  if (!sentry.hub) {
+    // For now, we still set the `hub` object to gracefully handle pre v8 SDKs and certain scripts
+    // (e.g. our loader script) accessing properties on `window.__SENTRY__.hub`.
+    // This will just call the `getCurrentHubShim` function, as if users would interact with `getCurrentHub`.
+    // eslint-disable-next-line deprecation/deprecation
+    Object.defineProperty(sentry, 'hub', { get: () => getCurrentHubShim(), enumerable: true });
   }
 
-  sentry.hub = new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope());
-  return sentry.hub;
+  return getGlobalSingleton('stack', () => new AsyncContextStack(getDefaultCurrentScope(), getDefaultIsolationScope()));
 }
 
 function withScope<T>(callback: (scope: ScopeInterface) => T): T {

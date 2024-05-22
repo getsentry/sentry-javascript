@@ -45,6 +45,7 @@ export interface InternalGlobal {
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
     hub: any;
+    stack: any;
     logger: any;
     extensions?: {
       /** Extension methods for the hub, which are bound to the current Hub instance */

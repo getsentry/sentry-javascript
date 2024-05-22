@@ -1,4 +1,4 @@
-import type { Client, EventHint, Hub, Integration, IntegrationClass, SeverityLevel } from '@sentry/types';
+import type { Client, EventHint, Hub, Integration, IntegrationClass, Scope, SeverityLevel } from '@sentry/types';
 import { addBreadcrumb } from './breadcrumbs';
 import { getClient, getCurrentScope, getIsolationScope, withScope } from './currentScopes';
 import {
@@ -22,7 +22,10 @@ import {
  * usage
  */
 // eslint-disable-next-line deprecation/deprecation
-export function getCurrentHubShim(): Hub {
+export function getCurrentHubShim(): Hub & {
+  getStackTop: () => { client: Client | undefined; scope: Scope };
+  isOlderThan: () => boolean;
+} {
   return {
     bindClient(client: Client): void {
       const scope = getCurrentScope();
@@ -63,6 +66,13 @@ export function getCurrentHubShim(): Hub {
 
       // only send the update
       _sendSessionUpdate();
+    },
+    getStackTop: () => ({
+      client: getClient(),
+      scope: getCurrentScope(),
+    }),
+    isOlderThan() {
+      return false;
     },
   };
 }
