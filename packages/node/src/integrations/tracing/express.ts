@@ -1,15 +1,14 @@
-import type * as http from 'http';
+import type * as http from 'node:http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { defineIntegration, getDefaultIsolationScope, isEnabled } from '@sentry/core';
+import { SEMANTIC_ATTRIBUTE_SENTRY_OP, defineIntegration, getDefaultIsolationScope, spanToJSON } from '@sentry/core';
 import { captureException, getClient, getIsolationScope } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
-
-import { isWrapped } from '@opentelemetry/core';
-import { consoleSandbox, logger } from '@sentry/utils';
+import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../debug-build';
 import type { NodeClient } from '../../sdk/client';
 import { addOriginToSpan } from '../../utils/addOriginToSpan';
+import { ensureIsWrapped } from '../../utils/ensureIsWrapped';
 
 const _expressIntegration = (() => {
   return {
@@ -19,6 +18,20 @@ const _expressIntegration = (() => {
         new ExpressInstrumentation({
           requestHook(span) {
             addOriginToSpan(span, 'auto.http.otel.express');
+
+            const attributes = spanToJSON(span).data || {};
+            // this is one of: middleware, request_handler, router
+            const type = attributes['express.type'];
+
+            if (type) {
+              span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_OP, `${type}.express`);
+            }
+
+            // Also update the name, we don't need to "middleware - " prefix
+            const name = attributes['express.name'];
+            if (typeof name === 'string') {
+              span.updateName(name);
+            }
           },
           spanNameHook(info, defaultName) {
             if (getIsolationScope() === getDefaultIsolationScope()) {
@@ -118,15 +131,7 @@ export function expressErrorHandler(options?: {
  */
 export function setupExpressErrorHandler(app: { use: (middleware: ExpressMiddleware) => unknown }): void {
   app.use(expressErrorHandler());
-
-  if (!isWrapped(app.use) && isEnabled()) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Express is not instrumented. This is likely because you required/imported express before calling `Sentry.init()`.',
-      );
-    });
-  }
+  ensureIsWrapped(app.use, 'express');
 }
 
 function getStatusCodeFromResponse(error: MiddlewareError): number {

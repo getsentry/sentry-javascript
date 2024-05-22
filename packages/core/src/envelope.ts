@@ -22,7 +22,8 @@ import {
   getSdkMetadataForEnvelopeHeader,
 } from '@sentry/utils';
 import { createSpanEnvelopeItem } from '@sentry/utils';
-import { type SentrySpan, getDynamicSamplingContextFromSpan } from './tracing';
+import { getDynamicSamplingContextFromSpan } from './tracing/dynamicSamplingContext';
+import type { SentrySpan } from './tracing/sentrySpan';
 import { spanToJSON } from './utils/spanUtils';
 
 /**
@@ -110,9 +111,13 @@ export function createSpanEnvelope(spans: SentrySpan[], client?: Client): SpanEn
   // different segments in one envelope
   const dsc = getDynamicSamplingContextFromSpan(spans[0]);
 
+  const dsn = client && client.getDsn();
+  const tunnel = client && client.getOptions().tunnel;
+
   const headers: SpanEnvelope[0] = {
     sent_at: new Date().toISOString(),
     ...(dscHasRequiredProps(dsc) && { trace: dsc }),
+    ...(!!tunnel && dsn && { dsn: dsnToString(dsn) }),
   };
 
   const beforeSendSpan = client && client.getOptions().beforeSendSpan;

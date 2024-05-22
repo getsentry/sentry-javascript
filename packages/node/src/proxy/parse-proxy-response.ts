@@ -28,8 +28,8 @@
 
 /* eslint-disable @typescript-eslint/explicit-function-return-type */
 /* eslint-disable jsdoc/require-jsdoc */
-import type { IncomingHttpHeaders } from 'http';
-import type { Readable } from 'stream';
+import type { IncomingHttpHeaders } from 'node:http';
+import type { Readable } from 'node:stream';
 import { logger } from '@sentry/utils';
 
 function debug(...args: unknown[]): void {

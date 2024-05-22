@@ -41,6 +41,14 @@
       "import": {
         "default": "./build/loader-hook.mjs"
       }
+    },
+    "./init":{
+      "import": {
+        "default": "./build/esm/init.js"
+      },
+      "require": {
+        "default": "./build/cjs/init.js"
+      }
     }
   },
   "typesVersions": {
@@ -59,7 +67,7 @@
     "@opentelemetry/core": "^1.24.1",
     "@opentelemetry/instrumentation": "^0.51.1",
     "@opentelemetry/instrumentation-connect": "0.36.0",
-    "@opentelemetry/instrumentation-express": "0.38.0",
+    "@opentelemetry/instrumentation-express": "0.39.0",
     "@opentelemetry/instrumentation-fastify": "0.36.1",
     "@opentelemetry/instrumentation-graphql": "0.40.0",
     "@opentelemetry/instrumentation-hapi": "0.38.0",
@@ -75,7 +83,7 @@
     "@opentelemetry/resources": "^1.23.0",
     "@opentelemetry/sdk-trace-base": "^1.23.0",
     "@opentelemetry/semantic-conventions": "^1.23.0",
-    "@prisma/instrumentation": "5.13.0",
+    "@prisma/instrumentation": "5.14.0",
     "@sentry/core": "8.2.1",
     "@sentry/opentelemetry": "8.2.1",
     "@sentry/types": "8.2.1",

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { WINDOW } from '../../types';
+import { WINDOW } from '../../../types';
 
 export const whenActivated = (callback: () => void) => {
   if (WINDOW.document && WINDOW.document.prerendering) {

@@ -1,9 +1,8 @@
-import { defineIntegration, mergeScopeData } from '@sentry/core';
+import * as inspector from 'node:inspector';
+import { Worker } from 'node:worker_threads';
+import { defineIntegration, getCurrentScope, getGlobalScope, getIsolationScope, mergeScopeData } from '@sentry/core';
 import type { Contexts, Event, EventHint, Integration, IntegrationFn, ScopeData } from '@sentry/types';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
-import * as inspector from 'inspector';
-import { Worker } from 'worker_threads';
-import { getCurrentScope, getGlobalScope, getIsolationScope } from '../..';
 import { NODE_VERSION } from '../../nodeVersion';
 import type { NodeClient } from '../../sdk/client';
 import type { AnrIntegrationOptions, WorkerStartData } from './common';

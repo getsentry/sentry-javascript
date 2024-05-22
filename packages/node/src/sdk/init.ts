@@ -37,13 +37,10 @@ import { spotlightIntegration } from '../integrations/spotlight';
 import { getAutoPerformanceIntegrations } from '../integrations/tracing';
 import { makeNodeTransport } from '../transports';
 import type { NodeClientOptions, NodeOptions } from '../types';
+import { isCjs } from '../utils/commonjs';
 import { defaultStackParser, getSentryRelease } from './api';
 import { NodeClient } from './client';
 import { initOpenTelemetry } from './initOtel';
-
-function isCjs(): boolean {
-  return typeof require !== 'undefined';
-}
 
 function getCjsOnlyIntegrations(): Integration[] {
   return isCjs() ? [modulesIntegration()] : [];
@@ -142,9 +139,13 @@ function _init(
         typeof __IMPORT_META_URL_REPLACEMENT__ !== 'undefined' ? __IMPORT_META_URL_REPLACEMENT__ : undefined;
 
       if (!GLOBAL_OBJ._sentryEsmLoaderHookRegistered && importMetaUrl) {
-        // @ts-expect-error register is available in these versions
-        moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
-        GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        try {
+          // @ts-expect-error register is available in these versions
+          moduleModule.register('@opentelemetry/instrumentation/hook.mjs', importMetaUrl);
+          GLOBAL_OBJ._sentryEsmLoaderHookRegistered = true;
+        } catch (error) {
+          logger.warn('Failed to register ESM hook', error);
+        }
       }
     } else {
       consoleSandbox(() => {
@@ -168,6 +169,8 @@ function _init(
   if (isEnabled(client)) {
     client.init();
   }
+
+  logger.log(`Running in ${isCjs() ? 'CommonJS' : 'ESM'} mode.`);
 
   if (options.autoSessionTracking) {
     startSessionTracking();
