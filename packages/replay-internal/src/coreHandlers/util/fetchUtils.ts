@@ -1,3 +1,4 @@
+import { setTimeout } from '@sentry-internal/browser-utils';
 import type { Breadcrumb, FetchBreadcrumbData } from '@sentry/types';
 import { logger } from '@sentry/utils';
 

@@ -1,7 +1,7 @@
 import type { SentrySpan } from '@sentry/core';
 import { spanToJSON, startInactiveSpan, withActiveSpan } from '@sentry/core';
 import type { Span, SpanTimeInput, StartSpanOptions } from '@sentry/types';
-import { WINDOW } from './types';
+import { WINDOW } from '../types';
 
 /**
  * Checks if a given value is a valid measurement value.
