@@ -28,6 +28,7 @@ export interface AppContext extends Record<string, unknown> {
   app_identifier?: string;
   build_type?: string;
   app_memory?: number;
+  free_memory?: number;
 }
 
 export interface DeviceContext extends Record<string, unknown> {
