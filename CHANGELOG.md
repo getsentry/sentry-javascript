@@ -4,6 +4,63 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.3.0
+
+### Important Changes
+
+- **Better Node Framework Span Data**
+
+This release improves data quality of spans emitted by Express, Fastify, Connect, Koa, Nest.js and Hapi.
+
+- feat(node): Ensure connect spans have better data (#12130)
+- feat(node): Ensure express spans have better data (#12107)
+- feat(node): Ensure fastify spans have better data (#12106)
+- feat(node): Ensure hapi spans have better data (#12140)
+- feat(node): Ensure koa spans have better data (#12108)
+- feat(node): Ensure Nest.js spans have better data (#12139)
+- feat(deps): Bump @opentelemetry/instrumentation-express from 0.38.0 to 0.39.0 (#12079)
+
+- **feat(node): No-code init via `--import=@sentry/node/init` (#11999)**
+
+When using Sentry in ESM mode, you can now use Sentry without manually calling init like this:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --import=@sentry/node/init app.mjs
+```
+
+When using CommonJS, you can do:
+
+```bash
+ SENTRY_DSN=https://examplePublicKey@o0.ingest.sentry.io/0 node --require=@sentry/node/init app.js
+```
+
+### Other Changes
+
+- chore: Align and update MIT license dates (#12143)
+- chore: Resolve or postpone a random assortment of TODOs (#11977)
+- doc(migration): Add entry for runWithAsyncContext (#12153)
+- docs: Add migration docs to point out that default import does not work (#12100)
+- docs(sveltekit): process.env.SENTRY_AUTH_TOKEN (#12118)
+- feat(browser): Ensure `browserProfilingIntegration` is published to CDN (#12158)
+- feat(google-cloud): Expose ESM build (#12149)
+- feat(nextjs): Ignore Prisma critical dependency warnings (#12144)
+- feat(node): Add app.free_memory info to events (#12150)
+- feat(node): Do not create GraphQL resolver spans by default (#12097)
+- feat(node): Use `node:` prefix for node built-ins (#11895)
+- feat(replay): Use unwrapped `setTimeout` to avoid e.g. angular change detection (#11924)
+- fix(core): Add dsn to span envelope header (#12096)
+- fix(feedback): Improve feedback border color in dark-mode, and prevent auto-dark mode when a theme is picked (#12126)
+- fix(feedback): Set optionOverrides to be optional in TS definition (#12125)
+- fix(nextjs): Don't put `undefined` values in props (#12131)
+- fix(nextjs): Fix legacy configuration method detection for emitting warning (#12136)
+- fix(node): Ensure fetch/http breadcrumbs are created correctly (#12137)
+- fix(node): Update `@prisma/instrumentation` from 5.13.0 to 5.14.0 (#12081)
+- ref(node): Add log for running in ESM/CommonJS mode (#12134)
+- ref(node): Handle failing hook registration gracefully (#12135)
+- ref(node): Only show instrumentation warning when tracing is enabled (#12141)
+
+Work in this release contributed by @pboling. Thank you for your contribution!
+
 ## 8.2.1
 
 - fix(aws-serverless): Fix build of lambda layer (#12083)
