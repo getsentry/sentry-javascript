@@ -3,14 +3,17 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
+  getActiveSpan,
   handleCallbackErrors,
   startSpanManual,
   withIsolationScope,
   withScope,
 } from '@sentry/core';
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
+import { context as otelContext } from '@opentelemetry/api';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY } from '@sentry/opentelemetry';
 import { isNotFoundNavigationError, isRedirectNavigationError } from '../common/nextNavigationErrorUtils';
 import type { ServerComponentContext } from '../common/types';
 import { flushQueue } from './utils/responseEnd';
@@ -34,29 +37,31 @@ export function wrapServerComponentWithSentry<F extends (...args: any[]) => any>
   // hook. 🤯
   return new Proxy(appDirComponent, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       return escapeNextjsTracing(() => {
         const isolationScope = commonObjectToIsolationScope(context.headers);
 
-        const completeHeadersDict: Record<string, string> = context.headers
-          ? winterCGHeadersToDict(context.headers)
-          : {};
+        const headersDict = context.headers ? winterCGHeadersToDict(context.headers) : undefined;
 
         isolationScope.setSDKProcessingMetadata({
           request: {
-            headers: completeHeadersDict,
+            headers: headersDict,
           },
         });
-
-        const incomingPropagationContext = propagationContextFromHeaders(
-          completeHeadersDict['sentry-trace'],
-          completeHeadersDict['baggage'],
-        );
-
-        const propagationContext = commonObjectToPropagationContext(context.headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
           return withScope(scope => {
             scope.setTransactionName(`${componentType} Server Component (${componentRoute})`);
+
+            const propagationContext = commonObjectToPropagationContext(
+              context.headers,
+              headersDict?.['sentry-trace']
+                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+                : {
+                    traceId: requestTraceId || uuid4(),
+                    spanId: uuid4().substring(16),
+                  },
+            );
 
             scope.setPropagationContext(propagationContext);
             return startSpanManual(

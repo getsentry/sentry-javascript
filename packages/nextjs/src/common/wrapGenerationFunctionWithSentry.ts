@@ -3,6 +3,7 @@ import {
   SPAN_STATUS_ERROR,
   SPAN_STATUS_OK,
   captureException,
+  getActiveSpan,
   getClient,
   handleCallbackErrors,
   startSpanManual,
@@ -10,9 +11,11 @@ import {
   withScope,
 } from '@sentry/core';
 import type { WebFetchHeaders } from '@sentry/types';
-import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
+import { propagationContextFromHeaders, uuid4, winterCGHeadersToDict } from '@sentry/utils';
 
+import { context as otelContext } from '@opentelemetry/api';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN } from '@sentry/core';
+import { EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY } from '@sentry/opentelemetry';
 import type { GenerationFunctionContext } from '../common/types';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import {
@@ -32,6 +35,7 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
   const { requestAsyncStorage, componentRoute, componentType, generationFunctionIdentifier } = context;
   return new Proxy(generationFunction, {
     apply: (originalFunction, thisArg, args) => {
+      const requestTraceId = getActiveSpan()?.spanContext().traceId;
       return escapeNextjsTracing(() => {
         let headers: WebFetchHeaders | undefined = undefined;
         // We try-catch here just in case anything goes wrong with the async storage here goes wrong since it is Next.js internal API
@@ -50,22 +54,29 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
           data = { params, searchParams };
         }
 
-        const incomingPropagationContext = propagationContextFromHeaders(
-          headers?.get('sentry-trace') ?? undefined,
-          headers?.get('baggage'),
-        );
+        const headersDict = headers ? winterCGHeadersToDict(headers) : undefined;
 
         const isolationScope = commonObjectToIsolationScope(headers);
-        const propagationContext = commonObjectToPropagationContext(headers, incomingPropagationContext);
 
         return withIsolationScope(isolationScope, () => {
           return withScope(scope => {
             scope.setTransactionName(`${componentType}.${generationFunctionIdentifier} (${componentRoute})`);
+
             isolationScope.setSDKProcessingMetadata({
               request: {
-                headers: headers ? winterCGHeadersToDict(headers) : undefined,
+                headers: headersDict,
               },
             });
+
+            const propagationContext = commonObjectToPropagationContext(
+              headers,
+              headersDict?.['sentry-trace']
+                ? propagationContextFromHeaders(headersDict['sentry-trace'], headersDict['baggage'])
+                : {
+                    traceId: requestTraceId || uuid4(),
+                    spanId: uuid4().substring(16),
+                  },
+            );
 
             scope.setExtra('route_data', data);
             scope.setPropagationContext(propagationContext);

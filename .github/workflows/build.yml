@@ -1007,6 +1007,7 @@ jobs:
             'node-express-esm-without-loader',
             'nextjs-app-dir',
             'nextjs-14',
+            'nextjs-15',
             'react-create-hash-router',
             'react-router-6-use-routes',
             'react-router-5',
