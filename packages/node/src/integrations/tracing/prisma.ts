@@ -1,5 +1,6 @@
-// When importing CJS modules into an ESM module, we cannot import the named exports directly.
-import * as prismaInstrumentation from '@prisma/instrumentation';
+// The "@prisma/instrumentation" package is CJS, meaning we cannot use named exports, or the "import * as" syntax, otherwise we will break people on ESM, importing `prismaIntegration`.
+import prismaInstrumentation from '@prisma/instrumentation';
+
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
 import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
