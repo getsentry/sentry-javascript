@@ -95,6 +95,11 @@ function getFinalConfigObject(
         ...incomingUserNextConfigObject.experimental,
       };
     }
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(
+      "[@sentry/nextjs] The Sentry SDK was not able to determine your Next.js version. If you are using Next.js 15 or greater, please add `experimental.clientTraceMetadata: ['sentry-trace', 'baggage']` to your Next.js config to enable pageload tracing for App Router.",
+    );
   }
 
   return {
@@ -199,7 +204,6 @@ function resolveNextjsPackageJson(): string | undefined {
   try {
     return resolveSync('next/package.json', { basedir: process.cwd() });
   } catch {
-    // Should not happen in theory
     return undefined;
   }
 }
