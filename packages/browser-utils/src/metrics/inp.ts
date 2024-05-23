@@ -93,7 +93,13 @@ function _trackINP(): () => void {
     const replayId = replay && replay.getReplayId();
 
     const userDisplay = user !== undefined ? user.email || user.id || user.ip_address : undefined;
-    const profileId = scope.getScopeData().contexts?.profile?.profile_id as string | undefined;
+    let profileId = undefined;
+    try {
+      // @ts-expect-error skip optional chaining to save bundle size with try catch
+      profileId = scope.getScopeData().contexts.profile.profile_id;
+    } catch {
+      // do nothing
+    }
 
     const name = htmlTreeAsString(entry.target);
     const attributes: SpanAttributes = dropUndefinedKeys({
