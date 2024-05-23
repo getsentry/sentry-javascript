@@ -5,10 +5,39 @@ import {
 } from '@sentry/core';
 import { WINDOW, startBrowserTracingNavigationSpan, startBrowserTracingPageLoadSpan } from '@sentry/react';
 import type { Client } from '@sentry/types';
-import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin } from '@sentry/utils';
+import { addFetchInstrumentationHandler, browserPerformanceTimeOrigin, parseBaggageHeader } from '@sentry/utils';
 
 /** Instruments the Next.js app router for pageloads. */
 export function appRouterInstrumentPageLoad(client: Client): void {
+  // We use an event processor to override the automatically collected Request Browser metric span ID with the span ID
+  // hint from the server so that the SSR spans are properly attached to the request span.
+  client.addEventProcessor(event => {
+    if (event.type !== 'transaction' || event.contexts?.trace?.op !== 'pageload') {
+      return event;
+    }
+
+    const baggage = WINDOW.document.querySelector('meta[name=baggage]')?.getAttribute('content');
+    if (baggage) {
+      const parsedBaggage = parseBaggageHeader(baggage);
+      if (parsedBaggage && parsedBaggage['sentry-request-span-id-suggestion']) {
+        const spanIdSuggestion = parsedBaggage['sentry-request-span-id-suggestion'];
+        event.spans?.forEach(span => {
+          if (span.description === 'request' && span.op === 'browser') {
+            // Replace request span ID
+            span.span_id = spanIdSuggestion;
+
+            if (event.contexts?.trace) {
+              // Unset the parent span of the pageload transaction - it is now the root of the trace
+              event.contexts.trace.parent_span_id = undefined;
+            }
+          }
+        });
+      }
+    }
+
+    return event;
+  });
+
   startBrowserTracingPageLoadSpan(client, {
     name: WINDOW.location.pathname,
     // pageload should always start at timeOrigin (and needs to be in s, not ms)

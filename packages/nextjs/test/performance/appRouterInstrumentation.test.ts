@@ -36,6 +36,7 @@ describe('appRouterInstrumentPageLoad', () => {
     const emit = jest.fn();
     const client = {
       emit,
+      addEventProcessor: jest.fn(),
     } as unknown as Client;
 
     appRouterInstrumentPageLoad(client);

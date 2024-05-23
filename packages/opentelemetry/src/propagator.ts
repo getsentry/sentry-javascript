@@ -22,6 +22,7 @@ import {
 } from '@sentry/utils';
 
 import {
+  EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY,
   SENTRY_BAGGAGE_HEADER,
   SENTRY_TRACE_HEADER,
   SENTRY_TRACE_STATE_DSC,
@@ -129,6 +130,15 @@ export class SentryPropagator extends W3CBaggagePropagator {
     // We also want to avoid setting the default OTEL trace ID, if we get that for whatever reason
     if (traceId && traceId !== '00000000000000000000000000000000') {
       setter.set(carrier, SENTRY_TRACE_HEADER, generateSentryTraceHeader(traceId, spanId, sampled));
+    }
+
+    const requestSpanIdSuggestion = context.getValue(EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY) as
+      | string
+      | undefined;
+    if (requestSpanIdSuggestion) {
+      baggage = baggage.setEntry(`${SENTRY_BAGGAGE_KEY_PREFIX}request-span-id-suggestion`, {
+        value: requestSpanIdSuggestion,
+      });
     }
 
     super.inject(propagation.setBaggage(context, baggage), carrier, setter);

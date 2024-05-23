@@ -39,5 +39,7 @@ export { openTelemetrySetupCheck } from './utils/setupCheck';
 
 export { addOpenTelemetryInstrumentation } from './instrumentation';
 
+export { EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY } from './constants';
+
 // Legacy
 export { getClient } from '@sentry/core';
