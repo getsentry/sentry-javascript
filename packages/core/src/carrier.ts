@@ -1,5 +1,6 @@
-import type { Integration } from '@sentry/types';
+import type { Integration, VersionString } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
+import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 import { SDK_VERSION } from './version';
 
@@ -11,10 +12,10 @@ export interface Carrier {
   __SENTRY__?: VersionedCarrier;
 }
 
-interface VersionedCarrier {
-  version: typeof SDK_VERSION;
-  [SDK_VERSION]: SentryCarrier;
-}
+type VersionedCarrier = {
+  [key: VersionString]: SentryCarrier;
+  version?: VersionString;
+};
 
 interface SentryCarrier {
   acs?: AsyncContextStrategy;
@@ -27,6 +28,7 @@ interface SentryCarrier {
     // eslint-disable-next-line @typescript-eslint/ban-types
     [key: string]: Function;
   };
+  stack?: AsyncContextStack;
 }
 
 /**
@@ -45,11 +47,19 @@ export function getMainCarrier(): Carrier {
 /** Will either get the existing sentry carrier, or create a new one. */
 export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   if (!carrier.__SENTRY__) {
-    carrier.__SENTRY__ = {
-      version: SDK_VERSION,
-      [SDK_VERSION]: {
-        extensions: {},
-      },
+    carrier.__SENTRY__ = {};
+  }
+
+  // For now: First SDK that sets the .version property wins
+  if (!carrier.__SENTRY__.version) {
+    carrier.__SENTRY__.version = SDK_VERSION;
+  }
+
+  // Intentionally populating and returning the version of "this" SDK instance
+  // rather than what's set in .version so that "this" SDK always gets its carrier
+  if (!carrier.__SENTRY__[SDK_VERSION]) {
+    carrier.__SENTRY__[SDK_VERSION] = {
+      extensions: {},
     };
   }
   return carrier.__SENTRY__[SDK_VERSION];

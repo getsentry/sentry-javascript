@@ -65,3 +65,8 @@ export interface WorkerLocation {
 export type Primitive = number | string | boolean | bigint | symbol | null | undefined;
 
 export type HttpHeaderValue = string | string[] | number | null;
+
+/**
+ * Type representing a semver version string
+ */
+export type VersionString = `${number}.${number}.${number}${`-${string}${string}` | ''}`;

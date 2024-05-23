@@ -12,7 +12,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import type { Client, MetricsAggregator, Scope } from '@sentry/types';
+import type { Client, MetricsAggregator, Scope, VersionString } from '@sentry/types';
 
 import type { SdkSource } from './env';
 
@@ -44,6 +44,17 @@ export interface InternalGlobal {
    */
   _sentryDebugIds?: Record<string, string>;
   __SENTRY__: {
+    [key: VersionString]: {
+      acs?: any;
+      integrations?: any[];
+      extensions?: {
+        /** Extra Hub properties injected by various SDKs */
+        // eslint-disable-next-line @typescript-eslint/ban-types
+        [key: string]: Function;
+      };
+      stack?: any;
+    };
+    version: VersionString;
     hub: any;
     logger: any;
     extensions?: {
