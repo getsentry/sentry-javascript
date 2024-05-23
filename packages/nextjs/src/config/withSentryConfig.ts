@@ -1,5 +1,7 @@
-import { isThenable } from '@sentry/utils';
+import { isThenable, parseSemver } from '@sentry/utils';
 
+import * as fs from 'fs';
+import { sync as resolveSync } from 'resolve';
 import type {
   ExportedNextConfig as NextConfig,
   NextConfigFunction,
@@ -82,6 +84,19 @@ function getFinalConfigObject(
     ...incomingUserNextConfigObject.experimental,
   };
 
+  // Add the `clientTraceMetadata` experimental option based on Next.js version. The option got introduced in Next.js version 15.0.0 (actually 14.3.0-canary.64).
+  // Adding the option on lower versions will cause Next.js to print nasty warnings we wouldn't confront our users with.
+  const nextJsVersion = getNextjsVersion();
+  if (nextJsVersion) {
+    const { major, minor } = parseSemver(nextJsVersion);
+    if (major && minor && (major >= 15 || (major === 14 && minor >= 3))) {
+      incomingUserNextConfigObject.experimental = {
+        clientTraceMetadata: ['baggage', 'sentry-trace'],
+        ...incomingUserNextConfigObject.experimental,
+      };
+    }
+  }
+
   return {
     ...incomingUserNextConfigObject,
     webpack: constructWebpackConfigFunction(incomingUserNextConfigObject, userSentryOptions),
@@ -162,4 +177,29 @@ function setUpTunnelRewriteRules(userNextConfig: NextConfigObject, tunnelPath: s
       };
     }
   };
+}
+
+function getNextjsVersion(): string | undefined {
+  const nextjsPackageJsonPath = resolveNextjsPackageJson();
+  if (nextjsPackageJsonPath) {
+    try {
+      const nextjsPackageJson: { version: string } = JSON.parse(
+        fs.readFileSync(nextjsPackageJsonPath, { encoding: 'utf-8' }),
+      );
+      return nextjsPackageJson.version;
+    } catch {
+      // noop
+    }
+  }
+
+  return undefined;
+}
+
+function resolveNextjsPackageJson(): string | undefined {
+  try {
+    return resolveSync('next/package.json', { basedir: process.cwd() });
+  } catch {
+    // Should not happen in theory
+    return undefined;
+  }
 }
