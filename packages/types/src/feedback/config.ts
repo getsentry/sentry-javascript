@@ -1,4 +1,4 @@
-import { Primitive } from '../misc';
+import type { Primitive } from '../misc';
 import type { FeedbackFormData } from './form';
 import type { FeedbackTheme } from './theme';
 
