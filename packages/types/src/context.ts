@@ -12,6 +12,7 @@ export interface Contexts extends Record<string, Context | undefined> {
   trace?: TraceContext;
   cloud_resource?: CloudResourceContext;
   state?: StateContext;
+  profile?: ProfileContext;
 }
 
 export interface StateContext extends Record<string, unknown> {
@@ -113,4 +114,8 @@ export interface CloudResourceContext extends Record<string, unknown> {
   ['cloud.platform']?: string;
   ['host.id']?: string;
   ['host.type']?: string;
+}
+
+export interface ProfileContext extends Record<string, unknown> {
+  profile_id: string;
 }
