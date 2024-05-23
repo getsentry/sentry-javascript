@@ -1,5 +1,6 @@
 import { captureFeedback } from '@sentry/core';
 import { getClient } from '@sentry/core';
+import { getCurrentScope } from '@sentry/core';
 import type {
   Event,
   SendFeedback,
@@ -28,6 +29,9 @@ export const sendFeedback: SendFeedback = (
     throw new Error('No client setup, cannot send feedback.');
   }
 
+  if (options.tags) {
+    getCurrentScope().setTags(options.tags);
+  }
   const eventId = captureFeedback(
     {
       source: FEEDBACK_API_SOURCE,

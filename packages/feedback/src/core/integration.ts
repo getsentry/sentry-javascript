@@ -65,8 +65,10 @@ export const buildFeedbackIntegration = ({
   const feedbackIntegration = (({
     // FeedbackGeneralConfiguration
     id = 'sentry-feedback',
-    showBranding = true,
     autoInject = true,
+    showBranding = true,
+    isEmailRequired = false,
+    isNameRequired = false,
     showEmail = true,
     showName = true,
     enableScreenshot = true,
@@ -74,8 +76,7 @@ export const buildFeedbackIntegration = ({
       email: 'email',
       name: 'username',
     },
-    isNameRequired = false,
-    isEmailRequired = false,
+    tags,
 
     // FeedbackThemeConfiguration
     colorScheme = 'system',
@@ -116,6 +117,7 @@ export const buildFeedbackIntegration = ({
       showName,
       enableScreenshot,
       useSentryUser,
+      tags,
 
       colorScheme,
       themeDark,

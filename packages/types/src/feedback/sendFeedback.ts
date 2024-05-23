@@ -1,4 +1,5 @@
 import type { Event, EventHint } from '../event';
+import type { Primitive } from '../misc';
 import type { User } from '../user';
 
 /**
@@ -38,6 +39,11 @@ export interface SendFeedbackParams {
   url?: string;
   source?: string;
   associatedEventId?: string;
+
+  /**
+   * Set an object that will be merged sent as tags data with the event.
+   */
+  tags?: { [key: string]: Primitive };
 }
 
 export interface SendFeedbackOptions extends EventHint {
