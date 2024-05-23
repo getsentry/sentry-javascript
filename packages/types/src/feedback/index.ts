@@ -22,6 +22,24 @@ export interface FeedbackInternalOptions
     FeedbackTextConfiguration,
     FeedbackCallbacks {}
 
+/**
+ * Partial configuration that overrides default configuration values
+ *
+ * This is the config that gets passed into the integration constructor
+ */
+export interface OptionalFeedbackConfiguration
+  extends Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'> {
+  themeLight?: Partial<FeedbackInternalOptions['themeLight']>;
+  themeDark?: Partial<FeedbackInternalOptions['themeLight']>;
+}
+
+/**
+ * Partial configuration that overrides the constructor provided configuration values
+ *
+ * This is the config that gets passed into methods like attachTo and createWidget.
+ */
+export type OverrideFeedbackConfiguration = Omit<Partial<FeedbackInternalOptions>, 'themeLight' | 'themeDark'>;
+
 type HTMLElement = unknown;
 export interface FeedbackDialog {
   /**

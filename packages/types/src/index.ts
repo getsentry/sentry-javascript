@@ -73,15 +73,17 @@ export type {
 } from './profiling';
 export type { ReplayEvent, ReplayRecordingData, ReplayRecordingMode } from './replay';
 export type {
+  CreateDialogProps,
   FeedbackDialog,
   FeedbackEvent,
   FeedbackFormData,
   FeedbackInternalOptions,
   FeedbackModalIntegration,
   FeedbackScreenshotIntegration,
+  OptionalFeedbackConfiguration,
+  OverrideFeedbackConfiguration,
   SendFeedback,
   SendFeedbackParams,
-  CreateDialogProps,
   UserFeedback,
 } from './feedback';
 export type { QueryParams, Request, SanitizedRequestData } from './request';
