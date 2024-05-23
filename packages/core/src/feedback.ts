@@ -1,14 +1,11 @@
-import type { EventHint, FeedbackEvent, SendFeedbackParams } from '@sentry/types';
+import type { FeedbackEvent, SendFeedbackOptions, SendFeedbackParams } from '@sentry/types';
 import { dropUndefinedKeys } from '@sentry/utils';
 import { getClient, getCurrentScope } from './currentScopes';
 
 /**
  * Send user feedback to Sentry.
  */
-export function captureFeedback(
-  feedbackParams: SendFeedbackParams,
-  hint: EventHint & { includeReplay?: boolean } = {},
-): string {
+export function captureFeedback(feedbackParams: SendFeedbackParams, hint: SendFeedbackOptions = {}): string {
   const { message, name, email, url, source, associatedEventId } = feedbackParams;
 
   const client = getClient();

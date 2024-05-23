@@ -40,7 +40,7 @@ export interface SendFeedbackParams {
   associatedEventId?: string;
 }
 
-interface SendFeedbackOptions extends EventHint {
+export interface SendFeedbackOptions extends EventHint {
   /**
    * Should include replay with the feedback?
    */

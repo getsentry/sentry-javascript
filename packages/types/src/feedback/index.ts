@@ -10,8 +10,14 @@ import type {
 
 export type { FeedbackFormData } from './form';
 
-import type { FeedbackEvent, SendFeedback, SendFeedbackParams, UserFeedback } from './sendFeedback';
-export type { FeedbackEvent, UserFeedback, SendFeedback, SendFeedbackParams };
+import type {
+  FeedbackEvent,
+  SendFeedback,
+  SendFeedbackOptions,
+  SendFeedbackParams,
+  UserFeedback,
+} from './sendFeedback';
+export type { FeedbackEvent, SendFeedback, SendFeedbackOptions, SendFeedbackParams, UserFeedback };
 
 /**
  * The integration's internal `options` member where every value should be set

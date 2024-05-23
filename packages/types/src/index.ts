@@ -83,6 +83,7 @@ export type {
   OptionalFeedbackConfiguration,
   OverrideFeedbackConfiguration,
   SendFeedback,
+  SendFeedbackOptions,
   SendFeedbackParams,
   UserFeedback,
 } from './feedback';

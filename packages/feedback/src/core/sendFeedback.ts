@@ -1,7 +1,12 @@
 import { captureFeedback } from '@sentry/core';
 import { getClient } from '@sentry/core';
-import type { EventHint, SendFeedback, SendFeedbackParams, TransportMakeRequestResponse } from '@sentry/types';
-import type { Event } from '@sentry/types';
+import type {
+  Event,
+  SendFeedback,
+  SendFeedbackOptions,
+  SendFeedbackParams,
+  TransportMakeRequestResponse,
+} from '@sentry/types';
 import { getLocationHref } from '@sentry/utils';
 import { FEEDBACK_API_SOURCE } from '../constants';
 
@@ -10,7 +15,7 @@ import { FEEDBACK_API_SOURCE } from '../constants';
  */
 export const sendFeedback: SendFeedback = (
   options: SendFeedbackParams,
-  hint: EventHint & { includeReplay?: boolean } = { includeReplay: true },
+  hint: SendFeedbackOptions = { includeReplay: true },
 ): Promise<string> => {
   if (!options.message) {
     throw new Error('Unable to submit feedback with empty message');
