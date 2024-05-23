@@ -69,6 +69,7 @@
     "packages/replay-internal",
     "packages/replay-canvas",
     "packages/replay-worker",
+    "packages/solidjs",
     "packages/svelte",
     "packages/sveltekit",
     "packages/types",
