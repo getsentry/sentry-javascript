@@ -994,6 +994,7 @@ jobs:
         test-application:
           [
             'angular-17',
+            'angular-18',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
