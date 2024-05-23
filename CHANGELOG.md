@@ -4,6 +4,23 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.3.1
+
+### Important Changes
+
+- **feat(nextjs): Trace pageloads in App Router (#12157)**
+
+If you are using Next.js version `14.3.0-canary.64` or above, the Sentry Next.js SDK will now trace clientside pageloads
+with React Server Components. This means, that client-side errors like
+`Error: An error occurred in the Server Components render.`, which previously didn't give you much information on how
+that error was caused, can now be traced back to a specific error in a server component.
+
+### Other Changes
+
+- feat(angular): Add Support for Angular 18 (#12183)
+- feat(deps): Bump @opentelemetry/instrumentation-aws-lambda from 0.41.0 to 0.41.1 (#12078)
+- fix(metrics): Ensure string values are interpreted for metrics (#12165)
+
 ## 8.3.0
 
 ### Important Changes
