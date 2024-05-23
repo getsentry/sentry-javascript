@@ -1,4 +1,4 @@
-import { logger } from '@sentry/utils';
+import { isNativeFunction, logger } from '@sentry/utils';
 import { DEBUG_BUILD } from './debug-build';
 import { WINDOW } from './types';
 
@@ -14,14 +14,6 @@ interface CacheableImplementations {
 }
 
 const cachedImplementations: Partial<CacheableImplementations> = {};
-
-/**
- * isNative checks if the given function is a native implementation
- */
-// eslint-disable-next-line @typescript-eslint/ban-types
-function isNative(func: Function): boolean {
-  return func && /^function\s+\w+\(\)\s+\{\s+\[native code\]\s+\}$/.test(func.toString());
-}
 
 /**
  * Get the native implementation of a browser function.
@@ -43,7 +35,7 @@ export function getNativeImplementation<T extends keyof CacheableImplementations
   let impl = WINDOW[name] as CacheableImplementations[T];
 
   // Fast path to avoid DOM I/O
-  if (isNative(impl)) {
+  if (isNativeFunction(impl)) {
     return (cachedImplementations[name] = impl.bind(WINDOW) as CacheableImplementations[T]);
   }
 
