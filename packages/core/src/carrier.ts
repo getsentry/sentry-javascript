@@ -1,25 +1,19 @@
 import type { Integration } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { AsyncContextStrategy } from './asyncContext/types';
+import { SDK_VERSION } from './version';
 
 /**
  * An object that contains a hub and maintains a scope stack.
  * @hidden
  */
 export interface Carrier {
-  __SENTRY__?: SentryCarrier;
+  __SENTRY__?: VersionedCarrier;
 }
 
-interface SentryCarrier {
-  acs?: AsyncContextStrategy;
-}
-
-/**
- * An object that contains a hub and maintains a scope stack.
- * @hidden
- */
-export interface Carrier {
-  __SENTRY__?: SentryCarrier;
+interface VersionedCarrier {
+  version: typeof SDK_VERSION;
+  [SDK_VERSION]: SentryCarrier;
 }
 
 interface SentryCarrier {
@@ -52,8 +46,11 @@ export function getMainCarrier(): Carrier {
 export function getSentryCarrier(carrier: Carrier): SentryCarrier {
   if (!carrier.__SENTRY__) {
     carrier.__SENTRY__ = {
-      extensions: {},
+      version: SDK_VERSION,
+      [SDK_VERSION]: {
+        extensions: {},
+      },
     };
   }
-  return carrier.__SENTRY__;
+  return carrier.__SENTRY__[SDK_VERSION];
 }
