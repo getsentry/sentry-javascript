@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import { waitForError, waitForTransaction } from '@sentry-internal/event-proxy-server';
 
 test('sends an error', async ({ page }) => {
-  const errorPromise = waitForError('angular-17', async errorEvent => {
+  const errorPromise = waitForError('angular-18', async errorEvent => {
     return !errorEvent.type;
   });
 
@@ -17,7 +17,7 @@ test('sends an error', async ({ page }) => {
       values: [
         {
           type: 'Error',
-          value: 'Error thrown from Angular 17 E2E test app',
+          value: 'Error thrown from Angular 18 E2E test app',
           mechanism: {
             type: 'angular',
             handled: false,
@@ -30,11 +30,11 @@ test('sends an error', async ({ page }) => {
 });
 
 test('assigns the correct transaction value after a navigation', async ({ page }) => {
-  const pageloadTxnPromise = waitForTransaction('angular-17', async transactionEvent => {
+  const pageloadTxnPromise = waitForTransaction('angular-18', async transactionEvent => {
     return !!transactionEvent?.transaction && transactionEvent.contexts?.trace?.op === 'pageload';
   });
 
-  const errorPromise = waitForError('angular-17', async errorEvent => {
+  const errorPromise = waitForError('angular-18', async errorEvent => {
     return !errorEvent.type;
   });
 

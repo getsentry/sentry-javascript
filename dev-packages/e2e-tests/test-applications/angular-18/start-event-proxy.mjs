@@ -2,5 +2,5 @@ import { startEventProxyServer } from '@sentry-internal/event-proxy-server';
 
 startEventProxyServer({
   port: 3031,
-  proxyServerName: 'angular-17',
+  proxyServerName: 'angular-18',
 });
