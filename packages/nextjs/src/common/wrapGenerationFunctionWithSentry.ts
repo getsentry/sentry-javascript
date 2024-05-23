@@ -75,6 +75,9 @@ export function wrapGenerationFunctionWithSentry<F extends (...args: any[]) => a
                 : {
                     traceId: requestTraceId || uuid4(),
                     spanId: uuid4().substring(16),
+                    parentSpanId: otelContext
+                      .active()
+                      .getValue(EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY) as string | undefined,
                   },
             );
 

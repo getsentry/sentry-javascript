@@ -1,6 +1,9 @@
+import { context } from '@opentelemetry/api';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { httpIntegration as originalHttpIntegration } from '@sentry/node';
+import { EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { uuid4 } from '@sentry/utils';
 
 /**
  * Next.js handles incoming requests itself,
@@ -16,7 +19,15 @@ class CustomNextjsHttpIntegration extends HttpInstrumentation {
       original: (event: string, ...args: unknown[]) => boolean,
     ): ((this: unknown, event: string, ...args: unknown[]) => boolean) => {
       return function incomingRequest(this: unknown, event: string, ...args: unknown[]): boolean {
-        return original.apply(this, [event, ...args]);
+        const requestSpanIdSuggestion = uuid4().substring(16);
+        return context.with(
+          context
+            .active()
+            .setValue(EXPERIMENTAL_SENTRY_REQUEST_SPAN_ID_SUGGESTION_CONTEXT_KEY, requestSpanIdSuggestion),
+          () => {
+            return original.apply(this, [event, ...args]);
+          },
+        );
       };
     };
   }
