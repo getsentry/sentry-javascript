@@ -29,6 +29,7 @@ function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void 
   if (
     // Only matches errors in production builds of react-dom
     // Example https://reactjs.org/docs/error-decoder.html?invariant=423
+    // With newer React versions, the messages changed to a different website https://react.dev/errors/418
     exceptionValue.match(
       /(reactjs\.org\/docs\/error-decoder\.html\?invariant=|react\.dev\/errors\/)(418|419|422|423|425)/,
     ) ||
