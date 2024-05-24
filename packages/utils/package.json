@@ -67,6 +67,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:package": "node test/types/index.js",
+    "version": "node ../../scripts/versionbump.js src/version.ts",
     "yalc:publish": "ts-node ../../scripts/prepack.ts && yalc publish build --push --sig"
   },
   "volta": {

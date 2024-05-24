@@ -1,11 +1,11 @@
-import type { Integration, VersionString } from '@sentry/types';
+import type { Integration, Scope, VersionString } from '@sentry/types';
 import { GLOBAL_OBJ } from '@sentry/utils';
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 import { SDK_VERSION } from './version';
 
 /**
- * An object that contains a hub and maintains a scope stack.
+ * An object that contains globally accessible properties and maintains a scope stack.
  * @hidden
  */
 export interface Carrier {
@@ -29,6 +29,10 @@ interface SentryCarrier {
     [key: string]: Function;
   };
   stack?: AsyncContextStack;
+
+  globalScope?: Scope;
+  defaultIsolationScope?: Scope;
+  defaultCurrentScope?: Scope;
 }
 
 /**

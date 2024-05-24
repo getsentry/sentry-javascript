@@ -76,7 +76,7 @@ export function prepareEvent(
   const clientEventProcessors = client ? client.getEventProcessors() : [];
 
   // This should be the last thing called, since we want that
-  // {@link Hub.addEventProcessor} gets the finished prepared event.
+  // {@link Scope.addEventProcessor} gets the finished prepared event.
   // Merge scope data together
   const data = getGlobalScope().getScopeData();
 

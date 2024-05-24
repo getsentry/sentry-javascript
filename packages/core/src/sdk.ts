@@ -47,7 +47,7 @@ export function setCurrentClient(client: Client): void {
 }
 
 /**
- * Unfortunately, we still have to manually bind the client to the "hub" property set on the global
+ * Unfortunately, we still have to manually bind the client to the "stack" property set on the global
  * Sentry carrier object. This is because certain scripts (e.g. our loader script) obtain
  * the client via `window.__SENTRY__[version].stack.getClient()`.
  *
