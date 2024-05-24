@@ -4,6 +4,7 @@ import {
   SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE,
   SEMANTIC_ATTRIBUTE_CACHE_KEY,
   SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   defineIntegration,
   spanToJSON,
 } from '@sentry/core';
@@ -48,6 +49,8 @@ const _redisIntegration = ((options?: RedisOptions) => {
         new IORedisInstrumentation({
           responseHook: (span, redisCommand, cmdArgs, response) => {
             const key = cmdArgs[0];
+
+            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
             if (!options?.cachePrefixes || !shouldConsiderForCache(redisCommand, key, options.cachePrefixes)) {
               // not relevant for cache
