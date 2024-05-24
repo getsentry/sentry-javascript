@@ -10,7 +10,7 @@ test('Sends two linked transactions (server & client) to Sentry', async ({ page 
   const httpServerTransactionPromise = waitForTransaction('create-remix-app-v2', transactionEvent => {
     return (
       transactionEvent.type === 'transaction' &&
-      transactionEvent.contexts?.trace?.op === 'http' &&
+      transactionEvent.contexts?.trace?.op === 'http.server' &&
       transactionEvent.tags?.['sentry_test'] === testTag
     );
   });

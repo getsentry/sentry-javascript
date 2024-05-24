@@ -103,7 +103,7 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'otel.kind': 'INTERNAL',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
           },
           origin: 'manual',
         },
@@ -111,7 +111,7 @@ describe('Remix API Loaders', () => {
           data: {
             'code.function': 'loader',
             'otel.kind': 'INTERNAL',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
           },
           origin: 'manual',
         },
@@ -135,7 +135,7 @@ describe('Remix API Loaders', () => {
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'ok',
           data: {
             'http.response.status_code': 302,
@@ -148,7 +148,7 @@ describe('Remix API Loaders', () => {
     assertSentryTransaction(transaction_2[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -243,7 +243,7 @@ describe('Remix API Loaders', () => {
         {
           data: {
             'code.function': 'loader',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
             'otel.kind': 'INTERNAL',
             'match.route.id': `routes/loader-defer-response${useV2 ? '.' : '/'}$id`,
           },
@@ -251,7 +251,7 @@ describe('Remix API Loaders', () => {
         {
           data: {
             'code.function': 'loader',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
             'otel.kind': 'INTERNAL',
             'match.route.id': 'root',
           },

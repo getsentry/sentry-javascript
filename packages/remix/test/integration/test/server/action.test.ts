@@ -21,7 +21,7 @@ describe('Remix API Actions', () => {
         {
           data: {
             'code.function': 'action',
-            'sentry.op': 'http',
+            'sentry.op': 'action.remix',
             'otel.kind': 'INTERNAL',
             'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
             'match.params.id': '123123',
@@ -30,7 +30,7 @@ describe('Remix API Actions', () => {
         {
           data: {
             'code.function': 'loader',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
             'otel.kind': 'INTERNAL',
             'match.route.id': `routes/action-json-response${useV2 ? '.' : '/'}$id`,
             'match.params.id': '123123',
@@ -39,7 +39,7 @@ describe('Remix API Actions', () => {
         {
           data: {
             'code.function': 'loader',
-            'sentry.op': 'http',
+            'sentry.op': 'loader.remix',
             'otel.kind': 'INTERNAL',
             'match.route.id': 'root',
             'match.params.id': '123123',
@@ -168,7 +168,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction_1[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'ok',
           data: {
             'http.response.status_code': 302,
@@ -181,7 +181,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction_2[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -228,7 +228,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -275,7 +275,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -322,7 +322,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -369,7 +369,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -416,7 +416,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
@@ -463,7 +463,7 @@ describe('Remix API Actions', () => {
     assertSentryTransaction(transaction[2], {
       contexts: {
         trace: {
-          op: 'http',
+          op: 'http.server',
           status: 'internal_error',
           data: {
             'http.response.status_code': 500,
