@@ -1,6 +1,6 @@
 import { cleanupChildProcesses, createRunner } from '../../../utils/runner';
 
-describe('redis auto instrumentation', () => {
+describe('redis cache auto instrumentation', () => {
   afterAll(() => {
     cleanupChildProcesses();
   });

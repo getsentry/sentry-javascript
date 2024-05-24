@@ -163,11 +163,10 @@ export const instrumentHttp = Object.assign(
 );
 
 const _httpIntegration = ((options: HttpOptions = {}) => {
-  _httpOptions = options;
-
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      _httpOptions = options;
       instrumentHttp();
     },
   };

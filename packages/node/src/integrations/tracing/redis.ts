@@ -50,6 +50,8 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
     responseHook: (span, redisCommand, cmdArgs, response) => {
       const key = cmdArgs[0];
 
+      console.log('AHA', JSON.stringify(_redisOptions));
+
       span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
 
       if (!_redisOptions?.cachePrefixes || !shouldConsiderForCache(redisCommand, key, _redisOptions.cachePrefixes)) {
@@ -90,11 +92,10 @@ export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
 });
 
 const _redisIntegration = ((options: RedisOptions = {}) => {
-  _redisOptions = options;
-
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
+      _redisOptions = options;
       instrumentRedis();
 
       // todo: implement them gradually
