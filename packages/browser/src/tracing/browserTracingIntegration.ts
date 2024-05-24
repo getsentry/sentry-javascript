@@ -22,7 +22,6 @@ import {
   spanIsSampled,
   spanToJSON,
   startIdleSpan,
-  startNewTrace,
 } from '@sentry/core';
 import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from '@sentry/types';
 import type { Span } from '@sentry/types';
@@ -32,7 +31,6 @@ import {
   getDomElement,
   logger,
   propagationContextFromHeaders,
-  uuid4,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
