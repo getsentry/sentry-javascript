@@ -33,8 +33,8 @@ export {
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
   validateOpenTelemetrySetup,
-} from './sdk/init';
-export { initOpenTelemetry } from './sdk/initOtel';
+} from './sdk';
+export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';

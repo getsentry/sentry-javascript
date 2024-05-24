@@ -9,9 +9,9 @@ import {
   getIsolationScope,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 interface MinimalNestJsExecutionContext {
   getType: () => string;
@@ -37,15 +37,20 @@ interface NestJsErrorFilter {
 interface MinimalNestJsApp {
   useGlobalFilters: (arg0: NestJsErrorFilter) => void;
   useGlobalInterceptors: (interceptor: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     intercept: (context: MinimalNestJsExecutionContext, next: { handle: () => any }) => any;
   }) => void;
 }
 
+const INTEGRATION_NAME = 'Nest';
+
+export const instrumentNest = generateInstrumentOnce(INTEGRATION_NAME, () => new NestInstrumentation());
+
 const _nestIntegration = (() => {
   return {
-    name: 'Nest',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new NestInstrumentation({}));
+      instrumentNest();
     },
   };
 }) satisfies IntegrationFn;

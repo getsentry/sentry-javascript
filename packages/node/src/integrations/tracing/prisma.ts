@@ -1,22 +1,25 @@
 // When importing CJS modules into an ESM module, we cannot import the named exports directly.
 import * as prismaInstrumentation from '@prisma/instrumentation';
 import { SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, defineIntegration, spanToJSON } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
+
+const INTEGRATION_NAME = 'Prisma';
+
+export const instrumentPrisma = generateInstrumentOnce(INTEGRATION_NAME, () => {
+  const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
+    // @ts-expect-error We need to do the following for interop reasons
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
+
+  return new EsmInteropPrismaInstrumentation({});
+});
 
 const _prismaIntegration = (() => {
   return {
-    name: 'Prisma',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
-        // @ts-expect-error We need to do the following for interop reasons
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
-
-      addOpenTelemetryInstrumentation(
-        // does not have a hook to adjust spans & add origin
-        new EsmInteropPrismaInstrumentation({}),
-      );
+      instrumentPrisma();
     },
 
     setup(client) {

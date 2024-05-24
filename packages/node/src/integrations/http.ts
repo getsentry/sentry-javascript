@@ -22,6 +22,8 @@ import type { HTTPModuleRequestIncomingMessage } from '../transports/http-module
 import { addOriginToSpan } from '../utils/addOriginToSpan';
 import { getRequestUrl } from '../utils/getRequestUrl';
 
+const INTEGRATION_NAME = 'Http';
+
 interface HttpOptions {
   /**
    * Whether breadcrumbs should be recorded for requests.
@@ -45,106 +47,128 @@ interface HttpOptions {
   _instrumentation?: typeof HttpInstrumentation;
 }
 
+let _httpOptions: HttpOptions = {};
+let _httpInstrumentation: HttpInstrumentation | undefined;
+
+/**
+ * Instrument the HTTP module.
+ * This can only be instrumented once! If this called again later, we just update the options.
+ */
+export const instrumentHttp = Object.assign(
+  function (): void {
+    if (_httpInstrumentation) {
+      return;
+    }
+
+    const _InstrumentationClass = _httpOptions._instrumentation || HttpInstrumentation;
+
+    _httpInstrumentation = new _InstrumentationClass({
+      ignoreOutgoingRequestHook: request => {
+        const url = getRequestUrl(request);
+
+        if (!url) {
+          return false;
+        }
+
+        if (isSentryRequestUrl(url, getClient())) {
+          return true;
+        }
+
+        const _ignoreOutgoingRequests = _httpOptions.ignoreOutgoingRequests;
+        if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
+          return true;
+        }
+
+        return false;
+      },
+
+      ignoreIncomingRequestHook: request => {
+        const url = getRequestUrl(request);
+
+        const method = request.method?.toUpperCase();
+        // We do not capture OPTIONS/HEAD requests as transactions
+        if (method === 'OPTIONS' || method === 'HEAD') {
+          return true;
+        }
+
+        const _ignoreIncomingRequests = _httpOptions.ignoreIncomingRequests;
+        if (_ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
+          return true;
+        }
+
+        return false;
+      },
+
+      requireParentforOutgoingSpans: false,
+      requireParentforIncomingSpans: false,
+      requestHook: (span, req) => {
+        addOriginToSpan(span, 'auto.http.otel.http');
+
+        // both, incoming requests and "client" requests made within the app trigger the requestHook
+        // we only want to isolate and further annotate incoming requests (IncomingMessage)
+        if (_isClientRequest(req)) {
+          return;
+        }
+
+        const scopes = getCapturedScopesOnSpan(span);
+
+        const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
+        const scope = scopes.scope || getCurrentScope();
+
+        // Update the isolation scope, isolate this request
+        isolationScope.setSDKProcessingMetadata({ request: req });
+
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          isolationScope.setRequestSession({ status: 'ok' });
+        }
+        setIsolationScope(isolationScope);
+        setCapturedScopesOnSpan(span, scope, isolationScope);
+
+        // attempt to update the scope's `transactionName` based on the request URL
+        // Ideally, framework instrumentations coming after the HttpInstrumentation
+        // update the transactionName once we get a parameterized route.
+        const httpMethod = (req.method || 'GET').toUpperCase();
+        const httpTarget = stripUrlQueryAndFragment(req.url || '/');
+
+        const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
+
+        isolationScope.setTransactionName(bestEffortTransactionName);
+      },
+      responseHook: () => {
+        const client = getClient<NodeClient>();
+        if (client && client.getOptions().autoSessionTracking) {
+          setImmediate(() => {
+            client['_captureRequestSession']();
+          });
+        }
+      },
+      applyCustomAttributesOnSpan: (
+        _span: Span,
+        request: ClientRequest | HTTPModuleRequestIncomingMessage,
+        response: HTTPModuleRequestIncomingMessage | ServerResponse,
+      ) => {
+        const _breadcrumbs = typeof _httpOptions.breadcrumbs === 'undefined' ? true : _httpOptions.breadcrumbs;
+        if (_breadcrumbs) {
+          _addRequestBreadcrumb(request, response);
+        }
+      },
+    });
+
+    addOpenTelemetryInstrumentation(_httpInstrumentation);
+  },
+  {
+    id: INTEGRATION_NAME,
+  },
+);
+
 const _httpIntegration = ((options: HttpOptions = {}) => {
-  const _breadcrumbs = typeof options.breadcrumbs === 'undefined' ? true : options.breadcrumbs;
-  const _ignoreOutgoingRequests = options.ignoreOutgoingRequests;
-  const _ignoreIncomingRequests = options.ignoreIncomingRequests;
-  const _InstrumentationClass = options._instrumentation || HttpInstrumentation;
+  _httpOptions = options;
 
   return {
-    name: 'Http',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(
-        new _InstrumentationClass({
-          ignoreOutgoingRequestHook: request => {
-            const url = getRequestUrl(request);
-
-            if (!url) {
-              return false;
-            }
-
-            if (isSentryRequestUrl(url, getClient())) {
-              return true;
-            }
-
-            if (_ignoreOutgoingRequests && _ignoreOutgoingRequests(url)) {
-              return true;
-            }
-
-            return false;
-          },
-
-          ignoreIncomingRequestHook: request => {
-            const url = getRequestUrl(request);
-
-            const method = request.method?.toUpperCase();
-            // We do not capture OPTIONS/HEAD requests as transactions
-            if (method === 'OPTIONS' || method === 'HEAD') {
-              return true;
-            }
-
-            if (_ignoreIncomingRequests && _ignoreIncomingRequests(url)) {
-              return true;
-            }
-
-            return false;
-          },
-
-          requireParentforOutgoingSpans: false,
-          requireParentforIncomingSpans: false,
-          requestHook: (span, req) => {
-            addOriginToSpan(span, 'auto.http.otel.http');
-
-            // both, incoming requests and "client" requests made within the app trigger the requestHook
-            // we only want to isolate and further annotate incoming requests (IncomingMessage)
-            if (_isClientRequest(req)) {
-              return;
-            }
-
-            const scopes = getCapturedScopesOnSpan(span);
-
-            const isolationScope = (scopes.isolationScope || getIsolationScope()).clone();
-            const scope = scopes.scope || getCurrentScope();
-
-            // Update the isolation scope, isolate this request
-            isolationScope.setSDKProcessingMetadata({ request: req });
-
-            const client = getClient<NodeClient>();
-            if (client && client.getOptions().autoSessionTracking) {
-              isolationScope.setRequestSession({ status: 'ok' });
-            }
-            setIsolationScope(isolationScope);
-            setCapturedScopesOnSpan(span, scope, isolationScope);
-
-            // attempt to update the scope's `transactionName` based on the request URL
-            // Ideally, framework instrumentations coming after the HttpInstrumentation
-            // update the transactionName once we get a parameterized route.
-            const httpMethod = (req.method || 'GET').toUpperCase();
-            const httpTarget = stripUrlQueryAndFragment(req.url || '/');
-
-            const bestEffortTransactionName = `${httpMethod} ${httpTarget}`;
-
-            isolationScope.setTransactionName(bestEffortTransactionName);
-          },
-          responseHook: () => {
-            const client = getClient<NodeClient>();
-            if (client && client.getOptions().autoSessionTracking) {
-              setImmediate(() => {
-                client['_captureRequestSession']();
-              });
-            }
-          },
-          applyCustomAttributesOnSpan: (
-            _span: Span,
-            request: ClientRequest | HTTPModuleRequestIncomingMessage,
-            response: HTTPModuleRequestIncomingMessage | ServerResponse,
-          ) => {
-            if (_breadcrumbs) {
-              _addRequestBreadcrumb(request, response);
-            }
-          },
-        }),
-      );
+      instrumentHttp();
     },
   };
 }) satisfies IntegrationFn;
