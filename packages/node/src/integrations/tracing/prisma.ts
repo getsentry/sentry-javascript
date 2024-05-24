@@ -8,9 +8,14 @@ const _prismaIntegration = (() => {
   return {
     name: 'Prisma',
     setupOnce() {
+      const EsmInteropPrismaInstrumentation: typeof prismaInstrumentation.PrismaInstrumentation =
+        // @ts-expect-error We need to do the following for interop reasons
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        prismaInstrumentation.default?.PrismaInstrumentation || prismaInstrumentation.PrismaInstrumentation;
+
       addOpenTelemetryInstrumentation(
         // does not have a hook to adjust spans & add origin
-        new prismaInstrumentation.PrismaInstrumentation({}),
+        new EsmInteropPrismaInstrumentation({}),
       );
     },
 
