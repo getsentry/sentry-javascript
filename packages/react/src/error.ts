@@ -72,3 +72,35 @@ export function captureReactException(
     },
   });
 }
+
+/**
+ * Creates an error handler that can be used with the `onCaughtError`, `onUncaughtError`,
+ * and `onRecoverableError` options in `createRoot` and `hydrateRoot` React DOM methods.
+ *
+ * @param callback An optional callback that will be called after the error is captured.
+ * Use this to add custom handling for errors.
+ *
+ * @example
+ *
+ * ```JavaScript
+ * const root = createRoot(container, {
+ *  onCaughtError: Sentry.reactErrorHandler(),
+ *  onUncaughtError: Sentry.reactErrorHandler((error, errorInfo) => {
+ *    console.warn('Caught error', error, errorInfo.componentStack);
+ *  });
+ * });
+ * ```
+ */
+export function reactErrorHandler(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  callback?: (error: any, errorInfo: ErrorInfo, eventId: string) => void,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): (error: any, errorInfo: ErrorInfo) => void {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (error: any, errorInfo: ErrorInfo) => {
+    const eventId = captureReactException(error, errorInfo);
+    if (callback) {
+      callback(error, errorInfo, eventId);
+    }
+  };
+}
