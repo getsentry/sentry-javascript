@@ -181,6 +181,31 @@ export function init(options: NodeOptions): void {
     ),
   );
 
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      ((event, hint) => {
+        if (event.type !== undefined) {
+          return event;
+        }
+
+        const originalException = hint.originalException;
+
+        const isReactControlFlowError =
+          typeof originalException === 'object' &&
+          originalException !== null &&
+          '$$typeof' in originalException &&
+          originalException.$$typeof === Symbol.for('react.postpone');
+
+        if (isReactControlFlowError) {
+          return null;
+        }
+
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'DropReactControlFlowErrors' },
+    ),
+  );
+
   if (process.env.NODE_ENV === 'development') {
     getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
   }
