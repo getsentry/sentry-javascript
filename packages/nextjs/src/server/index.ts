@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
+import { applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -143,7 +143,7 @@ export function init(options: NodeOptions): void {
     }
   });
 
-  addEventProcessor(
+  getGlobalScope().addEventProcessor(
     Object.assign(
       (event => {
         if (event.type === 'transaction') {
@@ -207,7 +207,7 @@ export function init(options: NodeOptions): void {
   );
 
   if (process.env.NODE_ENV === 'development') {
-    addEventProcessor(devErrorSymbolicationEventProcessor);
+    getGlobalScope().addEventProcessor(devErrorSymbolicationEventProcessor);
   }
 
   DEBUG_BUILD && logger.log('SDK successfully initialized');
