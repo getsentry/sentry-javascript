@@ -25,18 +25,18 @@ const Index = () => {
   );
 };
 
-function Throw({error}) {
+function Throw({ error }) {
   throw new Error(`${error} error`);
 }
 
 class SampleErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {error: null};
+    this.state = { error: null };
   }
 
   componentDidCatch(error, errorInfo) {
-    this.setState({error});
+    this.setState({ error });
     // no-op
   }
 

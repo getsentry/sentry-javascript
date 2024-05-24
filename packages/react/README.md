@@ -42,7 +42,8 @@ root.render(<App />);
 
 ### React 19
 
-Starting with React 19, the `createRoot` and `hydrateRoot` methods expose error hooks that can be used to capture errors automatically. Use the `Sentry.reactErrorHandler` function to capture errors in the error hooks you are interested in.
+Starting with React 19, the `createRoot` and `hydrateRoot` methods expose error hooks that can be used to capture errors
+automatically. Use the `Sentry.reactErrorHandler` function to capture errors in the error hooks you are interested in.
 
 ```js
 const container = document.getElementById(“app”);
@@ -59,7 +60,8 @@ const root = createRoot(container, {
 root.render(<App />);
 ```
 
-If you want more finely grained control over error handling, we recommend only adding the `onUncaughtError` and `onRecoverableError` hooks and using an `ErrorBoundary` component instead of the `onCaughtError` hook.
+If you want more finely grained control over error handling, we recommend only adding the `onUncaughtError` and
+`onRecoverableError` hooks and using an `ErrorBoundary` component instead of the `onCaughtError` hook.
 
 ### ErrorBoundary
 
