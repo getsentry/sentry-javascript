@@ -1,6 +1,6 @@
 {
   "name": "@sentry/solidjs",
-  "version": "8.3.0",
+  "version": "8.4.0",
   "description": "Official Sentry SDK for SolidJS",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/solidjs",
@@ -42,9 +42,9 @@
     "access": "public"
   },
   "dependencies": {
-    "@sentry/browser": "8.3.0",
-    "@sentry/core": "8.3.0",
-    "@sentry/types": "8.3.0"
+    "@sentry/browser": "8.4.0",
+    "@sentry/core": "8.4.0",
+    "@sentry/types": "8.4.0"
   },
   "peerDependencies": {
     "solid-js": "1.8.x"
