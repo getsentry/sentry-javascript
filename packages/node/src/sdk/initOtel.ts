@@ -7,7 +7,7 @@ import {
   SEMRESATTRS_SERVICE_VERSION,
 } from '@opentelemetry/semantic-conventions';
 import { SDK_VERSION } from '@sentry/core';
-import { SentryPropagator, SentrySampler, SentrySpanProcessor, setupEventContextTrace } from '@sentry/opentelemetry';
+import { SentryPropagator, SentrySampler, SentrySpanProcessor } from '@sentry/opentelemetry';
 import { logger } from '@sentry/utils';
 
 import { SentryContextManager } from '../otel/contextManager';
@@ -27,8 +27,6 @@ export function initOpenTelemetry(client: NodeClient): void {
 
     diag.setLogger(otelLogger, DiagLogLevel.DEBUG);
   }
-
-  setupEventContextTrace(client);
 
   const provider = setupOtel(client);
   client.traceProvider = provider;

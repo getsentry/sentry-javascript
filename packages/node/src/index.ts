@@ -26,11 +26,13 @@ export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
+export { SentryContextManager } from './otel/contextManager';
 export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
   initWithoutDefaultIntegrations,
+  validateOpenTelemetrySetup,
 } from './sdk/init';
 export { initOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
