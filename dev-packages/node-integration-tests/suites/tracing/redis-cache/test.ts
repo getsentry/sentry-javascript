@@ -12,6 +12,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'set test-key [1 other arguments]',
           op: 'db',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -23,6 +24,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'get test-key',
           op: 'db',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'sentry.op': 'db',
             'db.system': 'redis',
@@ -48,6 +50,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'set ioredis-cache:test-key [1 other arguments]',
           op: 'cache.put',
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'db.statement': 'set ioredis-cache:test-key [1 other arguments]',
             'cache.key': 'ioredis-cache:test-key',
@@ -60,6 +63,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'get ioredis-cache:test-key',
           op: 'cache.get_item', // todo: will be changed to cache.get
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'db.statement': 'get ioredis-cache:test-key',
             'cache.hit': true,
@@ -73,6 +77,7 @@ describe('redis auto instrumentation', () => {
         expect.objectContaining({
           description: 'get ioredis-cache:unavailable-data',
           op: 'cache.get_item', // todo: will be changed to cache.get
+          origin: 'auto.db.otel.redis',
           data: expect.objectContaining({
             'db.statement': 'get ioredis-cache:unavailable-data',
             'cache.hit': false,
