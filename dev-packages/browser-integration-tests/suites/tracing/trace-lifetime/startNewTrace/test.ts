@@ -4,6 +4,7 @@ import type { EventAndTraceHeader } from '../../../../utils/helpers';
 import {
   eventAndTraceHeaderRequestParser,
   getFirstSentryEnvelopeRequest,
+  getMultipleSentryEnvelopeRequests,
   shouldSkipTracingTest,
 } from '../../../../utils/helpers';
 
@@ -49,18 +50,22 @@ sentryTest(
       trace_id: pageloadTraceContext?.trace_id,
     });
 
-    const newTraceTransactionPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
+    const transactionPromises = getMultipleSentryEnvelopeRequests<EventAndTraceHeader>(
       page,
-      undefined,
+      2,
+      { envelopeType: 'transaction' },
       eventAndTraceHeaderRequestParser,
     );
 
     await page.locator('#newTrace').click();
+    await page.locator('#oldTrace').click();
 
-    const [newTraceTransactionEvent, newTraceTransactionTraceHeaders] = await newTraceTransactionPromise;
+    const [txnEvent1, txnEvent2] = await transactionPromises;
 
-    expect(newTraceTransactionEvent.type).toEqual('transaction');
-    expect(newTraceTransactionEvent.transaction).toEqual('new-trace');
+    const [newTraceTransactionEvent, newTraceTransactionTraceHeaders] =
+      txnEvent1[0].transaction === 'new-trace' ? txnEvent1 : txnEvent2;
+    const [oldTraceTransactionEvent, oldTraceTransactionTraceHeaders] =
+      txnEvent1[0].transaction === 'old-trace' ? txnEvent1 : txnEvent2;
 
     const newTraceTransactionTraceContext = newTraceTransactionEvent.contexts?.trace;
     expect(newTraceTransactionTraceContext).toMatchObject({
@@ -77,18 +82,6 @@ sentryTest(
       trace_id: newTraceTransactionTraceContext?.trace_id,
       transaction: 'new-trace',
     });
-
-    const oldTraceTransactionPromise = getFirstSentryEnvelopeRequest<EventAndTraceHeader>(
-      page,
-      undefined,
-      eventAndTraceHeaderRequestParser,
-    );
-    await page.locator('#oldTrace').click();
-
-    const [oldTraceTransactionEvent, oldTraceTransactionTraceHeaders] = await oldTraceTransactionPromise;
-
-    expect(oldTraceTransactionEvent.type).toEqual('transaction');
-    expect(oldTraceTransactionEvent.transaction).toEqual('old-trace');
 
     const oldTraceTransactionEventTraceContext = oldTraceTransactionEvent.contexts?.trace;
     expect(oldTraceTransactionEventTraceContext).toMatchObject({
