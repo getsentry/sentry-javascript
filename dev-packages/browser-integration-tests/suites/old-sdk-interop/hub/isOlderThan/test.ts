@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../../utils/fixtures';
+import { sentryTest } from '../../../../utils/fixtures';
 
 sentryTest(
   "doesn't crash if older SDKs access `hub.isOlderThan` on the global object",

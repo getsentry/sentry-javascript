@@ -8,5 +8,3 @@ const res = sentryCarrier.hub && sentryCarrier.hub.isOlderThan(7);
 
 // Write back result into the document
 document.getElementById('olderThan').innerText = res;
-
-console.log(sentryCarrier);
