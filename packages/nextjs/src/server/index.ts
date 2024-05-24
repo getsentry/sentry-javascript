@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -178,6 +178,31 @@ export function init(options: NodeOptions): void {
         }
       }) satisfies EventProcessor,
       { id: 'NextLowQualityTransactionsFilter' },
+    ),
+  );
+
+  getGlobalScope().addEventProcessor(
+    Object.assign(
+      ((event, hint) => {
+        if (event.type !== undefined) {
+          return event;
+        }
+
+        const originalException = hint.originalException;
+
+        const isReactControlFlowError =
+          typeof originalException === 'object' &&
+          originalException !== null &&
+          '$$typeof' in originalException &&
+          originalException.$$typeof === Symbol.for('react.postpone');
+
+        if (isReactControlFlowError) {
+          return null;
+        }
+
+        return event;
+      }) satisfies EventProcessor,
+      { id: 'DropReactControlFlowErrors' },
     ),
   );
 
