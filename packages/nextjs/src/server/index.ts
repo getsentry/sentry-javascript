@@ -1,4 +1,4 @@
-import { addEventProcessor, applySdkMetadata, getClient } from '@sentry/core';
+import { addEventProcessor, applySdkMetadata, getClient, getGlobalScope } from '@sentry/core';
 import { getDefaultIntegrations, init as nodeInit } from '@sentry/node';
 import type { NodeOptions } from '@sentry/node';
 import { GLOBAL_OBJ, logger } from '@sentry/utils';
@@ -181,7 +181,7 @@ export function init(options: NodeOptions): void {
     ),
   );
 
-  addEventProcessor(
+  getGlobalScope().addEventProcessor(
     Object.assign(
       ((event, hint) => {
         if (event.type !== undefined) {
