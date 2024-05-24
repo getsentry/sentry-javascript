@@ -1,13 +1,6 @@
 const Sentry = require('@sentry/node');
 const express = require('express');
 
-Sentry.init({
-  environment: 'qa', // dynamic sampling bias to keep transactions
-  dsn: process.env.E2E_TEST_DSN,
-  tunnel: `http://localhost:3031/`, // proxy server
-  tracesSampleRate: 1,
-});
-
 const app = express();
 const port = 3030;
 
@@ -41,6 +34,19 @@ app.use(function onError(err, req, res, next) {
   res.end(res.sentry + '\n');
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+async function run() {
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  Sentry.init({
+    environment: 'qa', // dynamic sampling bias to keep transactions
+    dsn: process.env.E2E_TEST_DSN,
+    tunnel: `http://localhost:3031/`, // proxy server
+    tracesSampleRate: 1,
+  });
+
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
+  });
+}
+
+run();
