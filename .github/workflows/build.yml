@@ -436,8 +436,6 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
-        env:
-          NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
