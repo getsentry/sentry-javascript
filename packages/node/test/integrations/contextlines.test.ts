@@ -181,7 +181,7 @@ describe('ContextLines', () => {
       const frames = parseStackFrames(defaultStackParser, new Error('test'));
 
       await addContext(frames);
-      expect(readStreamSpy).not.toHaveBeenCalled();
+      expect(readFileSpy).not.toHaveBeenCalled();
     });
   });
 });
