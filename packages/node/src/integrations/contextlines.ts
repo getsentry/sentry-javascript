@@ -6,22 +6,20 @@ import { logger, LRUMap, snipLine } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
 
+const LRU_FILE_CONTENTS_CACHE = new LRUMap<string, Record<number, string>>(10);
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
 
-// Exported for tests
-export const LRUFileContentCache = new LRUMap<string, Record<number, string>>(10);
-
 /**
- * Exists for testing purposes.
+ * Exported for testing purposes.
  */
 export function resetFileContentCache(): void {
-  LRUFileContentCache.clear();
+  LRU_FILE_CONTENTS_CACHE.clear();
 }
 
 /**
  * Creates contiguous ranges of lines to read from a file. In the case where context lines overlap,
- * the ranges are merged to create a single range that includes both sets of lines.
+ * the ranges are merged to create a single range.
  * @param lines
  * @param linecontext
  * @returns
@@ -41,11 +39,10 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
       break;
     }
 
-    // We need to create contiguous ranges in cases where context lines overlap so that
-    // the final set of ranges is an increasing sequence of lines without overlaps.
+    // If the next line falls into the current range, extend the current range to lineno + linecontext.
     const next = lines[i + 1];
     if (next <= current[1]) {
-      current[1] = next + linecontext + 1;
+      current[1] = next + linecontext;
     } else {
       out.push(current);
       current = makeContextRange(next, linecontext);
@@ -62,6 +59,8 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
  */
 function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: Record<number, string>): Promise<void> {
   return new Promise((resolve, _reject) => {
+    // It is important *not* to have any async code between createInterface and the 'line' event listener
+    // as it will cause the 'line' event to be emitted before the listener is attached.
     const fileStream = createInterface({
       input: createReadStream(path),
     });
@@ -76,13 +75,12 @@ function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: 
       lineNumber++;
       if (lineNumber < rangeStart) return;
 
-      // Mutates the cache value directly
+      // !Warning: Mutates the cache value
       output[lineNumber] = line;
-      // or if there are other ranges to process. If so, update the range
-      // and continue processing the file, else break from the loop.
+
       if (lineNumber >= rangeEnd) {
         if (currentRangeIndex === ranges.length - 1) {
-          // We need to close the file stream and remove listeners, else it wont close.
+          // We need to close the file stream and remove listeners, else the reader will continue to run our listener;
           fileStream.close();
           fileStream.removeAllListeners();
           return;
@@ -138,7 +136,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 
   if (contextLines > 0 && event.exception?.values) {
     for (const exception of event.exception.values) {
-      if (!exception.stacktrace?.frames) {
+      if (!exception.stacktrace?.frames?.length) {
         continue;
       }
 
@@ -147,9 +145,10 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
       for (let i = exception.stacktrace.frames.length - 1; i >= 0; i--) {
         const frame = exception.stacktrace.frames[i];
 
-        // Collecting context lines for minified code is useless.
-        // @TODO omit builtin modules
-        if (frame.filename?.endsWith('.min.js')) {
+        // Cases where collecting context lines is either not useful or possible
+        // - .min.js files are and not useful since they dont point to the original source
+        // - node: prefixed modules are part of the runtime and cannot be resolved to a file
+        if (frame.filename?.endsWith('.min.js') || frame.filename?.startsWith('node:')) {
           continue;
         }
 
@@ -172,16 +171,16 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
     filesToLines[file].sort((a, b) => a - b);
     const ranges = makeLineReaderRanges(filesToLines[file], contextLines);
 
-    let cache = LRUFileContentCache.get(file);
+    let cache = LRU_FILE_CONTENTS_CACHE.get(file);
     if (!cache) {
       cache = {};
-      LRUFileContentCache.set(file, cache);
+      LRU_FILE_CONTENTS_CACHE.set(file, cache);
     }
     readlinePromises.push(getContextLinesFromFile(file, ranges, cache));
   }
 
+  // The promise rejections are caught in order to prevent them from short circuiting Promise.all
   await Promise.all(readlinePromises).catch(() => {
-    // We don't want to error if we can't read the file.
     DEBUG_BUILD && logger.log('Failed to read one or more source files and resolve context lines');
   });
 
@@ -190,7 +189,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
   if (contextLines > 0 && event.exception?.values) {
     for (const exception of event.exception.values) {
       if (exception.stacktrace && exception.stacktrace.frames && exception.stacktrace.frames.length > 0) {
-        addSourceContextToFrames(exception.stacktrace.frames, contextLines, LRUFileContentCache);
+        addSourceContextToFrames(exception.stacktrace.frames, contextLines, LRU_FILE_CONTENTS_CACHE);
       }
     }
   }
@@ -211,6 +210,10 @@ function addSourceContextToFrames(frames: StackFrame[], contextLines: number, ca
   }
 }
 
+/**
+ * Clears the context lines from a frame, used to reset a frame to its original state
+ * if we fail to resolve all context lines for it.
+ */
 function clearLineContext(frame: StackFrame): void {
   delete frame.pre_context;
   delete frame.context_line;
@@ -229,39 +232,40 @@ export function addContextToFrame(
   // When there is no line number in the frame, attaching context is nonsensical and will even break grouping.
   // We already check for lineno before calling this, but since StackFrame lineno ism optional, we check it again.
   if (frame.lineno === undefined || contents === undefined) {
+    DEBUG_BUILD && logger.error('Cannot resolve context for frame with no lineno or file contents');
     return;
   }
 
   frame.pre_context = [];
   for (let i = makeRangeStart(lineno, contextLines); i < lineno; i++) {
-    // Make sure to never send partial context lines
+    // We always expect the start context as line numbers cannot be negative. If we dont find a line, then
+    // something went wrong somewhere. Clear the context and return without adding any linecontext.
     if (contents[i] === undefined) {
       clearLineContext(frame);
       DEBUG_BUILD && logger.error(`Could not find line ${i} in file ${frame.filename}`);
-      console.log('Pre, could not find line', i, 'in file', frame.filename);
       return;
     }
 
     frame.pre_context.push(snipLine(contents[i], 0));
   }
 
+  // We should always have the context line. If we dont, something went wrong, so we clear the context and return
+  // without adding any linecontext.
   if (contents[lineno] === undefined) {
     clearLineContext(frame);
     DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
-    console.log('Lineno, could not find line', lineno, 'in file', frame.filename);
     return;
   }
   frame.context_line = snipLine(contents[lineno], frame.colno || 0);
 
+  const end = makeRangeEnd(lineno, contextLines);
   frame.post_context = [];
-  for (let i = lineno + 1; i < makeRangeEnd(lineno, contextLines); i++) {
+  for (let i = lineno + 1; i <= end; i++) {
+    // Since we dont track when the file ends, we cant clear the context if we dont find a line as it could
+    // just be that we reached the end of the file.
     if (contents[i] === undefined) {
-      clearLineContext(frame);
-      DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
-      console.log('Post, could not find line', i, 'in file', frame.filename)
-      return;
+      break;
     }
-
     frame.post_context.push(snipLine(contents[i], 0));
   }
 }
@@ -273,7 +277,7 @@ function makeRangeStart(line: number, linecontext: number): number {
   return Math.max(1, line - linecontext);
 }
 function makeRangeEnd(line: number, linecontext: number): number {
-  return line + linecontext + 1;
+  return line + linecontext;
 }
 function makeContextRange(line: number, linecontext: number): [start: number, end: number] {
   return [makeRangeStart(line, linecontext), makeRangeEnd(line, linecontext)];

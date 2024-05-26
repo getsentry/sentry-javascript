@@ -39,7 +39,7 @@ describe('ContextLines', () => {
 
       // Calls to `readFile` shouldn't increase if there isn't a new error to
       // parse whose stacktrace contains a file we haven't yet seen
-      expect(readStreamSpy).toHaveBeenCalledTimes(numCalls * 2);
+      expect(readStreamSpy).toHaveBeenCalledTimes(numCalls);
     });
 
     test('parseStack with ESM module names', async () => {
@@ -103,12 +103,15 @@ describe('ContextLines', () => {
 
       await addContext(overlappingContextWithFirstError);
 
-      const errorFrame = overlappingContextWithFirstError[overlappingContextWithFirstError.length - 1];
-      console.log(errorFrame)
+      const errorFrame = overlappingContextWithFirstError.find(f => f.filename?.endsWith('error.ts'))
+
+      if (!errorFrame) {
+        throw new Error('Could not find error frame');
+      }
 
       expect(errorFrame.context_line).toBe("  return new Error('mock error');");
-      expect(errorFrame.pre_context).toHaveLength(7)
-      expect(errorFrame.post_context).toHaveLength(7)
+      expect(errorFrame.pre_context).toHaveLength(2)
+      expect(errorFrame.post_context).toHaveLength(1)
     });
 
     test('parseStack with duplicate files', async () => {
