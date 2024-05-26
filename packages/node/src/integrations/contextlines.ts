@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs';
-import * as readline from 'node:readline';
+import { createInterface } from 'node:readline';
 import { defineIntegration } from '@sentry/core';
 import type { Event, IntegrationFn, StackFrame } from '@sentry/types';
 import { logger, LRUMap, snipLine } from '@sentry/utils';
@@ -8,7 +8,9 @@ import { DEBUG_BUILD } from '../debug-build';
 
 const DEFAULT_LINES_OF_CONTEXT = 7;
 const INTEGRATION_NAME = 'ContextLines';
-const LRUFileContentCache = new LRUMap<string, Record<number, string>>(10);
+
+// Exported for tests
+export const LRUFileContentCache = new LRUMap<string, Record<number, string>>(10);
 
 /**
  * Exists for testing purposes.
@@ -17,15 +19,21 @@ export function resetFileContentCache(): void {
   LRUFileContentCache.clear();
 }
 
+/**
+ * Creates contiguous ranges of lines to read from a file. In the case where context lines overlap,
+ * the ranges are merged to create a single range that includes both sets of lines.
+ * @param lines
+ * @param linecontext
+ * @returns
+ */
 function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRange[] {
   if (!lines.length) {
     return [];
   }
 
-  const out: ReadlineRange[] = [];
   let i = 0;
   let current = makeContextRange(lines[i], linecontext);
-
+  const out: ReadlineRange[] = [];
   // eslint-disable-next-line no-constant-condition
   while (true) {
     if (i === lines.length - 1) {
@@ -49,43 +57,50 @@ function makeLineReaderRanges(lines: number[], linecontext: number): ReadlineRan
   return out;
 }
 
-// Stack trace comes in, parse it and extract stack filename + lines
-// in case we receive lines from multiple files, the final output
-// should contain files sorted by stack order importance - top first
-// and should contain.
-async function getContextLinesFromFile(
-  path: string,
-  ranges: ReadlineRange[],
-  output: Record<number, string>,
-): Promise<void> {
-  const fileStream = readline.createInterface({
-    input: createReadStream(path),
-  });
+/**
+ * Extracts lines from a file and stores them in a cache.
+ */
+function getContextLinesFromFile(path: string, ranges: ReadlineRange[], output: Record<number, string>): Promise<void> {
+  return new Promise((resolve, _reject) => {
+    const fileStream = createInterface({
+      input: createReadStream(path),
+    });
 
-  // Line numbers are 1 indexed
-  let lineNumber = 1;
-  let currentRangeIndex = 0;
-  let rangeStart = ranges[currentRangeIndex][0];
-  let rangeEnd = ranges[currentRangeIndex][1];
+    // Init at zero and increment at the start of the loop because lines are 1 indexed.
+    let lineNumber = 0;
+    let currentRangeIndex = 0;
+    let rangeStart = ranges[currentRangeIndex][0];
+    let rangeEnd = ranges[currentRangeIndex][1];
 
-  for await (const line of fileStream) {
-    lineNumber++;
-    if (lineNumber < rangeStart) {
-      continue;
-    }
+    fileStream.on('line', line => {
+      lineNumber++;
+      if (lineNumber < rangeStart) return;
 
-    output[lineNumber] = line;
-    // or if there are other ranges to process. If so, update the range
-    // and continue processing the file, else break from the loop.
-    if (lineNumber >= rangeEnd) {
-      if (currentRangeIndex === ranges.length - 1) {
-        break;
+      // Mutates the cache value directly
+      output[lineNumber] = line;
+      // or if there are other ranges to process. If so, update the range
+      // and continue processing the file, else break from the loop.
+      if (lineNumber >= rangeEnd) {
+        if (currentRangeIndex === ranges.length - 1) {
+          // We need to close the file stream and remove listeners, else it wont close.
+          fileStream.close();
+          fileStream.removeAllListeners();
+          return;
+        }
+        currentRangeIndex++;
+        rangeStart = ranges[currentRangeIndex][0];
+        rangeEnd = ranges[currentRangeIndex][1];
       }
-      currentRangeIndex++;
-      rangeStart = ranges[currentRangeIndex][0];
-      rangeEnd = ranges[currentRangeIndex][1];
-    }
-  }
+    });
+
+    fileStream.on('close', resolve);
+    // We use this inside Promise.all, so we need to resolve the promise even if there is an error
+    // to prevent Promise.all from short circuiting the rest.
+    fileStream.on('error', e => {
+      DEBUG_BUILD && logger.error(`Failed to read file: ${path}. Error: ${e}`);
+      resolve();
+    });
+  });
 }
 
 interface ContextLinesOptions {
@@ -133,6 +148,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
         const frame = exception.stacktrace.frames[i];
 
         // Collecting context lines for minified code is useless.
+        // @TODO omit builtin modules
         if (frame.filename?.endsWith('.min.js')) {
           continue;
         }
@@ -174,7 +190,7 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
   if (contextLines > 0 && event.exception?.values) {
     for (const exception of event.exception.values) {
       if (exception.stacktrace && exception.stacktrace.frames && exception.stacktrace.frames.length > 0) {
-        addSourceContextToFrames(exception.stacktrace.frames, LRUFileContentCache);
+        addSourceContextToFrames(exception.stacktrace.frames, contextLines, LRUFileContentCache);
       }
     }
   }
@@ -183,16 +199,22 @@ async function addSourceContext(event: Event, contextLines: number): Promise<Eve
 }
 
 /** Adds context lines to frames */
-function addSourceContextToFrames(frames: StackFrame[], cache: LRUMap<string, Record<number, string>>): void {
+function addSourceContextToFrames(frames: StackFrame[], contextLines: number, cache: LRUMap<string, Record<number, string>>): void {
   for (const frame of frames) {
     // Only add context if we have a filename and it hasn't already been added
     if (frame.filename && frame.context_line === undefined && typeof frame.lineno === 'number') {
       const contents = cache.get(frame.filename);
       if (contents) {
-        addContextToFrame(frame.lineno, frame, contents);
+        addContextToFrame(frame.lineno, frame, contextLines, contents);
       }
     }
   }
+}
+
+function clearLineContext(frame: StackFrame): void {
+  delete frame.pre_context;
+  delete frame.context_line;
+  delete frame.post_context;
 }
 
 /**
@@ -201,6 +223,7 @@ function addSourceContextToFrames(frames: StackFrame[], cache: LRUMap<string, Re
 export function addContextToFrame(
   lineno: number,
   frame: StackFrame,
+  contextLines: number,
   contents: Record<number, string> | undefined,
 ): void {
   // When there is no line number in the frame, attaching context is nonsensical and will even break grouping.
@@ -210,19 +233,36 @@ export function addContextToFrame(
   }
 
   frame.pre_context = [];
-  for (let i = makeRangeStart(lineno, DEFAULT_LINES_OF_CONTEXT); i < lineno; i++) {
-    if (contents[i]) {
-      frame.pre_context.push(snipLine(contents[i], 0));
+  for (let i = makeRangeStart(lineno, contextLines); i < lineno; i++) {
+    // Make sure to never send partial context lines
+    if (contents[i] === undefined) {
+      clearLineContext(frame);
+      DEBUG_BUILD && logger.error(`Could not find line ${i} in file ${frame.filename}`);
+      console.log('Pre, could not find line', i, 'in file', frame.filename);
+      return;
     }
+
+    frame.pre_context.push(snipLine(contents[i], 0));
   }
 
-  frame.context_line = snipLine(contents[lineno] || '', frame.colno || 0);
+  if (contents[lineno] === undefined) {
+    clearLineContext(frame);
+    DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
+    console.log('Lineno, could not find line', lineno, 'in file', frame.filename);
+    return;
+  }
+  frame.context_line = snipLine(contents[lineno], frame.colno || 0);
 
   frame.post_context = [];
-  for (let i = lineno + 1; i < makeRangeEnd(lineno, DEFAULT_LINES_OF_CONTEXT); i++) {
-    if (contents[i]) {
-      frame.post_context.push(snipLine(contents[i], 0));
+  for (let i = lineno + 1; i < makeRangeEnd(lineno, contextLines); i++) {
+    if (contents[i] === undefined) {
+      clearLineContext(frame);
+      DEBUG_BUILD && logger.error(`Could not find line ${lineno} in file ${frame.filename}`);
+      console.log('Post, could not find line', i, 'in file', frame.filename)
+      return;
     }
+
+    frame.post_context.push(snipLine(contents[i], 0));
   }
 }
 
