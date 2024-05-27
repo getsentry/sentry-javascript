@@ -25,7 +25,19 @@ targets.forEach(jsVersion => {
     outputFileBase: () => `bundles/bundle.tracing${jsVersion === 'es5' ? '.es5' : ''}`,
   });
 
-  builds.push(...makeBundleConfigVariants(baseBundleConfig), ...makeBundleConfigVariants(tracingBaseBundleConfig));
+  const browserProfilingAddonBaseBundleConfig = makeBaseBundleConfig({
+    bundleType: 'addon',
+    entrypoints: ['src/profiling/integration.ts'],
+    jsVersion,
+    licenseTitle: '@sentry/browser',
+    outputFileBase: () => `bundles/browserprofiling${jsVersion === 'es5' ? '.es5' : ''}`,
+  });
+
+  builds.push(
+    ...makeBundleConfigVariants(baseBundleConfig),
+    ...makeBundleConfigVariants(tracingBaseBundleConfig),
+    ...makeBundleConfigVariants(browserProfilingAddonBaseBundleConfig),
+  );
 });
 
 if (targets.includes('es6')) {
