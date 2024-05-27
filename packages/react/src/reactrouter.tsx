@@ -244,7 +244,9 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   };
 
   WrappedRoute.displayName = `sentryRoute(${componentDisplayName})`;
-  hoistNonReactStatics(WrappedRoute, Route);
+  // Need to set type to any because of hoist-non-react-statics typing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hoistNonReactStatics(WrappedRoute, Route as any);
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params:
   // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/13dc4235c069e25fe7ee16e11f529d909f9f3ff8/types/react-router/index.d.ts#L154-L164
