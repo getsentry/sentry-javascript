@@ -49,6 +49,14 @@
       "require": {
         "default": "./build/cjs/init.js"
       }
+    },
+    "./preload": {
+      "import": {
+        "default": "./build/esm/preload.js"
+      },
+      "require": {
+        "default": "./build/cjs/preload.js"
+      }
     }
   },
   "typesVersions": {

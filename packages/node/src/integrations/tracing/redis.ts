@@ -8,8 +8,8 @@ import {
   defineIntegration,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn } from '@sentry/types';
+import { generateInstrumentOnce } from '../../otel/instrument';
 
 function keyHasPrefix(key: string, prefixes: string[]): boolean {
   return prefixes.some(prefix => key.startsWith(prefix));
@@ -41,56 +41,64 @@ interface RedisOptions {
   cachePrefixes?: string[];
 }
 
-const _redisIntegration = ((options?: RedisOptions) => {
+const INTEGRATION_NAME = 'Redis';
+
+let _redisOptions: RedisOptions = {};
+
+export const instrumentRedis = generateInstrumentOnce(INTEGRATION_NAME, () => {
+  return new IORedisInstrumentation({
+    responseHook: (span, redisCommand, cmdArgs, response) => {
+      const key = cmdArgs[0];
+
+      span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
+
+      if (!_redisOptions?.cachePrefixes || !shouldConsiderForCache(redisCommand, key, _redisOptions.cachePrefixes)) {
+        // not relevant for cache
+        return;
+      }
+
+      // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
+      // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
+      const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
+      const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
+      if (networkPeerPort && networkPeerAddress) {
+        span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
+      }
+
+      const cacheItemSize = calculateCacheItemSize(response);
+      if (cacheItemSize) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
+
+      if (typeof key === 'string') {
+        switch (redisCommand) {
+          case 'get':
+            span.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item', // todo: will be changed to cache.get
+              [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
+            });
+            if (cacheItemSize !== undefined) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
+            break;
+          case 'set':
+            span.setAttributes({
+              [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
+              [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
+            });
+            break;
+        }
+      }
+    },
+  });
+});
+
+const _redisIntegration = ((options: RedisOptions = {}) => {
   return {
-    name: 'Redis',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation([
-        new IORedisInstrumentation({
-          responseHook: (span, redisCommand, cmdArgs, response) => {
-            const key = cmdArgs[0];
+      _redisOptions = options;
+      instrumentRedis();
 
-            span.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN, 'auto.db.otel.redis');
-
-            if (!options?.cachePrefixes || !shouldConsiderForCache(redisCommand, key, options.cachePrefixes)) {
-              // not relevant for cache
-              return;
-            }
-
-            // otel/ioredis seems to be using the old standard, as there was a change to those params: https://github.com/open-telemetry/opentelemetry-specification/issues/3199
-            // We are using params based on the docs: https://opentelemetry.io/docs/specs/semconv/attributes-registry/network/
-            const networkPeerAddress = spanToJSON(span).data?.['net.peer.name'];
-            const networkPeerPort = spanToJSON(span).data?.['net.peer.port'];
-            if (networkPeerPort && networkPeerAddress) {
-              span.setAttributes({ 'network.peer.address': networkPeerAddress, 'network.peer.port': networkPeerPort });
-            }
-
-            const cacheItemSize = calculateCacheItemSize(response);
-            if (cacheItemSize) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE, cacheItemSize);
-
-            if (typeof key === 'string') {
-              switch (redisCommand) {
-                case 'get':
-                  span.setAttributes({
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.get_item', // todo: will be changed to cache.get
-                    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                  });
-                  if (cacheItemSize !== undefined) span.setAttribute(SEMANTIC_ATTRIBUTE_CACHE_HIT, cacheItemSize > 0);
-                  break;
-                case 'set':
-                  span.setAttributes({
-                    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'cache.put',
-                    [SEMANTIC_ATTRIBUTE_CACHE_KEY]: key,
-                  });
-                  break;
-              }
-            }
-          },
-        }),
-        // todo: implement them gradually
-        // new LegacyRedisInstrumentation({}),
-        // new RedisInstrumentation({}),
-      ]);
+      // todo: implement them gradually
+      // new LegacyRedisInstrumentation({}),
+      // new RedisInstrumentation({}),
     },
   };
 }) satisfies IntegrationFn;
