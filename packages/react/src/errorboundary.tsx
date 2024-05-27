@@ -36,13 +36,13 @@ export type ErrorBoundaryProps = {
    */
   fallback?: React.ReactElement | FallbackRender | undefined;
   /** Called when the error boundary encounters an error */
-  onError?: ((error: unknown, componentStack: string, eventId: string) => void) | undefined;
+  onError?: ((error: unknown, componentStack: string | undefined, eventId: string) => void) | undefined;
   /** Called on componentDidMount() */
   onMount?: (() => void) | undefined;
   /** Called if resetError() is called from the fallback render props function  */
-  onReset?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
+  onReset?: ((error: unknown, componentStack: string | null | undefined, eventId: string | null) => void) | undefined;
   /** Called on componentWillUnmount() */
-  onUnmount?: ((error: unknown, componentStack: string | null, eventId: string | null) => void) | undefined;
+  onUnmount?: ((error: unknown, componentStack: string | null | undefined, eventId: string | null) => void) | undefined;
   /** Called before the error is captured by Sentry, allows for you to add tags or context using the scope */
   beforeCapture?: ((scope: Scope, error: unknown, componentStack: string | undefined) => void) | undefined;
 };
@@ -97,16 +97,19 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   public componentDidCatch(error: unknown, errorInfo: React.ErrorInfo): void {
     const { componentStack } = errorInfo;
+    // TODO(v9): Remove this check and type `componentStack` to be React.ErrorInfo['componentStack'].
+    const passedInComponentStack: string | undefined = componentStack == null ? undefined : componentStack;
+
     const { beforeCapture, onError, showDialog, dialogOptions } = this.props;
     withScope(scope => {
       if (beforeCapture) {
-        beforeCapture(scope, error, componentStack);
+        beforeCapture(scope, error, passedInComponentStack);
       }
 
       const eventId = captureReactException(error, errorInfo, { mechanism: { handled: !!this.props.fallback } });
 
       if (onError) {
-        onError(error, componentStack, eventId);
+        onError(error, passedInComponentStack, eventId);
       }
       if (showDialog) {
         this._lastEventId = eventId;
@@ -186,7 +189,6 @@ function withErrorBoundary<P extends Record<string, any>>(
   WrappedComponent: React.ComponentType<P>,
   errorBoundaryOptions: ErrorBoundaryProps,
 ): React.FC<P> {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const componentDisplayName = WrappedComponent.displayName || WrappedComponent.name || UNKNOWN_COMPONENT;
 
   const Wrapped: React.FC<P> = (props: P) => (
@@ -195,12 +197,13 @@ function withErrorBoundary<P extends Record<string, any>>(
     </ErrorBoundary>
   );
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   Wrapped.displayName = `errorBoundary(${componentDisplayName})`;
 
   // Copy over static methods from Wrapped component to Profiler HOC
   // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
-  hoistNonReactStatics(Wrapped, WrappedComponent);
+  // Need to set type to any because of hoist-non-react-statics typing
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hoistNonReactStatics(Wrapped, WrappedComponent as any);
   return Wrapped;
 }
 

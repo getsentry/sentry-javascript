@@ -42,7 +42,7 @@ class SampleErrorBoundary extends React.Component {
 
   render() {
     if (this.state.error) {
-      return <div>Caught an error: {this.state.error}</div>;
+      return <div>Caught an error: {JSON.stringify(this.state.error)}</div>;
     }
     return this.props.children;
   }

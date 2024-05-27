@@ -2,8 +2,12 @@ import { expect, test } from '@playwright/test';
 import { waitForError } from '@sentry-internal/event-proxy-server';
 
 test('Catches errors caught by error boundary', async ({ page }) => {
+  page.on('console', message => {
+    expect(message.text()).toContain('caught error');
+  });
+
   const errorEventPromise = waitForError('react-19', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'caught error';
   });
 
   await page.goto('/');
@@ -13,13 +17,17 @@ test('Catches errors caught by error boundary', async ({ page }) => {
 
   const errorEvent = await errorEventPromise;
 
-  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values).toHaveLength(2);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('caught error');
 });
 
 test('Catches errors uncaught by error boundary', async ({ page }) => {
+  page.on('console', message => {
+    expect(message.text()).toContain('uncaught error');
+  });
+
   const errorEventPromise = waitForError('react-19', event => {
-    return !event.type && event.exception?.values?.[0]?.value === 'I am an error!';
+    return !event.type && event.exception?.values?.[0]?.value === 'uncaught error';
   });
 
   await page.goto('/');
@@ -29,6 +37,6 @@ test('Catches errors uncaught by error boundary', async ({ page }) => {
 
   const errorEvent = await errorEventPromise;
 
-  expect(errorEvent.exception?.values).toHaveLength(1);
+  expect(errorEvent.exception?.values).toHaveLength(2);
   expect(errorEvent.exception?.values?.[0]?.value).toBe('uncaught error');
 });
