@@ -21,7 +21,7 @@ import type {
   SeverityLevel,
   User,
 } from '@sentry/types';
-import { dateTimestampInSeconds, isPlainObject, logger, uuid4 } from '@sentry/utils';
+import { dateTimestampInSeconds, generatePropagationContext, isPlainObject, logger, uuid4 } from '@sentry/utils';
 
 import { updateSession } from './session';
 import { _getSpanForScope, _setSpanForScope } from './utils/spanOnScope';
@@ -600,10 +600,3 @@ export const Scope = ScopeClass;
  * Holds additional event information.
  */
 export type Scope = ScopeInterface;
-
-function generatePropagationContext(): PropagationContext {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
-}
