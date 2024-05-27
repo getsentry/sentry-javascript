@@ -2,8 +2,8 @@ import type { Integration } from '@sentry/types';
 
 import { getClient } from '../../src/';
 import * as auto from '../../src/integrations/tracing';
+import { init } from '../../src/sdk';
 import type { NodeClient } from '../../src/sdk/client';
-import { init } from '../../src/sdk/init';
 import { cleanupOtel } from '../helpers/mockSdkInit';
 
 // eslint-disable-next-line no-var

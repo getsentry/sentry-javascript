@@ -27,7 +27,7 @@ export function makeBaseBundleConfig(options) {
   const { bundleType, entrypoints, licenseTitle, outputFileBase, packageSpecificConfig, sucrase } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin(sucrase);
+  const sucrasePlugin = makeSucrasePlugin({}, sucrase);
   const cleanupPlugin = makeCleanupPlugin();
   const markAsBrowserBuildPlugin = makeBrowserBuildPlugin(true);
   const licensePlugin = makeLicensePlugin(licenseTitle);

@@ -7,10 +7,11 @@ Sentry.init({
 });
 
 Sentry.metrics.increment('increment');
-Sentry.metrics.increment('increment');
+Sentry.metrics.increment('increment', 2);
+Sentry.metrics.increment('increment', '3');
 Sentry.metrics.distribution('distribution', 42);
-Sentry.metrics.distribution('distribution', 45);
+Sentry.metrics.distribution('distribution', '45');
 Sentry.metrics.gauge('gauge', 5);
-Sentry.metrics.gauge('gauge', 15);
+Sentry.metrics.gauge('gauge', '15');
 Sentry.metrics.set('set', 'nope');
 Sentry.metrics.set('set', 'another');

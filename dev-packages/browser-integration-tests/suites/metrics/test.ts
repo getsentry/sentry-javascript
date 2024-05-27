@@ -12,6 +12,6 @@ sentryTest('collects metrics', async ({ getLocalTestUrl, page }) => {
   const normalisedStatsdString = statsdString.replace(/T\d+\n?/g, 'T000000');
 
   expect(normalisedStatsdString).toEqual(
-    'increment@none:2|c|T000000distribution@none:42:45|d|T000000gauge@none:15:5:15:20:2|g|T000000set@none:3387254:3443787523|s|T000000',
+    'increment@none:6|c|T000000distribution@none:42:45|d|T000000gauge@none:15:5:15:20:2|g|T000000set@none:3387254:3443787523|s|T000000',
   );
 });

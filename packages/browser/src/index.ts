@@ -59,6 +59,7 @@ export {
   startInactiveSpan,
   startSpanManual,
   withActiveSpan,
+  startNewTrace,
   getSpanDescendants,
   setMeasurement,
   getSpanStatusFromHttpCode,

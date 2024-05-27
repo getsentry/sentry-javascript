@@ -420,7 +420,7 @@ function warnAboutDeprecatedConfigFiles(projectDir: string, platform: 'server' |
 
       return (
         instrumentationHookContent.includes('@sentry/') ||
-        instrumentationHookContent.match(/sentry\.(server|edge)\.config\.(ts|js)/)
+        instrumentationHookContent.match(/sentry\.(server|edge)\.config(\.(ts|js))?/)
       );
     } catch (e) {
       return false;
@@ -660,10 +660,14 @@ function getRequestAsyncStorageModuleLocation(
 }
 
 function addOtelWarningIgnoreRule(newConfig: WebpackConfigObjectWithModuleRules): void {
-  const ignoreRule = { module: /@opentelemetry\/instrumentation/ };
+  const ignoreRules = [
+    { module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ },
+    { module: /@prisma\/instrumentation/, message: /Critical dependency/ },
+  ];
+
   if (newConfig.ignoreWarnings === undefined) {
-    newConfig.ignoreWarnings = [ignoreRule];
+    newConfig.ignoreWarnings = ignoreRules;
   } else if (Array.isArray(newConfig.ignoreWarnings)) {
-    newConfig.ignoreWarnings.push(ignoreRule);
+    newConfig.ignoreWarnings.push(...ignoreRules);
   }
 }

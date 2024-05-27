@@ -27,10 +27,10 @@ import type { Client, IntegrationFn, StartSpanOptions, TransactionSource } from 
 import type { Span } from '@sentry/types';
 import {
   browserPerformanceTimeOrigin,
+  generatePropagationContext,
   getDomElement,
   logger,
   propagationContextFromHeaders,
-  uuid4,
 } from '@sentry/utils';
 
 import { DEBUG_BUILD } from '../debug-build';
@@ -412,8 +412,8 @@ export function startBrowserTracingPageLoadSpan(
  * This will only do something if a browser tracing integration has been setup.
  */
 export function startBrowserTracingNavigationSpan(client: Client, spanOptions: StartSpanOptions): Span | undefined {
-  getCurrentScope().setPropagationContext(generatePropagationContext());
   getIsolationScope().setPropagationContext(generatePropagationContext());
+  getCurrentScope().setPropagationContext(generatePropagationContext());
 
   client.emit('startNavigationSpan', spanOptions);
 
@@ -486,11 +486,4 @@ function registerInteractionListener(
   if (WINDOW.document) {
     addEventListener('click', registerInteractionTransaction, { once: false, capture: true });
   }
-}
-
-function generatePropagationContext(): { traceId: string; spanId: string } {
-  return {
-    traceId: uuid4(),
-    spanId: uuid4().substring(16),
-  };
 }
