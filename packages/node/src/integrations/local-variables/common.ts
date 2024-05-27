@@ -1,5 +1,5 @@
+import type { Debugger } from 'node:inspector';
 import type { StackFrame, StackParser } from '@sentry/types';
-import type { Debugger } from 'inspector';
 
 export type Variables = Record<string, unknown>;
 

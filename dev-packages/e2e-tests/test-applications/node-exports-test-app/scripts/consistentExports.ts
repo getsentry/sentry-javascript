@@ -17,6 +17,10 @@ const NODE_EXPORTS_IGNORE = [
   // Only required from the Node package
   'setNodeAsyncContextStrategy',
   'getDefaultIntegrationsWithoutPerformance',
+  'initWithoutDefaultIntegrations',
+  'SentryContextManager',
+  'validateOpenTelemetrySetup',
+  'preloadOpenTelemetry',
 ];
 
 const nodeExports = Object.keys(SentryNode).filter(e => !NODE_EXPORTS_IGNORE.includes(e));

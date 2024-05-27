@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@sentry-internal/event-proxy-server": "link:../../../event-proxy-server",
-    "@playwright/test": "^1.38.1"
+    "@playwright/test": "^1.44.0"
   },
   "volta": {
     "extends": "../../package.json"

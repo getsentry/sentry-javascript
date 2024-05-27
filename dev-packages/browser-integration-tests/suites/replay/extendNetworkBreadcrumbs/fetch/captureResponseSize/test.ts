@@ -43,16 +43,18 @@ sentryTest('captures response size from Content-Length header if available', asy
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo').then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -133,16 +135,18 @@ sentryTest('captures response size without Content-Length header', async ({ getL
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo').then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo').then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -220,18 +224,21 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
   const url = await getLocalTestPath({ testDir: __dirname });
   await page.goto(url);
 
-  await page.evaluate(() => {
-    /* eslint-disable */
-    fetch('http://localhost:7654/foo', {
-      method: 'POST',
-    }).then(() => {
-      // @ts-expect-error Sentry is a global
-      Sentry.captureException('test error');
-    });
-    /* eslint-enable */
-  });
+  const [, request, { replayRecordingSnapshots }] = await Promise.all([
+    page.evaluate(() => {
+      /* eslint-disable */
+      fetch('http://localhost:7654/foo', {
+        method: 'POST',
+      }).then(() => {
+        // @ts-expect-error Sentry is a global
+        Sentry.captureException('test error');
+      });
+      /* eslint-enable */
+    }),
+    requestPromise,
+    replayRequestPromise,
+  ]);
 
-  const request = await requestPromise;
   const eventData = envelopeRequestParser(request);
 
   expect(eventData.exception?.values).toHaveLength(1);
@@ -248,7 +255,6 @@ sentryTest('captures response size from non-text response body', async ({ getLoc
     },
   });
 
-  const { replayRecordingSnapshots } = await replayRequestPromise;
   expect(getReplayPerformanceSpans(replayRecordingSnapshots).filter(span => span.op === 'resource.fetch')).toEqual([
     {
       data: {

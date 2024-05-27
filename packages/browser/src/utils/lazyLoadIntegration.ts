@@ -20,6 +20,7 @@ const LazyLoadableIntegrations = {
   reportingObserverIntegration: 'reportingobserver',
   rewriteFramesIntegration: 'rewriteframes',
   sessionTimingIntegration: 'sessiontiming',
+  browserProfilingIntegration: 'browserprofiling',
 } as const;
 
 const WindowWithMaybeIntegration = WINDOW as {

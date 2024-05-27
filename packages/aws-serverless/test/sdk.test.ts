@@ -24,7 +24,7 @@ jest.mock('@sentry/node', () => {
   const original = jest.requireActual('@sentry/node');
   return {
     ...original,
-    init: (options: unknown) => {
+    initWithoutDefaultIntegrations: (options: unknown) => {
       mockInit(options);
     },
     startInactiveSpan: (...args: unknown[]) => {

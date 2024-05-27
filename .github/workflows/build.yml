@@ -436,8 +436,6 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
-        env:
-          NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
@@ -994,6 +992,7 @@ jobs:
         test-application:
           [
             'angular-17',
+            'angular-18',
             'cloudflare-astro',
             'node-express',
             'create-react-app',
@@ -1003,9 +1002,13 @@ jobs:
             'create-remix-app-express',
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
-            # 'esm-loader-node-express-app', # This is currently broken for upstream reasons. See https://github.com/getsentry/sentry-javascript/pull/11338#issuecomment-2025450675
+            'node-express-esm-loader',
+            'node-express-esm-preload',
+            'node-express-esm-without-loader',
+            'node-express-cjs-preload',
             'nextjs-app-dir',
             'nextjs-14',
+            'nextjs-15',
             'react-create-hash-router',
             'react-router-6-use-routes',
             'react-router-5',

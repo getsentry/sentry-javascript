@@ -1,26 +1,34 @@
-import { isWrapped } from '@opentelemetry/core';
 import { HapiInstrumentation } from '@opentelemetry/instrumentation-hapi';
 import {
   SDK_VERSION,
+  SEMANTIC_ATTRIBUTE_SENTRY_OP,
+  SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN,
   SPAN_STATUS_ERROR,
   captureException,
   defineIntegration,
   getActiveSpan,
+  getClient,
   getDefaultIsolationScope,
   getIsolationScope,
   getRootSpan,
+  spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
-import type { IntegrationFn } from '@sentry/types';
-import { consoleSandbox, logger } from '@sentry/utils';
+import type { IntegrationFn, Span } from '@sentry/types';
+import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
+import { generateInstrumentOnce } from '../../../otel/instrument';
+import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
+
+const INTEGRATION_NAME = 'Hapi';
+
+export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
 
 const _hapiIntegration = (() => {
   return {
-    name: 'Hapi',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new HapiInstrumentation());
+      instrumentHapi();
     },
   };
 }) satisfies IntegrationFn;
@@ -94,13 +102,33 @@ export const hapiErrorPlugin = {
 export async function setupHapiErrorHandler(server: Server): Promise<void> {
   await server.register(hapiErrorPlugin);
 
-  // eslint-disable-next-line @typescript-eslint/unbound-method
-  if (!isWrapped(server.register)) {
-    consoleSandbox(() => {
-      // eslint-disable-next-line no-console
-      console.warn(
-        '[Sentry] Hapi is not instrumented. This is likely because you required/imported hapi before calling `Sentry.init()`.',
-      );
+  // Sadly, middleware spans do not go through `requestHook`, so we handle those here
+  // We register this hook in this method, because if we register it in the integration `setup`,
+  // it would always run even for users that are not even using hapi
+  const client = getClient();
+  if (client) {
+    client.on('spanStart', span => {
+      addHapiSpanAttributes(span);
     });
   }
+
+  // eslint-disable-next-line @typescript-eslint/unbound-method
+  ensureIsWrapped(server.register, 'hapi');
+}
+
+function addHapiSpanAttributes(span: Span): void {
+  const attributes = spanToJSON(span).data || {};
+
+  // this is one of: router, plugin, server.ext
+  const type = attributes['hapi.type'];
+
+  // If this is already set, or we have no Hapi span, no need to process again...
+  if (attributes[SEMANTIC_ATTRIBUTE_SENTRY_OP] || !type) {
+    return;
+  }
+
+  span.setAttributes({
+    [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.http.otel.hapi',
+    [SEMANTIC_ATTRIBUTE_SENTRY_OP]: `${type}.hapi`,
+  });
 }

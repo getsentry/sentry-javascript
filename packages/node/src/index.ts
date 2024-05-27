@@ -26,12 +26,15 @@ export { koaIntegration, setupKoaErrorHandler } from './integrations/tracing/koa
 export { connectIntegration, setupConnectErrorHandler } from './integrations/tracing/connect';
 export { spotlightIntegration } from './integrations/spotlight';
 
+export { SentryContextManager } from './otel/contextManager';
 export {
   init,
   getDefaultIntegrations,
   getDefaultIntegrationsWithoutPerformance,
-} from './sdk/init';
-export { initOpenTelemetry } from './sdk/initOtel';
+  initWithoutDefaultIntegrations,
+  validateOpenTelemetrySetup,
+} from './sdk';
+export { initOpenTelemetry, preloadOpenTelemetry } from './sdk/initOtel';
 export { getAutoPerformanceIntegrations } from './integrations/tracing';
 export { getSentryRelease, defaultStackParser } from './sdk/api';
 export { createGetModuleFromFilename } from './utils/module';
@@ -56,6 +59,7 @@ export {
   addBreadcrumb,
   isInitialized,
   getGlobalScope,
+  lastEventId,
   close,
   createTransport,
   flush,
@@ -109,6 +113,7 @@ export {
   startSpan,
   startSpanManual,
   startInactiveSpan,
+  startNewTrace,
   getActiveSpan,
   withActiveSpan,
   getRootSpan,

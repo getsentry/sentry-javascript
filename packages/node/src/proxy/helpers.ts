@@ -29,7 +29,7 @@
 /* eslint-disable jsdoc/require-jsdoc */
 import * as http from 'node:http';
 import * as https from 'node:https';
-import type { Readable } from 'stream';
+import type { Readable } from 'node:stream';
 
 export type ThenableRequest = http.ClientRequest & {
   then: Promise<http.IncomingMessage>['then'];

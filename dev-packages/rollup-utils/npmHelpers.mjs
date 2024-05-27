@@ -40,7 +40,7 @@ export function makeBaseNPMConfig(options = {}) {
   } = options;
 
   const nodeResolvePlugin = makeNodeResolvePlugin();
-  const sucrasePlugin = makeSucrasePlugin({ disableESTransforms: !addPolyfills, ...sucrase });
+  const sucrasePlugin = makeSucrasePlugin({}, { disableESTransforms: !addPolyfills, ...sucrase });
   const debugBuildStatementReplacePlugin = makeDebugBuildStatementReplacePlugin();
   const importMetaUrlReplacePlugin = makeImportMetaUrlReplacePlugin();
   const cleanupPlugin = makeCleanupPlugin();

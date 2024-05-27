@@ -29,7 +29,10 @@ function handleHydrationError(replay: ReplayContainer, event: ErrorEvent): void 
   if (
     // Only matches errors in production builds of react-dom
     // Example https://reactjs.org/docs/error-decoder.html?invariant=423
-    exceptionValue.match(/reactjs\.org\/docs\/error-decoder\.html\?invariant=(418|419|422|423|425)/) ||
+    // With newer React versions, the messages changed to a different website https://react.dev/errors/418
+    exceptionValue.match(
+      /(reactjs\.org\/docs\/error-decoder\.html\?invariant=|react\.dev\/errors\/)(418|419|422|423|425)/,
+    ) ||
     // Development builds of react-dom
     // Error 1: Hydration failed because the initial UI does not match what was rendered on the server.
     // Error 2: Text content does not match server-rendered HTML. Warning: Text content did not match.

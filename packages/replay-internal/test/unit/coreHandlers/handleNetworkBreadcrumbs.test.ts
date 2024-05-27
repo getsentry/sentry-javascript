@@ -13,8 +13,9 @@ import { beforeAddNetworkBreadcrumb } from '../../../src/coreHandlers/handleNetw
 import type { EventBufferArray } from '../../../src/eventBuffer/EventBufferArray';
 import type { ReplayContainer, ReplayNetworkOptions } from '../../../src/types';
 import { setupReplayContainer } from '../../utils/setupReplayContainer';
+import { useFakeTimers } from '../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 async function waitForReplayEventBuffer() {
   // Need one Promise.resolve() per await in the util functions

@@ -35,3 +35,9 @@ export const SEMANTIC_ATTRIBUTE_SENTRY_MEASUREMENT_VALUE = 'sentry.measurement_v
 export const SEMANTIC_ATTRIBUTE_PROFILE_ID = 'sentry.profile_id';
 
 export const SEMANTIC_ATTRIBUTE_EXCLUSIVE_TIME = 'sentry.exclusive_time';
+
+export const SEMANTIC_ATTRIBUTE_CACHE_HIT = 'cache.hit';
+
+export const SEMANTIC_ATTRIBUTE_CACHE_KEY = 'cache.key';
+
+export const SEMANTIC_ATTRIBUTE_CACHE_ITEM_SIZE = 'cache.item_size';

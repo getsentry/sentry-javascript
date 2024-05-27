@@ -84,6 +84,14 @@ export function reactRouterV6BrowserTracingIntegration(
 
   return {
     ...integration,
+    setup() {
+      _useEffect = useEffect;
+      _useLocation = useLocation;
+      _useNavigationType = useNavigationType;
+      _matchRoutes = matchRoutes;
+      _createRoutesFromChildren = createRoutesFromChildren;
+      _stripBasename = stripBasename || false;
+    },
     afterAllSetup(client) {
       integration.afterAllSetup(client);
 
@@ -98,13 +106,6 @@ export function reactRouterV6BrowserTracingIntegration(
           },
         });
       }
-
-      _useEffect = useEffect;
-      _useLocation = useLocation;
-      _useNavigationType = useNavigationType;
-      _matchRoutes = matchRoutes;
-      _createRoutesFromChildren = createRoutesFromChildren;
-      _stripBasename = stripBasename || false;
 
       if (instrumentNavigation) {
         CLIENTS_WITH_INSTRUMENT_NAVIGATION.push(client);
@@ -339,6 +340,15 @@ export function wrapCreateBrowserRouter<
   TState extends RouterState = RouterState,
   TRouter extends Router<TState> = Router<TState>,
 >(createRouterFunction: CreateRouterFunction<TState, TRouter>): CreateRouterFunction<TState, TRouter> {
+  if (!_useEffect || !_useLocation || !_useNavigationType || !_matchRoutes) {
+    DEBUG_BUILD &&
+      logger.warn(
+        'reactRouterV6Instrumentation was unable to wrap the `createRouter` function because of one or more missing parameters.',
+      );
+
+    return createRouterFunction;
+  }
+
   // `opts` for createBrowserHistory and createMemoryHistory are different, but also not relevant for us at the moment.
   // `basename` is the only option that is relevant for us, and it is the same for all.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

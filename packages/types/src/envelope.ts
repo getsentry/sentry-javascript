@@ -83,7 +83,6 @@ type StatsdItemHeaders = { type: 'statsd'; length: number };
 type ProfileItemHeaders = { type: 'profile' };
 type SpanItemHeaders = { type: 'span' };
 
-// TODO (v8): Replace `Event` with `SerializedEvent`
 export type EventItem = BaseEnvelopeItem<EventItemHeaders, Event>;
 export type AttachmentItem = BaseEnvelopeItem<AttachmentItemHeaders, string | Uint8Array>;
 export type UserFeedbackItem = BaseEnvelopeItem<UserFeedbackItemHeaders, UserFeedback>;

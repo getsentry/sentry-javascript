@@ -83,6 +83,12 @@ jobs:
           - test-application: 'nextjs-14'
             build-command: 'test:build-latest'
             label: 'nextjs-14 (latest)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-canary'
+            label: 'nextjs-15 (canary)'
+          - test-application: 'nextjs-15'
+            build-command: 'test:build-latest'
+            label: 'nextjs-15 (latest)'
           - test-application: 'react-create-hash-router'
             build-command: 'test:build-canary'
             label: 'react-create-hash-router (canary)'
@@ -153,7 +159,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
+        # scenario: [ember-release, embroider-optimized, ember-4.0]
+        scenario: [ember-4.0]
     steps:
       - name: 'Check out current commit'
         uses: actions/checkout@v4

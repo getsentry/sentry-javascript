@@ -2,8 +2,9 @@ import { BASE_TIMESTAMP } from '../../..';
 import { addBreadcrumbEvent } from '../../../../src/coreHandlers/util/addBreadcrumbEvent';
 import type { EventBufferArray } from '../../../../src/eventBuffer/EventBufferArray';
 import { setupReplayContainer } from '../../../utils/setupReplayContainer';
+import { useFakeTimers } from '../../../utils/use-fake-timers';
 
-vi.useFakeTimers();
+useFakeTimers();
 
 describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
   beforeEach(function () {
@@ -22,12 +23,6 @@ describe('Unit | coreHandlers | util | addBreadcrumbEvent', function () {
 
     const replay = setupReplayContainer();
     addBreadcrumbEvent(replay, breadcrumb);
-
-    await undefined;
-    await undefined;
-    await undefined;
-    await undefined;
-    await undefined;
 
     expect((replay.eventBuffer as EventBufferArray).events).toEqual([
       {

@@ -1,3 +1,6 @@
+const builtinModules = require('module').builtinModules;
+const nodePrefixedBuiltinModules = builtinModules.map(m => `node:${m}`);
+
 module.exports = [
   // Browser SDK (ESM)
   {
@@ -80,6 +83,7 @@ module.exports = [
     name: '@sentry/react',
     path: 'packages/react/build/esm/index.js',
     import: createImport('init', 'ErrorBoundary'),
+    ignore: ['react/jsx-runtime'],
     gzip: true,
     limit: '27 KB',
   },
@@ -87,6 +91,7 @@ module.exports = [
     name: '@sentry/react (incl. Tracing)',
     path: 'packages/react/build/esm/index.js',
     import: createImport('init', 'ErrorBoundary', 'reactRouterV6BrowserTracingIntegration'),
+    ignore: ['react/jsx-runtime'],
     gzip: true,
     limit: '37 KB',
   },
@@ -190,26 +195,18 @@ module.exports = [
     name: '@sentry/node',
     path: 'packages/node/build/esm/index.js',
     import: createImport('init'),
-    ignore: [
-      'node:http',
-      'node:https',
-      'node:diagnostics_channel',
-      'async_hooks',
-      'child_process',
-      'fs',
-      'os',
-      'path',
-      'inspector',
-      'worker_threads',
-      'http',
-      'stream',
-      'zlib',
-      'net',
-      'tls',
-      'module',
-    ],
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
     gzip: true,
     limit: '180 KB',
+  },
+  // AWS SDK (ESM)
+  {
+    name: '@sentry/aws-serverless',
+    path: 'packages/aws-serverless/build/npm/esm/index.js',
+    import: createImport('init'),
+    ignore: [...builtinModules, ...nodePrefixedBuiltinModules],
+    gzip: true,
+    limit: '140 KB',
   },
 ];
 
