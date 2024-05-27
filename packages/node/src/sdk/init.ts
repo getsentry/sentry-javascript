@@ -11,7 +11,11 @@ import {
   requestDataIntegration,
   startSession,
 } from '@sentry/core';
-import { openTelemetrySetupCheck, setOpenTelemetryContextAsyncContextStrategy } from '@sentry/opentelemetry';
+import {
+  openTelemetrySetupCheck,
+  setOpenTelemetryContextAsyncContextStrategy,
+  setupEventContextTrace,
+} from '@sentry/opentelemetry';
 import type { Client, Integration, Options } from '@sentry/types';
 import {
   GLOBAL_OBJ,
@@ -196,12 +200,16 @@ function _init(
   // There is no way to use this SDK without OpenTelemetry!
   if (!options.skipOpenTelemetrySetup) {
     initOpenTelemetry(client);
+    validateOpenTelemetrySetup();
   }
 
-  validateOpenTelemetrySetup();
+  setupEventContextTrace(client);
 }
 
-function validateOpenTelemetrySetup(): void {
+/**
+ * Validate that your OpenTelemetry setup is correct.
+ */
+export function validateOpenTelemetrySetup(): void {
   if (!DEBUG_BUILD) {
     return;
   }
