@@ -26,16 +26,16 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
-function Boo({ title }: { title: string }): JSX.Element {
+function Boo({ title }: { title: string }): React.JSX.Element {
   throw new Error(title);
 }
 
-function Bam(): JSX.Element {
+function Bam(): React.JSX.Element {
   const [title] = useState('boom');
   return <Boo title={title} />;
 }
 
-function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
+function EffectSpyFallback({ error }: { error: unknown }): React.JSX.Element {
   const [counter, setCounter] = useState(0);
 
   React.useEffect(() => {
@@ -50,7 +50,7 @@ function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
 }
 
 interface TestAppProps extends ErrorBoundaryProps {
-  errorComp?: JSX.Element;
+  errorComp?: React.JSX.Element;
 }
 
 const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }) => {
@@ -282,7 +282,7 @@ describe('ErrorBoundary', () => {
     it('does not set cause if non Error objected is thrown', () => {
       const TestAppThrowingString: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
         const [isError, setError] = React.useState(false);
-        function StringBam(): JSX.Element {
+        function StringBam(): React.JSX.Element {
           throw 'bam';
         }
         return (
@@ -333,7 +333,7 @@ describe('ErrorBoundary', () => {
     it('handles when `error.cause` is nested', () => {
       const mockOnError = jest.fn();
 
-      function CustomBam(): JSX.Element {
+      function CustomBam(): React.JSX.Element {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
         const thirdError = new Error('bam3');
@@ -378,7 +378,7 @@ describe('ErrorBoundary', () => {
     it('handles when `error.cause` is recursive', () => {
       const mockOnError = jest.fn();
 
-      function CustomBam(): JSX.Element {
+      function CustomBam(): React.JSX.Element {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
         // @ts-expect-error Need to set cause on error

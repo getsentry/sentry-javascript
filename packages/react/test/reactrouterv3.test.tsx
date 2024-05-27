@@ -62,7 +62,7 @@ jest.mock('@sentry/core', () => {
 
 describe('browserTracingReactRouterV3', () => {
   const routes = (
-    <Route path="/" component={({ children }: { children: JSX.Element }) => <div>{children}</div>}>
+    <Route path="/" component={({ children }: { children: React.JSX.Element }) => <div>{children}</div>}>
       <IndexRoute component={() => <div>Home</div>} />
       <Route path="about" component={() => <div>About</div>} />
       <Route path="features" component={() => <div>Features</div>} />
