@@ -13,13 +13,13 @@ import {
 import { propagationContextFromHeaders, winterCGHeadersToDict } from '@sentry/utils';
 import { isNotFoundNavigationError, isRedirectNavigationError } from './nextNavigationErrorUtils';
 import type { RouteHandlerContext } from './types';
-import { platformSupportsStreaming } from './utils/platformSupportsStreaming';
-import { flushQueue } from './utils/responseEnd';
+import { flushSafelyWithTimeout } from './utils/responseEnd';
 import {
   commonObjectToIsolationScope,
   commonObjectToPropagationContext,
   escapeNextjsTracing,
 } from './utils/tracingUtils';
+import { vercelWaitUntil } from './utils/vercelWaitUntil';
 
 /**
  * Wraps a Next.js route handler with performance and error instrumentation.
@@ -97,11 +97,7 @@ export function wrapRouteHandlerWithSentry<F extends (...args: any[]) => any>(
                 },
               );
             } finally {
-              if (!platformSupportsStreaming() || process.env.NEXT_RUNTIME === 'edge') {
-                // 1. Edge transport requires manual flushing
-                // 2. Lambdas require manual flushing to prevent execution freeze before the event is sent
-                await flushQueue();
-              }
+              vercelWaitUntil(flushSafelyWithTimeout());
             }
           });
         });
