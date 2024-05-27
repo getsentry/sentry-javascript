@@ -39,6 +39,8 @@ export {
   sendFeedback,
 } from '@sentry-internal/feedback';
 
+export * from './metrics';
+
 export {
   defaultRequestInstrumentationOptions,
   instrumentOutgoingRequests,

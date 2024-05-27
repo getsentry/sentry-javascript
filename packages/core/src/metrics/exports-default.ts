@@ -1,6 +1,5 @@
-import type { Client, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
+import type { Client, MetricData, Metrics, MetricsAggregator as MetricsAggregatorInterface } from '@sentry/types';
 import { MetricsAggregator } from './aggregator';
-import type { MetricData } from './exports';
 import { metrics as metricsCore } from './exports';
 
 /**
@@ -46,11 +45,14 @@ function getMetricsAggregatorForClient(client: Client): MetricsAggregatorInterfa
   return metricsCore.getMetricsAggregatorForClient(client, MetricsAggregator);
 }
 
-export const metricsDefault = {
+export const metricsDefault: Metrics & {
+  getMetricsAggregatorForClient: typeof getMetricsAggregatorForClient;
+} = {
   increment,
   distribution,
   set,
   gauge,
+
   /**
    * @ignore This is for internal use only.
    */

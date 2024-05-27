@@ -97,7 +97,7 @@ export { rewriteFramesIntegration } from './integrations/rewriteframes';
 export { sessionTimingIntegration } from './integrations/sessiontiming';
 export { zodErrorsIntegration } from './integrations/zoderrors';
 export { metrics } from './metrics/exports';
-export type { MetricData } from './metrics/exports';
+export type { MetricData } from '@sentry/types';
 export { metricsDefault } from './metrics/exports-default';
 export { BrowserMetricsAggregator } from './metrics/browser-aggregator';
 export { getMetricSummaryJsonForSpan } from './metrics/metric-summary';
