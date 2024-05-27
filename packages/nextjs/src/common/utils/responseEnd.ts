@@ -50,7 +50,8 @@ export function finishSpan(span: Span, res: ServerResponse): void {
 export async function flushSafelyWithTimeout(): Promise<void> {
   try {
     DEBUG_BUILD && logger.log('Flushing events...');
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // We things that are currently stuck in event processors a tiny bit more time to finish before flushing. 50ms was chosen very unscientifically.
+    await new Promise(resolve => setTimeout(resolve, 50));
     await flush(2000);
     DEBUG_BUILD && logger.log('Done flushing events');
   } catch (e) {
