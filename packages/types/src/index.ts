@@ -164,6 +164,8 @@ export type {
   MetricsAggregator,
   MetricBucketItem,
   MetricInstance,
+  MetricData,
+  Metrics,
 } from './metrics';
 export type { ParameterizedString } from './parameterize';
 export type { ViewHierarchyData, ViewHierarchyWindow } from './view-hierarchy';

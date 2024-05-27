@@ -1,5 +1,13 @@
+import type { Client } from './client';
 import type { MeasurementUnit } from './measurement';
 import type { Primitive } from './misc';
+
+export interface MetricData {
+  unit?: MeasurementUnit;
+  tags?: Record<string, Primitive>;
+  timestamp?: number;
+  client?: Client;
+}
 
 /**
  * An abstract definition of the minimum required API
@@ -61,4 +69,34 @@ export interface MetricsAggregator {
    * Returns a string representation of the aggregator.
    */
   toString(): string;
+}
+
+export interface Metrics {
+  /**
+   * Adds a value to a counter metric
+   *
+   * @experimental This API is experimental and might have breaking changes in the future.
+   */
+  increment(name: string, value?: number, data?: MetricData): void;
+
+  /**
+   * Adds a value to a distribution metric
+   *
+   * @experimental This API is experimental and might have breaking changes in the future.
+   */
+  distribution(name: string, value: number, data?: MetricData): void;
+
+  /**
+   * Adds a value to a set metric. Value must be a string or integer.
+   *
+   * @experimental This API is experimental and might have breaking changes in the future.
+   */
+  set(name: string, value: number | string, data?: MetricData): void;
+
+  /**
+   * Adds a value to a gauge metric
+   *
+   * @experimental This API is experimental and might have breaking changes in the future.
+   */
+  gauge(name: string, value: number, data?: MetricData): void;
 }
