@@ -1,6 +1,6 @@
 {
   "name": "@sentry/node",
-  "version": "8.4.0",
+  "version": "8.5.0",
   "description": "Sentry Node SDK using OpenTelemetry for performance instrumentation",
   "repository": "git://github.com/getsentry/sentry-javascript.git",
   "homepage": "https://github.com/getsentry/sentry-javascript/tree/master/packages/node",
@@ -74,7 +74,7 @@
     "@opentelemetry/context-async-hooks": "^1.23.0",
     "@opentelemetry/core": "^1.24.1",
     "@opentelemetry/instrumentation": "^0.51.1",
-    "@opentelemetry/instrumentation-connect": "0.36.0",
+    "@opentelemetry/instrumentation-connect": "0.36.1",
     "@opentelemetry/instrumentation-express": "0.39.0",
     "@opentelemetry/instrumentation-fastify": "0.36.1",
     "@opentelemetry/instrumentation-graphql": "0.40.0",
@@ -92,10 +92,10 @@
     "@opentelemetry/sdk-trace-base": "^1.23.0",
     "@opentelemetry/semantic-conventions": "^1.23.0",
     "@prisma/instrumentation": "5.14.0",
-    "@sentry/core": "8.4.0",
-    "@sentry/opentelemetry": "8.4.0",
-    "@sentry/types": "8.4.0",
-    "@sentry/utils": "8.4.0"
+    "@sentry/core": "8.5.0",
+    "@sentry/opentelemetry": "8.5.0",
+    "@sentry/types": "8.5.0",
+    "@sentry/utils": "8.5.0"
   },
   "devDependencies": {
     "@types/node": "^14.18.0"
