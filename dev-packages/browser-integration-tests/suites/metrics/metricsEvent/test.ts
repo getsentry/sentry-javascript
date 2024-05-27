@@ -1,9 +1,17 @@
 import { expect } from '@playwright/test';
 
-import { sentryTest } from '../../utils/fixtures';
-import { getFirstSentryEnvelopeRequest, properEnvelopeRequestParser } from '../../utils/helpers';
+import { sentryTest } from '../../../utils/fixtures';
+import {
+  getFirstSentryEnvelopeRequest,
+  properEnvelopeRequestParser,
+  shouldSkipMetricsTest,
+} from '../../../utils/helpers';
 
 sentryTest('collects metrics', async ({ getLocalTestUrl, page }) => {
+  if (shouldSkipMetricsTest()) {
+    sentryTest.skip();
+  }
+
   const url = await getLocalTestUrl({ testDir: __dirname });
 
   const statsdBuffer = await getFirstSentryEnvelopeRequest<Uint8Array>(page, url, properEnvelopeRequestParser);
