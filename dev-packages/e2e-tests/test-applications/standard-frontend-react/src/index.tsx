@@ -13,11 +13,13 @@ import {
 import Index from './pages/Index';
 import User from './pages/User';
 
-const replay = Sentry.replayIntegration();
+const replay = Sentry.replayIntegration({ useCompression: false });
 
 Sentry.init({
   environment: 'qa', // dynamic sampling bias to keep transactions
   dsn: process.env.REACT_APP_E2E_TEST_DSN,
+  tunnel: `http://localhost:3031/`, // proxy server
+  debug: true,
   integrations: [
     Sentry.reactRouterV6BrowserTracingIntegration({
       useEffect: React.useEffect,
