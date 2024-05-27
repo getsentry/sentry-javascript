@@ -267,73 +267,77 @@ const _localVariablesSyncIntegration = ((
   return {
     name: INTEGRATION_NAME,
     setupOnce() {
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      AsyncSession.create(sessionOverride).then(session => {
-        function handlePaused(
-          stackParser: StackParser,
-          { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
-          complete: () => void,
-        ): void {
-          if (reason !== 'exception' && reason !== 'promiseRejection') {
-            complete();
-            return;
-          }
+      const client = getClient<NodeClient>();
+      const clientOptions = client?.getOptions();
 
-          rateLimiter?.();
+      if (!clientOptions?.includeLocalVariables) {
+        return;
+      }
 
-          // data.description contains the original error.stack
-          const exceptionHash = hashFromStack(stackParser, data?.description);
+      // Only setup this integration if the Node version is >= v18
+      // https://github.com/getsentry/sentry-javascript/issues/7697
+      const unsupportedNodeVersion = NODE_MAJOR < 18;
 
-          if (exceptionHash == undefined) {
-            complete();
-            return;
-          }
+      if (unsupportedNodeVersion) {
+        logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
+        return;
+      }
 
-          const { add, next } = createCallbackList<FrameVariables[]>(frames => {
-            cachedFrames.set(exceptionHash, frames);
-            complete();
-          });
-
-          // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
-          // For this reason we only attempt to get local variables for the first 5 frames
-          for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
-            const { scopeChain, functionName, this: obj } = callFrames[i];
-
-            const localScope = scopeChain.find(scope => scope.type === 'local');
-
-            // obj.className is undefined in ESM modules
-            const fn = obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
-
-            if (localScope?.object.objectId === undefined) {
-              add(frames => {
-                frames[i] = { function: fn };
-                next(frames);
-              });
-            } else {
-              const id = localScope.object.objectId;
-              add(frames =>
-                session?.getLocalVariables(id, vars => {
-                  frames[i] = { function: fn, vars };
-                  next(frames);
-                }),
-              );
+      AsyncSession.create(sessionOverride).then(
+        session => {
+          function handlePaused(
+            stackParser: StackParser,
+            { params: { reason, data, callFrames } }: InspectorNotification<PausedExceptionEvent>,
+            complete: () => void,
+          ): void {
+            if (reason !== 'exception' && reason !== 'promiseRejection') {
+              complete();
+              return;
             }
-          }
 
-          next([]);
-        }
+            rateLimiter?.();
 
-        const client = getClient<NodeClient>();
-        const clientOptions = client?.getOptions();
+            // data.description contains the original error.stack
+            const exceptionHash = hashFromStack(stackParser, data?.description);
 
-        if (session && clientOptions?.includeLocalVariables) {
-          // Only setup this integration if the Node version is >= v18
-          // https://github.com/getsentry/sentry-javascript/issues/7697
-          const unsupportedNodeVersion = NODE_MAJOR < 18;
+            if (exceptionHash == undefined) {
+              complete();
+              return;
+            }
 
-          if (unsupportedNodeVersion) {
-            logger.log('The `LocalVariables` integration is only supported on Node >= v18.');
-            return;
+            const { add, next } = createCallbackList<FrameVariables[]>(frames => {
+              cachedFrames.set(exceptionHash, frames);
+              complete();
+            });
+
+            // Because we're queuing up and making all these calls synchronously, we can potentially overflow the stack
+            // For this reason we only attempt to get local variables for the first 5 frames
+            for (let i = 0; i < Math.min(callFrames.length, 5); i++) {
+              const { scopeChain, functionName, this: obj } = callFrames[i];
+
+              const localScope = scopeChain.find(scope => scope.type === 'local');
+
+              // obj.className is undefined in ESM modules
+              const fn =
+                obj.className === 'global' || !obj.className ? functionName : `${obj.className}.${functionName}`;
+
+              if (localScope?.object.objectId === undefined) {
+                add(frames => {
+                  frames[i] = { function: fn };
+                  next(frames);
+                });
+              } else {
+                const id = localScope.object.objectId;
+                add(frames =>
+                  session?.getLocalVariables(id, vars => {
+                    frames[i] = { function: fn, vars };
+                    next(frames);
+                  }),
+                );
+              }
+            }
+
+            next([]);
           }
 
           const captureAll = options.captureAllExceptions !== false;
@@ -363,8 +367,11 @@ const _localVariablesSyncIntegration = ((
           }
 
           shouldProcessEvent = true;
-        }
-      });
+        },
+        error => {
+          logger.log('The `LocalVariables` integration failed to start.', error);
+        },
+      );
     },
     processEvent(event: Event): Event {
       if (shouldProcessEvent) {
