@@ -4,6 +4,59 @@
 
 - "You miss 100 percent of the chances you don't take. — Wayne Gretzky" — Michael Scott
 
+## 8.5.0
+
+### Important Changes
+
+- **feat(react): Add React 19 to peer deps (#12207)**
+
+This release adds support for React 19 in the `@sentry/react` SDK package.
+
+- **feat(node): Add `@sentry/node/preload` hook (#12213)**
+
+This release adds a new way to initialize `@sentry/node`, which allows you to use the SDK with performance
+instrumentation even if you cannot call `Sentry.init()` at the very start of your app.
+
+First, run the SDK like this:
+
+```bash
+node --require @sentry/node/preload ./app.js
+```
+
+Now, you can initialize and import the rest of the SDK later or asynchronously:
+
+```js
+const express = require('express');
+const Sentry = require('@sentry/node');
+
+const dsn = await getSentryDsn();
+Sentry.init({ dsn });
+```
+
+For more details, head over to the
+[PR Description of the new feature](https://github.com/getsentry/sentry-javascript/pull/12213). Our docs will be updated
+soon with a new guide.
+
+### Other Changes
+
+- feat(browser): Do not include metrics in base CDN bundle (#12230)
+- feat(core): Add `startNewTrace` API (#12138)
+- feat(core): Allow to pass custom scope to `captureFeedback()` (#12216)
+- feat(core): Only allow `SerializedSession` in session envelope items (#11979)
+- feat(nextjs): Use Vercel's `waitUntil` to defer freezing of Vercel Lambdas (#12133)
+- feat(node): Ensure manual OTEL setup works (#12214)
+- fix(aws-serverless): Avoid minifying `Module._resolveFilename` in Lambda layer bundle (#12232)
+- fix(aws-serverless): Ensure lambda layer uses default export from `ImportInTheMiddle` (#12233)
+- fix(browser): Improve browser extension error message check (#12146)
+- fix(browser): Remove optional chaining in INP code (#12196)
+- fix(nextjs): Don't report React postpone errors (#12194)
+- fix(nextjs): Use global scope for generic event filters (#12205)
+- fix(node): Add origin to redis span (#12201)
+- fix(node): Change import of `@prisma/instrumentation` to use default import (#12185)
+- fix(node): Only import `inspector` asynchronously (#12231)
+- fix(replay): Update matcher for hydration error detection to new React docs (#12209)
+- ref(profiling-node): Add warning when using non-LTS node (#12211)
+
 ## 8.4.0
 
 ### Important Changes
