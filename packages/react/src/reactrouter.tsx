@@ -32,7 +32,7 @@ export type RouteConfig = {
   [propName: string]: unknown;
   path?: string | string[];
   exact?: boolean;
-  component?: React.JSX.Element;
+  component?: JSX.Element;
   routes?: RouteConfig[];
 };
 
@@ -244,8 +244,7 @@ export function withSentryRouting<P extends Record<string, any>, R extends React
   };
 
   WrappedRoute.displayName = `sentryRoute(${componentDisplayName})`;
-  // Need to set type to any because of hoist-non-react-statics typing
-  hoistNonReactStatics(WrappedRoute, Route as any);
+  hoistNonReactStatics(WrappedRoute, Route);
   // @ts-expect-error Setting more specific React Component typing for `R` generic above
   // will break advanced type inference done by react router params:
   // https://github.com/DefinitelyTyped/DefinitelyTyped/blob/13dc4235c069e25fe7ee16e11f529d909f9f3ff8/types/react-router/index.d.ts#L154-L164

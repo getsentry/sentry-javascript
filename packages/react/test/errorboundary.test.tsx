@@ -26,16 +26,16 @@ jest.mock('@sentry/browser', () => {
   };
 });
 
-function Boo({ title }: { title: string }): React.JSX.Element {
+function Boo({ title }: { title: string }): JSX.Element {
   throw new Error(title);
 }
 
-function Bam(): React.JSX.Element {
+function Bam(): JSX.Element {
   const [title] = useState('boom');
   return <Boo title={title} />;
 }
 
-function EffectSpyFallback({ error }: { error: unknown }): React.JSX.Element {
+function EffectSpyFallback({ error }: { error: unknown }): JSX.Element {
   const [counter, setCounter] = useState(0);
 
   React.useEffect(() => {
@@ -50,10 +50,10 @@ function EffectSpyFallback({ error }: { error: unknown }): React.JSX.Element {
 }
 
 interface TestAppProps extends ErrorBoundaryProps {
-  errorComp?: React.JSX.Element;
+  errorComp?: JSX.Element;
 }
 
-const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }) => {
+const TestApp: React.FC<TestAppProps> = ({ children, errorComp, ...props }): any => {
   const customErrorComp = errorComp || <Bam />;
   const [isError, setError] = React.useState(false);
   return (
@@ -282,7 +282,7 @@ describe('ErrorBoundary', () => {
     it('does not set cause if non Error objected is thrown', () => {
       const TestAppThrowingString: React.FC<ErrorBoundaryProps> = ({ children, ...props }) => {
         const [isError, setError] = React.useState(false);
-        function StringBam(): React.JSX.Element {
+        function StringBam(): JSX.Element {
           throw 'bam';
         }
         return (
@@ -333,7 +333,7 @@ describe('ErrorBoundary', () => {
     it('handles when `error.cause` is nested', () => {
       const mockOnError = jest.fn();
 
-      function CustomBam(): React.JSX.Element {
+      function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
         const thirdError = new Error('bam3');
@@ -378,7 +378,7 @@ describe('ErrorBoundary', () => {
     it('handles when `error.cause` is recursive', () => {
       const mockOnError = jest.fn();
 
-      function CustomBam(): React.JSX.Element {
+      function CustomBam(): JSX.Element {
         const firstError = new Error('bam');
         const secondError = new Error('bam2');
         // @ts-expect-error Need to set cause on error

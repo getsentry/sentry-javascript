@@ -201,9 +201,7 @@ function withErrorBoundary<P extends Record<string, any>>(
 
   // Copy over static methods from Wrapped component to Profiler HOC
   // See: https://reactjs.org/docs/higher-order-components.html#static-methods-must-be-copied-over
-  // Need to set type to any because of hoist-non-react-statics typing
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  hoistNonReactStatics(Wrapped, WrappedComponent as any);
+  hoistNonReactStatics(Wrapped, WrappedComponent);
   return Wrapped;
 }
 

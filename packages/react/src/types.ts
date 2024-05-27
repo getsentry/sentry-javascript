@@ -1,6 +1,5 @@
 // Disabling `no-explicit-any` for the whole file as `any` has became common requirement.
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { JSX } from 'react';
 
 export type Action = 'PUSH' | 'REPLACE' | 'POP';
 
