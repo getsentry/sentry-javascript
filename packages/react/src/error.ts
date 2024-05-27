@@ -56,7 +56,7 @@ export function captureReactException(
   // Although `componentDidCatch` is typed to accept an `Error` object, it can also be invoked
   // with non-error objects. This is why we need to check if the error is an error-like object.
   // See: https://github.com/getsentry/sentry-javascript/issues/6167
-  if (isAtLeastReact17(version) && isError(error)) {
+  if (isAtLeastReact17(version) && isError(error) && componentStack) {
     const errorBoundaryError = new Error(error.message);
     errorBoundaryError.name = `React ErrorBoundary ${error.name}`;
     errorBoundaryError.stack = componentStack;
