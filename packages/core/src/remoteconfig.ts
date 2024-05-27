@@ -30,7 +30,7 @@ export function remoteConfig({
     // Use cached configuration if it exists
     const cachedValue = storage.get(defaultConfigName);
     if (cachedValue) {
-      _activeConfig = JSON.parse(cachedValue);
+      _activeConfig = cachedValue;
       _source = 'CACHED';
       _state = 'INITIALIZED';
     }
@@ -67,7 +67,7 @@ export function remoteConfig({
             _pendingConfig = data;
             _hasUpdate = true;
 
-            storage.set(defaultConfigName, JSON.stringify(data));
+            storage.set(defaultConfigName, data);
             storage.set(`${defaultConfigName}_lastFetch`, +_lastFetch);
             // _state = "SUCCESS";
             resolve();

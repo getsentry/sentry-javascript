@@ -129,11 +129,25 @@ export class BrowserClient extends BaseClient<BrowserClientOptions> {
     }
 
     return {
-      get(key: string) {
-        return localStorage.getItem(getKey(key));
+      get(key: string): unknown {
+        const value = WINDOW.localStorage.getItem(getKey(key));
+
+        if (value === null) {
+          return value;
+        }
+
+        try {
+          return JSON.parse(value);
+        } catch {
+          return null;
+        }
       },
-      set(key: string, value: string) {
-        return localStorage.setItem(getKey(key), value);
+      set(key: string, value: any): void {
+        try {
+          WINDOW.localStorage.setItem(getKey(key), JSON.stringify(value));
+        } catch {
+          DEBUG_BUILD && logger.error('Unable to serialize configuration and save to localStorage');
+        }
       },
     };
   }
