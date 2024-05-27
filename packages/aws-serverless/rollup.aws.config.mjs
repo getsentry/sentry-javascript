@@ -5,7 +5,7 @@ export default [
   ...makeBundleConfigVariants(
     makeBaseBundleConfig({
       // this automatically sets it to be CJS
-      bundleType: 'node',
+      bundleType: 'aws-lambda',
       entrypoints: ['src/index.ts'],
       licenseTitle: '@sentry/aws-serverless',
       outputFileBase: () => 'index',
@@ -15,7 +15,6 @@ export default [
           sourcemap: false,
         },
       },
-      preserveModules: false,
     }),
     // We only need one copy of the SDK, and we pick the minified one because there's a cap on how big a lambda function
     // plus its dependencies can be, and we might as well take up as little of that space as is necessary. We'll rename
