@@ -16,7 +16,7 @@ export function isAtLeastReact17(reactVersion: string): boolean {
  * Recurse through `error.cause` chain to set cause on an error.
  */
 export function setCause(error: Error & { cause?: Error }, cause: Error): void {
-  const seenErrors = new WeakMap<Error, boolean>();
+  const seenErrors = new WeakSet();
 
   function recurse(error: Error & { cause?: Error }, cause: Error): void {
     // If we've already seen the error, there is a recursive loop somewhere in the error's
@@ -25,7 +25,7 @@ export function setCause(error: Error & { cause?: Error }, cause: Error): void {
       return;
     }
     if (error.cause) {
-      seenErrors.set(error, true);
+      seenErrors.add(error);
       return recurse(error.cause, cause);
     }
     error.cause = cause;
