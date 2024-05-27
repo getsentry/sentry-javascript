@@ -130,7 +130,6 @@ export function makeTerserPlugin() {
           '_sentryIsolationScope',
           // require-in-the-middle calls `Module._resolveFilename`. We cannot mangle this (AWS lambda layer bundle).
           '_resolveFilename',
-          '__proto__',
         ],
       },
     },
@@ -139,7 +138,6 @@ export function makeTerserPlugin() {
     },
   });
 }
-‘
 
 // We don't pass these plugins any options which need to be calculated or changed by us, so no need to wrap them in
 // another factory function, as they are themselves already factory functions.
