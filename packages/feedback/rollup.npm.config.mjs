@@ -16,8 +16,10 @@ export default makeNPMConfigVariants(
       },
     },
     sucrase: {
+      // The feedback widget is using preact so we need different pragmas and jsx runtimes
       jsxPragma: 'h',
       jsxFragmentPragma: 'Fragment',
+      jsxRuntime: 'classic',
     },
   }),
 );

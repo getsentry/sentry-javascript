@@ -48,11 +48,6 @@ export type VercelCronsConfig = { path?: string; schedule?: string }[] | undefin
 export type NextApiHandler = {
   (req: NextApiRequest, res: NextApiResponse): void | Promise<void> | unknown | Promise<unknown>;
   __sentry_route__?: string;
-
-  /**
-   * A property we set in our integration tests to simulate running an API route on platforms that don't support streaming.
-   */
-  __sentry_test_doesnt_support_streaming__?: true;
 };
 
 export type WrappedNextApiHandler = {

@@ -436,8 +436,6 @@ jobs:
         env:
           DEPENDENCY_CACHE_KEY: ${{ needs.job_build.outputs.dependency_cache_key }}
       - name: Run tests
-        env:
-          NODE_VERSION: 16
         run: yarn test-ci-browser
       - name: Compute test coverage
         uses: codecov/codecov-action@v4
@@ -1005,7 +1003,9 @@ jobs:
             'create-remix-app-express-vite-dev',
             'debug-id-sourcemaps',
             'node-express-esm-loader',
+            'node-express-esm-preload',
             'node-express-esm-without-loader',
+            'node-express-cjs-preload',
             'nextjs-app-dir',
             'nextjs-14',
             'nextjs-15',

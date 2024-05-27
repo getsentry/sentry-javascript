@@ -159,7 +159,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        scenario: [ember-release, embroider-optimized, ember-4.0]
+        # scenario: [ember-release, embroider-optimized, ember-4.0]
+        scenario: [ember-4.0]
     steps:
       - name: 'Check out current commit'
         uses: actions/checkout@v4

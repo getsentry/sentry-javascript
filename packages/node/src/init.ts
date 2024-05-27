@@ -1,4 +1,4 @@
-import { init } from './sdk/init';
+import { init } from './sdk';
 
 /**
  * The @sentry/node/init export can be used with the node --import and --require args to initialize the SDK entirely via

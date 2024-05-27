@@ -13,18 +13,22 @@ import {
   getRootSpan,
   spanToJSON,
 } from '@sentry/core';
-import { addOpenTelemetryInstrumentation } from '@sentry/opentelemetry';
 import type { IntegrationFn, Span } from '@sentry/types';
 import { logger } from '@sentry/utils';
 import { DEBUG_BUILD } from '../../../debug-build';
+import { generateInstrumentOnce } from '../../../otel/instrument';
 import { ensureIsWrapped } from '../../../utils/ensureIsWrapped';
 import type { Boom, RequestEvent, ResponseObject, Server } from './types';
 
+const INTEGRATION_NAME = 'Hapi';
+
+export const instrumentHapi = generateInstrumentOnce(INTEGRATION_NAME, () => new HapiInstrumentation());
+
 const _hapiIntegration = (() => {
   return {
-    name: 'Hapi',
+    name: INTEGRATION_NAME,
     setupOnce() {
-      addOpenTelemetryInstrumentation(new HapiInstrumentation());
+      instrumentHapi();
     },
   };
 }) satisfies IntegrationFn;

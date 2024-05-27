@@ -9,8 +9,10 @@ export default [
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback',
       sucrase: {
+        // The feedback widget is using preact so we need different pragmas and jsx runtimes
         jsxPragma: 'h',
         jsxFragmentPragma: 'Fragment',
+        jsxRuntime: 'classic',
       },
     }),
   ),
@@ -22,8 +24,10 @@ export default [
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback-screenshot',
       sucrase: {
+        // The feedback widget is using preact so we need different pragmas and jsx runtimes
         jsxPragma: 'h',
         jsxFragmentPragma: 'Fragment',
+        jsxRuntime: 'classic',
       },
     }),
   ),
@@ -35,8 +39,10 @@ export default [
       licenseTitle: '@sentry-internal/feedback',
       outputFileBase: () => 'bundles/feedback-modal',
       sucrase: {
+        // The feedback widget is using preact so we need different pragmas and jsx runtimes
         jsxPragma: 'h',
         jsxFragmentPragma: 'Fragment',
+        jsxRuntime: 'classic',
       },
     }),
   ),
