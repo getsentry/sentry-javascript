@@ -54,10 +54,10 @@ export function setCurrentClient(client: Client): void {
  * @see {@link ./asyncContext/stackStrategy.ts getAsyncContextStack}
  */
 function registerClientOnGlobalHub(client: Client): void {
-  const sentryGlobal = getSentryCarrier(getMainCarrier());
   try {
-    sentryGlobal.stack.getStackTop().client = client;
- } catch {
-   // ignore errors here
- }
+    // @ts-expect-error - purposefully not guarding the call here but try/catching for bundle size efficiency
+    getSentryCarrier(getMainCarrier()).stack.getStackTop().client = client;
+  } catch {
+    // ignore errors here
+  }
 }
