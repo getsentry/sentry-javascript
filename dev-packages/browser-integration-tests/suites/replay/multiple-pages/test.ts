@@ -155,6 +155,7 @@ sentryTest(
           headers: {
             // @ts-expect-error this is fine
             'User-Agent': expect.stringContaining(''),
+            Referer: 'http://sentry-test.io/index.html',
           },
         },
       }),
