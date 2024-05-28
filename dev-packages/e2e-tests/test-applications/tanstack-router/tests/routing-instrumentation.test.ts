@@ -59,7 +59,7 @@ test('sends a navigation transaction with a parameterized URL', async ({ page })
           'sentry.source': 'route',
           'sentry.origin': 'auto.navigation.react.tanstack_router',
           'sentry.op': 'navigation',
-          'params.id': '2',
+          'params.postId': '2',
         },
         op: 'navigation',
         origin: 'auto.navigation.react.tanstack_router',
