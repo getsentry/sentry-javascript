@@ -55,7 +55,9 @@ export function setCurrentClient(client: Client): void {
  */
 function registerClientOnGlobalHub(client: Client): void {
   const sentryGlobal = getSentryCarrier(getMainCarrier());
-  if (sentryGlobal.stack && typeof sentryGlobal.stack.getStackTop === 'function') {
+  try {
     sentryGlobal.stack.getStackTop().client = client;
-  }
+ } catch {
+   // ignore errors here
+ }
 }
