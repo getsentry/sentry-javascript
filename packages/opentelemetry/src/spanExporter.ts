@@ -31,6 +31,8 @@ import { parseSpanDescription } from './utils/parseSpanDescription';
 
 type SpanNodeCompleted = SpanNode & { span: ReadableSpan };
 
+const MAX_SPAN_COUNT = 1000;
+
 /**
  * A Sentry-specific exporter that converts OpenTelemetry Spans to Sentry Spans & Transactions.
  */
@@ -140,7 +142,12 @@ function maybeSend(spans: ReadableSpan[]): ReadableSpan[] {
       createAndFinishSpanForOtelSpan(child, spans, remaining);
     });
 
-    transactionEvent.spans = spans;
+    // spans.sort() mutates the array, but we do not use this anymore after this point
+    // so we can safely mutate it here
+    transactionEvent.spans =
+      spans.length > MAX_SPAN_COUNT
+        ? spans.sort((a, b) => a.start_timestamp - b.start_timestamp).slice(0, MAX_SPAN_COUNT)
+        : spans;
 
     const measurements = timedEventsToMeasurements(span.events);
     if (measurements) {
