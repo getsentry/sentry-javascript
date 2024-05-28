@@ -1,6 +1,5 @@
 import { expect, test } from '@playwright/test';
 import { waitForTransaction } from '@sentry-internal/event-proxy-server';
-import axios from 'axios';
 
 test('Sends successful transaction', async ({ baseURL }) => {
   const pageloadTransactionEventPromise = waitForTransaction('node-hapi', transactionEvent => {
@@ -9,10 +8,9 @@ test('Sends successful transaction', async ({ baseURL }) => {
     );
   });
 
-  await axios.get(`${baseURL}/test-success`);
+  await fetch(`${baseURL}/test-success`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent.contexts?.trace).toEqual({
     data: {
@@ -29,7 +27,7 @@ test('Sends successful transaction', async ({ baseURL }) => {
       'http.method': 'GET',
       'http.scheme': 'http',
       'http.target': '/test-success',
-      'http.user_agent': 'axios/1.6.7',
+      'http.user_agent': 'node',
       'http.flavor': '1.1',
       'net.transport': 'ip_tcp',
       'net.host.ip': expect.any(String),
@@ -90,10 +88,9 @@ test('Sends parameterized transactions to Sentry', async ({ baseURL }) => {
     );
   });
 
-  await axios.get(`${baseURL}/test-param/123`);
+  await fetch(`${baseURL}/test-param/123`);
 
   const transactionEvent = await pageloadTransactionEventPromise;
-  const transactionEventId = transactionEvent.event_id;
 
   expect(transactionEvent?.contexts?.trace?.op).toBe('http.server');
   expect(transactionEvent?.contexts?.trace?.data?.['http.route']).toBe('/test-param/{param}');
@@ -114,7 +111,7 @@ test('Isolates requests', async ({ baseURL }) => {
     );
   });
 
-  await Promise.all([axios.get(`${baseURL}/test-param/888`), axios.get(`${baseURL}/test-param/999`)]);
+  await Promise.all([fetch(`${baseURL}/test-param/888`), fetch(`${baseURL}/test-param/999`)]);
 
   const transaction1 = await transaction1Promise;
   const transaction2 = await transaction2Promise;
