@@ -15,12 +15,18 @@ export interface VendoredTanstackRouter {
   state: VendoredTanstackRouterState;
   matchRoutes: (
     pathname: string,
-    locationSearch: unknown,
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    locationSearch: {},
     opts?: {
       preload?: boolean;
       throwOnError?: boolean;
     },
   ) => Array<VendoredTanstackRouterRouteMatch>;
+  subscribe(
+    eventType: 'onResolved',
+    // eslint-disable-next-line @typescript-eslint/ban-types
+    callback: (stateUpdate: { toLocation: { pathname: string; search: {} } }) => void,
+  ): () => void;
 }
 
 export interface VendoredTanstackRouterHistory {
@@ -64,18 +70,18 @@ export function tanstackRouterBrowserTracingIntegration(
     afterAllSetup(client) {
       browserTracingIntegrationInstance.afterAllSetup(client);
 
-      const initialWindowLocationPathname = WINDOW.location && WINDOW.location.pathname;
-      if (instrumentPageLoad && initialWindowLocationPathname) {
+      const initialWindowLocation = WINDOW.location;
+      if (instrumentPageLoad && initialWindowLocation) {
         const matchedRoutes = castRouterInstance.matchRoutes(
-          initialWindowLocationPathname,
-          {},
+          initialWindowLocation.pathname,
+          initialWindowLocation.search,
           { preload: false, throwOnError: false },
         );
 
         const lastMatch = matchedRoutes[matchedRoutes.length - 1];
 
         startBrowserTracingPageLoadSpan(client, {
-          name: lastMatch ? lastMatch.routeId : initialWindowLocationPathname,
+          name: lastMatch ? lastMatch.routeId : initialWindowLocation.pathname,
           attributes: {
             [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'pageload',
             [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.pageload.react.tanstack_router',
@@ -87,22 +93,33 @@ export function tanstackRouterBrowserTracingIntegration(
 
       if (instrumentNavigation) {
         castRouterInstance.history.subscribe(() => {
-          const state = castRouterInstance.state;
-          const matches = state.pendingMatches || state.matches;
-
-          const lastMatch = matches[matches.length - 1];
-          const routeId = lastMatch && lastMatch.routeId;
-
-          const navigationPathname = WINDOW.location && WINDOW.location.pathname;
-
-          startBrowserTracingNavigationSpan(client, {
-            name: routeId || navigationPathname,
+          const navigationLocation = WINDOW.location;
+          const navigationSpan = startBrowserTracingNavigationSpan(client, {
+            name: navigationLocation.pathname,
             attributes: {
               [SEMANTIC_ATTRIBUTE_SENTRY_OP]: 'navigation',
               [SEMANTIC_ATTRIBUTE_SENTRY_ORIGIN]: 'auto.navigation.react.tanstack_router',
-              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: routeId ? 'route' : 'url',
-              ...routeMatchToParamSpanAttributes(lastMatch),
+              [SEMANTIC_ATTRIBUTE_SENTRY_SOURCE]: 'url',
             },
+          });
+
+          const unsubscribeOnResolved = castRouterInstance.subscribe('onResolved', stateUpdate => {
+            unsubscribeOnResolved();
+            if (navigationSpan) {
+              const matchedRoutes = castRouterInstance.matchRoutes(
+                stateUpdate.toLocation.pathname,
+                stateUpdate.toLocation.search,
+                { preload: false, throwOnError: false },
+              );
+
+              const lastMatch = matchedRoutes[matchedRoutes.length - 1];
+
+              if (lastMatch) {
+                navigationSpan.updateName(lastMatch.routeId);
+                navigationSpan.setAttribute(SEMANTIC_ATTRIBUTE_SENTRY_SOURCE, 'route');
+                navigationSpan.setAttributes(routeMatchToParamSpanAttributes(lastMatch));
+              }
+            }
           });
         });
       }
