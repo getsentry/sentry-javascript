@@ -1,5 +1,5 @@
 import type { Event, Exception, IntegrationFn, StackFrame } from '@sentry/types';
-import { logger, getFramesFromEvent } from '@sentry/utils';
+import { getFramesFromEvent, logger } from '@sentry/utils';
 import { defineIntegration } from '../integration';
 
 import { DEBUG_BUILD } from '../debug-build';
