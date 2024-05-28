@@ -24,7 +24,7 @@ test('Sends an exception to Sentry', async ({ page }) => {
       async () => {
         try {
           const response = await axios.get(
-            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}/`,
+            `https://sentry.io/api/0/projects/${sentryTestOrgSlug}/${sentryTestProject}/events/${exceptionEventId}XXX/`,
             { headers: { Authorization: `Bearer ${authToken}` } },
           );
           return response.status;
