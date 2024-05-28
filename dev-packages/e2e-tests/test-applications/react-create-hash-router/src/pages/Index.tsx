@@ -12,7 +12,6 @@ const Index = () => {
         id="exception-button"
         onClick={() => {
           const eventId = Sentry.captureException(new Error('I am an error!'));
-          window.capturedExceptionId = eventId;
         }}
       />
       <Link to="/user/5" id="navigation">
