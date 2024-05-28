@@ -103,6 +103,5 @@ export function getGlobalSingleton<T>(name: keyof SentryCarrier, creator: () => 
   const gbl = (obj || GLOBAL_OBJ) as InternalGlobal;
   const __SENTRY__ = (gbl.__SENTRY__ = gbl.__SENTRY__ || {});
   const versionedCarrier = (__SENTRY__[SDK_VERSION] = __SENTRY__[SDK_VERSION] || {});
-  const singleton = versionedCarrier[name] || (versionedCarrier[name] = creator());
-  return singleton;
+  return versionedCarrier[name] || (versionedCarrier[name] = creator());
 }

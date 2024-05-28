@@ -1,6 +1,5 @@
 import type { Client, Integration, MetricsAggregator, Scope, VersionString } from '@sentry/types';
-import { GLOBAL_OBJ } from '@sentry/utils';
-import { SDK_VERSION } from '@sentry/utils';
+import { GLOBAL_OBJ, SDK_VERSION } from '@sentry/utils';
 import type { AsyncContextStack } from './asyncContext/stackStrategy';
 import type { AsyncContextStrategy } from './asyncContext/types';
 

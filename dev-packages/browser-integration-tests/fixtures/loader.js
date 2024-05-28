@@ -101,9 +101,8 @@
     // carrier. This needs still needs to be added to the actual loader script before we
     // release the loader for v8!
     var v = e && e.version && e[e.version];
-    var c = v && v.stack && v.stack.getClient();
 
-    return !(void 0 === e || !e.hub || !e.hub.getClient()) || !!c;
+    return !(void 0 === e || !e.hub || !e.hub.getClient()) || !!v;
   }
   (n[i] = n[i] || {}),
     (n[i].onLoad = function (n) {

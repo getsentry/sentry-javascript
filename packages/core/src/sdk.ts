@@ -2,7 +2,6 @@ import type { Client, ClientOptions } from '@sentry/types';
 import { consoleSandbox, logger } from '@sentry/utils';
 import { getCurrentScope } from './currentScopes';
 
-import { getMainCarrier, getSentryCarrier } from './carrier';
 import { DEBUG_BUILD } from './debug-build';
 
 /** A class object that can instantiate Client objects. */
@@ -43,21 +42,4 @@ export function initAndBind<F extends Client, O extends ClientOptions>(
  */
 export function setCurrentClient(client: Client): void {
   getCurrentScope().setClient(client);
-  registerClientOnGlobalHub(client);
-}
-
-/**
- * Unfortunately, we still have to manually bind the client to the "stack" property set on the global
- * Sentry carrier object. This is because certain scripts (e.g. our loader script) obtain
- * the client via `window.__SENTRY__[version].stack.getClient()`.
- *
- * @see {@link ./asyncContext/stackStrategy.ts getAsyncContextStack}
- */
-function registerClientOnGlobalHub(client: Client): void {
-  try {
-    // @ts-expect-error - purposefully not guarding the call here but try/catching for bundle size efficiency
-    getSentryCarrier(getMainCarrier()).stack.getStackTop().client = client;
-  } catch {
-    // ignore errors here
-  }
 }
